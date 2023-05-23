@@ -22,7 +22,6 @@ import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.View;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -54,13 +53,13 @@ import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 public class TieredMessageStore extends AbstractPluginMessageStore {
-    private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
-    private final TieredMessageFetcher fetcher;
-    private final TieredDispatcher dispatcher;
-    private final String brokerName;
-    private final TieredMessageStoreConfig storeConfig;
-    private final TieredContainerManager containerManager;
-    private final TieredMetadataStore metadataStore;
+    protected static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    protected final TieredMessageFetcher fetcher;
+    protected final TieredDispatcher dispatcher;
+    protected final String brokerName;
+    protected final TieredMessageStoreConfig storeConfig;
+    protected final TieredContainerManager containerManager;
+    protected final TieredMetadataStore metadataStore;
 
     public TieredMessageStore(MessageStorePluginContext context, MessageStore next) {
         super(context, next);
@@ -70,6 +69,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         TieredStoreUtil.addSystemTopic(storeConfig.getBrokerClusterName());
         TieredStoreUtil.addSystemTopic(brokerName);
 
+        TieredStoreExecutor.init();
         this.metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
         this.fetcher = new TieredMessageFetcher(storeConfig);
         this.dispatcher = new TieredDispatcher(next, storeConfig);
@@ -99,6 +99,11 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
     public boolean viaTieredStorage(String topic, int queueId, long offset, int batchSize) {
         TieredMessageStoreConfig.TieredStorageLevel deepStorageLevel = storeConfig.getTieredStorageLevel();
+
+        if (deepStorageLevel.check(TieredMessageStoreConfig.TieredStorageLevel.FORCE)) {
+            return true;
+        }
+
         if (!deepStorageLevel.isEnable()) {
             return false;
         }
@@ -122,7 +127,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
             && !next.checkInMemByConsumeOffset(topic, queueId, offset, batchSize)) {
             return true;
         }
-        return deepStorageLevel.check(TieredMessageStoreConfig.TieredStorageLevel.FORCE);
+        return false;
     }
 
     @Override
@@ -148,7 +153,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                     if (result.getStatus() == GetMessageStatus.OFFSET_FOUND_NULL ||
                         result.getStatus() == GetMessageStatus.OFFSET_OVERFLOW_ONE ||
                         result.getStatus() == GetMessageStatus.OFFSET_OVERFLOW_BADLY) {
-                        if (next.checkInDiskByConsumeOffset(topic, queueId, offset)) {
+                        if (next.checkInStoreByConsumeOffset(topic, queueId, offset)) {
                             logger.debug("TieredMessageStore#getMessageAsync: not found message, try to get message from next store: topic: {}, queue: {}, queue offset: {}, tiered store result: {}, min offset: {}, max offset: {}",
                                 topic, queueId, offset, result.getStatus(), result.getMinOffset(), result.getMaxOffset());
                             TieredStoreMetricsManager.fallbackTotal.add(1, latencyAttributes);
@@ -320,8 +325,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
     @Override
     public List<Pair<InstrumentSelector, View>> getMetricsView() {
-        List<Pair<InstrumentSelector, View>> res = new ArrayList<>();
-        res.addAll(next.getMetricsView());
+        List<Pair<InstrumentSelector, View>> res = super.getMetricsView();
         res.addAll(TieredStoreMetricsManager.getMetricsView());
         return res;
     }

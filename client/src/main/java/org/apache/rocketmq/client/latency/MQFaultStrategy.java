@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.client.latency;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -62,12 +63,13 @@ public class MQFaultStrategy {
                 for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
                     int pos = index++ % tpInfo.getMessageQueueList().size();
                     MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
-                    if (latencyFaultTolerance.isAvailable(mq.getBrokerName()))
+                    if (!StringUtils.equals(lastBrokerName, mq.getBrokerName()) && latencyFaultTolerance.isAvailable(mq.getBrokerName())) {
                         return mq;
+                    }
                 }
 
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
-                int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
+                int writeQueueNums = tpInfo.getWriteQueueIdByBroker(notBestBroker);
                 if (writeQueueNums > 0) {
                     final MessageQueue mq = tpInfo.selectOneMessageQueue();
                     if (notBestBroker != null) {

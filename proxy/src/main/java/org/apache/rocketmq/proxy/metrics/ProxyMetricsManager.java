@@ -24,6 +24,7 @@ import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
+import io.opentelemetry.exporter.logging.LoggingMetricExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
@@ -40,10 +41,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_AGGREGATION;
@@ -65,6 +67,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
+    private LoggingMetricExporter loggingMetricExporter;
 
     public static ObservableLongGauge proxyUp = null;
 
@@ -122,6 +125,8 @@ public class ProxyMetricsManager implements StartAndShutdown {
             case OTLP_GRPC:
                 return StringUtils.isNotBlank(proxyConfig.getMetricsGrpcExporterTarget());
             case PROM:
+                return true;
+            case LOG:
                 return true;
         }
         return false;
@@ -213,6 +218,17 @@ public class ProxyMetricsManager implements StartAndShutdown {
             providerBuilder.registerMetricReader(prometheusHttpServer);
         }
 
+        if (metricsExporterType == BrokerConfig.MetricsExporterType.LOG) {
+            SLF4JBridgeHandler.removeHandlersForRootLogger();
+            SLF4JBridgeHandler.install();
+            loggingMetricExporter = LoggingMetricExporter.create(proxyConfig.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
+            java.util.logging.Logger.getLogger(LoggingMetricExporter.class.getName()).setLevel(java.util.logging.Level.FINEST);
+            periodicMetricReader = PeriodicMetricReader.builder(loggingMetricExporter)
+                .setInterval(proxyConfig.getMetricLoggingExporterIntervalInMills(), TimeUnit.MILLISECONDS)
+                .build();
+            providerBuilder.registerMetricReader(periodicMetricReader);
+        }
+
         Meter proxyMeter = OpenTelemetrySdk.builder()
             .setMeterProvider(providerBuilder.build())
             .build()
@@ -231,6 +247,11 @@ public class ProxyMetricsManager implements StartAndShutdown {
         if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
             prometheusHttpServer.forceFlush();
             prometheusHttpServer.shutdown();
+        }
+        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.LOG) {
+            periodicMetricReader.forceFlush();
+            periodicMetricReader.shutdown();
+            loggingMetricExporter.shutdown();
         }
     }
 }

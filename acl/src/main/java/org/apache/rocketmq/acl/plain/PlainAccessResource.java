@@ -17,10 +17,15 @@
 package org.apache.rocketmq.acl.plain;
 
 import apache.rocketmq.v2.AckMessageRequest;
+import apache.rocketmq.v2.ChangeInvisibleDurationRequest;
+import apache.rocketmq.v2.ClientType;
 import apache.rocketmq.v2.EndTransactionRequest;
 import apache.rocketmq.v2.ForwardMessageToDeadLetterQueueRequest;
 import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.Message;
+import apache.rocketmq.v2.NotifyClientTerminationRequest;
+import apache.rocketmq.v2.QueryAssignmentRequest;
+import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
@@ -178,13 +183,13 @@ public class PlainAccessResource implements AccessResource {
         // Content
         SortedMap<String, String> map = new TreeMap<>();
         for (Map.Entry<String, String> entry : request.getExtFields().entrySet()) {
+            if (request.getVersion() <= MQVersion.Version.V4_9_3.ordinal() &&
+                    MixAll.UNIQUE_MSG_QUERY_FLAG.equals(entry.getKey())) {
+                continue;
+            }
             if (!SessionCredentials.SIGNATURE.equals(entry.getKey())) {
                 map.put(entry.getKey(), entry.getValue());
             }
-        }
-        if (request.getVersion() <= MQVersion.Version.V4_9_3.ordinal()
-            && map.containsKey(MixAll.UNIQUE_MSG_QUERY_FLAG)) {
-            map.remove(MixAll.UNIQUE_MSG_QUERY_FLAG);
         }
         accessResource.setContent(AclUtils.combineRequestContent(request, map));
         return accessResource;
@@ -213,8 +218,13 @@ public class PlainAccessResource implements AccessResource {
             String rpcFullName = messageV3.getDescriptorForType().getFullName();
             if (HeartbeatRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 HeartbeatRequest request = (HeartbeatRequest) messageV3;
-                if (request.hasGroup()) {
-                    accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                if (ClientType.PUSH_CONSUMER.equals(request.getClientType())
+                    || ClientType.SIMPLE_CONSUMER.equals(request.getClientType())) {
+                    if (!request.hasGroup()) {
+                        throw new AclException("Consumer heartbeat doesn't have group");
+                    } else {
+                        accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                    }
                 }
             } else if (SendMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 SendMessageRequest request = (SendMessageRequest) messageV3;
@@ -259,7 +269,24 @@ public class PlainAccessResource implements AccessResource {
                             accessResource.addResourceAndPerm(entry.getTopic(), Permission.SUB);
                         }
                     }
+                    if (!command.getSettings().hasPublishing() && !command.getSettings().hasSubscription()) {
+                        throw new AclException("settings command doesn't have publishing or subscription");
+                    }
                 }
+            } else if (NotifyClientTerminationRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                NotifyClientTerminationRequest request = (NotifyClientTerminationRequest) messageV3;
+                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+            } else if (QueryRouteRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                QueryRouteRequest request = (QueryRouteRequest) messageV3;
+                accessResource.addResourceAndPerm(request.getTopic(), Permission.ANY);
+            } else if (QueryAssignmentRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                QueryAssignmentRequest request = (QueryAssignmentRequest) messageV3;
+                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addResourceAndPerm(request.getTopic(), Permission.SUB);
+            } else if (ChangeInvisibleDurationRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                ChangeInvisibleDurationRequest request = (ChangeInvisibleDurationRequest) messageV3;
+                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addResourceAndPerm(request.getTopic(), Permission.SUB);
             }
         } catch (Throwable t) {
             throw new AclException(t.getMessage(), t);

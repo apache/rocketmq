@@ -112,8 +112,6 @@ public class BrokerConfig extends BrokerIdentity {
     private int adminBrokerThreadPoolQueueCapacity = 10000;
     private int loadBalanceThreadPoolQueueCapacity = 100000;
 
-    private int filterServerNums = 0;
-
     private boolean longPollingEnable = true;
 
     private long shortPollingTimeMills = 1000;
@@ -130,7 +128,6 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean accountStatsPrintZeroValues = true;
 
     private boolean transferMsgByHeap = true;
-    private int maxDelayTime = 40;
 
     private String regionId = MixAll.DEFAULT_TRACE_REGION_ID;
     private int registerBrokerTimeoutMills = 24000;
@@ -263,7 +260,7 @@ public class BrokerConfig extends BrokerIdentity {
      * Transaction message check interval.
      */
     @ImportantField
-    private long transactionCheckInterval = 60 * 1000;
+    private long transactionCheckInterval = 30 * 1000;
 
     /**
      * transaction batch op message
@@ -345,10 +342,13 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private int brokerElectionPriority = Integer.MAX_VALUE;
 
+    private boolean useStaticSubscription = false;
+
     public enum MetricsExporterType {
         DISABLE(0),
         OTLP_GRPC(1),
-        PROM(2);
+        PROM(2),
+        LOG(3);
 
         private final int value;
 
@@ -366,6 +366,8 @@ public class BrokerConfig extends BrokerIdentity {
                     return OTLP_GRPC;
                 case 2:
                     return PROM;
+                case 3:
+                    return LOG;
                 default:
                     return DISABLE;
             }
@@ -382,6 +384,7 @@ public class BrokerConfig extends BrokerIdentity {
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
     private long metricGrpcExporterIntervalInMills = 60 * 1000;
+    private long metricLoggingExporterIntervalInMills = 10 * 1000;
 
     private int metricsPromExporterPort = 5557;
     private String metricsPromExporterHost = "";
@@ -398,6 +401,7 @@ public class BrokerConfig extends BrokerIdentity {
      * Estimate accumulation or not when subscription filter type is tag and is not SUB_ALL.
      */
     private boolean estimateAccumulation = true;
+
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -919,14 +923,6 @@ public class BrokerConfig extends BrokerIdentity {
         this.brokerTopicEnable = brokerTopicEnable;
     }
 
-    public int getFilterServerNums() {
-        return filterServerNums;
-    }
-
-    public void setFilterServerNums(int filterServerNums) {
-        this.filterServerNums = filterServerNums;
-    }
-
     public boolean isLongPollingEnable() {
         return longPollingEnable;
     }
@@ -957,14 +953,6 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setClientManageThreadPoolNums(int clientManageThreadPoolNums) {
         this.clientManageThreadPoolNums = clientManageThreadPoolNums;
-    }
-
-    public int getMaxDelayTime() {
-        return maxDelayTime;
-    }
-
-    public void setMaxDelayTime(final int maxDelayTime) {
-        this.maxDelayTime = maxDelayTime;
     }
 
     public int getClientManagerThreadPoolQueueCapacity() {
@@ -1567,6 +1555,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.metricGrpcExporterIntervalInMills = metricGrpcExporterIntervalInMills;
     }
 
+    public long getMetricLoggingExporterIntervalInMills() {
+        return metricLoggingExporterIntervalInMills;
+    }
+
+    public void setMetricLoggingExporterIntervalInMills(long metricLoggingExporterIntervalInMills) {
+        this.metricLoggingExporterIntervalInMills = metricLoggingExporterIntervalInMills;
+    }
+
     public String getMetricsLabel() {
         return metricsLabel;
     }
@@ -1645,5 +1641,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEstimateAccumulation(boolean estimateAccumulation) {
         this.estimateAccumulation = estimateAccumulation;
+    }
+
+    public boolean isUseStaticSubscription() {
+        return useStaticSubscription;
+    }
+
+    public void setUseStaticSubscription(boolean useStaticSubscription) {
+        this.useStaticSubscription = useStaticSubscription;
     }
 }

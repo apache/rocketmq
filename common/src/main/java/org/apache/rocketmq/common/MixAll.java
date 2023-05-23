@@ -43,6 +43,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
@@ -79,6 +81,8 @@ public class MixAll {
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final long MASTER_ID = 0L;
     public static final long FIRST_SLAVE_ID = 1L;
+
+    public static final long FIRST_BROKER_CONTROLLER_ID = 1L;
     public static final long CURRENT_JVM_PID = getPID();
     public final static int UNIT_PRE_SIZE_FOR_MSG = 28;
     public final static int ALL_ACK_IN_SYNC_STATE_SET = -1;
@@ -168,7 +172,7 @@ public class MixAll {
 
     public static long getPID() {
         String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
-        if (processName != null && processName.length() > 0) {
+        if (StringUtils.isNotEmpty(processName)) {
             try {
                 return Long.parseLong(processName.split("@")[0]);
             } catch (Exception e) {

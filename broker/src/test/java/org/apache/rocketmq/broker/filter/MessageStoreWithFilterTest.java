@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -159,7 +160,7 @@ public class MessageStoreWithFilterTest {
                                      long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
                 }
             }
-            , brokerConfig);
+            , brokerConfig, new ConcurrentHashMap<>());
 
         master.getDispatcherList().addFirst(new CommitLogDispatcher() {
             @Override

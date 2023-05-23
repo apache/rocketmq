@@ -70,13 +70,14 @@ import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.HISTOGRAM_PROVIDER_RPC_LATENCY;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.HISTOGRAM_UPLOAD_BYTES;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_FILE_TYPE;
-import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_QUEUE;
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_QUEUE_ID;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_TOPIC;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.STORAGE_MEDIUM_BLOB;
 
 public class TieredStoreMetricsManager {
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
     public static Supplier<AttributesBuilder> attributesBuilderSupplier;
+    private static String storageMedium = STORAGE_MEDIUM_BLOB;
 
     public static LongHistogram apiLatency = new NopLongHistogram();
 
@@ -113,7 +114,7 @@ public class TieredStoreMetricsManager {
             .build();
 
         View rpcLatencyView = View.builder()
-            .setAggregation(Aggregation.explicitBucketHistogram(Arrays.asList(1d, 10d, 100d, 200d, 400d, 600d, 800d, 1d * 1000, 1d * 1500, 1d * 3000)))
+            .setAggregation(Aggregation.explicitBucketHistogram(Arrays.asList(1d, 3d, 5d, 7d, 10d, 100d, 200d, 400d, 600d, 800d, 1d * 1000, 1d * 1500, 1d * 3000)))
             .setDescription("tiered_store_rpc_latency_view")
             .build();
 
@@ -137,6 +138,10 @@ public class TieredStoreMetricsManager {
         res.add(new Pair<>(uploadBufferSizeSelector, bufferSizeView));
         res.add(new Pair<>(downloadBufferSizeSelector, bufferSizeView));
         return res;
+    }
+
+    public static void setStorageMedium(String storageMedium) {
+        TieredStoreMetricsManager.storageMedium = storageMedium;
     }
 
     public static void init(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier,
@@ -181,13 +186,13 @@ public class TieredStoreMetricsManager {
 
                     Attributes commitLogAttributes = newAttributesBuilder()
                         .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE, mq.getQueueId())
+                        .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.COMMIT_LOG.name().toLowerCase())
                         .build();
                     measurement.record(Math.max(maxOffset - container.getDispatchOffset(), 0), commitLogAttributes);
                     Attributes consumeQueueAttributes = newAttributesBuilder()
                         .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE, mq.getQueueId())
+                        .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
                         .build();
                     measurement.record(Math.max(maxOffset - container.getConsumeQueueMaxOffset(), 0), consumeQueueAttributes);
@@ -209,7 +214,7 @@ public class TieredStoreMetricsManager {
 
                     Attributes commitLogAttributes = newAttributesBuilder()
                         .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE, mq.getQueueId())
+                        .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.COMMIT_LOG.name().toLowerCase())
                         .build();
                     long commitLogDispatchLatency = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), container.getDispatchOffset());
@@ -221,7 +226,7 @@ public class TieredStoreMetricsManager {
 
                     Attributes consumeQueueAttributes = newAttributesBuilder()
                         .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE, mq.getQueueId())
+                        .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
                         .build();
                     long consumeQueueDispatchOffset = container.getConsumeQueueMaxOffset();
@@ -307,7 +312,7 @@ public class TieredStoreMetricsManager {
                         MessageQueue mq = container.getMessageQueue();
                         Attributes attributes = newAttributesBuilder()
                             .put(LABEL_TOPIC, mq.getTopic())
-                            .put(LABEL_QUEUE, mq.getQueueId())
+                            .put(LABEL_QUEUE_ID, mq.getQueueId())
                             .build();
                         measurement.record(System.currentTimeMillis() - timestamp, attributes);
                     }
@@ -318,6 +323,6 @@ public class TieredStoreMetricsManager {
     public static AttributesBuilder newAttributesBuilder() {
         AttributesBuilder builder = attributesBuilderSupplier != null ? attributesBuilderSupplier.get() : Attributes.builder();
         return builder.put(LABEL_STORAGE_TYPE, "tiered")
-            .put(LABEL_STORAGE_MEDIUM, STORAGE_MEDIUM_BLOB);
+            .put(LABEL_STORAGE_MEDIUM, storageMedium);
     }
 }

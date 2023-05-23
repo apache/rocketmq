@@ -33,11 +33,11 @@ import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractCacheLoader;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -125,7 +125,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     protected static MessageQueueView getCacheMessageQueueWrapper(LoadingCache<String, MessageQueueView> topicCache,
         String key) throws Exception {
         MessageQueueView res = topicCache.get(key);
-        if (res.isEmptyCachedQueue()) {
+        if (res != null && res.isEmptyCachedQueue()) {
             throw new MQClientException(ResponseCode.TOPIC_NOT_EXIST,
                 "No topic route info in name server for the topic: " + key);
         }

@@ -28,6 +28,10 @@ find_java_home()
 {
     case "`uname`" in
         Darwin)
+          if [ -n "$JAVA_HOME" ]; then
+            JAVA_HOME=$JAVA_HOME
+            return
+          fi
             JAVA_HOME=$(/usr/libexec/java_home)
         ;;
         *)
@@ -116,5 +120,5 @@ then
 		numactl --cpunodebind=$RMQ_NUMA_NODE --membind=$RMQ_NUMA_NODE $JAVA ${JAVA_OPT} $@
 	fi
 else
-	$JAVA ${JAVA_OPT} $@
+	"$JAVA" ${JAVA_OPT} $@
 fi

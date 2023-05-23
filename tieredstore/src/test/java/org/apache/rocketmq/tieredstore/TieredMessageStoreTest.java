@@ -41,6 +41,7 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
 import org.apache.rocketmq.tieredstore.common.BoundaryType;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
 import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
@@ -67,10 +68,12 @@ public class TieredMessageStoreTest {
     private Configuration configuration;
     private TieredContainerManager containerManager;
 
+    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
+
     @Before
     public void setUp() {
         storeConfig = new MessageStoreConfig();
-        storeConfig.setStorePathRootDir(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID());
+        storeConfig.setStorePathRootDir(storePath);
         mq = new MessageQueue("TieredMessageStoreTest", "broker", 0);
 
         nextStore = Mockito.mock(DefaultMessageStore.class);
@@ -102,9 +105,10 @@ public class TieredMessageStoreTest {
 
     @After
     public void tearDown() throws IOException {
-        FileUtils.deleteDirectory(new File(FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID()));
-        TieredStoreUtil.getMetadataStore(store.getStoreConfig()).destroy();
-        TieredContainerManager.getInstance(store.getStoreConfig()).cleanup();
+        TieredStoreExecutor.shutdown();
+        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
     private void mockContainer() {
@@ -185,7 +189,7 @@ public class TieredMessageStoreTest {
         Properties properties = new Properties();
         properties.setProperty("tieredStorageLevel", "3");
         configuration.update(properties);
-        when(nextStore.checkInDiskByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
+        when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
         Assert.assertSame(result2, store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null));
     }
 
@@ -288,7 +292,7 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testShutdownAndDestroy() {
+        store.shutdown();
         store.destroy();
-//        store.shutdown();
     }
 }

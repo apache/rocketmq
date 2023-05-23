@@ -26,11 +26,11 @@ import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.junit.Assert;
 
 public class MemoryFileSegment extends TieredFileSegment {
-    private final ByteBuffer memStore;
+    protected final ByteBuffer memStore;
 
     public CompletableFuture<Boolean> blocker;
 
-    public static boolean checkSize = true;
+    protected boolean checkSize = true;
 
     public MemoryFileSegment(TieredFileSegment.FileSegmentType fileType, MessageQueue messageQueue, long baseOffset,
         TieredMessageStoreConfig storeConfig) {

@@ -29,6 +29,7 @@ import java.net.UnknownHostException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -63,6 +64,7 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -99,7 +101,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxIndexNum(100 * 10);
         messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "store");
         messageStoreConfig.setHaListenPort(0);
-        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
 
         boolean load = master.load();
         assertTrue(load);
@@ -144,7 +146,7 @@ public class DefaultMessageStoreTest {
         return new DefaultMessageStore(messageStoreConfig,
             new BrokerStatsManager("simpleTest", true),
             new MyMessageArrivingListener(),
-            new BrokerConfig());
+            new BrokerConfig(), new ConcurrentHashMap<>());
     }
 
     @Test
@@ -245,14 +247,10 @@ public class DefaultMessageStoreTest {
 
         ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
-            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
-            long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
+            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
             CqUnit cqUnit = consumeQueue.get(offset);
-            CqUnit cqUnit2 = consumeQueue.get(offset2);
             assertThat(cqUnit.getPos()).isEqualTo(appendMessageResult.getWroteOffset());
             assertThat(cqUnit.getSize()).isEqualTo(appendMessageResult.getWroteBytes());
-            assertThat(cqUnit2.getPos()).isEqualTo(appendMessageResult.getWroteOffset());
-            assertThat(cqUnit2.getSize()).isEqualTo(appendMessageResult.getWroteBytes());
         }
     }
 
@@ -268,14 +266,10 @@ public class DefaultMessageStoreTest {
 
         ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
-            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
-            long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
+            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
             CqUnit cqUnit = consumeQueue.get(offset);
-            CqUnit cqUnit2 = consumeQueue.get(offset2);
-            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResults[totalCount - 1].getWroteOffset());
-            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResults[totalCount - 1].getWroteBytes());
-            assertThat(cqUnit2.getPos()).isEqualTo(appendMessageResults[0].getWroteOffset());
-            assertThat(cqUnit2.getSize()).isEqualTo(appendMessageResults[0].getWroteBytes());
+            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResults[0].getWroteOffset());
+            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResults[0].getWroteBytes());
         }
     }
 
@@ -377,6 +371,17 @@ public class DefaultMessageStoreTest {
         assertThat(storeTime).isEqualTo(-1);
     }
 
+    @Test
+    public void testPutMessage_whenMessagePropertyIsTooLong() {
+        String topicName = "messagePropertyIsTooLongTest";
+        MessageExtBrokerInner illegalMessage = buildSpecifyLengthPropertyMessage("123".getBytes(StandardCharsets.UTF_8), topicName, Short.MAX_VALUE + 1);
+        assertEquals(messageStore.putMessage(illegalMessage).getPutMessageStatus(), PutMessageStatus.PROPERTIES_SIZE_EXCEEDED);
+        assertEquals(0L, messageStore.getQueueStore().getMaxOffset(topicName, 0).longValue());
+        MessageExtBrokerInner normalMessage = buildSpecifyLengthPropertyMessage("123".getBytes(StandardCharsets.UTF_8), topicName, 100);
+        assertEquals(messageStore.putMessage(normalMessage).getPutMessageStatus(), PutMessageStatus.PUT_OK);
+        assertEquals(1L, messageStore.getQueueStore().getMaxOffset(topicName, 0).longValue());
+    }
+
     private DefaultMessageStore getDefaultMessageStore() {
         return (DefaultMessageStore) this.messageStore;
     }
@@ -438,6 +443,26 @@ public class DefaultMessageStoreTest {
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
         msg.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(storeHost);
+        msg.setBornHost(bornHost);
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+        return msg;
+    }
+
+    private MessageExtBrokerInner buildSpecifyLengthPropertyMessage(byte[] messageBody, String topic, int length) {
+        StringBuilder stringBuilder = new StringBuilder();
+        Random random = new Random();
+        for (int i = 0; i < length; i++) {
+            stringBuilder.append(random.nextInt(10));
+        }
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.putUserProperty("test", stringBuilder.toString());
+        msg.setTopic(topic);
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody(messageBody);
+        msg.setQueueId(0);
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(storeHost);
         msg.setBornHost(bornHost);

@@ -163,8 +163,8 @@ public class PermissionTest {
         Assert.assertEquals(aclExceptionWithMessage.getStatus(),"CAL_SIGNATURE_FAILED");
         aclException.setCode(10016);
         Assert.assertEquals(aclException.getCode(),10016);
-        aclException.setStatus("netaddress examine scope Exception netaddress");
-        Assert.assertEquals(aclException.getStatus(),"netaddress examine scope Exception netaddress");
+        aclException.setStatus("netAddress examine scope Exception netAddress");
+        Assert.assertEquals(aclException.getStatus(),"netAddress examine scope Exception netAddress");
     }
 
     @Test

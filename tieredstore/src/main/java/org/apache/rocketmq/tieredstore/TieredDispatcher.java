@@ -72,11 +72,11 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         this.dispatchRequestWriteMap = new ConcurrentHashMap<>();
         this.dispatchRequestListLock = new ReentrantLock();
 
-        TieredStoreExecutor.COMMON_SCHEDULED_EXECUTOR.scheduleWithFixedDelay(() -> {
+        TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() -> {
             try {
                 for (TieredMessageQueueContainer container : tieredContainerManager.getAllMQContainer()) {
                     if (!container.getQueueLock().isLocked()) {
-                        TieredStoreExecutor.DISPATCH_EXECUTOR.execute(() -> {
+                        TieredStoreExecutor.dispatchExecutor.execute(() -> {
                             try {
                                 dispatchByMQContainer(container);
                             } catch (Throwable throwable) {
@@ -88,7 +88,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             } catch (Throwable ignore) {
             }
         }, 30, 10, TimeUnit.SECONDS);
-        TieredStoreExecutor.COMMON_SCHEDULED_EXECUTOR.scheduleWithFixedDelay(() -> {
+        TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() -> {
             try {
                 for (TieredMessageQueueContainer container : tieredContainerManager.getAllMQContainer()) {
                     container.flushMetadata();
@@ -166,7 +166,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 if (result == AppendResult.SUCCESS) {
                     Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
                         .put(TieredStoreMetricsConstant.LABEL_TOPIC, request.getTopic())
-                        .put(TieredStoreMetricsConstant.LABEL_QUEUE, request.getQueueId())
+                        .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, request.getQueueId())
                         .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.COMMIT_LOG.name().toLowerCase())
                         .build();
                     TieredStoreMetricsManager.messagesDispatchTotal.add(1, attributes);
@@ -180,7 +180,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         } else {
             if (!container.getQueueLock().isLocked()) {
                 try {
-                    TieredStoreExecutor.DISPATCH_EXECUTOR.execute(() -> {
+                    TieredStoreExecutor.dispatchExecutor.execute(() -> {
                         try {
                             dispatchByMQContainer(container);
                         } catch (Throwable throwable) {
@@ -233,13 +233,14 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
 
         try {
             long queueOffset = container.getDispatchOffset();
-            beforeOffset = queueOffset;
             if (minOffsetInQueue > queueOffset) {
+                logger.warn("BlobDispatcher#dispatchByMQContainer: message that needs to be dispatched does not exist: topic: {}, queueId: {}, message queue offset: {}, min queue offset: {}",
+                    topic, queueId, queueOffset, minOffsetInQueue);
                 container.initOffset(minOffsetInQueue);
                 queueOffset = minOffsetInQueue;
-                logger.warn("TieredDispatcher#dispatchByMQContainer: message that needs to be dispatched does not exist: topic: {}, queueId: {}, message queue offset: {}, min queue offset: {}",
-                    topic, queueId, queueOffset, minOffsetInQueue);
             }
+            beforeOffset = queueOffset;
+
             // TODO flow control based on message size
             long limit = Math.min(queueOffset + 100000, maxOffsetInQueue);
             ConsumeQueue consumeQueue = (ConsumeQueue) defaultStore.getConsumeQueue(topic, queueId);
@@ -271,7 +272,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             }
             Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
                 .put(TieredStoreMetricsConstant.LABEL_TOPIC, mq.getTopic())
-                .put(TieredStoreMetricsConstant.LABEL_QUEUE, mq.getQueueId())
+                .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, mq.getQueueId())
                 .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.COMMIT_LOG.name().toLowerCase())
                 .build();
             TieredStoreMetricsManager.messagesDispatchTotal.add(queueOffset - beforeOffset, attributes);
@@ -280,7 +281,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         }
         // If this queue dispatch falls too far, dispatch again immediately
         if (container.getDispatchOffset() < maxOffsetInQueue && !container.getQueueLock().isLocked()) {
-            TieredStoreExecutor.DISPATCH_EXECUTOR.execute(() -> {
+            TieredStoreExecutor.dispatchExecutor.execute(() -> {
                 try {
                     dispatchByMQContainer(container);
                 } catch (Throwable throwable) {
@@ -290,7 +291,8 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         }
     }
 
-    public void handleAppendCommitLogResult(AppendResult result, TieredMessageQueueContainer container, long queueOffset,
+    public void handleAppendCommitLogResult(AppendResult result, TieredMessageQueueContainer container,
+        long queueOffset,
         long dispatchOffset, long newCommitLogOffset, int size, long tagCode, ByteBuffer message) {
         MessageQueue mq = container.getMessageQueue();
         String topic = mq.getTopic();
@@ -449,7 +451,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         cqMetricsMap.forEach((messageQueue, count) -> {
             Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
                 .put(TieredStoreMetricsConstant.LABEL_TOPIC, messageQueue.getTopic())
-                .put(TieredStoreMetricsConstant.LABEL_QUEUE, messageQueue.getQueueId())
+                .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, messageQueue.getQueueId())
                 .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
                 .build();
             TieredStoreMetricsManager.messagesDispatchTotal.add(count, attributes);
@@ -457,7 +459,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         ifMetricsMap.forEach((messageQueue, count) -> {
             Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
                 .put(TieredStoreMetricsConstant.LABEL_TOPIC, messageQueue.getTopic())
-                .put(TieredStoreMetricsConstant.LABEL_QUEUE, messageQueue.getQueueId())
+                .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, messageQueue.getQueueId())
                 .put(TieredStoreMetricsConstant.LABEL_FILE_TYPE, TieredFileSegment.FileSegmentType.INDEX.name().toLowerCase())
                 .build();
             TieredStoreMetricsManager.messagesDispatchTotal.add(count, attributes);

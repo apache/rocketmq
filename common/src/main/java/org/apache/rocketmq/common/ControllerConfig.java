@@ -25,6 +25,7 @@ public class ControllerConfig {
 
     /**
      * Interval of periodic scanning for non-active broker;
+     * Unit: millisecond
      */
     private long scanNotActiveBrokerInterval = 5 * 1000;
 
@@ -58,6 +59,11 @@ public class ControllerConfig {
      * Whether notify broker when its role changed
      */
     private volatile boolean notifyBrokerRoleChanged = true;
+    /**
+     * Interval of periodic scanning for non-active master in each broker-set;
+     * Unit: millisecond
+     */
+    private long scanInactiveMasterInterval = 5 * 1000;
 
     public String getRocketmqHome() {
         return rocketmqHome;
@@ -161,5 +167,13 @@ public class ControllerConfig {
 
     public void setNotifyBrokerRoleChanged(boolean notifyBrokerRoleChanged) {
         this.notifyBrokerRoleChanged = notifyBrokerRoleChanged;
+    }
+
+    public long getScanInactiveMasterInterval() {
+        return scanInactiveMasterInterval;
+    }
+
+    public void setScanInactiveMasterInterval(long scanInactiveMasterInterval) {
+        this.scanInactiveMasterInterval = scanInactiveMasterInterval;
     }
 }

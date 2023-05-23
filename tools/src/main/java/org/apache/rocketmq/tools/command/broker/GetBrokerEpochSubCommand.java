@@ -116,8 +116,9 @@ public class GetBrokerEpochSubCommand implements SubCommand {
                 if (i == epochList.size() - 1) {
                     epochEntry.setEndOffset(epochCache.getMaxOffset());
                 }
-                System.out.printf("\n#Epoch: %s\n", epochEntry.toString());
+                System.out.printf("\n#Epoch: %s", epochEntry.toString());
             }
+            System.out.print("\n");
         }
     }
 }

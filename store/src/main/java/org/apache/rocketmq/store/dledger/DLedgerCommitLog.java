@@ -264,6 +264,23 @@ public class DLedgerCommitLog extends CommitLog {
 
         return null;
     }
+     
+    @Override
+    public boolean getData(final long offset, final int size, final ByteBuffer byteBuffer) {
+        if (offset < dividedCommitlogOffset) {
+            return super.getData(offset, size, byteBuffer);
+        }
+        if (offset >= dLedgerFileStore.getCommittedPos()) {
+            return false;
+        }
+        int mappedFileSize = this.dLedgerServer.getdLedgerConfig().getMappedFileSizeForEntryData();
+        MmapFile mappedFile = this.dLedgerFileList.findMappedFileByOffset(offset, offset == 0);
+        if (mappedFile != null) {
+            int pos = (int) (offset % mappedFileSize);
+            return mappedFile.getData(pos, size, byteBuffer);
+        }
+        return false;
+    }
 
     private void recover(long maxPhyOffsetOfConsumeQueue) {
         dLedgerFileStore.load();
@@ -418,7 +435,7 @@ public class DLedgerCommitLog extends CommitLog {
         String topicQueueKey = msg.getTopic() + "-" + msg.getQueueId();
         topicQueueLock.lock(topicQueueKey);
         try {
-            defaultMessageStore.assignOffset(msg, getMessageNum(msg));
+            defaultMessageStore.assignOffset(msg);
 
             encodeResult = this.messageSerializer.serialize(msg);
             if (encodeResult.status != AppendMessageStatus.PUT_OK) {
@@ -458,6 +475,8 @@ public class DLedgerCommitLog extends CommitLog {
             if (elapsedTimeInLock > 500) {
                 log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, appendResult);
             }
+
+            defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
         } finally {
             topicQueueLock.unlock(topicQueueKey);
         }
@@ -539,7 +558,7 @@ public class DLedgerCommitLog extends CommitLog {
         int batchNum = encodeResult.batchData.size();
         topicQueueLock.lock(encodeResult.queueOffsetKey);
         try {
-            defaultMessageStore.assignOffset(messageExtBatch, (short) batchNum);
+            defaultMessageStore.assignOffset(messageExtBatch);
 
             putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
             msgIdBuilder.setLength(0);
@@ -599,6 +618,9 @@ public class DLedgerCommitLog extends CommitLog {
                 log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}",
                     elapsedTimeInLock, messageExtBatch.getBody().length, appendResult);
             }
+
+            defaultMessageStore.increaseOffset(messageExtBatch, (short) batchNum);
+
         } finally {
             topicQueueLock.unlock(encodeResult.queueOffsetKey);
         }

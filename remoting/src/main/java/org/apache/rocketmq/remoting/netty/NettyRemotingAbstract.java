@@ -43,6 +43,7 @@ import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -70,7 +71,7 @@ public abstract class NettyRemotingAbstract {
     /**
      * Remoting logger instance.
      */
-    private static final Logger log = LoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
 
     /**
      * Semaphore to limit maximum number of on-going one-way requests, which protects system memory footprint.
@@ -204,8 +205,8 @@ public abstract class NettyRemotingAbstract {
         }
         AttributesBuilder attributesBuilder = RemotingMetricsManager.newAttributesBuilder()
             .put(LABEL_IS_LONG_POLLING, request.isSuspended())
-            .put(LABEL_REQUEST_CODE, RemotingMetricsManager.getRequestCodeDesc(request.getCode()))
-            .put(LABEL_RESPONSE_CODE, RemotingMetricsManager.getResponseCodeDesc(response.getCode()));
+            .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
+            .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()));
         if (request.isOnewayRPC()) {
             attributesBuilder.put(LABEL_RESULT, RESULT_ONEWAY);
             RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
@@ -286,7 +287,7 @@ public abstract class NettyRemotingAbstract {
             writeResponse(ctx.channel(), cmd, response);
         } catch (Throwable e) {
             AttributesBuilder attributesBuilder = RemotingMetricsManager.newAttributesBuilder()
-                .put(LABEL_REQUEST_CODE, RemotingMetricsManager.getRequestCodeDesc(cmd.getCode()))
+                .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(cmd.getCode()))
                 .put(LABEL_RESULT, RESULT_PROCESS_REQUEST_FAILED);
             RemotingMetricsManager.rpcLatency.record(cmd.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
         }

@@ -22,13 +22,11 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Random;
 import java.util.Set;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -41,9 +39,8 @@ public class TopicQueueMappingUtils {
         Map<String, Integer> brokerNumMap = new HashMap<>();
         Map<Integer, String> idToBroker = new HashMap<>();
         //used for remapping
-        Map<String, Integer> brokerNumMapBeforeRemapping = null;
+        Map<String, Integer> brokerNumMapBeforeRemapping;
         int currentIndex = 0;
-        Random random = new Random();
         List<String> leastBrokers = new ArrayList<>();
         private MappingAllocator(Map<Integer, String> idToBroker, Map<String, Integer> brokerNumMap, Map<String, Integer> brokerNumMapBeforeRemapping) {
             this.idToBroker.putAll(idToBroker);
@@ -65,18 +62,15 @@ public class TopicQueueMappingUtils {
             //reduce the remapping
             if (brokerNumMapBeforeRemapping != null
                     && !brokerNumMapBeforeRemapping.isEmpty()) {
-                Collections.sort(leastBrokers, new Comparator<String>() {
-                    @Override
-                    public int compare(String o1, String o2) {
-                        int i1 = 0, i2 = 0;
-                        if (brokerNumMapBeforeRemapping.containsKey(o1)) {
-                            i1 = brokerNumMapBeforeRemapping.get(o1);
-                        }
-                        if (brokerNumMapBeforeRemapping.containsKey(o2)) {
-                            i2 = brokerNumMapBeforeRemapping.get(o2);
-                        }
-                        return i1 - i2;
+                leastBrokers.sort((o1, o2) -> {
+                    int i1 = 0, i2 = 0;
+                    if (brokerNumMapBeforeRemapping.containsKey(o1)) {
+                        i1 = brokerNumMapBeforeRemapping.get(o1);
                     }
+                    if (brokerNumMapBeforeRemapping.containsKey(o2)) {
+                        i2 = brokerNumMapBeforeRemapping.get(o2);
+                    }
+                    return i1 - i2;
                 });
             } else {
                 //reduce the imbalance
@@ -151,7 +145,7 @@ public class TopicQueueMappingUtils {
             || brokerConfigMap.isEmpty()) {
             return null;
         }
-        //make sure it it not null
+        //make sure it is not null
         long maxEpoch = -1;
         int maxNum = -1;
         String scope = null;
@@ -224,7 +218,7 @@ public class TopicQueueMappingUtils {
                 //the earliest item may have been deleted concurrently
                 inew++;
             } else if (oldItem.getGen() < newItem.getGen()) {
-                //in the following cases, the new item-list has less items than old item-list
+                //in the following cases, the new item-list has fewer items than old item-list
                 //1. the queue is mapped back to a broker which hold the logic queue before
                 //2. The earliest item is deleted by  TopicQueueMappingCleanService
                 iold++;
@@ -344,12 +338,7 @@ public class TopicQueueMappingUtils {
 
 
     public static Map<Integer, TopicQueueMappingOne> checkAndBuildMappingItems(List<TopicQueueMappingDetail> mappingDetailList, boolean replace, boolean checkConsistence) {
-        Collections.sort(mappingDetailList, new Comparator<TopicQueueMappingDetail>() {
-            @Override
-            public int compare(TopicQueueMappingDetail o1, TopicQueueMappingDetail o2) {
-                return (int)(o2.getEpoch() - o1.getEpoch());
-            }
-        });
+        mappingDetailList.sort((o1, o2) -> (int) (o2.getEpoch() - o1.getEpoch()));
 
         int maxNum = 0;
         Map<Integer, TopicQueueMappingOne> globalIdMap = new HashMap<>();

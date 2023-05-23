@@ -50,6 +50,7 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_api",
         "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
         "@maven//:io_opentelemetry_opentelemetry_exporter_prometheus",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_logging",
         "@maven//:io_opentelemetry_opentelemetry_sdk",
         "@maven//:io_opentelemetry_opentelemetry_sdk_common",
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
@@ -59,6 +60,7 @@ java_library(
         "@maven//:org_lz4_lz4_java",
         "@maven//:org_slf4j_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
+        "@maven//:org_slf4j_jul_to_slf4j",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
     ],
 )
@@ -100,7 +102,8 @@ java_library(
         "@maven//:org_checkerframework_checker_qual",
         "@maven//:org_slf4j_slf4j_api",
         "@maven//:org_springframework_spring_core",
-	"@maven//:org_jetbrains_annotations",
+    	"@maven//:org_jetbrains_annotations",
+        "@maven//:org_slf4j_jul_to_slf4j",
     ],
 )
 

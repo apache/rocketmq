@@ -184,8 +184,16 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 maxReconsumeTimes = requestHeader.getMaxReconsumeTimes();
             }
             int reconsumeTimes = requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes();
-            // Using '>' instead of '>=' to compatible with the case that reconsumeTimes here are increased by client.
-            if (reconsumeTimes > maxReconsumeTimes) {
+
+            boolean sendRetryMessageToDeadLetterQueueDirectly = false;
+            if (!brokerController.getRebalanceLockManager().isLockAllExpired(groupName)) {
+                LOGGER.info("Group has unexpired lock record, which show it is ordered message, send it to DLQ "
+                        + "right now group={}, topic={}, reconsumeTimes={}, maxReconsumeTimes={}.", groupName,
+                    newTopic, reconsumeTimes, maxReconsumeTimes);
+                sendRetryMessageToDeadLetterQueueDirectly = true;
+            }
+
+            if (reconsumeTimes > maxReconsumeTimes || sendRetryMessageToDeadLetterQueueDirectly) {
                 Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
                     .put(LABEL_CONSUMER_GROUP, requestHeader.getProducerGroup())
                     .put(LABEL_TOPIC, requestHeader.getTopic())
@@ -390,6 +398,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 response.setCode(ResponseCode.SYSTEM_ERROR);
                 response.setRemark(String.format("accurate timer message is not enabled, timerWheelEnable is %s",
                      this.brokerController.getMessageStoreConfig().isTimerWheelEnable()));
+                break;
             case SERVICE_NOT_AVAILABLE:
                 response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                 response.setRemark(
@@ -429,7 +438,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             this.brokerController.getBrokerStatsManager().incTopicPutNums(msg.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
             this.brokerController.getBrokerStatsManager().incTopicPutSize(msg.getTopic(),
                 putMessageResult.getAppendMessageResult().getWroteBytes());
-            this.brokerController.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
+            this.brokerController.getBrokerStatsManager().incBrokerPutNums(msg.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum());
             this.brokerController.getBrokerStatsManager().incTopicPutLatency(msg.getTopic(), queueIdInt,
                 (int) (this.brokerController.getMessageStore().now() - beginTimeMillis));
 
@@ -491,10 +500,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 int wroteSize = request.getBody().length;
                 int msgNum = Math.max(appendMessageResult != null ? appendMessageResult.getMsgNum() : 1, 1);
                 int commercialMsgNum = (int) Math.ceil(wroteSize / (double) commercialSizePerMsg);
-                int incValue = commercialMsgNum;
 
                 sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_FAILURE);
-                sendMessageContext.setCommercialSendTimes(incValue);
+                sendMessageContext.setCommercialSendTimes(commercialMsgNum);
                 sendMessageContext.setCommercialSendSize(wroteSize);
                 sendMessageContext.setCommercialOwner(owner);
 

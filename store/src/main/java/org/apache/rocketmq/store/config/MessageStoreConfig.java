@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
+
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
@@ -38,8 +39,10 @@ public class MessageStoreConfig {
 
     //The directory in which the epochFile is kept
     @ImportantField
-    private String storePathEpochFile = System.getProperty("user.home") + File.separator + "store"
-        + File.separator + "epochFileCheckpoint";
+    private String storePathEpochFile = null;
+
+    @ImportantField
+    private String storePathBrokerIdentity = null;
 
     private String readOnlyCommitLogStorePaths = null;
 
@@ -56,7 +59,7 @@ public class MessageStoreConfig {
 
     private int maxOffsetMapSize = 100 * 1024 * 1024;
 
-    private int compactionThreadNum = 0;
+    private int compactionThreadNum = 6;
 
     private boolean enableCompaction = true;
 
@@ -81,8 +84,8 @@ public class MessageStoreConfig {
     /**
      * 1. Register to broker after (startTime + disappearTimeAfterStart)
      * 2. Internal msg exchange will start after (startTime + disappearTimeAfterStart)
-     *  A. PopReviveService
-     *  B. TimerDequeueGetService
+     * A. PopReviveService
+     * B. TimerDequeueGetService
      */
     @ImportantField
     private int disappearTimeAfterStart = -1;
@@ -315,7 +318,7 @@ public class MessageStoreConfig {
     private int minInSyncReplicas = 1;
 
     /**
-     * Each message must be written successfully to all replicas in InSyncStateSet.
+     * Each message must be written successfully to all replicas in SyncStateSet.
      */
     @ImportantField
     private boolean allAckInSyncStateSet = false;
@@ -375,6 +378,13 @@ public class MessageStoreConfig {
      * Number of matched records before starting to estimate.
      */
     private int sampleCountThreshold = 5000;
+
+    /**
+     * Build ConsumeQueue concurrently with multi-thread
+     */
+    private boolean enableBuildConsumeQueueConcurrently = false;
+
+    private int batchDispatchRequestThreadPoolNums = 16;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -620,11 +630,25 @@ public class MessageStoreConfig {
     }
 
     public String getStorePathEpochFile() {
+        if (storePathEpochFile == null) {
+            return storePathRootDir + File.separator + "epochFileCheckpoint";
+        }
         return storePathEpochFile;
     }
 
     public void setStorePathEpochFile(String storePathEpochFile) {
         this.storePathEpochFile = storePathEpochFile;
+    }
+
+    public String getStorePathBrokerIdentity() {
+        if (storePathBrokerIdentity == null) {
+            return storePathRootDir + File.separator + "brokerIdentity";
+        }
+        return storePathBrokerIdentity;
+    }
+
+    public void setStorePathBrokerIdentity(String storePathBrokerIdentity) {
+        this.storePathBrokerIdentity = storePathBrokerIdentity;
     }
 
     public String getDeleteWhen() {
@@ -1060,6 +1084,7 @@ public class MessageStoreConfig {
     public void setReadOnlyCommitLogStorePaths(String readOnlyCommitLogStorePaths) {
         this.readOnlyCommitLogStorePaths = readOnlyCommitLogStorePaths;
     }
+
     public String getdLegerGroup() {
         return dLegerGroup;
     }
@@ -1463,6 +1488,7 @@ public class MessageStoreConfig {
     public int getMappedFileSizeTimerLog() {
         return mappedFileSizeTimerLog;
     }
+
     public void setMappedFileSizeTimerLog(final int mappedFileSizeTimerLog) {
         this.mappedFileSizeTimerLog = mappedFileSizeTimerLog;
     }
@@ -1470,6 +1496,7 @@ public class MessageStoreConfig {
     public int getTimerPrecisionMs() {
         return timerPrecisionMs;
     }
+
     public void setTimerPrecisionMs(int timerPrecisionMs) {
         int[] candidates = {100, 200, 500, 1000};
         for (int i = 1; i < candidates.length; i++) {
@@ -1480,9 +1507,11 @@ public class MessageStoreConfig {
         }
         this.timerPrecisionMs = candidates[candidates.length - 1];
     }
+
     public int getTimerRollWindowSlot() {
         return timerRollWindowSlot;
     }
+
     public int getTimerGetMessageThreadNum() {
         return timerGetMessageThreadNum;
     }
@@ -1494,9 +1523,11 @@ public class MessageStoreConfig {
     public int getTimerPutMessageThreadNum() {
         return timerPutMessageThreadNum;
     }
+
     public void setTimerPutMessageThreadNum(int timerPutMessageThreadNum) {
         this.timerPutMessageThreadNum = timerPutMessageThreadNum;
     }
+
     public boolean isTimerEnableDisruptor() {
         return timerEnableDisruptor;
     }
@@ -1508,12 +1539,15 @@ public class MessageStoreConfig {
     public void setTimerEnableCheckMetrics(boolean timerEnableCheckMetrics) {
         this.timerEnableCheckMetrics = timerEnableCheckMetrics;
     }
+
     public boolean isTimerStopEnqueue() {
         return timerStopEnqueue;
     }
+
     public void setTimerStopEnqueue(boolean timerStopEnqueue) {
         this.timerStopEnqueue = timerStopEnqueue;
     }
+
     public String getTimerCheckMetricsWhen() {
         return timerCheckMetricsWhen;
     }
@@ -1526,9 +1560,10 @@ public class MessageStoreConfig {
         return timerWarmEnable;
     }
 
-    public  boolean isTimerWheelEnable() {
+    public boolean isTimerWheelEnable() {
         return timerWheelEnable;
     }
+
     public void setTimerWheelEnable(boolean timerWheelEnable) {
         this.timerWheelEnable = timerWheelEnable;
     }
@@ -1548,10 +1583,12 @@ public class MessageStoreConfig {
     public int getTimerCongestNumEachSlot() {
         return timerCongestNumEachSlot;
     }
+
     public void setTimerCongestNumEachSlot(int timerCongestNumEachSlot) {
         // In order to get this value from messageStoreConfig properties file created before v4.4.1.
         this.timerCongestNumEachSlot = timerCongestNumEachSlot;
     }
+
     public int getTimerFlushIntervalMs() {
         return timerFlushIntervalMs;
     }
@@ -1559,9 +1596,11 @@ public class MessageStoreConfig {
     public void setTimerFlushIntervalMs(final int timerFlushIntervalMs) {
         this.timerFlushIntervalMs = timerFlushIntervalMs;
     }
+
     public void setTimerRollWindowSlot(final int timerRollWindowSlot) {
         this.timerRollWindowSlot = timerRollWindowSlot;
     }
+
     public int getTimerProgressLogIntervalMs() {
         return timerProgressLogIntervalMs;
     }
@@ -1581,6 +1620,7 @@ public class MessageStoreConfig {
     public int getTimerMaxDelaySec() {
         return timerMaxDelaySec;
     }
+
     public void setTimerMaxDelaySec(final int timerMaxDelaySec) {
         this.timerMaxDelaySec = timerMaxDelaySec;
     }
@@ -1599,5 +1639,21 @@ public class MessageStoreConfig {
 
     public void setSampleCountThreshold(int sampleCountThreshold) {
         this.sampleCountThreshold = sampleCountThreshold;
+    }
+
+    public boolean isEnableBuildConsumeQueueConcurrently() {
+        return enableBuildConsumeQueueConcurrently;
+    }
+
+    public void setEnableBuildConsumeQueueConcurrently(boolean enableBuildConsumeQueueConcurrently) {
+        this.enableBuildConsumeQueueConcurrently = enableBuildConsumeQueueConcurrently;
+    }
+
+    public int getBatchDispatchRequestThreadPoolNums() {
+        return batchDispatchRequestThreadPoolNums;
+    }
+
+    public void setBatchDispatchRequestThreadPoolNums(int batchDispatchRequestThreadPoolNums) {
+        this.batchDispatchRequestThreadPoolNums = batchDispatchRequestThreadPoolNums;
     }
 }

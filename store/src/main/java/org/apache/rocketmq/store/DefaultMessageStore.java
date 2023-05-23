@@ -42,14 +42,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
@@ -184,13 +190,30 @@ public class DefaultMessageStore implements MessageStore {
 
     private int maxDelayLevel;
 
+    private final AtomicInteger mappedPageHoldCount = new AtomicInteger(0);
+
+    private final ConcurrentLinkedQueue<BatchDispatchRequest> batchDispatchRequestQueue = new ConcurrentLinkedQueue<>();
+
+    private int dispatchRequestOrderlyQueueSize = 16;
+
+    private final DispatchRequestOrderlyQueue dispatchRequestOrderlyQueue = new DispatchRequestOrderlyQueue(dispatchRequestOrderlyQueueSize);
+
+    private long stateMachineVersion = 0L;
+
+    // this is a unmodifiableMap
+    private ConcurrentMap<String, TopicConfig> topicConfigTable;
+
+    private final ScheduledExecutorService scheduledCleanQueueExecutorService =
+        Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
+
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
-        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
+        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.aliveReplicasNum = messageStoreConfig.getTotalReplicas();
         this.brokerStatsManager = brokerStatsManager;
+        this.topicConfigTable = topicConfigTable;
         this.allocateMappedFileService = new AllocateMappedFileService(this);
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             this.commitLog = new DLedgerCommitLog(this);
@@ -220,7 +243,11 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
-        this.reputMessageService = new ReputMessageService();
+        if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
+            this.reputMessageService = new ReputMessageService();
+        } else {
+            this.reputMessageService = new ConcurrentReputMessageService();
+        }
 
         this.transientStorePool = new TransientStorePool(this);
 
@@ -308,10 +335,13 @@ public class DefaultMessageStore implements MessageStore {
                     new StoreCheckpoint(
                         StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
                 this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
+                setConfirmOffset(this.storeCheckpoint.getConfirmPhyOffset());
+
                 result = this.indexService.load(lastExitOK);
                 this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
+
 
             long maxOffset = this.getMaxPhyOffset();
             this.setBrokerInitMaxOffset(maxOffset);
@@ -362,9 +392,6 @@ public class DefaultMessageStore implements MessageStore {
 
         this.flushConsumeQueueService.start();
         this.commitLog.start();
-        if (messageStoreConfig.isEnableCompaction() && this.compactionService != null) {
-            this.compactionService.start();
-        }
         this.storeStatsService.start();
 
         if (this.haService != null) {
@@ -436,7 +463,11 @@ public class DefaultMessageStore implements MessageStore {
             this.shutdown = true;
 
             this.scheduledExecutorService.shutdown();
+            this.scheduledCleanQueueExecutorService.shutdown();
+
             try {
+                this.scheduledExecutorService.awaitTermination(3, TimeUnit.SECONDS);
+                this.scheduledCleanQueueExecutorService.awaitTermination(3, TimeUnit.SECONDS);
                 Thread.sleep(1000 * 3);
             } catch (InterruptedException e) {
                 LOGGER.error("shutdown Exception, ", e);
@@ -447,12 +478,14 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             this.storeStatsService.shutdown();
+            this.commitLog.shutdown();
+            this.reputMessageService.shutdown();
+            // dispatch-related services must be shut down after reputMessageService
             this.indexService.shutdown();
             if (this.compactionService != null) {
                 this.compactionService.shutdown();
             }
-            this.commitLog.shutdown();
-            this.reputMessageService.shutdown();
+
             this.flushConsumeQueueService.shutdown();
             this.allocateMappedFileService.shutdown();
             this.storeCheckpoint.flush();
@@ -654,7 +687,11 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public void truncateDirtyFiles(long offsetToTruncate) {
+
+        LOGGER.info("truncate dirty files to {}", offsetToTruncate);
+
         if (offsetToTruncate >= this.getMaxPhyOffset()) {
+            LOGGER.info("no need to truncate files, truncate offset is {}, max physical offset is {}", offsetToTruncate, this.getMaxPhyOffset());
             return;
         }
 
@@ -670,19 +707,29 @@ public class DefaultMessageStore implements MessageStore {
 
         this.recoverTopicQueueTable();
 
-        this.reputMessageService = new ReputMessageService();
-        this.reputMessageService.setReputFromOffset(Math.min(oldReputFromOffset, offsetToTruncate));
+        if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
+            this.reputMessageService = new ReputMessageService();
+        } else {
+            this.reputMessageService = new ConcurrentReputMessageService();
+        }
+
+        long resetReputOffset = Math.min(oldReputFromOffset, offsetToTruncate);
+
+        LOGGER.info("oldReputFromOffset is {}, reset reput from offset to {}", oldReputFromOffset, resetReputOffset);
+
+        this.reputMessageService.setReputFromOffset(resetReputOffset);
         this.reputMessageService.start();
     }
 
     @Override
     public boolean truncateFiles(long offsetToTruncate) {
         if (offsetToTruncate >= this.getMaxPhyOffset()) {
+            LOGGER.info("no need to truncate files, truncate offset is {}, max physical offset is {}", offsetToTruncate, this.getMaxPhyOffset());
             return true;
         }
 
         if (!isOffsetAligned(offsetToTruncate)) {
-            LOGGER.error("Offset {} not align, truncate failed, need manual fix");
+            LOGGER.error("offset {} is not align, truncate failed, need manual fix", offsetToTruncate);
             return false;
         }
         truncateDirtyFiles(offsetToTruncate);
@@ -1331,7 +1378,7 @@ public class DefaultMessageStore implements MessageStore {
             // destroy consume queue dir
             String consumeQueueDir = StorePathConfigHelper.getStorePathConsumeQueue(
                 this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
-            String consumeQueueExtDir = StorePathConfigHelper.getStorePathConsumeQueue(
+            String consumeQueueExtDir = StorePathConfigHelper.getStorePathConsumeQueueExt(
                 this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
             String batchConsumeQueueDir = StorePathConfigHelper.getStorePathBatchConsumeQueue(
                 this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
@@ -1542,12 +1589,17 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    // Fetch and compute the newest confirmOffset.
+    // Even if it is just inited.
     @Override
     public long getConfirmOffset() {
-        if (this.brokerConfig.isEnableControllerMode()) {
-            return ((AutoSwitchHAService) this.haService).getConfirmOffset();
-        }
         return this.commitLog.getConfirmOffset();
+    }
+
+    // Fetch the original confirmOffset's value.
+    // Without checking and re-computing.
+    public long getConfirmOffsetDirectly() {
+        return this.commitLog.getConfirmOffsetDirectly();
     }
 
     @Override
@@ -1745,6 +1797,14 @@ public class DefaultMessageStore implements MessageStore {
             }
         }, 1, 1, TimeUnit.SECONDS);
 
+        this.scheduledCleanQueueExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                DefaultMessageStore.this.cleanQueueFilesPeriodically();
+            }
+        }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
+
+
         // this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
         // @Override
         // public void run() {
@@ -1755,8 +1815,11 @@ public class DefaultMessageStore implements MessageStore {
 
     private void cleanFilesPeriodically() {
         this.cleanCommitLogService.run();
-        this.cleanConsumeQueueService.run();
+    }
+
+    private void cleanQueueFilesPeriodically() {
         this.correctLogicOffsetService.run();
+        this.cleanConsumeQueueService.run();
     }
 
     private void checkSelf() {
@@ -1885,7 +1948,11 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getStateMachineVersion() {
-        return 0L;
+        return stateMachineVersion;
+    }
+
+    public void setStateMachineVersion(long stateMachineVersion) {
+        this.stateMachineVersion = stateMachineVersion;
     }
 
     public BrokerStatsManager getBrokerStatsManager() {
@@ -1993,21 +2060,34 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public void assignOffset(MessageExtBrokerInner msg, short messageNum) {
+    public void assignOffset(MessageExtBrokerInner msg) {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
 
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            this.consumeQueueStore.assignQueueOffset(msg, messageNum);
+            this.consumeQueueStore.assignQueueOffset(msg);
         }
     }
 
+
     @Override
-    public Optional<TopicConfig> getTopicConfig(String topic) {
-        return this.consumeQueueStore.getTopicConfig(topic);
+    public void increaseOffset(MessageExtBrokerInner msg, short messageNum) {
+        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+
+        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            this.consumeQueueStore.increaseQueueOffset(msg, messageNum);
+        }
     }
 
-    public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
-        this.consumeQueueStore.setTopicConfigTable(topicConfigTable);
+    public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
+        return this.topicConfigTable;
+    }
+
+    public Optional<TopicConfig> getTopicConfig(String topic) {
+        if (this.topicConfigTable == null) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(this.topicConfigTable.get(topic));
     }
 
     public BrokerIdentity getBrokerIdentity() {
@@ -2527,7 +2607,7 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             if (messageStoreConfig.isEnableCompaction()) {
-                compactionStore.flushCQ(flushConsumeQueueLeastPages);
+                compactionStore.flush(flushConsumeQueueLeastPages);
             }
 
             if (0 == flushConsumeQueueLeastPages) {
@@ -2571,9 +2651,77 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    class BatchDispatchRequest {
+
+        private ByteBuffer byteBuffer;
+
+        private int position;
+
+        private int size;
+
+        private long id;
+
+        public BatchDispatchRequest(ByteBuffer byteBuffer, int position, int size, long id) {
+            this.byteBuffer = byteBuffer;
+            this.position = position;
+            this.size = size;
+            this.id = id;
+        }
+    }
+
+    class DispatchRequestOrderlyQueue {
+
+        DispatchRequest[][] buffer;
+
+        long ptr = 0;
+
+        AtomicLong maxPtr = new AtomicLong();
+
+        public DispatchRequestOrderlyQueue(int bufferNum) {
+            this.buffer = new DispatchRequest[bufferNum][];
+        }
+
+        public void put(long index, DispatchRequest[] dispatchRequests) {
+            while (ptr + this.buffer.length <= index) {
+                synchronized (this) {
+                    try {
+                        this.wait();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            int mod = (int) (index % this.buffer.length);
+            this.buffer[mod] = dispatchRequests;
+            maxPtr.incrementAndGet();
+        }
+
+        public DispatchRequest[] get(List<DispatchRequest[]> dispatchRequestsList) {
+            synchronized (this) {
+                for (int i = 0; i < this.buffer.length; i++) {
+                    int mod = (int) (ptr % this.buffer.length);
+                    DispatchRequest[] ret = this.buffer[mod];
+                    if (ret == null) {
+                        this.notifyAll();
+                        return null;
+                    }
+                    dispatchRequestsList.add(ret);
+                    this.buffer[mod] = null;
+                    ptr++;
+                }
+            }
+            return null;
+        }
+
+        public synchronized boolean isEmpty() {
+            return maxPtr.get() == ptr;
+        }
+
+    }
+
     class ReputMessageService extends ServiceThread {
 
-        private volatile long reputFromOffset = 0;
+        protected volatile long reputFromOffset = 0;
 
         public long getReputFromOffset() {
             return reputFromOffset;
@@ -2605,14 +2753,11 @@ public class DefaultMessageStore implements MessageStore {
             return DefaultMessageStore.this.getConfirmOffset() - this.reputFromOffset;
         }
 
-        private boolean isCommitLogAvailable() {
-            if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()) {
-                return this.reputFromOffset <= DefaultMessageStore.this.commitLog.getConfirmOffset();
-            }
+        public boolean isCommitLogAvailable() {
             return this.reputFromOffset < DefaultMessageStore.this.getConfirmOffset();
         }
 
-        private void doReput() {
+        public void doReput() {
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 LOGGER.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
                     this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
@@ -2691,7 +2836,7 @@ public class DefaultMessageStore implements MessageStore {
 
         private void notifyMessageArrive4MultiQueue(DispatchRequest dispatchRequest) {
             Map<String, String> prop = dispatchRequest.getPropertiesMap();
-            if (prop == null) {
+            if (prop == null || dispatchRequest.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                 return;
             }
             String multiDispatchQueue = prop.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
@@ -2723,7 +2868,7 @@ public class DefaultMessageStore implements MessageStore {
 
             while (!this.isStopped()) {
                 try {
-                    Thread.sleep(1);
+                    TimeUnit.MILLISECONDS.sleep(1);
                     this.doReput();
                 } catch (Exception e) {
                     DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
@@ -2741,6 +2886,294 @@ public class DefaultMessageStore implements MessageStore {
             return ReputMessageService.class.getSimpleName();
         }
 
+    }
+
+    class MainBatchDispatchRequestService extends ServiceThread {
+
+        private final ExecutorService batchDispatchRequestExecutor;
+
+        public MainBatchDispatchRequestService() {
+            batchDispatchRequestExecutor = new ThreadPoolExecutor(
+                    DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
+                    DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
+                    1000 * 60,
+                    TimeUnit.MICROSECONDS,
+                    new LinkedBlockingQueue<>(4096),
+                    new ThreadFactoryImpl("BatchDispatchRequestServiceThread_"),
+                    new ThreadPoolExecutor.AbortPolicy());
+        }
+
+        private void pollBatchDispatchRequest() {
+            try {
+                if (!batchDispatchRequestQueue.isEmpty()) {
+                    BatchDispatchRequest task = batchDispatchRequestQueue.peek();
+                    batchDispatchRequestExecutor.execute(() -> {
+                        try {
+                            ByteBuffer tmpByteBuffer = task.byteBuffer;
+                            tmpByteBuffer.position(task.position);
+                            tmpByteBuffer.limit(task.position + task.size);
+                            List<DispatchRequest> dispatchRequestList = new ArrayList<>();
+                            while (tmpByteBuffer.hasRemaining()) {
+                                DispatchRequest dispatchRequest = DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(tmpByteBuffer, false, false, false);
+                                if (dispatchRequest.isSuccess()) {
+                                    dispatchRequestList.add(dispatchRequest);
+                                } else {
+                                    LOGGER.error("[BUG]read total count not equals msg total size.");
+                                }
+                            }
+                            dispatchRequestOrderlyQueue.put(task.id, dispatchRequestList.toArray(new DispatchRequest[dispatchRequestList.size()]));
+                            mappedPageHoldCount.getAndDecrement();
+                        } catch (Exception e) {
+                            LOGGER.error("There is an exception in task execution.", e);
+                        }
+                    });
+                    batchDispatchRequestQueue.poll();
+                }
+            } catch (Exception e) {
+                DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
+            }
+        }
+
+        @Override
+        public void run() {
+            DefaultMessageStore.LOGGER.info(this.getServiceName() + " service started");
+
+            while (!this.isStopped()) {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(1);
+                    pollBatchDispatchRequest();
+                } catch (Exception e) {
+                    DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
+                }
+            }
+
+            DefaultMessageStore.LOGGER.info(this.getServiceName() + " service end");
+        }
+
+        @Override
+        public String getServiceName() {
+            if (DefaultMessageStore.this.getBrokerConfig().isInBrokerContainer()) {
+                return DefaultMessageStore.this.getBrokerIdentity().getIdentifier() + MainBatchDispatchRequestService.class.getSimpleName();
+            }
+            return MainBatchDispatchRequestService.class.getSimpleName();
+        }
+
+    }
+
+    class DispatchService extends ServiceThread {
+
+        private final List<DispatchRequest[]> dispatchRequestsList = new ArrayList<>();
+
+        // dispatchRequestsList:[
+        //      {dispatchRequests:[{dispatchRequest}, {dispatchRequest}]},
+        //      {dispatchRequests:[{dispatchRequest}, {dispatchRequest}]}]
+        private void dispatch() {
+            dispatchRequestsList.clear();
+            dispatchRequestOrderlyQueue.get(dispatchRequestsList);
+            if (!dispatchRequestsList.isEmpty()) {
+                for (DispatchRequest[] dispatchRequests : dispatchRequestsList) {
+                    for (DispatchRequest dispatchRequest : dispatchRequests) {
+                        DefaultMessageStore.this.doDispatch(dispatchRequest);
+                        // wake up long-polling
+                        if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
+                                && DefaultMessageStore.this.messageArrivingListener != null) {
+                            DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
+                                    dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
+                                    dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
+                                    dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
+                            DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
+                        }
+                        if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
+                                DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+                            DefaultMessageStore.this.storeStatsService
+                                    .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(1);
+                            DefaultMessageStore.this.storeStatsService
+                                    .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
+                                    .add(dispatchRequest.getMsgSize());
+                        }
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void run() {
+            DefaultMessageStore.LOGGER.info(this.getServiceName() + " service started");
+
+            while (!this.isStopped()) {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(1);
+                    dispatch();
+                } catch (Exception e) {
+                    DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
+                }
+            }
+
+            DefaultMessageStore.LOGGER.info(this.getServiceName() + " service end");
+        }
+
+        @Override
+        public String getServiceName() {
+            if (DefaultMessageStore.this.getBrokerConfig().isInBrokerContainer()) {
+                return DefaultMessageStore.this.getBrokerIdentity().getIdentifier() + DispatchService.class.getSimpleName();
+            }
+            return DispatchService.class.getSimpleName();
+        }
+    }
+
+    class ConcurrentReputMessageService extends ReputMessageService {
+
+        private static final int BATCH_SIZE = 1024 * 1024 * 4;
+
+        private long batchId = 0;
+
+        private MainBatchDispatchRequestService mainBatchDispatchRequestService;
+
+        private DispatchService dispatchService;
+
+        public ConcurrentReputMessageService() {
+            super();
+            this.mainBatchDispatchRequestService = new MainBatchDispatchRequestService();
+            this.dispatchService = new DispatchService();
+        }
+
+        public void createBatchDispatchRequest(ByteBuffer byteBuffer, int position, int size) {
+            if (position < 0) {
+                return;
+            }
+            mappedPageHoldCount.getAndIncrement();
+            BatchDispatchRequest task = new BatchDispatchRequest(byteBuffer.duplicate(), position, size, batchId++);
+            batchDispatchRequestQueue.offer(task);
+        }
+
+        @Override
+        public void start() {
+            super.start();
+            this.mainBatchDispatchRequestService.start();
+            this.dispatchService.start();
+        }
+
+        @Override
+        public void doReput() {
+            if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
+                LOGGER.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
+                        this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
+                this.reputFromOffset = DefaultMessageStore.this.commitLog.getMinOffset();
+            }
+            for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
+
+                SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
+
+                if (result == null) {
+                    break;
+                }
+
+                int batchDispatchRequestStart = -1;
+                int batchDispatchRequestSize = -1;
+                try {
+                    this.reputFromOffset = result.getStartOffset();
+
+                    for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
+                        ByteBuffer byteBuffer = result.getByteBuffer();
+
+                        int totalSize = preCheckMessageAndReturnSize(byteBuffer);
+
+                        if (totalSize > 0) {
+                            if (batchDispatchRequestStart == -1) {
+                                batchDispatchRequestStart = byteBuffer.position();
+                                batchDispatchRequestSize = 0;
+                            }
+                            batchDispatchRequestSize += totalSize;
+                            if (batchDispatchRequestSize > BATCH_SIZE) {
+                                this.createBatchDispatchRequest(byteBuffer, batchDispatchRequestStart, batchDispatchRequestSize);
+                                batchDispatchRequestStart = -1;
+                                batchDispatchRequestSize = -1;
+                            }
+                            byteBuffer.position(byteBuffer.position() + totalSize);
+                            this.reputFromOffset += totalSize;
+                            readSize += totalSize;
+                        } else {
+                            doNext = false;
+                            if (totalSize == 0) {
+                                this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
+                            }
+                            this.createBatchDispatchRequest(byteBuffer, batchDispatchRequestStart, batchDispatchRequestSize);
+                            batchDispatchRequestStart = -1;
+                            batchDispatchRequestSize = -1;
+                        }
+                    }
+                } finally {
+                    this.createBatchDispatchRequest(result.getByteBuffer(), batchDispatchRequestStart, batchDispatchRequestSize);
+                    boolean over = mappedPageHoldCount.get() == 0;
+                    while (!over) {
+                        try {
+                            TimeUnit.MILLISECONDS.sleep(1);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        over = mappedPageHoldCount.get() == 0;
+                    }
+                    result.release();
+                }
+            }
+        }
+
+        /**
+         * pre-check the message and returns the message size
+         *
+         * @return 0 Come to the end of file // >0 Normal messages // -1 Message checksum failure
+         */
+        public int preCheckMessageAndReturnSize(ByteBuffer byteBuffer) {
+            byteBuffer.mark();
+
+            int totalSize = byteBuffer.getInt();
+            if (reputFromOffset + totalSize > DefaultMessageStore.this.getConfirmOffset()) {
+                return -1;
+            }
+
+            int magicCode = byteBuffer.getInt();
+            switch (magicCode) {
+                case MessageDecoder.MESSAGE_MAGIC_CODE:
+                case MessageDecoder.MESSAGE_MAGIC_CODE_V2:
+                    break;
+                case MessageDecoder.BLANK_MAGIC_CODE:
+                    return 0;
+                default:
+                    return -1;
+            }
+
+            byteBuffer.reset();
+
+            return totalSize;
+        }
+
+        @Override
+        public void shutdown() {
+            for (int i = 0; i < 50 && this.isCommitLogAvailable(); i++) {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(100);
+                } catch (InterruptedException ignored) {
+                }
+            }
+
+            if (this.isCommitLogAvailable()) {
+                LOGGER.warn("shutdown concurrentReputMessageService, but CommitLog have not finish to be dispatched, CommitLog max" +
+                                " offset={}, reputFromOffset={}", DefaultMessageStore.this.commitLog.getMaxOffset(),
+                        this.reputFromOffset);
+            }
+
+            this.mainBatchDispatchRequestService.shutdown();
+            this.dispatchService.shutdown();
+            super.shutdown();
+        }
+
+        @Override
+        public String getServiceName() {
+            if (DefaultMessageStore.this.getBrokerConfig().isInBrokerContainer()) {
+                return DefaultMessageStore.this.getBrokerIdentity().getIdentifier() + ConcurrentReputMessageService.class.getSimpleName();
+            }
+            return ConcurrentReputMessageService.class.getSimpleName();
+        }
     }
 
     @Override
@@ -2834,5 +3267,9 @@ public class DefaultMessageStore implements MessageStore {
     public boolean isTransientStorePoolEnable() {
         return this.messageStoreConfig.isTransientStorePoolEnable() &&
             (this.brokerConfig.isEnableControllerMode() || this.messageStoreConfig.getBrokerRole() != BrokerRole.SLAVE);
+    }
+
+    public long getReputFromOffset() {
+        return this.reputMessageService.getReputFromOffset();
     }
 }

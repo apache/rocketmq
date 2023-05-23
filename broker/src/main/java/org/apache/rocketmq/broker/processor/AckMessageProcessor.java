@@ -20,6 +20,7 @@ import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
@@ -58,6 +59,10 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         }
     }
 
+    public PopReviveService[] getPopReviveServices() {
+        return popReviveServices;
+    }
+
     public void startPopReviveService() {
         for (PopReviveService popReviveService : popReviveServices) {
             popReviveService.start();
@@ -66,7 +71,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
     public void shutdownPopReviveService() {
         for (PopReviveService popReviveService : popReviveServices) {
-            popReviveService.stop();
+            popReviveService.shutdown();
         }
     }
 
@@ -159,7 +164,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             }
             try {
                 oldOffset = this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getConsumerGroup(),
-                        requestHeader.getTopic(), requestHeader.getQueueId());
+                    requestHeader.getTopic(), requestHeader.getQueueId());
                 if (requestHeader.getOffset() < oldOffset) {
                     return response;
                 }
@@ -173,7 +178,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                         this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
                             requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(), nextOffset);
                     }
-                    if (!this.brokerController.getConsumerOrderInfoManager().checkBlock(requestHeader.getTopic(),
+                    if (!this.brokerController.getConsumerOrderInfoManager().checkBlock(null, requestHeader.getTopic(),
                         requestHeader.getConsumerGroup(), requestHeader.getQueueId(), invisibleTime)) {
                         this.brokerController.getPopMessageProcessor().notifyMessageArriving(
                             requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueId());
@@ -216,6 +221,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             && putMessageResult.getPutMessageStatus() != PutMessageStatus.SLAVE_NOT_AVAILABLE) {
             POP_LOGGER.error("put ack msg error:" + putMessageResult);
         }
+        PopMetricsManager.incPopReviveAckPutCount(ackMsg, putMessageResult.getPutMessageStatus());
         decInFlightMessageNum(requestHeader);
         return response;
     }
