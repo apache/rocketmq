@@ -145,6 +145,10 @@
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
 
+        <cos.version>5.6.147</cos.version>
+        <jackson-databind.version>2.14.0</jackson-databind.version>
+
+
         <!-- Build plugin dependencies -->
         <versions-maven-plugin.version>2.2</versions-maven-plugin.version>
         <dependency-mediator-maven-plugin.version>1.0.2</dependency-mediator-maven-plugin.version>
@@ -964,6 +968,31 @@
                 <artifactId>jul-to-slf4j</artifactId>
                 <version>${jul-to-slf4j.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson-databind.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.qcloud</groupId>
+                <artifactId>cos_api</artifactId>
+                <version>${cos.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.google.code.gson</groupId>
+                        <artifactId>gson</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.squareup.okio</groupId>
+                        <artifactId>okio</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.fasterxml.jackson.core</groupId>
+                        <artifactId>jackson-databind</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

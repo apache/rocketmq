@@ -123,6 +123,12 @@ public class TieredMessageStoreConfig {
     private String ossAccessKey = "";
     private String ossSecretKey = "";
 
+    // only for cos storage provider
+    private String cosBucketName = "";
+    private String cosAccessKey = "";
+    private String cosSecretKey = "";
+    private String cosRegion = "";
+
     public static String localHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
@@ -386,5 +392,36 @@ public class TieredMessageStoreConfig {
 
     public void setOssSecretKey(String ossSecretKey) {
         this.ossSecretKey = ossSecretKey;
+    }
+    public String getCosBucketName() {
+        return cosBucketName;
+    }
+
+    public void setCosBucketName(String cosBucketName) {
+        this.cosBucketName = cosBucketName;
+    }
+
+    public String getCosAccessKey() {
+        return cosAccessKey;
+    }
+
+    public void setCosAccessKey(String cosAccessKey) {
+        this.cosAccessKey = cosAccessKey;
+    }
+
+    public String getCosSecretKey() {
+        return cosSecretKey;
+    }
+
+    public void setCosSecretKey(String cosSecretKey) {
+        this.cosSecretKey = cosSecretKey;
+    }
+
+    public String getCosRegion() {
+        return cosRegion;
+    }
+
+    public void setCosRegion(String cosRegion) {
+        this.cosRegion = cosRegion;
     }
 }
