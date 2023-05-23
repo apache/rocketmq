@@ -1129,7 +1129,7 @@ public class MessageStoreConfig {
         return isEnableBatchPush;
     }
 
-    public void setEnableBatchPush(boolean enableBatchPush) {
+    public void setIsEnableBatchPush(boolean enableBatchPush) {
         isEnableBatchPush = enableBatchPush;
     }
 
