@@ -248,7 +248,7 @@ public class ControllerMetricsManager {
             .setDescription("now active brokers num")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                Map<String, Map<String, Long>> activeBrokersNum = controllerManager.getHeartbeatManager().getActiveBrokersNum();
+                Map<String, Map<String, Integer>> activeBrokersNum = controllerManager.getHeartbeatManager().getActiveBrokersNum();
                 activeBrokersNum.forEach((cluster, brokerSetAndNum) -> {
                     brokerSetAndNum.forEach((brokerSet, num) -> measurement.record(num,
                         newAttributesBuilder().put(LABEL_CLUSTER_NAME, cluster).put(LABEL_BROKER_SET, brokerSet).build()));

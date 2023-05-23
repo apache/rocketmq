@@ -28,6 +28,7 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.NumberFormat;
@@ -769,7 +770,7 @@ public class UtilAll {
     public static long calculateFileSizeInPath(File path) {
         long size = 0;
         try {
-            if (!path.exists()) {
+            if (!path.exists() || Files.isSymbolicLink(path.toPath())) {
                 return 0;
             }
             if (path.isFile()) {
@@ -777,17 +778,16 @@ public class UtilAll {
             }
             if (path.isDirectory()) {
                 File[] files = path.listFiles();
-                if (files != null) {
+                if (files != null && files.length > 0) {
                     for (File file : files) {
-                        long fileSize = 0;
-                        fileSize = calculateFileSizeInPath(file);
+                        long fileSize = calculateFileSizeInPath(file);
                         if (fileSize == -1) return -1;
                         size += fileSize;
                     }
                 }
             }
         } catch (Exception e) {
-            log.error("calculate error", e);
+            log.error("calculate all file size in: {} error", path.getAbsolutePath(), e);
             return -1;
         }
         return size;

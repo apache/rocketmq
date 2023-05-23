@@ -69,5 +69,5 @@ public interface BrokerHeartbeatManager {
      * Count the number of active brokers in each broker-set of each cluster
      * @return active brokers count
      */
-    Map<String/*cluster*/, Map<String/*broker-set*/, Long/*active broker num*/>> getActiveBrokersNum();
+    Map<String/*cluster*/, Map<String/*broker-set*/, Integer/*active broker num*/>> getActiveBrokersNum();
 }

@@ -176,14 +176,16 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public Map<String, Map<String, Long>> getActiveBrokersNum() {
-        Map<String, Map<String, Long>> map = new HashMap<>();
-        this.brokerLiveTable.keySet().forEach(id -> {
-            map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
-            map.get(id.getClusterName()).compute(id.getBrokerName(), (broker, num) ->
-                 num == null ? 0L : num + 1L
-            );
-        });
+    public Map<String, Map<String, Integer>> getActiveBrokersNum() {
+        Map<String, Map<String, Integer>> map = new HashMap<>();
+        this.brokerLiveTable.keySet().stream()
+            .filter(brokerIdentity -> this.isBrokerActive(brokerIdentity.getClusterName(), brokerIdentity.getBrokerName(), brokerIdentity.getBrokerId()))
+            .forEach(id -> {
+                map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
+                map.get(id.getClusterName()).compute(id.getBrokerName(), (broker, num) ->
+                    num == null ? 0 : num + 1
+                );
+            });
         return map;
     }
 }
