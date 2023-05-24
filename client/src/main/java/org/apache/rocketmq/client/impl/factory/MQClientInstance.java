@@ -586,75 +586,76 @@ public class MQClientInstance {
     }
 
     private void sendHeartbeatToAllBrokerV2(boolean isRebalance) {
-        HeartbeatData heartbeatDataWithSub = this.prepareHeartbeatData(false);
+        final HeartbeatData heartbeatDataWithSub = this.prepareHeartbeatData(false);
         final boolean producerEmpty = heartbeatDataWithSub.getProducerDataSet().isEmpty();
         final boolean consumerEmpty = heartbeatDataWithSub.getConsumerDataSet().isEmpty();
         if (producerEmpty && consumerEmpty) {
-            log.warn("sendHeartbeatToAllBrokerV2 but no consumer and no producer");
+            log.warn("sendHeartbeatToAllBrokerV2 sending heartbeat, but no consumer and no producer. [{}]", this.clientId);
             return;
         }
-        if (!this.brokerAddrTable.isEmpty()) {
-            if (isRebalance) {
-                resetBrokerAddrHeartbeatFingerprintMap();
-            }
-            long times = this.sendHeartbeatTimesTotal.getAndIncrement();
-            int currentHeartbeatFingerprint = heartbeatDataWithSub.computeHeartbeatFingerprint();
-            heartbeatDataWithSub.setHeartbeatFingerprint(currentHeartbeatFingerprint);
-            HeartbeatData heartbeatDataWithoutSub = this.prepareHeartbeatData(true);
-            heartbeatDataWithoutSub.setHeartbeatFingerprint(currentHeartbeatFingerprint);
+        if (this.brokerAddrTable.isEmpty()) {
+            return;
+        }
+        if (isRebalance) {
+            resetBrokerAddrHeartbeatFingerprintMap();
+        }
+        long times = this.sendHeartbeatTimesTotal.getAndIncrement();
+        int currentHeartbeatFingerprint = heartbeatDataWithSub.computeHeartbeatFingerprint();
+        heartbeatDataWithSub.setHeartbeatFingerprint(currentHeartbeatFingerprint);
+        HeartbeatData heartbeatDataWithoutSub = this.prepareHeartbeatData(true);
+        heartbeatDataWithoutSub.setHeartbeatFingerprint(currentHeartbeatFingerprint);
 
-            Iterator<Entry<String, HashMap<Long, String>>> it = this.brokerAddrTable.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<String, HashMap<Long, String>> entry = it.next();
-                String brokerName = entry.getKey();
-                HashMap<Long, String> oneTable = entry.getValue();
-                if (oneTable != null) {
-                    for (Map.Entry<Long, String> entry1 : oneTable.entrySet()) {
-                        Long id = entry1.getKey();
-                        String addr = entry1.getValue();
-                        if (addr != null) {
-                            if (consumerEmpty && id != MixAll.MASTER_ID) {
-                                continue;
-                            }
-                            try {
-                                int version = 0;
-                                boolean isBrokerSupportV2 = brokerSupportV2HeartbeatSet.contains(addr);
-                                HeartbeatV2Result heartbeatV2Result = null;
-                                if (isBrokerSupportV2 && null != brokerAddrHeartbeatFingerprintTable.get(addr) && brokerAddrHeartbeatFingerprintTable.get(addr) == currentHeartbeatFingerprint) {
-                                    heartbeatV2Result = this.mQClientAPIImpl.sendHeartbeatV2(addr, heartbeatDataWithoutSub, 3000);
-                                    if (heartbeatV2Result.isSubChange()) {
-                                        brokerAddrHeartbeatFingerprintTable.remove(addr);
-                                    }
-                                    log.info("sendHeartbeatToAllBrokerV2 simple brokerName: {} subChange: {} brokerAddrHeartbeatFingerprintTable: {}", brokerName, heartbeatV2Result.isSubChange(), JSON.toJSONString(brokerAddrHeartbeatFingerprintTable));
-                                } else {
-                                    heartbeatV2Result = this.mQClientAPIImpl.sendHeartbeatV2(addr, heartbeatDataWithSub, 3000);
-                                    if (heartbeatV2Result.isSupportV2()) {
-                                        brokerSupportV2HeartbeatSet.add(addr);
-                                        if (heartbeatV2Result.isSubChange()) {
-                                            brokerAddrHeartbeatFingerprintTable.remove(addr);
-                                        } else if (!brokerAddrHeartbeatFingerprintTable.containsKey(addr) || brokerAddrHeartbeatFingerprintTable.get(addr) != currentHeartbeatFingerprint) {
-                                            brokerAddrHeartbeatFingerprintTable.put(addr, currentHeartbeatFingerprint);
-                                        }
-                                    }
-                                    log.info("sendHeartbeatToAllBrokerV2 normal brokerName: {} subChange: {} brokerAddrHeartbeatFingerprintTable: {}", brokerName, heartbeatV2Result.isSubChange(), JSON.toJSONString(brokerAddrHeartbeatFingerprintTable));
-                                }
-                                version = heartbeatV2Result.getVersion();
-                                if (!this.brokerVersionTable.containsKey(brokerName)) {
-                                    this.brokerVersionTable.put(brokerName, new HashMap<String, Integer>(4));
-                                }
-                                this.brokerVersionTable.get(brokerName).put(addr, version);
-                                if (times % 20 == 0) {
-                                    log.info("sendHeartbeatToAllBrokerV2 send heartbeat to broker[{} {} {}] success", brokerName, id, addr);
-                                    log.info(heartbeatDataWithSub.toString());
-                                }
-                            } catch (MQBrokerException | RemotingException | InterruptedException e) {
-                                if (this.isBrokerInNameServer(addr)) {
-                                    log.info("sendHeartbeatToAllBrokerV2 send heartbeat to broker[{} {} {}] failed", brokerName, id, addr);
-                                } else {
-                                    log.info("sendHeartbeatToAllBrokerV2 send heartbeat to broker[{} {} {}] exception, because the broker not" + " up, forget it", brokerName, id, addr);
-                                }
+        for (Entry<String, HashMap<Long, String>> brokerClusterInfo : this.brokerAddrTable.entrySet()) {
+            String brokerName = brokerClusterInfo.getKey();
+            HashMap<Long, String> oneTable = brokerClusterInfo.getValue();
+            if (oneTable == null) {
+                continue;
+            }
+            for (Entry<Long, String> singleBrokerInstance : oneTable.entrySet()) {
+                Long id = singleBrokerInstance.getKey();
+                String addr = singleBrokerInstance.getValue();
+                if (addr == null) {
+                    continue;
+                }
+                if (consumerEmpty && MixAll.MASTER_ID != id) {
+                    continue;
+                }
+                try {
+                    int version = 0;
+                    boolean isBrokerSupportV2 = brokerSupportV2HeartbeatSet.contains(addr);
+                    HeartbeatV2Result heartbeatV2Result = null;
+                    if (isBrokerSupportV2 && null != brokerAddrHeartbeatFingerprintTable.get(addr) && brokerAddrHeartbeatFingerprintTable.get(addr) == currentHeartbeatFingerprint) {
+                        heartbeatV2Result = this.mQClientAPIImpl.sendHeartbeatV2(addr, heartbeatDataWithoutSub, 3000);
+                        if (heartbeatV2Result.isSubChange()) {
+                            brokerAddrHeartbeatFingerprintTable.remove(addr);
+                        }
+                        log.info("sendHeartbeatToAllBrokerV2 simple brokerName: {} subChange: {} brokerAddrHeartbeatFingerprintTable: {}", brokerName, heartbeatV2Result.isSubChange(), JSON.toJSONString(brokerAddrHeartbeatFingerprintTable));
+                    } else {
+                        heartbeatV2Result = this.mQClientAPIImpl.sendHeartbeatV2(addr, heartbeatDataWithSub, 3000);
+                        if (heartbeatV2Result.isSupportV2()) {
+                            brokerSupportV2HeartbeatSet.add(addr);
+                            if (heartbeatV2Result.isSubChange()) {
+                                brokerAddrHeartbeatFingerprintTable.remove(addr);
+                            } else if (!brokerAddrHeartbeatFingerprintTable.containsKey(addr) || brokerAddrHeartbeatFingerprintTable.get(addr) != currentHeartbeatFingerprint) {
+                                brokerAddrHeartbeatFingerprintTable.put(addr, currentHeartbeatFingerprint);
                             }
                         }
+                        log.info("sendHeartbeatToAllBrokerV2 normal brokerName: {} subChange: {} brokerAddrHeartbeatFingerprintTable: {}", brokerName, heartbeatV2Result.isSubChange(), JSON.toJSONString(brokerAddrHeartbeatFingerprintTable));
+                    }
+                    version = heartbeatV2Result.getVersion();
+                    if (!this.brokerVersionTable.containsKey(brokerName)) {
+                        this.brokerVersionTable.put(brokerName, new HashMap<>(4));
+                    }
+                    this.brokerVersionTable.get(brokerName).put(addr, version);
+                    if (times % 20 == 0) {
+                        log.info("send heart beat to broker[{} {} {}] success", brokerName, id, addr);
+                        log.info(heartbeatDataWithSub.toString());
+                    }
+                } catch (Exception e) {
+                    if (this.isBrokerInNameServer(addr)) {
+                        log.warn("sendHeartbeatToAllBrokerV2 send heart beat to broker[{} {} {}] failed", brokerName, id, addr, e);
+                    } else {
+                        log.warn("sendHeartbeatToAllBrokerV2 send heart beat to broker[{} {} {}] exception, because the broker not up, forget it", brokerName, id, addr, e);
                     }
                 }
             }
