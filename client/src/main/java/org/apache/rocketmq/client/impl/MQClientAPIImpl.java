@@ -166,6 +166,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicStatsInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicsByClusterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PeekMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageResponseHeader;
@@ -844,6 +845,38 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         }
 
         return null;
+    }
+
+    public void peekMessageAsync(
+        final String brokerName, final String addr, final PeekMessageRequestHeader requestHeader,
+        final long timeoutMillis, final PopCallback peekCallback
+    ) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, RemotingTooMuchRequestException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PEEK_MESSAGE, requestHeader);
+        this.remotingClient.invokeAsync(addr, request, timeoutMillis, new BaseInvokeCallback(MQClientAPIImpl.this) {
+            @Override
+            public void onComplete(ResponseFuture responseFuture) {
+                RemotingCommand response = responseFuture.getResponseCommand();
+                if (response != null) {
+                    try {
+                        PopResult
+                            popResult = MQClientAPIImpl.this.processPopResponse(brokerName, response, requestHeader.getTopic(), requestHeader);
+                        assert popResult != null;
+                        peekCallback.onSuccess(popResult);
+                    } catch (Exception e) {
+                        peekCallback.onException(e);
+                    }
+                } else {
+                    if (!responseFuture.isSendRequestOK()) {
+                        peekCallback.onException(new MQClientException(ClientErrorCode.CONNECT_BROKER_EXCEPTION, "send request failed to " + addr + ". Request: " + request, responseFuture.getCause()));
+                    } else if (responseFuture.isTimeout()) {
+                        peekCallback.onException(new MQClientException(ClientErrorCode.ACCESS_BROKER_TIMEOUT, "wait response from " + addr + " timeout :" + responseFuture.getTimeoutMillis() + "ms" + ". Request: " + request,
+                            responseFuture.getCause()));
+                    } else {
+                        peekCallback.onException(new MQClientException("unknown reason. addr: " + addr + ", timeoutMillis: " + timeoutMillis + ". Request: " + request, responseFuture.getCause()));
+                    }
+                }
+            }
+        });
     }
 
     public void popMessageAsync(
