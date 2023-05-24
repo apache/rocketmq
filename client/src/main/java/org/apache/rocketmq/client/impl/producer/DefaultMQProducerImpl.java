@@ -653,14 +653,18 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq, e);
-                        log.warn(msg.toString());
+                        if (log.isDebugEnabled()) {
+                            log.debug(msg.toString());
+                        }
                         exception = e;
                         continue;
                     } catch (MQBrokerException e) {
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, true);
                         log.warn("sendKernelImpl exception, resend at once, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq, e);
-                        log.warn(msg.toString());
+                        if (log.isDebugEnabled()) {
+                            log.debug(msg.toString());
+                        }
                         exception = e;
                         if (this.defaultMQProducer.getRetryResponseCodes().contains(e.getResponseCode())) {
                             continue;
@@ -675,7 +679,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         endTimestamp = System.currentTimeMillis();
                         this.updateFaultItem(mq.getBrokerName(), endTimestamp - beginTimestampPrev, false);
                         log.warn("sendKernelImpl exception, throw exception, InvokeID: %s, RT: %sms, Broker: %s", invokeID, endTimestamp - beginTimestampPrev, mq, e);
-                        log.warn(msg.toString());
+                        if (log.isDebugEnabled()) {
+                            log.debug(msg.toString());
+                        }
                         throw e;
                     }
                 } else {
@@ -948,7 +954,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     }
                 } catch (IOException e) {
                     log.error("tryToCompressMessage exception", e);
-                    log.warn(msg.toString());
+                    if (log.isDebugEnabled()) {
+                        log.debug(msg.toString());
+                    }
                 }
             }
         }
