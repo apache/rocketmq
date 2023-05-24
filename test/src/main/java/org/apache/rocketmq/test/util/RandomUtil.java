@@ -100,14 +100,14 @@ public final class RandomUtil {
         return n + res % (m - n);
     }
 
-    private static char getChar(int arg[]) {
+    private static char getChar(int[] arg) {
         int size = arg.length;
         int c = rd.nextInt(size / 2);
         c = c * 2;
         return (char) (getIntegerBetween(arg[c], arg[c + 1]));
     }
 
-    private static String getString(int n, int arg[]) {
+    private static String getString(int n, int[] arg) {
         StringBuilder res = new StringBuilder();
         for (int i = 0; i < n; i++) {
             res.append(getChar(arg));
@@ -116,17 +116,17 @@ public final class RandomUtil {
     }
 
     public static String getStringWithCharacter(int n) {
-        int arg[] = new int[] {'a', 'z' + 1, 'A', 'Z' + 1};
+        int[] arg = new int[] {'a', 'z' + 1, 'A', 'Z' + 1};
         return getString(n, arg);
     }
 
     public static String getStringWithNumber(int n) {
-        int arg[] = new int[] {'0', '9' + 1};
+        int[] arg = new int[] {'0', '9' + 1};
         return getString(n, arg);
     }
 
     public static String getStringWithNumAndCha(int n) {
-        int arg[] = new int[] {'a', 'z' + 1, 'A', 'Z' + 1, '0', '9' + 1};
+        int[] arg = new int[] {'a', 'z' + 1, 'A', 'Z' + 1, '0', '9' + 1};
         return getString(n, arg);
     }
 
@@ -265,7 +265,7 @@ public final class RandomUtil {
         Random rd = new Random();
         int index = 0;
         for (int i = 0; i < result.length; i++) {
-            index = Math.abs(rd.nextInt() % len--);
+            index = rd.nextInt(len--);
             result[i] = source[index];
             source[index] = source[len];
         }

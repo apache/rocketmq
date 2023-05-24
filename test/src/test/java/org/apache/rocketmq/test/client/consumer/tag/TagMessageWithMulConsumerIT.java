@@ -19,7 +19,9 @@ package org.apache.rocketmq.test.client.consumer.tag;
 
 import java.util.Collection;
 import java.util.List;
-import org.apache.log4j.Logger;
+
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -35,7 +37,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class TagMessageWithMulConsumerIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
@@ -44,7 +46,7 @@ public class TagMessageWithMulConsumerIT extends BaseConf {
         topic = initTopic();
         String consumerId = initConsumerGroup();
         logger.info(String.format("use topic: %s; consumerId: %s !", topic, consumerId));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -57,9 +59,9 @@ public class TagMessageWithMulConsumerIT extends BaseConf {
         String tag1 = "jueyin1";
         String tag2 = "jueyin2";
         int msgSize = 10;
-        RMQNormalConsumer consumerTag1 = getConsumer(nsAddr, topic, tag1,
+        RMQNormalConsumer consumerTag1 = getConsumer(NAMESRV_ADDR, topic, tag1,
             new RMQNormalListener());
-        RMQNormalConsumer consumerTag2 = getConsumer(nsAddr, topic, tag2,
+        RMQNormalConsumer consumerTag2 = getConsumer(NAMESRV_ADDR, topic, tag2,
             new RMQNormalListener());
 
         List<Object> tag1Msgs = MQMessageFactory.getRMQMessage(tag1, topic, msgSize);
@@ -70,9 +72,9 @@ public class TagMessageWithMulConsumerIT extends BaseConf {
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
 
         consumerTag1.getListener().waitForMessageConsume(MQMessageFactory.getMessageBody(tag1Msgs),
-            consumeTime);
+            CONSUME_TIME);
         consumerTag2.getListener().waitForMessageConsume(MQMessageFactory.getMessageBody(tag2Msgs),
-            consumeTime);
+            CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumerTag1.getListener().getAllMsgBody()))
@@ -84,13 +86,13 @@ public class TagMessageWithMulConsumerIT extends BaseConf {
 
     @Test
     public void testSendMessagesWithTwoTag() {
-        String tags[] = {"jueyin1", "jueyin2"};
+        String[] tags = {"jueyin1", "jueyin2"};
         int msgSize = 10;
 
         TagMessage tagMessage = new TagMessage(tags, topic, msgSize);
-        RMQNormalConsumer consumerTag1 = getConsumer(nsAddr, topic, tags[0],
+        RMQNormalConsumer consumerTag1 = getConsumer(NAMESRV_ADDR, topic, tags[0],
             new RMQNormalListener());
-        RMQNormalConsumer consumerTag2 = getConsumer(nsAddr, topic, tags[1],
+        RMQNormalConsumer consumerTag2 = getConsumer(NAMESRV_ADDR, topic, tags[1],
             new RMQNormalListener());
 
         List<Object> tagMsgs = tagMessage.getMixedTagMessages();
@@ -99,9 +101,9 @@ public class TagMessageWithMulConsumerIT extends BaseConf {
             producer.getAllUndupMsgBody().size());
 
         consumerTag1.getListener().waitForMessageConsume(tagMessage.getMessageBodyByTag(tags[0]),
-            consumeTime);
+            CONSUME_TIME);
         consumerTag2.getListener().waitForMessageConsume(tagMessage.getMessageBodyByTag(tags[1]),
-            consumeTime);
+            CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumerTag1.getListener().getAllMsgBody()))
@@ -113,15 +115,15 @@ public class TagMessageWithMulConsumerIT extends BaseConf {
 
     @Test
     public void testTwoConsumerOneMatchOneOtherMatchAll() {
-        String tags[] = {"jueyin1", "jueyin2"};
+        String[] tags = {"jueyin1", "jueyin2"};
         String sub1 = String.format("%s||%s", tags[0], tags[1]);
         String sub2 = String.format("%s|| noExist", tags[0]);
         int msgSize = 10;
 
         TagMessage tagMessage = new TagMessage(tags, topic, msgSize);
-        RMQNormalConsumer consumerTag1 = getConsumer(nsAddr, topic, sub1,
+        RMQNormalConsumer consumerTag1 = getConsumer(NAMESRV_ADDR, topic, sub1,
             new RMQNormalListener());
-        RMQNormalConsumer consumerTag2 = getConsumer(nsAddr, topic, sub2,
+        RMQNormalConsumer consumerTag2 = getConsumer(NAMESRV_ADDR, topic, sub2,
             new RMQNormalListener());
 
         List<Object> tagMsgs = tagMessage.getMixedTagMessages();
@@ -130,9 +132,9 @@ public class TagMessageWithMulConsumerIT extends BaseConf {
             producer.getAllUndupMsgBody().size());
 
         consumerTag1.getListener().waitForMessageConsume(tagMessage.getMessageBodyByTag(tags),
-            consumeTime);
+            CONSUME_TIME);
         consumerTag2.getListener().waitForMessageConsume(tagMessage.getMessageBodyByTag(tags[0]),
-            consumeTime);
+            CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumerTag1.getListener().getAllMsgBody()))
@@ -144,20 +146,20 @@ public class TagMessageWithMulConsumerIT extends BaseConf {
 
     @Test
     public void testSubKindsOf() {
-        String tags[] = {"jueyin1", "jueyin2"};
+        String[] tags = {"jueyin1", "jueyin2"};
         String sub1 = String.format("%s||%s", tags[0], tags[1]);
         String sub2 = String.format("%s|| noExist", tags[0]);
         String sub3 = tags[0];
         String sub4 = "*";
         int msgSize = 10;
 
-        RMQNormalConsumer consumerSubTwoMatchAll = getConsumer(nsAddr, topic, sub1,
+        RMQNormalConsumer consumerSubTwoMatchAll = getConsumer(NAMESRV_ADDR, topic, sub1,
             new RMQNormalListener());
-        RMQNormalConsumer consumerSubTwoMachieOne = getConsumer(nsAddr, topic, sub2,
+        RMQNormalConsumer consumerSubTwoMachieOne = getConsumer(NAMESRV_ADDR, topic, sub2,
             new RMQNormalListener());
-        RMQNormalConsumer consumerSubTag1 = getConsumer(nsAddr, topic, sub3,
+        RMQNormalConsumer consumerSubTag1 = getConsumer(NAMESRV_ADDR, topic, sub3,
             new RMQNormalListener());
-        RMQNormalConsumer consumerSubAll = getConsumer(nsAddr, topic, sub4,
+        RMQNormalConsumer consumerSubAll = getConsumer(NAMESRV_ADDR, topic, sub4,
             new RMQNormalListener());
 
         producer.send(msgSize);
@@ -170,14 +172,14 @@ public class TagMessageWithMulConsumerIT extends BaseConf {
         Assert.assertEquals("Not all are sent", msgSize * 3, producer.getAllUndupMsgBody().size());
 
         consumerSubTwoMatchAll.getListener()
-            .waitForMessageConsume(tagMessage.getMessageBodyByTag(tags), consumeTime);
+            .waitForMessageConsume(tagMessage.getMessageBodyByTag(tags), CONSUME_TIME);
         consumerSubTwoMachieOne.getListener()
-            .waitForMessageConsume(tagMessage.getMessageBodyByTag(tags[0]), consumeTime);
+            .waitForMessageConsume(tagMessage.getMessageBodyByTag(tags[0]), CONSUME_TIME);
         consumerSubTag1.getListener().waitForMessageConsume(tagMessage.getMessageBodyByTag(tags[0]),
-            consumeTime);
+            CONSUME_TIME);
         consumerSubAll.getListener().waitForMessageConsume(
             MQMessageFactory.getMessage(msgsWithNoTag, tagMessage.getAllTagMessageBody()),
-            consumeTime);
+            CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumerSubTwoMatchAll.getListener().getAllMsgBody()))

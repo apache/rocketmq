@@ -17,16 +17,18 @@
 package org.apache.rocketmq.acl.common;
 
 import com.alibaba.fastjson.JSONObject;
-import java.io.File;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
 import java.util.Map;
 import java.util.SortedMap;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.yaml.snakeyaml.Yaml;
@@ -35,7 +37,7 @@ import static org.apache.rocketmq.acl.common.SessionCredentials.CHARSET;
 
 public class AclUtils {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static byte[] combineRequestContent(RemotingCommand request, SortedMap<String, String> fieldsMap) {
         try {
@@ -48,17 +50,16 @@ public class AclUtils {
 
             return AclUtils.combineBytes(sb.toString().getBytes(CHARSET), request.getBody());
         } catch (Exception e) {
-            throw new RuntimeException("incompatible exception.", e);
+            throw new RuntimeException("Incompatible exception.", e);
         }
     }
 
     public static byte[] combineBytes(byte[] b1, byte[] b2) {
-        int size = (null != b1 ? b1.length : 0) + (null != b2 ? b2.length : 0);
-        byte[] total = new byte[size];
-        if (null != b1)
-            System.arraycopy(b1, 0, total, 0, b1.length);
-        if (null != b2)
-            System.arraycopy(b2, 0, total, b1.length, b2.length);
+        if (b1 == null || b1.length == 0) return b2;
+        if (b2 == null || b2.length == 0) return b1;
+        byte[] total = new byte[b1.length + b2.length];
+        System.arraycopy(b1, 0, total, 0, b1.length);
+        System.arraycopy(b2, 0, total, b1.length, b2.length);
         return total;
     }
 
@@ -67,24 +68,75 @@ public class AclUtils {
         return signature;
     }
 
-    public static void verify(String netaddress, int index) {
-        if (!AclUtils.isScope(netaddress, index)) {
-            throw new AclException(String.format("netaddress examine scope Exception netaddress is %s", netaddress));
+    public static void IPv6AddressCheck(String netaddress) {
+        if (isAsterisk(netaddress) || isMinus(netaddress)) {
+            int asterisk = netaddress.indexOf("*");
+            int minus = netaddress.indexOf("-");
+//            '*' must be the end of netaddress if it exists
+            if (asterisk > -1 && asterisk != netaddress.length() - 1) {
+                throw new AclException(String.format("Netaddress examine scope Exception netaddress is %s", netaddress));
+            }
+
+//            format like "2::ac5:78:1-200:*" or "2::ac5:78:1-200" is legal
+            if (minus > -1) {
+                if (asterisk == -1) {
+                    if (minus <= netaddress.lastIndexOf(":")) {
+                        throw new AclException(String.format("Netaddress examine scope Exception netaddress is %s", netaddress));
+                    }
+                } else {
+                    if (minus <= netaddress.lastIndexOf(":", netaddress.lastIndexOf(":") - 1)) {
+                        throw new AclException(String.format("Netaddress examine scope Exception netaddress is %s", netaddress));
+                    }
+                }
+            }
         }
     }
 
-    public static String[] getAddreeStrArray(String netaddress, String four) {
-        String[] fourStrArray = StringUtils.split(four.substring(1, four.length() - 1), ",");
+    public static String v6ipProcess(String netaddress) {
+        int part;
+        String subAddress;
+        boolean isAsterisk = isAsterisk(netaddress);
+        boolean isMinus = isMinus(netaddress);
+        if (isAsterisk && isMinus) {
+            part = 6;
+            int lastColon = netaddress.lastIndexOf(':');
+            int secondLastColon = netaddress.substring(0, lastColon).lastIndexOf(':');
+            subAddress = netaddress.substring(0, secondLastColon);
+        } else if (!isAsterisk && !isMinus) {
+            part = 8;
+            subAddress = netaddress;
+        } else {
+            part = 7;
+            subAddress = netaddress.substring(0, netaddress.lastIndexOf(':'));
+        }
+        return expandIP(subAddress, part);
+    }
+
+    public static void verify(String netaddress, int index) {
+        if (!AclUtils.isScope(netaddress, index)) {
+            throw new AclException(String.format("Netaddress examine scope Exception netaddress is %s", netaddress));
+        }
+    }
+
+    public static String[] getAddresses(String netaddress, String partialAddress) {
+        String[] parAddStrArray = StringUtils.split(partialAddress.substring(1, partialAddress.length() - 1), ",");
         String address = netaddress.substring(0, netaddress.indexOf("{"));
-        String[] addreeStrArray = new String[fourStrArray.length];
-        for (int i = 0; i < fourStrArray.length; i++) {
-            addreeStrArray[i] = address + fourStrArray[i];
+        String[] addreeStrArray = new String[parAddStrArray.length];
+        for (int i = 0; i < parAddStrArray.length; i++) {
+            addreeStrArray[i] = address + parAddStrArray[i];
         }
         return addreeStrArray;
     }
 
-    public static boolean isScope(String num, int index) {
-        String[] strArray = StringUtils.split(num, ".");
+    public static boolean isScope(String netaddress, int index) {
+//        IPv6 Address
+        if (isColon(netaddress)) {
+            netaddress = expandIP(netaddress, 8);
+            String[] strArray = StringUtils.split(netaddress, ":");
+            return isIPv6Scope(strArray, index);
+        }
+
+        String[] strArray = StringUtils.split(netaddress, ".");
         if (strArray.length != 4) {
             return false;
         }
@@ -105,8 +157,12 @@ public class AclUtils {
 
     }
 
+    public static boolean isColon(String netaddress) {
+        return netaddress.indexOf(':') > -1;
+    }
+
     public static boolean isScope(String num) {
-        return isScope(Integer.valueOf(num.trim()));
+        return isScope(Integer.parseInt(num.trim()));
     }
 
     public static boolean isScope(int num) {
@@ -117,7 +173,7 @@ public class AclUtils {
         return asterisk.indexOf('*') > -1;
     }
 
-    public static boolean isColon(String colon) {
+    public static boolean isComma(String colon) {
         return colon.indexOf(',') > -1;
     }
 
@@ -126,50 +182,127 @@ public class AclUtils {
 
     }
 
+    public static boolean isIPv6Scope(String[] num, int index) {
+        for (int i = 0; i < index; i++) {
+            int value;
+            try {
+                value = Integer.parseInt(num[i], 16);
+            } catch (NumberFormatException e) {
+                return false;
+            }
+            if (!isIPv6Scope(value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean isIPv6Scope(int num) {
+        int min = Integer.parseInt("0", 16);
+        int max = Integer.parseInt("ffff", 16);
+        return num >= min && num <= max;
+    }
+
+    public static String expandIP(String netaddress, int part) {
+        netaddress = netaddress.toUpperCase();
+        // expand netaddress
+        int separatorCount = StringUtils.countMatches(netaddress, ":");
+        int padCount = part - separatorCount;
+        if (padCount > 0) {
+            StringBuilder padStr = new StringBuilder(":");
+            for (int i = 0; i < padCount; i++) {
+                padStr.append(":");
+            }
+            netaddress = StringUtils.replace(netaddress, "::", padStr.toString());
+        }
+
+        // pad netaddress
+        String[] strArray = StringUtils.splitPreserveAllTokens(netaddress, ":");
+        for (int i = 0; i < strArray.length; i++) {
+            if (strArray[i].length() < 4) {
+                strArray[i] = StringUtils.leftPad(strArray[i], 4, '0');
+            }
+        }
+
+        // output
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < strArray.length; i++) {
+            sb.append(strArray[i]);
+            if (i != strArray.length - 1) {
+                sb.append(":");
+            }
+        }
+        return sb.toString();
+    }
+
     public static <T> T getYamlDataObject(String path, Class<T> clazz) {
-        Yaml ymal = new Yaml();
-        FileInputStream fis = null;
-        try {
-            fis = new FileInputStream(new File(path));
-            return ymal.loadAs(fis, clazz);
+        try (FileInputStream fis = new FileInputStream(path)) {
+            return getYamlDataObject(fis, clazz);
         } catch (FileNotFoundException ignore) {
             return null;
         } catch (Exception e) {
-            throw new AclException(e.getMessage());
-        } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException ignore) {
-                }
-            }
+            throw new AclException(e.getMessage(), e);
         }
     }
 
+    public static <T> T getYamlDataObject(InputStream fis, Class<T> clazz) {
+        Yaml yaml = new Yaml();
+        try {
+            return yaml.loadAs(fis, clazz);
+        } catch (Exception e) {
+            throw new AclException(e.getMessage(), e);
+        }
+    }
+
+    public static boolean writeDataObject(String path, Map<String, Object> dataMap) {
+        Yaml yaml = new Yaml();
+        try (PrintWriter pw = new PrintWriter(path, "UTF-8")) {
+            String dumpAsMap = yaml.dumpAsMap(dataMap);
+            pw.print(dumpAsMap);
+            pw.flush();
+        } catch (Exception e) {
+            throw new AclException(e.getMessage(), e);
+        }
+        return true;
+    }
+
     public static RPCHook getAclRPCHook(String fileName) {
-        JSONObject yamlDataObject = null;
+        JSONObject yamlDataObject;
         try {
             yamlDataObject = AclUtils.getYamlDataObject(fileName,
                 JSONObject.class);
         } catch (Exception e) {
-            log.error("convert yaml file to data object error, ",e);
+            log.error("Convert yaml file to data object error, ", e);
+            return null;
+        }
+        return buildRpcHook(yamlDataObject);
+    }
+
+    public static RPCHook getAclRPCHook(InputStream inputStream) {
+        JSONObject yamlDataObject = null;
+        try {
+            yamlDataObject = AclUtils.getYamlDataObject(inputStream, JSONObject.class);
+        } catch (Exception e) {
+            log.error("Convert yaml file to data object error, ", e);
+            return null;
+        }
+        return buildRpcHook(yamlDataObject);
+    }
+
+    private static RPCHook buildRpcHook(JSONObject yamlDataObject) {
+        if (yamlDataObject == null || yamlDataObject.isEmpty()) {
+            log.warn("Failed to parse configuration to enable ACL.");
             return null;
         }
 
-        if (yamlDataObject == null || yamlDataObject.isEmpty()) {
-            log.warn("Cannot find conf file :{}, acl isn't be enabled." ,fileName);
-            return null;
-        }
-        
-        String accessKey = yamlDataObject.getString("accessKey");
-        String secretKey = yamlDataObject.getString("secretKey");
+        String accessKey = yamlDataObject.getString(AclConstants.CONFIG_ACCESS_KEY);
+        String secretKey = yamlDataObject.getString(AclConstants.CONFIG_SECRET_KEY);
 
         if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey)) {
-            log.warn("AccessKey or secretKey is blank, the acl is not enabled.");
-
+            log.warn("Failed to enable ACL. Either AccessKey or secretKey is blank");
             return null;
         }
-        return new AclClientRPCHook(new SessionCredentials(accessKey,secretKey));
+        return new AclClientRPCHook(new SessionCredentials(accessKey, secretKey));
     }
 
 }

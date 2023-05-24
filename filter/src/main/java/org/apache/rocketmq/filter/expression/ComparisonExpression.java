@@ -32,7 +32,7 @@ import java.util.List;
  */
 public abstract class ComparisonExpression extends BinaryExpression implements BooleanExpression {
 
-    public static final ThreadLocal<Boolean> CONVERT_STRING_EXPRESSIONS = new ThreadLocal<Boolean>();
+    public static final ThreadLocal<Boolean> CONVERT_STRING_EXPRESSIONS = new ThreadLocal<>();
 
     boolean convertStringExpressions = false;
 
@@ -90,11 +90,11 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
     }
 
     public static BooleanExpression createIsNull(Expression left) {
-        return doCreateEqual(left, ConstantExpression.NULL);
+        return doCreateEqual(left, BooleanConstantExpression.NULL);
     }
 
     public static BooleanExpression createIsNotNull(Expression left) {
-        return UnaryExpression.createNOT(doCreateEqual(left, ConstantExpression.NULL));
+        return UnaryExpression.createNOT(doCreateEqual(left, BooleanConstantExpression.NULL));
     }
 
     public static BooleanExpression createNotEqual(Expression left, Expression right) {

@@ -16,9 +16,19 @@
  */
 package org.apache.rocketmq.remoting.protocol;
 
-import java.util.Arrays;
-import java.util.List;
+import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.TypeAdapter;
+import org.junit.Assert;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -80,6 +90,38 @@ public class RemotingSerializableTest {
             "}");
     }
 
+    @Test
+    public void testEncode() {
+        class Foo extends RemotingSerializable {
+            Map<Long, String> map = new HashMap<>();
+
+            Foo() {
+                map.put(0L, "Test");
+            }
+
+            public Map<Long, String> getMap() {
+                return map;
+            }
+        }
+        Foo foo = new Foo();
+        String invalid = new String(foo.encode(), Charset.defaultCharset());
+        String valid = new String(foo.encode(SerializerFeature.BrowserCompatible, SerializerFeature.QuoteFieldNames,
+             SerializerFeature.MapSortField), Charset.defaultCharset());
+
+        Gson gson = new Gson();
+        final TypeAdapter<JsonElement> strictAdapter = gson.getAdapter(JsonElement.class);
+        try {
+            strictAdapter.fromJson(invalid);
+            Assert.fail("Should have thrown");
+        } catch (IOException ignore) {
+        }
+
+        try {
+            strictAdapter.fromJson(valid);
+        } catch (IOException ignore) {
+            Assert.fail("Should not throw");
+        }
+    }
 }
 
 class Sample {

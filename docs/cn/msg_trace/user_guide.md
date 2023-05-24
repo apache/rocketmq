@@ -5,7 +5,7 @@
 | Producer端| Consumer端 | Broker端 |
 | --- | --- | --- |
 | 生产实例信息 | 消费实例信息 | 消息的Topic |
-| 发送消息时间 | 投递时间,投递轮次  | 消息存储位置 |
+| 发送消息时间 | 投递时间，投递轮次  | 消息存储位置 |
 | 消息是否发送成功 | 消息是否消费成功 | 消息的Key值 |
 | 发送耗时 | 消费耗时 | 消息的Tag值 |
 
@@ -50,10 +50,10 @@ RocketMQ的消息轨迹特性支持两种存储轨迹数据的方式：
 如果用户不准备将消息轨迹的数据存储于系统级的默认TraceTopic，也可以自己定义并创建用户级的Topic来保存轨迹（即为创建普通的Topic用于保存消息轨迹数据）。下面一节会介绍Client客户端的接口如何支持用户自定义的TraceTopic。
 
 ## 4. 支持消息轨迹的Client客户端实践
-为了尽可能地减少用户业务系统使用RocketMQ消息轨迹特性的改造工作量，作者在设计时候采用对原来接口增加一个开关参数(**enableMsgTrace**)来实现消息轨迹是否开启；并新增一个自定义参(**customizedTraceTopic**)数来实现用户存储消息轨迹数据至自己创建的用户级Topic。
+为了尽可能地减少用户业务系统使用RocketMQ消息轨迹特性的改造工作量，作者在设计时候采用对原来接口增加一个开关参数(**enableMsgTrace**)来实现消息轨迹是否开启；并新增一个自定义参数(**customizedTraceTopic**)来实现用户存储消息轨迹数据至自己创建的用户级Topic。
 
 ### 4.1 发送消息时开启消息轨迹
-```
+```java
         DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true);
         producer.setNamesrvAddr("XX.XX.XX.XX1");
         producer.start();
@@ -73,7 +73,7 @@ RocketMQ的消息轨迹特性支持两种存储轨迹数据的方式：
 ```
 
 ### 4.2 订阅消息时开启消息轨迹
-```
+```java
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("CID_JODIE_1",true);
         consumer.subscribe("TopicTest", "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
@@ -100,6 +100,19 @@ RocketMQ的消息轨迹特性支持两种存储轨迹数据的方式：
         ......
 ```
 
-
-
-
+### 4.4 使用mqadmin命令发送和查看轨迹
+- 发送消息
+```shell
+./mqadmin sendMessage -m true --topic some-topic-name -n 127.0.0.1:9876 -p "your meesgae content"
+```
+- 查询轨迹
+```shell
+./mqadmin QueryMsgTraceById -n 127.0.0.1:9876 -i "some-message-id"
+```
+- 查询轨迹结果
+```
+RocketMQLog:WARN No appenders could be found for logger (io.netty.util.internal.PlatformDependent0).
+RocketMQLog:WARN Please initialize the logger system properly.
+#Type      #ProducerGroup       #ClientHost          #SendTime            #CostTimes #Status
+Pub        1623305799667        xxx.xxx.xxx.xxx       2021-06-10 14:16:40  131ms      success
+```

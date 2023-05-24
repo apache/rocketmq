@@ -23,9 +23,9 @@ import java.util.List;
 public class QueryMessageResult {
 
     private final List<SelectMappedBufferResult> messageMapedList =
-        new ArrayList<SelectMappedBufferResult>(100);
+        new ArrayList<>(100);
 
-    private final List<ByteBuffer> messageBufferList = new ArrayList<ByteBuffer>(100);
+    private final List<ByteBuffer> messageBufferList = new ArrayList<>(100);
     private long indexLastUpdateTimestamp;
     private long indexLastUpdatePhyoffset;
 
@@ -65,5 +65,9 @@ public class QueryMessageResult {
 
     public int getBufferTotalSize() {
         return bufferTotalSize;
+    }
+
+    public List<SelectMappedBufferResult> getMessageMapedList() {
+        return messageMapedList;
     }
 }

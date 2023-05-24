@@ -19,17 +19,17 @@ package org.apache.rocketmq.test.listener;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.clientinterface.MQCollector;
 import org.apache.rocketmq.test.util.TestUtil;
 
 public class AbstractListener extends MQCollector implements MessageListener {
-    public static Logger logger = Logger.getLogger(AbstractListener.class);
-    protected boolean isDebug = false;
+    public static final Logger LOGGER = LoggerFactory.getLogger(AbstractListener.class);
+    protected boolean isDebug = true;
     protected String listenerName = null;
     protected Collection<Object> allSendMsgs = null;
 
@@ -62,54 +62,40 @@ public class AbstractListener extends MQCollector implements MessageListener {
         super.lockCollectors();
     }
 
-    public Collection<Object> waitForMessageConsume(Collection<Object> allSendMsgs,
-        int timeoutMills) {
-        this.allSendMsgs = allSendMsgs;
-        List<Object> sendMsgs = new ArrayList<Object>();
-        sendMsgs.addAll(allSendMsgs);
+    public Collection<Object> waitForMessageConsume(Collection<Object> allSendMessages, int timeoutMills) {
+        this.allSendMsgs = allSendMessages;
+        List<Object> sendMessages = new ArrayList<>(allSendMessages);
 
         long curTime = System.currentTimeMillis();
-        while (!sendMsgs.isEmpty()) {
-            Iterator<Object> iter = sendMsgs.iterator();
-            while (iter.hasNext()) {
-                Object msg = iter.next();
-                if (msgBodys.getAllData().contains(msg)) {
-                    iter.remove();
-                }
-            }
-            if (sendMsgs.isEmpty()) {
+        while (!sendMessages.isEmpty()) {
+            sendMessages.removeIf(msg -> msgBodys.getAllData().contains(msg));
+            if (sendMessages.isEmpty()) {
                 break;
             } else {
                 if (System.currentTimeMillis() - curTime >= timeoutMills) {
-                    logger.error(String.format("timeout but  [%s]  not recv all send messages!",
-                        listenerName));
+                    LOGGER.error(String.format("timeout but [%s] not recv all send messages!", listenerName));
                     break;
                 } else {
-                    logger.info(String.format("[%s] still [%s] msg not recv!", listenerName,
-                        sendMsgs.size()));
+                    LOGGER.info(String.format("[%s] still [%s] msg not recv!", listenerName, sendMessages.size()));
                     TestUtil.waitForMonment(500);
                 }
             }
         }
-
-        return sendMsgs;
+        return sendMessages;
     }
 
-    public long waitForMessageConsume(int size,
-        int timeoutMills) {
-
+    public long waitForMessageConsume(int size, int timeoutMills) {
         long curTime = System.currentTimeMillis();
         while (true) {
             if (msgBodys.getDataSize() >= size) {
                 break;
             }
             if (System.currentTimeMillis() - curTime >= timeoutMills) {
-                logger.error(String.format("timeout but  [%s]  not recv all send messages!",
-                    listenerName));
+                LOGGER.error(String.format("timeout but  [%s]  not recv all send messages!", listenerName));
                 break;
             } else {
-                logger.info(String.format("[%s] still [%s] msg not recv!", listenerName,
-                    size - msgBodys.getDataSize()));
+                LOGGER.info(String.format("[%s] still [%s] msg not recv!",
+                    listenerName, size - msgBodys.getDataSize()));
                 TestUtil.waitForMonment(500);
             }
         }
@@ -120,7 +106,7 @@ public class AbstractListener extends MQCollector implements MessageListener {
     public void waitForMessageConsume(Map<Object, Object> sendMsgIndex, int timeoutMills) {
         Collection<Object> notRecvMsgs = waitForMessageConsume(sendMsgIndex.keySet(), timeoutMills);
         for (Object object : notRecvMsgs) {
-            logger.info(sendMsgIndex.get(object));
+            LOGGER.info("{}", sendMsgIndex.get(object));
         }
     }
 }

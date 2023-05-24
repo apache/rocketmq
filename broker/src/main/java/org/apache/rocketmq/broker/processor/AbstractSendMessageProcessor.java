@@ -16,19 +16,26 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import java.net.InetSocketAddress;
+import io.netty.channel.ChannelHandlerContext;
+import io.opentelemetry.api.common.Attributes;
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import io.netty.channel.ChannelHandlerContext;
+import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
+import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.broker.mqtrace.SendMessageHook;
+import org.apache.rocketmq.common.AbortProcessException;
+import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.DBMsgConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
@@ -36,55 +43,331 @@ import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
-import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageType;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
-import org.apache.rocketmq.common.utils.ChannelUtil;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
+
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 
 public abstract class AbstractSendMessageProcessor implements NettyRequestProcessor {
-    protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    protected static final Logger DLQ_LOG = LoggerFactory.getLogger(LoggerName.DLQ_LOGGER_NAME);
+
+    protected List<ConsumeMessageHook> consumeMessageHookList;
 
     protected final static int DLQ_NUMS_PER_GROUP = 1;
     protected final BrokerController brokerController;
     protected final Random random = new Random(System.currentTimeMillis());
-    protected final SocketAddress storeHost;
     private List<SendMessageHook> sendMessageHookList;
 
     public AbstractSendMessageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
-        this.storeHost =
-            new InetSocketAddress(brokerController.getBrokerConfig().getBrokerIP1(), brokerController
-                .getNettyServerConfig().getListenPort());
+    }
+
+    public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {
+        this.consumeMessageHookList = consumeMessageHookList;
+    }
+
+    protected RemotingCommand consumerSendMsgBack(final ChannelHandlerContext ctx, final RemotingCommand request)
+        throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final ConsumerSendMsgBackRequestHeader requestHeader =
+            (ConsumerSendMsgBackRequestHeader) request.decodeCommandCustomHeader(ConsumerSendMsgBackRequestHeader.class);
+
+        // The send back requests sent to SlaveBroker will be forwarded to the master broker beside
+        final BrokerController masterBroker = this.brokerController.peekMasterBroker();
+        if (null == masterBroker) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("no master available along with " + brokerController.getBrokerConfig().getBrokerIP1());
+            return response;
+        }
+
+        // The broker that received the request.
+        // It may be a master broker or a slave broker
+        final BrokerController currentBroker = this.brokerController;
+
+        SubscriptionGroupConfig subscriptionGroupConfig =
+            masterBroker.getSubscriptionGroupManager().findSubscriptionGroupConfig(requestHeader.getGroup());
+        if (null == subscriptionGroupConfig) {
+            response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
+            response.setRemark("subscription group not exist, " + requestHeader.getGroup() + " "
+                + FAQUrl.suggestTodo(FAQUrl.SUBSCRIPTION_GROUP_NOT_EXIST));
+            return response;
+        }
+
+        BrokerConfig masterBrokerConfig = masterBroker.getBrokerConfig();
+        if (!PermName.isWriteable(masterBrokerConfig.getBrokerPermission())) {
+            response.setCode(ResponseCode.NO_PERMISSION);
+            response.setRemark("the broker[" + masterBrokerConfig.getBrokerIP1() + "] sending message is forbidden");
+            return response;
+        }
+
+        if (subscriptionGroupConfig.getRetryQueueNums() <= 0) {
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
+        }
+
+        String newTopic = MixAll.getRetryTopic(requestHeader.getGroup());
+        int queueIdInt = this.random.nextInt(subscriptionGroupConfig.getRetryQueueNums());
+
+        int topicSysFlag = 0;
+        if (requestHeader.isUnitMode()) {
+            topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
+        }
+
+        // Create retry topic to master broker
+        TopicConfig topicConfig = masterBroker.getTopicConfigManager().createTopicInSendMessageBackMethod(
+            newTopic,
+            subscriptionGroupConfig.getRetryQueueNums(),
+            PermName.PERM_WRITE | PermName.PERM_READ, topicSysFlag);
+        if (null == topicConfig) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("topic[" + newTopic + "] not exist");
+            return response;
+        }
+
+        if (!PermName.isWriteable(topicConfig.getPerm())) {
+            response.setCode(ResponseCode.NO_PERMISSION);
+            response.setRemark(String.format("the topic[%s] sending message is forbidden", newTopic));
+            return response;
+        }
+
+        // Look message from the origin message store
+        MessageExt msgExt = currentBroker.getMessageStore().lookMessageByOffset(requestHeader.getOffset());
+        if (null == msgExt) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("look message by offset failed, " + requestHeader.getOffset());
+            return response;
+        }
+
+        final String retryTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
+        if (null == retryTopic) {
+            MessageAccessor.putProperty(msgExt, MessageConst.PROPERTY_RETRY_TOPIC, msgExt.getTopic());
+        }
+        msgExt.setWaitStoreMsgOK(false);
+
+        int delayLevel = requestHeader.getDelayLevel();
+
+        int maxReconsumeTimes = subscriptionGroupConfig.getRetryMaxTimes();
+        if (request.getVersion() >= MQVersion.Version.V3_4_9.ordinal()) {
+            Integer times = requestHeader.getMaxReconsumeTimes();
+            if (times != null) {
+                maxReconsumeTimes = times;
+            }
+        }
+
+        boolean isDLQ = false;
+        if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
+            || delayLevel < 0) {
+
+            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                .put(LABEL_CONSUMER_GROUP, requestHeader.getGroup())
+                .put(LABEL_TOPIC, requestHeader.getOriginTopic())
+                .put(LABEL_IS_SYSTEM, BrokerMetricsManager.isSystem(requestHeader.getOriginTopic(), requestHeader.getGroup()))
+                .build();
+            BrokerMetricsManager.sendToDlqMessages.add(1, attributes);
+
+            isDLQ = true;
+            newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
+            queueIdInt = randomQueueId(DLQ_NUMS_PER_GROUP);
+
+            // Create DLQ topic to master broker
+            topicConfig = masterBroker.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
+                DLQ_NUMS_PER_GROUP,
+                PermName.PERM_WRITE | PermName.PERM_READ, 0);
+
+            if (null == topicConfig) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("topic[" + newTopic + "] not exist");
+                return response;
+            }
+            msgExt.setDelayTimeLevel(0);
+        } else {
+            if (0 == delayLevel) {
+                delayLevel = 3 + msgExt.getReconsumeTimes();
+            }
+
+            msgExt.setDelayTimeLevel(delayLevel);
+        }
+
+        MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
+        msgInner.setTopic(newTopic);
+        msgInner.setBody(msgExt.getBody());
+        msgInner.setFlag(msgExt.getFlag());
+        MessageAccessor.setProperties(msgInner, msgExt.getProperties());
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+        msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(null, msgExt.getTags()));
+
+        msgInner.setQueueId(queueIdInt);
+        msgInner.setSysFlag(msgExt.getSysFlag());
+        msgInner.setBornTimestamp(msgExt.getBornTimestamp());
+        msgInner.setBornHost(msgExt.getBornHost());
+        msgInner.setStoreHost(this.getStoreHost());
+        msgInner.setReconsumeTimes(msgExt.getReconsumeTimes() + 1);
+
+        String originMsgId = MessageAccessor.getOriginMessageId(msgExt);
+        MessageAccessor.setOriginMessageId(msgInner, UtilAll.isBlank(originMsgId) ? msgExt.getMsgId() : originMsgId);
+        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
+
+        boolean succeeded = false;
+
+        // Put retry topic to master message store
+        PutMessageResult putMessageResult = masterBroker.getMessageStore().putMessage(msgInner);
+        if (putMessageResult != null) {
+            String commercialOwner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
+
+            switch (putMessageResult.getPutMessageStatus()) {
+                case PUT_OK:
+                    String backTopic = msgExt.getTopic();
+                    String correctTopic = msgExt.getProperty(MessageConst.PROPERTY_RETRY_TOPIC);
+                    if (correctTopic != null) {
+                        backTopic = correctTopic;
+                    }
+                    if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(msgInner.getTopic())) {
+                        masterBroker.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
+                        masterBroker.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
+                        masterBroker.getBrokerStatsManager().incQueuePutNums(msgInner.getTopic(), msgInner.getQueueId());
+                        masterBroker.getBrokerStatsManager().incQueuePutSize(msgInner.getTopic(), msgInner.getQueueId(), putMessageResult.getAppendMessageResult().getWroteBytes());
+                    }
+                    masterBroker.getBrokerStatsManager().incSendBackNums(requestHeader.getGroup(), backTopic);
+
+                    if (isDLQ) {
+                        masterBroker.getBrokerStatsManager().incDLQStatValue(
+                            BrokerStatsManager.SNDBCK2DLQ_TIMES,
+                            commercialOwner,
+                            requestHeader.getGroup(),
+                            requestHeader.getOriginTopic(),
+                            BrokerStatsManager.StatsType.SEND_BACK_TO_DLQ.name(),
+                            1);
+
+                        String uniqKey = msgInner.getProperties().get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+                        DLQ_LOG.info("send msg to DLQ {}, owner={}, originalTopic={}, consumerId={}, msgUniqKey={}, storeTimestamp={}",
+                            newTopic,
+                            commercialOwner,
+                            requestHeader.getOriginTopic(),
+                            requestHeader.getGroup(),
+                            uniqKey,
+                            putMessageResult.getAppendMessageResult().getStoreTimestamp());
+                    }
+
+                    response.setCode(ResponseCode.SUCCESS);
+                    response.setRemark(null);
+
+                    succeeded = true;
+                    break;
+                default:
+                    break;
+            }
+
+            if (!succeeded) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark(putMessageResult.getPutMessageStatus().name());
+            }
+        } else {
+            if (isDLQ) {
+                String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
+                String uniqKey = msgInner.getProperties().get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+                DLQ_LOG.info("failed to send msg to DLQ {}, owner={}, originalTopic={}, consumerId={}, msgUniqKey={}, result={}",
+                    newTopic,
+                    owner,
+                    requestHeader.getOriginTopic(),
+                    requestHeader.getGroup(),
+                    uniqKey,
+                    "null");
+            }
+
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("putMessageResult is null");
+        }
+
+        if (this.hasConsumeMessageHook() && !UtilAll.isBlank(requestHeader.getOriginMsgId())) {
+            String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getGroup());
+            ConsumeMessageContext context = new ConsumeMessageContext();
+            context.setNamespace(namespace);
+            context.setTopic(requestHeader.getOriginTopic());
+            context.setConsumerGroup(requestHeader.getGroup());
+            context.setCommercialRcvStats(BrokerStatsManager.StatsType.SEND_BACK);
+            context.setCommercialRcvTimes(1);
+            context.setCommercialOwner(request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER));
+
+            context.setAccountAuthType(request.getExtFields().get(BrokerStatsManager.ACCOUNT_AUTH_TYPE));
+            context.setAccountOwnerParent(request.getExtFields().get(BrokerStatsManager.ACCOUNT_OWNER_PARENT));
+            context.setAccountOwnerSelf(request.getExtFields().get(BrokerStatsManager.ACCOUNT_OWNER_SELF));
+            context.setRcvStat(isDLQ ? BrokerStatsManager.StatsType.SEND_BACK_TO_DLQ : BrokerStatsManager.StatsType.SEND_BACK);
+            context.setSuccess(succeeded);
+            context.setRcvMsgNum(1);
+            //Set msg body size 0 when sent back by consumer.
+            context.setRcvMsgSize(0);
+            context.setCommercialRcvMsgNum(succeeded ? 1 : 0);
+
+            try {
+                this.executeConsumeMessageHookAfter(context);
+            } catch (AbortProcessException e) {
+                response.setCode(e.getResponseCode());
+                response.setRemark(e.getErrorMessage());
+            }
+        }
+
+        return response;
+    }
+
+    public boolean hasConsumeMessageHook() {
+        return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
+    }
+
+    public void executeConsumeMessageHookAfter(final ConsumeMessageContext context) {
+        if (hasConsumeMessageHook()) {
+            for (ConsumeMessageHook hook : this.consumeMessageHookList) {
+                try {
+                    hook.consumeMessageAfter(context);
+                } catch (Throwable e) {
+                    // Ignore
+                }
+            }
+        }
     }
 
     protected SendMessageContext buildMsgContext(ChannelHandlerContext ctx,
-        SendMessageRequestHeader requestHeader) {
-        if (!this.hasSendMessageHook()) {
-            return null;
-        }
+        SendMessageRequestHeader requestHeader, RemotingCommand request) {
         String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
-        SendMessageContext mqtraceContext;
-        mqtraceContext = new SendMessageContext();
-        mqtraceContext.setProducerGroup(requestHeader.getProducerGroup());
-        mqtraceContext.setNamespace(namespace);
-        mqtraceContext.setTopic(requestHeader.getTopic());
-        mqtraceContext.setMsgProps(requestHeader.getProperties());
-        mqtraceContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-        mqtraceContext.setBrokerAddr(this.brokerController.getBrokerAddr());
-        mqtraceContext.setBrokerRegionId(this.brokerController.getBrokerConfig().getRegionId());
-        mqtraceContext.setBornTimeStamp(requestHeader.getBornTimestamp());
+
+        SendMessageContext sendMessageContext;
+        sendMessageContext = new SendMessageContext();
+        sendMessageContext.setNamespace(namespace);
+        sendMessageContext.setProducerGroup(requestHeader.getProducerGroup());
+        sendMessageContext.setTopic(requestHeader.getTopic());
+        sendMessageContext.setBodyLength(request.getBody().length);
+        sendMessageContext.setMsgProps(requestHeader.getProperties());
+        sendMessageContext.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        sendMessageContext.setBrokerAddr(this.brokerController.getBrokerAddr());
+        sendMessageContext.setQueueId(requestHeader.getQueueId());
+        sendMessageContext.setBrokerRegionId(this.brokerController.getBrokerConfig().getRegionId());
+        sendMessageContext.setBornTimeStamp(requestHeader.getBornTimestamp());
+        sendMessageContext.setRequestTimeStamp(System.currentTimeMillis());
+
+        String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
+        sendMessageContext.setCommercialOwner(owner);
 
         Map<String, String> properties = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String uniqueKey = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
@@ -95,8 +378,14 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         if (uniqueKey == null) {
             uniqueKey = "";
         }
-        mqtraceContext.setMsgUniqueKey(uniqueKey);
-        return mqtraceContext;
+        sendMessageContext.setMsgUniqueKey(uniqueKey);
+
+        if (properties.containsKey(MessageConst.PROPERTY_SHARDING_KEY)) {
+            sendMessageContext.setMsgType(MessageType.Order_Msg);
+        } else {
+            sendMessageContext.setMsgType(MessageType.Normal_Msg);
+        }
+        return sendMessageContext;
     }
 
     public boolean hasSendMessageHook() {
@@ -107,7 +396,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         final SendMessageRequestHeader requestHeader, final byte[] body, TopicConfig topicConfig) {
         int queueIdInt = requestHeader.getQueueId();
         if (queueIdInt < 0) {
-            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
+            queueIdInt = randomQueueId(topicConfig.getWriteQueueNums());
         }
         int sysFlag = requestHeader.getSysFlag();
 
@@ -136,25 +425,30 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
     }
 
     public SocketAddress getStoreHost() {
-        return storeHost;
+        return brokerController.getStoreHost();
     }
 
     protected RemotingCommand msgContentCheck(final ChannelHandlerContext ctx,
         final SendMessageRequestHeader requestHeader, RemotingCommand request,
         final RemotingCommand response) {
-        if (requestHeader.getTopic().length() > Byte.MAX_VALUE) {
-            log.warn("putMessage message topic length too long {}", requestHeader.getTopic().length());
+        String topic = requestHeader.getTopic();
+        if (topic.length() > Byte.MAX_VALUE) {
+            LOGGER.warn("msgContentCheck: message topic length is too long, topic={}, topic length={}, threshold={}",
+                topic, topic.length(), Byte.MAX_VALUE);
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
         }
         if (requestHeader.getProperties() != null && requestHeader.getProperties().length() > Short.MAX_VALUE) {
-            log.warn("putMessage message properties length too long {}", requestHeader.getProperties().length());
+            LOGGER.warn(
+                "msgContentCheck: message properties length is too long, topic={}, properties length={}, threshold={}",
+                topic, requestHeader.getProperties().length(), Short.MAX_VALUE);
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
         }
         if (request.getBody().length > DBMsgConstants.MAX_BODY_SIZE) {
-            log.warn(" topic {}  msg body size {}  from {}", requestHeader.getTopic(),
-                request.getBody().length, ChannelUtil.getRemoteIp(ctx.channel()));
+            LOGGER.warn(
+                "msgContentCheck: message body size exceeds the threshold, topic={}, body size={}, threshold={}bytes",
+                topic, request.getBody().length, DBMsgConstants.MAX_BODY_SIZE);
             response.setRemark("msg body must be less 64KB");
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             return response;
@@ -163,7 +457,8 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
     }
 
     protected RemotingCommand msgCheck(final ChannelHandlerContext ctx,
-        final SendMessageRequestHeader requestHeader, final RemotingCommand response) {
+        final SendMessageRequestHeader requestHeader, final RemotingCommand request,
+        final RemotingCommand response) {
         if (!PermName.isWriteable(this.brokerController.getBrokerConfig().getBrokerPermission())
             && this.brokerController.getTopicConfigManager().isOrderTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.NO_PERMISSION);
@@ -171,11 +466,16 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 + "] sending message is forbidden");
             return response;
         }
-        if (!this.brokerController.getTopicConfigManager().isTopicCanSendMessage(requestHeader.getTopic())) {
-            String errorMsg = "the topic[" + requestHeader.getTopic() + "] is conflict with system reserved words.";
-            log.warn(errorMsg);
+
+        TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(requestHeader.getTopic());
+        if (!result.isValid()) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(errorMsg);
+            response.setRemark(result.getRemark());
+            return response;
+        }
+        if (TopicValidator.isNotAllowedSendTopic(requestHeader.getTopic())) {
+            response.setCode(ResponseCode.NO_PERMISSION);
+            response.setRemark("Sending message to topic[" + requestHeader.getTopic() + "] is forbidden.");
             return response;
         }
 
@@ -191,7 +491,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                 }
             }
 
-            log.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
+            LOGGER.warn("the topic {} not exist, producer: {}", requestHeader.getTopic(), ctx.channel().remoteAddress());
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageMethod(
                 requestHeader.getTopic(),
                 requestHeader.getDefaultTopic(),
@@ -220,10 +520,10 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         if (queueIdInt >= idValid) {
             String errorInfo = String.format("request queueId[%d] is illegal, %s Producer: %s",
                 queueIdInt,
-                topicConfig.toString(),
+                topicConfig,
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
-            log.warn(errorInfo);
+            LOGGER.warn(errorInfo);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(errorInfo);
 
@@ -238,70 +538,29 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
 
     protected void doResponse(ChannelHandlerContext ctx, RemotingCommand request,
         final RemotingCommand response) {
-        if (!request.isOnewayRPC()) {
-            try {
-                ctx.writeAndFlush(response);
-            } catch (Throwable e) {
-                log.error("SendMessageProcessor process request over, but response failed", e);
-                log.error(request.toString());
-                log.error(response.toString());
-            }
-        }
+        NettyRemotingAbstract.writeResponse(ctx.channel(), request, response);
     }
 
-    public void executeSendMessageHookBefore(final ChannelHandlerContext ctx, final RemotingCommand request,
-        SendMessageContext context) {
+    public void executeSendMessageHookBefore(SendMessageContext context) {
         if (hasSendMessageHook()) {
             for (SendMessageHook hook : this.sendMessageHookList) {
                 try {
-                    final SendMessageRequestHeader requestHeader = parseRequestHeader(request);
-
-                    String namespace = NamespaceUtil.getNamespaceFromResource(requestHeader.getTopic());
-                    if (null != requestHeader) {
-                        context.setNamespace(namespace);
-                        context.setProducerGroup(requestHeader.getProducerGroup());
-                        context.setTopic(requestHeader.getTopic());
-                        context.setBodyLength(request.getBody().length);
-                        context.setMsgProps(requestHeader.getProperties());
-                        context.setBornHost(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-                        context.setBrokerAddr(this.brokerController.getBrokerAddr());
-                        context.setQueueId(requestHeader.getQueueId());
-                    }
-
                     hook.sendMessageBefore(context);
-                    if (requestHeader != null) {
-                        requestHeader.setProperties(context.getMsgProps());
-                    }
+                } catch (AbortProcessException e) {
+                    throw e;
                 } catch (Throwable e) {
-                    // Ignore
+                    //ignore
                 }
             }
         }
     }
 
-    protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request)
-        throws RemotingCommandException {
+    protected SendMessageRequestHeader parseRequestHeader(RemotingCommand request) throws RemotingCommandException {
+        return SendMessageRequestHeader.parseRequestHeader(request);
+    }
 
-        SendMessageRequestHeaderV2 requestHeaderV2 = null;
-        SendMessageRequestHeader requestHeader = null;
-        switch (request.getCode()) {
-            case RequestCode.SEND_BATCH_MESSAGE:
-            case RequestCode.SEND_MESSAGE_V2:
-                requestHeaderV2 =
-                    (SendMessageRequestHeaderV2) request
-                        .decodeCommandCustomHeader(SendMessageRequestHeaderV2.class);
-            case RequestCode.SEND_MESSAGE:
-                if (null == requestHeaderV2) {
-                    requestHeader =
-                        (SendMessageRequestHeader) request
-                            .decodeCommandCustomHeader(SendMessageRequestHeader.class);
-                } else {
-                    requestHeader = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV1(requestHeaderV2);
-                }
-            default:
-                break;
-        }
-        return requestHeader;
+    protected int randomQueueId(int writeQueueNums) {
+        return ThreadLocalRandom.current().nextInt(99999999) % writeQueueNums;
     }
 
     public void executeSendMessageHookAfter(final RemotingCommand response, final SendMessageContext context) {
@@ -319,7 +578,7 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
                     }
                     hook.sendMessageAfter(context);
                 } catch (Throwable e) {
-                    // Ignore
+                    //ignore
                 }
             }
         }

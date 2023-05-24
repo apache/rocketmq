@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store;
 
 import java.nio.ByteBuffer;
+import org.apache.rocketmq.store.logfile.MappedFile;
 
 public class SelectMappedBufferResult {
 
@@ -26,7 +27,7 @@ public class SelectMappedBufferResult {
 
     private int size;
 
-    private MappedFile mappedFile;
+    protected MappedFile mappedFile;
 
     public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {
         this.startOffset = startOffset;
@@ -48,16 +49,9 @@ public class SelectMappedBufferResult {
         this.byteBuffer.limit(this.size);
     }
 
-   /* public MappedFile getMappedFile() {
+    public MappedFile getMappedFile() {
         return mappedFile;
-    }*/
-
-//    @Override
-//    protected void finalize() {
-//        if (this.mappedFile != null) {
-//            this.release();
-//        }
-//    }
+    }
 
     public synchronized void release() {
         if (this.mappedFile != null) {
@@ -65,8 +59,19 @@ public class SelectMappedBufferResult {
             this.mappedFile = null;
         }
     }
+    public synchronized boolean hasReleased() {
+        return this.mappedFile == null;
+    }
 
     public long getStartOffset() {
         return startOffset;
+    }
+
+    public boolean isInMem() {
+        if (mappedFile == null) {
+            return true;
+        }
+        long pos = startOffset - mappedFile.getFileFromOffset();
+        return mappedFile.isLoaded(pos, size);
     }
 }

@@ -53,8 +53,8 @@ public class Producer {
 |int|retryTimesWhenSendFailed|同步模式下内部尝试发送消息的最大次数|
 |int|retryTimesWhenSendAsyncFailed|异步模式下内部尝试发送消息的最大次数|
 |boolean|retryAnotherBrokerWhenNotStoreOK|是否在内部发送失败时重试另一个broker|
-|int|maxMessageSize|消息的最大长度|
-|TraceDispatcher|traceDispatcher|消息追踪器。使用rcpHook来追踪消息|
+|int|maxMessageSize|消息体的最大长度|
+|TraceDispatcher|traceDispatcher|基于RPCHooK实现的消息轨迹插件|
 
 ### 构造方法摘要
 
@@ -62,11 +62,11 @@ public class Producer {
 |-------|------------|
 |DefaultMQProducer()|由默认参数值创建一个生产者 |
 |DefaultMQProducer(final String producerGroup)|使用指定的分组名创建一个生产者|
-|DefaultMQProducer(final String producerGroup, boolean enableMsgTrace)|使用指定的分组名创建一个生产者，并设置是否开启消息追踪|
-|DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic)|使用指定的分组名创建一个生产者，并设置是否开启消息追踪及追踪topic的名称|
+|DefaultMQProducer(final String producerGroup, boolean enableMsgTrace)|使用指定的分组名创建一个生产者，并设置是否开启消息轨迹|
+|DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic)|使用指定的分组名创建一个生产者，并设置是否开启消息轨迹及追踪topic的名称|
 |DefaultMQProducer(RPCHook rpcHook)|使用指定的hook创建一个生产者|
 |DefaultMQProducer(final String producerGroup, RPCHook rpcHook)|使用指定的分组名及自定义hook创建一个生产者|
-|DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,final String customizedTraceTopic)|使用指定的分组名及自定义hook创建一个生产者，并设置是否开启消息追踪及追踪topic的名称|
+|DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,final String customizedTraceTopic)|使用指定的分组名及自定义hook创建一个生产者，并设置是否开启消息轨迹及追踪topic的名称|
 
 ### 使用方法摘要
 
@@ -108,7 +108,7 @@ public class Producer {
 
 ### 字段详细信息
 
-- [producerGroup](http://rocketmq.apache.org/docs/core-concept/)
+- [producerGroup](https://rocketmq.apache.org/docs/introduction/02concepts)
 
 	`private String producerGroup`
 	
@@ -196,7 +196,7 @@ public class Producer {
 
 	`private int maxMessageSize = 1024 * 1024 * 4`
 
-	消息的最大大小。当消息题的字节数超过maxMessageSize就发送失败。
+	消息体的最大大小。当消息体的字节数超过maxMessageSize就发送失败。
 
 	默认值：1024 * 1024 * 4，单位：字节
 
@@ -204,7 +204,7 @@ public class Producer {
 
 	`private TraceDispatcher traceDispatcher = null`
 
-	在开启消息追踪后，该类通过hook的方式把消息生产者，消息存储的broker和消费者消费消息的信息像链路一样记录下来。在构造生产者时根据构造入参enableMsgTrace来决定是否创建该对象。
+	在开启消息轨迹后，该类通过hook的方式把消息生产者，消息存储的broker和消费者消费消息的信息像链路一样记录下来。在构造生产者时根据构造入参enableMsgTrace来决定是否创建该对象。
 
 ### 构造方法详细信息
 
@@ -230,20 +230,20 @@ public class Producer {
 	
 	`DefaultMQProducer(final String producerGroup, boolean enableMsgTrace)`
 
-	使用指定的分组名创建一个生产者，并设置是否开启消息追踪。
+	使用指定的分组名创建一个生产者，并设置是否开启消息轨迹。
 
 	- 入参描述：
 
 		参数名 | 类型 | 是否必须 | 缺省值 |描述
 		---|---|---|---|---
 		producerGroup | String | 是 | DEFAULT_PRODUCER | 生产者的分组名称
-		enableMsgTrace | boolean | 是 | false |是否开启消息追踪
+		enableMsgTrace | boolean | 是 | false |是否开启消息轨迹
 
 4. DefaultMQProducer
 	
 	`DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic)`
 
-	使用指定的分组名创建一个生产者，并设置是否开启消息追踪及追踪topic的名称。
+	使用指定的分组名创建一个生产者，并设置是否开启消息轨迹及追踪topic的名称。
 
 	- 入参描述：
 
@@ -251,8 +251,8 @@ public class Producer {
 		---|---|---|---|---
 		producerGroup | String | 是 | DEFAULT_PRODUCER | 生产者的分组名称
 		rpcHook | RPCHook | 否 | null |每个远程命令执行后会回调rpcHook
-		enableMsgTrace | boolean | 是 | false |是否开启消息追踪
-		customizedTraceTopic | String | 否 | RMQ_SYS_TRACE_TOPIC | 消息跟踪topic的名称
+		enableMsgTrace | boolean | 是 | false |是否开启消息轨迹
+		customizedTraceTopic | String | 否 | RMQ_SYS_TRACE_TOPIC | 消息轨迹topic的名称
 
 5. DefaultMQProducer
 	
@@ -283,7 +283,7 @@ public class Producer {
 
 	`DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,final String customizedTraceTopic)`
 
-	使用指定的分组名及自定义hook创建一个生产者，并设置是否开启消息追踪及追踪topic的名称。
+	使用指定的分组名及自定义hook创建一个生产者，并设置是否开启消息轨迹及追踪topic的名称。
 
 	- 入参描述：
 
@@ -291,8 +291,8 @@ public class Producer {
 	---|---|---|---|---
 	producerGroup | String | 是 | DEFAULT_PRODUCER | 生产者的分组名称
 	rpcHook | RPCHook | 否 | null |每个远程命令执行后会回调rpcHook
-	enableMsgTrace | boolean | 是 | false |是否开启消息追踪
-	customizedTraceTopic | String | 否 | RMQ_SYS_TRACE_TOPIC | 消息跟踪topic的名称
+	enableMsgTrace | boolean | 是 | false |是否开启消息轨迹
+	customizedTraceTopic | String | 否 | RMQ_SYS_TRACE_TOPIC | 消息轨迹topic的名称
 
 ### 使用方法详细信息
 

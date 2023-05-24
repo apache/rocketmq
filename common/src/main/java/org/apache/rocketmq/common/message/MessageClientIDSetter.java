@@ -23,27 +23,26 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.UtilAll;
 
 public class MessageClientIDSetter {
-    private static final String TOPIC_KEY_SPLITTER = "#";
+    
     private static final int LEN;
-    private static final String FIX_STRING;
+    private static final char[] FIX_STRING;
     private static final AtomicInteger COUNTER;
     private static long startTime;
     private static long nextStartTime;
 
     static {
-        LEN = 4 + 2 + 4 + 4 + 2;
-        ByteBuffer tempBuffer = ByteBuffer.allocate(10);
-        tempBuffer.position(2);
-        tempBuffer.putInt(UtilAll.getPid());
-        tempBuffer.position(0);
+        byte[] ip;
         try {
-            tempBuffer.put(UtilAll.getIP());
+            ip = UtilAll.getIP();
         } catch (Exception e) {
-            tempBuffer.put(createFakeIP());
+            ip = createFakeIP();
         }
-        tempBuffer.position(6);
+        LEN = ip.length + 2 + 4 + 4 + 2;
+        ByteBuffer tempBuffer = ByteBuffer.allocate(ip.length + 2 + 4);
+        tempBuffer.put(ip);
+        tempBuffer.putShort((short) UtilAll.getPid());
         tempBuffer.putInt(MessageClientIDSetter.class.getClassLoader().hashCode());
-        FIX_STRING = UtilAll.bytes2string(tempBuffer.array());
+        FIX_STRING = UtilAll.bytes2string(tempBuffer.array()).toCharArray();
         setStartTime(System.currentTimeMillis());
         COUNTER = new AtomicInteger(0);
     }
@@ -64,11 +63,12 @@ public class MessageClientIDSetter {
     public static Date getNearlyTimeFromID(String msgID) {
         ByteBuffer buf = ByteBuffer.allocate(8);
         byte[] bytes = UtilAll.string2bytes(msgID);
+        int ipLength = bytes.length == 28 ? 16 : 4;
         buf.put((byte) 0);
         buf.put((byte) 0);
         buf.put((byte) 0);
         buf.put((byte) 0);
-        buf.put(bytes, 10, 4);
+        buf.put(bytes, ipLength + 2 + 4, 4);
         buf.position(0);
         long spanMS = buf.getLong();
         Calendar cal = Calendar.getInstance();
@@ -89,33 +89,45 @@ public class MessageClientIDSetter {
 
     public static String getIPStrFromID(String msgID) {
         byte[] ipBytes = getIPFromID(msgID);
-        return UtilAll.ipToIPv4Str(ipBytes);
+        if (ipBytes.length == 16) {
+            return UtilAll.ipToIPv6Str(ipBytes);
+        } else {
+            return UtilAll.ipToIPv4Str(ipBytes);
+        }
     }
 
     public static byte[] getIPFromID(String msgID) {
-        byte[] result = new byte[4];
         byte[] bytes = UtilAll.string2bytes(msgID);
-        System.arraycopy(bytes, 0, result, 0, 4);
+        int ipLength = bytes.length == 28 ? 16 : 4;
+        byte[] result = new byte[ipLength];
+        System.arraycopy(bytes, 0, result, 0, ipLength);
         return result;
     }
 
-    public static String createUniqID() {
-        StringBuilder sb = new StringBuilder(LEN * 2);
-        sb.append(FIX_STRING);
-        sb.append(UtilAll.bytes2string(createUniqIDBuffer()));
-        return sb.toString();
+    public static int getPidFromID(String msgID) {
+        byte[] bytes = UtilAll.string2bytes(msgID);
+        ByteBuffer wrap = ByteBuffer.wrap(bytes);
+        int value = wrap.getShort(bytes.length - 2 - 4 - 4 - 2);
+        return value & 0x0000FFFF;
     }
 
-    private static byte[] createUniqIDBuffer() {
-        ByteBuffer buffer = ByteBuffer.allocate(4 + 2);
+    public static String createUniqID() {
+        char[] sb = new char[LEN * 2];
+        System.arraycopy(FIX_STRING, 0, sb, 0, FIX_STRING.length);
         long current = System.currentTimeMillis();
         if (current >= nextStartTime) {
             setStartTime(current);
         }
-        buffer.position(0);
-        buffer.putInt((int) (System.currentTimeMillis() - startTime));
-        buffer.putShort((short) COUNTER.getAndIncrement());
-        return buffer.array();
+        int diff = (int)(current - startTime);
+        if (diff < 0 && diff > -1000_000) {
+            // may cause by NTP
+            diff = 0;
+        }
+        int pos = FIX_STRING.length;
+        UtilAll.writeInt(sb, pos, diff);
+        pos += 8;
+        UtilAll.writeShort(sb, pos, COUNTER.getAndIncrement());
+        return new String(sb);
     }
 
     public static void setUniqID(final Message msg) {
@@ -137,4 +149,3 @@ public class MessageClientIDSetter {
         return fakeIP;
     }
 }
-    

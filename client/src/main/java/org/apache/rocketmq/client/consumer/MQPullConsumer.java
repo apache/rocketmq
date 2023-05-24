@@ -114,6 +114,13 @@ public interface MQPullConsumer extends MQConsumer {
         InterruptedException;
 
     /**
+     * Pulling the messages in a async. way
+     */
+    void pull(final MessageQueue mq, final String subExpression, final long offset, final int maxNums, final int maxSize,
+        final PullCallback pullCallback, long timeout) throws MQClientException, RemotingException,
+        InterruptedException;
+
+    /**
      * Pulling the messages in a async. way. Support message selection
      */
     void pull(final MessageQueue mq, final MessageSelector selector, final long offset, final int maxNums,
@@ -169,4 +176,5 @@ public interface MQPullConsumer extends MQConsumer {
      */
     void sendMessageBack(MessageExt msg, int delayLevel, String brokerName, String consumerGroup)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
 }
