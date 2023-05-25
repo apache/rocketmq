@@ -270,7 +270,7 @@ public class ReplicasManager {
                 this.haService.changeToMaster(newMasterEpoch);
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
-                this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
+                this.brokerController.getMessageStoreConfig().setBrokerRole(this.brokerController.getMessageStoreConfig().getBrokerRole());
                 this.brokerController.changeSpecialServiceStatus(true);
 
                 // Change record
