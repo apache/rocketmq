@@ -946,7 +946,7 @@ public class DefaultMessageStoreTest {
     @Test
     public void testChangeStoreConfig() {
         Properties properties = new Properties();
-        properties.setProperty("isEnableBatchPush", "true");
+        properties.setProperty("enableBatchPush", "true");
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         MixAll.properties2Object(properties, messageStoreConfig);
         assertThat(messageStoreConfig.isEnableBatchPush()).isTrue();
