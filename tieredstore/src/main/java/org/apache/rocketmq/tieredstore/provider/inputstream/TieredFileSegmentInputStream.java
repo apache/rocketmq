@@ -119,5 +119,50 @@ public class TieredFileSegmentInputStream extends InputStream {
         return curBuffer.get(readPosInCurBuffer++) & 0xff;
     }
 
+    public int readOptimized(byte[] b, int off, int len) {
+        if (b == null) {
+            throw new NullPointerException();
+        } else if (off < 0 || len < 0 || len > b.length - off) {
+            throw new IndexOutOfBoundsException("off < 0 || len < 0 || len > b.length - off");
+        }
+        if (readPosition >= contentLength) {
+            return -1;
+        }
+
+        int available = available();
+        if (len > available) {
+            len = available;
+        }
+        if (len <= 0) {
+            return 0;
+        }
+        int needRead = len;
+        int pos = readPosition;
+        int bufIndex = curReadBufferIndex;
+        int posInCurBuffer = readPosInCurBuffer;
+        ByteBuffer curBuf = curBuffer;
+        while (bufIndex < uploadBufferList.size()) {
+            curBuf = uploadBufferList.get(bufIndex);
+            int remaining = curBuf.remaining() - posInCurBuffer;
+            if (remaining >= len) {
+                curBuf.get(b, off, len);
+                pos += len;
+                posInCurBuffer += len;
+                break;
+            } else {
+                curBuf.get(b, off, remaining);
+                off += remaining;
+                len -= remaining;
+                pos += remaining;
+                posInCurBuffer += remaining;
+                bufIndex++;
+            }
+        }
+        readPosition = pos;
+        curReadBufferIndex = bufIndex;
+        readPosInCurBuffer = posInCurBuffer;
+        curBuffer = curBuf;
+        return needRead;
+    }
 }
 
