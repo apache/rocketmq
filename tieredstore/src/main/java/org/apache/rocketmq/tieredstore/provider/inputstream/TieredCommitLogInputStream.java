@@ -94,4 +94,90 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
         }
         return codaBuffer.get(readPosInCurBuffer++) & 0xff;
     }
+
+    @Override
+    public int read(byte[] b, int off, int len) {
+        if (b == null) {
+            throw new NullPointerException();
+        } else if (off < 0 || len < 0 || len > b.length - off) {
+            throw new IndexOutOfBoundsException("off < 0 || len < 0 || len > b.length - off");
+        }
+        if (readPosition >= contentLength) {
+            return -1;
+        }
+
+        int available = available();
+        if (len > available) {
+            len = available;
+        }
+        if (len <= 0) {
+            return 0;
+        }
+        int needRead = len;
+        int pos = readPosition;
+        int bufIndex = curReadBufferIndex;
+        int posInCurBuffer = readPosInCurBuffer;
+        long curCommitLogOffset = commitLogOffset;
+        ByteBuffer curBuf = curBuffer;
+        while (needRead > 0 && bufIndex <= uploadBufferList.size()) {
+            int readLen, remaining, realReadLen = 0;
+            if (bufIndex == uploadBufferList.size()) {
+                // read from coda buffer
+                remaining = codaBuffer.remaining() - posInCurBuffer;
+                readLen = remaining < needRead ? remaining : needRead;
+                codaBuffer.position(posInCurBuffer);
+                codaBuffer.get(b, off, readLen);
+                codaBuffer.position(0);
+                // update flags
+                off += readLen;
+                needRead -= readLen;
+                pos += readLen;
+                posInCurBuffer += readLen;
+                continue;
+            }
+            remaining = curBuf.remaining() - posInCurBuffer;
+            readLen = remaining < needRead ? remaining : needRead;
+            curBuf = uploadBufferList.get(bufIndex);
+            if (posInCurBuffer < MessageBufferUtil.PHYSICAL_OFFSET_POSITION) {
+                realReadLen = MessageBufferUtil.PHYSICAL_OFFSET_POSITION - posInCurBuffer < readLen ?
+                        MessageBufferUtil.PHYSICAL_OFFSET_POSITION - posInCurBuffer : readLen;
+                // read from commitLog buffer
+                curBuf.position(posInCurBuffer);
+                curBuf.get(b, off, realReadLen);
+                curBuf.position(0);
+            } else if (posInCurBuffer < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
+                realReadLen = MessageBufferUtil.SYS_FLAG_OFFSET_POSITION - posInCurBuffer < readLen ?
+                        MessageBufferUtil.SYS_FLAG_OFFSET_POSITION - posInCurBuffer : readLen;
+                // read from converted PHYSICAL_OFFSET_POSITION
+                byte[] physicalOffsetBytes = new byte[realReadLen];
+                for (int i = 0; i < realReadLen; i++) {
+                    physicalOffsetBytes[i] = (byte) ((curCommitLogOffset >> (8 * (MessageBufferUtil.SYS_FLAG_OFFSET_POSITION - posInCurBuffer - i - 1))) & 0xff);
+                }
+                System.arraycopy(physicalOffsetBytes, 0, b, off, realReadLen);
+            } else if (posInCurBuffer >= MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
+                realReadLen = readLen;
+                // read from commitLog buffer
+                curBuf.position(posInCurBuffer);
+                curBuf.get(b, off, readLen);
+                curBuf.position(0);
+            }
+            // update flags
+            off += realReadLen;
+            needRead -= realReadLen;
+            pos += realReadLen;
+            posInCurBuffer += realReadLen;
+            if (posInCurBuffer == curBuffer.remaining()) {
+                // read from next buf
+                bufIndex++;
+                curCommitLogOffset += posInCurBuffer;
+                posInCurBuffer = 0;
+            }
+        }
+        readPosition = pos;
+        curReadBufferIndex = bufIndex;
+        readPosInCurBuffer = posInCurBuffer;
+        commitLogOffset = curCommitLogOffset;
+        curBuffer = curBuf;
+        return len;
+    }
 }

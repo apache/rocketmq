@@ -19,6 +19,7 @@ package org.apache.rocketmq.tieredstore.provider;
 
 import com.google.common.base.Supplier;
 import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
+import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
 import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStreamFactory;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
@@ -70,8 +71,11 @@ public class TieredFileSegmentInputStreamTest {
         }
 
         int finalBufferSize = bufferSize;
+        int[] batchReadSizeTestSet = {
+            MessageBufferUtil.PHYSICAL_OFFSET_POSITION - 1, MessageBufferUtil.PHYSICAL_OFFSET_POSITION, MessageBufferUtil.PHYSICAL_OFFSET_POSITION + 1, MSG_LEN - 1, MSG_LEN, MSG_LEN + 1
+        };
         verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStreamFactory.build(
-                TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), finalBufferSize);
+            TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), finalBufferSize, batchReadSizeTestSet);
 
     }
 
@@ -110,8 +114,13 @@ public class TieredFileSegmentInputStreamTest {
         }
 
         int finalBufferSize = bufferSize;
+        int[] batchReadSizeTestSet = {
+            MessageBufferUtil.PHYSICAL_OFFSET_POSITION - 1, MessageBufferUtil.PHYSICAL_OFFSET_POSITION, MessageBufferUtil.PHYSICAL_OFFSET_POSITION + 1,
+            MSG_LEN - 1, MSG_LEN, MSG_LEN + 1,
+            bufferSize - 1, bufferSize, bufferSize + 1
+        };
         verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStreamFactory.build(
-                TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, codaBuffer, finalBufferSize), finalBufferSize);
+            TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, codaBuffer, finalBufferSize), finalBufferSize, batchReadSizeTestSet);
 
     }
 
@@ -133,8 +142,9 @@ public class TieredFileSegmentInputStreamTest {
         }
 
         int finalBufferSize = bufferSize;
+        int[] batchReadSizeTestSet = {TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE - 1, TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE, TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE + 1};
         verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStreamFactory.build(
-                TieredFileSegment.FileSegmentType.CONSUME_QUEUE, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), bufferSize);
+            TieredFileSegment.FileSegmentType.CONSUME_QUEUE, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), bufferSize, batchReadSizeTestSet);
 
     }
 
@@ -151,10 +161,11 @@ public class TieredFileSegmentInputStreamTest {
         ByteBuffer expectedByteBuffer = byteBuffer.slice();
 
         verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStreamFactory.build(
-                TieredFileSegment.FileSegmentType.INDEX, COMMIT_LOG_START_OFFSET, uploadBufferList, null, byteBuffer.limit()), byteBuffer.limit());
+            TieredFileSegment.FileSegmentType.INDEX, COMMIT_LOG_START_OFFSET, uploadBufferList, null, byteBuffer.limit()), byteBuffer.limit(), new int[] {23, 24, 25});
     }
 
-    private void verifyReadAndReset(ByteBuffer expectedByteBuffer, Supplier<TieredFileSegmentInputStream> constructor, int bufferSize) {
+    private void verifyReadAndReset(ByteBuffer expectedByteBuffer, Supplier<TieredFileSegmentInputStream> constructor,
+        int bufferSize, int[] readBatchSizeTestSet) {
         TieredFileSegmentInputStream inputStream = constructor.get();
 
         // verify
@@ -172,8 +183,8 @@ public class TieredFileSegmentInputStreamTest {
         int resetPosition = RANDOM.nextInt(bufferSize);
         int expectedResetPosition = 0;
         inputStream = constructor.get();
+        // verify and mark with resetPosition, use read() to read a byte each time
         for (int i = 0; i < RESET_TIMES; i++) {
-            // verify and mark with resetPosition
             verifyInputStream(inputStream, expectedByteBuffer, expectedResetPosition, resetPosition);
 
             try {
@@ -183,7 +194,25 @@ public class TieredFileSegmentInputStreamTest {
             }
 
             expectedResetPosition = resetPosition;
-            resetPosition = RANDOM.nextInt(bufferSize - resetPosition) + resetPosition;
+            resetPosition += RANDOM.nextInt(bufferSize - resetPosition);
+        }
+        for (int i = 0; i < readBatchSizeTestSet.length; i++) {
+            inputStream = constructor.get();
+            int readBatchSize = readBatchSizeTestSet[i];
+            expectedResetPosition = 0;
+            resetPosition = readBatchSize * RANDOM.nextInt(1 + bufferSize / readBatchSize);
+            // verify and mark with resetPosition, use read(byte[]) to read a byte array each time
+            for (int j = 0; j < RESET_TIMES; j++) {
+                verifyInputStreamViaBatchRead(inputStream, expectedByteBuffer, expectedResetPosition, resetPosition, readBatchSize);
+                try {
+                    inputStream.reset();
+                } catch (IOException e) {
+                    Assert.fail("Should not throw IOException");
+                }
+
+                expectedResetPosition = resetPosition;
+                resetPosition += readBatchSize * RANDOM.nextInt(1 + (bufferSize - resetPosition) / readBatchSize);
+            }
         }
     }
 
@@ -193,12 +222,14 @@ public class TieredFileSegmentInputStreamTest {
 
     /**
      * verify the input stream
-     * @param inputStream the input stream to be verified
-     * @param expectedBuffer the expected byte buffer
+     *
+     * @param inputStream           the input stream to be verified
+     * @param expectedBuffer        the expected byte buffer
      * @param expectedBufferReadPos the expected start position of the expected byte buffer
      * @param expectedMarkCalledPos the expected position when the method InputStream#mark() is called. <i>(-1 means ignored)</i>
      */
-    private void verifyInputStream(InputStream inputStream, ByteBuffer expectedBuffer, int expectedBufferReadPos, int expectedMarkCalledPos) {
+    private void verifyInputStream(InputStream inputStream, ByteBuffer expectedBuffer, int expectedBufferReadPos,
+        int expectedMarkCalledPos) {
         try {
             expectedBuffer.position(expectedBufferReadPos);
             while (true) {
@@ -206,8 +237,42 @@ public class TieredFileSegmentInputStreamTest {
                     inputStream.mark(0);
                 }
                 int b = inputStream.read();
-                if (b == -1) break;
+                if (b == -1)
+                    break;
                 Assert.assertEquals(expectedBuffer.get(), (byte) b);
+            }
+            Assert.assertFalse(expectedBuffer.hasRemaining());
+        } catch (IOException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    /**
+     * verify the input stream
+     *
+     * @param inputStream           the input stream to be verified
+     * @param expectedBuffer        the expected byte buffer
+     * @param expectedBufferReadPos the expected start position of the expected byte buffer
+     * @param expectedMarkCalledPos the expected position when the method InputStream#mark() is called. <i>(-1 means ignored)</i>
+     * @param readBatchSize         the batch size of each read(byte[]) operation
+     */
+    private void verifyInputStreamViaBatchRead(InputStream inputStream, ByteBuffer expectedBuffer,
+        int expectedBufferReadPos, int expectedMarkCalledPos, int readBatchSize) {
+        try {
+            expectedBuffer.position(expectedBufferReadPos);
+            byte[] buf = new byte[readBatchSize];
+            while (true) {
+                if (expectedMarkCalledPos == expectedBuffer.position()) {
+                    inputStream.mark(0);
+                }
+                int len = inputStream.read(buf, 0, readBatchSize);
+                if (len == -1)
+                    break;
+                byte[] expected = new byte[len];
+                expectedBuffer.get(expected, 0, len);
+                for (int i = 0; i < len; i++) {
+                    Assert.assertEquals(expected[i], buf[i]);
+                }
             }
             Assert.assertFalse(expectedBuffer.hasRemaining());
         } catch (IOException e) {

@@ -23,11 +23,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
+
 public class TieredFileSegmentInputStream extends InputStream {
 
     private final TieredFileSegment.FileSegmentType fileType;
     protected final List<ByteBuffer> uploadBufferList;
-    private final int contentLength;
+    protected final int contentLength;
 
     /**
      * readPosition is the now position in the stream
@@ -54,8 +55,8 @@ public class TieredFileSegmentInputStream extends InputStream {
 
     private int markReadPosInCurBuffer = -1;
 
-
-    public TieredFileSegmentInputStream(TieredFileSegment.FileSegmentType fileType, List<ByteBuffer> uploadBufferList, int contentLength) {
+    public TieredFileSegmentInputStream(TieredFileSegment.FileSegmentType fileType, List<ByteBuffer> uploadBufferList,
+        int contentLength) {
         this.fileType = fileType;
         this.contentLength = contentLength;
         this.uploadBufferList = uploadBufferList;
@@ -119,7 +120,8 @@ public class TieredFileSegmentInputStream extends InputStream {
         return curBuffer.get(readPosInCurBuffer++) & 0xff;
     }
 
-    public int readOptimized(byte[] b, int off, int len) {
+    @Override
+    public int read(byte[] b, int off, int len) {
         if (b == null) {
             throw new NullPointerException();
         } else if (off < 0 || len < 0 || len > b.length - off) {
@@ -141,28 +143,30 @@ public class TieredFileSegmentInputStream extends InputStream {
         int bufIndex = curReadBufferIndex;
         int posInCurBuffer = readPosInCurBuffer;
         ByteBuffer curBuf = curBuffer;
-        while (bufIndex < uploadBufferList.size()) {
+        while (needRead > 0 && bufIndex < uploadBufferList.size()) {
             curBuf = uploadBufferList.get(bufIndex);
             int remaining = curBuf.remaining() - posInCurBuffer;
-            if (remaining >= len) {
-                curBuf.get(b, off, len);
-                pos += len;
-                posInCurBuffer += len;
-                break;
-            } else {
-                curBuf.get(b, off, remaining);
-                off += remaining;
-                len -= remaining;
-                pos += remaining;
-                posInCurBuffer += remaining;
+            int readLen = remaining < needRead ? remaining : needRead;
+            // read from curBuf
+            curBuf.position(posInCurBuffer);
+            curBuf.get(b, off, readLen);
+            curBuf.position(0);
+            // update flags
+            off += readLen;
+            needRead -= readLen;
+            pos += readLen;
+            posInCurBuffer += readLen;
+            if (posInCurBuffer == remaining) {
+                // read from next buf
                 bufIndex++;
+                posInCurBuffer = 0;
             }
         }
         readPosition = pos;
         curReadBufferIndex = bufIndex;
         readPosInCurBuffer = posInCurBuffer;
         curBuffer = curBuf;
-        return needRead;
+        return len;
     }
 }
 
