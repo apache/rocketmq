@@ -32,7 +32,7 @@ public class JnaSdkTest {
     @Test
     public void mlockTest() {
         List<ByteBuffer> buffers = new ArrayList<>();
-        int size = 1024 * 1024 * 1024; // 1G
+        int size = 100 * 1024 * 1024; // 100m
         for (int i = 0; i < 3; i++) {
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1024 * 1024 * 1024);
             buffers.add(byteBuffer);
@@ -51,7 +51,7 @@ public class JnaSdkTest {
 
     @Test
     public void mlockFailTest() {
-        int size = 1024 * 1024 * 1024; // 1G
+        int size = 100 * 1024 * 1024; // 100m
         ByteBuffer byteBuffer = ByteBuffer.allocateDirect(10);
         final long address = ((DirectBuffer) byteBuffer).address();
 
