@@ -53,17 +53,5 @@
             <artifactId>commons-io</artifactId>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.openjdk.jmh</groupId>
-            <artifactId>jmh-core</artifactId>
-            <version>1.35</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjdk.jmh</groupId>
-            <artifactId>jmh-generator-annprocess</artifactId>
-            <version>1.35</version>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 </project>
