@@ -105,7 +105,7 @@
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
         <fastjson.version>1.2.83</fastjson.version>
         <javassist.version>3.20.0-GA</javassist.version>
-        <jna.version>4.2.2</jna.version>
+        <jna.version>5.10.0</jna.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-io.version>2.7</commons-io.version>
         <guava.version>31.1-jre</guava.version>
