@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.jna;
 
+import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
 import org.apache.rocketmq.store.util.JNASdk;
 import org.junit.Test;
@@ -51,11 +52,16 @@ public class JnaSdkTest {
 
     @Test
     public void mlockFailTest() {
-        int size = 100 * 1024 * 1024; // 100m
-        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(10);
-        final long address = ((DirectBuffer) byteBuffer).address();
+        if (Platform.isWindows()) {
+            int size = 100 * 1024 * 1024; // 100m
+            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(10);
+            final long address = ((DirectBuffer) byteBuffer).address();
 
-        int unlocked = JNASdk.munlock(new Pointer(address), size);
-        assertThat(unlocked).isEqualTo(-1);
+            int unlocked = JNASdk.munlock(new Pointer(address), size);
+            assertThat(unlocked).isEqualTo(-1);
+        } else {
+            int locked = JNASdk.mlock(new Pointer(-1), 1024);
+            assertThat(locked).isEqualTo(-1);
+        }
     }
 }
