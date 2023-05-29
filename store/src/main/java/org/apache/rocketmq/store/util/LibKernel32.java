@@ -141,7 +141,7 @@ interface LibKernel32 extends StdCallLibrary {
 
     int FormatMessage(int dwFlags, Pointer lpSource, int dwMessageId,
                       int dwLanguageId, PointerByReference lpBuffer, int nSize,
-                      Pointer va_list);
+                      Pointer vaList);
 
     @Structure.FieldOrder({"baseAddress", "allocationBase", "allocationProtect", "regionSize", "state", "protect", "type"})
     class MemoryBasicInformation extends Structure {
