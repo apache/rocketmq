@@ -51,7 +51,7 @@ public class TransientStorePool {
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(fileSize);
             final long address = ((DirectBuffer) byteBuffer).address();
             Pointer pointer = new Pointer(address);
-            int ret = JNASdk.mlock(pointer, fileSize);
+            boolean ret = JNASdk.mlock(pointer, fileSize);
             log.info("mlock {} ret = {} time consuming = {}", address, ret, System.currentTimeMillis() - beginTime);
             availableBuffers.offer(byteBuffer);
         }

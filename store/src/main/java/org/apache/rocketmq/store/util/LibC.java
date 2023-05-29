@@ -38,6 +38,8 @@ interface LibC extends Library {
     /* synchronous memory sync */
     int MS_SYNC = 0x0004;
 
+    int RLIMIT_MEMLOCK_ERRNO = 12;
+
     int mlock(Pointer var1, NativeLong var2);
 
     int munlock(Pointer var1, NativeLong var2);
@@ -49,4 +51,6 @@ interface LibC extends Library {
     int mlockall(int flags);
 
     int msync(Pointer p, NativeLong length, int flags);
+
+    String strerror(int errno);
 }

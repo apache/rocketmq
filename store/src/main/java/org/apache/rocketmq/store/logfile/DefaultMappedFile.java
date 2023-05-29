@@ -738,12 +738,12 @@ public class DefaultMappedFile extends AbstractMappedFile {
         final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
         Pointer pointer = new Pointer(address);
         {
-            int ret = JNASdk.mlock(pointer, fileSize);
+            boolean ret = JNASdk.mlock(pointer, fileSize);
             log.info("mlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
         }
 
         {
-            int ret = JNASdk.madvise(pointer, this.fileSize);
+            boolean ret = JNASdk.madvise(pointer, this.fileSize);
             log.info("madvise {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
         }
     }
@@ -753,7 +753,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         final long beginTime = System.currentTimeMillis();
         final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
         Pointer pointer = new Pointer(address);
-        int ret = JNASdk.munlock(pointer, this.fileSize);
+        boolean ret = JNASdk.munlock(pointer, this.fileSize);
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
     }
 

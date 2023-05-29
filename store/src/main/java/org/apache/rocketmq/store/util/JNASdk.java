@@ -16,10 +16,13 @@
  */
 package org.apache.rocketmq.store.util;
 
+import com.sun.jna.LastErrorException;
+import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
+import com.sun.jna.ptr.PointerByReference;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.StoreUtil;
@@ -50,21 +53,26 @@ public class JNASdk {
      * @param size lock length, unit is byte
      * @return
      */
-    public static int mlock(Pointer address, long size) {
+    public static boolean mlock(Pointer address, long size) {
         boolean locked = false;
-        if (Platform.isWindows()) {
-            LibKernel32.MemoryBasicInformation memInfo = new LibKernel32.MemoryBasicInformation();
-            if (LibKernel32.INSTANCE.VirtualQueryEx(WINDOWS_PROCESS_HANDLE, address, memInfo, memInfo.size()) != 0) {
-                locked = LibKernel32.INSTANCE.VirtualLock(memInfo.baseAddress, Math.max(memInfo.regionSize, size));
+        try {
+            if (Platform.isWindows()) {
+                LibKernel32.MemoryBasicInformation memInfo = new LibKernel32.MemoryBasicInformation();
+                if (LibKernel32.INSTANCE.VirtualQueryEx(WINDOWS_PROCESS_HANDLE, address, memInfo, memInfo.size()) != 0) {
+                    locked = LibKernel32.INSTANCE.VirtualLock(memInfo.baseAddress, Math.max(memInfo.regionSize, size));
+                }
+            } else {
+                locked = LibC.INSTANCE.mlock(address, new NativeLong(size)) == 0;
             }
-        } else {
-            locked = LibC.INSTANCE.mlock(address, new NativeLong(size)) == 0;
+            if (!locked) {
+                int errno = Native.getLastError();
+                log.warn("mlock memory fail, Err code {}, Error string {}",
+                        errno, getErrString(errno));
+            }
+        } catch (UnsatisfiedLinkError e) {
+            log.error("Unable to load dynamic library", e);
         }
-        if (!locked) {
-            log.warn("mlock memory fail, Error code {}", Native.getLastError());
-        }
-
-        return locked ? 0 : -1;
+        return locked;
     }
 
     /**
@@ -74,29 +82,45 @@ public class JNASdk {
      * @param size unlock length, unit is byte
      * @return success is 1, fail is -1
      */
-    public static int munlock(Pointer address, long size) {
+    public static boolean munlock(Pointer address, long size) {
         boolean unlocked = false;
-        if (Platform.isWindows()) {
-            LibKernel32.MemoryBasicInformation memInfo = new LibKernel32.MemoryBasicInformation();
-            if (LibKernel32.INSTANCE.VirtualQueryEx(WINDOWS_PROCESS_HANDLE, address, memInfo, memInfo.size()) != 0) {
-                unlocked = LibKernel32.INSTANCE.VirtualUnlock(memInfo.baseAddress, Math.max(memInfo.regionSize, size));
+        try {
+            if (Platform.isWindows()) {
+                LibKernel32.MemoryBasicInformation memInfo = new LibKernel32.MemoryBasicInformation();
+                if (LibKernel32.INSTANCE.VirtualQueryEx(WINDOWS_PROCESS_HANDLE, address, memInfo, memInfo.size()) != 0) {
+                    unlocked = LibKernel32.INSTANCE.VirtualUnlock(memInfo.baseAddress, Math.max(memInfo.regionSize, size));
+                }
+            } else {
+                unlocked = LibC.INSTANCE.munlock(address, new NativeLong(size)) == 0;
             }
-        } else {
-            unlocked = LibC.INSTANCE.munlock(address, new NativeLong(size)) == 0;
+            if (!unlocked) {
+                int errno = Native.getLastError();
+                log.warn("munlock memory fail, Err code {}, Error string {}",
+                        errno, getErrString(errno));
+            }
+        } catch (UnsatisfiedLinkError e) {
+            log.error("Unable to load dynamic library", e);
         }
-        if (!unlocked) {
-            log.warn("Unlock memory fail, Error code {}", Native.getLastError());
-        }
-        return unlocked ? 0 : -1;
+        return unlocked;
     }
 
-    public static int madvise(Pointer pointer, long size) {
-        if (Platform.isWindows()) {
-
-        } else {
-            return LibC.INSTANCE.madvise(pointer, new NativeLong(size), LibC.MADV_WILLNEED);
+    public static boolean madvise(Pointer pointer, long size) {
+        boolean advised = false;
+        try {
+            if (Platform.isWindows()) {
+                return false;
+            } else {
+                advised = LibC.INSTANCE.madvise(pointer, new NativeLong(size), LibC.MADV_WILLNEED) == 0;
+            }
+            if (!advised) {
+                int errno = Native.getLastError();
+                log.warn("madvise memory fail, Err code {}, Error string {}",
+                        errno, getErrString(errno));
+            }
+        } catch (UnsatisfiedLinkError e) {
+            log.error("Unable to load dynamic library", e);
         }
-        return 0;
+        return advised;
     }
 
     public static LibKernel32 getLibKernel32() {
@@ -105,4 +129,35 @@ public class JNASdk {
         }
         return null;
     }
+
+    private static String getErrString(int errno) {
+        if (Platform.isWindows()) {
+            Memory memory = new Memory(128);
+            try {
+                PointerByReference buffer = new PointerByReference(memory);
+                int nLen = LibKernel32.INSTANCE.FormatMessage(
+                        LibKernel32.FORMAT_MESSAGE_ALLOCATE_BUFFER
+                                | LibKernel32.FORMAT_MESSAGE_FROM_SYSTEM
+                                | LibKernel32.FORMAT_MESSAGE_IGNORE_INSERTS,
+                        null,
+                        errno,
+                        0,
+                        buffer, 1024, null);
+                if (nLen == 0) {
+                    throw new LastErrorException(Native.getLastError());
+                }
+                Pointer ptr = buffer.getValue();
+                String s = ptr.getWideString(0);
+                return s.trim();
+            } finally {
+                memory.clear();
+            }
+        } else {
+            if (errno == LibC.RLIMIT_MEMLOCK_ERRNO) {
+                return "System parameter RLIMIT_MEMLOCK soft resource limit";
+            }
+            return LibC.INSTANCE.strerror(errno);
+        }
+    }
+
 }

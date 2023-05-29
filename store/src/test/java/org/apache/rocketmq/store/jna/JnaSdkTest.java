@@ -33,35 +33,35 @@ public class JnaSdkTest {
     @Test
     public void mlockTest() {
         List<ByteBuffer> buffers = new ArrayList<>();
-        int size = 100 * 1024 * 1024; // 100m
+        int size = 10 * 1024 * 1024; // 10m
         for (int i = 0; i < 3; i++) {
-            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1024 * 1024 * 1024);
+            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(size);
             buffers.add(byteBuffer);
 
             final long address = ((DirectBuffer) byteBuffer).address();
-            int locked = JNASdk.mlock(new Pointer(address), size);
-            assertThat(locked).isEqualTo(0);
+            boolean locked = JNASdk.mlock(new Pointer(address), size);
+            assertThat(locked).isEqualTo(Boolean.TRUE);
         }
 
         for (ByteBuffer buffer : buffers) {
             final long address = ((DirectBuffer) buffer).address();
-            int unlocked = JNASdk.munlock(new Pointer(address), size);
-            assertThat(unlocked).isEqualTo(0);
+            boolean unlocked = JNASdk.munlock(new Pointer(address), size);
+            assertThat(unlocked).isEqualTo(Boolean.TRUE);
         }
     }
 
     @Test
     public void mlockFailTest() {
         if (Platform.isWindows()) {
-            int size = 100 * 1024 * 1024; // 100m
-            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(10);
+            int size = 10 * 1024 * 1024; // 10m
+            ByteBuffer byteBuffer = ByteBuffer.allocateDirect(size);
             final long address = ((DirectBuffer) byteBuffer).address();
 
-            int unlocked = JNASdk.munlock(new Pointer(address), size);
-            assertThat(unlocked).isEqualTo(-1);
+            boolean unlocked = JNASdk.munlock(new Pointer(address), size);
+            assertThat(unlocked).isEqualTo(Boolean.FALSE);
         } else {
-            int locked = JNASdk.mlock(new Pointer(-1), 1024);
-            assertThat(locked).isEqualTo(-1);
+            boolean locked = JNASdk.mlock(new Pointer(-1), 1024);
+            assertThat(locked).isEqualTo(Boolean.FALSE);
         }
     }
 }
