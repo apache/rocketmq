@@ -33,7 +33,7 @@ public class JnaSdkTest {
     @Test
     public void mlockTest() {
         List<ByteBuffer> buffers = new ArrayList<>();
-        int size = 10 * 1024 * 1024; // 10m
+        int size = 4 * 1024; // 4K
         for (int i = 0; i < 3; i++) {
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(size);
             buffers.add(byteBuffer);
@@ -53,7 +53,7 @@ public class JnaSdkTest {
     @Test
     public void mlockFailTest() {
         if (Platform.isWindows()) {
-            int size = 10 * 1024 * 1024; // 10m
+            int size = 4 * 1024; // 4K
             ByteBuffer byteBuffer = ByteBuffer.allocateDirect(size);
             final long address = ((DirectBuffer) byteBuffer).address();
 
