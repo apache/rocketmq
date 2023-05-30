@@ -59,7 +59,7 @@ public class JNASdk {
             if (Platform.isWindows()) {
                 LibKernel32.MemoryBasicInformation memInfo = new LibKernel32.MemoryBasicInformation();
                 if (LibKernel32.INSTANCE.VirtualQueryEx(WINDOWS_PROCESS_HANDLE, address, memInfo, memInfo.size()) != 0) {
-                    locked = LibKernel32.INSTANCE.VirtualLock(memInfo.baseAddress, Math.max(memInfo.regionSize, size));
+                    locked = LibKernel32.INSTANCE.VirtualLock(memInfo.baseAddress, Math.min(memInfo.regionSize, size));
                 }
             } else {
                 locked = LibC.INSTANCE.mlock(address, new NativeLong(size)) == 0;
@@ -88,7 +88,7 @@ public class JNASdk {
             if (Platform.isWindows()) {
                 LibKernel32.MemoryBasicInformation memInfo = new LibKernel32.MemoryBasicInformation();
                 if (LibKernel32.INSTANCE.VirtualQueryEx(WINDOWS_PROCESS_HANDLE, address, memInfo, memInfo.size()) != 0) {
-                    unlocked = LibKernel32.INSTANCE.VirtualUnlock(memInfo.baseAddress, Math.max(memInfo.regionSize, size));
+                    unlocked = LibKernel32.INSTANCE.VirtualUnlock(memInfo.baseAddress, Math.min(memInfo.regionSize, size));
                 }
             } else {
                 unlocked = LibC.INSTANCE.munlock(address, new NativeLong(size)) == 0;
