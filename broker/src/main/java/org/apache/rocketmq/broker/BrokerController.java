@@ -545,7 +545,7 @@ public class BrokerController {
         this.syncBrokerMemberGroupExecutorService = new ScheduledThreadPoolExecutor(1,
             new ThreadFactoryImpl("BrokerControllerSyncBrokerScheduledThread", getBrokerIdentity()));
         this.brokerHeartbeatExecutorService = new ScheduledThreadPoolExecutor(1,
-            new ThreadFactoryImpl("rokerControllerHeartbeatScheduledThread", getBrokerIdentity()));
+            new ThreadFactoryImpl("BrokerControllerHeartbeatScheduledThread", getBrokerIdentity()));
 
         this.topicQueueMappingCleanService = new TopicQueueMappingCleanService(this);
     }
