@@ -54,7 +54,7 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ReplyMessageProcessorTest {
-    private ReplyMessageProcessor replyMessageProcessor;
+    private ReceiveMessageReplyProcessor replyMessageProcessor;
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
     @Mock
@@ -77,13 +77,13 @@ public class ReplyMessageProcessorTest {
         Field field = BrokerController.class.getDeclaredField("broker2Client");
         field.setAccessible(true);
         field.set(brokerController, broker2Client);
-        replyMessageProcessor = new ReplyMessageProcessor(brokerController);
+        replyMessageProcessor = new ReceiveMessageReplyProcessor(brokerController);
     }
 
     @Test
     public void testProcessRequest_Success() throws RemotingCommandException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException {
         brokerController.getProducerManager().registerProducer(group, clientInfo);
-        final RemotingCommand request = createReplyMessageRequestHeaderCommand(RequestCode.SEND_REPLY_MESSAGE, clientInfo.getClientId());
+        final RemotingCommand request = createReplyMessageRequestHeaderCommand(RequestCode.SEND_REPLY_MESSAGE_V3, clientInfo.getClientId());
         when(brokerController.getBroker2Client().callClient(any(), any(RemotingCommand.class))).thenReturn(createResponse(ResponseCode.SUCCESS, request));
 
         boolean res = replyMessageProcessor.pushReplyMessageToProducer(request, (ReplyMessageRequestHeader) request.decodeCommandCustomHeader(ReplyMessageRequestHeader.class));
@@ -105,7 +105,6 @@ public class ReplyMessageProcessorTest {
         requestHeader.setConsumerTimeStamp(System.currentTimeMillis());
         requestHeader.setTopic("TestTopic");
         requestHeader.setFlag(0);
-        requestHeader.setTransactionId(null);
 
         Map<String, String> map = new HashMap<>();
         map.put(MessageConst.PROPERTY_CORRELATION_ID, CorrelationIdUtil.createCorrelationId());

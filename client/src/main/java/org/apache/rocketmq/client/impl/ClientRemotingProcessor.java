@@ -232,7 +232,6 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             msg.setFlag(requestHeader.getFlag());
             MessageAccessor.setProperties(msg, MessageDecoder.string2messageProperties(requestHeader.getProperties()));
             msg.setBody(request.getBody());
-            msg.setTransactionId(requestHeader.getTransactionId());
 
             msg.setConsumerGroup(requestHeader.getConsumerGroup());
             msg.setConsumerResult(requestHeader.getConsumerResult());

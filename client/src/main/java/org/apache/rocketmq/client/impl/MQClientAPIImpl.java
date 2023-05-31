@@ -3084,7 +3084,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     }
 
     public void replyMessageConsumerResultToBroker(String addr, ReplyMessageRequestHeader requestHeader, byte[] body) throws RemotingTooMuchRequestException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_REPLY_MESSAGE, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_REPLY_MESSAGE_V3, requestHeader);
         request.setBody(body);
 
         this.remotingClient.invokeOneway(addr, request, 3000);

@@ -84,6 +84,7 @@ import org.apache.rocketmq.broker.processor.PopMessageProcessor;
 import org.apache.rocketmq.broker.processor.PullMessageProcessor;
 import org.apache.rocketmq.broker.processor.QueryAssignmentProcessor;
 import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
+import org.apache.rocketmq.broker.processor.ReceiveMessageReplyProcessor;
 import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
@@ -187,6 +188,7 @@ public class BrokerController {
     protected final ClientManageProcessor clientManageProcessor;
     protected final SendMessageProcessor sendMessageProcessor;
     protected final ReplyMessageProcessor replyMessageProcessor;
+    protected final ReceiveMessageReplyProcessor receiveMessageReplyProcessor;
     protected final PullRequestHoldService pullRequestHoldService;
     protected final MessageArrivingListener messageArrivingListener;
     protected final Broker2Client broker2Client;
@@ -310,6 +312,7 @@ public class BrokerController {
         this.changeInvisibleTimeProcessor = new ChangeInvisibleTimeProcessor(this);
         this.sendMessageProcessor = new SendMessageProcessor(this);
         this.replyMessageProcessor = new ReplyMessageProcessor(this);
+        this.receiveMessageReplyProcessor = new ReceiveMessageReplyProcessor(this);
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService, this.popMessageProcessor, this.notificationProcessor);
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
         this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener, this.brokerStatsManager, this.brokerConfig);
@@ -1025,7 +1028,12 @@ public class BrokerController {
         replyMessageProcessor.registerSendMessageHook(sendMessageHookList);
 
         this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
         this.fastRemotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
+
+        this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V3, receiveMessageReplyProcessor, replyMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V3, receiveMessageReplyProcessor, replyMessageExecutor);
 
         /**
          * QueryMessageProcessor

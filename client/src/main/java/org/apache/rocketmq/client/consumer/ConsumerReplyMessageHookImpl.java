@@ -89,13 +89,15 @@ public class ConsumerReplyMessageHookImpl implements ConsumeMessageHook {
     private void replyMessageConsumerResultToBroker(String consumerResult, MessageExt message) throws RemotingTooMuchRequestException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         String ttl = message.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_TTL);
         String sendTime = message.getProperty(MessageConst.PROPERTY_MESSAGE_REPLY_SEND_TIME);
+        if (StringUtils.isAnyBlank(ttl, sendTime)) {
+            log.warn("message property 'REPLY_TTL' or 'REPLY_SEND_TIME' is be null, can not reply message");
+            return;
+        }
 
-        if (StringUtils.isNotBlank(ttl) && StringUtils.isNotBlank(sendTime)) {
-            long replyTimeout = Long.parseLong(sendTime) + Long.parseLong(ttl);
-            if (System.currentTimeMillis() > replyTimeout) {
-                log.warn("reply message timeout: " + replyTimeout + ", can not reply message");
-                return;
-            }
+        long replyTimeout = Long.parseLong(sendTime) + Long.parseLong(ttl);
+        if (System.currentTimeMillis() > replyTimeout) {
+            log.warn("reply message timeout: " + replyTimeout + ", can not reply message");
+            return;
         }
 
         ReplyMessageRequestHeader requestHeader = new ReplyMessageRequestHeader();
@@ -105,7 +107,6 @@ public class ConsumerReplyMessageHookImpl implements ConsumeMessageHook {
         requestHeader.setTopic(message.getTopic());
         requestHeader.setFlag(message.getFlag());
         requestHeader.setProperties(MessageDecoder.messageProperties2String(message.getProperties()));
-        requestHeader.setTransactionId(message.getTransactionId());
 
         String brokerAddress = this.mqClientInstance.findBrokerAddressInPublish(message.getBrokerName());
         if (StringUtils.isNoneBlank(brokerAddress)) {

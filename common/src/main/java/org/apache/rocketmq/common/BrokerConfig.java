@@ -279,6 +279,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean enableDetailStat = true;
 
+    private boolean storeReplyMessageEnable = true;
+
     private boolean autoDeleteUnusedStats = false;
 
     /**
@@ -1135,6 +1137,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableDetailStat(boolean enableDetailStat) {
         this.enableDetailStat = enableDetailStat;
+    }
+
+    public boolean isStoreReplyMessageEnable() {
+        return storeReplyMessageEnable;
+    }
+
+    public void setStoreReplyMessageEnable(boolean storeReplyMessageEnable) {
+        this.storeReplyMessageEnable = storeReplyMessageEnable;
     }
 
     public boolean isAutoDeleteUnusedStats() {
