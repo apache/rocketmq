@@ -35,6 +35,7 @@ import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_FILE_TYPE;
@@ -182,7 +183,7 @@ public class PosixFileSegment extends TieredFileSegment {
 
     @Override
     public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length,
-        boolean append) {
+                                              boolean append) {
         Stopwatch stopwatch = Stopwatch.createStarted();
         AttributesBuilder attributesBuilder = newAttributesBuilder()
             .put(LABEL_OPERATION, OPERATION_POSIX_WRITE);
