@@ -18,12 +18,15 @@
 package org.apache.rocketmq.tieredstore.provider.s3;
 
 import com.adobe.testing.s3mock.S3MockApplication;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
-import org.apache.rocketmq.tieredstore.provider.MockTieredFileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStreamFactory;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -31,7 +34,6 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -93,8 +95,8 @@ public class S3FileSegmentTest extends MockS3TestBase {
 
     @Test
     public void testCommit() {
-        InputStream inputStream = new ByteArrayInputStream("hello".getBytes());
-        segment.commit0(new MockTieredFileSegmentInputStream(inputStream), 0, 5, false).join();
+        TieredFileSegmentInputStream inputStream = buildMockedInputStream("hello".getBytes());
+        segment.commit0(inputStream, 0, 5, false).join();
         ByteBuffer read = segment.read0(0, 5).join();
         Assert.assertEquals("hello", new String(read.array()));
         Assert.assertEquals(5, segment.getSize());
@@ -104,8 +106,8 @@ public class S3FileSegmentTest extends MockS3TestBase {
 
     @Test
     public void testCommitAndRestart() {
-        InputStream inputStream = new ByteArrayInputStream("hello".getBytes());
-        segment.commit0(new MockTieredFileSegmentInputStream(inputStream), 0, 5, false).join();
+        TieredFileSegmentInputStream inputStream = buildMockedInputStream("hello".getBytes());
+        segment.commit0(inputStream, 0, 5, false).join();
         ByteBuffer read = segment.read0(0, 5).join();
         Assert.assertEquals("hello", new String(read.array()));
         Assert.assertEquals(5, segment.getSize());
@@ -144,8 +146,8 @@ public class S3FileSegmentTest extends MockS3TestBase {
 
     @Test
     public void testCommitAndDelete() {
-        InputStream inputStream = new ByteArrayInputStream("hello".getBytes());
-        segment.commit0(new MockTieredFileSegmentInputStream(inputStream), 0, 5, false).join();
+        TieredFileSegmentInputStream inputStream = buildMockedInputStream("hello".getBytes());
+        segment.commit0(inputStream, 0, 5, false).join();
         ByteBuffer read = segment.read0(0, 5).join();
         Assert.assertEquals("hello", new String(read.array()));
         segment.destroyFile();
@@ -159,25 +161,25 @@ public class S3FileSegmentTest extends MockS3TestBase {
     @Test
     public void testBackwardCommitPosition() {
         // write first chunk: "hello", size = 5, position: [0, 4]
-        InputStream inputStream = new ByteArrayInputStream("hello".getBytes());
-        Assert.assertTrue(segment.commit0(new MockTieredFileSegmentInputStream(inputStream), 0, 5, false).join());
+        TieredFileSegmentInputStream inputStream = buildMockedInputStream("hello".getBytes());
+        Assert.assertTrue(segment.commit0(inputStream, 0, 5, false).join());
         ByteBuffer read = segment.read0(0, 5).join();
         Assert.assertEquals("hello", new String(read.array()));
         // write second chunk: ",world", size = 6, position: [5, 10]
-        inputStream = new ByteArrayInputStream(",world".getBytes());
-        Assert.assertTrue(segment.commit0(new MockTieredFileSegmentInputStream(inputStream), 5, 6, false).join());
+        inputStream = buildMockedInputStream(",world".getBytes());
+        Assert.assertTrue(segment.commit0(inputStream, 5, 6, false).join());
         read = segment.read0(0, 11).join();
         Assert.assertEquals("hello,world", new String(read.array()));
         // write third chunk: " and lcy", size = 8, position: [11, 18]
-        inputStream = new ByteArrayInputStream(" and lcy".getBytes());
-        Assert.assertTrue(segment.commit0(new MockTieredFileSegmentInputStream(inputStream), 11, 8, false).join());
+        inputStream = buildMockedInputStream(" and lcy".getBytes());
+        Assert.assertTrue(segment.commit0(inputStream, 11, 8, false).join());
         read = segment.read0(0, 19).join();
         Assert.assertEquals("hello,world and lcy", new String(read.array()));
         // write a chunk from position 2, size = 2, data: "he", position: [2, 3]
-        inputStream = new ByteArrayInputStream("he".getBytes());
+        inputStream = buildMockedInputStream("he".getBytes());
         TieredStoreException exception = null;
         try {
-            segment.commit0(new MockTieredFileSegmentInputStream(inputStream), 2, 2, false).join();
+            segment.commit0(inputStream, 2, 2, false).join();
         } catch (CompletionException e) {
             Throwable cause = e.getCause();
             Assert.assertTrue(cause instanceof TieredStoreException);
@@ -190,6 +192,7 @@ public class S3FileSegmentTest extends MockS3TestBase {
 
     @Test
     public void testSeal() throws Exception {
+        CONFIG.setEnableMerge(true);
         int unit = (int) (5 * MB);
         ByteBuffer byteBuffer = ByteBuffer.allocate(unit);
         for (int i = 0; i < unit; i++) {
@@ -197,7 +200,8 @@ public class S3FileSegmentTest extends MockS3TestBase {
         }
         byte[] array = byteBuffer.array();
         for (int i = 0; i < 2; i++) {
-            segment.commit0(new MockTieredFileSegmentInputStream(new ByteArrayInputStream(array)), i * unit, unit, false).join();
+            TieredFileSegmentInputStream inputStream = buildMockedInputStream(array);
+            segment.commit0(inputStream, i * unit, unit, false).join();
         }
         // seal
         segment.sealFile();
@@ -211,7 +215,7 @@ public class S3FileSegmentTest extends MockS3TestBase {
         Assert.assertEquals(2 * unit, metadata.getSize());
         TieredStoreException exception = null;
         try {
-            segment.commit0(new MockTieredFileSegmentInputStream(new ByteArrayInputStream(new byte[] {0, 1, 2})), 2 * unit, 3, false).join();
+            segment.commit0(buildMockedInputStream("lcy".getBytes()), 2 * unit, 3, false).join();
         } catch (CompletionException e) {
             Throwable cause = e.getCause();
             Assert.assertTrue(cause instanceof TieredStoreException);
@@ -219,6 +223,12 @@ public class S3FileSegmentTest extends MockS3TestBase {
             Assert.assertEquals(TieredStoreErrorCode.SEGMENT_SEALED, exception.getErrorCode());
         }
         Assert.assertNotNull(exception);
+        CONFIG.setEnableMerge(false);
+    }
+
+    private TieredFileSegmentInputStream buildMockedInputStream(byte[] bytes) {
+        List<ByteBuffer> uploadBuffers = Arrays.asList(ByteBuffer.wrap(bytes));
+        return TieredFileSegmentInputStreamFactory.build(TieredFileSegment.FileSegmentType.CONSUME_QUEUE, 0, uploadBuffers, null, bytes.length);
     }
 
 }

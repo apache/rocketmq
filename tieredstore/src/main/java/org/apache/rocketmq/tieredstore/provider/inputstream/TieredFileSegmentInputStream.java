@@ -60,7 +60,7 @@ public class TieredFileSegmentInputStream extends InputStream {
         this.fileType = fileType;
         this.contentLength = contentLength;
         this.uploadBufferList = uploadBufferList;
-        if (uploadBufferList.size() > 0) {
+        if (uploadBufferList != null && uploadBufferList.size() > 0) {
             this.curBuffer = uploadBufferList.get(curReadBufferIndex);
         }
     }

@@ -20,18 +20,19 @@ package org.apache.rocketmq.tieredstore.provider;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
 
 public class MockTieredFileSegmentInputStream extends TieredFileSegmentInputStream {
 
     private final InputStream inputStream;
 
     public MockTieredFileSegmentInputStream(InputStream inputStream) {
-        super(null, Integer.MAX_VALUE);
+        super(null, null, Integer.MAX_VALUE);
         this.inputStream = inputStream;
     }
 
     @Override
-    public int realRead() {
+    public int read() {
         int res = -1;
         try {
             res = inputStream.read();
@@ -39,16 +40,6 @@ public class MockTieredFileSegmentInputStream extends TieredFileSegmentInputStre
             return -1;
         }
         return res;
-    }
-
-    @Override
-    public void realMark() {
-
-    }
-
-    @Override
-    public void realReset() {
-
     }
 
     @Override
