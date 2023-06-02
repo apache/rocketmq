@@ -86,7 +86,7 @@ public class GroupTransferService extends ServiceThread {
 
                 for (int i = 0; !transferOK && deadLine - System.nanoTime() > 0; i++) {
                     if (i > 0) {
-                        this.notifyTransferObject.waitForRunning(1000);
+                        this.notifyTransferObject.waitForRunning(1);
                     }
 
                     if (!allAckInSyncStateSet && req.getAckNums() <= 1) {
