@@ -14,14 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Snapshot Release Automation
+name: Snapshot Daily Release Automation
 on:
   schedule: # schedule the job to run at 12 a.m. daily
     - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'The branch to trigger the workflow'
+        required: true
+        default: 'develop'
+      commit_id:
+        description: 'The commit id to trigger the workflow'
+        required: false
 
 env:
   MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
-  DOCKER_REPO: apache/rocketmq-ci
+  DOCKER_REPO: zychen143/rocketmq
 
 jobs:
   dist-tar:
@@ -31,6 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
+          ref: ${{ github.event.inputs.branch }}/${{ github.event.inputs.commit_id || github.sha }}
           submodules: true
       - uses: actions/setup-java@v3
         with:
