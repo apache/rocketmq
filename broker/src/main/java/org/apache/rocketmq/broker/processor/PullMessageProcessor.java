@@ -555,6 +555,15 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
     }
 
+    /**
+     * Composes the header of the response message to be sent back to the client
+     * @param requestHeader - the header of the request message
+     * @param getMessageResult - the result of the GetMessage request
+     * @param topicSysFlag - the system flag of the topic
+     * @param subscriptionGroupConfig - configuration of the subscription group
+     * @param response - the response message to be sent back to the client
+     * @param clientAddress - the address of the client
+     */
     protected void composeResponseHeader(PullMessageRequestHeader requestHeader, GetMessageResult getMessageResult,
         int topicSysFlag, SubscriptionGroupConfig subscriptionGroupConfig, RemotingCommand response,
         String clientAddress) {
@@ -572,6 +581,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS);
                 break;
             case MESSAGE_WAS_REMOVING:
+            case NO_MATCHED_MESSAGE:
                 response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
                 break;
             case NO_MATCHED_LOGIC_QUEUE:
@@ -590,10 +600,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     response.setCode(ResponseCode.PULL_NOT_FOUND);
                 }
                 break;
-            case NO_MATCHED_MESSAGE:
-                response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
-                break;
             case OFFSET_FOUND_NULL:
+            case OFFSET_OVERFLOW_ONE:
                 response.setCode(ResponseCode.PULL_NOT_FOUND);
                 break;
             case OFFSET_OVERFLOW_BADLY:
@@ -601,9 +609,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 // XXX: warn and notify me
                 LOGGER.info("the request offset: {} over flow badly, fix to {}, broker max offset: {}, consumer: {}",
                     requestHeader.getQueueOffset(), getMessageResult.getNextBeginOffset(), getMessageResult.getMaxOffset(), clientAddress);
-                break;
-            case OFFSET_OVERFLOW_ONE:
-                response.setCode(ResponseCode.PULL_NOT_FOUND);
                 break;
             case OFFSET_RESET:
                 response.setCode(ResponseCode.PULL_OFFSET_MOVED);
