@@ -252,7 +252,7 @@ jobs:
       - name: Update User-defined pom version
         if: github.event.inputs.rocketmq_version != ''
         run: |
-          mvn versions:set -DnewVersion=${{ github.event.inputs.commit_id }}
+          mvn versions:set -DnewVersion=${{ github.event.inputs.rocketmq_version }}
       - name: Deploy to ASF Snapshots Repository
         timeout-minutes: 40
         run: mvn clean deploy -DskipTests=true --settings .github/asf-deploy-settings.xml
