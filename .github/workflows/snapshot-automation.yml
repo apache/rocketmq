@@ -21,11 +21,13 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'The branch to trigger the workflow'
-        required: true
-        default: 'develop'
+        description: 'The branch to trigger the workflow, The default branch is "develop" when both branch and commit_id are empty'
+        required: false
       commit_id:
-        description: 'The commit id to trigger the workflow'
+        description: 'The commit id to trigger the workflow. Do not set branch and commit_id together'
+        required: false
+      rocketmq_version:
+        description: 'Name of the SNAPSHOT version to be generated. The default version is "$VERSION-stable-SNAPSHOT"'
         required: false
 
 env:
@@ -38,10 +40,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout develop
+        if: github.event.inputs.branch == '' && github.event.inputs.commit_id == ''
+        uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.inputs.branch }}/${{ github.event.inputs.commit_id || github.sha }}
-          submodules: true
+          ref: develop
+
+      - name: Checkout specific commit
+        if: github.event.inputs.branch == '' && github.event.inputs.commit_id != ''
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.commit_id }}
+
+      - name: Checkout specific branch
+        if: github.event.inputs.branch != '' && github.event.inputs.commit_id == ''
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
       - uses: actions/setup-java@v3
         with:
           distribution: "temurin"
@@ -226,12 +242,17 @@ jobs:
           java-version: 8
           distribution: "temurin"
           cache: "maven"
-      - name: Update pom version
+      - name: Update default pom version
+        if: github.event.inputs.rocketmq_version == ''
         run: |
           VERSION=$(mvn -q -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec)
           VERSION=$(echo $VERSION | awk -F '-SNAPSHOT' '{print $1}')
           VERSION=$VERSION-stable-SNAPSHOT
           mvn versions:set -DnewVersion=$VERSION
+      - name: Update User-defined pom version
+        if: github.event.inputs.rocketmq_version != ''
+        run: |
+          mvn versions:set -DnewVersion=${{ github.event.inputs.commit_id }}
       - name: Deploy to ASF Snapshots Repository
         timeout-minutes: 40
         run: mvn clean deploy -DskipTests=true --settings .github/asf-deploy-settings.xml
