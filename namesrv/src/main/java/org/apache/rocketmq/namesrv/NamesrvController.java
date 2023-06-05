@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
@@ -202,7 +203,7 @@ public class NamesrvController {
         if (firstRunnable instanceof FutureTaskExt) {
             final Runnable inner = ((FutureTaskExt<?>) firstRunnable).getRunnable();
             if (inner instanceof RequestTask) {
-                slowTimeMills = System.currentTimeMillis() - ((RequestTask) inner).getCreateTimestamp();
+                slowTimeMills = SystemClock.elapsedMillis(((RequestTask) inner).getCreateNano());
             }
         }
 

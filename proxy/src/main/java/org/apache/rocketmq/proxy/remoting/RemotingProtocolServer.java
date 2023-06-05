@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -295,7 +296,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
             final Runnable peek = q.peek();
             if (peek != null) {
                 RequestTask rt = castRunnable(peek);
-                slowTimeMills = rt == null ? 0 : System.currentTimeMillis() - rt.getCreateTimestamp();
+                slowTimeMills = rt == null ? 0 : SystemClock.elapsedMillis(rt.getCreateNano());
             }
 
             if (slowTimeMills < 0) {
@@ -334,7 +335,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
                         break;
                     }
 
-                    final long behind = System.currentTimeMillis() - rt.getCreateTimestamp();
+                    final long behind = SystemClock.elapsedMillis(rt.getCreateNano());
                     if (behind >= maxWaitTimeMillsInQueue) {
                         if (blockingQueue.remove(runnable)) {
                             rt.setStopRun(true);

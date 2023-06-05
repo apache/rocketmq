@@ -27,6 +27,7 @@ public class RequestTask implements Runnable {
     private final RemotingCommand request;
     private volatile boolean stopRun = false;
 
+    private final long createNano = System.nanoTime();
     public RequestTask(final Runnable runnable, final Channel channel, final RemotingCommand request) {
         this.runnable = runnable;
         this.channel = channel;
@@ -40,6 +41,7 @@ public class RequestTask implements Runnable {
         result = 31 * result + (channel != null ? channel.hashCode() : 0);
         result = 31 * result + (request != null ? request.hashCode() : 0);
         result = 31 * result + (isStopRun() ? 1 : 0);
+        result = 31 * result + (int) (getCreateNano() ^ (getCreateNano() >>> 32));
         return result;
     }
 
@@ -54,6 +56,8 @@ public class RequestTask implements Runnable {
 
         if (getCreateTimestamp() != that.getCreateTimestamp())
             return false;
+        if (getCreateNano() != that.getCreateNano())
+            return false;
         if (isStopRun() != that.isStopRun())
             return false;
         if (channel != null ? !channel.equals(that.channel) : that.channel != null)
@@ -64,6 +68,10 @@ public class RequestTask implements Runnable {
 
     public long getCreateTimestamp() {
         return createTimestamp;
+    }
+
+    public long getCreateNano() {
+        return createNano;
     }
 
     public boolean isStopRun() {

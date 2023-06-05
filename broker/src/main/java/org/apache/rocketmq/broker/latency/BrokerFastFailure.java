@@ -22,6 +22,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
+import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -87,7 +88,7 @@ public class BrokerFastFailure {
                         rt.returnResponse(RemotingSysResponseCode.SYSTEM_BUSY, String.format(
                             "[PCBUSY_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, "
                                 + "size of queue: %d",
-                            System.currentTimeMillis() - rt.getCreateTimestamp(),
+                                SystemClock.elapsedMillis(rt.getCreateNano()),
                             this.brokerController.getSendThreadPoolQueue().size()));
                     }
                 } else {
@@ -129,7 +130,7 @@ public class BrokerFastFailure {
                         break;
                     }
 
-                    final long behind = System.currentTimeMillis() - rt.getCreateTimestamp();
+                    final long behind = SystemClock.elapsedMillis(rt.getCreateNano());
                     if (behind >= maxWaitTimeMillsInQueue) {
                         if (blockingQueue.remove(runnable)) {
                             rt.setStopRun(true);
