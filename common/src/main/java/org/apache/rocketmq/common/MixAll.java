@@ -498,4 +498,21 @@ public class MixAll {
         return path.normalize().toString();
     }
 
+    public static boolean isSysConsumerGroupForNoColdReadLimit(String consumerGroup) {
+        if (DEFAULT_CONSUMER_GROUP.equals(consumerGroup)
+            || TOOLS_CONSUMER_GROUP.equals(consumerGroup)
+            || SCHEDULE_CONSUMER_GROUP.equals(consumerGroup)
+            || FILTERSRV_CONSUMER_GROUP.equals(consumerGroup)
+            || MONITOR_CONSUMER_GROUP.equals(consumerGroup)
+            || SELF_TEST_CONSUMER_GROUP.equals(consumerGroup)
+            || ONS_HTTP_PROXY_GROUP.equals(consumerGroup)
+            || CID_ONSAPI_PERMISSION_GROUP.equals(consumerGroup)
+            || CID_ONSAPI_OWNER_GROUP.equals(consumerGroup)
+            || CID_ONSAPI_PULL_GROUP.equals(consumerGroup)
+            || CID_SYS_RMQ_TRANS.equals(consumerGroup)
+            || consumerGroup.startsWith(CID_RMQ_SYS_PREFIX)) {
+            return true;
+        }
+        return false;
+    }
 }

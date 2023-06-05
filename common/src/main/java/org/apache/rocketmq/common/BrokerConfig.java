@@ -370,6 +370,10 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean estimateAccumulation = true;
 
+    private boolean coldCtrStrategyEnable = false;
+    private boolean usePIDColdCtrStrategy = true;
+    private long cgColdReadThreshold = 3 * 1024 * 1024;
+    private long globalColdReadThreshold = 100 * 1024 * 1024;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1617,6 +1621,38 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEstimateAccumulation(boolean estimateAccumulation) {
         this.estimateAccumulation = estimateAccumulation;
+    }
+
+    public boolean isColdCtrStrategyEnable() {
+        return coldCtrStrategyEnable;
+    }
+
+    public void setColdCtrStrategyEnable(boolean coldCtrStrategyEnable) {
+        this.coldCtrStrategyEnable = coldCtrStrategyEnable;
+    }
+
+    public boolean isUsePIDColdCtrStrategy() {
+        return usePIDColdCtrStrategy;
+    }
+
+    public void setUsePIDColdCtrStrategy(boolean usePIDColdCtrStrategy) {
+        this.usePIDColdCtrStrategy = usePIDColdCtrStrategy;
+    }
+
+    public long getCgColdReadThreshold() {
+        return cgColdReadThreshold;
+    }
+
+    public void setCgColdReadThreshold(long cgColdReadThreshold) {
+        this.cgColdReadThreshold = cgColdReadThreshold;
+    }
+
+    public long getGlobalColdReadThreshold() {
+        return globalColdReadThreshold;
+    }
+
+    public void setGlobalColdReadThreshold(long globalColdReadThreshold) {
+        this.globalColdReadThreshold = globalColdReadThreshold;
     }
 
     public boolean isUseStaticSubscription() {
