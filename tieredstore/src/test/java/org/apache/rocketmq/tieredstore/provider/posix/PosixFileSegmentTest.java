@@ -49,7 +49,7 @@ public class PosixFileSegmentTest {
 
     @After
     public void tearDown() throws IOException {
-        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyCompositeFlatFileManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
         TieredStoreExecutor.shutdown();

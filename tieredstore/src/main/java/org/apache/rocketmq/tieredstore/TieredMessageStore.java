@@ -85,9 +85,9 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
     @Override
     public boolean load() {
-        boolean loadContainer = flatFileManager.load();
+        boolean loadFlatFile = flatFileManager.load();
         boolean loadNextStore = next.load();
-        boolean result = loadContainer && loadNextStore;
+        boolean result = loadFlatFile && loadNextStore;
         if (result) {
             dispatcher.start();
         }
@@ -113,12 +113,12 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
             return false;
         }
 
-        CompositeFlatFile container = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
-        if (container == null) {
+        CompositeFlatFile flatFile = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
+        if (flatFile == null) {
             return false;
         }
 
-        if (offset >= container.getConsumeQueueCommitOffset()) {
+        if (offset >= flatFile.getConsumeQueueCommitOffset()) {
             return false;
         }
 
@@ -205,11 +205,11 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     @Override
     public long getMinOffsetInQueue(String topic, int queueId) {
         long minOffsetInNextStore = next.getMinOffsetInQueue(topic, queueId);
-        CompositeFlatFile container = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
-        if (container == null) {
+        CompositeFlatFile flatFile = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
+        if (flatFile == null) {
             return minOffsetInNextStore;
         }
-        long minOffsetInTieredStore = container.getConsumeQueueMinOffset();
+        long minOffsetInTieredStore = flatFile.getConsumeQueueMinOffset();
         if (minOffsetInTieredStore < 0) {
             return minOffsetInNextStore;
         }
@@ -379,7 +379,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 }
                 logger.info("TieredMessageStore#cleanUnusedTopic: start deleting topic {}", topic);
                 try {
-                    destroyContainer(topicMetadata);
+                    destroyCompositeFlatFile(topicMetadata);
                 } catch (Exception e) {
                     logger.error("TieredMessageStore#cleanUnusedTopic: delete topic {} failed", topic, e);
                 }
@@ -397,7 +397,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
             try {
                 TopicMetadata topicMetadata = metadataStore.getTopic(topic);
                 if (topicMetadata != null) {
-                    destroyContainer(topicMetadata);
+                    destroyCompositeFlatFile(topicMetadata);
                 } else {
                     logger.error("TieredMessageStore#deleteTopics: delete topic {} failed, can not obtain metadata", topic);
                 }
@@ -409,20 +409,20 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         return next.deleteTopics(deleteTopics);
     }
 
-    public void destroyContainer(TopicMetadata topicMetadata) {
+    public void destroyCompositeFlatFile(TopicMetadata topicMetadata) {
         String topic = topicMetadata.getTopic();
         metadataStore.iterateQueue(topic, queueMetadata -> {
             MessageQueue mq = queueMetadata.getQueue();
-            CompositeFlatFile container = flatFileManager.getFlatFile(mq);
-            if (container != null) {
+            CompositeFlatFile flatFile = flatFileManager.getFlatFile(mq);
+            if (flatFile != null) {
                 flatFileManager.destroyCompositeFile(mq);
                 try {
                     metadataStore.deleteQueue(mq);
                 } catch (Exception e) {
                     throw new IllegalStateException(e);
                 }
-                logger.info("TieredMessageStore#destroyContainer: " +
-                    "destroy container success: topic: {}, queueId: {}", mq.getTopic(), mq.getQueueId());
+                logger.info("TieredMessageStore#destroyCompositeFlatFile: " +
+                    "destroy flatFile success: topic: {}, queueId: {}", mq.getTopic(), mq.getQueueId());
             }
         });
         metadataStore.deleteTopic(topicMetadata.getTopic());

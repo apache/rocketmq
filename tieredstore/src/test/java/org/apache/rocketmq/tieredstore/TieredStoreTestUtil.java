@@ -45,10 +45,10 @@ public class TieredStoreTestUtil {
         }
     }
 
-    public static void destroyContainerManager() {
-        TieredFlatFileManager containerManager = TieredFlatFileManager.getInstance(null);
-        if (containerManager != null) {
-            containerManager.destroy();
+    public static void destroyCompositeFlatFileManager() {
+        TieredFlatFileManager flatFileManagerManager = TieredFlatFileManager.getInstance(null);
+        if (flatFileManagerManager != null) {
+            flatFileManagerManager.destroy();
         }
         try {
             Field field = TieredFlatFileManager.class.getDeclaredField("instance");

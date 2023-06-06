@@ -62,7 +62,7 @@ public class CompositeQueueFlatFileTest {
 
     @After
     public void tearDown() throws IOException {
-        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyCompositeFlatFileManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
         TieredStoreExecutor.shutdown();
@@ -70,56 +70,56 @@ public class CompositeQueueFlatFileTest {
 
     @Test
     public void testAppendCommitLog() {
-        CompositeQueueFlatFile container = new CompositeQueueFlatFile(tieredFileAllocator, mq);
+        CompositeQueueFlatFile flatFile = new CompositeQueueFlatFile(tieredFileAllocator, mq);
         ByteBuffer message = MessageBufferUtilTest.buildMockedMessageBuffer();
-        AppendResult result = container.appendCommitLog(message);
+        AppendResult result = flatFile.appendCommitLog(message);
         Assert.assertEquals(AppendResult.OFFSET_INCORRECT, result);
-        Assert.assertEquals(0L, container.commitLog.getFlatFile().getFileToWrite().getAppendPosition());
-        Assert.assertEquals(0L, container.commitLog.getFlatFile().getFileToWrite().getCommitPosition());
+        Assert.assertEquals(0L, flatFile.commitLog.getFlatFile().getFileToWrite().getAppendPosition());
+        Assert.assertEquals(0L, flatFile.commitLog.getFlatFile().getFileToWrite().getCommitPosition());
 
-        container = new CompositeQueueFlatFile(tieredFileAllocator, mq);
-        container.initOffset(6);
-        result = container.appendCommitLog(message);
+        flatFile = new CompositeQueueFlatFile(tieredFileAllocator, mq);
+        flatFile.initOffset(6);
+        result = flatFile.appendCommitLog(message);
         Assert.assertEquals(AppendResult.SUCCESS, result);
 
         message.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 7);
-        result = container.appendCommitLog(message);
+        result = flatFile.appendCommitLog(message);
         Assert.assertEquals(AppendResult.SUCCESS, result);
 
-        container.commit(true);
-        Assert.assertEquals(7, container.getCommitLogDispatchCommitOffset());
+        flatFile.commit(true);
+        Assert.assertEquals(7, flatFile.getCommitLogDispatchCommitOffset());
 
-        container.cleanExpiredFile(0);
-        container.destroyExpiredFile();
+        flatFile.cleanExpiredFile(0);
+        flatFile.destroyExpiredFile();
     }
 
     @Test
     public void testAppendConsumeQueue() {
-        CompositeQueueFlatFile container = new CompositeQueueFlatFile(tieredFileAllocator, mq);
+        CompositeQueueFlatFile file = new CompositeQueueFlatFile(tieredFileAllocator, mq);
         DispatchRequest request = new DispatchRequest(
             mq.getTopic(), mq.getQueueId(), 51, 2, 3, 4);
-        AppendResult result = container.appendConsumeQueue(request);
+        AppendResult result = file.appendConsumeQueue(request);
         Assert.assertEquals(AppendResult.OFFSET_INCORRECT, result);
 
         // Create new segment in file queue
         MemoryFileSegment segment = new MemoryFileSegment(FileSegmentType.CONSUME_QUEUE, mq, 20, storeConfig);
         segment.initPosition(segment.getSize());
-        container.consumeQueue.getFlatFile().setBaseOffset(20L);
-        container.consumeQueue.getFlatFile().getFileToWrite();
+        file.consumeQueue.getFlatFile().setBaseOffset(20L);
+        file.consumeQueue.getFlatFile().getFileToWrite();
 
         // Recreate will load metadata and build consume queue
-        container = new CompositeQueueFlatFile(tieredFileAllocator, mq);
+        file = new CompositeQueueFlatFile(tieredFileAllocator, mq);
         segment.initPosition(ConsumeQueue.CQ_STORE_UNIT_SIZE);
-        result = container.appendConsumeQueue(request);
+        result = file.appendConsumeQueue(request);
         Assert.assertEquals(AppendResult.SUCCESS, result);
 
         request = new DispatchRequest(
             mq.getTopic(), mq.getQueueId(), 52, 2, 3, 4);
-        result = container.appendConsumeQueue(request);
+        result = file.appendConsumeQueue(request);
         Assert.assertEquals(AppendResult.SUCCESS, result);
 
-        container.commit(true);
-        container.persistMetadata();
+        file.commit(true);
+        file.persistMetadata();
 
         QueueMetadata queueMetadata = metadataStore.getQueue(mq);
         Assert.assertEquals(53, queueMetadata.getMaxOffset());
@@ -134,39 +134,39 @@ public class CompositeQueueFlatFileTest {
         tieredFileAllocator = new TieredFileAllocator(storeConfig);
 
         // inject store time: 0, +100, +100, +100, +200
-        CompositeQueueFlatFile container = new CompositeQueueFlatFile(tieredFileAllocator, mq);
-        container.initOffset(50);
+        CompositeQueueFlatFile flatFile = new CompositeQueueFlatFile(tieredFileAllocator, mq);
+        flatFile.initOffset(50);
         long timestamp1 = System.currentTimeMillis();
         ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 50);
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, timestamp1);
-        container.appendCommitLog(buffer, true);
+        flatFile.appendCommitLog(buffer, true);
 
         long timestamp2 = timestamp1 + 100;
         buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 51);
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, timestamp2);
-        container.appendCommitLog(buffer, true);
+        flatFile.appendCommitLog(buffer, true);
         buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 52);
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, timestamp2);
-        container.appendCommitLog(buffer, true);
+        flatFile.appendCommitLog(buffer, true);
         buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 53);
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, timestamp2);
-        container.appendCommitLog(buffer, true);
+        flatFile.appendCommitLog(buffer, true);
 
         long timestamp3 = timestamp2 + 100;
         buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 54);
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, timestamp3);
-        container.appendCommitLog(buffer, true);
+        flatFile.appendCommitLog(buffer, true);
 
         // append message to consume queue
-        container.consumeQueue.getFlatFile().setBaseOffset(50 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        flatFile.consumeQueue.getFlatFile().setBaseOffset(50 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
         for (int i = 0; i < 5; i++) {
-            AppendResult appendResult = container.appendConsumeQueue(new DispatchRequest(
+            AppendResult appendResult = flatFile.appendConsumeQueue(new DispatchRequest(
                 mq.getTopic(), mq.getQueueId(), MessageBufferUtilTest.MSG_LEN * i,
                 MessageBufferUtilTest.MSG_LEN, 0, timestamp1, 50 + i,
                 "", "", 0, 0, null), true);
@@ -174,25 +174,25 @@ public class CompositeQueueFlatFileTest {
         }
 
         // commit message will increase max consume queue offset
-        container.commit(true);
+        flatFile.commit(true);
 
-        Assert.assertEquals(54, container.getOffsetInConsumeQueueByTime(timestamp3 + 1, BoundaryType.UPPER));
-        Assert.assertEquals(54, container.getOffsetInConsumeQueueByTime(timestamp3, BoundaryType.UPPER));
+        Assert.assertEquals(54, flatFile.getOffsetInConsumeQueueByTime(timestamp3 + 1, BoundaryType.UPPER));
+        Assert.assertEquals(54, flatFile.getOffsetInConsumeQueueByTime(timestamp3, BoundaryType.UPPER));
 
-        Assert.assertEquals(50, container.getOffsetInConsumeQueueByTime(timestamp1 - 1, BoundaryType.LOWER));
-        Assert.assertEquals(50, container.getOffsetInConsumeQueueByTime(timestamp1, BoundaryType.LOWER));
+        Assert.assertEquals(50, flatFile.getOffsetInConsumeQueueByTime(timestamp1 - 1, BoundaryType.LOWER));
+        Assert.assertEquals(50, flatFile.getOffsetInConsumeQueueByTime(timestamp1, BoundaryType.LOWER));
 
-        Assert.assertEquals(51, container.getOffsetInConsumeQueueByTime(timestamp1 + 1, BoundaryType.LOWER));
-        Assert.assertEquals(51, container.getOffsetInConsumeQueueByTime(timestamp2, BoundaryType.LOWER));
-        Assert.assertEquals(54, container.getOffsetInConsumeQueueByTime(timestamp2 + 1, BoundaryType.LOWER));
-        Assert.assertEquals(54, container.getOffsetInConsumeQueueByTime(timestamp3, BoundaryType.LOWER));
+        Assert.assertEquals(51, flatFile.getOffsetInConsumeQueueByTime(timestamp1 + 1, BoundaryType.LOWER));
+        Assert.assertEquals(51, flatFile.getOffsetInConsumeQueueByTime(timestamp2, BoundaryType.LOWER));
+        Assert.assertEquals(54, flatFile.getOffsetInConsumeQueueByTime(timestamp2 + 1, BoundaryType.LOWER));
+        Assert.assertEquals(54, flatFile.getOffsetInConsumeQueueByTime(timestamp3, BoundaryType.LOWER));
 
-        Assert.assertEquals(50, container.getOffsetInConsumeQueueByTime(timestamp1, BoundaryType.UPPER));
-        Assert.assertEquals(50, container.getOffsetInConsumeQueueByTime(timestamp1 + 1, BoundaryType.UPPER));
-        Assert.assertEquals(53, container.getOffsetInConsumeQueueByTime(timestamp2, BoundaryType.UPPER));
-        Assert.assertEquals(53, container.getOffsetInConsumeQueueByTime(timestamp2 + 1, BoundaryType.UPPER));
+        Assert.assertEquals(50, flatFile.getOffsetInConsumeQueueByTime(timestamp1, BoundaryType.UPPER));
+        Assert.assertEquals(50, flatFile.getOffsetInConsumeQueueByTime(timestamp1 + 1, BoundaryType.UPPER));
+        Assert.assertEquals(53, flatFile.getOffsetInConsumeQueueByTime(timestamp2, BoundaryType.UPPER));
+        Assert.assertEquals(53, flatFile.getOffsetInConsumeQueueByTime(timestamp2 + 1, BoundaryType.UPPER));
 
-        Assert.assertEquals(0, container.getOffsetInConsumeQueueByTime(timestamp1 - 1, BoundaryType.UPPER));
-        Assert.assertEquals(55, container.getOffsetInConsumeQueueByTime(timestamp3 + 1, BoundaryType.LOWER));
+        Assert.assertEquals(0, flatFile.getOffsetInConsumeQueueByTime(timestamp1 - 1, BoundaryType.UPPER));
+        Assert.assertEquals(55, flatFile.getOffsetInConsumeQueueByTime(timestamp3 + 1, BoundaryType.LOWER));
     }
 }

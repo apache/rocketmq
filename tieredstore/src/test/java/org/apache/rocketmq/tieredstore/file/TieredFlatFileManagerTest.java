@@ -50,7 +50,7 @@ public class TieredFlatFileManagerTest {
 
     @After
     public void tearDown() throws IOException {
-        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyCompositeFlatFileManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
         TieredStoreExecutor.shutdown();
@@ -62,30 +62,30 @@ public class TieredFlatFileManagerTest {
         metadataStore.addQueue(mq, 100);
         MessageQueue mq1 = new MessageQueue(mq.getTopic(), mq.getBrokerName(), 1);
         metadataStore.addQueue(mq1, 200);
-        TieredFlatFileManager containerManager = TieredFlatFileManager.getInstance(storeConfig);
-        boolean load = containerManager.load();
+        TieredFlatFileManager flatFileManager = TieredFlatFileManager.getInstance(storeConfig);
+        boolean load = flatFileManager.load();
         Assert.assertTrue(load);
 
         Awaitility.await()
             .atMost(3, TimeUnit.SECONDS)
-            .until(() -> containerManager.deepCopyFlatFileToList().size() == 2);
+            .until(() -> flatFileManager.deepCopyFlatFileToList().size() == 2);
 
-        CompositeFlatFile container = containerManager.getFlatFile(mq);
-        Assert.assertNotNull(container);
-        Assert.assertEquals(100, container.getDispatchOffset());
+        CompositeFlatFile flatFile = flatFileManager.getFlatFile(mq);
+        Assert.assertNotNull(flatFile);
+        Assert.assertEquals(100, flatFile.getDispatchOffset());
 
-        CompositeFlatFile container1 = containerManager.getFlatFile(mq1);
-        Assert.assertNotNull(container1);
-        Assert.assertEquals(200, container1.getDispatchOffset());
+        CompositeFlatFile flatFile1 = flatFileManager.getFlatFile(mq1);
+        Assert.assertNotNull(flatFile1);
+        Assert.assertEquals(200, flatFile1.getDispatchOffset());
 
-        containerManager.destroyCompositeFile(mq);
-        Assert.assertTrue(container.isClosed());
-        Assert.assertNull(containerManager.getFlatFile(mq));
+        flatFileManager.destroyCompositeFile(mq);
+        Assert.assertTrue(flatFile.isClosed());
+        Assert.assertNull(flatFileManager.getFlatFile(mq));
         Assert.assertNull(metadataStore.getQueue(mq));
 
-        containerManager.destroy();
-        Assert.assertTrue(container1.isClosed());
-        Assert.assertNull(containerManager.getFlatFile(mq1));
+        flatFileManager.destroy();
+        Assert.assertTrue(flatFile1.isClosed());
+        Assert.assertNull(flatFileManager.getFlatFile(mq1));
         Assert.assertNull(metadataStore.getQueue(mq1));
     }
 }

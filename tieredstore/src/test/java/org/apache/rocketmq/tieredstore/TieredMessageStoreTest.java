@@ -66,7 +66,7 @@ public class TieredMessageStoreTest {
     private TieredMessageStore store;
     private TieredMessageFetcher fetcher;
     private Configuration configuration;
-    private TieredFlatFileManager containerManager;
+    private TieredFlatFileManager flatFileManager;
 
     @Before
     public void setUp() {
@@ -104,20 +104,20 @@ public class TieredMessageStoreTest {
     @After
     public void tearDown() throws IOException {
         TieredStoreExecutor.shutdown();
-        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyCompositeFlatFileManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
-    private void mockContainer() {
-        containerManager = Mockito.mock(TieredFlatFileManager.class);
-        CompositeQueueFlatFile container = Mockito.mock(CompositeQueueFlatFile.class);
-        when(container.getConsumeQueueCommitOffset()).thenReturn(Long.MAX_VALUE);
-        when(containerManager.getFlatFile(mq)).thenReturn(container);
+    private void mockCompositeFlatFile() {
+        flatFileManager = Mockito.mock(TieredFlatFileManager.class);
+        CompositeQueueFlatFile flatFile = Mockito.mock(CompositeQueueFlatFile.class);
+        when(flatFile.getConsumeQueueCommitOffset()).thenReturn(Long.MAX_VALUE);
+        when(flatFileManager.getFlatFile(mq)).thenReturn(flatFile);
         try {
             Field field = store.getClass().getDeclaredField("flatFileManager");
             field.setAccessible(true);
-            field.set(store, containerManager);
+            field.set(store, flatFileManager);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             Assert.fail(e.getClass().getCanonicalName() + ": " + e.getMessage());
         }
@@ -125,7 +125,7 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testViaTieredStorage() {
-        mockContainer();
+        mockCompositeFlatFile();
         Properties properties = new Properties();
         // TieredStorageLevel.DISABLE
         properties.setProperty("tieredStorageLevel", "0");
@@ -164,7 +164,7 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testGetMessageAsync() {
-        mockContainer();
+        mockCompositeFlatFile();
         GetMessageResult result1 = new GetMessageResult();
         result1.setStatus(GetMessageStatus.FOUND);
         GetMessageResult result2 = new GetMessageResult();
@@ -203,7 +203,7 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testGetMessageStoreTimeStampAsync() {
-        mockContainer();
+        mockCompositeFlatFile();
         // TieredStorageLevel.DISABLE
         Properties properties = new Properties();
         properties.setProperty("tieredStorageLevel", "DISABLE");
@@ -251,14 +251,14 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testGetMinOffsetInQueue() {
-        mockContainer();
-        CompositeQueueFlatFile container = containerManager.getFlatFile(mq);
+        mockCompositeFlatFile();
+        CompositeQueueFlatFile flatFile = flatFileManager.getFlatFile(mq);
         when(nextStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
-        when(containerManager.getFlatFile(mq)).thenReturn(null);
+        when(flatFileManager.getFlatFile(mq)).thenReturn(null);
         Assert.assertEquals(100L, store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
 
-        when(containerManager.getFlatFile(mq)).thenReturn(container);
-        when(container.getConsumeQueueMinOffset()).thenReturn(10L);
+        when(flatFileManager.getFlatFile(mq)).thenReturn(flatFile);
+        when(flatFile.getConsumeQueueMinOffset()).thenReturn(10L);
         Assert.assertEquals(10L, store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
     }
 

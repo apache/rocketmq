@@ -177,10 +177,10 @@ public class TieredStoreMetricsManager {
             .setDescription("Tiered store dispatch behind message count")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                for (CompositeQueueFlatFile container :
+                for (CompositeQueueFlatFile flatFile :
                     TieredFlatFileManager.getInstance(storeConfig).deepCopyFlatFileToList()) {
 
-                    MessageQueue mq = container.getMessageQueue();
+                    MessageQueue mq = flatFile.getMessageQueue();
                     long maxOffset = next.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId());
                     long maxTimestamp = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), maxOffset - 1);
                     if (maxTimestamp > 0 && System.currentTimeMillis() - maxTimestamp > (long) storeConfig.getTieredStoreFileReservedTime() * 60 * 60 * 1000) {
@@ -192,13 +192,13 @@ public class TieredStoreMetricsManager {
                         .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, FileSegmentType.COMMIT_LOG.name().toLowerCase())
                         .build();
-                    measurement.record(Math.max(maxOffset - container.getDispatchOffset(), 0), commitLogAttributes);
+                    measurement.record(Math.max(maxOffset - flatFile.getDispatchOffset(), 0), commitLogAttributes);
                     Attributes consumeQueueAttributes = newAttributesBuilder()
                         .put(LABEL_TOPIC, mq.getTopic())
                         .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
                         .build();
-                    measurement.record(Math.max(maxOffset - container.getConsumeQueueMaxOffset(), 0), consumeQueueAttributes);
+                    measurement.record(Math.max(maxOffset - flatFile.getConsumeQueueMaxOffset(), 0), consumeQueueAttributes);
                 }
             });
 
@@ -207,10 +207,10 @@ public class TieredStoreMetricsManager {
             .setUnit("seconds")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                for (CompositeQueueFlatFile container :
+                for (CompositeQueueFlatFile flatFile :
                     TieredFlatFileManager.getInstance(storeConfig).deepCopyFlatFileToList()) {
 
-                    MessageQueue mq = container.getMessageQueue();
+                    MessageQueue mq = flatFile.getMessageQueue();
                     long maxOffset = next.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId());
                     long maxTimestamp = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), maxOffset - 1);
                     if (maxTimestamp > 0 && System.currentTimeMillis() - maxTimestamp > (long) storeConfig.getTieredStoreFileReservedTime() * 60 * 60 * 1000) {
@@ -222,8 +222,8 @@ public class TieredStoreMetricsManager {
                         .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, FileSegmentType.COMMIT_LOG.name().toLowerCase())
                         .build();
-                    long commitLogDispatchLatency = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), container.getDispatchOffset());
-                    if (maxOffset <= container.getDispatchOffset() || commitLogDispatchLatency < 0) {
+                    long commitLogDispatchLatency = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), flatFile.getDispatchOffset());
+                    if (maxOffset <= flatFile.getDispatchOffset() || commitLogDispatchLatency < 0) {
                         measurement.record(0, commitLogAttributes);
                     } else {
                         measurement.record(System.currentTimeMillis() - commitLogDispatchLatency, commitLogAttributes);
@@ -234,7 +234,7 @@ public class TieredStoreMetricsManager {
                         .put(LABEL_QUEUE_ID, mq.getQueueId())
                         .put(LABEL_FILE_TYPE, FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
                         .build();
-                    long consumeQueueDispatchOffset = container.getConsumeQueueMaxOffset();
+                    long consumeQueueDispatchOffset = flatFile.getConsumeQueueMaxOffset();
                     long consumeQueueDispatchLatency = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), consumeQueueDispatchOffset);
                     if (maxOffset <= consumeQueueDispatchOffset || consumeQueueDispatchLatency < 0) {
                         measurement.record(0, consumeQueueAttributes);
@@ -313,10 +313,10 @@ public class TieredStoreMetricsManager {
             .setUnit("milliseconds")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                for (CompositeQueueFlatFile container : TieredFlatFileManager.getInstance(storeConfig).deepCopyFlatFileToList()) {
-                    long timestamp = container.getCommitLogBeginTimestamp();
+                for (CompositeQueueFlatFile flatFile : TieredFlatFileManager.getInstance(storeConfig).deepCopyFlatFileToList()) {
+                    long timestamp = flatFile.getCommitLogBeginTimestamp();
                     if (timestamp > 0) {
-                        MessageQueue mq = container.getMessageQueue();
+                        MessageQueue mq = flatFile.getMessageQueue();
                         Attributes attributes = newAttributesBuilder()
                             .put(LABEL_TOPIC, mq.getTopic())
                             .put(LABEL_QUEUE_ID, mq.getQueueId())

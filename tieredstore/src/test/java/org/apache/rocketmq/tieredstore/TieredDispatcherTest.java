@@ -63,7 +63,7 @@ public class TieredDispatcherTest {
 
     @After
     public void tearDown() throws IOException {
-        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyCompositeFlatFileManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
         TieredStoreExecutor.shutdown();
@@ -87,7 +87,7 @@ public class TieredDispatcherTest {
             filePath1, segment.getBaseOffset(), FileSegmentType.CONSUME_QUEUE.getType());
         metadataStore.updateFileSegment(segmentMetadata2);
 
-        TieredFlatFileManager containerManager = TieredFlatFileManager.getInstance(storeConfig);
+        TieredFlatFileManager flatFileManager = TieredFlatFileManager.getInstance(storeConfig);
         DefaultMessageStore defaultMessageStore = Mockito.mock(DefaultMessageStore.class);
         TieredDispatcher dispatcher = new TieredDispatcher(defaultMessageStore, storeConfig);
 
@@ -95,46 +95,46 @@ public class TieredDispatcherTest {
         Mockito.when(defaultMessageStore.selectOneMessageByOffset(7, MessageBufferUtilTest.MSG_LEN)).thenReturn(mockResult);
         DispatchRequest request = new DispatchRequest(mq.getTopic(), mq.getQueueId(), 6, 7, MessageBufferUtilTest.MSG_LEN, 1);
         dispatcher.dispatch(request);
-        Assert.assertNotNull(containerManager.getFlatFile(mq));
-        Assert.assertEquals(7, Objects.requireNonNull(containerManager.getFlatFile(mq)).getDispatchOffset());
+        Assert.assertNotNull(flatFileManager.getFlatFile(mq));
+        Assert.assertEquals(7, Objects.requireNonNull(flatFileManager.getFlatFile(mq)).getDispatchOffset());
 
-        CompositeQueueFlatFile container = containerManager.getOrCreateFlatFileIfAbsent(mq);
-        Assert.assertNotNull(container);
-        container.commit(true);
-        Assert.assertEquals(6, container.getConsumeQueueMaxOffset());
+        CompositeQueueFlatFile flatFile = flatFileManager.getOrCreateFlatFileIfAbsent(mq);
+        Assert.assertNotNull(flatFile);
+        flatFile.commit(true);
+        Assert.assertEquals(6, flatFile.getConsumeQueueMaxOffset());
 
         dispatcher.buildConsumeQueueAndIndexFile();
-        Assert.assertEquals(7, container.getConsumeQueueMaxOffset());
+        Assert.assertEquals(7, flatFile.getConsumeQueueMaxOffset());
 
         ByteBuffer buffer1 = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer1.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 7);
-        container.appendCommitLog(buffer1);
+        flatFile.appendCommitLog(buffer1);
         ByteBuffer buffer2 = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer2.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 8);
-        container.appendCommitLog(buffer2);
+        flatFile.appendCommitLog(buffer2);
         ByteBuffer buffer3 = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer3.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 9);
-        container.appendCommitLog(buffer3);
-        container.commitCommitLog();
-        Assert.assertEquals(10, container.getDispatchOffset());
+        flatFile.appendCommitLog(buffer3);
+        flatFile.commitCommitLog();
+        Assert.assertEquals(10, flatFile.getDispatchOffset());
 
-        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, container, 8, 8, 0, 0, 0, buffer1);
-        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, container, 9, 9, 0, 0, 0, buffer2);
+        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, flatFile, 8, 8, 0, 0, 0, buffer1);
+        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, flatFile, 9, 9, 0, 0, 0, buffer2);
         dispatcher.buildConsumeQueueAndIndexFile();
-        Assert.assertEquals(7, container.getConsumeQueueMaxOffset());
-        Assert.assertEquals(7, container.getDispatchOffset());
+        Assert.assertEquals(7, flatFile.getConsumeQueueMaxOffset());
+        Assert.assertEquals(7, flatFile.getDispatchOffset());
 
-        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, container, 7, 7, 0, 0, 0, buffer1);
-        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, container, 8, 8, 0, 0, 0, buffer2);
-        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, container, 9, 9, 0, 0, 0, buffer3);
+        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, flatFile, 7, 7, 0, 0, 0, buffer1);
+        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, flatFile, 8, 8, 0, 0, 0, buffer2);
+        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, flatFile, 9, 9, 0, 0, 0, buffer3);
         dispatcher.buildConsumeQueueAndIndexFile();
-        Assert.assertEquals(10, container.getConsumeQueueMaxOffset());
+        Assert.assertEquals(10, flatFile.getConsumeQueueMaxOffset());
     }
 
     @Test
-    public void testDispatchByMQContainer() {
+    public void testDispatchByFlatFile() {
         metadataStore.addQueue(mq, 6);
-        TieredFlatFileManager containerManager = TieredFlatFileManager.getInstance(storeConfig);
+        TieredFlatFileManager flatFileManager = TieredFlatFileManager.getInstance(storeConfig);
         DefaultMessageStore defaultStore = Mockito.mock(DefaultMessageStore.class);
         Mockito.when(defaultStore.getConsumeQueue(mq.getTopic(), mq.getQueueId())).thenReturn(Mockito.mock(ConsumeQueue.class));
         TieredDispatcher dispatcher = new TieredDispatcher(defaultStore, storeConfig);
@@ -167,7 +167,7 @@ public class TieredDispatcherTest {
         mockResult = new SelectMappedBufferResult(0, msg, MessageBufferUtilTest.MSG_LEN, null);
         Mockito.when(defaultStore.selectOneMessageByOffset(8, MessageBufferUtilTest.MSG_LEN)).thenReturn(mockResult);
 
-        dispatcher.dispatchFlatFile(containerManager.getOrCreateFlatFileIfAbsent(mq));
-        Assert.assertEquals(8, containerManager.getFlatFile(mq).getDispatchOffset());
+        dispatcher.dispatchFlatFile(flatFileManager.getOrCreateFlatFileIfAbsent(mq));
+        Assert.assertEquals(8, flatFileManager.getFlatFile(mq).getDispatchOffset());
     }
 }
