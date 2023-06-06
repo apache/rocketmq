@@ -36,6 +36,8 @@ import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
 import org.apache.rocketmq.tieredstore.file.TieredIndexFile;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStreamFactory;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
@@ -367,7 +369,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         if (bufferSize == 0) {
             return CompletableFuture.completedFuture(true);
         }
-        TieredFileSegmentInputStream inputStream = new TieredFileSegmentInputStream(
+        TieredFileSegmentInputStream inputStream = TieredFileSegmentInputStreamFactory.build(
             fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
         int finalBufferSize = bufferSize;
         try {
@@ -426,109 +428,5 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             logger.error("[Bug]TieredFileSegment#handleCommitException: commit failed: file: {}, can not fix position: origin: {}, real: {}", getPath(), commitPosition, realSize, cause);
         }
         return false;
-    }
-
-    public static class TieredFileSegmentInputStream extends InputStream {
-
-        private final FileSegmentType fileType;
-        private final List<ByteBuffer> uploadBufferList;
-        private int bufferReadIndex = 0;
-        private int readOffset = 0;
-        // only used in commitLog
-        private long commitLogOffset;
-        private final ByteBuffer commitLogOffsetBuffer = ByteBuffer.allocate(8);
-        private final ByteBuffer codaBuffer;
-        private ByteBuffer curBuffer;
-        private final int contentLength;
-        private int readBytes = 0;
-
-        public TieredFileSegmentInputStream(FileSegmentType fileType, long startOffset,
-            List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
-            this.fileType = fileType;
-            this.commitLogOffset = startOffset;
-            this.commitLogOffsetBuffer.putLong(0, startOffset);
-            this.uploadBufferList = uploadBufferList;
-            this.codaBuffer = codaBuffer;
-            this.contentLength = contentLength;
-            if (uploadBufferList.size() > 0) {
-                this.curBuffer = uploadBufferList.get(0);
-            }
-            if (fileType == FileSegmentType.INDEX && uploadBufferList.size() != 1) {
-                logger.error("[Bug]TieredFileSegmentInputStream: index file must have only one buffer");
-            }
-        }
-
-        public List<ByteBuffer> getUploadBufferList() {
-            return uploadBufferList;
-        }
-
-        public ByteBuffer getCodaBuffer() {
-            return codaBuffer;
-        }
-
-        @Override
-        public int available() {
-            return contentLength - readBytes;
-        }
-
-        @Override
-        public int read() {
-            if (bufferReadIndex >= uploadBufferList.size()) {
-                return readCoda();
-            }
-
-            int res;
-            switch (fileType) {
-                case COMMIT_LOG:
-                    if (readOffset >= curBuffer.remaining()) {
-                        bufferReadIndex++;
-                        if (bufferReadIndex >= uploadBufferList.size()) {
-                            return readCoda();
-                        }
-                        curBuffer = uploadBufferList.get(bufferReadIndex);
-                        commitLogOffset += readOffset;
-                        commitLogOffsetBuffer.putLong(0, commitLogOffset);
-                        readOffset = 0;
-                    }
-                    if (readOffset >= MessageBufferUtil.PHYSICAL_OFFSET_POSITION && readOffset < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
-                        res = commitLogOffsetBuffer.get(readOffset - MessageBufferUtil.PHYSICAL_OFFSET_POSITION) & 0xff;
-                        readOffset++;
-                    } else {
-                        res = curBuffer.get(readOffset++) & 0xff;
-                    }
-                    break;
-                case CONSUME_QUEUE:
-                    if (!curBuffer.hasRemaining()) {
-                        bufferReadIndex++;
-                        if (bufferReadIndex >= uploadBufferList.size()) {
-                            return -1;
-                        }
-                        curBuffer = uploadBufferList.get(bufferReadIndex);
-                    }
-                    res = curBuffer.get() & 0xff;
-                    break;
-                case INDEX:
-                    if (!curBuffer.hasRemaining()) {
-                        return -1;
-                    }
-                    res = curBuffer.get() & 0xff;
-                    break;
-                default:
-                    throw new IllegalStateException("unknown file type");
-            }
-            readBytes++;
-            return res;
-        }
-
-        private int readCoda() {
-            if (fileType != FileSegmentType.COMMIT_LOG || codaBuffer == null) {
-                return -1;
-            }
-            if (!codaBuffer.hasRemaining()) {
-                return -1;
-            }
-            readBytes++;
-            return codaBuffer.get() & 0xff;
-        }
     }
 }

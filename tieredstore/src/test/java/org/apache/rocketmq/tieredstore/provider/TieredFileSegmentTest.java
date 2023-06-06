@@ -33,7 +33,8 @@ public class TieredFileSegmentTest {
     public int baseOffset = 1000;
 
     public TieredFileSegment createFileSegment(FileSegmentType fileType) {
-        return new MemoryFileSegment(fileType, new MessageQueue("TieredFileSegmentTest", new TieredMessageStoreConfig().getBrokerName(), 0),
+        String brokerName = new TieredMessageStoreConfig().getBrokerName();
+        return new MemoryFileSegment(fileType, new MessageQueue("TieredFileSegmentTest", brokerName, 0),
             baseOffset, new TieredMessageStoreConfig());
     }
 

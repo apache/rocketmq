@@ -17,29 +17,28 @@
 
 package org.apache.rocketmq.tieredstore.provider.inputstream;
 
-import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
-
 import java.nio.ByteBuffer;
 import java.util.List;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 
 public class TieredFileSegmentInputStreamFactory {
 
-    public static TieredFileSegmentInputStream build(TieredFileSegment.FileSegmentType fileType,
-                                                     long startOffset,
-                                                     List<ByteBuffer> uploadBufferList,
-                                                     ByteBuffer codaBuffer,
-                                                     int contentLength) {
-        if (fileType == TieredFileSegment.FileSegmentType.COMMIT_LOG) {
-            return new TieredCommitLogInputStream(fileType, startOffset, uploadBufferList, codaBuffer, contentLength);
-        } else if (fileType == TieredFileSegment.FileSegmentType.CONSUME_QUEUE) {
-            return new TieredFileSegmentInputStream(fileType, uploadBufferList, contentLength);
-        } else if (fileType == TieredFileSegment.FileSegmentType.INDEX) {
-            if (uploadBufferList.size() != 1) {
-                throw new IllegalArgumentException("uploadBufferList size in INDEX type input stream must be 1");
-            }
-            return new TieredFileSegmentInputStream(fileType, uploadBufferList, contentLength);
-        } else {
-            throw new IllegalArgumentException("fileType is not supported");
+    public static TieredFileSegmentInputStream build(FileSegmentType fileType,
+        long startOffset, List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
+
+        switch (fileType) {
+            case COMMIT_LOG:
+                return new TieredCommitLogInputStream(
+                    fileType, startOffset, uploadBufferList, codaBuffer, contentLength);
+            case CONSUME_QUEUE:
+                return new TieredFileSegmentInputStream(fileType, uploadBufferList, contentLength);
+            case INDEX:
+                if (uploadBufferList.size() != 1) {
+                    throw new IllegalArgumentException("uploadBufferList size in INDEX type input stream must be 1");
+                }
+                return new TieredFileSegmentInputStream(fileType, uploadBufferList, contentLength);
+            default:
+                throw new IllegalArgumentException("fileType is not supported");
         }
     }
 }

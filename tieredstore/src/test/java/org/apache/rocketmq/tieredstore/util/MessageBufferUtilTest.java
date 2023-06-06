@@ -111,7 +111,6 @@ public class MessageBufferUtilTest {
         return byteBuffer;
     }
 
-
     @Test
     public void testGetTotalSize() {
         ByteBuffer buffer = buildMockedMessageBuffer();

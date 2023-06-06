@@ -71,7 +71,7 @@ public class CompositeQueueFlatFileTest {
     @Test
     public void testAppendCommitLog() {
         CompositeQueueFlatFile container = new CompositeQueueFlatFile(tieredFileAllocator, mq);
-        ByteBuffer message = MessageBufferUtilTest.buildMessageBuffer();
+        ByteBuffer message = MessageBufferUtilTest.buildMockedMessageBuffer();
         AppendResult result = container.appendCommitLog(message);
         Assert.assertEquals(AppendResult.OFFSET_INCORRECT, result);
         Assert.assertEquals(0L, container.commitLog.getFlatFile().getFileToWrite().getAppendPosition());
@@ -137,27 +137,27 @@ public class CompositeQueueFlatFileTest {
         CompositeQueueFlatFile container = new CompositeQueueFlatFile(tieredFileAllocator, mq);
         container.initOffset(50);
         long timestamp1 = System.currentTimeMillis();
-        ByteBuffer buffer = MessageBufferUtilTest.buildMessageBuffer();
+        ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 50);
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, timestamp1);
         container.appendCommitLog(buffer, true);
 
         long timestamp2 = timestamp1 + 100;
-        buffer = MessageBufferUtilTest.buildMessageBuffer();
+        buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 51);
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, timestamp2);
         container.appendCommitLog(buffer, true);
-        buffer = MessageBufferUtilTest.buildMessageBuffer();
+        buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 52);
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, timestamp2);
         container.appendCommitLog(buffer, true);
-        buffer = MessageBufferUtilTest.buildMessageBuffer();
+        buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 53);
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, timestamp2);
         container.appendCommitLog(buffer, true);
 
         long timestamp3 = timestamp2 + 100;
-        buffer = MessageBufferUtilTest.buildMessageBuffer();
+        buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 54);
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, timestamp3);
         container.appendCommitLog(buffer, true);

@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.Assert;
 

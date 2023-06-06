@@ -17,12 +17,11 @@
 
 package org.apache.rocketmq.tieredstore.provider.inputstream;
 
-import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
-import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
+import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 
 public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
 
@@ -32,11 +31,11 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
     private long commitLogOffset;
 
     private final ByteBuffer codaBuffer;
-    
+
     private long markCommitLogOffset = -1;
 
-    public TieredCommitLogInputStream(TieredFileSegment.FileSegmentType fileType, long startOffset,
-                                      List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
+    public TieredCommitLogInputStream(FileSegmentType fileType, long startOffset,
+        List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
         super(fileType, uploadBufferList, contentLength);
         this.commitLogOffset = startOffset;
         this.codaBuffer = codaBuffer;
@@ -124,7 +123,7 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
             if (bufIndex == uploadBufferList.size()) {
                 // read from coda buffer
                 remaining = codaBuffer.remaining() - posInCurBuffer;
-                readLen = remaining < needRead ? remaining : needRead;
+                readLen = Math.min(remaining, needRead);
                 codaBuffer.position(posInCurBuffer);
                 codaBuffer.get(b, off, readLen);
                 codaBuffer.position(0);
@@ -136,25 +135,23 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
                 continue;
             }
             remaining = curBuf.remaining() - posInCurBuffer;
-            readLen = remaining < needRead ? remaining : needRead;
+            readLen = Math.min(remaining, needRead);
             curBuf = uploadBufferList.get(bufIndex);
             if (posInCurBuffer < MessageBufferUtil.PHYSICAL_OFFSET_POSITION) {
-                realReadLen = MessageBufferUtil.PHYSICAL_OFFSET_POSITION - posInCurBuffer < readLen ?
-                        MessageBufferUtil.PHYSICAL_OFFSET_POSITION - posInCurBuffer : readLen;
+                realReadLen = Math.min(MessageBufferUtil.PHYSICAL_OFFSET_POSITION - posInCurBuffer, readLen);
                 // read from commitLog buffer
                 curBuf.position(posInCurBuffer);
                 curBuf.get(b, off, realReadLen);
                 curBuf.position(0);
             } else if (posInCurBuffer < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
-                realReadLen = MessageBufferUtil.SYS_FLAG_OFFSET_POSITION - posInCurBuffer < readLen ?
-                        MessageBufferUtil.SYS_FLAG_OFFSET_POSITION - posInCurBuffer : readLen;
+                realReadLen = Math.min(MessageBufferUtil.SYS_FLAG_OFFSET_POSITION - posInCurBuffer, readLen);
                 // read from converted PHYSICAL_OFFSET_POSITION
                 byte[] physicalOffsetBytes = new byte[realReadLen];
                 for (int i = 0; i < realReadLen; i++) {
                     physicalOffsetBytes[i] = (byte) ((curCommitLogOffset >> (8 * (MessageBufferUtil.SYS_FLAG_OFFSET_POSITION - posInCurBuffer - i - 1))) & 0xff);
                 }
                 System.arraycopy(physicalOffsetBytes, 0, b, off, realReadLen);
-            } else if (posInCurBuffer >= MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
+            } else {
                 realReadLen = readLen;
                 // read from commitLog buffer
                 curBuf.position(posInCurBuffer);
