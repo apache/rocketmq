@@ -18,7 +18,7 @@ package org.apache.rocketmq.tieredstore.provider;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
-import java.io.InputStream;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;

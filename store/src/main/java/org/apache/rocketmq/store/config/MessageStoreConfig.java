@@ -379,6 +379,12 @@ public class MessageStoreConfig {
      */
     private int sampleCountThreshold = 5000;
 
+    private boolean coldDataFlowControlEnable = false;
+    private boolean coldDataScanEnable = false;
+    private boolean dataReadAheadEnable = false;
+    private int timerColdDataCheckIntervalMs = 60 * 1000;
+    private int sampleSteps = 32;
+    private int accessMessageInMemoryHotRatio = 26;
     /**
      * Build ConsumeQueue concurrently with multi-thread
      */
@@ -1639,6 +1645,54 @@ public class MessageStoreConfig {
 
     public void setSampleCountThreshold(int sampleCountThreshold) {
         this.sampleCountThreshold = sampleCountThreshold;
+    }
+
+    public boolean isColdDataFlowControlEnable() {
+        return coldDataFlowControlEnable;
+    }
+
+    public void setColdDataFlowControlEnable(boolean coldDataFlowControlEnable) {
+        this.coldDataFlowControlEnable = coldDataFlowControlEnable;
+    }
+
+    public boolean isColdDataScanEnable() {
+        return coldDataScanEnable;
+    }
+
+    public void setColdDataScanEnable(boolean coldDataScanEnable) {
+        this.coldDataScanEnable = coldDataScanEnable;
+    }
+
+    public int getTimerColdDataCheckIntervalMs() {
+        return timerColdDataCheckIntervalMs;
+    }
+
+    public void setTimerColdDataCheckIntervalMs(int timerColdDataCheckIntervalMs) {
+        this.timerColdDataCheckIntervalMs = timerColdDataCheckIntervalMs;
+    }
+
+    public int getSampleSteps() {
+        return sampleSteps;
+    }
+
+    public void setSampleSteps(int sampleSteps) {
+        this.sampleSteps = sampleSteps;
+    }
+
+    public int getAccessMessageInMemoryHotRatio() {
+        return accessMessageInMemoryHotRatio;
+    }
+
+    public void setAccessMessageInMemoryHotRatio(int accessMessageInMemoryHotRatio) {
+        this.accessMessageInMemoryHotRatio = accessMessageInMemoryHotRatio;
+    }
+
+    public boolean isDataReadAheadEnable() {
+        return dataReadAheadEnable;
+    }
+
+    public void setDataReadAheadEnable(boolean dataReadAheadEnable) {
+        this.dataReadAheadEnable = dataReadAheadEnable;
     }
 
     public boolean isEnableBuildConsumeQueueConcurrently() {

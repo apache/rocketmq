@@ -28,9 +28,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -205,7 +205,7 @@ public class ProxyConfig implements ConfigFile {
 
     private boolean traceOn = false;
 
-    private BrokerConfig.MetricsExporterType metricsExporterType = BrokerConfig.MetricsExporterType.DISABLE;
+    private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
     private String metricsGrpcExporterTarget = "";
     private String metricsGrpcExporterHeader = "";
@@ -1116,20 +1116,20 @@ public class ProxyConfig implements ConfigFile {
         this.remotingAccessAddr = remotingAccessAddr;
     }
 
-    public BrokerConfig.MetricsExporterType getMetricsExporterType() {
+    public MetricsExporterType getMetricsExporterType() {
         return metricsExporterType;
     }
 
-    public void setMetricsExporterType(BrokerConfig.MetricsExporterType metricsExporterType) {
+    public void setMetricsExporterType(MetricsExporterType metricsExporterType) {
         this.metricsExporterType = metricsExporterType;
     }
 
     public void setMetricsExporterType(int metricsExporterType) {
-        this.metricsExporterType = BrokerConfig.MetricsExporterType.valueOf(metricsExporterType);
+        this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
     }
 
     public void setMetricsExporterType(String metricsExporterType) {
-        this.metricsExporterType = BrokerConfig.MetricsExporterType.valueOf(metricsExporterType);
+        this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
     }
 
     public String getMetricsGrpcExporterTarget() {

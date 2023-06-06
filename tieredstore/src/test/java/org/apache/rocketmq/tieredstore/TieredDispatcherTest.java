@@ -91,7 +91,7 @@ public class TieredDispatcherTest {
         DefaultMessageStore defaultMessageStore = Mockito.mock(DefaultMessageStore.class);
         TieredDispatcher dispatcher = new TieredDispatcher(defaultMessageStore, storeConfig);
 
-        SelectMappedBufferResult mockResult = new SelectMappedBufferResult(0, MessageBufferUtilTest.buildMessageBuffer(), MessageBufferUtilTest.MSG_LEN, null);
+        SelectMappedBufferResult mockResult = new SelectMappedBufferResult(0, MessageBufferUtilTest.buildMockedMessageBuffer(), MessageBufferUtilTest.MSG_LEN, null);
         Mockito.when(defaultMessageStore.selectOneMessageByOffset(7, MessageBufferUtilTest.MSG_LEN)).thenReturn(mockResult);
         DispatchRequest request = new DispatchRequest(mq.getTopic(), mq.getQueueId(), 6, 7, MessageBufferUtilTest.MSG_LEN, 1);
         dispatcher.dispatch(request);
@@ -106,13 +106,13 @@ public class TieredDispatcherTest {
         dispatcher.buildConsumeQueueAndIndexFile();
         Assert.assertEquals(7, container.getConsumeQueueMaxOffset());
 
-        ByteBuffer buffer1 = MessageBufferUtilTest.buildMessageBuffer();
+        ByteBuffer buffer1 = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer1.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 7);
         container.appendCommitLog(buffer1);
-        ByteBuffer buffer2 = MessageBufferUtilTest.buildMessageBuffer();
+        ByteBuffer buffer2 = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer2.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 8);
         container.appendCommitLog(buffer2);
-        ByteBuffer buffer3 = MessageBufferUtilTest.buildMessageBuffer();
+        ByteBuffer buffer3 = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer3.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 9);
         container.appendCommitLog(buffer3);
         container.commitCommitLog();
@@ -159,10 +159,10 @@ public class TieredDispatcherTest {
 
         Mockito.when(((ConsumeQueue) defaultStore.getConsumeQueue(mq.getTopic(), mq.getQueueId())).getIndexBuffer(7)).thenReturn(mockResult);
 
-        mockResult = new SelectMappedBufferResult(0, MessageBufferUtilTest.buildMessageBuffer(), MessageBufferUtilTest.MSG_LEN, null);
+        mockResult = new SelectMappedBufferResult(0, MessageBufferUtilTest.buildMockedMessageBuffer(), MessageBufferUtilTest.MSG_LEN, null);
         Mockito.when(defaultStore.selectOneMessageByOffset(7, MessageBufferUtilTest.MSG_LEN)).thenReturn(mockResult);
 
-        ByteBuffer msg = MessageBufferUtilTest.buildMessageBuffer();
+        ByteBuffer msg = MessageBufferUtilTest.buildMockedMessageBuffer();
         msg.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 7);
         mockResult = new SelectMappedBufferResult(0, msg, MessageBufferUtilTest.MSG_LEN, null);
         Mockito.when(defaultStore.selectOneMessageByOffset(8, MessageBufferUtilTest.MSG_LEN)).thenReturn(mockResult);

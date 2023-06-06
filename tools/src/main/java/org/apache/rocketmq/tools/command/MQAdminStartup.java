@@ -36,12 +36,16 @@ import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommad;
 import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
+import org.apache.rocketmq.tools.command.broker.CommitLogSetReadAheadSubCommand;
 import org.apache.rocketmq.tools.command.broker.DeleteExpiredCommitLogSubCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerConfigCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerEpochSubCommand;
+import org.apache.rocketmq.tools.command.broker.GetColdDataFlowCtrInfoSubCommand;
+import org.apache.rocketmq.tools.command.broker.RemoveColdDataFlowCtrGroupConfigSubCommand;
 import org.apache.rocketmq.tools.command.broker.ResetMasterFlushOffsetSubCommand;
 import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
+import org.apache.rocketmq.tools.command.broker.UpdateColdDataFlowCtrGroupConfigSubCommand;
 import org.apache.rocketmq.tools.command.cluster.CLusterSendMsgRTCommand;
 import org.apache.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import org.apache.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
@@ -263,6 +267,11 @@ public class MQAdminStartup {
         initCommand(new ReElectMasterSubCommand());
         initCommand(new CleanControllerBrokerMetaSubCommand());
         initCommand(new DumpCompactionLogCommand());
+
+        initCommand(new GetColdDataFlowCtrInfoSubCommand());
+        initCommand(new UpdateColdDataFlowCtrGroupConfigSubCommand());
+        initCommand(new RemoveColdDataFlowCtrGroupConfigSubCommand());
+        initCommand(new CommitLogSetReadAheadSubCommand());
     }
 
     private static void printHelp() {

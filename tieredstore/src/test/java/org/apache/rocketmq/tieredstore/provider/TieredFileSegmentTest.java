@@ -42,11 +42,11 @@ public class TieredFileSegmentTest {
         TieredFileSegment segment = createFileSegment(FileSegmentType.COMMIT_LOG);
         segment.initPosition(segment.getSize());
         long lastSize = segment.getSize();
-        segment.append(MessageBufferUtilTest.buildMessageBuffer(), 0);
-        segment.append(MessageBufferUtilTest.buildMessageBuffer(), 0);
+        segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
+        segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
         Assert.assertTrue(segment.needCommit());
 
-        ByteBuffer buffer = MessageBufferUtilTest.buildMessageBuffer();
+        ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         long msg3StoreTime = System.currentTimeMillis();
         buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, msg3StoreTime);
         long queueOffset = baseOffset * 1000L;
@@ -118,8 +118,8 @@ public class TieredFileSegmentTest {
         long startTime = System.currentTimeMillis();
         MemoryFileSegment segment = (MemoryFileSegment) createFileSegment(FileSegmentType.COMMIT_LOG);
         long lastSize = segment.getSize();
-        segment.append(MessageBufferUtilTest.buildMessageBuffer(), 0);
-        segment.append(MessageBufferUtilTest.buildMessageBuffer(), 0);
+        segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
+        segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
 
         segment.blocker = new CompletableFuture<>();
         new Thread(() -> {
@@ -128,7 +128,7 @@ public class TieredFileSegmentTest {
             } catch (InterruptedException e) {
                 Assert.fail(e.getMessage());
             }
-            ByteBuffer buffer = MessageBufferUtilTest.buildMessageBuffer();
+            ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
             buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, startTime);
             segment.append(buffer, 0);
             segment.blocker.complete(false);

@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManager;
+import org.apache.rocketmq.controller.metrics.ControllerMetricsManager;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -74,6 +75,8 @@ public class ControllerManager {
     private BlockingQueue<Runnable> controllerRequestThreadPoolQueue;
 
     private NotifyService notifyService;
+
+    private ControllerMetricsManager controllerMetricsManager;
 
     public ControllerManager(ControllerConfig controllerConfig, NettyServerConfig nettyServerConfig,
         NettyClientConfig nettyClientConfig) {
@@ -120,6 +123,7 @@ public class ControllerManager {
         this.heartbeatManager.registerBrokerLifecycleListener(this::onBrokerInactive);
         this.controller.registerBrokerLifecycleListener(this::onBrokerInactive);
         registerProcessor();
+        this.controllerMetricsManager = ControllerMetricsManager.getInstance(this);
         return true;
     }
 

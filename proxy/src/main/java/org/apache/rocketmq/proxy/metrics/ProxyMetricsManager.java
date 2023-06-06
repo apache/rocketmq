@@ -39,8 +39,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
-import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -72,7 +72,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
     public static ObservableLongGauge proxyUp = null;
 
     public static void initLocalMode(BrokerMetricsManager brokerMetricsManager, ProxyConfig proxyConfig) {
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.DISABLE) {
+        if (proxyConfig.getMetricsExporterType() == MetricsExporterType.DISABLE) {
             return;
         }
         ProxyMetricsManager.proxyConfig = proxyConfig;
@@ -116,7 +116,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         if (proxyConfig == null) {
             return false;
         }
-        BrokerConfig.MetricsExporterType exporterType = proxyConfig.getMetricsExporterType();
+        MetricsExporterType exporterType = proxyConfig.getMetricsExporterType();
         if (!exporterType.isEnable()) {
             return false;
         }
@@ -134,8 +134,8 @@ public class ProxyMetricsManager implements StartAndShutdown {
 
     @Override
     public void start() throws Exception {
-        BrokerConfig.MetricsExporterType metricsExporterType = proxyConfig.getMetricsExporterType();
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.DISABLE) {
+        MetricsExporterType metricsExporterType = proxyConfig.getMetricsExporterType();
+        if (metricsExporterType == MetricsExporterType.DISABLE) {
             return;
         }
         if (!checkConfig()) {
@@ -166,7 +166,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         SdkMeterProviderBuilder providerBuilder = SdkMeterProvider.builder()
             .setResource(Resource.empty());
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+        if (metricsExporterType == MetricsExporterType.OTLP_GRPC) {
             String endpoint = proxyConfig.getMetricsGrpcExporterTarget();
             if (!endpoint.startsWith("http")) {
                 endpoint = "https://" + endpoint;
@@ -206,7 +206,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
             providerBuilder.registerMetricReader(periodicMetricReader);
         }
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.PROM) {
+        if (metricsExporterType == MetricsExporterType.PROM) {
             String promExporterHost = proxyConfig.getMetricsPromExporterHost();
             if (StringUtils.isBlank(promExporterHost)) {
                 promExporterHost = "0.0.0.0";
@@ -218,7 +218,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
             providerBuilder.registerMetricReader(prometheusHttpServer);
         }
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.LOG) {
+        if (metricsExporterType == MetricsExporterType.LOG) {
             SLF4JBridgeHandler.removeHandlersForRootLogger();
             SLF4JBridgeHandler.install();
             loggingMetricExporter = LoggingMetricExporter.create(proxyConfig.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
@@ -239,16 +239,16 @@ public class ProxyMetricsManager implements StartAndShutdown {
 
     @Override
     public void shutdown() throws Exception {
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+        if (proxyConfig.getMetricsExporterType() == MetricsExporterType.OTLP_GRPC) {
             periodicMetricReader.forceFlush();
             periodicMetricReader.shutdown();
             metricExporter.shutdown();
         }
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
+        if (proxyConfig.getMetricsExporterType() == MetricsExporterType.PROM) {
             prometheusHttpServer.forceFlush();
             prometheusHttpServer.shutdown();
         }
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.LOG) {
+        if (proxyConfig.getMetricsExporterType() == MetricsExporterType.LOG) {
             periodicMetricReader.forceFlush();
             periodicMetricReader.shutdown();
             loggingMetricExporter.shutdown();
