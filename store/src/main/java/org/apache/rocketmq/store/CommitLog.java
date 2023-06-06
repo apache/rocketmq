@@ -59,6 +59,7 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.util.JNASdk;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
@@ -2170,8 +2171,7 @@ public class CommitLog implements Swappable {
             final long address = ((DirectBuffer)mappedFile.getMappedByteBuffer()).address();
             int pageNums = (int)(fileSize + this.pageSize - 1) / this.pageSize;
             byte[] pageCacheRst = new byte[pageNums];
-            int mincore = LibC.INSTANCE.mincore(new Pointer(address), new NativeLong(fileSize), pageCacheRst);
-            if (mincore != 0) {
+            if (!JNASdk.mincore(new Pointer(address), fileSize, pageCacheRst)) {
                 log.error("checkFileInPageCache call the LibC.INSTANCE.mincore error, fileName: {}, fileSize: {}",
                     mappedFile.getFileName(), fileSize);
                 for (int i = 0; i < pageNums; i++) {
@@ -2185,7 +2185,7 @@ public class CommitLog implements Swappable {
             if (pageSize < 0) {
                 try {
                     if (!MixAll.isWindows()) {
-                        pageSize = LibC.INSTANCE.getpagesize();
+                        pageSize = JNASdk.getpagesize();
                     } else {
                         defaultMessageStore.getMessageStoreConfig().setColdDataFlowControlEnable(false);
                         log.info("windows os, coldDataCheckEnable force setting to be false");

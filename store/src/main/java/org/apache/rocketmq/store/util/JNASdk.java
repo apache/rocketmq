@@ -49,7 +49,7 @@ public class JNASdk {
     /**
      * memory lock
      *
-     * @param address a address with Pointer type
+     * @param address A memory address with Pointer type
      * @param size lock length, unit is byte
      * @return
      */
@@ -78,7 +78,7 @@ public class JNASdk {
     /**
      * memory unlock
      *
-     * @param address a address with Pointer type
+     * @param address A memory address with Pointer type
      * @param size unlock length, unit is byte
      * @return success is 1, fail is -1
      */
@@ -123,6 +123,34 @@ public class JNASdk {
         return advised;
     }
 
+    /**
+     * Determine whether virtual pages reside in memory, Only supports Linux/Unix
+     *
+     * @param address A memory address with Pointer type
+     * @param pageLength Page length starting from base address
+     * @param pageCacheRst The array length should be param.pageSize/os.pageSize,
+     *                    Each index bit indicates whether the corresponding virtual page is in physical memory
+     * @return
+     */
+    public static boolean mincore(Pointer address, long pageLength, byte[] pageCacheRst) {
+        if (!Platform.isWindows()) {
+            return LibC.INSTANCE.mincore(address, new NativeLong(pageLength), pageCacheRst) == 0;
+        }
+        return false;
+    }
+
+    /**
+     * Returns the size of a page, unit is byte, Only supports Linux/Unix
+     * This value is the os paging size and may not necessarily be the same as the hardware paging size
+     * @return virtual page size
+     */
+    public static int getpagesize() {
+        if (!Platform.isWindows()) {
+            return LibC.INSTANCE.getpagesize();
+        }
+        return 0;
+    }
+
     public static LibKernel32 getLibKernel32() {
         if (Platform.isWindows()) {
             return LibKernel32.INSTANCE;
@@ -159,5 +187,4 @@ public class JNASdk {
             return LibC.INSTANCE.strerror(errno);
         }
     }
-
 }

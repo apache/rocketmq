@@ -21,7 +21,7 @@ import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 
-interface LibC extends Library {
+public interface LibC extends Library {
     LibC INSTANCE = (LibC) Native.loadLibrary("c", LibC.class);
 
     int MADV_NORMAL = 0;
