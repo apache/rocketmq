@@ -148,6 +148,8 @@ public class PopReviveService extends ServiceThread {
                 popCheckPoint.getCId(),
                 -1
             );
+            brokerController.getPopMessageProcessor().notifyRetryMessageArriving(
+                KeyBuilder.parseNormalTopic(popCheckPoint.getTopic(), popCheckPoint.getCId()));
             brokerController.getNotificationProcessor().notifyMessageArriving(
                 KeyBuilder.parseNormalTopic(popCheckPoint.getTopic(), popCheckPoint.getCId()), -1);
         }

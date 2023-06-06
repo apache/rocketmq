@@ -192,6 +192,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return popLongPollingService.notifyMessageArriving(topic, cid, queueId);
     }
 
+    public boolean notifyRetryMessageArriving(final String topic) {
+        return popLongPollingService.notifyRetryMessageArriving(topic);
+    }
+
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {

@@ -179,6 +179,43 @@ public class PopLongPollingService extends ServiceThread {
         return wakeUp(popRequest);
     }
 
+    /**
+     * Notify all consumer groups that subscribe to the topic
+     */
+    public boolean notifyRetryMessageArriving(final String topic) {
+        boolean result = true;
+        if (!topicCidMap.containsKey(topic)) {
+            return result;
+        }
+        for (String cid : topicCidMap.get(topic).keySet()) {
+            for (Map.Entry<String, ConcurrentSkipListSet<PopRequest>> entry : pollingMap.entrySet()) {
+                if (!entry.getKey().startsWith(KeyBuilder.buildPollingKeyPrefix(topic, cid))) {
+                    continue;
+                }
+                ConcurrentSkipListSet<PopRequest> remotingCommands = entry.getValue();
+                if (remotingCommands == null || remotingCommands.isEmpty()) {
+                    continue;
+                }
+                PopRequest popRequest = remotingCommands.pollFirst();
+                //clean inactive channel
+                while (popRequest != null && !popRequest.getChannel().isActive()) {
+                    totalPollingNum.decrementAndGet();
+                    popRequest = remotingCommands.pollFirst();
+                }
+
+                if (popRequest == null) {
+                    continue;
+                }
+                totalPollingNum.decrementAndGet();
+                if (brokerController.getBrokerConfig().isEnablePopLog()) {
+                    POP_LOGGER.info("lock release , new msg arrive , wakeUp : {}", popRequest);
+                }
+                result = result && wakeUp(popRequest);
+            }
+        }
+        return result;
+    }
+
     public boolean wakeUp(final PopRequest request) {
         if (request == null || !request.complete()) {
             return false;
@@ -219,15 +256,8 @@ public class PopLongPollingService extends ServiceThread {
         if (requestHeader.getPollTime() <= 0 || this.isStopped()) {
             return NOT_POLLING;
         }
-        ConcurrentHashMap<String, Byte> cids = topicCidMap.get(requestHeader.getTopic());
-        if (cids == null) {
-            cids = new ConcurrentHashMap<>();
-            ConcurrentHashMap<String, Byte> old = topicCidMap.putIfAbsent(requestHeader.getTopic(), cids);
-            if (old != null) {
-                cids = old;
-            }
-        }
-        cids.putIfAbsent(requestHeader.getConsumerGroup(), Byte.MIN_VALUE);
+        topicCidMap.computeIfAbsent(requestHeader.getTopic(), k -> new ConcurrentHashMap<>())
+            .putIfAbsent(requestHeader.getConsumerGroup(), Byte.MIN_VALUE);
         long expired = requestHeader.getBornTime() + requestHeader.getPollTime();
         final PopRequest request = new PopRequest(remotingCommand, ctx, expired);
         boolean isFull = totalPollingNum.get() >= this.brokerController.getBrokerConfig().getMaxPopPollingSize();
