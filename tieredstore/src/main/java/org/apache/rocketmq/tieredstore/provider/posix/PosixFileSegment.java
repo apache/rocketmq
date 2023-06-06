@@ -55,7 +55,6 @@ public class PosixFileSegment extends TieredFileSegment {
     private static final String OPERATION_POSIX_READ = "read";
     private static final String OPERATION_POSIX_WRITE = "write";
 
-    private final String fullPath;
     private volatile File file;
     private volatile FileChannel readFileChannel;
     private volatile FileChannel writeFileChannel;
@@ -72,17 +71,14 @@ public class PosixFileSegment extends TieredFileSegment {
         // fullPath: basePath/hash_cluster/broker/topic/queueId/fileType/baseOffset
         String brokerClusterName = storeConfig.getBrokerClusterName();
         String clusterBasePath = TieredStoreUtil.getHash(brokerClusterName) + UNDERLINE + brokerClusterName;
-        this.fullPath = Paths.get(File.separator, basePath, clusterBasePath, filePath,
-                fileType.toString(), TieredStoreUtil.offset2FileName(baseOffset)).toString();
+        String fullPath = Paths.get(basePath, clusterBasePath, filePath,
+            fileType.toString(), TieredStoreUtil.offset2FileName(baseOffset)).toString();
+        logger.info("Constructing Posix FileSegment, filePath: {}", fullPath);
 
         createFile();
     }
 
     protected AttributesBuilder newAttributesBuilder() {
-        //return TieredStoreMetricsManager.newAttributesBuilder()
-        //    .put(LABEL_TOPIC, getMessageQueue().getTopic())
-        //    .put(LABEL_FILE_TYPE, fileType.name().toLowerCase());
-
         return TieredStoreMetricsManager.newAttributesBuilder()
             .put(LABEL_TOPIC, filePath)
             .put(LABEL_FILE_TYPE, fileType.name().toLowerCase());
