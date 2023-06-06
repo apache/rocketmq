@@ -29,13 +29,13 @@ public abstract class AbstractTransactionService implements TransactionService, 
     protected TransactionDataManager transactionDataManager = new TransactionDataManager();
 
     @Override
-    public TransactionData addTransactionDataByBrokerAddr(String brokerAddr, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
+    public TransactionData addTransactionDataByBrokerAddr(ProxyContext ctx, String brokerAddr, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
         Message message) {
-        return this.addTransactionDataByBrokerName(this.getBrokerNameByAddr(brokerAddr), producerGroup, tranStateTableOffset, commitLogOffset, transactionId, message);
+        return this.addTransactionDataByBrokerName(ctx, this.getBrokerNameByAddr(brokerAddr), producerGroup, tranStateTableOffset, commitLogOffset, transactionId, message);
     }
 
     @Override
-    public TransactionData addTransactionDataByBrokerName(String brokerName, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
+    public TransactionData addTransactionDataByBrokerName(ProxyContext ctx, String brokerName, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
         Message message) {
         if (StringUtils.isBlank(brokerName)) {
             return null;
@@ -55,7 +55,7 @@ public abstract class AbstractTransactionService implements TransactionService, 
     }
 
     @Override
-    public EndTransactionRequestData genEndTransactionRequestHeader(String producerGroup, Integer commitOrRollback,
+    public EndTransactionRequestData genEndTransactionRequestHeader(ProxyContext ctx, String producerGroup, Integer commitOrRollback,
         boolean fromTransactionCheck, String msgId, String transactionId) {
         TransactionData transactionData = this.transactionDataManager.pollNoExpireTransactionData(producerGroup, transactionId);
         if (transactionData == null) {

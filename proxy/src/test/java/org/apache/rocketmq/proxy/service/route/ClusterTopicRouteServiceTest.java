@@ -29,6 +29,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.proxy.common.Address;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.assertj.core.util.Lists;
@@ -61,18 +62,20 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testGetCurrentMessageQueueView() throws Throwable {
-        MQClientException exception = catchThrowableOfType(() -> this.topicRouteService.getCurrentMessageQueueView(ERR_TOPIC), MQClientException.class);
+        ProxyContext ctx = ProxyContext.create();
+        MQClientException exception = catchThrowableOfType(() -> this.topicRouteService.getCurrentMessageQueueView(ctx, ERR_TOPIC), MQClientException.class);
         assertTrue(TopicRouteHelper.isTopicNotExistError(exception));
         assertEquals(1, this.topicRouteService.topicCache.asMap().size());
 
-        assertNotNull(this.topicRouteService.getCurrentMessageQueueView(TOPIC));
+        assertNotNull(this.topicRouteService.getCurrentMessageQueueView(ctx, TOPIC));
         assertEquals(2, this.topicRouteService.topicCache.asMap().size());
     }
 
     @Test
     public void testGetTopicRouteForProxy() throws Throwable {
+        ProxyContext ctx = ProxyContext.create();
         List<Address> addressList = Lists.newArrayList(new Address(Address.AddressScheme.IPv4, HostAndPort.fromParts("127.0.0.1", 8888)));
-        ProxyTopicRouteData proxyTopicRouteData = this.topicRouteService.getTopicRouteForProxy(addressList, TOPIC);
+        ProxyTopicRouteData proxyTopicRouteData = this.topicRouteService.getTopicRouteForProxy(ctx, addressList, TOPIC);
 
         assertEquals(1, proxyTopicRouteData.getBrokerDatas().size());
         assertEquals(addressList, proxyTopicRouteData.getBrokerDatas().get(0).getBrokerAddrs().get(MixAll.MASTER_ID));

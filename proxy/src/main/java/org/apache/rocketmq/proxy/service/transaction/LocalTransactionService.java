@@ -18,6 +18,7 @@ package org.apache.rocketmq.proxy.service.transaction;
 
 import java.util.List;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 
 /**
  * no need to implements, because the channel of producer will put into the broker's producerManager
@@ -31,22 +32,22 @@ public class LocalTransactionService extends AbstractTransactionService {
     }
 
     @Override
-    public void addTransactionSubscription(String group, List<String> topicList) {
+    public void addTransactionSubscription(ProxyContext ctx, String group, List<String> topicList) {
 
     }
 
     @Override
-    public void addTransactionSubscription(String group, String topic) {
+    public void addTransactionSubscription(ProxyContext ctx, String group, String topic) {
 
     }
 
     @Override
-    public void replaceTransactionSubscription(String group, List<String> topicList) {
+    public void replaceTransactionSubscription(ProxyContext ctx, String group, List<String> topicList) {
 
     }
 
     @Override
-    public void unSubscribeAllTransactionTopic(String group) {
+    public void unSubscribeAllTransactionTopic(ProxyContext ctx, String group) {
 
     }
 

@@ -37,6 +37,7 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
     private static final String BROKER_NAME = "mockBroker";
     private static final String PRODUCER_GROUP = "producerGroup";
     private static final Random RANDOM = new Random();
+    private final ProxyContext ctx = ProxyContext.createForInner(this.getClass());
 
     public static class MockAbstractTransactionServiceTest extends AbstractTransactionService {
 
@@ -46,22 +47,22 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
         }
 
         @Override
-        public void addTransactionSubscription(String group, List<String> topicList) {
+        public void addTransactionSubscription(ProxyContext ctx, String group, List<String> topicList) {
 
         }
 
         @Override
-        public void addTransactionSubscription(String group, String topic) {
+        public void addTransactionSubscription(ProxyContext ctx, String group, String topic) {
 
         }
 
         @Override
-        public void replaceTransactionSubscription(String group, List<String> topicList) {
+        public void replaceTransactionSubscription(ProxyContext ctx, String group, List<String> topicList) {
 
         }
 
         @Override
-        public void unSubscribeAllTransactionTopic(String group) {
+        public void unSubscribeAllTransactionTopic(ProxyContext ctx, String group) {
 
         }
     }
@@ -81,6 +82,7 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
         String txId = MessageClientIDSetter.createUniqID();
 
         TransactionData transactionData = transactionService.addTransactionDataByBrokerName(
+            ctx,
             BROKER_NAME,
             PRODUCER_GROUP,
             RANDOM.nextLong(),
@@ -91,6 +93,7 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
         assertNotNull(transactionData);
 
         EndTransactionRequestData requestData = transactionService.genEndTransactionRequestHeader(
+            ctx,
             PRODUCER_GROUP,
             MessageSysFlag.TRANSACTION_COMMIT_TYPE,
             true,
@@ -104,6 +107,7 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
         assertEquals(transactionData.getTranStateTableOffset(), requestData.getRequestHeader().getTranStateTableOffset().longValue());
 
         assertNull(transactionService.genEndTransactionRequestHeader(
+            ctx,
             "group",
             MessageSysFlag.TRANSACTION_COMMIT_TYPE,
             true,
@@ -119,6 +123,7 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
         String txId = MessageClientIDSetter.createUniqID();
 
         TransactionData transactionData = transactionService.addTransactionDataByBrokerName(
+            ctx,
             BROKER_NAME,
             PRODUCER_GROUP,
             RANDOM.nextLong(),
@@ -128,6 +133,7 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
         );
         transactionService.onSendCheckTransactionStateFailed(ProxyContext.createForInner(this.getClass()), PRODUCER_GROUP, transactionData);
         assertNull(transactionService.genEndTransactionRequestHeader(
+            ctx,
             PRODUCER_GROUP,
             MessageSysFlag.TRANSACTION_COMMIT_TYPE,
             true,
