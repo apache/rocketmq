@@ -103,7 +103,7 @@ maven_install(
         "io.github.aliyunmq:rocketmq-shaded-slf4j-api-bridge:1.0.0",
         "software.amazon.awssdk:s3:2.20.29",
         "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
-        "com.adobe.testing:s3mock-junit4:2.11.0"
+        "com.adobe.testing:s3mock-junit4:2.11.0",
     ],
     fetch_sources = True,
     repositories = [
