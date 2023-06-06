@@ -127,13 +127,13 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     @Override
     public SubscriptionGroupConfig getSubscriptionGroupConfig(ProxyContext ctx, String consumerGroupName) {
-        return this.serviceManager.getMetadataService().getSubscriptionGroupConfig(consumerGroupName);
+        return this.serviceManager.getMetadataService().getSubscriptionGroupConfig(ctx, consumerGroupName);
     }
 
     @Override
     public ProxyTopicRouteData getTopicRouteDataForProxy(ProxyContext ctx, List<Address> requestHostAndPortList,
         String topicName) throws Exception {
-        return this.serviceManager.getTopicRouteService().getTopicRouteForProxy(requestHostAndPortList, topicName);
+        return this.serviceManager.getTopicRouteService().getTopicRouteForProxy(ctx, requestHostAndPortList, topicName);
     }
 
     @Override

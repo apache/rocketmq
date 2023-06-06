@@ -48,7 +48,7 @@ public class ForwardMessageToDLQActivity extends AbstractMessingActivity {
 
             String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
             String handleString = request.getReceiptHandle();
-            MessageReceiptHandle messageReceiptHandle = receiptHandleProcessor.removeReceiptHandle(grpcChannelManager.getChannel(ctx.getClientID()), group, request.getMessageId(), request.getReceiptHandle());
+            MessageReceiptHandle messageReceiptHandle = receiptHandleProcessor.removeReceiptHandle(ctx, grpcChannelManager.getChannel(ctx.getClientID()), group, request.getMessageId(), request.getReceiptHandle());
             if (messageReceiptHandle != null) {
                 handleString = messageReceiptHandle.getReceiptHandleStr();
             }
