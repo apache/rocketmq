@@ -301,7 +301,7 @@ public class MQClientInstance {
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             try {
                 MQClientInstance.this.cleanOfflineBroker();
-                MQClientInstance.this.sendHeartbeatToAllBrokerWithLockV2(false);
+                MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
             } catch (Exception e) {
                 log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
             }
@@ -481,7 +481,11 @@ public class MQClientInstance {
     public void sendHeartbeatToAllBrokerWithLock() {
         if (this.lockHeartbeat.tryLock()) {
             try {
-                this.sendHeartbeatToAllBroker();
+                if (clientConfig.isUseHeartbeatV2()) {
+                    this.sendHeartbeatToAllBrokerV2(false);
+                } else {
+                    this.sendHeartbeatToAllBroker();
+                }
             } catch (final Exception e) {
                 log.error("sendHeartbeatToAllBroker exception", e);
             } finally {

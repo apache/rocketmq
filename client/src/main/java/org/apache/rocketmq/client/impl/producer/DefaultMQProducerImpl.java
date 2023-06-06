@@ -244,7 +244,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 break;
         }
 
-        this.mQClientFactory.sendHeartbeatToAllBrokerWithLockV2(false);
+        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
 
         RequestFutureHolder.getInstance().startScheduledTask(this);
 
@@ -1613,7 +1613,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (!hasRouteData) {
             long beginTimestamp = System.currentTimeMillis();
             this.tryToFindTopicPublishInfo(msg.getTopic());
-            this.getMqClientFactory().sendHeartbeatToAllBrokerWithLockV2(false);
+            this.getMqClientFactory().sendHeartbeatToAllBrokerWithLock();
             long cost = System.currentTimeMillis() - beginTimestamp;
             if (cost > 500) {
                 log.warn("prepare send request for <{}> cost {} ms", msg.getTopic(), cost);
