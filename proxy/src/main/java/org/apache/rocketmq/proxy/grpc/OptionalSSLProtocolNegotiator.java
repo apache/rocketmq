@@ -51,9 +51,10 @@ public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator
      */
     private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
-    private static final SslContext SSL_CONTEXT = loadSslContext();
+    private static SslContext SSL_CONTEXT;
 
     public OptionalSSLProtocolNegotiator() {
+        SSL_CONTEXT = loadSslContext();
     }
 
     @Override
