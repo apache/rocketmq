@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.exception;
 
-public enum TieredStoreErrorCode {
-    ILLEGAL_OFFSET,
-    ILLEGAL_PARAM,
-    DOWNLOAD_LENGTH_NOT_CORRECT,
-    NO_NEW_DATA,
-    STORAGE_PROVIDER_ERROR,
-    IO_ERROR,
-    SEGMENT_SEALED,
-    UNKNOWN
+package org.apache.rocketmq.tieredstore.provider.memory;
+
+import org.apache.rocketmq.tieredstore.TieredMessageFetcherBaseTest;
+
+public class TieredMessageFetcherForMemoryTest extends TieredMessageFetcherBaseTest {
+    @Override
+    public void setTieredBackendProvider() {
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegmentWithoutCheck");
+    }
 }

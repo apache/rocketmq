@@ -189,6 +189,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                     return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
                 });
         }
+        logger.debug("TieredMessageStore#getMessageAsync: get message from next store: topic: {}, queue: {}, queue offset: {}",
+            topic, queueId, offset);
         return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
     }
 

@@ -14,15 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.exception;
 
-public enum TieredStoreErrorCode {
-    ILLEGAL_OFFSET,
-    ILLEGAL_PARAM,
-    DOWNLOAD_LENGTH_NOT_CORRECT,
-    NO_NEW_DATA,
-    STORAGE_PROVIDER_ERROR,
-    IO_ERROR,
-    SEGMENT_SEALED,
-    UNKNOWN
+package org.apache.rocketmq.tieredstore.provider.s3;
+
+import com.adobe.testing.s3mock.testsupport.common.S3MockStarter;
+
+import java.util.Map;
+
+public class S3MockStarterTestImpl extends S3MockStarter {
+    protected S3MockStarterTestImpl(Map<String, Object> properties) {
+        super(properties);
+    }
+
+    @Override
+    protected void start() {
+        super.start();
+    }
+
+    @Override
+    protected void stop() {
+        super.stop();
+    }
 }

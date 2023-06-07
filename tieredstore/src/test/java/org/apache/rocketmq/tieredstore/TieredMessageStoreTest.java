@@ -85,7 +85,7 @@ public class TieredMessageStoreTest {
         brokerConfig.setBrokerName("broker");
         configuration = new Configuration(LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME), "/tmp/rmqut/config", storeConfig, brokerConfig);
         Properties properties = new Properties();
-        properties.setProperty("tieredBackendServiceProvider", "org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
+        properties.setProperty("tieredBackendServiceProvider", "org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment");
         configuration.registerConfig(properties);
         MessageStorePluginContext context = new MessageStorePluginContext(new MessageStoreConfig(), null, null, brokerConfig, configuration);
 
