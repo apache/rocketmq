@@ -341,6 +341,31 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         return result;
     }
 
+    public boolean commitAndSealFile() {
+        if (closed) {
+            return false;
+        }
+        if (!this.isFull()) {
+            logger.error("Failed to commitAndSealFile, file is not full, file: {}, appendPosition: {}, commitPosition: {}, maxSize: {}", getPath(), appendPosition, commitPosition, maxSize);
+            return false;
+        }
+        // first time to commit, try to wait inflight commit request to be completed
+        inflightCommitRequest.join();
+        boolean success = false;
+        for (int i = 0; i < 3; i++) {
+            if (!needCommit() || commit()) {
+                success = true;
+                break;
+            }
+        }
+        if (!success) {
+            logger.error("Failed to commit all data, file: {}, appendPosition: {}, commitPosition: {}, maxSize: {}", getPath(), appendPosition, commitPosition, maxSize);
+            return false;
+        }
+        sealFile();
+        return true;
+    }
+
     @SuppressWarnings("NonAtomicOperationOnVolatileField")
     public CompletableFuture<Boolean> commitAsync() {
         if (closed) {

@@ -45,7 +45,7 @@ public class TieredIndexFileTest {
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
         storeConfig.setStorePathRootDir(storePath);
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegmentWithoutCheck");
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment");
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(2);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(3);
         mq = new MessageQueue("TieredIndexFileTest", storeConfig.getBrokerName(), 1);

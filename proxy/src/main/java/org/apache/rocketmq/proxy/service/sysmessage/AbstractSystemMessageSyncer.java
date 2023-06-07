@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
@@ -95,7 +96,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
                 JSON.toJSONString(data).getBytes(StandardCharsets.UTF_8)
             );
 
-            AddressableMessageQueue messageQueue = this.topicRouteService.getAllMessageQueueView(targetTopic)
+            AddressableMessageQueue messageQueue = this.topicRouteService.getAllMessageQueueView(ProxyContext.createForInner(this.getClass()), targetTopic)
                 .getWriteSelector().selectOne(true);
             this.mqClientAPIFactory.getClient().sendMessageAsync(
                 messageQueue.getBrokerAddr(),

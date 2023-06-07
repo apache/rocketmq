@@ -41,7 +41,7 @@ public class TieredFlatFileManagerTest {
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
         storeConfig.setStorePathRootDir(storePath);
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment");
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         mq = new MessageQueue("TieredFlatFileManagerTest", storeConfig.getBrokerName(), 0);
         metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);

@@ -38,6 +38,7 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
@@ -91,7 +92,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         when(this.messageService.popMessage(any(), messageQueueArgumentCaptor.capture(), requestHeaderArgumentCaptor.capture(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(innerPopResult));
 
-        when(this.topicRouteService.getCurrentMessageQueueView(anyString()))
+        when(this.topicRouteService.getCurrentMessageQueueView(any(), anyString()))
             .thenReturn(mock(MessageQueueView.class));
 
         ArgumentCaptor<String> ackMessageIdArgumentCaptor = ArgumentCaptor.forClass(String.class);
@@ -191,12 +192,12 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         AddressableMessageQueue addressableMessageQueue2 = new AddressableMessageQueue(mq2, "127.0.0.1");
         mqSet.add(mq1);
         mqSet.add(mq2);
-        when(this.topicRouteService.buildAddressableMessageQueue(any())).thenAnswer(i -> new AddressableMessageQueue((MessageQueue) i.getArguments()[0], "127.0.0.1"));
+        when(this.topicRouteService.buildAddressableMessageQueue(any(), any())).thenAnswer(i -> new AddressableMessageQueue((MessageQueue) i.getArguments()[1], "127.0.0.1"));
         when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue1), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(Sets.newHashSet(mq1)));
         when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue2), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(Sets.newHashSet(mq2)));
-        Set<MessageQueue> result = this.consumerProcessor.lockBatchMQ(null, mqSet, CONSUMER_GROUP, CLIENT_ID, 1000)
+        Set<MessageQueue> result = this.consumerProcessor.lockBatchMQ(ProxyContext.create(), mqSet, CONSUMER_GROUP, CLIENT_ID, 1000)
             .get();
         assertThat(result).isEqualTo(mqSet);
     }
@@ -210,12 +211,12 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         AddressableMessageQueue addressableMessageQueue2 = new AddressableMessageQueue(mq2, "127.0.0.1");
         mqSet.add(mq1);
         mqSet.add(mq2);
-        when(this.topicRouteService.buildAddressableMessageQueue(any())).thenAnswer(i -> new AddressableMessageQueue((MessageQueue) i.getArguments()[0], "127.0.0.1"));
+        when(this.topicRouteService.buildAddressableMessageQueue(any(), any())).thenAnswer(i -> new AddressableMessageQueue((MessageQueue) i.getArguments()[1], "127.0.0.1"));
         when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue1), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(Sets.newHashSet(mq1)));
         when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue2), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(Sets.newHashSet()));
-        Set<MessageQueue> result = this.consumerProcessor.lockBatchMQ(null, mqSet, CONSUMER_GROUP, CLIENT_ID, 1000)
+        Set<MessageQueue> result = this.consumerProcessor.lockBatchMQ(ProxyContext.create(), mqSet, CONSUMER_GROUP, CLIENT_ID, 1000)
             .get();
         assertThat(result).isEqualTo(Sets.newHashSet(mq1));
     }
@@ -229,14 +230,14 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
         AddressableMessageQueue addressableMessageQueue2 = new AddressableMessageQueue(mq2, "127.0.0.1");
         mqSet.add(mq1);
         mqSet.add(mq2);
-        when(this.topicRouteService.buildAddressableMessageQueue(any())).thenAnswer(i -> new AddressableMessageQueue((MessageQueue) i.getArguments()[0], "127.0.0.1"));
+        when(this.topicRouteService.buildAddressableMessageQueue(any(), any())).thenAnswer(i -> new AddressableMessageQueue((MessageQueue) i.getArguments()[1], "127.0.0.1"));
         when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue1), any(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(Sets.newHashSet(mq1)));
         CompletableFuture<Set<MessageQueue>> future = new CompletableFuture<>();
         future.completeExceptionally(new MQBrokerException(1, "err"));
         when(this.messageService.lockBatchMQ(any(), eq(addressableMessageQueue2), any(), anyLong()))
             .thenReturn(future);
-        Set<MessageQueue> result = this.consumerProcessor.lockBatchMQ(null, mqSet, CONSUMER_GROUP, CLIENT_ID, 1000)
+        Set<MessageQueue> result = this.consumerProcessor.lockBatchMQ(ProxyContext.create(), mqSet, CONSUMER_GROUP, CLIENT_ID, 1000)
             .get();
         assertThat(result).isEqualTo(Sets.newHashSet(mq1));
     }

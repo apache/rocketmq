@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.mock;
+package org.apache.rocketmq.tieredstore.provider.memory;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
@@ -71,6 +71,11 @@ public class MemoryFileSegment extends TieredFileSegment {
 
     @Override
     public void createFile() {
+
+    }
+
+    @Override
+    public void sealFile() {
 
     }
 

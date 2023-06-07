@@ -49,6 +49,11 @@ public enum TieredStoreErrorCode {
     IO_ERROR,
 
     /**
+     * Segment has been sealed
+     */
+    SEGMENT_SEALED,
+
+    /**
      * Error code for an unknown error.
      */
     UNKNOWN

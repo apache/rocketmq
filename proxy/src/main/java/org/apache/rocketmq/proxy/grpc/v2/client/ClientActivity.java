@@ -287,7 +287,7 @@ public class ClientActivity extends AbstractMessingActivity {
         // use topic name as producer group
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, parseClientVersion(ctx.getClientVersion()));
         this.messagingProcessor.registerProducer(ctx, topicName, clientChannelInfo);
-        TopicMessageType topicMessageType = this.messagingProcessor.getMetadataService().getTopicMessageType(topicName);
+        TopicMessageType topicMessageType = this.messagingProcessor.getMetadataService().getTopicMessageType(ctx, topicName);
         if (TopicMessageType.TRANSACTION.equals(topicMessageType)) {
             this.messagingProcessor.addTransactionSubscription(ctx, topicName, topicName);
         }

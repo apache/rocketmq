@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.service.metadata;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class LocalMetadataService implements MetadataService {
@@ -30,7 +31,7 @@ public class LocalMetadataService implements MetadataService {
     }
 
     @Override
-    public TopicMessageType getTopicMessageType(String topic) {
+    public TopicMessageType getTopicMessageType(ProxyContext ctx, String topic) {
         TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (topicConfig == null) {
             return TopicMessageType.UNSPECIFIED;
@@ -39,7 +40,7 @@ public class LocalMetadataService implements MetadataService {
     }
 
     @Override
-    public SubscriptionGroupConfig getSubscriptionGroupConfig(String group) {
+    public SubscriptionGroupConfig getSubscriptionGroupConfig(ProxyContext ctx, String group) {
         return this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().get(group);
     }
 }

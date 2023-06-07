@@ -133,7 +133,7 @@ public class HeartbeatSyncerTest extends InitConfigTest {
             brokerData.setBrokerAddrs(brokerAddr);
             topicRouteData.getBrokerDatas().add(brokerData);
             MessageQueueView messageQueueView = new MessageQueueView("foo", topicRouteData);
-            when(this.topicRouteService.getAllMessageQueueView(anyString())).thenReturn(messageQueueView);
+            when(this.topicRouteService.getAllMessageQueueView(any(), anyString())).thenReturn(messageQueueView);
         }
     }
 

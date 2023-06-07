@@ -71,7 +71,7 @@ public class RouteActivity extends AbstractMessingActivity {
             List<MessageQueue> messageQueueList = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
 
-            TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(topicName);
+            TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(ctx, topicName);
             for (QueueData queueData : proxyTopicRouteData.getQueueDatas()) {
                 String brokerName = queueData.getBrokerName();
                 Map<Long, Broker> brokerIdMap = brokerMap.get(brokerName);
