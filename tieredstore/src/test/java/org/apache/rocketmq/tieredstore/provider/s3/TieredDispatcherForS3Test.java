@@ -23,9 +23,7 @@ import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 
 import java.io.IOException;
-import org.junit.Ignore;
 
-@Ignore
 public class TieredDispatcherForS3Test extends TieredDispatcherBaseTest {
 
     private MockS3TestBase mockS3TestBase = new MockS3TestBase();
