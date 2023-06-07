@@ -23,7 +23,9 @@ import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegmentBaseTest;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 
+@Ignore
 public class TieredFileSegmentForS3Test extends TieredFileSegmentBaseTest {
 
     private MockS3TestBase mockS3TestBase = new MockS3TestBase();

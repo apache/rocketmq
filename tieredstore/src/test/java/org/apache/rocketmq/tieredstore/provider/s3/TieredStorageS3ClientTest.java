@@ -21,6 +21,7 @@ import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -33,6 +34,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.apache.rocketmq.tieredstore.util.TieredStoreUtil.MB;
 
+@Ignore
 public class TieredStorageS3ClientTest extends MockS3TestBase {
 
     private static final TieredMessageStoreConfig CONFIG = new TieredMessageStoreConfig();

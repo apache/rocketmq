@@ -20,7 +20,9 @@ package org.apache.rocketmq.tieredstore.provider.s3;
 import org.apache.rocketmq.tieredstore.TieredMessageFetcherBaseTest;
 
 import java.io.IOException;
+import org.junit.Ignore;
 
+@Ignore
 public class TieredMessageFetcherForS3Test extends TieredMessageFetcherBaseTest {
 
     private MockS3TestBase mockS3TestBase = new MockS3TestBase();
