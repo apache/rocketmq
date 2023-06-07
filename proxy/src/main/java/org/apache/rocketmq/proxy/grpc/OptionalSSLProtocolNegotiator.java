@@ -51,6 +51,8 @@ public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator
      */
     private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
+    private static final SslContext sslContext = loadSslContext();
+
     public OptionalSSLProtocolNegotiator() {
     }
 
@@ -67,13 +69,45 @@ public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator
     @Override
     public void close() {}
 
+    private static SslContext loadSslContext() {
+        try {
+            ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+            if (proxyConfig.isTlsTestModeEnable()) {
+                SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
+                return GrpcSslContexts.forServer(selfSignedCertificate.certificate(),
+                                selfSignedCertificate.privateKey())
+                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                        .clientAuth(ClientAuth.NONE)
+                        .build();
+            } else {
+                String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
+                String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
+                try (InputStream serverKeyInputStream = Files.newInputStream(
+                        Paths.get(tlsKeyPath));
+                        InputStream serverCertificateStream = Files.newInputStream(
+                                Paths.get(tlsCertPath))) {
+                    SslContext res = GrpcSslContexts.forServer(serverCertificateStream,
+                                    serverKeyInputStream)
+                            .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                            .clientAuth(ClientAuth.NONE)
+                            .build();
+                    log.info("grpc load TLS configured OK");
+                    return res;
+                }
+            }
+        } catch (Exception e) {
+            log.error("grpc tls set failed. msg: {}, e:", e.getMessage(), e);
+            throw new RuntimeException("grpc tls set failed: " + e.getMessage());
+        }
+    }
+
     public static class PortUnificationServerHandler extends ByteToMessageDecoder {
 
         private final ChannelHandler ssl;
         private final ChannelHandler plaintext;
 
         public PortUnificationServerHandler(GrpcHttp2ConnectionHandler grpcHandler) {
-            this.ssl = InternalProtocolNegotiators.serverTls(loadSslContext())
+            this.ssl = InternalProtocolNegotiators.serverTls(sslContext)
                     .newHandler(grpcHandler);
             this.plaintext = InternalProtocolNegotiators.serverPlaintext()
                     .newHandler(grpcHandler);
@@ -104,38 +138,6 @@ public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator
             } catch (Exception e) {
                 log.error("process ssl protocol negotiator failed.", e);
                 throw e;
-            }
-        }
-
-        private SslContext loadSslContext() {
-            try {
-                ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-                if (proxyConfig.isTlsTestModeEnable()) {
-                    SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
-                    return GrpcSslContexts.forServer(selfSignedCertificate.certificate(),
-                                    selfSignedCertificate.privateKey())
-                            .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                            .clientAuth(ClientAuth.NONE)
-                            .build();
-                } else {
-                    String tlsKeyPath = ConfigurationManager.getProxyConfig().getTlsKeyPath();
-                    String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
-                    try (InputStream serverKeyInputStream = Files.newInputStream(
-                            Paths.get(tlsKeyPath));
-                            InputStream serverCertificateStream = Files.newInputStream(
-                                    Paths.get(tlsCertPath))) {
-                        SslContext res = GrpcSslContexts.forServer(serverCertificateStream,
-                                        serverKeyInputStream)
-                                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                                .clientAuth(ClientAuth.NONE)
-                                .build();
-                        log.info("grpc load TLS configured OK");
-                        return res;
-                    }
-                }
-            } catch (Exception e) {
-                log.error("grpc tls set failed. msg: {}, e:", e.getMessage(), e);
-                throw new RuntimeException("grpc tls set failed: " + e.getMessage());
             }
         }
     }
