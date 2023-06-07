@@ -51,7 +51,7 @@ public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator
      */
     private static final int SSL_RECORD_HEADER_LENGTH = 5;
 
-    private static final SslContext sslContext = loadSslContext();
+    private static final SslContext SSL_CONTEXT = loadSslContext();
 
     public OptionalSSLProtocolNegotiator() {
     }
@@ -107,7 +107,7 @@ public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator
         private final ChannelHandler plaintext;
 
         public PortUnificationServerHandler(GrpcHttp2ConnectionHandler grpcHandler) {
-            this.ssl = InternalProtocolNegotiators.serverTls(sslContext)
+            this.ssl = InternalProtocolNegotiators.serverTls(SSL_CONTEXT)
                     .newHandler(grpcHandler);
             this.plaintext = InternalProtocolNegotiators.serverPlaintext()
                     .newHandler(grpcHandler);
