@@ -117,11 +117,15 @@ public class TieredMessageStoreConfig {
 
     private String tieredStoreFilepath = "";
 
-    // only for oss storage provider
-    private String ossEndpoint = "";
-    private String ossBucket = "";
-    private String ossAccessKey = "";
-    private String ossSecretKey = "";
+    private String objectStoreRegion = "";
+
+    private String objectStoreBucket = "";
+
+    private String objectStoreAccessKey = "";
+
+    private String objectStoreSecretKey = "";
+
+    private boolean enableMerge = false;
 
     public static String localHostName() {
         try {
@@ -356,35 +360,43 @@ public class TieredMessageStoreConfig {
         this.tieredStoreFilepath = tieredStoreFilepath;
     }
 
-    public String getOssEndpoint() {
-        return ossEndpoint;
+    public void setObjectStoreRegion(String objectStoreRegion) {
+        this.objectStoreRegion = objectStoreRegion;
     }
 
-    public void setOssEndpoint(String ossEndpoint) {
-        this.ossEndpoint = ossEndpoint;
+    public String getObjectStoreBucket() {
+        return objectStoreBucket;
     }
 
-    public String getOssBucket() {
-        return ossBucket;
+    public void setObjectStoreBucket(String objectStoreBucket) {
+        this.objectStoreBucket = objectStoreBucket;
     }
 
-    public void setOssBucket(String ossBucket) {
-        this.ossBucket = ossBucket;
+    public String getObjectStoreAccessKey() {
+        return objectStoreAccessKey;
     }
 
-    public String getOssAccessKey() {
-        return ossAccessKey;
+    public void setObjectStoreAccessKey(String objectStoreAccessKey) {
+        this.objectStoreAccessKey = objectStoreAccessKey;
     }
 
-    public void setOssAccessKey(String ossAccessKey) {
-        this.ossAccessKey = ossAccessKey;
+    public String getObjectStoreSecretKey() {
+        return objectStoreSecretKey;
     }
 
-    public String getOssSecretKey() {
-        return ossSecretKey;
+    public void setObjectStoreSecretKey(String objectStoreSecretKey) {
+        this.objectStoreSecretKey = objectStoreSecretKey;
     }
 
-    public void setOssSecretKey(String ossSecretKey) {
-        this.ossSecretKey = ossSecretKey;
+    public String getObjectStoreRegion() {
+        return objectStoreRegion;
+    }
+
+    public boolean isEnableMerge() {
+        return enableMerge;
+    }
+
+    public void setEnableMerge(boolean enableMerge) {
+        this.enableMerge = enableMerge;
     }
 }

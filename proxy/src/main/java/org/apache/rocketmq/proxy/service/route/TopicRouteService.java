@@ -35,6 +35,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.AbstractCacheLoader;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
@@ -109,18 +110,18 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         this.appendStartAndShutdown(this.mqClientAPIFactory);
     }
 
-    public MessageQueueView getAllMessageQueueView(String topicName) throws Exception {
+    public MessageQueueView getAllMessageQueueView(ProxyContext ctx, String topicName) throws Exception {
         return getCacheMessageQueueWrapper(this.topicCache, topicName);
     }
 
-    public abstract MessageQueueView getCurrentMessageQueueView(String topicName) throws Exception;
+    public abstract MessageQueueView getCurrentMessageQueueView(ProxyContext ctx, String topicName) throws Exception;
 
-    public abstract ProxyTopicRouteData getTopicRouteForProxy(List<Address> requestHostAndPortList,
+    public abstract ProxyTopicRouteData getTopicRouteForProxy(ProxyContext ctx, List<Address> requestHostAndPortList,
         String topicName) throws Exception;
 
-    public abstract String getBrokerAddr(String brokerName) throws Exception;
+    public abstract String getBrokerAddr(ProxyContext ctx, String brokerName) throws Exception;
 
-    public abstract AddressableMessageQueue buildAddressableMessageQueue(MessageQueue messageQueue) throws Exception;
+    public abstract AddressableMessageQueue buildAddressableMessageQueue(ProxyContext ctx, MessageQueue messageQueue) throws Exception;
 
     protected static MessageQueueView getCacheMessageQueueWrapper(LoadingCache<String, MessageQueueView> topicCache,
         String key) throws Exception {

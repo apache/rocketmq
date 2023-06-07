@@ -46,7 +46,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
     private final ReentrantLock bufferLock = new ReentrantLock();
     private final Semaphore commitLock = new Semaphore(1);
     private List<ByteBuffer> uploadBufferList = new ArrayList<>();
-    private boolean full;
+    private volatile boolean full;
     protected final FileSegmentType fileType;
     protected final MessageQueue messageQueue;
     protected final TieredMessageStoreConfig storeConfig;
@@ -312,6 +312,31 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         return result;
     }
 
+    public boolean commitAndSealFile() {
+        if (closed) {
+            return false;
+        }
+        if (!this.isFull()) {
+            logger.error("Failed to commitAndSealFile, file is not full, file: {}, appendPosition: {}, commitPosition: {}, maxSize: {}", getPath(), appendPosition, commitPosition, maxSize);
+            return false;
+        }
+        // first time to commit, try to wait inflight commit request to be completed
+        inflightCommitRequest.join();
+        boolean success = false;
+        for (int i = 0; i < 3; i++) {
+            if (!needCommit() || commit()) {
+                success = true;
+                break;
+            }
+        }
+        if (!success) {
+            logger.error("Failed to commit all data, file: {}, appendPosition: {}, commitPosition: {}, maxSize: {}", getPath(), appendPosition, commitPosition, maxSize);
+            return false;
+        }
+        sealFile();
+        return true;
+    }
+
     public CompletableFuture<Boolean> commitAsync() {
         if (closed) {
             return CompletableFuture.completedFuture(false);
@@ -425,6 +450,8 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
                     throw new IllegalStateException("Unexpected value: " + type);
             }
         }
+
+
     }
 
 }

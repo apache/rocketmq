@@ -101,6 +101,9 @@ maven_install(
         "org.slf4j:jul-to-slf4j:2.0.6",
     	"org.jetbrains:annotations:23.1.0",
         "io.github.aliyunmq:rocketmq-shaded-slf4j-api-bridge:1.0.0",
+        "software.amazon.awssdk:s3:2.20.29",
+        "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
+        "com.adobe.testing:s3mock-junit4:2.11.0",
     ],
     fetch_sources = True,
     repositories = [

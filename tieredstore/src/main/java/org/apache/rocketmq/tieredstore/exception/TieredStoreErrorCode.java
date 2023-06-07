@@ -23,5 +23,6 @@ public enum TieredStoreErrorCode {
     NO_NEW_DATA,
     STORAGE_PROVIDER_ERROR,
     IO_ERROR,
+    SEGMENT_SEALED,
     UNKNOWN
 }
