@@ -40,9 +40,11 @@ import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+@Ignore
 public abstract class TieredDispatcherBaseTest {
     private TieredMessageStoreConfig storeConfig;
     private MessageQueue mq;

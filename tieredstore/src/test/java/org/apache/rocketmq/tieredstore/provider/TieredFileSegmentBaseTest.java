@@ -25,6 +25,7 @@ import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInp
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -33,6 +34,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 
+@Ignore
 public abstract class TieredFileSegmentBaseTest {
     public int baseOffset = 1000;
 
