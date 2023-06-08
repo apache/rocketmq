@@ -18,12 +18,19 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
+import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
+import org.apache.rocketmq.client.impl.producer.MQProducerInner;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -32,7 +39,12 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,7 +79,7 @@ public class ClientManageProcessorTest {
         clientChannelInfo = new ClientChannelInfo(channel, clientId, LanguageCode.JAVA, 100);
         brokerController.getProducerManager().registerProducer(group, clientChannelInfo);
 
-        ConsumerData consumerData = createConsumerData(group, topic);
+        ConsumerData consumerData = PullMessageProcessorTest.createConsumerData(group, topic);
         brokerController.getConsumerManager().registerConsumer(
             consumerData.getGroupName(),
             clientChannelInfo,
@@ -108,6 +120,35 @@ public class ClientManageProcessorTest {
         assertThat(consumerGroupInfo).isNull();
     }
 
+    @Test
+    public void processRequest_heartbeat() throws RemotingCommandException {
+        RemotingCommand request = createHeartbeatCommand(false, "topicA");
+        RemotingCommand response = clientManageProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(Boolean.parseBoolean(response.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
+        ConsumerGroupInfo consumerGroupInfo = brokerController.getConsumerManager().getConsumerGroupInfo(group);
+
+        RemotingCommand requestSimple = createHeartbeatCommand(true, "topicA");
+        RemotingCommand responseSimple = clientManageProcessor.processRequest(handlerContext, requestSimple);
+        assertThat(responseSimple.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat( Boolean.parseBoolean(responseSimple.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
+        ConsumerGroupInfo consumerGroupInfoSimple = brokerController.getConsumerManager().getConsumerGroupInfo(group);
+        assertThat(consumerGroupInfoSimple == consumerGroupInfo).isTrue();
+
+        RemotingCommand request1 = createHeartbeatCommand(false, "topicB");
+        RemotingCommand response1 = clientManageProcessor.processRequest(handlerContext, request1);
+        assertThat(response1.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(Boolean.parseBoolean(response1.getExtFields().get(MixAll.IS_SUB_CHANGE))).isTrue();
+        ConsumerGroupInfo consumerGroupInfo1 = brokerController.getConsumerManager().getConsumerGroupInfo(group);
+
+        RemotingCommand requestSimple1 = createHeartbeatCommand(true, "topicB");
+        RemotingCommand responseSimple1 = clientManageProcessor.processRequest(handlerContext, requestSimple1);
+        assertThat(responseSimple1.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat( Boolean.parseBoolean(responseSimple1.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
+        ConsumerGroupInfo consumerGroupInfoSimple1 = brokerController.getConsumerManager().getConsumerGroupInfo(group);
+        assertThat(consumerGroupInfoSimple1 == consumerGroupInfo1).isTrue();
+    }
+
     private RemotingCommand createUnRegisterProducerCommand() {
         UnregisterClientRequestHeader requestHeader = new UnregisterClientRequestHeader();
         requestHeader.setClientID(clientId);
@@ -128,5 +169,44 @@ public class ClientManageProcessorTest {
         request.setVersion(100);
         request.makeCustomHeaderToNet();
         return request;
+    }
+
+    private RemotingCommand createHeartbeatCommand(boolean isWithoutSub, String topic) {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        request.setLanguage(LanguageCode.JAVA);
+        HeartbeatData heartbeatDataWithSub = prepareHeartbeatData(false, topic);
+        int heartbeatFingerprint = heartbeatDataWithSub.computeHeartbeatFingerprint();
+        HeartbeatData heartbeatData = prepareHeartbeatData(isWithoutSub, topic);
+        heartbeatData.setHeartbeatFingerprint(heartbeatFingerprint);
+        request.setBody(heartbeatData.encode());
+        return request;
+    }
+
+    private HeartbeatData prepareHeartbeatData(boolean isWithoutSub, String topic) {
+        HeartbeatData heartbeatData = new HeartbeatData();
+        heartbeatData.setClientID(this.clientId);
+        ConsumerData consumerData = createConsumerData(group);
+        if (!isWithoutSub) {
+            Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
+            SubscriptionData subscriptionData = new SubscriptionData();
+            subscriptionData.setTopic(topic);
+            System.out.printf("topic" + topic);
+            subscriptionData.setSubString("*");
+            subscriptionData.setSubVersion(100L);
+            subscriptionDataSet.add(subscriptionData);
+            consumerData.getSubscriptionDataSet().addAll(subscriptionDataSet);
+        }
+        heartbeatData.getConsumerDataSet().add(consumerData);
+        heartbeatData.setWithoutSub(isWithoutSub);
+        return heartbeatData;
+    }
+
+    static ConsumerData createConsumerData(String group) {
+        ConsumerData consumerData = new ConsumerData();
+        consumerData.setGroupName(group);
+        consumerData.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+        consumerData.setConsumeType(ConsumeType.CONSUME_PASSIVELY);
+        consumerData.setMessageModel(MessageModel.CLUSTERING);
+        return consumerData;
     }
 }
