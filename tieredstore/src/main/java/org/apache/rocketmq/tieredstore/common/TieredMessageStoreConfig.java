@@ -117,7 +117,7 @@ public class TieredMessageStoreConfig {
 
     private String tieredStoreFilePath = "";
 
-    private String objectStoreRegion = "";
+    private String objectStoreEndpoint = "";
 
     private String objectStoreBucket = "";
 
@@ -358,8 +358,8 @@ public class TieredMessageStoreConfig {
         this.tieredStoreFilePath = tieredStoreFilePath;
     }
 
-    public void setObjectStoreRegion(String objectStoreRegion) {
-        this.objectStoreRegion = objectStoreRegion;
+    public void setObjectStoreEndpoint(String objectStoreEndpoint) {
+        this.objectStoreEndpoint = objectStoreEndpoint;
     }
 
     public String getObjectStoreBucket() {
@@ -386,7 +386,7 @@ public class TieredMessageStoreConfig {
         this.objectStoreSecretKey = objectStoreSecretKey;
     }
 
-    public String getObjectStoreRegion() {
-        return objectStoreRegion;
+    public String getObjectStoreEndpoint() {
+        return objectStoreEndpoint;
     }
 }
