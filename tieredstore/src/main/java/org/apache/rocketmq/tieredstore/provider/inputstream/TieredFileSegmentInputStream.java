@@ -166,7 +166,7 @@ public class TieredFileSegmentInputStream extends InputStream {
             needRead -= readLen;
             pos += readLen;
             posInCurBuffer += readLen;
-            if (posInCurBuffer == curBuffer.remaining()) {
+            if (posInCurBuffer == curBuf.remaining()) {
                 // read from next buf
                 bufIndex++;
                 posInCurBuffer = 0;

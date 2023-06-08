@@ -163,7 +163,7 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
             needRead -= realReadLen;
             pos += realReadLen;
             posInCurBuffer += realReadLen;
-            if (posInCurBuffer == curBuffer.remaining()) {
+            if (posInCurBuffer == curBuf.remaining()) {
                 // read from next buf
                 bufIndex++;
                 curCommitLogOffset += posInCurBuffer;
