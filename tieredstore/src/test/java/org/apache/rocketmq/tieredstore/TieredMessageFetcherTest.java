@@ -59,7 +59,7 @@ public class TieredMessageFetcherTest {
         storeConfig.setStorePathRootDir(storePath);
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         storeConfig.setReadAheadCacheExpireDuration(Long.MAX_VALUE);
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegmentWithoutCheck");
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegmentWithoutCheck");
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(2);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(3);
         mq = new MessageQueue("TieredMessageFetcherTest", storeConfig.getBrokerName(), 0);

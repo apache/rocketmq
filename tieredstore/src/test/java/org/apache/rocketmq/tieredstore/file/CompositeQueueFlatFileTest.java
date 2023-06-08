@@ -29,7 +29,7 @@ import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.metadata.QueueMetadata;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
-import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
+import org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
@@ -51,7 +51,7 @@ public class CompositeQueueFlatFileTest {
         storeConfig = new TieredMessageStoreConfig();
         storeConfig.setBrokerName("brokerName");
         storeConfig.setStorePathRootDir(storePath);
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment");
         storeConfig.setCommitLogRollingInterval(0);
         storeConfig.setCommitLogRollingMinimumSize(999);
         mq = new MessageQueue("CompositeQueueFlatFileTest", storeConfig.getBrokerName(), 0);
@@ -129,8 +129,7 @@ public class CompositeQueueFlatFileTest {
     public void testBinarySearchInQueueByTime() throws ClassNotFoundException, NoSuchMethodException {
 
         // replace provider, need new factory again
-        storeConfig.setTieredBackendServiceProvider(
-            "org.apache.rocketmq.tieredstore.mock.MemoryFileSegmentWithoutCheck");
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegmentWithoutCheck");
         tieredFileAllocator = new TieredFileAllocator(storeConfig);
 
         // inject store time: 0, +100, +100, +100, +200

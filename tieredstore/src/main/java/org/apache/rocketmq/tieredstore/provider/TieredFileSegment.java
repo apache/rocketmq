@@ -18,7 +18,6 @@ package org.apache.rocketmq.tieredstore.provider;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,11 +30,11 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
+import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
 import org.apache.rocketmq.tieredstore.file.TieredCommitLog;
 import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
 import org.apache.rocketmq.tieredstore.file.TieredIndexFile;
-import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
-import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
 import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStreamFactory;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
@@ -339,31 +338,6 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             result = flightCommitRequest.join();
         }
         return result;
-    }
-
-    public boolean commitAndSealFile() {
-        if (closed) {
-            return false;
-        }
-        if (!this.isFull()) {
-            logger.error("Failed to commitAndSealFile, file is not full, file: {}, appendPosition: {}, commitPosition: {}, maxSize: {}", getPath(), appendPosition, commitPosition, maxSize);
-            return false;
-        }
-        // first time to commit, try to wait inflight commit request to be completed
-        inflightCommitRequest.join();
-        boolean success = false;
-        for (int i = 0; i < 3; i++) {
-            if (!needCommit() || commit()) {
-                success = true;
-                break;
-            }
-        }
-        if (!success) {
-            logger.error("Failed to commit all data, file: {}, appendPosition: {}, commitPosition: {}, maxSize: {}", getPath(), appendPosition, commitPosition, maxSize);
-            return false;
-        }
-        sealFile();
-        return true;
     }
 
     @SuppressWarnings("NonAtomicOperationOnVolatileField")

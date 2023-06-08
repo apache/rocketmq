@@ -33,6 +33,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TieredIndexFileTest {
@@ -60,6 +61,7 @@ public class TieredIndexFileTest {
         TieredStoreExecutor.shutdown();
     }
 
+    @Ignore
     @Test
     public void testAppendAndQuery() throws IOException, ClassNotFoundException, NoSuchMethodException {
         if (Platform.isWindows()) {

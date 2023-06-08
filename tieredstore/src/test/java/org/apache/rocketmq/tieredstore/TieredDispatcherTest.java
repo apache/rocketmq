@@ -54,7 +54,7 @@ public class TieredDispatcherTest {
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
         storeConfig.setStorePathRootDir(storePath);
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegmentWithoutCheck");
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegmentWithoutCheck");
         storeConfig.setBrokerName(storeConfig.getBrokerName());
         mq = new MessageQueue("CompositeQueueFlatFileTest", storeConfig.getBrokerName(), 0);
         metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);

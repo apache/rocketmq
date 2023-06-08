@@ -319,7 +319,7 @@ public class TieredFlatFile {
                 if (!segment.isFull()) {
                     return segment;
                 }
-                if (segment.commitAndSealFile()) {
+                if (segment.commit()) {
                     try {
                         this.updateFileSegment(segment);
                     } catch (Exception e) {

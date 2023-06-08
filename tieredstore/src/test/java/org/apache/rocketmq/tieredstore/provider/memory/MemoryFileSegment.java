@@ -89,8 +89,9 @@ public class MemoryFileSegment extends TieredFileSegment {
     }
 
     @Override
-    public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length,
-        boolean append) {
+    public CompletableFuture<Boolean> commit0(
+        TieredFileSegmentInputStream inputStream, long position, int length, boolean append) {
+
         try {
             if (blocker != null && !blocker.get()) {
                 throw new IllegalStateException();
