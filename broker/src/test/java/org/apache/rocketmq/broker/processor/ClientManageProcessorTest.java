@@ -26,8 +26,6 @@ import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
-import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
-import org.apache.rocketmq.client.impl.producer.MQProducerInner;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -43,7 +41,6 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
@@ -53,7 +50,6 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.apache.rocketmq.broker.processor.PullMessageProcessorTest.createConsumerData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
@@ -131,7 +127,7 @@ public class ClientManageProcessorTest {
         RemotingCommand requestSimple = createHeartbeatCommand(true, "topicA");
         RemotingCommand responseSimple = clientManageProcessor.processRequest(handlerContext, requestSimple);
         assertThat(responseSimple.getCode()).isEqualTo(ResponseCode.SUCCESS);
-        assertThat( Boolean.parseBoolean(responseSimple.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
+        assertThat(Boolean.parseBoolean(responseSimple.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
         ConsumerGroupInfo consumerGroupInfoSimple = brokerController.getConsumerManager().getConsumerGroupInfo(group);
         assertThat(consumerGroupInfoSimple == consumerGroupInfo).isTrue();
 
@@ -144,7 +140,7 @@ public class ClientManageProcessorTest {
         RemotingCommand requestSimple1 = createHeartbeatCommand(true, "topicB");
         RemotingCommand responseSimple1 = clientManageProcessor.processRequest(handlerContext, requestSimple1);
         assertThat(responseSimple1.getCode()).isEqualTo(ResponseCode.SUCCESS);
-        assertThat( Boolean.parseBoolean(responseSimple1.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
+        assertThat(Boolean.parseBoolean(responseSimple1.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
         ConsumerGroupInfo consumerGroupInfoSimple1 = brokerController.getConsumerManager().getConsumerGroupInfo(group);
         assertThat(consumerGroupInfoSimple1 == consumerGroupInfo1).isTrue();
     }
