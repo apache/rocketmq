@@ -49,11 +49,6 @@ public interface TieredStoreProvider {
     void createFile();
 
     /**
-     * Seal file with given path in backend file system
-     */
-    void sealFile();
-
-    /**
      * Destroy file with given path in backend file system
      */
     void destroyFile();

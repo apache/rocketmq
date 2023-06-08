@@ -128,11 +128,6 @@ public class PosixFileSegment extends TieredFileSegment {
     }
 
     @Override
-    public void sealFile() {
-
-    }
-
-    @Override
     public void destroyFile() {
         try {
             if (readFileChannel != null && readFileChannel.isOpen()) {

@@ -153,7 +153,6 @@ public class TieredFlatFile {
             segment.setMaxTimestamp(metadata.getEndTimestamp());
             if (metadata.getStatus() == FileSegmentMetadata.STATUS_SEALED) {
                 segment.setFull(false);
-                segment.sealFile();
             }
 
             // TODO check coda/size

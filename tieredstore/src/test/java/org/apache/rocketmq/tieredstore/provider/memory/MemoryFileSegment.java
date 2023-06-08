@@ -75,11 +75,6 @@ public class MemoryFileSegment extends TieredFileSegment {
     }
 
     @Override
-    public void sealFile() {
-
-    }
-
-    @Override
     public CompletableFuture<ByteBuffer> read0(long position, int length) {
         ByteBuffer buffer = memStore.duplicate();
         buffer.position((int) position);
