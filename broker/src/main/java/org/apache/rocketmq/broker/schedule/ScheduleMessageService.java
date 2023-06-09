@@ -82,7 +82,7 @@ public class ScheduleMessageService extends ConfigManager {
     private DataVersion dataVersion = new DataVersion();
     private boolean enableAsyncDeliver = false;
     private ScheduledExecutorService handleExecutorService;
-    private ScheduledExecutorService scheduledPersistService;
+    private final ScheduledExecutorService scheduledPersistService;
     private final Map<Integer /* level */, LinkedBlockingQueue<PutResultProcess>> deliverPendingTable =
         new ConcurrentHashMap<>(32);
     private final BrokerController brokerController;
@@ -91,6 +91,8 @@ public class ScheduleMessageService extends ConfigManager {
     public ScheduleMessageService(final BrokerController brokerController) {
         this.brokerController = brokerController;
         this.enableAsyncDeliver = brokerController.getMessageStoreConfig().isEnableScheduleAsyncDeliver();
+        scheduledPersistService = new ScheduledThreadPoolExecutor(1,
+                new ThreadFactoryImpl("ScheduleMessageServicePersistThread", true, brokerController.getBrokerConfig()));
     }
 
     public static int queueId2DelayLevel(final int queueId) {
@@ -152,8 +154,6 @@ public class ScheduleMessageService extends ConfigManager {
                 }
             }
 
-            scheduledPersistService = new ScheduledThreadPoolExecutor(1,
-                    new ThreadFactoryImpl("ScheduleMessageServicePersistThread", true, brokerController.getBrokerConfig()));
             scheduledPersistService.scheduleAtFixedRate(() -> {
                 try {
                     ScheduleMessageService.this.persist();
