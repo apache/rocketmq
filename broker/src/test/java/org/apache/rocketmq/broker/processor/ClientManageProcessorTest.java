@@ -128,7 +128,7 @@ public class ClientManageProcessorTest {
         assertThat(responseSimple.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(Boolean.parseBoolean(responseSimple.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
         ConsumerGroupInfo consumerGroupInfoSimple = brokerController.getConsumerManager().getConsumerGroupInfo(group);
-        assertThat(consumerGroupInfoSimple == consumerGroupInfo).isTrue();
+        assertThat(consumerGroupInfoSimple).isEqualTo(consumerGroupInfo);
 
         RemotingCommand request1 = createHeartbeatCommand(false, "topicB");
         RemotingCommand response1 = clientManageProcessor.processRequest(handlerContext, request1);
@@ -141,7 +141,7 @@ public class ClientManageProcessorTest {
         assertThat(responseSimple1.getCode()).isEqualTo(ResponseCode.SUCCESS);
         assertThat(Boolean.parseBoolean(responseSimple1.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
         ConsumerGroupInfo consumerGroupInfoSimple1 = brokerController.getConsumerManager().getConsumerGroupInfo(group);
-        assertThat(consumerGroupInfoSimple1 == consumerGroupInfo1).isTrue();
+        assertThat(consumerGroupInfoSimple1).isEqualTo(consumerGroupInfo1);
     }
 
     private RemotingCommand createUnRegisterProducerCommand() {
@@ -185,7 +185,6 @@ public class ClientManageProcessorTest {
             Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
             SubscriptionData subscriptionData = new SubscriptionData();
             subscriptionData.setTopic(topic);
-            System.out.printf("topic" + topic);
             subscriptionData.setSubString("*");
             subscriptionData.setSubVersion(100L);
             subscriptionDataSet.add(subscriptionData);
