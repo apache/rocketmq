@@ -130,18 +130,18 @@ public class ClientManageProcessorTest {
         ConsumerGroupInfo consumerGroupInfoSimple = brokerController.getConsumerManager().getConsumerGroupInfo(group);
         assertThat(consumerGroupInfoSimple).isEqualTo(consumerGroupInfo);
 
-        RemotingCommand request1 = createHeartbeatCommand(false, "topicB");
-        RemotingCommand response1 = clientManageProcessor.processRequest(handlerContext, request1);
-        assertThat(response1.getCode()).isEqualTo(ResponseCode.SUCCESS);
-        assertThat(Boolean.parseBoolean(response1.getExtFields().get(MixAll.IS_SUB_CHANGE))).isTrue();
-        ConsumerGroupInfo consumerGroupInfo1 = brokerController.getConsumerManager().getConsumerGroupInfo(group);
+        request = createHeartbeatCommand(false, "topicB");
+        response = clientManageProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(Boolean.parseBoolean(response.getExtFields().get(MixAll.IS_SUB_CHANGE))).isTrue();
+        consumerGroupInfo = brokerController.getConsumerManager().getConsumerGroupInfo(group);
 
-        RemotingCommand requestSimple1 = createHeartbeatCommand(true, "topicB");
-        RemotingCommand responseSimple1 = clientManageProcessor.processRequest(handlerContext, requestSimple1);
-        assertThat(responseSimple1.getCode()).isEqualTo(ResponseCode.SUCCESS);
-        assertThat(Boolean.parseBoolean(responseSimple1.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
-        ConsumerGroupInfo consumerGroupInfoSimple1 = brokerController.getConsumerManager().getConsumerGroupInfo(group);
-        assertThat(consumerGroupInfoSimple1).isEqualTo(consumerGroupInfo1);
+        requestSimple = createHeartbeatCommand(true, "topicB");
+        responseSimple = clientManageProcessor.processRequest(handlerContext, requestSimple);
+        assertThat(responseSimple.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        assertThat(Boolean.parseBoolean(responseSimple.getExtFields().get(MixAll.IS_SUB_CHANGE))).isFalse();
+        consumerGroupInfoSimple = brokerController.getConsumerManager().getConsumerGroupInfo(group);
+        assertThat(consumerGroupInfoSimple).isEqualTo(consumerGroupInfo);
     }
 
     private RemotingCommand createUnRegisterProducerCommand() {
