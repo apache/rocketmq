@@ -35,5 +35,8 @@ public class ConcurrentHashMapUtilsTest {
         assertEquals("2342", value1);
         String value2 = ConcurrentHashMapUtils.computeIfAbsent(map, "123", k -> "2342");
         assertEquals("1111", value2);
+        //测试用例
+//        map.computeIfAbsent("AaAa", key->map.computeIfAbsent("BBBB",key2->"42"));
+        ConcurrentHashMapUtils.computeIfAbsent(map, "AaAa", key->map.computeIfAbsent("BBBB", key2->"42"));
     }
 }
