@@ -14,20 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.container;
+package org.apache.rocketmq.tieredstore.file;
 
-import java.io.File;
+import com.sun.jna.Platform;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.awaitility.Awaitility;
 import org.junit.After;
@@ -38,10 +37,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class TieredIndexFileTest {
+
+    private final String storePath = TieredStoreTestUtil.getRandomStorePath();
     private MessageQueue mq;
     private TieredMessageStoreConfig storeConfig;
-
-    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
@@ -52,21 +51,28 @@ public class TieredIndexFileTest {
         storeConfig.setTieredStoreIndexFileMaxIndexNum(3);
         mq = new MessageQueue("TieredIndexFileTest", storeConfig.getBrokerName(), 1);
         TieredStoreUtil.getMetadataStore(storeConfig);
+        TieredStoreExecutor.init();
     }
 
     @After
     public void tearDown() throws IOException {
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
+        TieredStoreExecutor.shutdown();
     }
 
     @Ignore
     @Test
     public void testAppendAndQuery() throws IOException, ClassNotFoundException, NoSuchMethodException {
+        if (Platform.isWindows()) {
+            return;
+        }
+
         // skip this test on windows
         Assume.assumeFalse(SystemUtils.IS_OS_WINDOWS);
 
-        TieredIndexFile indexFile = new TieredIndexFile(storeConfig);
+        TieredFileAllocator fileQueueFactory = new TieredFileAllocator(storeConfig);
+        TieredIndexFile indexFile = new TieredIndexFile(fileQueueFactory, storePath);
         indexFile.append(mq, 0, "key3", 3, 300, 1000);
         indexFile.append(mq, 0, "key2", 2, 200, 1100);
         indexFile.append(mq, 0, "key1", 1, 100, 1200);

@@ -22,12 +22,12 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class InflightRequestFuture {
+public class InFlightRequestFuture {
+
     private final long startOffset;
     private final List<Pair<Integer, CompletableFuture<Long>>> futureList;
 
-    public InflightRequestFuture(long startOffset,
-        @Nonnull List<Pair<Integer, CompletableFuture<Long>>> futureList) {
+    public InFlightRequestFuture(long startOffset, @Nonnull List<Pair<Integer, CompletableFuture<Long>>> futureList) {
         this.startOffset = startOffset;
         this.futureList = futureList;
     }
@@ -55,7 +55,8 @@ public class InflightRequestFuture {
     }
 
     public CompletableFuture<Long> getLastFuture() {
-        return futureList.isEmpty() ? CompletableFuture.completedFuture(-1L) : futureList.get(futureList.size() - 1).getRight();
+        return futureList.isEmpty() ?
+            CompletableFuture.completedFuture(-1L) : futureList.get(futureList.size() - 1).getRight();
     }
 
     public boolean isFirstDone() {

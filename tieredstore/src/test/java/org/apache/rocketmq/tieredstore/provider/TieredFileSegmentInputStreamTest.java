@@ -18,15 +18,6 @@
 package org.apache.rocketmq.tieredstore.provider;
 
 import com.google.common.base.Supplier;
-import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
-import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
-import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
-import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStreamFactory;
-import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
-import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -34,6 +25,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
+import org.apache.rocketmq.tieredstore.file.TieredCommitLog;
+import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStreamFactory;
+import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
+import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class TieredFileSegmentInputStreamTest {
 
@@ -75,7 +75,7 @@ public class TieredFileSegmentInputStreamTest {
             MessageBufferUtil.PHYSICAL_OFFSET_POSITION - 1, MessageBufferUtil.PHYSICAL_OFFSET_POSITION, MessageBufferUtil.PHYSICAL_OFFSET_POSITION + 1, MSG_LEN - 1, MSG_LEN, MSG_LEN + 1
         };
         verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStreamFactory.build(
-            TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), finalBufferSize, batchReadSizeTestSet);
+            FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), finalBufferSize, batchReadSizeTestSet);
 
     }
 
@@ -120,7 +120,7 @@ public class TieredFileSegmentInputStreamTest {
             bufferSize - 1, bufferSize, bufferSize + 1
         };
         verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStreamFactory.build(
-            TieredFileSegment.FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, codaBuffer, finalBufferSize), finalBufferSize, batchReadSizeTestSet);
+            FileSegmentType.COMMIT_LOG, COMMIT_LOG_START_OFFSET, uploadBufferList, codaBuffer, finalBufferSize), finalBufferSize, batchReadSizeTestSet);
 
     }
 
@@ -144,8 +144,7 @@ public class TieredFileSegmentInputStreamTest {
         int finalBufferSize = bufferSize;
         int[] batchReadSizeTestSet = {TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE - 1, TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE, TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE + 1};
         verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStreamFactory.build(
-            TieredFileSegment.FileSegmentType.CONSUME_QUEUE, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), bufferSize, batchReadSizeTestSet);
-
+            FileSegmentType.CONSUME_QUEUE, COMMIT_LOG_START_OFFSET, uploadBufferList, null, finalBufferSize), bufferSize, batchReadSizeTestSet);
     }
 
     @Test
@@ -161,7 +160,7 @@ public class TieredFileSegmentInputStreamTest {
         ByteBuffer expectedByteBuffer = byteBuffer.slice();
 
         verifyReadAndReset(expectedByteBuffer, () -> TieredFileSegmentInputStreamFactory.build(
-            TieredFileSegment.FileSegmentType.INDEX, COMMIT_LOG_START_OFFSET, uploadBufferList, null, byteBuffer.limit()), byteBuffer.limit(), new int[] {23, 24, 25});
+            FileSegmentType.INDEX, COMMIT_LOG_START_OFFSET, uploadBufferList, null, byteBuffer.limit()), byteBuffer.limit(), new int[] {23, 24, 25});
     }
 
     private void verifyReadAndReset(ByteBuffer expectedByteBuffer, Supplier<TieredFileSegmentInputStream> constructor,

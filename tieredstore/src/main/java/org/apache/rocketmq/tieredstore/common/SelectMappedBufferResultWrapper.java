@@ -20,16 +20,20 @@ import java.util.concurrent.atomic.LongAdder;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 public class SelectMappedBufferResultWrapper {
+
     private final SelectMappedBufferResult result;
-    private LongAdder accessCount = new LongAdder();
+    private final LongAdder accessCount;
 
-    private long curOffset;
-    private long minOffset;
-    private long maxOffset;
-    private long size;
+    private final long curOffset;
+    private final long minOffset;
+    private final long maxOffset;
+    private final long size;
 
-    public SelectMappedBufferResultWrapper(SelectMappedBufferResult result, long curOffset, long minOffset, long maxOffset, long size) {
+    public SelectMappedBufferResultWrapper(
+        SelectMappedBufferResult result, long curOffset, long minOffset, long maxOffset, long size) {
+
         this.result = result;
+        this.accessCount = new LongAdder();
         this.curOffset = curOffset;
         this.minOffset = minOffset;
         this.maxOffset = maxOffset;
@@ -41,15 +45,16 @@ public class SelectMappedBufferResultWrapper {
     }
 
     public SelectMappedBufferResult getDuplicateResult() {
-        return new SelectMappedBufferResult(result.getStartOffset(), result.getByteBuffer().asReadOnlyBuffer(), result.getSize(), result.getMappedFile());
+
+        return new SelectMappedBufferResult(
+            result.getStartOffset(),
+            result.getByteBuffer().asReadOnlyBuffer(),
+            result.getSize(),
+            result.getMappedFile());
     }
 
     public long getCurOffset() {
         return curOffset;
-    }
-
-    public void setCurOffset(long curOffset) {
-        this.curOffset = curOffset;
     }
 
     public long getMinOffset() {

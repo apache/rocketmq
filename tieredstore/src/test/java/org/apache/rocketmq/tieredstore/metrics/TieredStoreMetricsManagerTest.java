@@ -28,7 +28,7 @@ public class TieredStoreMetricsManagerTest {
 
     @After
     public void tearDown() throws IOException {
-        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyCompositeFlatFileManager();
         TieredStoreTestUtil.destroyMetadataStore();
     }
 
