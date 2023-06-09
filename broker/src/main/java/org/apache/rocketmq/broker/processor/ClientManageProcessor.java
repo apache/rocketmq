@@ -170,8 +170,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                     break;
                 }
             }
-            SubscriptionGroupConfig subscriptionGroupConfig = this.brokerController.getSubscriptionGroupManager()
-                    .findSubscriptionGroupConfig(consumerData.getGroupName());
+            SubscriptionGroupConfig subscriptionGroupConfig = this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(consumerData.getGroupName());
             boolean isNotifyConsumerIdsChangedEnable = true;
             if (null == subscriptionGroupConfig) {
                 continue;
@@ -182,8 +181,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
                 topicSysFlag = TopicSysFlag.buildSysFlag(false, true);
             }
             String newTopic = MixAll.getRetryTopic(consumerData.getGroupName());
-            this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, subscriptionGroupConfig.getRetryQueueNums(),
-                    PermName.PERM_WRITE | PermName.PERM_READ, hasOrderTopicSub, topicSysFlag);
+            this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic, subscriptionGroupConfig.getRetryQueueNums(), PermName.PERM_WRITE | PermName.PERM_READ, hasOrderTopicSub, topicSysFlag);
             boolean changed = false;
             if (heartbeatData.isWithoutSub()) {
                 changed = this.brokerController.getConsumerManager().registerConsumerWithoutSub(consumerData.getGroupName(), clientChannelInfo, consumerData.getConsumeType(), consumerData.getMessageModel(), consumerData.getConsumeFromWhere(), isNotifyConsumerIdsChangedEnable);
@@ -197,8 +195,7 @@ public class ClientManageProcessor implements NettyRequestProcessor {
 
         }
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
-            this.brokerController.getProducerManager().registerProducer(data.getGroupName(),
-                    clientChannelInfo);
+            this.brokerController.getProducerManager().registerProducer(data.getGroupName(), clientChannelInfo);
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
