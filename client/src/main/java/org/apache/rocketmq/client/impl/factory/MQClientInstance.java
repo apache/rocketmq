@@ -629,13 +629,13 @@ public class MQClientInstance {
                     boolean isBrokerSupportV2 = brokerSupportV2HeartbeatSet.contains(addr);
                     HeartbeatV2Result heartbeatV2Result = null;
                     if (isBrokerSupportV2 && null != brokerAddrHeartbeatFingerprintTable.get(addr) && brokerAddrHeartbeatFingerprintTable.get(addr) == currentHeartbeatFingerprint) {
-                        heartbeatV2Result = this.mQClientAPIImpl.sendHeartbeatV2(addr, heartbeatDataWithoutSub, 3000);
+                        heartbeatV2Result = this.mQClientAPIImpl.sendHeartbeatV2(addr, heartbeatDataWithoutSub, clientConfig.getMqClientApiTimeout());
                         if (heartbeatV2Result.isSubChange()) {
                             brokerAddrHeartbeatFingerprintTable.remove(addr);
                         }
                         log.info("sendHeartbeatToAllBrokerV2 simple brokerName: {} subChange: {} brokerAddrHeartbeatFingerprintTable: {}", brokerName, heartbeatV2Result.isSubChange(), JSON.toJSONString(brokerAddrHeartbeatFingerprintTable));
                     } else {
-                        heartbeatV2Result = this.mQClientAPIImpl.sendHeartbeatV2(addr, heartbeatDataWithSub, 3000);
+                        heartbeatV2Result = this.mQClientAPIImpl.sendHeartbeatV2(addr, heartbeatDataWithSub, clientConfig.getMqClientApiTimeout());
                         if (heartbeatV2Result.isSupportV2()) {
                             brokerSupportV2HeartbeatSet.add(addr);
                             if (heartbeatV2Result.isSubChange()) {

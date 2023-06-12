@@ -22,6 +22,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.List;
+import java.util.ArrayList;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -144,6 +146,19 @@ public class ClientManageProcessorTest {
         assertThat(consumerGroupInfoSimple).isEqualTo(consumerGroupInfo);
     }
 
+    @Test
+    public void test_heartbeat_costTime() throws RemotingCommandException {
+        String topic = "TOPIC_TEST";
+        List<String> topicList = new ArrayList<>();
+        for (int i = 0; i < 500; i ++) {
+            topicList.add(topic + i);
+        }
+        HeartbeatData heartbeatData = prepareHeartbeatData(false, topicList);
+        long time = System.currentTimeMillis();
+        heartbeatData.computeHeartbeatFingerprint();
+        System.out.print("computeHeartbeatFingerprint cost Time : " + (System.currentTimeMillis() - time) + " ms \n");
+    }
+
     private RemotingCommand createUnRegisterProducerCommand() {
         UnregisterClientRequestHeader requestHeader = new UnregisterClientRequestHeader();
         requestHeader.setClientID(clientId);
@@ -178,16 +193,24 @@ public class ClientManageProcessorTest {
     }
 
     private HeartbeatData prepareHeartbeatData(boolean isWithoutSub, String topic) {
+        List<String> list = new ArrayList<>();
+        list.add(topic);
+        return prepareHeartbeatData(isWithoutSub, list);
+    }
+
+    private HeartbeatData prepareHeartbeatData(boolean isWithoutSub, List<String> topicList) {
         HeartbeatData heartbeatData = new HeartbeatData();
         heartbeatData.setClientID(this.clientId);
         ConsumerData consumerData = createConsumerData(group);
         if (!isWithoutSub) {
             Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
-            SubscriptionData subscriptionData = new SubscriptionData();
-            subscriptionData.setTopic(topic);
-            subscriptionData.setSubString("*");
-            subscriptionData.setSubVersion(100L);
-            subscriptionDataSet.add(subscriptionData);
+            for (String topic : topicList) {
+                SubscriptionData subscriptionData = new SubscriptionData();
+                subscriptionData.setTopic(topic);
+                subscriptionData.setSubString("*");
+                subscriptionData.setSubVersion(100L);
+                subscriptionDataSet.add(subscriptionData);
+            }
             consumerData.getSubscriptionDataSet().addAll(subscriptionDataSet);
         }
         heartbeatData.getConsumerDataSet().add(consumerData);
