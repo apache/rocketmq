@@ -26,6 +26,7 @@ import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
+import io.opentelemetry.exporter.logging.LoggingMetricExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
@@ -36,6 +37,7 @@ import io.opentelemetry.sdk.metrics.View;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -52,12 +54,15 @@ import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.slf4j.bridge.SLF4JBridgeHandler;
+
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.store.MessageStore;
@@ -106,6 +111,7 @@ public class BrokerMetricsManager {
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
+    private LoggingMetricExporter loggingMetricExporter;
     private Meter brokerMeter;
 
     // broker stats metrics
@@ -130,6 +136,12 @@ public class BrokerMetricsManager {
     public static ObservableLongGauge consumerQueueingLatency = new NopObservableLongGauge();
     public static ObservableLongGauge consumerReadyMessages = new NopObservableLongGauge();
     public static LongCounter sendToDlqMessages = new NopLongCounter();
+
+    public static final List<String> SYSTEM_GROUP_PREFIX_LIST = new ArrayList<String>() {
+        {
+            add(MixAll.CID_RMQ_SYS_PREFIX.toLowerCase());
+        }
+    };
 
     public BrokerMetricsManager(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -165,7 +177,13 @@ public class BrokerMetricsManager {
         if (StringUtils.isBlank(group)) {
             return false;
         }
-        return group.toLowerCase().startsWith(MixAll.CID_RMQ_SYS_PREFIX.toLowerCase());
+        String groupInLowerCase = group.toLowerCase();
+        for (String prefix : SYSTEM_GROUP_PREFIX_LIST) {
+            if (groupInLowerCase.startsWith(prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static boolean isSystem(String topic, String group) {
@@ -197,7 +215,7 @@ public class BrokerMetricsManager {
         if (brokerConfig == null) {
             return false;
         }
-        BrokerConfig.MetricsExporterType exporterType = brokerConfig.getMetricsExporterType();
+        MetricsExporterType exporterType = brokerConfig.getMetricsExporterType();
         if (!exporterType.isEnable()) {
             return false;
         }
@@ -207,13 +225,15 @@ public class BrokerMetricsManager {
                 return StringUtils.isNotBlank(brokerConfig.getMetricsGrpcExporterTarget());
             case PROM:
                 return true;
+            case LOG:
+                return true;
         }
         return false;
     }
 
     private void init() {
-        BrokerConfig.MetricsExporterType metricsExporterType = brokerConfig.getMetricsExporterType();
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.DISABLE) {
+        MetricsExporterType metricsExporterType = brokerConfig.getMetricsExporterType();
+        if (metricsExporterType == MetricsExporterType.DISABLE) {
             return;
         }
 
@@ -244,7 +264,7 @@ public class BrokerMetricsManager {
         SdkMeterProviderBuilder providerBuilder = SdkMeterProvider.builder()
             .setResource(Resource.empty());
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+        if (metricsExporterType == MetricsExporterType.OTLP_GRPC) {
             String endpoint = brokerConfig.getMetricsGrpcExporterTarget();
             if (!endpoint.startsWith("http")) {
                 endpoint = "https://" + endpoint;
@@ -284,7 +304,7 @@ public class BrokerMetricsManager {
             providerBuilder.registerMetricReader(periodicMetricReader);
         }
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.PROM) {
+        if (metricsExporterType == MetricsExporterType.PROM) {
             String promExporterHost = brokerConfig.getMetricsPromExporterHost();
             if (StringUtils.isBlank(promExporterHost)) {
                 promExporterHost = brokerConfig.getBrokerIP1();
@@ -294,6 +314,17 @@ public class BrokerMetricsManager {
                 .setPort(brokerConfig.getMetricsPromExporterPort())
                 .build();
             providerBuilder.registerMetricReader(prometheusHttpServer);
+        }
+
+        if (metricsExporterType == MetricsExporterType.LOG) {
+            SLF4JBridgeHandler.removeHandlersForRootLogger();
+            SLF4JBridgeHandler.install();
+            loggingMetricExporter = LoggingMetricExporter.create(brokerConfig.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
+            java.util.logging.Logger.getLogger(LoggingMetricExporter.class.getName()).setLevel(java.util.logging.Level.FINEST);
+            periodicMetricReader = PeriodicMetricReader.builder(loggingMetricExporter)
+                .setInterval(brokerConfig.getMetricLoggingExporterIntervalInMills(), TimeUnit.MILLISECONDS)
+                .build();
+            providerBuilder.registerMetricReader(periodicMetricReader);
         }
 
         registerMetricsView(providerBuilder);
@@ -439,6 +470,7 @@ public class BrokerMetricsManager {
                         .put(LABEL_VERSION, MQVersion.getVersionDesc(attr.version).toLowerCase())
                         .put(LABEL_CONSUME_MODE, attr.consumeMode.getTypeCN().toLowerCase())
                         .put(LABEL_PROTOCOL_TYPE, PROTOCOL_TYPE_REMOTING)
+                        .put(LABEL_IS_SYSTEM, isSystemGroup(attr.group))
                         .build();
                     measurement.record(count, attributes);
                 });
@@ -502,14 +534,19 @@ public class BrokerMetricsManager {
     }
 
     public void shutdown() {
-        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+        if (brokerConfig.getMetricsExporterType() == MetricsExporterType.OTLP_GRPC) {
             periodicMetricReader.forceFlush();
             periodicMetricReader.shutdown();
             metricExporter.shutdown();
         }
-        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
+        if (brokerConfig.getMetricsExporterType() == MetricsExporterType.PROM) {
             prometheusHttpServer.forceFlush();
             prometheusHttpServer.shutdown();
+        }
+        if (brokerConfig.getMetricsExporterType() == MetricsExporterType.LOG) {
+            periodicMetricReader.forceFlush();
+            periodicMetricReader.shutdown();
+            loggingMetricExporter.shutdown();
         }
     }
 

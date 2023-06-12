@@ -25,6 +25,8 @@ public class LoggerName {
     public static final String BROKER_LOGGER_NAME = "RocketmqBroker";
     public static final String BROKER_CONSOLE_NAME = "RocketmqConsole";
     public static final String CLIENT_LOGGER_NAME = "RocketmqClient";
+    public static final String ROCKETMQ_TRAFFIC_NAME = "RocketmqTraffic";
+    public static final String ROCKETMQ_REMOTING_NAME = "RocketmqRemoting";
     public static final String TOOLS_LOGGER_NAME = "RocketmqTools";
     public static final String COMMON_LOGGER_NAME = "RocketmqCommon";
     public static final String STORE_LOGGER_NAME = "RocketmqStore";
@@ -48,4 +50,5 @@ public class LoggerName {
     public static final String STDOUT_LOGGER_NAME = "STDOUT";
     public static final String PROXY_LOGGER_NAME = "RocketmqProxy";
     public static final String PROXY_WATER_MARK_LOGGER_NAME = "RocketmqProxyWatermark";
+    public static final String ROCKETMQ_COLDCTR_LOGGER_NAME = "RocketmqColdCtr";
 }

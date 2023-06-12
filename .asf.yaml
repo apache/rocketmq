@@ -29,8 +29,8 @@ github:
     squash: true
     # Disable merge button
     merge: false
-    # Enable rebase button
-    rebase: true
+    # Disable rebase button
+    rebase: false
   protected_branches:
     master: {}
     develop:
@@ -42,9 +42,9 @@ github:
         contexts:
           - misspell-check
           - check-license
-          - maven-compile (ubuntu-18.04, JDK-8)
-          - maven-compile (windows-2022, JDK-8)
-          - maven-compile (macos-11, JDK-8)
+          - maven-compile (ubuntu-latest, JDK-8)
+          - maven-compile (windows-latest, JDK-8)
+          - maven-compile (macos-latest, JDK-8)
 notifications:
   commits:      commits@rocketmq.apache.org
   issues:       commits@rocketmq.apache.org

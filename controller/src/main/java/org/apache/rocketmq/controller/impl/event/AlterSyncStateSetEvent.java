@@ -26,9 +26,9 @@ import java.util.Set;
 public class AlterSyncStateSetEvent implements EventMessage {
 
     private final String brokerName;
-    private final Set<String/*Address*/> newSyncStateSet;
+    private final Set<Long/*BrokerId*/> newSyncStateSet;
 
-    public AlterSyncStateSetEvent(String brokerName, Set<String> newSyncStateSet) {
+    public AlterSyncStateSetEvent(String brokerName, Set<Long> newSyncStateSet) {
         this.brokerName = brokerName;
         this.newSyncStateSet = new HashSet<>(newSyncStateSet);
     }
@@ -42,7 +42,7 @@ public class AlterSyncStateSetEvent implements EventMessage {
         return brokerName;
     }
 
-    public Set<String> getNewSyncStateSet() {
+    public Set<Long> getNewSyncStateSet() {
         return new HashSet<>(newSyncStateSet);
     }
 

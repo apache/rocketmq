@@ -65,7 +65,7 @@ public interface AccessValidator {
      *
      * @return
      */
-    boolean deleteAccessConfig(String accesskey);
+    boolean deleteAccessConfig(String accessKey);
 
     /**
      * Get the access resource config version information

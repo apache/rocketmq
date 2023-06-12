@@ -71,7 +71,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
     public void shutdownPopReviveService() {
         for (PopReviveService popReviveService : popReviveServices) {
-            popReviveService.stop();
+            popReviveService.shutdown();
         }
     }
 
@@ -178,7 +178,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                         this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
                             requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId(), nextOffset);
                     }
-                    if (!this.brokerController.getConsumerOrderInfoManager().checkBlock(requestHeader.getTopic(),
+                    if (!this.brokerController.getConsumerOrderInfoManager().checkBlock(null, requestHeader.getTopic(),
                         requestHeader.getConsumerGroup(), requestHeader.getQueueId(), invisibleTime)) {
                         this.brokerController.getPopMessageProcessor().notifyMessageArriving(
                             requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueId());

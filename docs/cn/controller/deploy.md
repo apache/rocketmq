@@ -31,6 +31,7 @@ notifyBrokerRoleChanged = true
 - controllerStorePath：controller日志存储位置。controller是有状态的，controller重启或宕机需要依靠日志来恢复数据，该目录非常重要，不可以轻易删除。
 - enableElectUncleanMaster：是否可以从SyncStateSet以外选举Master，若为true，可能会选取数据落后的副本作为Master而丢失消息，默认为false。
 - notifyBrokerRoleChanged：当broker副本组上角色发生变化时是否主动通知，默认为true。
+- scanNotActiveBrokerInterval：扫描 Broker是否存活的时间间隔。
 
 其他一些参数可以参考ControllerConfig代码。
 
@@ -50,7 +51,11 @@ mqcontroller脚本在distribution/bin/mqcontroller，配置参数与内嵌模式
 Broker启动方法与之前相同，增加以下参数
 
 - enableControllerMode：Broker controller模式的总开关，只有该值为true，controller模式才会打开。默认为false。
-- controllerAddr：controller的地址，多个controller中间用分号隔开。例如`controllerAddr = 127.0.0.1:9877;127.0.0.1:9878;127.0.0.1:9879`
+- controllerAddr：controller的地址，两种方式填写。
+  - 直接填写多个Controller IP地址，多个controller中间用分号隔开，例如`controllerAddr = 127.0.0.1:9877;127.0.0.1:9878;127.0.0.1:9879`。注意由于Broker需要向所有controller发送心跳，因此请填上所有的controller地址。
+  - 填写域名，然后设置fetchControllerAddrByDnsLookup为true，则Broker去自动解析域名后面的多个真实controller地址。
+- fetchControllerAddrByDnsLookup：controllerAddr填写域名时，如果设置该参数为true，会自动获取所有controller的地址。默认为false。
+- controllerHeartBeatTimeoutMills：Broker和controller之间心跳超时时间，心跳超过该时间判断Broker不在线。
 - syncBrokerMetadataPeriod：向controller同步Broker副本信息的时间间隔。默认5000（5s）。
 - checkSyncStateSetPeriod：检查SyncStateSet的时间间隔，检查SyncStateSet可能会shrink SyncState。默认5000（5s）。
 - syncControllerMetadataPeriod：同步controller元数据的时间间隔，主要是获取active controller的地址。默认10000（10s）。
@@ -66,6 +71,8 @@ Broker启动方法与之前相同，增加以下参数
 
 ### 重要参数解析
 
+1.写入副本参数
+
 其中inSyncReplicas、minInSyncReplicas等参数在普通Master-Salve部署、SlaveActingMaster模式、自动主从切换架构有重叠和不同含义，具体区别如下
 
 |                      | inSyncReplicas                                                      | minInSyncReplicas                                                        | enableAutoInSyncReplicas                    | allAckInSyncStateSet                                          | haMaxGapNotInSync                     | haMaxTimeSlaveNotCatchup                          |
@@ -77,7 +84,26 @@ Broker启动方法与之前相同，增加以下参数
 总结来说：
 - 普通Master-Slave下无自动降级能力，除了inSyncReplicas其他参数均无效，inSyncReplicas表示同步复制下需要ACK的副本数。
 - slaveActingMaster模式下开启enableAutoInSyncReplicas有降级能力，最小可降级到minInSyncReplicas副本数，降级判断依据是主备Commitlog高度差（haMaxGapNotInSync）以及副本存活情况，参考[slaveActingMaster模式自动降级](../QuorumACK.md)。
-- 自动主从切换（Controller模式）依赖SyncStateSet的收缩进行自动降级，SyncStateSet副本数最小收缩到minInSyncReplicas仍能正常工作，小于minInSyncReplicas直接返回副本数不足，收缩依据之一是Slave跟上的时间间隔（haMaxTimeSlaveNotCatchup）而非Commitlog高度。若allAckInSyncStateSet=true，则inSyncReplicas参数无效。
+> SlaveActingMaster为其他高可用部署方式，该模式下如果不使用可不参考
+- 自动主从切换（Controller模式）依赖SyncStateSet的收缩进行自动降级，SyncStateSet副本数最小收缩到minInSyncReplicas仍能正常工作，小于minInSyncReplicas直接返回副本数不足，收缩依据之一是Slave跟上的时间间隔（haMaxTimeSlaveNotCatchup）而非Commitlog高度。
+- 自动主从切换（Controller模式）正常情况是要求保证不丢消息的，只需设置allAckInSyncStateSet = true 即可，不需要考虑inSyncReplicas参数（该参数无效），如果副本较多、距离较远对延迟有要求，可以参考设置部分副本设置为asyncLearner。
+
+2.SyncStateSet收缩检查配置
+
+checkSyncStateSetPeriod 参数决定定时检查SyncStateSet是否需要收缩的时间间隔
+haMaxTimeSlaveNotCatchup 参数决定备跟不上主的时间
+
+当allAckInSyncState = true时（保证不丢消息），
+- haMaxTimeSlaveNotCatchup 值越小，对SyncStateSet收缩越敏感，比如主备之间网络抖动就可能导致SyncStateSet收缩，造成不必要的集群抖动。
+- haMaxTimeSlaveNotCatchup 值越大，对SyncStateSet收缩虽然不敏感，但是可能加大SyncStateSet收缩时的RTO时间。该RTO时间可以按照 checkSyncStateSetPeriod/2 + haMaxTimeSlaveNotCatchup 估算。
+
+3.消息可靠性配置
+
+保证 allAckInSyncStateSet = true 以及 enableElectUncleanMaster = false
+
+4.延迟
+
+当 allAckInSyncStateSet = true 后，一条消息要复制到SyncStateSet所有副本才能确认返回，假设SyncStateSet有3副本，其中1副本距离较远，则会影响到消息延迟。可以设置延迟最高距离最远的副本为asyncLearner，该副本不会进入SyncStateSet，只会进行异步复制，该副本作为冗余副本。
 
 ## 兼容性
 
@@ -110,3 +136,29 @@ Broker若设置enableControllerMode=false，则仍然以之前方式运行。若
 （2）原DLedger模式升级到Controller切换架构
 
 由于原DLedger模式消息数据格式与Master-Slave下数据格式存在区别，不提供带数据原地升级的路径。在部署多组Broker的情况下，可以禁写某一组Broker一段时间（只要确认存量消息被全部消费即可，比如根据消息的保存时间来决定），然后清空store目录下除config/topics.json、subscriptionGroup.json下（保留topic和订阅关系的元数据）的其他文件后，进行空盘升级。
+
+### 持久化BrokerID版本的升级注意事项
+
+目前版本支持采用了新的持久化BrokerID版本，详情可以参考[该文档](persistent_unique_broker_id.md)，从该版本前的5.x升级到当前版本需要注意如下事项。
+
+4.x版本升级遵守上述正常流程即可。
+5.x非持久化BrokerID版本升级到持久化BrokerID版本按照如下流程:
+
+**升级Controller**
+
+1. 将旧版本Controller组停机。
+2. 清除Controller数据，即默认在`~/DLedgerController`下的数据文件。
+3. 上线新版Controller组。
+
+> 在上述升级Controller流程中，Broker仍可正常运行，但无法切换。
+
+**升级Broker**
+
+1. 将Broker从节点停机。
+2. 将Broker主节点停机。
+3. 将所有的Broker的Epoch文件删除，即默认为`~/store/epochFileCheckpoint`和`~/store/epochFileCheckpoint.bak`。
+4. 将原先的主Broker先上线，等待该Broker当选为master。(可使用`admin`命令的`getSyncStateSet`来观察)
+5. 将原来的从Broker全部上线。
+
+> 建议停机时先停从再停主，上线时先上原先的主再上原先的从，这样可以保证原来的主备关系。
+> 若需要改变升级前后主备关系，则需要停机时保证主、备的CommitLog对齐，否则可能导致数据被截断而丢失。

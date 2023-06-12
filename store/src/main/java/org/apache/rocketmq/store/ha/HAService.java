@@ -58,12 +58,31 @@ public interface HAService {
     }
 
     /**
+     * Change to master state
+     *
+     * @param masterEpoch the new masterEpoch
+     */
+    default boolean changeToMasterWhenLastRoleIsMaster(int masterEpoch) {
+        return false;
+    }
+
+    /**
      * Change to slave state
      *
      * @param newMasterAddr new master addr
      * @param newMasterEpoch new masterEpoch
      */
     default boolean changeToSlave(String newMasterAddr, int newMasterEpoch, Long slaveId) {
+        return false;
+    }
+
+    /**
+     * Change to slave state
+     *
+     * @param newMasterAddr new master addr
+     * @param newMasterEpoch new masterEpoch
+     */
+    default boolean changeToSlaveWhenMasterNotChange(String newMasterAddr, int newMasterEpoch) {
         return false;
     }
 

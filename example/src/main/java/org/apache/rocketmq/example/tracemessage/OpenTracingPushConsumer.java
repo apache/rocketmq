@@ -41,7 +41,7 @@ public class OpenTracingPushConsumer {
 
         // Uncomment the following line while debugging, namesrvAddr should be set to your local address
 //        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
-        consumer.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(new ConsumeMessageOpenTracingHookImpl(tracer));
+        consumer.registerConsumeMessageHook(new ConsumeMessageOpenTracingHookImpl(tracer));
 
         consumer.subscribe(TOPIC, "*");
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);

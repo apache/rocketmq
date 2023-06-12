@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.metrics;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -42,6 +43,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.subscription.SimpleSubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.DefaultMessageFilter;
 import org.apache.rocketmq.store.MessageStore;
@@ -124,30 +126,37 @@ public class ConsumerLagCalculator {
         }
     }
 
-    public static class CalculateSendToDLQResult extends BaseCalculateResult {
-        public long dlqMessageCount;
-
-        public CalculateSendToDLQResult(String group, String topic) {
-            super(group, topic, false);
-        }
-    }
-
     private void processAllGroup(Consumer<ProcessGroupInfo> consumer) {
-        for (Map.Entry<String, SubscriptionGroupConfig> subscriptionEntry : subscriptionGroupManager
-            .getSubscriptionGroupTable().entrySet()) {
-            String group = subscriptionEntry.getKey();
-            SubscriptionGroupConfig subscriptionGroupConfig = subscriptionEntry.getValue();
+        for (Map.Entry<String, SubscriptionGroupConfig> subscriptionEntry :
+            subscriptionGroupManager.getSubscriptionGroupTable().entrySet()) {
 
+            String group = subscriptionEntry.getKey();
             ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(group, true);
-            if (consumerGroupInfo == null) {
-                continue;
+            boolean isPop = false;
+            if (consumerGroupInfo != null) {
+                isPop = consumerGroupInfo.getConsumeType() == ConsumeType.CONSUME_POP;
             }
-            boolean isPop = consumerGroupInfo.getConsumeType() == ConsumeType.CONSUME_POP;
-            Set<String> topics = consumerGroupInfo.getSubscribeTopics();
+            Set<String> topics;
+            if (brokerConfig.isUseStaticSubscription()) {
+                SubscriptionGroupConfig subscriptionGroupConfig = subscriptionEntry.getValue();
+                if (subscriptionGroupConfig.getSubscriptionDataSet() == null ||
+                    subscriptionGroupConfig.getSubscriptionDataSet().isEmpty()) {
+                    continue;
+                }
+                topics = subscriptionGroupConfig.getSubscriptionDataSet()
+                    .stream()
+                    .map(SimpleSubscriptionData::getTopic)
+                    .collect(Collectors.toSet());
+            } else {
+                if (consumerGroupInfo == null) {
+                    continue;
+                }
+                topics = consumerGroupInfo.getSubscribeTopics();
+            }
+
             if (null == topics || topics.isEmpty()) {
                 continue;
             }
-
             for (String topic : topics) {
                 // skip retry topic
                 if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -168,12 +177,14 @@ public class ConsumerLagCalculator {
                 if (isPop) {
                     String retryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
                     TopicConfig retryTopicConfig = topicConfigManager.selectTopicConfig(retryTopic);
-                    int retryTopicPerm = topicConfig.getPerm() & brokerConfig.getBrokerPermission();
-                    if (PermName.isReadable(retryTopicPerm) || PermName.isWriteable(retryTopicPerm)) {
-                        consumer.accept(new ProcessGroupInfo(group, topic, true, retryTopic));
-                    } else {
-                        consumer.accept(new ProcessGroupInfo(group, topic, true, null));
+                    if (retryTopicConfig != null) {
+                        int retryTopicPerm = retryTopicConfig.getPerm() & brokerConfig.getBrokerPermission();
+                        if (PermName.isReadable(retryTopicPerm) || PermName.isWriteable(retryTopicPerm)) {
+                            consumer.accept(new ProcessGroupInfo(group, topic, true, retryTopic));
+                            continue;
+                        }
                     }
+                    consumer.accept(new ProcessGroupInfo(group, topic, true, null));
                 } else {
                     consumer.accept(new ProcessGroupInfo(group, topic, false, null));
                 }
@@ -183,6 +194,10 @@ public class ConsumerLagCalculator {
 
     public void calculateLag(Consumer<CalculateLagResult> lagRecorder) {
         processAllGroup(info -> {
+            if (info.group == null || info.topic == null) {
+                return;
+            }
+
             CalculateLagResult result = new CalculateLagResult(info.group, info.topic, false);
 
             Pair<Long, Long> lag = getConsumerLagStats(info.group, info.topic, info.isPop);
@@ -249,6 +264,10 @@ public class ConsumerLagCalculator {
         long total = 0L;
         long earliestUnconsumedTimestamp = Long.MAX_VALUE;
 
+        if (group == null || topic == null) {
+            return new Pair<>(total, earliestUnconsumedTimestamp);
+        }
+
         TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
         if (topicConfig != null) {
             for (int queueId = 0; queueId < topicConfig.getWriteQueueNums(); queueId++) {
@@ -302,6 +321,10 @@ public class ConsumerLagCalculator {
         long total = 0L;
         long earliestUnPulledTimestamp = Long.MAX_VALUE;
 
+        if (group == null || topic == null) {
+            return new Pair<>(total, earliestUnPulledTimestamp);
+        }
+
         TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
         if (topicConfig != null) {
             for (int queueId = 0; queueId < topicConfig.getWriteQueueNums(); queueId++) {
@@ -351,6 +374,10 @@ public class ConsumerLagCalculator {
 
     public long getAvailableMsgCount(String group, String topic, boolean isPop) {
         long total = 0L;
+
+        if (group == null || topic == null) {
+            return total;
+        }
 
         TopicConfig topicConfig = topicConfigManager.selectTopicConfig(topic);
         if (topicConfig != null) {
@@ -403,23 +430,40 @@ public class ConsumerLagCalculator {
 
         if (brokerConfig.isEstimateAccumulation() && to > from) {
             SubscriptionData subscriptionData = null;
-            ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(group, true);
-            if (consumerGroupInfo != null) {
-                subscriptionData = consumerGroupInfo.findSubscriptionData(topic);
+            if (brokerConfig.isUseStaticSubscription()) {
+                SubscriptionGroupConfig subscriptionGroupConfig = subscriptionGroupManager.findSubscriptionGroupConfig(group);
+                if (subscriptionGroupConfig != null) {
+                    for (SimpleSubscriptionData simpleSubscriptionData : subscriptionGroupConfig.getSubscriptionDataSet()) {
+                        if (topic.equals(simpleSubscriptionData.getTopic())) {
+                            subscriptionData = new SubscriptionData();
+                            subscriptionData.setTopic(simpleSubscriptionData.getTopic());
+                            subscriptionData.setExpressionType(simpleSubscriptionData.getExpressionType());
+                            subscriptionData.setSubString(simpleSubscriptionData.getExpression());
+                            break;
+                        }
+                    }
+                }
+            } else {
+                ConsumerGroupInfo consumerGroupInfo = consumerManager.getConsumerGroupInfo(group, true);
+                if (consumerGroupInfo != null) {
+                    subscriptionData = consumerGroupInfo.findSubscriptionData(topic);
+                }
             }
-            if (null != subscriptionData &&
-                ExpressionType.TAG.equalsIgnoreCase(subscriptionData.getExpressionType()) &&
-                !SubscriptionData.SUB_ALL.equals(subscriptionData.getSubString())) {
-                count = messageStore.estimateMessageCount(topic, queueId, from, to,
-                    new DefaultMessageFilter(subscriptionData));
-            } else if (null != subscriptionData &&
-                ExpressionType.SQL92.equalsIgnoreCase(subscriptionData.getExpressionType())) {
-                ConsumerFilterData consumerFilterData = consumerFilterManager.get(topic, group);
-                count = messageStore.estimateMessageCount(topic, queueId, from, to,
-                    new ExpressionMessageFilter(subscriptionData,
-                        consumerFilterData,
-                        consumerFilterManager));
+
+            if (null != subscriptionData) {
+                if (ExpressionType.TAG.equalsIgnoreCase(subscriptionData.getExpressionType())
+                    && !SubscriptionData.SUB_ALL.equals(subscriptionData.getSubString())) {
+                    count = messageStore.estimateMessageCount(topic, queueId, from, to,
+                        new DefaultMessageFilter(subscriptionData));
+                } else if (ExpressionType.SQL92.equalsIgnoreCase(subscriptionData.getExpressionType())) {
+                    ConsumerFilterData consumerFilterData = consumerFilterManager.get(topic, group);
+                    count = messageStore.estimateMessageCount(topic, queueId, from, to,
+                        new ExpressionMessageFilter(subscriptionData,
+                            consumerFilterData,
+                            consumerFilterManager));
+                }
             }
+
         }
         return count < 0 ? 0 : count;
     }

@@ -45,6 +45,9 @@ maven_install(
         "io.netty:netty-all:4.1.65.Final",
         "org.assertj:assertj-core:3.22.0",
         "org.mockito:mockito-core:3.10.0",
+        "org.powermock:powermock-module-junit4:2.0.9",
+        "org.powermock:powermock-api-mockito2:2.0.9",
+        "org.powermock:powermock-core:2.0.9",
         "com.github.luben:zstd-jni:1.5.2-2",
         "org.lz4:lz4-java:1.8.0",
         "commons-validator:commons-validator:1.7",
@@ -84,9 +87,10 @@ maven_install(
         "io.grpc:grpc-stub:1.47.0",
         "io.grpc:grpc-api:1.47.0",
         "io.grpc:grpc-testing:1.47.0",
-        "org.springframework:spring-core:5.3.23",
+        "org.springframework:spring-core:5.3.26",
         "io.opentelemetry:opentelemetry-exporter-otlp:1.19.0",
         "io.opentelemetry:opentelemetry-exporter-prometheus:1.19.0-alpha",
+        "io.opentelemetry:opentelemetry-exporter-logging:1.19.0",
         "io.opentelemetry:opentelemetry-sdk:1.19.0",
         "com.squareup.okio:okio-jvm:3.0.0",
         "io.opentelemetry:opentelemetry-api:1.19.0",
@@ -94,7 +98,12 @@ maven_install(
         "io.opentelemetry:opentelemetry-sdk-common:1.19.0",
         "io.github.aliyunmq:rocketmq-slf4j-api:1.0.0",
         "io.github.aliyunmq:rocketmq-logback-classic:1.0.0",
-	"org.jetbrains:annotations:23.1.0",
+        "org.slf4j:jul-to-slf4j:2.0.6",
+    	"org.jetbrains:annotations:23.1.0",
+        "io.github.aliyunmq:rocketmq-shaded-slf4j-api-bridge:1.0.0",
+        "software.amazon.awssdk:s3:2.20.29",
+        "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
+        "com.adobe.testing:s3mock-junit4:2.11.0",
     ],
     fetch_sources = True,
     repositories = [
@@ -120,7 +129,8 @@ buildbuddy(name = "buildbuddy_toolchain")
 
 http_archive(
     name = "rbe_default",
-    sha256 = "6f2bd38cce60880fd05cf373b99118ad59a0fe7df88855e229e7a9b50a003af3",
+    # The sha256 digest of the tarball might change without notice. So it's not
+    # included here.
     urls = ["https://storage.googleapis.com/rbe-toolchain/bazel-configs/rbe-ubuntu1604/latest/rbe_default.tar"],
 )
 

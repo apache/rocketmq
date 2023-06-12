@@ -19,6 +19,7 @@ package org.apache.rocketmq.store;
 import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -76,6 +78,89 @@ public class MappedFileQueue implements Swappable {
                 pre = cur;
             }
         }
+    }
+
+    public MappedFile getConsumeQueueMappedFileByTime(final long timestamp, CommitLog commitLog,
+        BoundaryType boundaryType) {
+        Object[] mfs = copyMappedFiles(0);
+        if (null == mfs) {
+            return null;
+        }
+
+        /*
+         * Make sure each mapped file in consume queue has accurate start and stop time in accordance with commit log
+         * mapped files. Note last modified time from file system is not reliable.
+         */
+        for (int i = mfs.length - 1; i >= 0; i--) {
+            DefaultMappedFile mappedFile = (DefaultMappedFile) mfs[i];
+            // Figure out the earliest message store time in the consume queue mapped file.
+            if (mappedFile.getStartTimestamp() < 0) {
+                SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(0, ConsumeQueue.CQ_STORE_UNIT_SIZE);
+                if (null != selectMappedBufferResult) {
+                    try {
+                        ByteBuffer buffer = selectMappedBufferResult.getByteBuffer();
+                        long physicalOffset = buffer.getLong();
+                        int messageSize = buffer.getInt();
+                        long messageStoreTime = commitLog.pickupStoreTimestamp(physicalOffset, messageSize);
+                        if (messageStoreTime > 0) {
+                            mappedFile.setStartTimestamp(messageStoreTime);
+                        }
+                    } finally {
+                        selectMappedBufferResult.release();
+                    }
+                }
+            }
+            // Figure out the latest message store time in the consume queue mapped file.
+            if (i < mfs.length - 1 && mappedFile.getStopTimestamp() < 0) {
+                SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(mappedFileSize - ConsumeQueue.CQ_STORE_UNIT_SIZE, ConsumeQueue.CQ_STORE_UNIT_SIZE);
+                if (null != selectMappedBufferResult) {
+                    try {
+                        ByteBuffer buffer = selectMappedBufferResult.getByteBuffer();
+                        long physicalOffset = buffer.getLong();
+                        int messageSize = buffer.getInt();
+                        long messageStoreTime = commitLog.pickupStoreTimestamp(physicalOffset, messageSize);
+                        if (messageStoreTime > 0) {
+                            mappedFile.setStopTimestamp(messageStoreTime);
+                        }
+                    } finally {
+                        selectMappedBufferResult.release();
+                    }
+                }
+            }
+        }
+
+        switch (boundaryType) {
+            case LOWER: {
+                for (int i = 0; i < mfs.length; i++) {
+                    DefaultMappedFile mappedFile = (DefaultMappedFile) mfs[i];
+                    if (i < mfs.length - 1) {
+                        long stopTimestamp = mappedFile.getStopTimestamp();
+                        if (stopTimestamp >= timestamp) {
+                            return mappedFile;
+                        }
+                    }
+
+                    // Just return the latest one.
+                    if (i == mfs.length - 1) {
+                        return mappedFile;
+                    }
+                }
+            }
+            case UPPER: {
+                for (int i = mfs.length - 1; i >= 0; i--) {
+                    DefaultMappedFile mappedFile = (DefaultMappedFile) mfs[i];
+                    if (mappedFile.getStartTimestamp() <= timestamp) {
+                        return mappedFile;
+                    }
+                }
+            }
+
+            default: {
+                log.warn("Unknown boundary type");
+                break;
+            }
+        }
+        return null;
     }
 
     public MappedFile getMappedFileByTime(final long timestamp) {

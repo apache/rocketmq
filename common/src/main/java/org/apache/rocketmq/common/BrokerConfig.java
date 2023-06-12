@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageRequestMode;
+import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 
@@ -112,8 +113,6 @@ public class BrokerConfig extends BrokerIdentity {
     private int adminBrokerThreadPoolQueueCapacity = 10000;
     private int loadBalanceThreadPoolQueueCapacity = 100000;
 
-    private int filterServerNums = 0;
-
     private boolean longPollingEnable = true;
 
     private long shortPollingTimeMills = 1000;
@@ -130,7 +129,6 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean accountStatsPrintZeroValues = true;
 
     private boolean transferMsgByHeap = true;
-    private int maxDelayTime = 40;
 
     private String regionId = MixAll.DEFAULT_TRACE_REGION_ID;
     private int registerBrokerTimeoutMills = 24000;
@@ -221,6 +219,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int popCkStayBufferTimeOut = 3 * 1000;
     private int popCkMaxBufferSize = 200000;
     private int popCkOffsetMaxQueueSize = 20000;
+    private boolean enablePopBatchAck = false;
     private boolean enableNotifyAfterPopOrderLockRelease = true;
 
     private boolean realTimeNotifyConsumerChange = true;
@@ -263,7 +262,7 @@ public class BrokerConfig extends BrokerIdentity {
      * Transaction message check interval.
      */
     @ImportantField
-    private long transactionCheckInterval = 60 * 1000;
+    private long transactionCheckInterval = 30 * 1000;
 
     /**
      * transaction batch op message
@@ -345,36 +344,7 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private int brokerElectionPriority = Integer.MAX_VALUE;
 
-    public enum MetricsExporterType {
-        DISABLE(0),
-        OTLP_GRPC(1),
-        PROM(2);
-
-        private final int value;
-
-        MetricsExporterType(int value) {
-            this.value = value;
-        }
-
-        public int getValue() {
-            return value;
-        }
-
-        public static MetricsExporterType valueOf(int value) {
-            switch (value) {
-                case 1:
-                    return OTLP_GRPC;
-                case 2:
-                    return PROM;
-                default:
-                    return DISABLE;
-            }
-        }
-
-        public boolean isEnable() {
-            return this.value > 0;
-        }
-    }
+    private boolean useStaticSubscription = false;
 
     private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
@@ -382,6 +352,7 @@ public class BrokerConfig extends BrokerIdentity {
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
     private long metricGrpcExporterIntervalInMills = 60 * 1000;
+    private long metricLoggingExporterIntervalInMills = 10 * 1000;
 
     private int metricsPromExporterPort = 5557;
     private String metricsPromExporterHost = "";
@@ -399,6 +370,10 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean estimateAccumulation = true;
 
+    private boolean coldCtrStrategyEnable = false;
+    private boolean usePIDColdCtrStrategy = true;
+    private long cgColdReadThreshold = 3 * 1024 * 1024;
+    private long globalColdReadThreshold = 100 * 1024 * 1024;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -494,6 +469,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setPopCkOffsetMaxQueueSize(int popCkOffsetMaxQueueSize) {
         this.popCkOffsetMaxQueueSize = popCkOffsetMaxQueueSize;
+    }
+
+    public boolean isEnablePopBatchAck() {
+        return enablePopBatchAck;
+    }
+
+    public void setEnablePopBatchAck(boolean enablePopBatchAck) {
+        this.enablePopBatchAck = enablePopBatchAck;
     }
 
     public boolean isEnableSkipLongAwaitingAck() {
@@ -920,14 +903,6 @@ public class BrokerConfig extends BrokerIdentity {
         this.brokerTopicEnable = brokerTopicEnable;
     }
 
-    public int getFilterServerNums() {
-        return filterServerNums;
-    }
-
-    public void setFilterServerNums(int filterServerNums) {
-        this.filterServerNums = filterServerNums;
-    }
-
     public boolean isLongPollingEnable() {
         return longPollingEnable;
     }
@@ -958,14 +933,6 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setClientManageThreadPoolNums(int clientManageThreadPoolNums) {
         this.clientManageThreadPoolNums = clientManageThreadPoolNums;
-    }
-
-    public int getMaxDelayTime() {
-        return maxDelayTime;
-    }
-
-    public void setMaxDelayTime(final int maxDelayTime) {
-        this.maxDelayTime = maxDelayTime;
     }
 
     public int getClientManagerThreadPoolQueueCapacity() {
@@ -1568,6 +1535,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.metricGrpcExporterIntervalInMills = metricGrpcExporterIntervalInMills;
     }
 
+    public long getMetricLoggingExporterIntervalInMills() {
+        return metricLoggingExporterIntervalInMills;
+    }
+
+    public void setMetricLoggingExporterIntervalInMills(long metricLoggingExporterIntervalInMills) {
+        this.metricLoggingExporterIntervalInMills = metricLoggingExporterIntervalInMills;
+    }
+
     public String getMetricsLabel() {
         return metricsLabel;
     }
@@ -1646,5 +1621,45 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEstimateAccumulation(boolean estimateAccumulation) {
         this.estimateAccumulation = estimateAccumulation;
+    }
+
+    public boolean isColdCtrStrategyEnable() {
+        return coldCtrStrategyEnable;
+    }
+
+    public void setColdCtrStrategyEnable(boolean coldCtrStrategyEnable) {
+        this.coldCtrStrategyEnable = coldCtrStrategyEnable;
+    }
+
+    public boolean isUsePIDColdCtrStrategy() {
+        return usePIDColdCtrStrategy;
+    }
+
+    public void setUsePIDColdCtrStrategy(boolean usePIDColdCtrStrategy) {
+        this.usePIDColdCtrStrategy = usePIDColdCtrStrategy;
+    }
+
+    public long getCgColdReadThreshold() {
+        return cgColdReadThreshold;
+    }
+
+    public void setCgColdReadThreshold(long cgColdReadThreshold) {
+        this.cgColdReadThreshold = cgColdReadThreshold;
+    }
+
+    public long getGlobalColdReadThreshold() {
+        return globalColdReadThreshold;
+    }
+
+    public void setGlobalColdReadThreshold(long globalColdReadThreshold) {
+        this.globalColdReadThreshold = globalColdReadThreshold;
+    }
+
+    public boolean isUseStaticSubscription() {
+        return useStaticSubscription;
+    }
+
+    public void setUseStaticSubscription(boolean useStaticSubscription) {
+        this.useStaticSubscription = useStaticSubscription;
     }
 }

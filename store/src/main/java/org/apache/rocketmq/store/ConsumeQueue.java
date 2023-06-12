@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -29,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -37,12 +39,25 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.FileQueueLifeCycle;
-import org.apache.rocketmq.store.queue.QueueOffsetAssigner;
+import org.apache.rocketmq.store.queue.QueueOffsetOperator;
 import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
+    /**
+     * ConsumeQueue's store unit. Format:
+     * <pre>
+     * ┌───────────────────────────────┬───────────────────┬───────────────────────────────┐
+     * │    CommitLog Physical Offset  │      Body Size    │            Tag HashCode       │
+     * │          (8 Bytes)            │      (4 Bytes)    │             (8 Bytes)         │
+     * ├───────────────────────────────┴───────────────────┴───────────────────────────────┤
+     * │                                     Store Unit                                    │
+     * │                                                                                   │
+     * </pre>
+     * ConsumeQueue's store unit. Size: CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) = 20 Bytes
+     */
     public static final int CQ_STORE_UNIT_SIZE = 20;
     public static final int MSG_TAG_OFFSET_INDEX = 12;
     private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
@@ -191,33 +206,92 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
     @Override
     public long getOffsetInQueueByTime(final long timestamp) {
-        MappedFile mappedFile = this.mappedFileQueue.getMappedFileByTime(timestamp);
+        MappedFile mappedFile = this.mappedFileQueue.getConsumeQueueMappedFileByTime(timestamp,
+            messageStore.getCommitLog(), BoundaryType.LOWER);
+        return binarySearchInQueueByTime(mappedFile, timestamp, BoundaryType.LOWER);
+    }
+
+    public long getOffsetInQueueByTime(final long timestamp, final BoundaryType boundaryType) {
+        MappedFile mappedFile = this.mappedFileQueue.getConsumeQueueMappedFileByTime(timestamp,
+            messageStore.getCommitLog(), boundaryType);
+        return binarySearchInQueueByTime(mappedFile, timestamp, boundaryType);
+    }
+
+    private long binarySearchInQueueByTime(final MappedFile mappedFile, final long timestamp,
+        BoundaryType boundaryType) {
         if (mappedFile != null) {
             long offset = 0;
             int low = minLogicOffset > mappedFile.getFileFromOffset() ? (int) (minLogicOffset - mappedFile.getFileFromOffset()) : 0;
             int high = 0;
             int midOffset = -1, targetOffset = -1, leftOffset = -1, rightOffset = -1;
-            long leftIndexValue = -1L, rightIndexValue = -1L;
             long minPhysicOffset = this.messageStore.getMinPhyOffset();
-            SelectMappedBufferResult sbr = mappedFile.selectMappedBuffer(0);
+            int range = mappedFile.getFileSize();
+            if (mappedFile.getWrotePosition() != 0 && mappedFile.getWrotePosition() != mappedFile.getFileSize()) {
+                // mappedFile is the last one and is currently being written.
+                range = mappedFile.getWrotePosition();
+            }
+            SelectMappedBufferResult sbr = mappedFile.selectMappedBuffer(0, range);
             if (null != sbr) {
                 ByteBuffer byteBuffer = sbr.getByteBuffer();
-                high = byteBuffer.limit() - CQ_STORE_UNIT_SIZE;
+                int ceiling = byteBuffer.limit() - CQ_STORE_UNIT_SIZE;
+                int floor = low;
+                high = ceiling;
                 try {
+                    // Handle the following corner cases first:
+                    // 1. store time of (high) < timestamp
+                    // 2. store time of (low) > timestamp
+                    long storeTime;
+                    long phyOffset;
+                    int size;
+                    // Handle case 1
+                    byteBuffer.position(ceiling);
+                    phyOffset = byteBuffer.getLong();
+                    size = byteBuffer.getInt();
+                    storeTime = messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                    if (storeTime < timestamp) {
+                        switch (boundaryType) {
+                            case LOWER:
+                                return (mappedFile.getFileFromOffset() + ceiling + CQ_STORE_UNIT_SIZE) / CQ_STORE_UNIT_SIZE;
+                            case UPPER:
+                                return (mappedFile.getFileFromOffset() + ceiling) / CQ_STORE_UNIT_SIZE;
+                            default:
+                                log.warn("Unknown boundary type");
+                                break;
+                        }
+                    }
+
+                    // Handle case 2
+                    byteBuffer.position(floor);
+                    phyOffset = byteBuffer.getLong();
+                    size = byteBuffer.getInt();
+                    storeTime = messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                    if (storeTime > timestamp) {
+                        switch (boundaryType) {
+                            case LOWER:
+                                return mappedFile.getFileFromOffset() / CQ_STORE_UNIT_SIZE;
+                            case UPPER:
+                                return 0;
+                            default:
+                                log.warn("Unknown boundary type");
+                                break;
+                        }
+                    }
+
+                    // Perform binary search
                     while (high >= low) {
                         midOffset = (low + high) / (2 * CQ_STORE_UNIT_SIZE) * CQ_STORE_UNIT_SIZE;
                         byteBuffer.position(midOffset);
-                        long phyOffset = byteBuffer.getLong();
-                        int size = byteBuffer.getInt();
+                        phyOffset = byteBuffer.getLong();
+                        size = byteBuffer.getInt();
                         if (phyOffset < minPhysicOffset) {
                             low = midOffset + CQ_STORE_UNIT_SIZE;
                             leftOffset = midOffset;
                             continue;
                         }
 
-                        long storeTime =
-                            this.messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                        storeTime = this.messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
                         if (storeTime < 0) {
+                            log.warn("Failed to query store timestamp for commit log offset: {}", phyOffset);
                             return 0;
                         } else if (storeTime == timestamp) {
                             targetOffset = midOffset;
@@ -225,31 +299,96 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                         } else if (storeTime > timestamp) {
                             high = midOffset - CQ_STORE_UNIT_SIZE;
                             rightOffset = midOffset;
-                            rightIndexValue = storeTime;
                         } else {
                             low = midOffset + CQ_STORE_UNIT_SIZE;
                             leftOffset = midOffset;
-                            leftIndexValue = storeTime;
                         }
                     }
 
                     if (targetOffset != -1) {
-
+                        // We just found ONE matched record. These next to it might also share the same store-timestamp.
                         offset = targetOffset;
+                        switch (boundaryType) {
+                            case LOWER: {
+                                int previousAttempt = targetOffset;
+                                while (true) {
+                                    int attempt = previousAttempt - CQ_STORE_UNIT_SIZE;
+                                    if (attempt < floor) {
+                                        break;
+                                    }
+                                    byteBuffer.position(attempt);
+                                    long physicalOffset = byteBuffer.getLong();
+                                    int messageSize = byteBuffer.getInt();
+                                    long messageStoreTimestamp = messageStore.getCommitLog()
+                                        .pickupStoreTimestamp(physicalOffset, messageSize);
+                                    if (messageStoreTimestamp == timestamp) {
+                                        previousAttempt = attempt;
+                                        continue;
+                                    }
+                                    break;
+                                }
+                                offset = previousAttempt;
+                                break;
+                            }
+                            case UPPER: {
+                                int previousAttempt = targetOffset;
+                                while (true) {
+                                    int attempt = previousAttempt + CQ_STORE_UNIT_SIZE;
+                                    if (attempt > ceiling) {
+                                        break;
+                                    }
+                                    byteBuffer.position(attempt);
+                                    long physicalOffset = byteBuffer.getLong();
+                                    int messageSize = byteBuffer.getInt();
+                                    long messageStoreTimestamp = messageStore.getCommitLog()
+                                        .pickupStoreTimestamp(physicalOffset, messageSize);
+                                    if (messageStoreTimestamp == timestamp) {
+                                        previousAttempt = attempt;
+                                        continue;
+                                    }
+                                    break;
+                                }
+                                offset = previousAttempt;
+                                break;
+                            }
+                            default: {
+                                log.warn("Unknown boundary type");
+                                break;
+                            }
+                        }
                     } else {
-                        if (leftIndexValue == -1) {
+                        // Given timestamp does not have any message records. But we have a range enclosing the
+                        // timestamp.
+                        /*
+                         * Consider the follow case: t2 has no consume queue entry and we are searching offset of
+                         * t2 for lower and upper boundaries.
+                         *  --------------------------
+                         *   timestamp   Consume Queue
+                         *       t1          1
+                         *       t1          2
+                         *       t1          3
+                         *       t3          4
+                         *       t3          5
+                         *   --------------------------
+                         * Now, we return 3 as upper boundary of t2 and 4 as its lower boundary. It looks
+                         * contradictory at first sight, but it does make sense when performing range queries.
+                         */
+                        switch (boundaryType) {
+                            case LOWER: {
+                                offset = rightOffset;
+                                break;
+                            }
 
-                            offset = rightOffset;
-                        } else if (rightIndexValue == -1) {
-
-                            offset = leftOffset;
-                        } else {
-                            offset =
-                                Math.abs(timestamp - leftIndexValue) > Math.abs(timestamp
-                                    - rightIndexValue) ? rightOffset : leftOffset;
+                            case UPPER: {
+                                offset = leftOffset;
+                                break;
+                            }
+                            default: {
+                                log.warn("Unknown boundary type");
+                                break;
+                            }
                         }
                     }
-
                     return (mappedFile.getFileFromOffset() + offset) / CQ_STORE_UNIT_SIZE;
                 } finally {
                     sbr.release();
@@ -585,7 +724,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     private boolean checkMultiDispatchQueue(DispatchRequest dispatchRequest) {
-        if (!this.messageStore.getMessageStoreConfig().isEnableMultiDispatch()) {
+        if (!this.messageStore.getMessageStoreConfig().isEnableMultiDispatch()
+            || dispatchRequest.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+            || dispatchRequest.getTopic().equals(TimerMessageStore.TIMER_TOPIC)
+            || dispatchRequest.getTopic().equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)) {
             return false;
         }
         Map<String, String> prop = dispatchRequest.getPropertiesMap();
@@ -612,6 +754,9 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
         for (int i = 0; i < queues.length; i++) {
             String queueName = queues[i];
+            if (StringUtils.contains(queueName, File.separator)) {
+                continue;
+            }
             long queueOffset = Long.parseLong(queueOffsets[i]);
             int queueId = request.getQueueId();
             if (this.messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
@@ -647,13 +792,15 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     @Override
-    public void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg,
-        short messageNum) {
+    public void assignQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg) {
         String topicQueueKey = getTopic() + "-" + getQueueId();
-        long queueOffset = queueOffsetAssigner.assignQueueOffset(topicQueueKey, messageNum);
+        long queueOffset = queueOffsetOperator.getQueueOffset(topicQueueKey);
         msg.setQueueOffset(queueOffset);
-        // For LMQ
-        if (!messageStore.getMessageStoreConfig().isEnableMultiDispatch()) {
+
+
+        // Handling the multi dispatch message. In the context of a light message queue (as defined in RIP-28),
+        // light message queues are constructed based on message properties, which requires special handling of queue offset of the light message queue.
+        if (!isNeedHandleMultiDispatch(msg)) {
             return;
         }
         String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
@@ -665,12 +812,43 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         for (int i = 0; i < queues.length; i++) {
             String key = queueKey(queues[i], msg);
             if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
-                queueOffsets[i] = queueOffsetAssigner.assignLmqOffset(key, (short) 1);
+                queueOffsets[i] = queueOffsetOperator.getLmqOffset(key);
             }
         }
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
             StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
         removeWaitStorePropertyString(msg);
+    }
+
+    @Override
+    public void increaseQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg,
+        short messageNum) {
+        String topicQueueKey = getTopic() + "-" + getQueueId();
+        queueOffsetOperator.increaseQueueOffset(topicQueueKey, messageNum);
+
+        // Handling the multi dispatch message. In the context of a light message queue (as defined in RIP-28),
+        // light message queues are constructed based on message properties, which requires special handling of queue offset of the light message queue.
+        if (!isNeedHandleMultiDispatch(msg)) {
+            return;
+        }
+        String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+        if (StringUtils.isBlank(multiDispatchQueue)) {
+            return;
+        }
+        String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+        for (int i = 0; i < queues.length; i++) {
+            String key = queueKey(queues[i], msg);
+            if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
+                queueOffsetOperator.increaseLmqOffset(key, (short) 1);
+            }
+        }
+    }
+
+    public boolean isNeedHandleMultiDispatch(MessageExtBrokerInner msg) {
+        return messageStore.getMessageStoreConfig().isEnableMultiDispatch()
+            && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+            && !msg.getTopic().equals(TimerMessageStore.TIMER_TOPIC)
+            && !msg.getTopic().equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
     }
 
     public String queueKey(String queueName, MessageExtBrokerInner msgInner) {
@@ -830,7 +1008,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         private int relativePos = 0;
 
         public ConsumeQueueIterator(SelectMappedBufferResult sbr) {
-            this.sbr =  sbr;
+            this.sbr = sbr;
             if (sbr != null && sbr.getByteBuffer() != null) {
                 relativePos = sbr.getByteBuffer().position();
             }
@@ -850,11 +1028,11 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             if (!hasNext()) {
                 return null;
             }
-            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() -  relativePos) / CQ_STORE_UNIT_SIZE;
+            long queueOffset = (sbr.getStartOffset() + sbr.getByteBuffer().position() - relativePos) / CQ_STORE_UNIT_SIZE;
             CqUnit cqUnit = new CqUnit(queueOffset,
-                    sbr.getByteBuffer().getLong(),
-                    sbr.getByteBuffer().getInt(),
-                    sbr.getByteBuffer().getLong());
+                sbr.getByteBuffer().getLong(),
+                sbr.getByteBuffer().getInt(),
+                sbr.getByteBuffer().getLong());
 
             if (isExtAddr(cqUnit.getTagsCode())) {
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
@@ -865,7 +1043,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 } else {
                     // can't find ext content.Client will filter messages by tag also.
                     log.error("[BUG] can't find consume queue extend file content! addr={}, offsetPy={}, sizePy={}, topic={}",
-                            cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
+                        cqUnit.getTagsCode(), cqUnit.getPos(), cqUnit.getPos(), getTopic());
                 }
             }
             return cqUnit;

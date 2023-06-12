@@ -81,6 +81,8 @@ public class MixAll {
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final long MASTER_ID = 0L;
     public static final long FIRST_SLAVE_ID = 1L;
+
+    public static final long FIRST_BROKER_CONTROLLER_ID = 1L;
     public static final long CURRENT_JVM_PID = getPID();
     public final static int UNIT_PRE_SIZE_FOR_MSG = 28;
     public final static int ALL_ACK_IN_SYNC_STATE_SET = -1;
@@ -496,4 +498,21 @@ public class MixAll {
         return path.normalize().toString();
     }
 
+    public static boolean isSysConsumerGroupForNoColdReadLimit(String consumerGroup) {
+        if (DEFAULT_CONSUMER_GROUP.equals(consumerGroup)
+            || TOOLS_CONSUMER_GROUP.equals(consumerGroup)
+            || SCHEDULE_CONSUMER_GROUP.equals(consumerGroup)
+            || FILTERSRV_CONSUMER_GROUP.equals(consumerGroup)
+            || MONITOR_CONSUMER_GROUP.equals(consumerGroup)
+            || SELF_TEST_CONSUMER_GROUP.equals(consumerGroup)
+            || ONS_HTTP_PROXY_GROUP.equals(consumerGroup)
+            || CID_ONSAPI_PERMISSION_GROUP.equals(consumerGroup)
+            || CID_ONSAPI_OWNER_GROUP.equals(consumerGroup)
+            || CID_ONSAPI_PULL_GROUP.equals(consumerGroup)
+            || CID_SYS_RMQ_TRANS.equals(consumerGroup)
+            || consumerGroup.startsWith(CID_RMQ_SYS_PREFIX)) {
+            return true;
+        }
+        return false;
+    }
 }

@@ -39,7 +39,7 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -108,7 +108,11 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     public static DefaultMessagingProcessor createForClusterMode() {
-        return createForClusterMode(AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE));
+        RPCHook rpcHook = null;
+        if (ConfigurationManager.getProxyConfig().isEnableAclRpcHookForClusterMode()) {
+            rpcHook = AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE);
+        }
+        return createForClusterMode(rpcHook);
     }
 
     public static DefaultMessagingProcessor createForClusterMode(RPCHook rpcHook) {
@@ -123,13 +127,13 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     @Override
     public SubscriptionGroupConfig getSubscriptionGroupConfig(ProxyContext ctx, String consumerGroupName) {
-        return this.serviceManager.getMetadataService().getSubscriptionGroupConfig(consumerGroupName);
+        return this.serviceManager.getMetadataService().getSubscriptionGroupConfig(ctx, consumerGroupName);
     }
 
     @Override
     public ProxyTopicRouteData getTopicRouteDataForProxy(ProxyContext ctx, List<Address> requestHostAndPortList,
         String topicName) throws Exception {
-        return this.serviceManager.getTopicRouteService().getTopicRouteForProxy(requestHostAndPortList, topicName);
+        return this.serviceManager.getTopicRouteService().getTopicRouteForProxy(ctx, requestHostAndPortList, topicName);
     }
 
     @Override
