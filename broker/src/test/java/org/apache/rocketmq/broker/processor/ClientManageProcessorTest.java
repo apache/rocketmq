@@ -147,7 +147,7 @@ public class ClientManageProcessorTest {
     }
 
     @Test
-    public void test_heartbeat_costTime() throws RemotingCommandException {
+    public void test_heartbeat_costTime() {
         String topic = "TOPIC_TEST";
         List<String> topicList = new ArrayList<>();
         for (int i = 0; i < 500; i ++) {
@@ -156,7 +156,7 @@ public class ClientManageProcessorTest {
         HeartbeatData heartbeatData = prepareHeartbeatData(false, topicList);
         long time = System.currentTimeMillis();
         heartbeatData.computeHeartbeatFingerprint();
-        System.out.print("computeHeartbeatFingerprint cost Time : " + (System.currentTimeMillis() - time) + " ms \n");
+        System.out.print("computeHeartbeatFingerprint cost time : " + (System.currentTimeMillis() - time) + " ms \n");
     }
 
     private RemotingCommand createUnRegisterProducerCommand() {
