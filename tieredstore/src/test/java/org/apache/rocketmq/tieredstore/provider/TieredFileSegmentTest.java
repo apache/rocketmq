@@ -18,31 +18,30 @@ package org.apache.rocketmq.tieredstore.provider;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
-
-import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
-import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
-import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
+import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.file.TieredCommitLog;
+import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
+import org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
+public class TieredFileSegmentTest {
 
-@Ignore
-public abstract class TieredFileSegmentBaseTest {
     public int baseOffset = 1000;
 
-    public abstract TieredFileSegment createFileSegment(TieredFileSegment.FileSegmentType fileType);
+    public TieredFileSegment createFileSegment(FileSegmentType fileType) {
+        String brokerName = new TieredMessageStoreConfig().getBrokerName();
+        return new MemoryFileSegment(fileType, new MessageQueue("TieredFileSegmentTest", brokerName, 0),
+            baseOffset, new TieredMessageStoreConfig());
+    }
 
     @Test
     public void testCommitLog() {
-        TieredFileSegment segment = createFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG);
+        TieredFileSegment segment = createFileSegment(FileSegmentType.COMMIT_LOG);
         segment.initPosition(segment.getSize());
         long lastSize = segment.getSize();
         segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
@@ -58,14 +57,14 @@ public abstract class TieredFileSegmentBaseTest {
 
         Assert.assertEquals(baseOffset, segment.getBaseOffset());
         Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getMaxOffset());
-        Assert.assertEquals(0, segment.getBeginTimestamp());
-        Assert.assertEquals(msg3StoreTime, segment.getEndTimestamp());
+        Assert.assertEquals(0, segment.getMinTimestamp());
+        Assert.assertEquals(msg3StoreTime, segment.getMaxTimestamp());
 
         segment.setFull();
         segment.commit();
         Assert.assertFalse(segment.needCommit());
         Assert.assertEquals(segment.getMaxOffset(), segment.getCommitOffset());
-        Assert.assertEquals(queueOffset, segment.getCommitMsgQueueOffset());
+        Assert.assertEquals(queueOffset, segment.getDispatchCommitOffset());
 
         ByteBuffer msg1 = segment.read(lastSize, MessageBufferUtilTest.MSG_LEN);
         Assert.assertEquals(baseOffset + lastSize, MessageBufferUtil.getCommitLogOffset(msg1));
@@ -91,7 +90,7 @@ public abstract class TieredFileSegmentBaseTest {
 
     @Test
     public void testConsumeQueue() {
-        TieredFileSegment segment = createFileSegment(TieredFileSegment.FileSegmentType.CONSUME_QUEUE);
+        TieredFileSegment segment = createFileSegment(FileSegmentType.CONSUME_QUEUE);
         segment.initPosition(segment.getSize());
         long lastSize = segment.getSize();
         segment.append(buildConsumeQueue(baseOffset), 0);
@@ -100,8 +99,8 @@ public abstract class TieredFileSegmentBaseTest {
         segment.append(buildConsumeQueue(baseOffset + MessageBufferUtilTest.MSG_LEN * 2), cqItem3Timestamp);
 
         Assert.assertEquals(baseOffset + lastSize + TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE * 3, segment.getMaxOffset());
-        Assert.assertEquals(0, segment.getBeginTimestamp());
-        Assert.assertEquals(cqItem3Timestamp, segment.getEndTimestamp());
+        Assert.assertEquals(0, segment.getMinTimestamp());
+        Assert.assertEquals(cqItem3Timestamp, segment.getMaxTimestamp());
 
         segment.commit();
         Assert.assertEquals(segment.getMaxOffset(), segment.getCommitOffset());
@@ -119,38 +118,29 @@ public abstract class TieredFileSegmentBaseTest {
     @Test
     public void testCommitFailed() {
         long startTime = System.currentTimeMillis();
-        TieredFileSegment segment = Mockito.spy(createFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG));
+        MemoryFileSegment segment = (MemoryFileSegment) createFileSegment(FileSegmentType.COMMIT_LOG);
         long lastSize = segment.getSize();
         segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
         segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
 
-        CompletableFuture<Void> blocker = new CompletableFuture<>();
-        Mockito.doAnswer(invocation -> {
-            blocker.join();
-            CompletableFuture<Boolean> completableFuture = new CompletableFuture<>();
-            completableFuture.completeExceptionally(new RuntimeException("commit failed"));
-            return completableFuture;
-        }).when(segment).commit0(any(TieredFileSegmentInputStream.class), anyLong(), anyInt(), anyBoolean());
-
+        segment.blocker = new CompletableFuture<>();
         new Thread(() -> {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 Assert.fail(e.getMessage());
             }
-            // append msg3
             ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
             buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, startTime);
             segment.append(buffer, 0);
-            // blocker complete, commit failed
-            blocker.complete(null);
+            segment.blocker.complete(false);
         }).start();
 
-        // first time try to commit these 2 messages but stuck for while until msg3 is appended, and then this commit failed
         segment.commit();
+        segment.blocker.join();
 
-        // second time commit, expect success
-        Mockito.doCallRealMethod().when(segment).commit0(any(TieredFileSegmentInputStream.class), anyLong(), anyInt(), anyBoolean());
+        segment.blocker = new CompletableFuture<>();
+        segment.blocker.complete(true);
         segment.commit();
 
         Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getMaxOffset());
