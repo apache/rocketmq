@@ -61,7 +61,7 @@ public class MQFaultStrategy {
             try {
                 int index = tpInfo.getSendWhichQueue().incrementAndGet();
                 for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
-                    int pos = index++ % tpInfo.getMessageQueueList().size();
+                    int pos = (index++ & Integer.MAX_VALUE) % tpInfo.getMessageQueueList().size();
                     MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
                     if (!StringUtils.equals(lastBrokerName, mq.getBrokerName()) && latencyFaultTolerance.isAvailable(mq.getBrokerName())) {
                         return mq;
