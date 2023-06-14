@@ -114,7 +114,7 @@ public class BrokerMetricsManager {
     private LoggingMetricExporter loggingMetricExporter;
     private Meter brokerMeter;
 
-    public static Supplier<AttributesBuilder> attributesBuilderSupplier;
+    public static Supplier<AttributesBuilder> attributesBuilderSupplier = Attributes::builder;
 
     // broker stats metrics
     public static ObservableLongGauge processorWatermark = new NopObservableLongGauge();
