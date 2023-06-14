@@ -40,14 +40,14 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.common.ReceiptHandleGroup;
 import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
 import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -154,7 +154,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
             log.error("unexpect error when schedule renew task", e);
         }
 
-        log.info("scan for renewal done. cost:{}ms", stopwatch.elapsed().toMillis());
+        log.debug("scan for renewal done. cost:{}ms", stopwatch.elapsed().toMillis());
     }
 
     protected void renewMessage(ReceiptHandleGroup group, String msgID, String handleStr) {
@@ -201,7 +201,7 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
                 });
             } else {
                 SubscriptionGroupConfig subscriptionGroupConfig =
-                    messagingProcessor.getMetadataService().getSubscriptionGroupConfig(messageReceiptHandle.getGroup());
+                    messagingProcessor.getMetadataService().getSubscriptionGroupConfig(context, messageReceiptHandle.getGroup());
                 if (subscriptionGroupConfig == null) {
                     log.error("group's subscriptionGroupConfig is null when renew. handle: {}", messageReceiptHandle);
                     return CompletableFuture.completedFuture(null);
@@ -240,12 +240,12 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         return this.messagingProcessor.findConsumerChannel(createContext("JudgeClientOnline"), groupKey.group, groupKey.channel) == null;
     }
 
-    public void addReceiptHandle(Channel channel, String group, String msgID, String receiptHandle,
+    public void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, String receiptHandle,
         MessageReceiptHandle messageReceiptHandle) {
-        this.addReceiptHandle(new ReceiptHandleGroupKey(channel, group), msgID, receiptHandle, messageReceiptHandle);
+        this.addReceiptHandle(ctx, new ReceiptHandleGroupKey(channel, group), msgID, receiptHandle, messageReceiptHandle);
     }
 
-    protected void addReceiptHandle(ReceiptHandleGroupKey key, String msgID, String receiptHandle,
+    protected void addReceiptHandle(ProxyContext ctx, ReceiptHandleGroupKey key, String msgID, String receiptHandle,
         MessageReceiptHandle messageReceiptHandle) {
         if (key == null) {
             return;
@@ -254,11 +254,11 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
             k -> new ReceiptHandleGroup()).put(msgID, receiptHandle, messageReceiptHandle);
     }
 
-    public MessageReceiptHandle removeReceiptHandle(Channel channel, String group, String msgID, String receiptHandle) {
-        return this.removeReceiptHandle(new ReceiptHandleGroupKey(channel, group), msgID, receiptHandle);
+    public MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, String receiptHandle) {
+        return this.removeReceiptHandle(ctx, new ReceiptHandleGroupKey(channel, group), msgID, receiptHandle);
     }
 
-    protected MessageReceiptHandle removeReceiptHandle(ReceiptHandleGroupKey key, String msgID, String receiptHandle) {
+    protected MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, ReceiptHandleGroupKey key, String msgID, String receiptHandle) {
         if (key == null) {
             return null;
         }

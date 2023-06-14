@@ -87,7 +87,7 @@ maven_install(
         "io.grpc:grpc-stub:1.47.0",
         "io.grpc:grpc-api:1.47.0",
         "io.grpc:grpc-testing:1.47.0",
-        "org.springframework:spring-core:5.3.23",
+        "org.springframework:spring-core:5.3.26",
         "io.opentelemetry:opentelemetry-exporter-otlp:1.19.0",
         "io.opentelemetry:opentelemetry-exporter-prometheus:1.19.0-alpha",
         "io.opentelemetry:opentelemetry-exporter-logging:1.19.0",
@@ -101,6 +101,9 @@ maven_install(
         "org.slf4j:jul-to-slf4j:2.0.6",
     	"org.jetbrains:annotations:23.1.0",
         "io.github.aliyunmq:rocketmq-shaded-slf4j-api-bridge:1.0.0",
+        "software.amazon.awssdk:s3:2.20.29",
+        "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
+        "com.adobe.testing:s3mock-junit4:2.11.0",
     ],
     fetch_sources = True,
     repositories = [

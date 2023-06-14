@@ -134,7 +134,7 @@ public class ClientActivityTest extends BaseActivityTest {
             txProducerTopicArgumentCaptor.capture()
         );
 
-        when(this.metadataService.getTopicMessageType(anyString())).thenReturn(TopicMessageType.TRANSACTION);
+        when(this.metadataService.getTopicMessageType(any(), anyString())).thenReturn(TopicMessageType.TRANSACTION);
 
         HeartbeatResponse response = this.sendProducerHeartbeat(context);
 
@@ -222,7 +222,7 @@ public class ClientActivityTest extends BaseActivityTest {
             .build());
         ArgumentCaptor<ClientChannelInfo> channelInfoArgumentCaptor = ArgumentCaptor.forClass(ClientChannelInfo.class);
         doNothing().when(this.messagingProcessor).unRegisterProducer(any(), anyString(), channelInfoArgumentCaptor.capture());
-        when(this.metadataService.getTopicMessageType(anyString())).thenReturn(TopicMessageType.NORMAL);
+        when(this.metadataService.getTopicMessageType(any(), anyString())).thenReturn(TopicMessageType.NORMAL);
 
         this.sendProducerTelemetry(context);
         this.sendProducerHeartbeat(context);

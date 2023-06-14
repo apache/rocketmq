@@ -17,8 +17,9 @@
 package org.apache.rocketmq.tieredstore.exception;
 
 public class TieredStoreException extends RuntimeException {
+
     private TieredStoreErrorCode errorCode;
-    private int position = -1;
+    private long position = -1;
 
     private String requestId;
 
@@ -41,11 +42,11 @@ public class TieredStoreException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public int getPosition() {
+    public long getPosition() {
         return position;
     }
 
-    public void setPosition(int position) {
+    public void setPosition(long position) {
         this.position = position;
     }
 

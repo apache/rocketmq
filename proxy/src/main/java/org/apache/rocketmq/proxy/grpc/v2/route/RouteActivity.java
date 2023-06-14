@@ -49,6 +49,7 @@ import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class RouteActivity extends AbstractMessingActivity {
 
@@ -70,7 +71,7 @@ public class RouteActivity extends AbstractMessingActivity {
             List<MessageQueue> messageQueueList = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
 
-            TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(topicName);
+            TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(ctx, topicName);
             for (QueueData queueData : proxyTopicRouteData.getQueueDatas()) {
                 String brokerName = queueData.getBrokerName();
                 Map<Long, Broker> brokerIdMap = brokerMap.get(brokerName);
@@ -106,6 +107,13 @@ public class RouteActivity extends AbstractMessingActivity {
                 addressList,
                 GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()));
 
+            boolean fifo = false;
+            SubscriptionGroupConfig config = this.messagingProcessor.getSubscriptionGroupConfig(ctx,
+                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup()));
+            if (config != null && config.isConsumeMessageOrderly()) {
+                fifo = true;
+            }
+
             List<Assignment> assignments = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
             for (QueueData queueData : proxyTopicRouteData.getQueueDatas()) {
@@ -113,16 +121,30 @@ public class RouteActivity extends AbstractMessingActivity {
                     Map<Long, Broker> brokerIdMap = brokerMap.get(queueData.getBrokerName());
                     if (brokerIdMap != null) {
                         Broker broker = brokerIdMap.get(MixAll.MASTER_ID);
-                        MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
-                            .setTopic(request.getTopic())
-                            .setId(-1)
-                            .setPermission(this.convertToPermission(queueData.getPerm()))
-                            .setBroker(broker)
-                            .build();
-
-                        assignments.add(Assignment.newBuilder()
-                            .setMessageQueue(defaultMessageQueue)
-                            .build());
+                        Permission permission = this.convertToPermission(queueData.getPerm());
+                        if (fifo) {
+                            for (int i = 0; i < queueData.getReadQueueNums(); i++) {
+                                MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
+                                    .setTopic(request.getTopic())
+                                    .setId(i)
+                                    .setPermission(permission)
+                                    .setBroker(broker)
+                                    .build();
+                                assignments.add(Assignment.newBuilder()
+                                    .setMessageQueue(defaultMessageQueue)
+                                    .build());
+                            }
+                        } else {
+                            MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
+                                .setTopic(request.getTopic())
+                                .setId(-1)
+                                .setPermission(permission)
+                                .setBroker(broker)
+                                .build();
+                            assignments.add(Assignment.newBuilder()
+                                .setMessageQueue(defaultMessageQueue)
+                                .build());
+                        }
 
                     }
                 }

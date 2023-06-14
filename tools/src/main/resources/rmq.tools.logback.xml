@@ -19,10 +19,10 @@
 <configuration scan="true" scanPeriod="30 seconds">
     <appender name="DefaultAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/tools_default.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}tools_default.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/tools_default.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}tools_default.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
@@ -37,10 +37,10 @@
 
     <appender name="RocketmqToolsAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/tools.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}tools.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/tools.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}tools.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>

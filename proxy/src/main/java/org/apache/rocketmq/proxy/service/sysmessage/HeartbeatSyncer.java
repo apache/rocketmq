@@ -39,7 +39,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.channel.RemoteChannel;
 import org.apache.rocketmq.proxy.service.admin.AdminService;
-import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
@@ -49,7 +49,7 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
 
     protected ThreadPoolExecutor threadPoolExecutor;
     protected ConsumerManager consumerManager;
-    protected final Map<String /* channelId as longText */, RemoteChannel> remoteChannelMap = new ConcurrentHashMap<>();
+    protected final Map<String /* group @ channelId as longText */, RemoteChannel> remoteChannelMap = new ConcurrentHashMap<>();
     protected String localProxyId;
 
     public HeartbeatSyncer(TopicRouteService topicRouteService, AdminService adminService,
@@ -188,7 +188,7 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
                 }
 
                 RemoteChannel decodedChannel = RemoteChannel.decode(data.getChannelData());
-                RemoteChannel channel = remoteChannelMap.computeIfAbsent(decodedChannel.id().asLongText(), key -> decodedChannel);
+                RemoteChannel channel = remoteChannelMap.computeIfAbsent(data.getGroup() + "@" + decodedChannel.id().asLongText(), key -> decodedChannel);
                 channel.setExtendAttribute(decodedChannel.getChannelExtendAttribute());
                 ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
                     channel,

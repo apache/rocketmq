@@ -20,7 +20,8 @@ import java.util.List;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.Address;
-import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
@@ -31,14 +32,14 @@ public class ClusterTopicRouteService extends TopicRouteService {
     }
 
     @Override
-    public MessageQueueView getCurrentMessageQueueView(String topicName) throws Exception {
-        return getAllMessageQueueView(topicName);
+    public MessageQueueView getCurrentMessageQueueView(ProxyContext ctx, String topicName) throws Exception {
+        return getAllMessageQueueView(ctx, topicName);
     }
 
     @Override
-    public ProxyTopicRouteData getTopicRouteForProxy(List<Address> requestHostAndPortList,
+    public ProxyTopicRouteData getTopicRouteForProxy(ProxyContext ctx, List<Address> requestHostAndPortList,
         String topicName) throws Exception {
-        TopicRouteData topicRouteData = getAllMessageQueueView(topicName).getTopicRouteData();
+        TopicRouteData topicRouteData = getAllMessageQueueView(ctx, topicName).getTopicRouteData();
 
         ProxyTopicRouteData proxyTopicRouteData = new ProxyTopicRouteData();
         proxyTopicRouteData.setQueueDatas(topicRouteData.getQueueDatas());
@@ -57,8 +58,8 @@ public class ClusterTopicRouteService extends TopicRouteService {
     }
 
     @Override
-    public String getBrokerAddr(String brokerName) throws Exception {
-        List<BrokerData> brokerDataList = getAllMessageQueueView(brokerName).getTopicRouteData().getBrokerDatas();
+    public String getBrokerAddr(ProxyContext ctx, String brokerName) throws Exception {
+        List<BrokerData> brokerDataList = getAllMessageQueueView(ctx, brokerName).getTopicRouteData().getBrokerDatas();
         if (brokerDataList.isEmpty()) {
             return null;
         }
@@ -66,8 +67,8 @@ public class ClusterTopicRouteService extends TopicRouteService {
     }
 
     @Override
-    public AddressableMessageQueue buildAddressableMessageQueue(MessageQueue messageQueue) throws Exception {
-        String brokerAddress = getBrokerAddr(messageQueue.getBrokerName());
+    public AddressableMessageQueue buildAddressableMessageQueue(ProxyContext ctx, MessageQueue messageQueue) throws Exception {
+        String brokerAddress = getBrokerAddr(ctx, messageQueue.getBrokerName());
         return new AddressableMessageQueue(messageQueue, brokerAddress);
     }
 }

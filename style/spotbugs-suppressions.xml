@@ -31,7 +31,7 @@
         <Bug pattern="RV_ABSOLUTE_VALUE_OF_HASHCODE"/>
     </Match>
     <Match>
-        <Class name="org.apache.rocketmq.tieredstore.container.TieredIndexFile"/>
+        <Class name="org.apache.rocketmq.tieredstore.file.TieredIndexFile"/>
         <Method name="indexKeyHashMethod" />
         <Bug pattern="RV_ABSOLUTE_VALUE_OF_HASHCODE"/>
     </Match>
