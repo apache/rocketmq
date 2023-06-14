@@ -252,6 +252,12 @@ public class MappedFileQueue implements Swappable {
                 continue;
             }
 
+            if (file.length() == 0) {
+                boolean ok = file.delete();
+                log.warn("{} size is 0, auto delete is_ok: {}", file, ok);
+                continue;
+            }
+
             if (file.length() != this.mappedFileSize) {
                 log.warn(file + "\t" + file.length()
                         + " length not matched message store config value, please check it manually");
