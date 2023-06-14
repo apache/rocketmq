@@ -74,10 +74,11 @@ public class BatchProducer {
         final boolean msgTraceEnable = getOptionValue(commandLine, 'm', false);
         final boolean aclEnable = getOptionValue(commandLine, 'a', false);
         final boolean enableCompress = commandLine.hasOption('c') && Boolean.parseBoolean(commandLine.getOptionValue('c'));
+        final int reportInterval = commandLine.hasOption("ri") ? Integer.parseInt(commandLine.getOptionValue("ri")) : 10000;
 
         System.out.printf("topic: %s, threadCount: %d, messageSize: %d, batchSize: %d, keyEnable: %s, propertySize: %d, tagCount: %d, traceEnable: %s, " +
-                "aclEnable: %s%n compressEnable: %s%n",
-            topic, threadCount, messageSize, batchSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable, enableCompress);
+                "aclEnable: %s%n compressEnable: %s, reportInterval: %d%n",
+            topic, threadCount, messageSize, batchSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable, enableCompress, reportInterval);
 
         StringBuilder sb = new StringBuilder(messageSize);
         for (int i = 0; i < messageSize; i++) {
@@ -85,7 +86,7 @@ public class BatchProducer {
         }
         msgBody = sb.toString().getBytes(StandardCharsets.UTF_8);
 
-        final StatsBenchmarkBatchProducer statsBenchmark = new StatsBenchmarkBatchProducer();
+        final StatsBenchmarkBatchProducer statsBenchmark = new StatsBenchmarkBatchProducer(reportInterval);
         statsBenchmark.start();
 
         RPCHook rpcHook = null;
@@ -253,6 +254,10 @@ public class BatchProducer {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("ri", "reportInterval", true, "The number of ms between reports, Default: 10000");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -359,6 +364,12 @@ class StatsBenchmarkBatchProducer {
 
     private final LinkedList<Long[]> snapshotList = new LinkedList<>();
 
+    private final int reportInterval;
+
+    public StatsBenchmarkBatchProducer(int reportInterval) {
+        this.reportInterval = reportInterval;
+    }
+
     public Long[] createSnapshot() {
         Long[] snap = new Long[] {
             System.currentTimeMillis(),
@@ -432,7 +443,7 @@ class StatsBenchmarkBatchProducer {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 10000, TimeUnit.MILLISECONDS);
+        }, reportInterval, reportInterval, TimeUnit.MILLISECONDS);
     }
 
     public void shutdown() {

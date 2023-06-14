@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.tieredstore.provider;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,59 +25,78 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
-import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
-import org.apache.rocketmq.tieredstore.container.TieredIndexFile;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
+import org.apache.rocketmq.tieredstore.file.TieredCommitLog;
+import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
+import org.apache.rocketmq.tieredstore.file.TieredIndexFile;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStreamFactory;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 public abstract class TieredFileSegment implements Comparable<TieredFileSegment>, TieredStoreProvider {
+
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
-    private volatile boolean closed = false;
-    private final ReentrantLock bufferLock = new ReentrantLock();
-    private final Semaphore commitLock = new Semaphore(1);
-    private List<ByteBuffer> uploadBufferList = new ArrayList<>();
-    private boolean full;
-    protected final FileSegmentType fileType;
-    protected final MessageQueue messageQueue;
-    protected final TieredMessageStoreConfig storeConfig;
+
+    protected final String filePath;
     protected final long baseOffset;
+    protected final FileSegmentType fileType;
+    protected final TieredMessageStoreConfig storeConfig;
+
+    private final long maxSize;
+    private final ReentrantLock bufferLock;
+    private final Semaphore commitLock;
+
+    private volatile boolean full;
+    private volatile boolean closed;
+
+    private volatile long minTimestamp;
+    private volatile long maxTimestamp;
     private volatile long commitPosition;
     private volatile long appendPosition;
-    private final long maxSize;
-    private long beginTimestamp = Long.MAX_VALUE;
-    private long endTimestamp = Long.MAX_VALUE;
+
     // only used in commitLog
-    private long commitMsgQueueOffset = 0;
+    private volatile long dispatchCommitOffset = 0;
+
     private ByteBuffer codaBuffer;
+    private List<ByteBuffer> uploadBufferList = new ArrayList<>();
+    private CompletableFuture<Boolean> flightCommitRequest = CompletableFuture.completedFuture(false);
 
-    private CompletableFuture<Boolean> inflightCommitRequest = CompletableFuture.completedFuture(false);
+    public TieredFileSegment(TieredMessageStoreConfig storeConfig,
+        FileSegmentType fileType, String filePath, long baseOffset) {
 
-    public TieredFileSegment(FileSegmentType fileType, MessageQueue messageQueue, long baseOffset,
-        TieredMessageStoreConfig storeConfig) {
-        this.fileType = fileType;
-        this.messageQueue = messageQueue;
         this.storeConfig = storeConfig;
+        this.fileType = fileType;
+        this.filePath = filePath;
         this.baseOffset = baseOffset;
-        this.commitPosition = 0;
-        this.appendPosition = 0;
+
+        this.closed = false;
+        this.bufferLock = new ReentrantLock();
+        this.commitLock = new Semaphore(1);
+
+        this.commitPosition = 0L;
+        this.appendPosition = 0L;
+        this.minTimestamp = Long.MAX_VALUE;
+        this.maxTimestamp = Long.MAX_VALUE;
+
+        // The max segment size of a file is determined by the file type
+        this.maxSize = getMaxSizeAccordingFileType(storeConfig);
+    }
+
+    private long getMaxSizeAccordingFileType(TieredMessageStoreConfig storeConfig) {
         switch (fileType) {
             case COMMIT_LOG:
-                this.maxSize = storeConfig.getTieredStoreCommitLogMaxSize();
-                break;
+                return storeConfig.getTieredStoreCommitLogMaxSize();
             case CONSUME_QUEUE:
-                this.maxSize = storeConfig.getTieredStoreConsumeQueueMaxSize();
-                break;
+                return storeConfig.getTieredStoreConsumeQueueMaxSize();
             case INDEX:
-                this.maxSize = Long.MAX_VALUE;
-                break;
+                return Long.MAX_VALUE;
             default:
                 throw new IllegalArgumentException("Unsupported file type: " + fileType);
         }
@@ -100,8 +119,8 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         return commitPosition;
     }
 
-    public long getCommitMsgQueueOffset() {
-        return commitMsgQueueOffset;
+    public long getDispatchCommitOffset() {
+        return dispatchCommitOffset;
     }
 
     public long getMaxOffset() {
@@ -112,20 +131,20 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         return maxSize;
     }
 
-    public long getBeginTimestamp() {
-        return beginTimestamp;
+    public long getMinTimestamp() {
+        return minTimestamp;
     }
 
-    public void setBeginTimestamp(long beginTimestamp) {
-        this.beginTimestamp = beginTimestamp;
+    public void setMinTimestamp(long minTimestamp) {
+        this.minTimestamp = minTimestamp;
     }
 
-    public long getEndTimestamp() {
-        return endTimestamp;
+    public long getMaxTimestamp() {
+        return maxTimestamp;
     }
 
-    public void setEndTimestamp(long endTimestamp) {
-        this.endTimestamp = endTimestamp;
+    public void setMaxTimestamp(long maxTimestamp) {
+        this.maxTimestamp = maxTimestamp;
     }
 
     public boolean isFull() {
@@ -158,10 +177,6 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
 
     public FileSegmentType getFileType() {
         return fileType;
-    }
-
-    public MessageQueue getMessageQueue() {
-        return messageQueue;
     }
 
     public void initPosition(long pos) {
@@ -197,6 +212,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         }
     }
 
+    @SuppressWarnings("NonAtomicOperationOnVolatileField")
     public AppendResult append(ByteBuffer byteBuf, long timeStamp) {
         if (closed) {
             return AppendResult.FILE_CLOSED;
@@ -208,8 +224,8 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             }
 
             if (fileType == FileSegmentType.INDEX) {
-                beginTimestamp = byteBuf.getLong(TieredIndexFile.INDEX_FILE_HEADER_BEGIN_TIME_STAMP_POSITION);
-                endTimestamp = byteBuf.getLong(TieredIndexFile.INDEX_FILE_HEADER_END_TIME_STAMP_POSITION);
+                minTimestamp = byteBuf.getLong(TieredIndexFile.INDEX_FILE_HEADER_BEGIN_TIME_STAMP_POSITION);
+                maxTimestamp = byteBuf.getLong(TieredIndexFile.INDEX_FILE_HEADER_END_TIME_STAMP_POSITION);
                 appendPosition += byteBuf.remaining();
                 uploadBufferList.add(byteBuf);
                 setFull();
@@ -230,9 +246,9 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
                 return AppendResult.BUFFER_FULL;
             }
             if (timeStamp != Long.MAX_VALUE) {
-                endTimestamp = timeStamp;
-                if (beginTimestamp == Long.MAX_VALUE) {
-                    beginTimestamp = timeStamp;
+                maxTimestamp = timeStamp;
+                if (minTimestamp == Long.MAX_VALUE) {
+                    minTimestamp = timeStamp;
                 }
             }
             appendPosition += byteBuf.remaining();
@@ -243,6 +259,20 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         }
     }
 
+    public void setCommitPosition(long commitPosition) {
+        this.commitPosition = commitPosition;
+    }
+
+    public long getAppendPosition() {
+        return appendPosition;
+    }
+
+    @VisibleForTesting
+    public void setAppendPosition(long appendPosition) {
+        this.appendPosition = appendPosition;
+    }
+
+    @SuppressWarnings("NonAtomicOperationOnVolatileField")
     private void appendCoda() {
         if (codaBuffer != null) {
             return;
@@ -250,7 +280,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         codaBuffer = ByteBuffer.allocate(TieredCommitLog.CODA_SIZE);
         codaBuffer.putInt(TieredCommitLog.CODA_SIZE);
         codaBuffer.putInt(TieredCommitLog.BLANK_MAGIC_CODE);
-        codaBuffer.putLong(endTimestamp);
+        codaBuffer.putLong(maxTimestamp);
         codaBuffer.flip();
         appendPosition += TieredCommitLog.CODA_SIZE;
     }
@@ -305,11 +335,12 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         }
         Boolean result = commitAsync().join();
         if (!result) {
-            result = inflightCommitRequest.join();
+            result = flightCommitRequest.join();
         }
         return result;
     }
 
+    @SuppressWarnings("NonAtomicOperationOnVolatileField")
     public CompletableFuture<Boolean> commitAsync() {
         if (closed) {
             return CompletableFuture.completedFuture(false);
@@ -337,21 +368,23 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         if (bufferSize == 0) {
             return CompletableFuture.completedFuture(true);
         }
-        TieredFileSegmentInputStream inputStream = new TieredFileSegmentInputStream(fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
+        TieredFileSegmentInputStream inputStream = TieredFileSegmentInputStreamFactory.build(
+            fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
         int finalBufferSize = bufferSize;
         try {
-            inflightCommitRequest = commit0(inputStream, commitPosition, bufferSize, fileType != FileSegmentType.INDEX)
+            flightCommitRequest = commit0(inputStream, commitPosition, bufferSize, fileType != FileSegmentType.INDEX)
                 .thenApply(result -> {
                     if (result) {
                         if (fileType == FileSegmentType.COMMIT_LOG && bufferList.size() > 0) {
-                            commitMsgQueueOffset = MessageBufferUtil.getQueueOffset(bufferList.get(bufferList.size() - 1));
+                            dispatchCommitOffset = MessageBufferUtil.getQueueOffset(bufferList.get(bufferList.size() - 1));
                         }
                         commitPosition += finalBufferSize;
                         return true;
                     }
                     sendBackBuffer(inputStream);
                     return false;
-                }).exceptionally(e -> handleCommitException(inputStream, e))
+                })
+                .exceptionally(e -> handleCommitException(inputStream, e))
                 .whenComplete((result, e) -> {
                     if (commitLock.availablePermits() == 0) {
                         logger.debug("TieredFileSegment#commitAsync: commit cost: {}ms, file: {}, item count: {}, buffer size: {}", stopwatch.elapsed(TimeUnit.MILLISECONDS), getPath(), bufferList.size(), finalBufferSize);
@@ -360,7 +393,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
                         logger.error("[Bug]TieredFileSegment#commitAsync: commit lock is already released: available permits: {}", commitLock.availablePermits());
                     }
                 });
-            return inflightCommitRequest;
+            return flightCommitRequest;
         } catch (Exception e) {
             handleCommitException(inputStream, e);
             if (commitLock.availablePermits() == 0) {
@@ -394,138 +427,5 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             logger.error("[Bug]TieredFileSegment#handleCommitException: commit failed: file: {}, can not fix position: origin: {}, real: {}", getPath(), commitPosition, realSize, cause);
         }
         return false;
-    }
-
-    public enum FileSegmentType {
-        COMMIT_LOG(0),
-        CONSUME_QUEUE(1),
-        INDEX(2);
-
-        private int type;
-
-        FileSegmentType(int type) {
-            this.type = type;
-        }
-
-        public int getType() {
-            return type;
-        }
-
-        public static FileSegmentType valueOf(int type) {
-            switch (type) {
-                case 0:
-                    return COMMIT_LOG;
-                case 1:
-                    return CONSUME_QUEUE;
-                case 2:
-                    return INDEX;
-                default:
-                    throw new IllegalStateException("Unexpected value: " + type);
-            }
-        }
-    }
-
-    public static class TieredFileSegmentInputStream extends InputStream {
-
-        private final FileSegmentType fileType;
-        private final List<ByteBuffer> uploadBufferList;
-        private int bufferReadIndex = 0;
-        private int readOffset = 0;
-        // only used in commitLog
-        private long commitLogOffset;
-        private final ByteBuffer commitLogOffsetBuffer = ByteBuffer.allocate(8);
-        private final ByteBuffer codaBuffer;
-        private ByteBuffer curBuffer;
-        private final int contentLength;
-        private int readBytes = 0;
-
-        public TieredFileSegmentInputStream(FileSegmentType fileType, long startOffset,
-            List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
-            this.fileType = fileType;
-            this.commitLogOffset = startOffset;
-            this.commitLogOffsetBuffer.putLong(0, startOffset);
-            this.uploadBufferList = uploadBufferList;
-            this.codaBuffer = codaBuffer;
-            this.contentLength = contentLength;
-            if (uploadBufferList.size() > 0) {
-                this.curBuffer = uploadBufferList.get(0);
-            }
-            if (fileType == FileSegmentType.INDEX && uploadBufferList.size() != 1) {
-                logger.error("[Bug]TieredFileSegmentInputStream: index file must have only one buffer");
-            }
-        }
-
-        public List<ByteBuffer> getUploadBufferList() {
-            return uploadBufferList;
-        }
-
-        public ByteBuffer getCodaBuffer() {
-            return codaBuffer;
-        }
-
-        @Override
-        public int available() {
-            return contentLength - readBytes;
-        }
-
-        @Override
-        public int read() {
-            if (bufferReadIndex >= uploadBufferList.size()) {
-                return readCoda();
-            }
-
-            int res;
-            switch (fileType) {
-                case COMMIT_LOG:
-                    if (readOffset >= curBuffer.remaining()) {
-                        bufferReadIndex++;
-                        if (bufferReadIndex >= uploadBufferList.size()) {
-                            return readCoda();
-                        }
-                        curBuffer = uploadBufferList.get(bufferReadIndex);
-                        commitLogOffset += readOffset;
-                        commitLogOffsetBuffer.putLong(0, commitLogOffset);
-                        readOffset = 0;
-                    }
-                    if (readOffset >= MessageBufferUtil.PHYSICAL_OFFSET_POSITION && readOffset < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
-                        res = commitLogOffsetBuffer.get(readOffset - MessageBufferUtil.PHYSICAL_OFFSET_POSITION) & 0xff;
-                        readOffset++;
-                    } else {
-                        res = curBuffer.get(readOffset++) & 0xff;
-                    }
-                    break;
-                case CONSUME_QUEUE:
-                    if (!curBuffer.hasRemaining()) {
-                        bufferReadIndex++;
-                        if (bufferReadIndex >= uploadBufferList.size()) {
-                            return -1;
-                        }
-                        curBuffer = uploadBufferList.get(bufferReadIndex);
-                    }
-                    res = curBuffer.get() & 0xff;
-                    break;
-                case INDEX:
-                    if (!curBuffer.hasRemaining()) {
-                        return -1;
-                    }
-                    res = curBuffer.get() & 0xff;
-                    break;
-                default:
-                    throw new IllegalStateException("unknown file type");
-            }
-            readBytes++;
-            return res;
-        }
-
-        private int readCoda() {
-            if (fileType != FileSegmentType.COMMIT_LOG || codaBuffer == null) {
-                return -1;
-            }
-            if (!codaBuffer.hasRemaining()) {
-                return -1;
-            }
-            readBytes++;
-            return codaBuffer.get() & 0xff;
-        }
     }
 }

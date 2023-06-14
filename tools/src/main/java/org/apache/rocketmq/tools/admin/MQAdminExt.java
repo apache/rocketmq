@@ -473,4 +473,16 @@ public interface MQAdminExt extends MQAdmin {
         String brokerControllerIdsToClean,
         boolean isCleanLivingBroker) throws RemotingException, InterruptedException, MQBrokerException;
 
+    void updateColdDataFlowCtrGroupConfig(final String brokerAddr, final Properties properties)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    void removeColdDataFlowCtrGroupConfig(final String brokerAddr, final String consumerGroup)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    String getColdDataFlowCtrInfo(final String brokerAddr)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    String setCommitLogReadAheadMode(final String brokerAddr, String mode)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
 }

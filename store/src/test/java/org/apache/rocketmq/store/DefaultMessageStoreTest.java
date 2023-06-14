@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +49,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -939,6 +941,15 @@ public class DefaultMessageStoreTest {
         messageStore.cleanUnusedTopic(resultSet);
         Assert.assertEquals(consumeQueueTable.size(), 2);
         Assert.assertEquals(resultSet, consumeQueueTable.keySet());
+    }
+
+    @Test
+    public void testChangeStoreConfig() {
+        Properties properties = new Properties();
+        properties.setProperty("enableBatchPush", "true");
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        MixAll.properties2Object(properties, messageStoreConfig);
+        assertThat(messageStoreConfig.isEnableBatchPush()).isTrue();
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {

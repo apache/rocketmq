@@ -26,16 +26,24 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 
 public class TieredStoreExecutor {
+
     private static final int QUEUE_CAPACITY = 10000;
-    public static ExecutorService dispatchExecutor;
+
+    // Visible for monitor
+    public static BlockingQueue<Runnable> dispatchThreadPoolQueue;
+    public static BlockingQueue<Runnable> fetchDataThreadPoolQueue;
+    public static BlockingQueue<Runnable> compactIndexFileThreadPoolQueue;
+
     public static ScheduledExecutorService commonScheduledExecutor;
     public static ScheduledExecutorService commitExecutor;
     public static ScheduledExecutorService cleanExpiredFileExecutor;
+
+    public static ExecutorService dispatchExecutor;
     public static ExecutorService fetchDataExecutor;
     public static ExecutorService compactIndexFileExecutor;
 
     public static void init() {
-        BlockingQueue<Runnable> dispatchThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+        dispatchThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
         dispatchExecutor = new ThreadPoolExecutor(
             Math.max(2, Runtime.getRuntime().availableProcessors()),
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
@@ -56,7 +64,7 @@ public class TieredStoreExecutor {
             Math.max(4, Runtime.getRuntime().availableProcessors()),
             new ThreadFactoryImpl("TieredCleanExpiredFileExecutor_"));
 
-        BlockingQueue<Runnable> fetchDataThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+        fetchDataThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
         fetchDataExecutor = new ThreadPoolExecutor(
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             Math.max(64, Runtime.getRuntime().availableProcessors() * 8),
@@ -65,7 +73,7 @@ public class TieredStoreExecutor {
             fetchDataThreadPoolQueue,
             new ThreadFactoryImpl("TieredFetchDataExecutor_"));
 
-        BlockingQueue<Runnable> compactIndexFileThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+        compactIndexFileThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
         compactIndexFileExecutor = new ThreadPoolExecutor(
             1,
             1,
