@@ -82,6 +82,7 @@ import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.pop.AckMsg;
+import org.apache.rocketmq.store.pop.BatchAckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
@@ -134,6 +135,15 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             + PopAckConstants.SPLIT + ackMsg.getPopTime()
             + PopAckConstants.SPLIT + ackMsg.getBrokerName()
             + PopAckConstants.SPLIT + PopAckConstants.ACK_TAG;
+    }
+
+    public static String genBatchAckUniqueId(BatchAckMsg batchAckMsg) {
+        return batchAckMsg.getTopic()
+                + PopAckConstants.SPLIT + batchAckMsg.getQueueId()
+                + PopAckConstants.SPLIT + batchAckMsg.getAckOffsetList().toString()
+                + PopAckConstants.SPLIT + batchAckMsg.getConsumerGroup()
+                + PopAckConstants.SPLIT + batchAckMsg.getPopTime()
+                + PopAckConstants.SPLIT + PopAckConstants.BATCH_ACK_TAG;
     }
 
     public static String genCkUniqueId(PopCheckPoint ck) {

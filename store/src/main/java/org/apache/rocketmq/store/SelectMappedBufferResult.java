@@ -29,6 +29,8 @@ public class SelectMappedBufferResult {
 
     protected MappedFile mappedFile;
 
+    private boolean isInCache = true;
+
     public SelectMappedBufferResult(long startOffset, ByteBuffer byteBuffer, int size, MappedFile mappedFile) {
         this.startOffset = startOffset;
         this.byteBuffer = byteBuffer;
@@ -73,5 +75,13 @@ public class SelectMappedBufferResult {
         }
         long pos = startOffset - mappedFile.getFileFromOffset();
         return mappedFile.isLoaded(pos, size);
+    }
+
+    public boolean isInCache() {
+        return isInCache;
+    }
+
+    public void setInCache(boolean inCache) {
+        isInCache = inCache;
     }
 }
