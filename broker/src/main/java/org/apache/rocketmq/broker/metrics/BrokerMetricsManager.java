@@ -23,10 +23,10 @@ import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.LongHistogram;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
+import io.opentelemetry.exporter.logging.LoggingMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
-import io.opentelemetry.exporter.logging.LoggingMetricExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -61,11 +62,10 @@ import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.slf4j.bridge.SLF4JBridgeHandler;
-
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.store.MessageStore;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL;
@@ -114,6 +114,8 @@ public class BrokerMetricsManager {
     private LoggingMetricExporter loggingMetricExporter;
     private Meter brokerMeter;
 
+    public static Supplier<AttributesBuilder> attributesBuilderSupplier;
+
     // broker stats metrics
     public static ObservableLongGauge processorWatermark = new NopObservableLongGauge();
     public static ObservableLongGauge brokerPermission = new NopObservableLongGauge();
@@ -152,7 +154,11 @@ public class BrokerMetricsManager {
     }
 
     public static AttributesBuilder newAttributesBuilder() {
-        AttributesBuilder attributesBuilder = Attributes.builder();
+        AttributesBuilder attributesBuilder;
+        if (attributesBuilderSupplier == null) {
+            attributesBuilderSupplier = Attributes::builder;
+        }
+        attributesBuilder = attributesBuilderSupplier.get();
         LABEL_MAP.forEach(attributesBuilder::put);
         return attributesBuilder;
     }
