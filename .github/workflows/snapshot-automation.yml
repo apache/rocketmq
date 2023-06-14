@@ -152,7 +152,7 @@ jobs:
           action: "deploy"
           ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
           test-version: "${{ matrix.version }}"
-          chart-git: "https://ghproxy.com/https://github.com/apache/rocketmq-docker.git"
+          chart-git: "https://github.com/apache/rocketmq-docker.git"
           chart-branch: "master"
           chart-path: "./rocketmq-k8s-helm"
           job-id: ${{ strategy.job-index }}
@@ -186,7 +186,7 @@ jobs:
           action: "test"
           ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
           test-version: "${{ matrix.version }}"
-          test-code-git: "https://ghproxy.com/https://github.com/apache/rocketmq-e2e.git"
+          test-code-git: "https://github.com/apache/rocketmq-e2e.git"
           test-code-branch: "master"
           test-code-path: java/e2e
           test-cmd: "mvn -B test"
