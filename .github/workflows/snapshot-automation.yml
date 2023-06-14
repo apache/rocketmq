@@ -32,7 +32,7 @@ on:
 
 env:
   MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
-  DOCKER_REPO: apache/rocketmq-ci
+  DOCKER_REPO: zychen143/rocketmq
 
 jobs:
   dist-tar:
