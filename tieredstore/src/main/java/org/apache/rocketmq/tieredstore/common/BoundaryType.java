@@ -16,18 +16,23 @@
  */
 package org.apache.rocketmq.tieredstore.common;
 
+/**
+ *  This enumeration represents the boundary types.
+ *  It has two constants, lower and upper, which represent the lower and upper boundaries respectively.
+ */
 public enum BoundaryType {
+
     /**
-     * Indicate that lower boundary is expected.
+     * Represents the lower boundary.
      */
     LOWER("lower"),
 
     /**
-     * Indicate that upper boundary is expected.
+     * Represents the upper boundary.
      */
     UPPER("upper");
 
-    private String name;
+    private final String name;
 
     BoundaryType(String name) {
         this.name = name;

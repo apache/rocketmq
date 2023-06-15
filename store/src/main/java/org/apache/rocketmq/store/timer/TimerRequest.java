@@ -110,4 +110,20 @@ public class TimerRequest {
     public boolean isSucc() {
         return succ;
     }
+
+    @Override
+    public String toString() {
+        return "TimerRequest{" +
+            "offsetPy=" + offsetPy +
+            ", sizePy=" + sizePy +
+            ", delayTime=" + delayTime +
+            ", enqueueTime=" + enqueueTime +
+            ", magic=" + magic +
+            ", msg=" + msg +
+            ", latch=" + latch +
+            ", released=" + released +
+            ", succ=" + succ +
+            ", deleteList=" + deleteList +
+            '}';
+    }
 }

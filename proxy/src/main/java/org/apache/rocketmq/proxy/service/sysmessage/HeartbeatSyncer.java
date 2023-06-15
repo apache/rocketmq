@@ -41,6 +41,7 @@ import org.apache.rocketmq.proxy.processor.channel.RemoteChannel;
 import org.apache.rocketmq.proxy.service.admin.AdminService;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -53,8 +54,8 @@ public class HeartbeatSyncer extends AbstractSystemMessageSyncer {
     protected String localProxyId;
 
     public HeartbeatSyncer(TopicRouteService topicRouteService, AdminService adminService,
-        ConsumerManager consumerManager, MQClientAPIFactory mqClientAPIFactory) {
-        super(topicRouteService, adminService, mqClientAPIFactory);
+                           ConsumerManager consumerManager, MQClientAPIFactory mqClientAPIFactory, RPCHook rpcHook) {
+        super(topicRouteService, adminService, mqClientAPIFactory, rpcHook);
         this.consumerManager = consumerManager;
         this.localProxyId = buildLocalProxyId();
         this.init();

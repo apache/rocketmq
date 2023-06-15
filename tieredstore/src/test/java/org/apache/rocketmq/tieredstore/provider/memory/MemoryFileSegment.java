@@ -14,31 +14,79 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.mock;
+package org.apache.rocketmq.tieredstore.provider.memory;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.Assert;
 
-public class MemoryFileSegmentWithoutCheck extends MemoryFileSegment {
+public class MemoryFileSegment extends TieredFileSegment {
 
-    public MemoryFileSegmentWithoutCheck(FileSegmentType fileType,
-        MessageQueue messageQueue, long baseOffset,
+    protected final ByteBuffer memStore;
+
+    public CompletableFuture<Boolean> blocker;
+
+    protected boolean checkSize = true;
+
+    public MemoryFileSegment(FileSegmentType fileType, MessageQueue messageQueue, long baseOffset,
         TieredMessageStoreConfig storeConfig) {
-        super(fileType, messageQueue, baseOffset, storeConfig);
+        this(storeConfig, fileType, TieredStoreUtil.toPath(messageQueue), baseOffset);
+    }
+
+    public MemoryFileSegment(TieredMessageStoreConfig storeConfig,
+        FileSegmentType fileType, String filePath, long baseOffset) {
+        super(storeConfig, fileType, filePath, baseOffset);
+        switch (fileType) {
+            case COMMIT_LOG:
+            case INDEX:
+            case CONSUME_QUEUE:
+                memStore = ByteBuffer.allocate(10000);
+                break;
+            default:
+                memStore = null;
+                break;
+        }
+        memStore.position((int) getSize());
+    }
+
+    @Override
+    public String getPath() {
+        return filePath;
     }
 
     @Override
     public long getSize() {
+        if (checkSize) {
+            return 1000;
+        }
         return 0;
     }
 
     @Override
-    public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length,
-                                              boolean append) {
+    public void createFile() {
+
+    }
+
+    @Override
+    public CompletableFuture<ByteBuffer> read0(long position, int length) {
+        ByteBuffer buffer = memStore.duplicate();
+        buffer.position((int) position);
+        ByteBuffer slice = buffer.slice();
+        slice.limit(length);
+        return CompletableFuture.completedFuture(slice);
+    }
+
+    @Override
+    public CompletableFuture<Boolean> commit0(
+        TieredFileSegmentInputStream inputStream, long position, int length, boolean append) {
+
         try {
             if (blocker != null && !blocker.get()) {
                 throw new IllegalStateException();
@@ -46,6 +94,8 @@ public class MemoryFileSegmentWithoutCheck extends MemoryFileSegment {
         } catch (InterruptedException | ExecutionException e) {
             Assert.fail(e.getMessage());
         }
+
+        Assert.assertTrue(!checkSize || position >= getSize());
 
         byte[] buffer = new byte[1024];
 
@@ -61,5 +111,15 @@ public class MemoryFileSegmentWithoutCheck extends MemoryFileSegment {
             return CompletableFuture.completedFuture(false);
         }
         return CompletableFuture.completedFuture(true);
+    }
+
+    @Override
+    public boolean exists() {
+        return false;
+    }
+
+    @Override
+    public void destroyFile() {
+
     }
 }
