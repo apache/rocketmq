@@ -198,7 +198,7 @@ public class ExpressionTest {
     }
 
     @Test
-    public void testContains_StartsWith_EndsWith_has_not_string_1() throws Exception {
+    public void testContains_has_not_string_1() throws Exception {
         try {
             Expression expr = genExp("value contains x");  // will throw parse exception.
             EvaluationContext context = genContext(
@@ -222,7 +222,7 @@ public class ExpressionTest {
     }
 
     @Test
-    public void testContains_StartsWith_EndsWith_has_not_string_2() throws Exception {
+    public void testContains_has_not_string_2() throws Exception {
         try {
             Expression expr = genExp("value contains 123");  // will throw parse exception.
             EvaluationContext context = genContext(
