@@ -173,21 +173,21 @@ public class SelectorParser implements SelectorParserConstants {
         while (true) {
             switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
                 case IS:
-                case 23:
-                case 24:
+                case 25:
+                case 26:
                     break;
                 default:
                     jjLa1[2] = jjGen;
                     break label_3;
             }
             switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
-                case 23:
-                    jj_consume_token(23);
+                case 25:
+                    jj_consume_token(25);
                     right = comparisonExpression();
                     left = ComparisonExpression.createEqual(left, right);
                     break;
-                case 24:
-                    jj_consume_token(24);
+                case 26:
+                    jj_consume_token(26);
                     right = comparisonExpression();
                     left = ComparisonExpression.createNotEqual(left, right);
                     break;
@@ -235,33 +235,35 @@ public class SelectorParser implements SelectorParserConstants {
                 case BETWEEN:
                 case IN:
                 case CONTAINS:
-                case 25:
-                case 26:
+                case STARTSWITH:
+                case ENDSWITH:
                 case 27:
                 case 28:
+                case 29:
+                case 30:
                     break;
                 default:
                     jjLa1[5] = jjGen;
                     break label_4;
             }
             switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
-                case 25:
-                    jj_consume_token(25);
-                    right = unaryExpr();
-                    left = ComparisonExpression.createGreaterThan(left, right);
-                    break;
-                case 26:
-                    jj_consume_token(26);
-                    right = unaryExpr();
-                    left = ComparisonExpression.createGreaterThanEqual(left, right);
-                    break;
                 case 27:
                     jj_consume_token(27);
                     right = unaryExpr();
-                    left = ComparisonExpression.createLessThan(left, right);
+                    left = ComparisonExpression.createGreaterThan(left, right);
                     break;
                 case 28:
                     jj_consume_token(28);
+                    right = unaryExpr();
+                    left = ComparisonExpression.createGreaterThanEqual(left, right);
+                    break;
+                case 29:
+                    jj_consume_token(29);
+                    right = unaryExpr();
+                    left = ComparisonExpression.createLessThan(left, right);
+                    break;
+                case 30:
+                    jj_consume_token(30);
                     right = unaryExpr();
                     left = ComparisonExpression.createLessThanEqual(left, right);
                     break;
@@ -279,73 +281,105 @@ public class SelectorParser implements SelectorParserConstants {
                         left = ComparisonExpression.createNotContains(left, t);
                     } else {
                         switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
-                            case BETWEEN:
-                                jj_consume_token(BETWEEN);
-                                low = unaryExpr();
-                                jj_consume_token(AND);
-                                high = unaryExpr();
-                                left = ComparisonExpression.createBetween(left, low, high);
+                            case STARTSWITH:
+                                jj_consume_token(STARTSWITH);
+                                t = stringLitteral();
+                                left = ComparisonExpression.createStartsWith(left, t);
                                 break;
                             default:
                                 jjLa1[9] = jjGen;
                                 if (jj_2_3(2)) {
                                     jj_consume_token(NOT);
-                                    jj_consume_token(BETWEEN);
-                                    low = unaryExpr();
-                                    jj_consume_token(AND);
-                                    high = unaryExpr();
-                                    left = ComparisonExpression.createNotBetween(left, low, high);
+                                    jj_consume_token(STARTSWITH);
+                                    t = stringLitteral();
+                                    left = ComparisonExpression.createNotStartsWith(left, t);
                                 } else {
                                     switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
-                                        case IN:
-                                            jj_consume_token(IN);
-                                            jj_consume_token(29);
+                                        case ENDSWITH:
+                                            jj_consume_token(ENDSWITH);
                                             t = stringLitteral();
-                                            list = new ArrayList();
-                                            list.add(t);
-                                            label_5:
-                                            while (true) {
-                                                switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
-                                                    case 30:
-                                                        break;
-                                                    default:
-                                                        jjLa1[6] = jjGen;
-                                                        break label_5;
-                                                }
-                                                jj_consume_token(30);
-                                                t = stringLitteral();
-                                                list.add(t);
-                                            }
-                                            jj_consume_token(31);
-                                            left = ComparisonExpression.createInFilter(left, list);
+                                            left = ComparisonExpression.createEndsWith(left, t);
                                             break;
                                         default:
                                             jjLa1[10] = jjGen;
                                             if (jj_2_4(2)) {
                                                 jj_consume_token(NOT);
-                                                jj_consume_token(IN);
-                                                jj_consume_token(29);
+                                                jj_consume_token(ENDSWITH);
                                                 t = stringLitteral();
-                                                list = new ArrayList();
-                                                list.add(t);
-                                                label_6:
-                                                while (true) {
-                                                    switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
-                                                        case 30:
-                                                            break;
-                                                        default:
-                                                            jjLa1[7] = jjGen;
-                                                            break label_6;
-                                                    }
-                                                    jj_consume_token(30);
-                                                    t = stringLitteral();
-                                                    list.add(t);
-                                                }
-                                                jj_consume_token(31);
-                                                left = ComparisonExpression.createNotInFilter(left, list);
+                                                left = ComparisonExpression.createNotEndsWith(left, t);
                                             } else {
-                                                jj_consume_token(-1);
-                                                throw new ParseException();
+                                                switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
+                                                    case BETWEEN:
+                                                        jj_consume_token(BETWEEN);
+                                                        low = unaryExpr();
+                                                        jj_consume_token(AND);
+                                                        high = unaryExpr();
+                                                        left = ComparisonExpression.createBetween(left, low, high);
+                                                        break;
+                                                    default:
+                                                        jjLa1[11] = jjGen;
+                                                        if (jj_2_5(2)) {
+                                                            jj_consume_token(NOT);
+                                                            jj_consume_token(BETWEEN);
+                                                            low = unaryExpr();
+                                                            jj_consume_token(AND);
+                                                            high = unaryExpr();
+                                                            left = ComparisonExpression.createNotBetween(left, low, high);
+                                                        } else {
+                                                            switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
+                                                                case IN:
+                                                                    jj_consume_token(IN);
+                                                                    jj_consume_token(31);
+                                                                    t = stringLitteral();
+                                                                    list = new ArrayList();
+                                                                    list.add(t);
+                                                                    label_5:
+                                                                    while (true) {
+                                                                        switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
+                                                                            case 32:
+                                                                                break;
+                                                                            default:
+                                                                                jjLa1[6] = jjGen;
+                                                                                break label_5;
+                                                                        }
+                                                                        jj_consume_token(32);
+                                                                        t = stringLitteral();
+                                                                        list.add(t);
+                                                                    }
+                                                                    jj_consume_token(33);
+                                                                    left = ComparisonExpression.createInFilter(left, list);
+                                                                    break;
+                                                                default:
+                                                                    jjLa1[12] = jjGen;
+                                                                    if (jj_2_6(2)) {
+                                                                        jj_consume_token(NOT);
+                                                                        jj_consume_token(IN);
+                                                                        jj_consume_token(31);
+                                                                        t = stringLitteral();
+                                                                        list = new ArrayList();
+                                                                        list.add(t);
+                                                                        label_6:
+                                                                        while (true) {
+                                                                            switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
+                                                                                case 32:
+                                                                                    break;
+                                                                                default:
+                                                                                    jjLa1[7] = jjGen;
+                                                                                    break label_6;
+                                                                            }
+                                                                            jj_consume_token(32);
+                                                                            t = stringLitteral();
+                                                                            list.add(t);
+                                                                        }
+                                                                        jj_consume_token(33);
+                                                                        left = ComparisonExpression.createNotInFilter(left, list);
+                                                                    } else {
+                                                                        jj_consume_token(-1);
+                                                                        throw new ParseException();
+                                                                    }
+                                                            }
+                                                        }
+                                                }
                                             }
                                     }
                                 }
@@ -362,13 +396,13 @@ public class SelectorParser implements SelectorParserConstants {
     final public Expression unaryExpr() throws ParseException {
         String s = null;
         Expression left = null;
-        if (jj_2_5(2147483647)) {
-            jj_consume_token(32);
+        if (jj_2_7(2147483647)) {
+            jj_consume_token(34);
             left = unaryExpr();
         } else {
             switch ((jjNtk == -1) ? jj_ntk() : jjNtk) {
-                case 33:
-                    jj_consume_token(33);
+                case 35:
+                    jj_consume_token(35);
                     left = unaryExpr();
                     left = UnaryExpression.createNegate(left);
                     break;
@@ -384,11 +418,11 @@ public class SelectorParser implements SelectorParserConstants {
                 case FLOATING_POINT_LITERAL:
                 case STRING_LITERAL:
                 case ID:
-                case 29:
+                case 31:
                     left = primaryExpr();
                     break;
                 default:
-                    jjLa1[11] = jjGen;
+                    jjLa1[13] = jjGen;
                     jj_consume_token(-1);
                     throw new ParseException();
             }
@@ -413,13 +447,13 @@ public class SelectorParser implements SelectorParserConstants {
             case ID:
                 left = variable();
                 break;
-            case 29:
-                jj_consume_token(29);
-                left = orExpression();
+            case 31:
                 jj_consume_token(31);
+                left = orExpression();
+                jj_consume_token(33);
                 break;
             default:
-                jjLa1[12] = jjGen;
+                jjLa1[14] = jjGen;
                 jj_consume_token(-1);
                 throw new ParseException();
         }
@@ -459,7 +493,7 @@ public class SelectorParser implements SelectorParserConstants {
                 left = BooleanConstantExpression.NULL;
                 break;
             default:
-                jjLa1[13] = jjGen;
+                jjLa1[15] = jjGen;
                 jj_consume_token(-1);
                 throw new ParseException();
         }
@@ -478,7 +512,7 @@ public class SelectorParser implements SelectorParserConstants {
         String image = t.image;
         for (int i = 1; i < image.length() - 1; i++) {
             char c = image.charAt(i);
-            if (c == '\'')
+            if (c == '\u005c'')
                 i++;
             rc.append(c);
         }
@@ -559,14 +593,41 @@ public class SelectorParser implements SelectorParserConstants {
         }
     }
 
-    private boolean jj_3R_21() {
-        if (jj_scan_token(FLOATING_POINT_LITERAL)) return true;
-        return false;
+    private boolean jj_2_6(int xla) {
+        jjLa = xla;
+        jjLastpos = jjScanpos = token;
+        try {
+            return !jj_3_6();
+        } catch (LookaheadSuccess ls) {
+            return true;
+        } finally {
+            jj_save(5, xla);
+        }
+    }
+
+    private boolean jj_2_7(int xla) {
+        jjLa = xla;
+        jjLastpos = jjScanpos = token;
+        try {
+            return !jj_3_7();
+        } catch (LookaheadSuccess ls) {
+            return true;
+        } finally {
+            jj_save(6, xla);
+        }
     }
 
     private boolean jj_3R_34() {
-        if (jj_scan_token(24)) return true;
+        if (jj_scan_token(26)) return true;
         if (jj_3R_30()) return true;
+        return false;
+    }
+
+    private boolean jj_3R_43() {
+        if (jj_scan_token(BETWEEN)) return true;
+        if (jj_3R_7()) return true;
+        if (jj_scan_token(AND)) return true;
+        if (jj_3R_7()) return true;
         return false;
     }
 
@@ -587,106 +648,22 @@ public class SelectorParser implements SelectorParserConstants {
     }
 
     private boolean jj_3R_33() {
-        if (jj_scan_token(23)) return true;
+        if (jj_scan_token(25)) return true;
         if (jj_3R_30()) return true;
         return false;
     }
 
-    private boolean jj_3R_20() {
-        if (jj_scan_token(DECIMAL_LITERAL)) return true;
-        return false;
-    }
-
-    private boolean jj_3R_42() {
-        if (jj_scan_token(IN)) return true;
-        if (jj_scan_token(29)) return true;
-        if (jj_3R_27()) return true;
-        Token xsp;
-        while (true) {
-            xsp = jjScanpos;
-            if (jj_3R_43()) {
-                jjScanpos = xsp;
-                break;
-            }
-        }
-        if (jj_scan_token(31)) return true;
-        return false;
-    }
-
-    private boolean jj_3R_19() {
-        if (jj_3R_27()) return true;
-        return false;
-    }
-
-    private boolean jj_3R_28() {
-        if (jj_3R_30()) return true;
-        Token xsp;
-        while (true) {
-            xsp = jjScanpos;
-            if (jj_3R_31()) {
-                jjScanpos = xsp;
-                break;
-            }
-        }
-        return false;
-    }
-
-    private boolean jj_3R_16() {
-        Token xsp;
-        xsp = jjScanpos;
-        if (jj_3R_19()) {
-            jjScanpos = xsp;
-            if (jj_3R_20()) {
-                jjScanpos = xsp;
-                if (jj_3R_21()) {
-                    jjScanpos = xsp;
-                    if (jj_3R_22()) {
-                        jjScanpos = xsp;
-                        if (jj_3R_23()) {
-                            jjScanpos = xsp;
-                            if (jj_3R_24()) return true;
-                        }
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean jj_3_3() {
+    private boolean jj_3_4() {
         if (jj_scan_token(NOT)) return true;
-        if (jj_scan_token(BETWEEN)) return true;
-        if (jj_3R_7()) return true;
-        if (jj_scan_token(AND)) return true;
-        if (jj_3R_7()) return true;
-        return false;
-    }
-
-    private boolean jj_3R_41() {
-        if (jj_scan_token(BETWEEN)) return true;
-        if (jj_3R_7()) return true;
-        if (jj_scan_token(AND)) return true;
-        if (jj_3R_7()) return true;
-        return false;
-    }
-
-    private boolean jj_3R_29() {
-        if (jj_scan_token(AND)) return true;
-        if (jj_3R_28()) return true;
-        return false;
-    }
-
-    private boolean jj_3_2() {
-        if (jj_scan_token(NOT)) return true;
-        if (jj_scan_token(CONTAINS)) return true;
+        if (jj_scan_token(ENDSWITH)) return true;
         if (jj_3R_27()) return true;
         return false;
     }
 
     private boolean jj_3R_15() {
-        if (jj_scan_token(29)) return true;
-        if (jj_3R_18()) return true;
         if (jj_scan_token(31)) return true;
+        if (jj_3R_18()) return true;
+        if (jj_scan_token(33)) return true;
         return false;
     }
 
@@ -700,22 +677,9 @@ public class SelectorParser implements SelectorParserConstants {
         return false;
     }
 
-    private boolean jj_3R_40() {
-        if (jj_scan_token(CONTAINS)) return true;
+    private boolean jj_3R_42() {
+        if (jj_scan_token(ENDSWITH)) return true;
         if (jj_3R_27()) return true;
-        return false;
-    }
-
-    private boolean jj_3R_25() {
-        if (jj_3R_28()) return true;
-        Token xsp;
-        while (true) {
-            xsp = jjScanpos;
-            if (jj_3R_29()) {
-                jjScanpos = xsp;
-                break;
-            }
-        }
         return false;
     }
 
@@ -737,20 +701,129 @@ public class SelectorParser implements SelectorParserConstants {
         return false;
     }
 
-    private boolean jj_3R_39() {
-        if (jj_scan_token(28)) return true;
-        if (jj_3R_7()) return true;
+    private boolean jj_3R_28() {
+        if (jj_3R_30()) return true;
+        Token xsp;
+        while (true) {
+            xsp = jjScanpos;
+            if (jj_3R_31()) {
+                jjScanpos = xsp;
+                break;
+            }
+        }
         return false;
     }
 
-    private boolean jj_3R_38() {
-        if (jj_scan_token(27)) return true;
-        if (jj_3R_7()) return true;
+    private boolean jj_3_3() {
+        if (jj_scan_token(NOT)) return true;
+        if (jj_scan_token(STARTSWITH)) return true;
+        if (jj_3R_27()) return true;
+        return false;
+    }
+
+    private boolean jj_3R_41() {
+        if (jj_scan_token(STARTSWITH)) return true;
+        if (jj_3R_27()) return true;
         return false;
     }
 
     private boolean jj_3R_11() {
         if (jj_3R_12()) return true;
+        return false;
+    }
+
+    private boolean jj_3R_29() {
+        if (jj_scan_token(AND)) return true;
+        if (jj_3R_28()) return true;
+        return false;
+    }
+
+    private boolean jj_3_7() {
+        if (jj_scan_token(34)) return true;
+        if (jj_3R_7()) return true;
+        return false;
+    }
+
+    private boolean jj_3_2() {
+        if (jj_scan_token(NOT)) return true;
+        if (jj_scan_token(CONTAINS)) return true;
+        if (jj_3R_27()) return true;
+        return false;
+    }
+
+    private boolean jj_3R_10() {
+        if (jj_scan_token(NOT)) return true;
+        if (jj_3R_7()) return true;
+        return false;
+    }
+
+    private boolean jj_3R_40() {
+        if (jj_scan_token(CONTAINS)) return true;
+        if (jj_3R_27()) return true;
+        return false;
+    }
+
+    private boolean jj_3R_9() {
+        if (jj_scan_token(35)) return true;
+        if (jj_3R_7()) return true;
+        return false;
+    }
+
+    private boolean jj_3R_27() {
+        if (jj_scan_token(STRING_LITERAL)) return true;
+        return false;
+    }
+
+    private boolean jj_3R_25() {
+        if (jj_3R_28()) return true;
+        Token xsp;
+        while (true) {
+            xsp = jjScanpos;
+            if (jj_3R_29()) {
+                jjScanpos = xsp;
+                break;
+            }
+        }
+        return false;
+    }
+
+    private boolean jj_3R_8() {
+        if (jj_scan_token(34)) return true;
+        if (jj_3R_7()) return true;
+        return false;
+    }
+
+    private boolean jj_3R_39() {
+        if (jj_scan_token(30)) return true;
+        if (jj_3R_7()) return true;
+        return false;
+    }
+
+    private boolean jj_3R_7() {
+        Token xsp;
+        xsp = jjScanpos;
+        if (jj_3R_8()) {
+            jjScanpos = xsp;
+            if (jj_3R_9()) {
+                jjScanpos = xsp;
+                if (jj_3R_10()) {
+                    jjScanpos = xsp;
+                    if (jj_3R_11()) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean jj_3R_38() {
+        if (jj_scan_token(29)) return true;
+        if (jj_3R_7()) return true;
+        return false;
+    }
+
+    private boolean jj_3R_46() {
+        if (jj_scan_token(32)) return true;
+        if (jj_3R_27()) return true;
         return false;
     }
 
@@ -761,19 +834,18 @@ public class SelectorParser implements SelectorParserConstants {
     }
 
     private boolean jj_3R_37() {
-        if (jj_scan_token(26)) return true;
+        if (jj_scan_token(28)) return true;
         if (jj_3R_7()) return true;
         return false;
     }
 
-    private boolean jj_3_5() {
-        if (jj_scan_token(32)) return true;
-        if (jj_3R_7()) return true;
+    private boolean jj_3R_24() {
+        if (jj_scan_token(NULL)) return true;
         return false;
     }
 
-    private boolean jj_3R_10() {
-        if (jj_scan_token(NOT)) return true;
+    private boolean jj_3R_36() {
+        if (jj_scan_token(27)) return true;
         if (jj_3R_7()) return true;
         return false;
     }
@@ -799,7 +871,19 @@ public class SelectorParser implements SelectorParserConstants {
                                         jjScanpos = xsp;
                                         if (jj_3R_42()) {
                                             jjScanpos = xsp;
-                                            if (jj_3_4()) return true;
+                                            if (jj_3_4()) {
+                                                jjScanpos = xsp;
+                                                if (jj_3R_43()) {
+                                                    jjScanpos = xsp;
+                                                    if (jj_3_5()) {
+                                                        jjScanpos = xsp;
+                                                        if (jj_3R_44()) {
+                                                            jjScanpos = xsp;
+                                                            if (jj_3_6()) return true;
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -812,20 +896,8 @@ public class SelectorParser implements SelectorParserConstants {
         return false;
     }
 
-    private boolean jj_3R_36() {
-        if (jj_scan_token(25)) return true;
-        if (jj_3R_7()) return true;
-        return false;
-    }
-
-    private boolean jj_3R_9() {
-        if (jj_scan_token(33)) return true;
-        if (jj_3R_7()) return true;
-        return false;
-    }
-
-    private boolean jj_3R_27() {
-        if (jj_scan_token(STRING_LITERAL)) return true;
+    private boolean jj_3R_23() {
+        if (jj_scan_token(FALSE)) return true;
         return false;
     }
 
@@ -842,30 +914,30 @@ public class SelectorParser implements SelectorParserConstants {
         return false;
     }
 
-    private boolean jj_3R_8() {
-        if (jj_scan_token(32)) return true;
-        if (jj_3R_7()) return true;
+    private boolean jj_3R_22() {
+        if (jj_scan_token(TRUE)) return true;
         return false;
     }
 
-    private boolean jj_3R_7() {
+    private boolean jj_3_6() {
+        if (jj_scan_token(NOT)) return true;
+        if (jj_scan_token(IN)) return true;
+        if (jj_scan_token(31)) return true;
+        if (jj_3R_27()) return true;
         Token xsp;
-        xsp = jjScanpos;
-        if (jj_3R_8()) {
-            jjScanpos = xsp;
-            if (jj_3R_9()) {
+        while (true) {
+            xsp = jjScanpos;
+            if (jj_3R_46()) {
                 jjScanpos = xsp;
-                if (jj_3R_10()) {
-                    jjScanpos = xsp;
-                    if (jj_3R_11()) return true;
-                }
+                break;
             }
         }
+        if (jj_scan_token(33)) return true;
         return false;
     }
 
-    private boolean jj_3R_44() {
-        if (jj_scan_token(30)) return true;
+    private boolean jj_3R_45() {
+        if (jj_scan_token(32)) return true;
         if (jj_3R_27()) return true;
         return false;
     }
@@ -883,13 +955,13 @@ public class SelectorParser implements SelectorParserConstants {
         return false;
     }
 
-    private boolean jj_3R_24() {
-        if (jj_scan_token(NULL)) return true;
+    private boolean jj_3R_21() {
+        if (jj_scan_token(FLOATING_POINT_LITERAL)) return true;
         return false;
     }
 
-    private boolean jj_3R_23() {
-        if (jj_scan_token(FALSE)) return true;
+    private boolean jj_3R_20() {
+        if (jj_scan_token(DECIMAL_LITERAL)) return true;
         return false;
     }
 
@@ -900,25 +972,24 @@ public class SelectorParser implements SelectorParserConstants {
         return false;
     }
 
-    private boolean jj_3R_22() {
-        if (jj_scan_token(TRUE)) return true;
-        return false;
-    }
-
-    private boolean jj_3_4() {
-        if (jj_scan_token(NOT)) return true;
+    private boolean jj_3R_44() {
         if (jj_scan_token(IN)) return true;
-        if (jj_scan_token(29)) return true;
+        if (jj_scan_token(31)) return true;
         if (jj_3R_27()) return true;
         Token xsp;
         while (true) {
             xsp = jjScanpos;
-            if (jj_3R_44()) {
+            if (jj_3R_45()) {
                 jjScanpos = xsp;
                 break;
             }
         }
-        if (jj_scan_token(31)) return true;
+        if (jj_scan_token(33)) return true;
+        return false;
+    }
+
+    private boolean jj_3R_19() {
+        if (jj_3R_27()) return true;
         return false;
     }
 
@@ -928,9 +999,34 @@ public class SelectorParser implements SelectorParserConstants {
         return false;
     }
 
-    private boolean jj_3R_43() {
-        if (jj_scan_token(30)) return true;
-        if (jj_3R_27()) return true;
+    private boolean jj_3R_16() {
+        Token xsp;
+        xsp = jjScanpos;
+        if (jj_3R_19()) {
+            jjScanpos = xsp;
+            if (jj_3R_20()) {
+                jjScanpos = xsp;
+                if (jj_3R_21()) {
+                    jjScanpos = xsp;
+                    if (jj_3R_22()) {
+                        jjScanpos = xsp;
+                        if (jj_3R_23()) {
+                            jjScanpos = xsp;
+                            if (jj_3R_24()) return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean jj_3_5() {
+        if (jj_scan_token(NOT)) return true;
+        if (jj_scan_token(BETWEEN)) return true;
+        if (jj_3R_7()) return true;
+        if (jj_scan_token(AND)) return true;
+        if (jj_3R_7()) return true;
         return false;
     }
 
@@ -951,7 +1047,7 @@ public class SelectorParser implements SelectorParserConstants {
     private Token jjScanpos, jjLastpos;
     private int jjLa;
     private int jjGen;
-    final private int[] jjLa1 = new int[14];
+    final private int[] jjLa1 = new int[16];
     static private int[] jjLa10;
     static private int[] jjLa11;
 
@@ -961,14 +1057,14 @@ public class SelectorParser implements SelectorParserConstants {
     }
 
     private static void jj_la1_init_0() {
-        jjLa10 = new int[]{0x400, 0x200, 0x1810000, 0x1800000, 0x10000, 0x1e021900, 0x40000000, 0x40000000, 0x1e020000, 0x800, 0x1000, 0x206ce100, 0x206ce000, 0x2ce000,};
+        jjLa10 = new int[]{0x400, 0x200, 0x6010000, 0x6000000, 0x10000, 0x780e1900, 0x0, 0x0, 0x78020000, 0x40000, 0x80000, 0x800, 0x1000, 0x81b0e100, 0x81b0e000, 0xb0e000,};
     }
 
     private static void jj_la1_init_1() {
-        jjLa11 = new int[]{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x2, 0x0, 0x0,};
+        jjLa11 = new int[]{0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x8, 0x0, 0x0,};
     }
 
-    final private JJCalls[] jj2Rtns = new JJCalls[5];
+    final private JJCalls[] jj2Rtns = new JJCalls[7];
     private boolean jjRescan = false;
     private int jjGc = 0;
 
@@ -992,7 +1088,7 @@ public class SelectorParser implements SelectorParserConstants {
         token = new Token();
         jjNtk = -1;
         jjGen = 0;
-        for (int i = 0; i < 14; i++) jjLa1[i] = -1;
+        for (int i = 0; i < 16; i++) jjLa1[i] = -1;
         for (int i = 0; i < jj2Rtns.length; i++) jj2Rtns[i] = new JJCalls();
     }
 
@@ -1016,7 +1112,7 @@ public class SelectorParser implements SelectorParserConstants {
         token = new Token();
         jjNtk = -1;
         jjGen = 0;
-        for (int i = 0; i < 14; i++) jjLa1[i] = -1;
+        for (int i = 0; i < 16; i++) jjLa1[i] = -1;
         for (int i = 0; i < jj2Rtns.length; i++) jj2Rtns[i] = new JJCalls();
     }
 
@@ -1029,7 +1125,7 @@ public class SelectorParser implements SelectorParserConstants {
         token = new Token();
         jjNtk = -1;
         jjGen = 0;
-        for (int i = 0; i < 14; i++) jjLa1[i] = -1;
+        for (int i = 0; i < 16; i++) jjLa1[i] = -1;
         for (int i = 0; i < jj2Rtns.length; i++) jj2Rtns[i] = new JJCalls();
     }
 
@@ -1042,7 +1138,7 @@ public class SelectorParser implements SelectorParserConstants {
         token = new Token();
         jjNtk = -1;
         jjGen = 0;
-        for (int i = 0; i < 14; i++) jjLa1[i] = -1;
+        for (int i = 0; i < 16; i++) jjLa1[i] = -1;
         for (int i = 0; i < jj2Rtns.length; i++) jj2Rtns[i] = new JJCalls();
     }
 
@@ -1054,7 +1150,7 @@ public class SelectorParser implements SelectorParserConstants {
         token = new Token();
         jjNtk = -1;
         jjGen = 0;
-        for (int i = 0; i < 14; i++) jjLa1[i] = -1;
+        for (int i = 0; i < 16; i++) jjLa1[i] = -1;
         for (int i = 0; i < jj2Rtns.length; i++) jj2Rtns[i] = new JJCalls();
     }
 
@@ -1066,7 +1162,7 @@ public class SelectorParser implements SelectorParserConstants {
         token = new Token();
         jjNtk = -1;
         jjGen = 0;
-        for (int i = 0; i < 14; i++) jjLa1[i] = -1;
+        for (int i = 0; i < 16; i++) jjLa1[i] = -1;
         for (int i = 0; i < jj2Rtns.length; i++) jj2Rtns[i] = new JJCalls();
     }
 
@@ -1170,19 +1266,21 @@ public class SelectorParser implements SelectorParserConstants {
             for (int i = 0; i < jjEndpos; i++) {
                 jjExpentry[i] = jjLasttokens[i];
             }
-            jj_entries_loop:
+            boolean exists = false;
             for (java.util.Iterator<?> it = jjExpentries.iterator(); it.hasNext(); ) {
+                exists = true;
                 int[] oldentry = (int[]) (it.next());
                 if (oldentry.length == jjExpentry.length) {
                     for (int i = 0; i < jjExpentry.length; i++) {
                         if (oldentry[i] != jjExpentry[i]) {
-                            continue jj_entries_loop;
+                            exists = false;
+                            break;
                         }
                     }
-                    jjExpentries.add(jjExpentry);
-                    break jj_entries_loop;
+                    if (exists) break;
                 }
             }
+            if (!exists) jjExpentries.add(jjExpentry);
             if (pos != 0) jjLasttokens[(jjEndpos = pos) - 1] = kind;
         }
     }
@@ -1192,12 +1290,12 @@ public class SelectorParser implements SelectorParserConstants {
      */
     public ParseException generateParseException() {
         jjExpentries.clear();
-        boolean[] la1tokens = new boolean[34];
+        boolean[] la1tokens = new boolean[36];
         if (jjKind >= 0) {
             la1tokens[jjKind] = true;
             jjKind = -1;
         }
-        for (int i = 0; i < 14; i++) {
+        for (int i = 0; i < 16; i++) {
             if (jjLa1[i] == jjGen) {
                 for (int j = 0; j < 32; j++) {
                     if ((jjLa10[i] & (1 << j)) != 0) {
@@ -1209,7 +1307,7 @@ public class SelectorParser implements SelectorParserConstants {
                 }
             }
         }
-        for (int i = 0; i < 34; i++) {
+        for (int i = 0; i < 36; i++) {
             if (la1tokens[i]) {
                 jjExpentry = new int[1];
                 jjExpentry[0] = i;
@@ -1240,7 +1338,7 @@ public class SelectorParser implements SelectorParserConstants {
 
     private void jj_rescan_token() {
         jjRescan = true;
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 7; i++) {
             try {
                 JJCalls p = jj2Rtns[i];
                 do {
@@ -1262,6 +1360,12 @@ public class SelectorParser implements SelectorParserConstants {
                                 break;
                             case 4:
                                 jj_3_5();
+                                break;
+                            case 5:
+                                jj_3_6();
+                                break;
+                            case 6:
+                                jj_3_7();
                                 break;
                         }
                     }
