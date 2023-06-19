@@ -67,12 +67,43 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
     }
 
     @Test
+    public void testAddDuplicationHandle() {
+        String handle1 = ReceiptHandle.builder()
+            .startOffset(0L)
+            .retrieveTime(System.currentTimeMillis())
+            .invisibleTime(3000)
+            .reviveQueueId(1)
+            .topicType(ReceiptHandle.NORMAL_TOPIC)
+            .brokerName("brokerName")
+            .queueId(1)
+            .offset(123)
+            .commitLogOffset(0L)
+            .build().encode();
+        String handle2 = ReceiptHandle.builder()
+            .startOffset(0L)
+            .retrieveTime(System.currentTimeMillis() + 1000)
+            .invisibleTime(3000)
+            .reviveQueueId(1)
+            .topicType(ReceiptHandle.NORMAL_TOPIC)
+            .brokerName("brokerName")
+            .queueId(1)
+            .offset(123)
+            .commitLogOffset(0L)
+            .build().encode();
+
+        receiptHandleGroup.put(msgID, createMessageReceiptHandle(handle1, msgID));
+        receiptHandleGroup.put(msgID, createMessageReceiptHandle(handle2, msgID));
+
+        assertEquals(1, receiptHandleGroup.receiptHandleMap.get(msgID).size());
+    }
+
+    @Test
     public void testGetWhenComputeIfPresent() {
         String handle1 = createHandle();
         String handle2 = createHandle();
         AtomicReference<MessageReceiptHandle> getHandleRef = new AtomicReference<>();
 
-        receiptHandleGroup.put(msgID, handle1, createMessageReceiptHandle(handle1, msgID));
+        receiptHandleGroup.put(msgID, createMessageReceiptHandle(handle1, msgID));
         CountDownLatch latch = new CountDownLatch(2);
         Thread getThread = new Thread(() -> {
             try {
@@ -110,7 +141,7 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
         AtomicBoolean getCalled = new AtomicBoolean(false);
         AtomicReference<MessageReceiptHandle> getHandleRef = new AtomicReference<>();
 
-        receiptHandleGroup.put(msgID, handle1, createMessageReceiptHandle(handle1, msgID));
+        receiptHandleGroup.put(msgID, createMessageReceiptHandle(handle1, msgID));
         CountDownLatch latch = new CountDownLatch(2);
         Thread getThread = new Thread(() -> {
             try {
@@ -150,7 +181,7 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
         String handle2 = createHandle();
         AtomicReference<MessageReceiptHandle> removeHandleRef = new AtomicReference<>();
 
-        receiptHandleGroup.put(msgID, handle1, createMessageReceiptHandle(handle1, msgID));
+        receiptHandleGroup.put(msgID, createMessageReceiptHandle(handle1, msgID));
         CountDownLatch latch = new CountDownLatch(2);
         Thread removeThread = new Thread(() -> {
             try {
@@ -188,7 +219,7 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
         AtomicBoolean removeCalled = new AtomicBoolean(false);
         AtomicReference<MessageReceiptHandle> removeHandleRef = new AtomicReference<>();
 
-        receiptHandleGroup.put(msgID, handle1, createMessageReceiptHandle(handle1, msgID));
+        receiptHandleGroup.put(msgID, createMessageReceiptHandle(handle1, msgID));
         CountDownLatch latch = new CountDownLatch(2);
         Thread removeThread = new Thread(() -> {
             try {
@@ -226,7 +257,7 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
         AtomicReference<MessageReceiptHandle> removeHandleRef = new AtomicReference<>();
         AtomicInteger count = new AtomicInteger();
 
-        receiptHandleGroup.put(msgID, handle1, createMessageReceiptHandle(handle1, msgID));
+        receiptHandleGroup.put(msgID, createMessageReceiptHandle(handle1, msgID));
         int threadNum = Math.max(Runtime.getRuntime().availableProcessors(), 3);
         CountDownLatch latch = new CountDownLatch(threadNum);
         for (int i = 0; i < threadNum; i++) {

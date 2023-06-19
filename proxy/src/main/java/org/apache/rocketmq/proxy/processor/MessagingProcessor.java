@@ -131,6 +131,7 @@ public interface MessagingProcessor extends StartAndShutdown {
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     );
 
