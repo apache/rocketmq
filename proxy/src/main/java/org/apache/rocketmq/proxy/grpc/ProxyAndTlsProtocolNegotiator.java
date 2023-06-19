@@ -22,9 +22,15 @@ import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiationEvent;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiator;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiators;
 import io.grpc.netty.shaded.io.netty.buffer.ByteBuf;
+import io.grpc.netty.shaded.io.netty.channel.Channel;
 import io.grpc.netty.shaded.io.netty.channel.ChannelHandler;
 import io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext;
+import io.grpc.netty.shaded.io.netty.channel.ChannelInboundHandlerAdapter;
 import io.grpc.netty.shaded.io.netty.handler.codec.ByteToMessageDecoder;
+import io.grpc.netty.shaded.io.netty.handler.codec.ProtocolDetectionResult;
+import io.grpc.netty.shaded.io.netty.handler.codec.ProtocolDetectionState;
+import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessage;
+import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslHandler;
@@ -35,6 +41,12 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+
+import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
+import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
+import io.grpc.netty.shaded.io.netty.util.AttributeKey;
+import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -43,7 +55,7 @@ import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
-public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator.ProtocolNegotiator {
+public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator.ProtocolNegotiator {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     /**
@@ -53,7 +65,7 @@ public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator
 
     private static SslContext sslContext;
 
-    public OptionalSSLProtocolNegotiator() {
+    public ProxyAndTlsProtocolNegotiator() {
         sslContext = loadSslContext();
     }
 
@@ -64,7 +76,7 @@ public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator
 
     @Override
     public ChannelHandler newHandler(GrpcHttp2ConnectionHandler grpcHandler) {
-        return new PortUnificationServerHandler(grpcHandler);
+        return new ProxyAndTlsProtocolHandler(grpcHandler);
     }
 
     @Override
@@ -102,12 +114,75 @@ public class OptionalSSLProtocolNegotiator implements InternalProtocolNegotiator
         }
     }
 
-    public static class PortUnificationServerHandler extends ByteToMessageDecoder {
+    private static class ProxyAndTlsProtocolHandler extends ByteToMessageDecoder {
+
+        private final GrpcHttp2ConnectionHandler grpcHandler;
+
+        public ProxyAndTlsProtocolHandler(GrpcHttp2ConnectionHandler grpcHandler) {
+            this.grpcHandler = grpcHandler;
+        }
+
+        @Override
+        protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
+            try {
+                ProtocolDetectionResult<HAProxyProtocolVersion> ha = HAProxyMessageDecoder.detectProtocol(
+                        in);
+                if (ha.state() == ProtocolDetectionState.NEEDS_MORE_DATA) {
+                    return;
+                }
+                if (ha.state() == ProtocolDetectionState.DETECTED) {
+                    ctx.pipeline().addAfter(ctx.name(), "HAProxyDecoder", new HAProxyMessageDecoder())
+                            .addAfter("HAProxyDecoder", "HAProxyHandler", new HAProxyMessageHandler())
+                            .addAfter("HAProxyHandler", "TlsHandler", new TlsModeHandler(grpcHandler));
+                } else {
+                    ctx.pipeline().addAfter(ctx.name(), "TlsHandler", new TlsModeHandler(grpcHandler));
+                }
+
+                ctx.fireUserEventTriggered(InternalProtocolNegotiationEvent.getDefault());
+                ctx.pipeline().remove(this);
+            } catch (Exception e) {
+                log.error("process proxy protocol negotiator failed.", e);
+                throw e;
+            }
+        }
+    }
+
+    private static class HAProxyMessageHandler extends ChannelInboundHandlerAdapter {
+
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            if (msg instanceof HAProxyMessage) {
+                HAProxyMessage message = (HAProxyMessage) msg;
+                this.addToChannel((HAProxyMessage) msg, ctx.channel());
+                message.release();
+            } else {
+                super.channelRead(ctx, msg);
+            }
+            ctx.pipeline().remove(this);
+        }
+
+        private void addToChannel(HAProxyMessage msg, Channel channel) {
+            List<HAProxyTLV> tlvs = msg.tlvs();
+            if (CollectionUtils.isEmpty(tlvs)) {
+                return;
+            }
+            for (HAProxyTLV tlv : tlvs) {
+                if (tlv.typeByteValue() == -31) {
+                    String endpointId =
+                            "ep-" + tlv.content().toString(CharsetUtil.UTF_8).trim();
+                    channel.attr(AttributeKey.valueOf("PVL_ENDPOINT_ID"))
+                            .set(endpointId);
+                }
+            }
+        }
+    }
+
+    public static class TlsModeHandler extends ByteToMessageDecoder {
 
         private final ChannelHandler ssl;
         private final ChannelHandler plaintext;
 
-        public PortUnificationServerHandler(GrpcHttp2ConnectionHandler grpcHandler) {
+        public TlsModeHandler(GrpcHttp2ConnectionHandler grpcHandler) {
             this.ssl = InternalProtocolNegotiators.serverTls(sslContext)
                     .newHandler(grpcHandler);
             this.plaintext = InternalProtocolNegotiators.serverPlaintext()
