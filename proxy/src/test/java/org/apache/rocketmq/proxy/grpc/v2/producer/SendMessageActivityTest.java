@@ -297,7 +297,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
 
         TopicRouteService topicRouteService = mock(TopicRouteService.class);
         MQFaultStrategy mqFaultStrategy = mock(MQFaultStrategy.class);
-        when(topicRouteService.getAllMessageQueueView(any())).thenReturn(messageQueueView);
+        when(topicRouteService.getAllMessageQueueView(any(), any())).thenReturn(messageQueueView);
         when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
         when(mqFaultStrategy.isSendLatencyFaultEnable()).thenReturn(false);
 

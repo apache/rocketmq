@@ -131,7 +131,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             @Override
             public String resolve(String name) {
                 try {
-                    String brokerAddr = getBrokerAddr(name);
+                    String brokerAddr = getBrokerAddr(null, name);
                     return brokerAddr;
                 } catch (Exception e) {
                     return null;
