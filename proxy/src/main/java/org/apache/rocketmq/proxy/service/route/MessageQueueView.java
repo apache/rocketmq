@@ -39,6 +39,10 @@ public class MessageQueueView {
         return topicRouteWrapper.getTopicRouteData();
     }
 
+    public TopicRouteWrapper getTopicRouteWrapper() {
+        return topicRouteWrapper;
+    }
+
     public String getTopicName() {
         return topicRouteWrapper.getTopicName();
     }

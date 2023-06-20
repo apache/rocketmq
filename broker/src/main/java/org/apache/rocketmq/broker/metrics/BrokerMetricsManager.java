@@ -23,10 +23,10 @@ import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.LongHistogram;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
+import io.opentelemetry.exporter.logging.LoggingMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
-import io.opentelemetry.exporter.logging.LoggingMetricExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -54,17 +55,17 @@ import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.slf4j.bridge.SLF4JBridgeHandler;
-
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.store.MessageStore;
+import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL;
@@ -113,6 +114,8 @@ public class BrokerMetricsManager {
     private LoggingMetricExporter loggingMetricExporter;
     private Meter brokerMeter;
 
+    public static Supplier<AttributesBuilder> attributesBuilderSupplier = Attributes::builder;
+
     // broker stats metrics
     public static ObservableLongGauge processorWatermark = new NopObservableLongGauge();
     public static ObservableLongGauge brokerPermission = new NopObservableLongGauge();
@@ -151,7 +154,11 @@ public class BrokerMetricsManager {
     }
 
     public static AttributesBuilder newAttributesBuilder() {
-        AttributesBuilder attributesBuilder = Attributes.builder();
+        AttributesBuilder attributesBuilder;
+        if (attributesBuilderSupplier == null) {
+            attributesBuilderSupplier = Attributes::builder;
+        }
+        attributesBuilder = attributesBuilderSupplier.get();
         LABEL_MAP.forEach(attributesBuilder::put);
         return attributesBuilder;
     }
@@ -214,7 +221,7 @@ public class BrokerMetricsManager {
         if (brokerConfig == null) {
             return false;
         }
-        BrokerConfig.MetricsExporterType exporterType = brokerConfig.getMetricsExporterType();
+        MetricsExporterType exporterType = brokerConfig.getMetricsExporterType();
         if (!exporterType.isEnable()) {
             return false;
         }
@@ -231,8 +238,8 @@ public class BrokerMetricsManager {
     }
 
     private void init() {
-        BrokerConfig.MetricsExporterType metricsExporterType = brokerConfig.getMetricsExporterType();
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.DISABLE) {
+        MetricsExporterType metricsExporterType = brokerConfig.getMetricsExporterType();
+        if (metricsExporterType == MetricsExporterType.DISABLE) {
             return;
         }
 
@@ -263,7 +270,7 @@ public class BrokerMetricsManager {
         SdkMeterProviderBuilder providerBuilder = SdkMeterProvider.builder()
             .setResource(Resource.empty());
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+        if (metricsExporterType == MetricsExporterType.OTLP_GRPC) {
             String endpoint = brokerConfig.getMetricsGrpcExporterTarget();
             if (!endpoint.startsWith("http")) {
                 endpoint = "https://" + endpoint;
@@ -303,7 +310,7 @@ public class BrokerMetricsManager {
             providerBuilder.registerMetricReader(periodicMetricReader);
         }
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.PROM) {
+        if (metricsExporterType == MetricsExporterType.PROM) {
             String promExporterHost = brokerConfig.getMetricsPromExporterHost();
             if (StringUtils.isBlank(promExporterHost)) {
                 promExporterHost = brokerConfig.getBrokerIP1();
@@ -315,7 +322,7 @@ public class BrokerMetricsManager {
             providerBuilder.registerMetricReader(prometheusHttpServer);
         }
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.LOG) {
+        if (metricsExporterType == MetricsExporterType.LOG) {
             SLF4JBridgeHandler.removeHandlersForRootLogger();
             SLF4JBridgeHandler.install();
             loggingMetricExporter = LoggingMetricExporter.create(brokerConfig.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
@@ -533,16 +540,16 @@ public class BrokerMetricsManager {
     }
 
     public void shutdown() {
-        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+        if (brokerConfig.getMetricsExporterType() == MetricsExporterType.OTLP_GRPC) {
             periodicMetricReader.forceFlush();
             periodicMetricReader.shutdown();
             metricExporter.shutdown();
         }
-        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
+        if (brokerConfig.getMetricsExporterType() == MetricsExporterType.PROM) {
             prometheusHttpServer.forceFlush();
             prometheusHttpServer.shutdown();
         }
-        if (brokerConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.LOG) {
+        if (brokerConfig.getMetricsExporterType() == MetricsExporterType.LOG) {
             periodicMetricReader.forceFlush();
             periodicMetricReader.shutdown();
             loggingMetricExporter.shutdown();

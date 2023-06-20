@@ -33,6 +33,9 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private long bornTime;
 
+    private Boolean order = Boolean.FALSE;
+    private String attemptId;
+
     @CFNotNull
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -81,4 +84,19 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
         this.queueId = queueId;
     }
 
+    public Boolean getOrder() {
+        return order;
+    }
+
+    public void setOrder(Boolean order) {
+        this.order = order;
+    }
+
+    public String getAttemptId() {
+        return attemptId;
+    }
+
+    public void setAttemptId(String attemptId) {
+        this.attemptId = attemptId;
+    }
 }

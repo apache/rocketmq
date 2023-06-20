@@ -101,7 +101,7 @@ After successful registration, all subsequent requests and state records for the
 ## Upgrade plan
 
 To upgrade to version 4.x, follow the 5.0 upgrade documentation process.
-For upgrading from the non-persistent BrokerId version in 5.x to the persistent BrokerId version, follow the following steps:
+For upgrading from the non-persistent BrokerId version in 5.0.0 or 5.1.0 to the persistent BrokerId version 5.1.1 or above, follow the following steps:
 
 ### Upgrade Controller
 
@@ -123,7 +123,7 @@ For upgrading from the non-persistent BrokerId version in 5.x to the persistent 
 
 ### Compatibility
 
-|                | old Controller                 | new Controller                                               |
-| -------------- | ------------------------------ | ------------------------------------------------------------ |
-| 5.0 old Broker | Normal operation and switch.   | Normal operation and no switch if the master-slave relationship is already determined. The Broker cannot be brought up if it is restarted. |
-| New Broker     | Cannot be brought up normally. | Normal operation and switch.                                 |
+|                                    | Controller for version 5.1.0 and below              | Controller for version 5.1.1 and above                                               |
+|------------------------------------|--------------------------------| ------------------------------------------------------------ |
+| Broker for version 5.1.0 and below | Normal operation and switch.   | Normal operation and no switch if the master-slave relationship is already determined. The Broker cannot be brought up if it is restarted. |
+| Broker for version 5.1.1 and above | Cannot be brought up normally. | Normal operation and switch.                                 |

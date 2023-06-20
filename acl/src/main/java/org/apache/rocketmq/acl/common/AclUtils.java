@@ -144,16 +144,12 @@ public class AclUtils {
     }
 
     public static boolean isScope(String[] num, int index) {
-        if (num.length <= index) {
-
-        }
         for (int i = 0; i < index; i++) {
             if (!isScope(num[i])) {
                 return false;
             }
         }
         return true;
-
     }
 
     public static boolean isColon(String netAddress) {

@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.assertj.core.util.Lists;
 import org.junit.Test;
 
 import static org.awaitility.Awaitility.await;
@@ -247,5 +248,42 @@ public class PopOrderlyIT extends BasePopOrderly {
             }
         });
         return resultFuture;
+    }
+
+    @Test
+    public void testReentrant() {
+        producer.send(1);
+
+        popMessageForReentrant(null).join();
+        assertMsgRecv(0, 1, Lists.newArrayList(0));
+
+        String attemptId01 = "attemptId-01";
+        popMessageForReentrant(attemptId01).join();
+        assertMsgRecv(0, 2, Lists.newArrayList(0, 1));
+        popMessageForReentrant(attemptId01).join();
+        assertMsgRecv(0, 3, Lists.newArrayList(0, 1, 1));
+
+        String attemptId02 = "attemptId-02";
+        await().atLeast(Duration.ofSeconds(5)).atMost(Duration.ofSeconds(15)).until(() -> {
+            popMessageForReentrant(attemptId02).join();
+            return msgRecvSequence.size() == 4;
+        });
+        popMessageForReentrant(attemptId02).join();
+        assertMsgRecv(0, 5, Lists.newArrayList(0, 1, 1, 2, 2));
+
+        await().atLeast(Duration.ofSeconds(5)).atMost(Duration.ofSeconds(15)).until(() -> {
+            popMessageForReentrant(null).join();
+            return msgRecvSequence.size() == 6;
+        });
+        assertMsgRecv(0, 6, Lists.newArrayList(0, 1, 1, 2, 2, 3));
+    }
+
+    private CompletableFuture<Void> popMessageForReentrant(String attemptId) {
+        return popMessageOrderlyAsync(TimeUnit.SECONDS.toMillis(10), 3, TimeUnit.SECONDS.toMillis(30), attemptId)
+            .thenAccept(popResult -> {
+                for (MessageExt messageExt : popResult.getMsgFoundList()) {
+                    onRecvNewMessage(messageExt);
+                }
+            });
     }
 }

@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.offset;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -63,6 +64,7 @@ public class ConsumerOrderInfoManagerTest {
     @Test
     public void testCommitAndNext() {
         consumerOrderInfoManager.update(
+            null,
             false,
             TOPIC,
             GROUP,
@@ -82,6 +84,7 @@ public class ConsumerOrderInfoManagerTest {
         ));
         assertEncodeAndDecode();
         assertTrue(consumerOrderInfoManager.checkBlock(
+            null,
             TOPIC,
             GROUP,
             QUEUE_ID_0,
@@ -97,6 +100,7 @@ public class ConsumerOrderInfoManagerTest {
         ));
         assertEncodeAndDecode();
         assertFalse(consumerOrderInfoManager.checkBlock(
+            null,
             TOPIC,
             GROUP,
             QUEUE_ID_0,
@@ -110,6 +114,7 @@ public class ConsumerOrderInfoManagerTest {
             // consume three new messages
             StringBuilder orderInfoBuilder = new StringBuilder();
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -129,6 +134,7 @@ public class ConsumerOrderInfoManagerTest {
             // reconsume same messages
             StringBuilder orderInfoBuilder = new StringBuilder();
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -151,6 +157,7 @@ public class ConsumerOrderInfoManagerTest {
             // reconsume last two message
             StringBuilder orderInfoBuilder = new StringBuilder();
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -173,6 +180,7 @@ public class ConsumerOrderInfoManagerTest {
             // consume a new message and reconsume last message
             StringBuilder orderInfoBuilder = new StringBuilder();
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -193,6 +201,7 @@ public class ConsumerOrderInfoManagerTest {
             // consume two new messages
             StringBuilder orderInfoBuilder = new StringBuilder();
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -215,6 +224,7 @@ public class ConsumerOrderInfoManagerTest {
             // consume two new messages
             StringBuilder orderInfoBuilder = new StringBuilder();
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -225,6 +235,7 @@ public class ConsumerOrderInfoManagerTest {
                 orderInfoBuilder
             );
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -244,6 +255,7 @@ public class ConsumerOrderInfoManagerTest {
             // reconsume two message
             StringBuilder orderInfoBuilder = new StringBuilder();
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -254,6 +266,7 @@ public class ConsumerOrderInfoManagerTest {
                 orderInfoBuilder
             );
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -275,6 +288,7 @@ public class ConsumerOrderInfoManagerTest {
             // reconsume with a new message
             StringBuilder orderInfoBuilder = new StringBuilder();
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -285,6 +299,7 @@ public class ConsumerOrderInfoManagerTest {
                 orderInfoBuilder
             );
             consumerOrderInfoManager.update(
+                null,
                 false,
                 TOPIC,
                 GROUP,
@@ -311,6 +326,7 @@ public class ConsumerOrderInfoManagerTest {
 
         StringBuilder orderInfoBuilder = new StringBuilder();
         consumerOrderInfoManager.update(
+            null,
             false,
             TOPIC,
             GROUP,
@@ -329,10 +345,11 @@ public class ConsumerOrderInfoManagerTest {
         assertEquals(2, consumerOrderInfoManager.commitAndNext(TOPIC, GROUP, QUEUE_ID_0, 3L, popTime));
         assertEncodeAndDecode();
 
-        await().atMost(Duration.ofSeconds(invisibleTime + 1)).until(() -> !consumerOrderInfoManager.checkBlock(TOPIC, GROUP, QUEUE_ID_0, invisibleTime));
+        await().atMost(Duration.ofSeconds(invisibleTime + 1)).until(() -> !consumerOrderInfoManager.checkBlock(null, TOPIC, GROUP, QUEUE_ID_0, invisibleTime));
 
         orderInfoBuilder = new StringBuilder();
         consumerOrderInfoManager.update(
+            null,
             false,
             TOPIC,
             GROUP,
@@ -350,11 +367,11 @@ public class ConsumerOrderInfoManagerTest {
         assertEncodeAndDecode();
         assertEquals(2, consumerOrderInfoManager.commitAndNext(TOPIC, GROUP, QUEUE_ID_0, 4L, popTime));
         assertEncodeAndDecode();
-        assertTrue(consumerOrderInfoManager.checkBlock(TOPIC, GROUP, QUEUE_ID_0, invisibleTime));
+        assertTrue(consumerOrderInfoManager.checkBlock(null, TOPIC, GROUP, QUEUE_ID_0, invisibleTime));
 
         assertEquals(5L, consumerOrderInfoManager.commitAndNext(TOPIC, GROUP, QUEUE_ID_0, 2L, popTime));
         assertEncodeAndDecode();
-        assertFalse(consumerOrderInfoManager.checkBlock(TOPIC, GROUP, QUEUE_ID_0, invisibleTime));
+        assertFalse(consumerOrderInfoManager.checkBlock(null, TOPIC, GROUP, QUEUE_ID_0, invisibleTime));
     }
 
     @Test
@@ -377,7 +394,7 @@ public class ConsumerOrderInfoManagerTest {
         ConsumerOrderInfoManager consumerOrderInfoManager = new ConsumerOrderInfoManager(brokerController);
 
         {
-            consumerOrderInfoManager.update(false,
+            consumerOrderInfoManager.update(null, false,
                 "errTopic",
                 "errGroup",
                 QUEUE_ID_0,
@@ -390,7 +407,7 @@ public class ConsumerOrderInfoManagerTest {
             assertEquals(0, consumerOrderInfoManager.getTable().size());
         }
         {
-            consumerOrderInfoManager.update(false,
+            consumerOrderInfoManager.update(null, false,
                 TOPIC,
                 "errGroup",
                 QUEUE_ID_0,
@@ -404,7 +421,7 @@ public class ConsumerOrderInfoManagerTest {
         }
         {
             topicConfig.setReadQueueNums(0);
-            consumerOrderInfoManager.update(false,
+            consumerOrderInfoManager.update(null, false,
                 TOPIC,
                 GROUP,
                 QUEUE_ID_0,
@@ -420,7 +437,7 @@ public class ConsumerOrderInfoManagerTest {
         }
         {
             topicConfig.setReadQueueNums(8);
-            consumerOrderInfoManager.update(false,
+            consumerOrderInfoManager.update(null, false,
                 TOPIC,
                 GROUP,
                 QUEUE_ID_0,
@@ -461,7 +478,7 @@ public class ConsumerOrderInfoManagerTest {
 
     @Test
     public void testLoadFromOldVersionOrderInfoData() {
-        consumerOrderInfoManager.update(false,
+        consumerOrderInfoManager.update(null, false,
             TOPIC,
             GROUP,
             QUEUE_ID_0,
@@ -479,10 +496,10 @@ public class ConsumerOrderInfoManagerTest {
         String dataEncoded = consumerOrderInfoManager.encode();
 
         consumerOrderInfoManager.decode(dataEncoded);
-        assertTrue(consumerOrderInfoManager.checkBlock(TOPIC, GROUP, QUEUE_ID_0, 3000));
+        assertTrue(consumerOrderInfoManager.checkBlock(null, TOPIC, GROUP, QUEUE_ID_0, 3000));
 
         StringBuilder orderInfoBuilder = new StringBuilder();
-        consumerOrderInfoManager.update(false,
+        consumerOrderInfoManager.update(null, false,
             TOPIC,
             GROUP,
             QUEUE_ID_0,
@@ -496,5 +513,25 @@ public class ConsumerOrderInfoManagerTest {
         assertEquals(0, orderInfoMap.get(ExtraInfoUtil.getStartOffsetInfoMapKey(TOPIC, QUEUE_ID_0)).intValue());
         assertEquals(1, orderInfoMap.get(ExtraInfoUtil.getQueueOffsetMapKey(TOPIC, QUEUE_ID_0, 3)).intValue());
         assertEquals(1, orderInfoMap.get(ExtraInfoUtil.getQueueOffsetMapKey(TOPIC, QUEUE_ID_0, 4)).intValue());
+    }
+
+    @Test
+    public void testReentrant() {
+        StringBuilder orderInfoBuilder = new StringBuilder();
+        String attemptId = UUID.randomUUID().toString();
+        consumerOrderInfoManager.update(
+            attemptId,
+            false,
+            TOPIC,
+            GROUP,
+            QUEUE_ID_0,
+            popTime,
+            3000,
+            Lists.newArrayList(1L, 2L, 3L),
+            orderInfoBuilder
+        );
+
+        assertTrue(consumerOrderInfoManager.checkBlock(null, TOPIC, GROUP, QUEUE_ID_0, 3000));
+        assertFalse(consumerOrderInfoManager.checkBlock(attemptId, TOPIC, GROUP, QUEUE_ID_0, 3000));
     }
 }

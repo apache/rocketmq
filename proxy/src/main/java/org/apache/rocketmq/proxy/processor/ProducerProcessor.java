@@ -78,14 +78,14 @@ public class ProducerProcessor extends AbstractProcessor {
                 if (topicMessageTypeValidator != null) {
                     // Do not check retry or dlq topic
                     if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
-                        TopicMessageType topicMessageType = serviceManager.getMetadataService().getTopicMessageType(topic);
+                        TopicMessageType topicMessageType = serviceManager.getMetadataService().getTopicMessageType(ctx, topic);
                         TopicMessageType messageType = TopicMessageType.parseFromMessageProperty(message.getProperties());
                         topicMessageTypeValidator.validate(topicMessageType, messageType);
                     }
                 }
             }
             messageQueue = queueSelector.select(ctx,
-                    this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(topic));
+                this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(ctx, topic));
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no writable queue");
             }
@@ -108,7 +108,7 @@ public class ProducerProcessor extends AbstractProcessor {
                         if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
                             tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
                             StringUtils.isNotBlank(sendResult.getTransactionId())) {
-                            fillTransactionData(producerGroup, finalMessageQueue, sendResult, messageList);
+                            fillTransactionData(ctx, producerGroup, finalMessageQueue, sendResult, messageList);
                         }
                     }
                     endTimestamp.set(System.currentTimeMillis());
@@ -126,7 +126,7 @@ public class ProducerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
-    protected void fillTransactionData(String producerGroup, AddressableMessageQueue messageQueue, SendResult sendResult, List<Message> messageList) {
+    protected void fillTransactionData(ProxyContext ctx, String producerGroup, AddressableMessageQueue messageQueue, SendResult sendResult, List<Message> messageList) {
         try {
             MessageId id;
             if (sendResult.getOffsetMsgId() != null) {
@@ -135,6 +135,7 @@ public class ProducerProcessor extends AbstractProcessor {
                 id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
             }
             this.serviceManager.getTransactionService().addTransactionDataByBrokerName(
+                ctx,
                 messageQueue.getBrokerName(),
                 producerGroup,
                 sendResult.getQueueOffset(),

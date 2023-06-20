@@ -88,6 +88,7 @@ public class RequestCode {
 
     public static final int POP_MESSAGE = 200050;
     public static final int ACK_MESSAGE = 200051;
+    public static final int BATCH_ACK_MESSAGE = 200151;
     public static final int PEEK_MESSAGE = 200052;
     public static final int CHANGE_MESSAGE_INVISIBLETIME = 200053;
     public static final int NOTIFICATION = 200054;
@@ -275,9 +276,12 @@ public class RequestCode {
      */
     public static final int CLEAN_BROKER_DATA = 1011;
 
+    public static final int UPDATE_COLD_DATA_FLOW_CTR_CONFIG = 2001;
+    public static final int REMOVE_COLD_DATA_FLOW_CTR_CONFIG = 2002;
+    public static final int GET_COLD_DATA_FLOW_CTR_INFO = 2003;
+    public static final int SET_COMMITLOG_READ_MODE = 2004;
+
     public static final int CONTROLLER_GET_NEXT_BROKER_ID = 1012;
 
     public static final int CONTROLLER_APPLY_BROKER_ID = 1013;
-
-
 }

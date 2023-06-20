@@ -24,10 +24,28 @@ public class TieredMessageStoreConfig {
     private String brokerName = localHostName();
     private String brokerClusterName = "DefaultCluster";
     private TieredStorageLevel tieredStorageLevel = TieredStorageLevel.NOT_IN_DISK;
+
+    /**
+     * All fetch requests are judged against this level first,
+     * and if the message cannot be read from the TiredMessageStore,
+     * these requests will still go to the next store for fallback processing.
+     */
     public enum TieredStorageLevel {
+        /**
+         * Disable tiered storage, all fetch request will be handled by default message store.
+         */
         DISABLE(0),
+        /**
+         * Only fetch request with offset not in disk will be handled by tiered storage.
+         */
         NOT_IN_DISK(1),
+        /**
+         * Only fetch request with offset not in memory(page cache) will be handled by tiered storage.
+         */
         NOT_IN_MEM(2),
+        /**
+         * All fetch request will be handled by tiered storage.
+         */
         FORCE(3);
 
         private final int value;
@@ -74,7 +92,7 @@ public class TieredMessageStoreConfig {
     // index file will force rolling to next file after idle specified time, default is 3h
     private int tieredStoreIndexFileRollingIdleInterval = 3 * 60 * 60 * 1000;
     private String tieredMetadataServiceProvider = "org.apache.rocketmq.tieredstore.metadata.TieredMetadataManager";
-    private String tieredBackendServiceProvider = "org.apache.rocketmq.tieredstore.provider.posix.PosixFileSegment";
+    private String tieredBackendServiceProvider = "org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment";
     // file reserved time, default is 72 hour
     private int tieredStoreFileReservedTime = 72;
     // time of forcing commitLog to roll to next file, default is 24 hour
@@ -97,13 +115,15 @@ public class TieredMessageStoreConfig {
     private long readAheadCacheExpireDuration = 10 * 1000;
     private double readAheadCacheSizeThresholdRate = 0.3;
 
-    private String tieredStoreFilepath = "";
+    private String tieredStoreFilePath = "";
 
-    // only for oss storage provider
-    private String ossEndpoint = "";
-    private String ossBucket = "";
-    private String ossAccessKey = "";
-    private String ossSecretKey = "";
+    private String objectStoreEndpoint = "";
+
+    private String objectStoreBucket = "";
+
+    private String objectStoreAccessKey = "";
+
+    private String objectStoreSecretKey = "";
 
     public static String localHostName() {
         try {
@@ -330,43 +350,43 @@ public class TieredMessageStoreConfig {
         this.readAheadCacheSizeThresholdRate = rate;
     }
 
-    public String getTieredStoreFilepath() {
-        return tieredStoreFilepath;
+    public String getTieredStoreFilePath() {
+        return tieredStoreFilePath;
     }
 
-    public void setTieredStoreFilepath(String tieredStoreFilepath) {
-        this.tieredStoreFilepath = tieredStoreFilepath;
+    public void setTieredStoreFilePath(String tieredStoreFilePath) {
+        this.tieredStoreFilePath = tieredStoreFilePath;
     }
 
-    public String getOssEndpoint() {
-        return ossEndpoint;
+    public void setObjectStoreEndpoint(String objectStoreEndpoint) {
+        this.objectStoreEndpoint = objectStoreEndpoint;
     }
 
-    public void setOssEndpoint(String ossEndpoint) {
-        this.ossEndpoint = ossEndpoint;
+    public String getObjectStoreBucket() {
+        return objectStoreBucket;
     }
 
-    public String getOssBucket() {
-        return ossBucket;
+    public void setObjectStoreBucket(String objectStoreBucket) {
+        this.objectStoreBucket = objectStoreBucket;
     }
 
-    public void setOssBucket(String ossBucket) {
-        this.ossBucket = ossBucket;
+    public String getObjectStoreAccessKey() {
+        return objectStoreAccessKey;
     }
 
-    public String getOssAccessKey() {
-        return ossAccessKey;
+    public void setObjectStoreAccessKey(String objectStoreAccessKey) {
+        this.objectStoreAccessKey = objectStoreAccessKey;
     }
 
-    public void setOssAccessKey(String ossAccessKey) {
-        this.ossAccessKey = ossAccessKey;
+    public String getObjectStoreSecretKey() {
+        return objectStoreSecretKey;
     }
 
-    public String getOssSecretKey() {
-        return ossSecretKey;
+    public void setObjectStoreSecretKey(String objectStoreSecretKey) {
+        this.objectStoreSecretKey = objectStoreSecretKey;
     }
 
-    public void setOssSecretKey(String ossSecretKey) {
-        this.ossSecretKey = ossSecretKey;
+    public String getObjectStoreEndpoint() {
+        return objectStoreEndpoint;
     }
 }
