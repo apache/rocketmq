@@ -36,6 +36,7 @@ import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -95,6 +96,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     private final ConcurrentMap<Integer/*Port*/, NettyRemotingAbstract> remotingServerTable = new ConcurrentHashMap<>();
 
+    public static final String HA_PROXY_DECODER = "HAProxyDecoder";
     public static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
     public static final String TLS_HANDLER_NAME = "sslHandler";
     public static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
@@ -250,6 +252,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
+            .addLast(this.getDefaultEventExecutorGroup(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
             .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
             .addLast(defaultEventExecutorGroup,
                 encoder,

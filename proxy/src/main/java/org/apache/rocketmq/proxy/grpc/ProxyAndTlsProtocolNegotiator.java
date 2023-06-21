@@ -30,13 +30,13 @@ import io.grpc.netty.shaded.io.netty.handler.codec.ByteToMessageDecoder;
 import io.grpc.netty.shaded.io.netty.handler.codec.ProtocolDetectionResult;
 import io.grpc.netty.shaded.io.netty.handler.codec.ProtocolDetectionState;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessage;
-import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslHandler;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.grpc.netty.shaded.io.netty.util.AsciiString;
+
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -47,9 +47,11 @@ import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyProtocolVersio
 import io.grpc.netty.shaded.io.netty.util.AttributeKey;
 import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.common.constant.HAProxyConstants;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.remoting.common.TlsMode;
@@ -58,6 +60,9 @@ import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator.ProtocolNegotiator {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
+    private static final String HA_PROXY_DECODER = "HAProxyDecoder";
+    private static final String HA_PROXY_HANDLER = "HAProxyHandler";
+    private static final String TLS_HANDLER = "TlsHandler";
     /**
      * the length of the ssl record header (in bytes)
      */
@@ -80,7 +85,8 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
     }
 
     @Override
-    public void close() {}
+    public void close() {
+    }
 
     private static SslContext loadSslContext() {
         try {
@@ -97,8 +103,8 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                 String tlsCertPath = ConfigurationManager.getProxyConfig().getTlsCertPath();
                 try (InputStream serverKeyInputStream = Files.newInputStream(
                         Paths.get(tlsKeyPath));
-                        InputStream serverCertificateStream = Files.newInputStream(
-                                Paths.get(tlsCertPath))) {
+                     InputStream serverCertificateStream = Files.newInputStream(
+                             Paths.get(tlsCertPath))) {
                     SslContext res = GrpcSslContexts.forServer(serverCertificateStream,
                                     serverKeyInputStream)
                             .trustManager(InsecureTrustManagerFactory.INSTANCE)
@@ -131,11 +137,11 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                     return;
                 }
                 if (ha.state() == ProtocolDetectionState.DETECTED) {
-                    ctx.pipeline().addAfter(ctx.name(), "HAProxyDecoder", new HAProxyMessageDecoder())
-                            .addAfter("HAProxyDecoder", "HAProxyHandler", new HAProxyMessageHandler())
-                            .addAfter("HAProxyHandler", "TlsHandler", new TlsModeHandler(grpcHandler));
+                    ctx.pipeline().addAfter(ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
+                            .addAfter(HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
+                            .addAfter(HA_PROXY_HANDLER, TLS_HANDLER, new TlsModeHandler(grpcHandler));
                 } else {
-                    ctx.pipeline().addAfter(ctx.name(), "TlsHandler", new TlsModeHandler(grpcHandler));
+                    ctx.pipeline().addAfter(ctx.name(), TLS_HANDLER, new TlsModeHandler(grpcHandler));
                 }
 
                 ctx.fireUserEventTriggered(InternalProtocolNegotiationEvent.getDefault());
@@ -153,7 +159,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             if (msg instanceof HAProxyMessage) {
                 HAProxyMessage message = (HAProxyMessage) msg;
-                this.addToChannel((HAProxyMessage) msg, ctx.channel());
+                this.addProxyProtocolHeader((HAProxyMessage) msg, ctx.channel());
                 message.release();
             } else {
                 super.channelRead(ctx, msg);
@@ -161,18 +167,30 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
             ctx.pipeline().remove(this);
         }
 
-        private void addToChannel(HAProxyMessage msg, Channel channel) {
-            List<HAProxyTLV> tlvs = msg.tlvs();
-            if (CollectionUtils.isEmpty(tlvs)) {
-                return;
+        /**
+         * The definition of key refers to the implementation of nginx
+         * <a href="https://nginx.org/en/docs/http/ngx_http_core_module.html#var_proxy_protocol_addr">ngx_http_core_module</a>
+         * @param msg
+         * @param channel
+         */
+        private void addProxyProtocolHeader(HAProxyMessage msg, Channel channel) {
+            if (StringUtils.isNotBlank(msg.sourceAddress())) {
+                channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_ADDR)).set(msg.sourceAddress());
             }
-            for (HAProxyTLV tlv : tlvs) {
-                if (tlv.typeByteValue() == -31) {
-                    String endpointId =
-                            "ep-" + tlv.content().toString(CharsetUtil.UTF_8).trim();
-                    channel.attr(AttributeKey.valueOf("PVL_ENDPOINT_ID"))
-                            .set(endpointId);
-                }
+            if (msg.sourcePort() > 0) {
+                channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_PORT)).set(msg.sourcePort());
+            }
+            if (StringUtils.isNotBlank(msg.destinationAddress())) {
+                channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_SERVER_ADDR)).set(msg.destinationAddress());
+            }
+            if (msg.destinationPort() > 0) {
+                channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT)).set(msg.destinationPort());
+            }
+            if (CollectionUtils.isNotEmpty(msg.tlvs())) {
+                msg.tlvs().forEach(tlv ->
+                        channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX
+                                        + String.format("%02x", tlv.typeByteValue())))
+                                .set(tlv.content().toString(CharsetUtil.UTF_8)));
             }
         }
     }

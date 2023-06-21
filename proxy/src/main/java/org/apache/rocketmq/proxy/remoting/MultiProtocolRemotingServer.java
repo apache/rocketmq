@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.remoting;
 
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
 import java.io.IOException;
 import java.security.cert.CertificateException;
@@ -77,6 +78,7 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
     @Override
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
+            .addLast(this.getDefaultEventExecutorGroup(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
             .addLast(this.getDefaultEventExecutorGroup(), HANDSHAKE_HANDLER_NAME, this.getHandshakeHandler())
             .addLast(this.getDefaultEventExecutorGroup(),
                 new IdleStateHandler(0, 0, nettyServerConfig.getServerChannelMaxIdleTimeSeconds()),
