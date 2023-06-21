@@ -761,9 +761,6 @@ public class BrokerController {
                 messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig, configuration);
             this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
             this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
-            if (this.brokerConfig.isEnableControllerMode()) {
-                this.replicasManager = new ReplicasManager(this);
-            }
             if (messageStoreConfig.isTimerWheelEnable()) {
                 this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
                 TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
@@ -785,11 +782,6 @@ public class BrokerController {
             return false;
         }
 
-        if (this.brokerConfig.isEnableControllerMode()) {
-            this.replicasManager.setFenced(true);
-        }
-
-
         result = this.initializeMessageStore();
         if (!result) {
             return false;
@@ -801,6 +793,11 @@ public class BrokerController {
     public boolean recoverAndInitService() throws CloneNotSupportedException {
 
         boolean result = true;
+
+        if (this.brokerConfig.isEnableControllerMode()) {
+            this.replicasManager = new ReplicasManager(this);
+            this.replicasManager.setFenced(true);
+        }
 
         if (messageStore != null) {
             registerMessageStoreHook();
