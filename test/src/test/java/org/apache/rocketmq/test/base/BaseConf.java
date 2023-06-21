@@ -35,6 +35,8 @@ import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
@@ -52,9 +54,8 @@ import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.MQAdminExt;
 import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import static org.apache.rocketmq.test.base.IntegrationTestBase.initMQAdmin;
 import static org.awaitility.Awaitility.await;
 
 public class BaseConf {
@@ -109,6 +110,7 @@ public class BaseConf {
         brokerControllerList = ImmutableList.of(brokerController1, brokerController2, brokerController3);
         brokerControllerMap = brokerControllerList.stream().collect(
             Collectors.toMap(input -> input.getBrokerConfig().getBrokerName(), Function.identity()));
+        initMQAdmin(NAMESRV_ADDR);
     }
 
     public BaseConf() {

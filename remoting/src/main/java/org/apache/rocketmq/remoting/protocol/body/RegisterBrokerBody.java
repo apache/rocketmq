@@ -30,20 +30,22 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 
 public class RegisterBrokerBody extends RemotingSerializable {
 
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     private TopicConfigAndMappingSerializeWrapper topicConfigSerializeWrapper = new TopicConfigAndMappingSerializeWrapper();
     private List<String> filterServerList = new ArrayList<>();
+    private static final long MINIMUM_TAKE_TIME_MILLISECOND = 50;
 
     public byte[] encode(boolean compress) {
 
@@ -86,7 +88,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
             //write the topic queue mapping
             Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = topicConfigSerializeWrapper.getTopicQueueMappingInfoMap();
             if (topicQueueMappingInfoMap == null) {
-                //as the place holder
+                //as the placeholder
                 topicQueueMappingInfoMap = new ConcurrentHashMap<>();
             }
             outputStream.write(convertIntToByteArray(topicQueueMappingInfoMap.size()));
@@ -98,9 +100,9 @@ public class RegisterBrokerBody extends RemotingSerializable {
             }
 
             outputStream.finish();
-            long interval = System.currentTimeMillis() - start;
-            if (interval > 50) {
-                LOGGER.info("Compressing takes {}ms", interval);
+            long takeTime = System.currentTimeMillis() - start;
+            if (takeTime > MINIMUM_TAKE_TIME_MILLISECOND) {
+                LOGGER.info("Compressing takes {}ms", takeTime);
             }
             return byteArrayOutputStream.toByteArray();
         } catch (IOException e) {
@@ -110,7 +112,7 @@ public class RegisterBrokerBody extends RemotingSerializable {
         return null;
     }
 
-    public static RegisterBrokerBody decode(byte[] data, boolean compressed) throws IOException {
+    public static RegisterBrokerBody decode(byte[] data, boolean compressed, MQVersion.Version brokerVersion) throws IOException {
         if (!compressed) {
             return RegisterBrokerBody.decode(data, RegisterBrokerBody.class);
         }
@@ -150,19 +152,21 @@ public class RegisterBrokerBody extends RemotingSerializable {
 
         registerBrokerBody.setFilterServerList(filterServerList);
 
-        int topicQueueMappingNum =  readInt(inflaterInputStream);
-        Map<String/* topic */, TopicQueueMappingInfo> topicQueueMappingInfoMap = new ConcurrentHashMap<>();
-        for (int i = 0; i < topicQueueMappingNum; i++) {
-            int mappingJsonLen = readInt(inflaterInputStream);
-            byte[] buffer = readBytes(inflaterInputStream, mappingJsonLen);
-            TopicQueueMappingInfo info = TopicQueueMappingInfo.decode(buffer, TopicQueueMappingInfo.class);
-            topicQueueMappingInfoMap.put(info.getTopic(), info);
+        if (brokerVersion.ordinal() >= MQVersion.Version.V5_0_0.ordinal()) {
+            int topicQueueMappingNum = readInt(inflaterInputStream);
+            Map<String/* topic */, TopicQueueMappingInfo> topicQueueMappingInfoMap = new ConcurrentHashMap<>();
+            for (int i = 0; i < topicQueueMappingNum; i++) {
+                int mappingJsonLen = readInt(inflaterInputStream);
+                byte[] buffer = readBytes(inflaterInputStream, mappingJsonLen);
+                TopicQueueMappingInfo info = TopicQueueMappingInfo.decode(buffer, TopicQueueMappingInfo.class);
+                topicQueueMappingInfoMap.put(info.getTopic(), info);
+            }
+            registerBrokerBody.getTopicConfigSerializeWrapper().setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
         }
-        registerBrokerBody.getTopicConfigSerializeWrapper().setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
 
-        long interval = System.currentTimeMillis() - start;
-        if (interval > 50) {
-            LOGGER.info("Decompressing takes {}ms", interval);
+        long takeTime = System.currentTimeMillis() - start;
+        if (takeTime > MINIMUM_TAKE_TIME_MILLISECOND) {
+            LOGGER.info("Decompressing takes {}ms", takeTime);
         }
         return registerBrokerBody;
     }
@@ -209,15 +213,13 @@ public class RegisterBrokerBody extends RemotingSerializable {
         this.filterServerList = filterServerList;
     }
 
-    public static ConcurrentMap<String, TopicConfig> cloneTopicConfigTable(
+    private ConcurrentMap<String, TopicConfig> cloneTopicConfigTable(
         ConcurrentMap<String, TopicConfig> topicConfigConcurrentMap) {
-        ConcurrentHashMap<String, TopicConfig> result = new ConcurrentHashMap<>();
-        if (topicConfigConcurrentMap != null) {
-            for (Map.Entry<String, TopicConfig> entry : topicConfigConcurrentMap.entrySet()) {
-                result.put(entry.getKey(), entry.getValue());
-            }
+        if (topicConfigConcurrentMap == null) {
+            return null;
         }
+        ConcurrentHashMap<String, TopicConfig> result = new ConcurrentHashMap<>(topicConfigConcurrentMap.size());
+        result.putAll(topicConfigConcurrentMap);
         return result;
-
     }
 }

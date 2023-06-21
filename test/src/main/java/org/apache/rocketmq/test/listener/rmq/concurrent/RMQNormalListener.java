@@ -65,7 +65,7 @@ public class RMQNormalListener extends AbstractListener implements MessageListen
                         msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(),
                         msg.getQueueOffset()));
                 } else {
-                    LOGGER.info(msg);
+                    LOGGER.info("{}", msg);
                 }
             }
 

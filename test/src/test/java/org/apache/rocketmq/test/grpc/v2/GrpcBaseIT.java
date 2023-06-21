@@ -156,7 +156,9 @@ public class GrpcBaseIT extends BaseConf {
         // Set LongPollingReserveTimeInMillis to 500ms to reserve more time for IT
         ConfigurationManager.getProxyConfig().setLongPollingReserveTimeInMillis(500);
         ConfigurationManager.getProxyConfig().setRocketMQClusterName(brokerController1.getBrokerConfig().getBrokerClusterName());
+        ConfigurationManager.getProxyConfig().setHeartbeatSyncerTopicClusterName(brokerController1.getBrokerConfig().getBrokerClusterName());
         ConfigurationManager.getProxyConfig().setMinInvisibleTimeMillsForRecv(3);
+        ConfigurationManager.getProxyConfig().setGrpcClientConsumerMinLongPollingTimeoutMillis(0);
     }
 
     protected MessagingServiceGrpc.MessagingServiceStub createStub(Channel channel) {
@@ -225,6 +227,29 @@ public class GrpcBaseIT extends BaseConf {
                 .build()
             )
             .build());
+    }
+
+    public void testQueryAssignment() throws Exception {
+        String topic = initTopic();
+        String group = "group";
+
+        QueryAssignmentResponse response = blockingStub.queryAssignment(buildQueryAssignmentRequest(topic, group));
+
+        assertQueryAssignment(response, BROKER_NUM);
+    }
+
+    public void testQueryFifoAssignment() throws Exception {
+        String topic = initTopic(TopicMessageType.FIFO);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+        SubscriptionGroupConfig groupConfig = brokerController1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
+        groupConfig.setConsumeMessageOrderly(true);
+        brokerController1.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        brokerController2.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        brokerController3.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+
+        QueryAssignmentResponse response = blockingStub.queryAssignment(buildQueryAssignmentRequest(topic, group));
+
+        assertQueryAssignment(response, BROKER_NUM * QUEUE_NUMBERS);
     }
 
     public void testTransactionCheckThenCommit() {

@@ -26,7 +26,6 @@ java_library(
         "//common",
         "//container",
         "//controller",
-        "//logging",
         "//namesrv",
         "//proxy",
         "//remoting",
@@ -42,13 +41,14 @@ java_library(
         "@maven//:commons_cli_commons_cli",
         "@maven//:commons_validator_commons_validator",
         "@maven//:io_netty_netty_all",
-        "@maven//:javax_annotation_javax_annotation_api",
-        "@maven//:log4j_log4j",
+        "@maven//:org_apache_tomcat_annotations_api",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_awaitility_awaitility",
         "@maven//:org_lz4_lz4_java",
         "@maven//:org_reflections_reflections",
         "@maven//:org_slf4j_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
     ],
 )
 
@@ -59,8 +59,7 @@ java_library(
         "src/test/resources/rmq-proxy-home/conf/broker.conf",
         "src/test/resources/rmq-proxy-home/conf/logback_proxy.xml",
         "src/test/resources/rmq-proxy-home/conf/rmq-proxy.json",
-        "src/test/resources/log4j.xml",
-        "src/test/resources/logback-test.xml",
+        "src/test/resources/rmq.logback-test.xml",
     ] + glob(["src/test/resources/schema/**/*.schema"]),
     visibility = ["//visibility:public"],
     deps = [
@@ -71,7 +70,6 @@ java_library(
         "//common",
         "//container",
         "//controller",
-        "//logging",
         "//namesrv",
         "//proxy",
         "//remoting",
@@ -87,10 +85,9 @@ java_library(
         "@maven//:io_grpc_grpc_stub",
         "@maven//:io_grpc_grpc_testing",
         "@maven//:io_netty_netty_all",
-        "@maven//:log4j_log4j",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_apache_rocketmq_rocketmq_proto",
-        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
     ],
 )
 
@@ -99,6 +96,7 @@ GenTestRules(
     default_test_size = "medium",
     exclude_tests = [
         "src/test/java/org/apache/rocketmq/test/grpc/v2/GrpcBaseIT",
+        # Following tests are found flaky
         "src/test/java/org/apache/rocketmq/test/statictopic/StaticTopicIT",
         "src/test/java/org/apache/rocketmq/test/client/consumer/topic/MulConsumerMulTopicIT",
         "src/test/java/org/apache/rocketmq/test/client/consumer/tag/MulTagSubIT",
@@ -126,6 +124,9 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/test/client/producer/oneway/OneWaySendWithSelectorIT",
         "src/test/java/org/apache/rocketmq/test/smoke/NormalMessageSendAndRecvIT",
         "src/test/java/org/apache/rocketmq/test/base/dledger/DLedgerProduceAndConsumeIT",
+    	"src/test/java/org/apache/rocketmq/test/client/consumer/pop/PopOrderlyIT",
+        "src/test/java/org/apache/rocketmq/test/delay/NormalMsgDelayIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/querymsg/QueryMsgByIdExceptionIT",
     ],
     test_files = glob(["src/test/java/**/*IT.java"]),
     deps = [

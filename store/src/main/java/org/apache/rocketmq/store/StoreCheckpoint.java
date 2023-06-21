@@ -24,12 +24,12 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 
 public class StoreCheckpoint {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private final RandomAccessFile randomAccessFile;
     private final FileChannel fileChannel;
     private final MappedByteBuffer mappedByteBuffer;
@@ -37,6 +37,7 @@ public class StoreCheckpoint {
     private volatile long logicsMsgTimestamp = 0;
     private volatile long indexMsgTimestamp = 0;
     private volatile long masterFlushedOffset = 0;
+    private volatile long confirmPhyOffset = 0;
 
     public StoreCheckpoint(final String scpPath) throws IOException {
         File file = new File(scpPath);
@@ -53,6 +54,7 @@ public class StoreCheckpoint {
             this.logicsMsgTimestamp = this.mappedByteBuffer.getLong(8);
             this.indexMsgTimestamp = this.mappedByteBuffer.getLong(16);
             this.masterFlushedOffset = this.mappedByteBuffer.getLong(24);
+            this.confirmPhyOffset = this.mappedByteBuffer.getLong(32);
 
             log.info("store checkpoint file physicMsgTimestamp " + this.physicMsgTimestamp + ", "
                 + UtilAll.timeMillisToHumanString(this.physicMsgTimestamp));
@@ -61,6 +63,7 @@ public class StoreCheckpoint {
             log.info("store checkpoint file indexMsgTimestamp " + this.indexMsgTimestamp + ", "
                 + UtilAll.timeMillisToHumanString(this.indexMsgTimestamp));
             log.info("store checkpoint file masterFlushedOffset " + this.masterFlushedOffset);
+            log.info("store checkpoint file confirmPhyOffset " + this.confirmPhyOffset);
         } else {
             log.info("store checkpoint file not exists, " + scpPath);
         }
@@ -84,6 +87,7 @@ public class StoreCheckpoint {
         this.mappedByteBuffer.putLong(8, this.logicsMsgTimestamp);
         this.mappedByteBuffer.putLong(16, this.indexMsgTimestamp);
         this.mappedByteBuffer.putLong(24, this.masterFlushedOffset);
+        this.mappedByteBuffer.putLong(32, this.confirmPhyOffset);
         this.mappedByteBuffer.force();
     }
 
@@ -101,6 +105,14 @@ public class StoreCheckpoint {
 
     public void setLogicsMsgTimestamp(long logicsMsgTimestamp) {
         this.logicsMsgTimestamp = logicsMsgTimestamp;
+    }
+
+    public long getConfirmPhyOffset() {
+        return confirmPhyOffset;
+    }
+
+    public void setConfirmPhyOffset(long confirmPhyOffset) {
+        this.confirmPhyOffset = confirmPhyOffset;
     }
 
     public long getMinTimestampIndex() {

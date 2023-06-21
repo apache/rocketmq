@@ -29,13 +29,13 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class NetworkUtil {
     public static final String OS_NAME = System.getProperty("os.name");
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     private static boolean isLinuxPlatform = false;
     private static boolean isWindowsPlatform = false;
 
@@ -95,12 +95,12 @@ public class NetworkUtil {
             ArrayList<String> ipv4Result = new ArrayList<>();
             ArrayList<String> ipv6Result = new ArrayList<>();
             while (enumeration.hasMoreElements()) {
-                final NetworkInterface networkInterface = enumeration.nextElement();
-                if (isBridge(networkInterface)) {
+                final NetworkInterface nif = enumeration.nextElement();
+                if (isBridge(nif) || nif.isVirtual() || nif.isPointToPoint() || !nif.isUp()) {
                     continue;
                 }
 
-                final Enumeration<InetAddress> en = networkInterface.getInetAddresses();
+                final Enumeration<InetAddress> en = nif.getInetAddresses();
                 while (en.hasMoreElements()) {
                     final InetAddress address = en.nextElement();
                     if (!address.isLoopbackAddress()) {
@@ -116,7 +116,7 @@ public class NetworkUtil {
             // prefer ipv4
             if (!ipv4Result.isEmpty()) {
                 for (String ip : ipv4Result) {
-                    if (ip.startsWith("127.0") || ip.startsWith("192.168")) {
+                    if (ip.startsWith("127.0") || ip.startsWith("192.168") || ip.startsWith("0.")) {
                         continue;
                     }
 

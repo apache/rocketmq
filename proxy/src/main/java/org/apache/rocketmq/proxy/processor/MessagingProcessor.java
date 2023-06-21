@@ -35,7 +35,7 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
@@ -230,6 +230,12 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
+    CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis);
+
+    CompletableFuture<Void> requestOneway(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis);
+
     void registerProducer(
         ProxyContext ctx,
         String producerGroup,
@@ -278,6 +284,8 @@ public interface MessagingProcessor extends StartAndShutdown {
     void registerConsumerListener(
         ConsumerIdsChangeListener consumerIdsChangeListener
     );
+
+    void doChannelCloseEvent(String remoteAddr, Channel channel);
 
     ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup);
 

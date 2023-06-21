@@ -154,19 +154,6 @@ public class RocketMQSerializableTest {
         }
     }
 
-    @Test
-    public void testIsBlank_NotBlank() {
-        assertThat(RocketMQSerializable.isBlank("bar")).isFalse();
-        assertThat(RocketMQSerializable.isBlank("  A  ")).isFalse();
-    }
-
-    @Test
-    public void testIsBlank_Blank() {
-        assertThat(RocketMQSerializable.isBlank(null)).isTrue();
-        assertThat(RocketMQSerializable.isBlank("")).isTrue();
-        assertThat(RocketMQSerializable.isBlank("  ")).isTrue();
-    }
-
     private short parseToShort(byte[] array, int index) {
         return (short) (array[index] * 256 + array[++index]);
     }

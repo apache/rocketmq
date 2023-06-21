@@ -17,35 +17,49 @@
 
 package org.apache.rocketmq.store.queue;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.attribute.CQType;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageAccessor;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.store.MappedFileQueue;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.apache.rocketmq.store.config.BrokerRole;
-import org.apache.rocketmq.store.logfile.MappedFile;
-
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Function;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.attribute.CQType;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.MappedFileQueue;
+import org.apache.rocketmq.store.MessageFilter;
+import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.logfile.MappedFile;
 
-public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
-    protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+public class BatchConsumeQueue implements ConsumeQueueInterface {
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    //position 8, size 4, tagscode 8, storetime 8, msgBaseOffset 8, batchSize 2, compactedOffset 4, reserved 4
+    /**
+     * BatchConsumeQueue's store unit. Format:
+     * <pre>
+     * ┌─────────────────────────┬───────────┬────────────┬──────────┬─────────────┬─────────┬───────────────┬─────────┐
+     * │CommitLog Physical Offset│ Body Size │Tag HashCode│Store time│msgBaseOffset│batchSize│compactedOffset│reserved │
+     * │        (8 Bytes)        │ (4 Bytes) │ (8 Bytes)  │(8 Bytes) │(8 Bytes)    │(2 Bytes)│   (4 Bytes)   │(4 Bytes)│
+     * ├─────────────────────────┴───────────┴────────────┴──────────┴─────────────┴─────────┴───────────────┴─────────┤
+     * │                                                  Store Unit                                                   │
+     * │                                                                                                               │
+     * </pre>
+     * BatchConsumeQueue's store unit. Size:
+     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) + Store time(8) +
+     * msgBaseOffset(8) + batchSize(2) + compactedOffset(4) + reserved(4)= 46 Bytes
+     */
     public static final int CQ_STORE_UNIT_SIZE = 46;
+    public static final int MSG_TAG_OFFSET_INDEX = 12;
     public static final int MSG_STORE_TIME_OFFSET_INDEX = 20;
     public static final int MSG_BASE_OFFSET_INDEX = 28;
     public static final int MSG_BATCH_SIZE_INDEX = 36;
@@ -339,7 +353,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     @Override
     public void truncateDirtyLogicFiles(long phyOffset) {
 
-        long oldMinOffset =  minOffsetInQueue;
+        long oldMinOffset = minOffsetInQueue;
         long oldMaxOffset = maxOffsetInQueue;
 
         int logicFileSize = this.mappedFileSize;
@@ -501,10 +515,10 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
     }
 
     @Override
-    public void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum) {
+    public void assignQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg) {
         String topicQueueKey = getTopic() + "-" + getQueueId();
 
-        long queueOffset = queueOffsetAssigner.assignBatchQueueOffset(topicQueueKey, messageNum);
+        long queueOffset = queueOffsetOperator.getBatchQueueOffset(topicQueueKey);
 
         if (MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
             MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_BASE, String.valueOf(queueOffset));
@@ -513,7 +527,15 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
         msg.setQueueOffset(queueOffset);
     }
 
-    public boolean putBatchMessagePositionInfo(final long offset, final int size, final long tagsCode, final long storeTime,
+    @Override
+    public void increaseQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg,
+        short messageNum) {
+        String topicQueueKey = getTopic() + "-" + getQueueId();
+        queueOffsetOperator.increaseBatchQueueOffset(topicQueueKey, messageNum);
+    }
+
+    public boolean putBatchMessagePositionInfo(final long offset, final int size, final long tagsCode,
+        final long storeTime,
         final long msgBaseOffset, final short batchSize) {
 
         if (offset <= this.maxMsgPhyOffsetInCommitLog) {
@@ -682,6 +704,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
 
     /**
      * Find the message whose timestamp is the smallest, greater than or equal to the given time.
+     *
      * @param timestamp
      * @return
      */
@@ -780,8 +803,8 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
                 }
             } else {
                 //The max timestamp of this file is smaller than the given timestamp, so double check the previous file
-                if (i + 1 <=  mappedFileNum - 1) {
-                    mappedFile =  mappedFileQueue.getMappedFiles().get(i + 1);
+                if (i + 1 <= mappedFileNum - 1) {
+                    mappedFile = mappedFileQueue.getMappedFiles().get(i + 1);
                     targetBcq = mappedFile;
                     break;
                 } else {
@@ -798,7 +821,8 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
      * Find the offset of which the value is equal or larger than the given targetValue.
      * If there are many values equal to the target, then find the earliest one.
      */
-    public static int binarySearchRight(ByteBuffer byteBuffer, int left, int right, final int unitSize, final int unitShift,
+    public static int binarySearchRight(ByteBuffer byteBuffer, int left, int right, final int unitSize,
+        final int unitShift,
         long targetValue) {
         int mid = -1;
         while (left <= right) {
@@ -816,7 +840,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
                 if (tmpValue >= targetValue) {
                     return mid;
                 } else {
-                    left =  mid + unitSize;
+                    left = mid + unitSize;
                 }
             } else {
                 //mid is actually in the mid
@@ -832,7 +856,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
 
     /**
      * Here is vulnerable, the min value of the bytebuffer must be smaller or equal then the given value.
-     * Otherwise it may get -1
+     * Otherwise, it may get -1
      */
     protected int binarySearch(ByteBuffer byteBuffer, int left, int right, final int unitSize, final int unitShift,
         long targetValue) {
@@ -975,6 +999,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
 
     /**
      * Batch msg offset (deep logic offset)
+     *
      * @return max deep offset
      */
     @Override
@@ -1004,5 +1029,104 @@ public class BatchConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCy
 
     public MappedFileQueue getMappedFileQueue() {
         return mappedFileQueue;
+    }
+
+    @Override
+    public long estimateMessageCount(long from, long to, MessageFilter filter) {
+        // transfer message offset to physical offset
+        SelectMappedBufferResult firstMappedFileBuffer = getBatchMsgIndexBuffer(from);
+        if (firstMappedFileBuffer == null) {
+            return -1;
+        }
+        long physicalOffsetFrom = firstMappedFileBuffer.getStartOffset();
+
+        SelectMappedBufferResult lastMappedFileBuffer = getBatchMsgIndexBuffer(to);
+        if (lastMappedFileBuffer == null) {
+            return -1;
+        }
+        long physicalOffsetTo = lastMappedFileBuffer.getStartOffset();
+
+        List<MappedFile> mappedFiles = mappedFileQueue.range(physicalOffsetFrom, physicalOffsetTo);
+        if (mappedFiles.isEmpty()) {
+            return -1;
+        }
+
+        boolean sample = false;
+        long match = 0;
+        long matchCqUnitCount = 0;
+        long raw = 0;
+        long scanCqUnitCount = 0;
+
+        for (MappedFile mappedFile : mappedFiles) {
+            int start = 0;
+            int len = mappedFile.getFileSize();
+
+            // calculate start and len for first segment and last segment to reduce scanning
+            // first file segment
+            if (mappedFile.getFileFromOffset() <= physicalOffsetFrom) {
+                start = (int) (physicalOffsetFrom - mappedFile.getFileFromOffset());
+                if (mappedFile.getFileFromOffset() + mappedFile.getFileSize() >= physicalOffsetTo) {
+                    // current mapped file covers search range completely.
+                    len = (int) (physicalOffsetTo - physicalOffsetFrom);
+                } else {
+                    len = mappedFile.getFileSize() - start;
+                }
+            }
+
+            // last file segment
+            if (0 == start && mappedFile.getFileFromOffset() + mappedFile.getFileSize() > physicalOffsetTo) {
+                len = (int) (physicalOffsetTo - mappedFile.getFileFromOffset());
+            }
+
+            // select partial data to scan
+            SelectMappedBufferResult slice = mappedFile.selectMappedBuffer(start, len);
+            if (null != slice) {
+                try {
+                    ByteBuffer buffer = slice.getByteBuffer();
+                    int current = 0;
+                    while (current < len) {
+                        // skip physicalOffset and message length fields.
+                        buffer.position(current + MSG_TAG_OFFSET_INDEX);
+                        long tagCode = buffer.getLong();
+                        buffer.position(current + MSG_BATCH_SIZE_INDEX);
+                        long batchSize = buffer.getShort();
+                        if (filter.isMatchedByConsumeQueue(tagCode, null)) {
+                            match += batchSize;
+                            matchCqUnitCount++;
+                        }
+                        raw += batchSize;
+                        scanCqUnitCount++;
+                        current += CQ_STORE_UNIT_SIZE;
+
+                        if (scanCqUnitCount >= messageStore.getMessageStoreConfig().getMaxConsumeQueueScan()) {
+                            sample = true;
+                            break;
+                        }
+
+                        if (matchCqUnitCount > messageStore.getMessageStoreConfig().getSampleCountThreshold()) {
+                            sample = true;
+                            break;
+                        }
+                    }
+                } finally {
+                    slice.release();
+                }
+            }
+            // we have scanned enough entries, now is the time to return an educated guess.
+            if (sample) {
+                break;
+            }
+        }
+
+        long result = match;
+        if (sample) {
+            if (0 == raw) {
+                log.error("[BUG]. Raw should NOT be 0");
+                return 0;
+            }
+            result = (long) (match * (to - from) * 1.0 / raw);
+        }
+        log.debug("Result={}, raw={}, match={}, sample={}", result, raw, match, sample);
+        return result;
     }
 }

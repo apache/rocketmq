@@ -20,12 +20,12 @@ package org.apache.rocketmq.common;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ThreadFactoryImpl implements ThreadFactory {
 
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     private final AtomicLong threadIndex = new AtomicLong(0);
     private final String threadNamePrefix;
@@ -47,7 +47,7 @@ public class ThreadFactoryImpl implements ThreadFactory {
     public ThreadFactoryImpl(final String threadNamePrefix, boolean daemon, BrokerIdentity brokerIdentity) {
         this.daemon = daemon;
         if (brokerIdentity != null && brokerIdentity.isInBrokerContainer()) {
-            this.threadNamePrefix = brokerIdentity.getLoggerIdentifier() + threadNamePrefix;
+            this.threadNamePrefix = brokerIdentity.getIdentifier() + threadNamePrefix;
         } else {
             this.threadNamePrefix = threadNamePrefix;
         }

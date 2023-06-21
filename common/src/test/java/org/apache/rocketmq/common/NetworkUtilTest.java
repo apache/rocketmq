@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
+import java.net.InetAddress;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.junit.Test;
 
@@ -23,10 +24,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class NetworkUtilTest {
     @Test
-    public void testGetLocalAddress() throws Exception {
+    public void testGetLocalAddress() {
         String localAddress = NetworkUtil.getLocalAddress();
         assertThat(localAddress).isNotNull();
         assertThat(localAddress.length()).isGreaterThan(0);
+        assertThat(localAddress).isNotEqualTo(InetAddress.getLoopbackAddress().getHostAddress());
     }
 
     @Test

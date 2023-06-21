@@ -19,38 +19,28 @@ package org.apache.rocketmq.proxy.grpc;
 import io.grpc.BindableService;
 import io.grpc.ServerInterceptor;
 import io.grpc.ServerServiceDefinition;
-import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
-import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLException;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ServiceProvider;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.GlobalExceptionInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 
 public class GrpcServerBuilder {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected NettyServerBuilder serverBuilder;
 
     public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port) {
@@ -60,12 +50,7 @@ public class GrpcServerBuilder {
     protected GrpcServerBuilder(ThreadPoolExecutor executor, int port) {
         serverBuilder = NettyServerBuilder.forPort(port);
 
-        try {
-            configSslContext(serverBuilder);
-        } catch (Exception e) {
-            log.error("grpc tls set failed. msg: {}, e:", e.getMessage(), e);
-            throw new RuntimeException("grpc tls set failed: " + e.getMessage());
-        }
+        serverBuilder.protocolNegotiator(new OptionalSSLProtocolNegotiator());
 
         // build server
         int bossLoopNum = ConfigurationManager.getProxyConfig().getGrpcBossLoopNum();
@@ -113,41 +98,15 @@ public class GrpcServerBuilder {
         return new GrpcServer(this.serverBuilder.build());
     }
 
-    protected void configSslContext(NettyServerBuilder serverBuilder) throws SSLException, CertificateException {
-        if (null == serverBuilder) {
-            return;
-        }
-        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-        boolean tlsTestModeEnable = proxyConfig.isGrpcTlsTestModeEnable();
-        if (tlsTestModeEnable) {
-            SelfSignedCertificate selfSignedCertificate = new SelfSignedCertificate();
-            serverBuilder.sslContext(GrpcSslContexts.forServer(selfSignedCertificate.certificate(), selfSignedCertificate.privateKey())
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .clientAuth(ClientAuth.NONE)
-                .build());
-            return;
-        }
-
-        String tlsKeyPath = ConfigurationManager.getProxyConfig().getGrpcTlsKeyPath();
-        String tlsCertPath = ConfigurationManager.getProxyConfig().getGrpcTlsCertPath();
-        try (InputStream serverKeyInputStream = Files.newInputStream(Paths.get(tlsKeyPath));
-             InputStream serverCertificateStream = Files.newInputStream(Paths.get(tlsCertPath))) {
-            serverBuilder.sslContext(GrpcSslContexts.forServer(serverCertificateStream, serverKeyInputStream)
-                .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                .clientAuth(ClientAuth.NONE)
-                .build());
-            log.info("TLS configured OK");
-        } catch (IOException e) {
-            log.error("Failed to load Server key/certificate", e);
-        }
-    }
-
     public GrpcServerBuilder configInterceptor() {
         // grpc interceptors, including acl, logging etc.
-        List<AccessValidator> accessValidators = ServiceProvider.load(ServiceProvider.ACL_VALIDATOR_ID, AccessValidator.class);
-        if (!accessValidators.isEmpty()) {
-            this.serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
+        List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
+        if (accessValidators.isEmpty()) {
+            log.info("ServiceProvider loaded no AccessValidator, using default org.apache.rocketmq.acl.plain.PlainAccessValidator");
+            accessValidators.add(new PlainAccessValidator());
         }
+
+        this.serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
 
         this.serverBuilder
             .intercept(new GlobalExceptionInterceptor())

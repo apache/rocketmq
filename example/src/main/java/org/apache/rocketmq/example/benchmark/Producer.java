@@ -27,17 +27,18 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.compression.CompressionType;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.SerializeType;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 import java.util.Arrays;
@@ -52,6 +53,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Producer {
+
+    private static final Logger log = LoggerFactory.getLogger(Producer.class);
 
     private static byte[] msgBody;
     private static final int MAX_LENGTH_ASYNC_QUEUE = 10000;
@@ -78,20 +81,20 @@ public class Producer {
         final int delayLevel = commandLine.hasOption('e') ? Integer.parseInt(commandLine.getOptionValue('e')) : 1;
         final boolean asyncEnable = commandLine.hasOption('y') && Boolean.parseBoolean(commandLine.getOptionValue('y'));
         final int threadCount = asyncEnable ? 1 : commandLine.hasOption('w') ? Integer.parseInt(commandLine.getOptionValue('w')) : 64;
+        final boolean enableCompress = commandLine.hasOption('c') && Boolean.parseBoolean(commandLine.getOptionValue('c'));
+        final int reportInterval = commandLine.hasOption("ri") ? Integer.parseInt(commandLine.getOptionValue("ri")) : 10000;
 
         System.out.printf("topic: %s, threadCount: %d, messageSize: %d, keyEnable: %s, propertySize: %d, tagCount: %d, " +
                 "traceEnable: %s, aclEnable: %s, messageQuantity: %d, delayEnable: %s, delayLevel: %s, " +
-                "asyncEnable: %s%n",
+                "asyncEnable: %s%n compressEnable: %s, reportInterval: %d%n",
             topic, threadCount, messageSize, keyEnable, propertySize, tagCount, msgTraceEnable, aclEnable, messageNum,
-            delayEnable, delayLevel, asyncEnable);
+            delayEnable, delayLevel, asyncEnable, enableCompress, reportInterval);
 
         StringBuilder sb = new StringBuilder(messageSize);
         for (int i = 0; i < messageSize; i++) {
             sb.append(RandomStringUtils.randomAlphanumeric(1));
         }
         msgBody = sb.toString().getBytes(StandardCharsets.UTF_8);
-
-        final InternalLogger log = ClientLogger.getLog();
 
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(threadCount);
 
@@ -137,7 +140,7 @@ public class Producer {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 10000, TimeUnit.MILLISECONDS);
+        }, reportInterval, reportInterval, TimeUnit.MILLISECONDS);
 
         RPCHook rpcHook = null;
         if (aclEnable) {
@@ -153,7 +156,17 @@ public class Producer {
             producer.setNamesrvAddr(ns);
         }
 
-        producer.setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
+        if (enableCompress) {
+            String compressType = commandLine.hasOption("ct") ? commandLine.getOptionValue("ct").trim() : "ZLIB";
+            int compressLevel = commandLine.hasOption("cl") ? Integer.parseInt(commandLine.getOptionValue("cl")) : 5;
+            int compressOverHowMuch = commandLine.hasOption("ch") ? Integer.parseInt(commandLine.getOptionValue("ch")) : 4096;
+            producer.getDefaultMQProducerImpl().setCompressType(CompressionType.of(compressType));
+            producer.getDefaultMQProducerImpl().setCompressLevel(compressLevel);
+            producer.setCompressMsgBodyOverHowmuch(compressOverHowMuch);
+            System.out.printf("compressType: %s compressLevel: %s%n", compressType, compressLevel);
+        } else {
+            producer.setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
+        }
 
         producer.start();
 
@@ -339,6 +352,26 @@ public class Producer {
         options.addOption(opt);
 
         opt = new Option("y", "asyncEnable", true, "Enable async produce, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("c", "compressEnable", true, "Enable compress msg over 4K, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ct", "compressType", true, "Message compressed type, Default: ZLIB");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("cl", "compressLevel", true, "Message compressed level, Default: 5");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ch", "compressOverHowMuch", true, "Compress message when body over how much(unit Byte), Default: 4096");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ri", "reportInterval", true, "The number of ms between reports, Default: 10000");
         opt.setRequired(false);
         options.addOption(opt);
 

@@ -139,4 +139,10 @@ public interface MessageService {
         GetMinOffsetRequestHeader requestHeader,
         long timeoutMillis
     );
+
+    CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis);
+
+    CompletableFuture<Void> requestOneway(ProxyContext ctx, String brokerName, RemotingCommand request,
+        long timeoutMillis);
 }

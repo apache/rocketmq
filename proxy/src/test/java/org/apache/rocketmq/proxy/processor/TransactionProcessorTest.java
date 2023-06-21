@@ -54,7 +54,7 @@ public class TransactionProcessorTest extends BaseProcessorTest {
     protected void testEndTransaction(int sysFlag, TransactionStatus transactionStatus) throws Throwable {
         when(this.messageService.endTransactionOneway(any(), any(), any(), anyLong())).thenReturn(CompletableFuture.completedFuture(null));
         ArgumentCaptor<Integer> commitOrRollbackCaptor = ArgumentCaptor.forClass(Integer.class);
-        when(transactionService.genEndTransactionRequestHeader(anyString(), commitOrRollbackCaptor.capture(), anyBoolean(), anyString(), anyString()))
+        when(transactionService.genEndTransactionRequestHeader(any(), anyString(), commitOrRollbackCaptor.capture(), anyBoolean(), anyString(), anyString()))
             .thenReturn(new EndTransactionRequestData("brokerName", new EndTransactionRequestHeader()));
 
         this.transactionProcessor.endTransaction(

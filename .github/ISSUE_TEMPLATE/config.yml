@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask Question
+    url: https://github.com/apache/rocketmq/discussions
+    about: Please go to GitHub Disccusions to ask questions

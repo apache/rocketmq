@@ -30,11 +30,17 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String brokerName;
     @CFNullable
+    private Long brokerId;
+    @CFNullable
     private Integer epoch;
     @CFNullable
     private Long maxOffset;
     @CFNullable
     private Long confirmOffset;
+    @CFNullable
+    private Long heartbeatTimeoutMills;
+    @CFNullable
+    private Integer electionPriority;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -87,5 +93,29 @@ public class BrokerHeartbeatRequestHeader implements CommandCustomHeader {
 
     public void setConfirmOffset(Long confirmOffset) {
         this.confirmOffset = confirmOffset;
+    }
+
+    public Long getBrokerId() {
+        return brokerId;
+    }
+
+    public void setBrokerId(Long brokerId) {
+        this.brokerId = brokerId;
+    }
+
+    public Long getHeartbeatTimeoutMills() {
+        return heartbeatTimeoutMills;
+    }
+
+    public void setHeartbeatTimeoutMills(Long heartbeatTimeoutMills) {
+        this.heartbeatTimeoutMills = heartbeatTimeoutMills;
+    }
+
+    public Integer getElectionPriority() {
+        return electionPriority;
+    }
+
+    public void setElectionPriority(Integer electionPriority) {
+        this.electionPriority = electionPriority;
     }
 }

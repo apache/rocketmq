@@ -16,15 +16,21 @@
  */
 package org.apache.rocketmq.store;
 
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
+
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
@@ -110,11 +116,11 @@ public interface MessageStore {
      * Query at most <code>maxMsgNums</code> messages belonging to <code>topic</code> at <code>queueId</code> starting
      * from given <code>offset</code>. Resulting messages will further be screened using provided message filter.
      *
-     * @param group Consumer group that launches this query.
-     * @param topic Topic to query.
-     * @param queueId Queue ID to query.
-     * @param offset Logical offset to start from.
-     * @param maxMsgNums Maximum count of messages to query.
+     * @param group         Consumer group that launches this query.
+     * @param topic         Topic to query.
+     * @param queueId       Queue ID to query.
+     * @param offset        Logical offset to start from.
+     * @param maxMsgNums    Maximum count of messages to query.
      * @param messageFilter Message filter used to screen desired messages.
      * @return Matched messages.
      */
@@ -122,25 +128,56 @@ public interface MessageStore {
         final long offset, final int maxMsgNums, final MessageFilter messageFilter);
 
     /**
+     * Asynchronous get message
+     * @see #getMessage(String, String, int, long, int, MessageFilter) getMessage
+     *
+     * @param group         Consumer group that launches this query.
+     * @param topic         Topic to query.
+     * @param queueId       Queue ID to query.
+     * @param offset        Logical offset to start from.
+     * @param maxMsgNums    Maximum count of messages to query.
+     * @param messageFilter Message filter used to screen desired messages.
+     * @return Matched messages.
+     */
+    CompletableFuture<GetMessageResult> getMessageAsync(final String group, final String topic, final int queueId,
+        final long offset, final int maxMsgNums, final MessageFilter messageFilter);
+
+    /**
      * Query at most <code>maxMsgNums</code> messages belonging to <code>topic</code> at <code>queueId</code> starting
      * from given <code>offset</code>. Resulting messages will further be screened using provided message filter.
      *
-     * @param group Consumer group that launches this query.
-     * @param topic Topic to query.
-     * @param queueId Queue ID to query.
-     * @param offset Logical offset to start from.
-     * @param maxMsgNums Maximum count of messages to query.
-     * @param maxTotalMsgSize Maxisum total msg size of the messages
-     * @param messageFilter Message filter used to screen desired messages.
+     * @param group           Consumer group that launches this query.
+     * @param topic           Topic to query.
+     * @param queueId         Queue ID to query.
+     * @param offset          Logical offset to start from.
+     * @param maxMsgNums      Maximum count of messages to query.
+     * @param maxTotalMsgSize Maximum total msg size of the messages
+     * @param messageFilter   Message filter used to screen desired messages.
      * @return Matched messages.
      */
     GetMessageResult getMessage(final String group, final String topic, final int queueId,
         final long offset, final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter);
 
     /**
+     * Asynchronous get message
+     * @see #getMessage(String, String, int, long, int, int, MessageFilter) getMessage
+     *
+     * @param group           Consumer group that launches this query.
+     * @param topic           Topic to query.
+     * @param queueId         Queue ID to query.
+     * @param offset          Logical offset to start from.
+     * @param maxMsgNums      Maximum count of messages to query.
+     * @param maxTotalMsgSize Maximum total msg size of the messages
+     * @param messageFilter   Message filter used to screen desired messages.
+     * @return Matched messages.
+     */
+    CompletableFuture<GetMessageResult> getMessageAsync(final String group, final String topic, final int queueId,
+        final long offset, final int maxMsgNums, final int maxTotalMsgSize, final MessageFilter messageFilter);
+
+    /**
      * Get maximum offset of the topic queue.
      *
-     * @param topic Topic name.
+     * @param topic   Topic name.
      * @param queueId Queue ID.
      * @return Maximum offset at present.
      */
@@ -149,8 +186,8 @@ public interface MessageStore {
     /**
      * Get maximum offset of the topic queue.
      *
-     * @param topic Topic name.
-     * @param queueId Queue ID.
+     * @param topic     Topic name.
+     * @param queueId   Queue ID.
      * @param committed return the max offset in ConsumeQueue if true, or the max offset in CommitLog if false
      * @return Maximum offset at present.
      */
@@ -159,7 +196,7 @@ public interface MessageStore {
     /**
      * Get the minimum offset of the topic queue.
      *
-     * @param topic Topic name.
+     * @param topic   Topic name.
      * @param queueId Queue ID.
      * @return Minimum offset at present.
      */
@@ -172,8 +209,8 @@ public interface MessageStore {
     /**
      * Get the offset of the message in the commit log, which is also known as physical offset.
      *
-     * @param topic Topic of the message to lookup.
-     * @param queueId Queue ID.
+     * @param topic              Topic of the message to lookup.
+     * @param queueId            Queue ID.
      * @param consumeQueueOffset offset of consume queue.
      * @return physical offset.
      */
@@ -182,8 +219,8 @@ public interface MessageStore {
     /**
      * Look up the physical offset of the message whose store timestamp is as specified.
      *
-     * @param topic Topic of the message.
-     * @param queueId Queue ID.
+     * @param topic     Topic of the message.
+     * @param queueId   Queue ID.
      * @param timestamp Timestamp to look up.
      * @return physical offset which matches.
      */
@@ -201,7 +238,7 @@ public interface MessageStore {
      * Look up the message by given commit log offset and size.
      *
      * @param commitLogOffset physical offset.
-     * @param size message size
+     * @param size            message size
      * @return Message whose physical offset is as specified.
      */
     MessageExt lookMessageByOffset(long commitLogOffset, int size);
@@ -218,7 +255,7 @@ public interface MessageStore {
      * Get one message from the specified commit log offset.
      *
      * @param commitLogOffset commit log offset.
-     * @param msgSize message size.
+     * @param msgSize         message size.
      * @return wrapped result of the message.
      */
     SelectMappedBufferResult selectOneMessageByOffset(final long commitLogOffset, final int msgSize);
@@ -229,7 +266,9 @@ public interface MessageStore {
      * @return message store running info.
      */
     String getRunningDataInfo();
+
     long getTimingMessageCount(String topic);
+
     /**
      * Message store runtime information, which should generally contains various statistical information.
      *
@@ -260,7 +299,7 @@ public interface MessageStore {
     /**
      * Get the store time of the earliest message in the given queue.
      *
-     * @param topic Topic of the messages to query.
+     * @param topic   Topic of the messages to query.
      * @param queueId Queue ID to find.
      * @return store time of the earliest message.
      */
@@ -274,19 +313,39 @@ public interface MessageStore {
     long getEarliestMessageTime();
 
     /**
+     * Asynchronous get the store time of the earliest message in this store.
+     * @see #getEarliestMessageTime() getEarliestMessageTime
+     *
+     * @return timestamp of the earliest message in this store.
+     */
+    CompletableFuture<Long> getEarliestMessageTimeAsync(final String topic, final int queueId);
+
+    /**
      * Get the store time of the message specified.
      *
-     * @param topic message topic.
-     * @param queueId queue ID.
+     * @param topic              message topic.
+     * @param queueId            queue ID.
      * @param consumeQueueOffset consume queue offset.
      * @return store timestamp of the message.
      */
     long getMessageStoreTimeStamp(final String topic, final int queueId, final long consumeQueueOffset);
 
     /**
+     * Asynchronous get the store time of the message specified.
+     * @see #getMessageStoreTimeStamp(String, int, long) getMessageStoreTimeStamp
+     *
+     * @param topic              message topic.
+     * @param queueId            queue ID.
+     * @param consumeQueueOffset consume queue offset.
+     * @return store timestamp of the message.
+     */
+    CompletableFuture<Long> getMessageStoreTimeStampAsync(final String topic, final int queueId,
+        final long consumeQueueOffset);
+
+    /**
      * Get the total number of the messages in the specified queue.
      *
-     * @param topic Topic
+     * @param topic   Topic
      * @param queueId Queue ID.
      * @return total number.
      */
@@ -304,7 +363,7 @@ public interface MessageStore {
      * Get the raw commit log data starting from the given offset, across multiple mapped files.
      *
      * @param offset starting offset.
-     * @param size size of data to get
+     * @param size   size of data to get
      * @return commit log data.
      */
     List<SelectMappedBufferResult> getBulkCommitLogData(final long offset, final int size);
@@ -313,9 +372,9 @@ public interface MessageStore {
      * Append data to commit log.
      *
      * @param startOffset starting offset.
-     * @param data data to append.
-     * @param dataStart the start index of data array
-     * @param dataLength the length of data array
+     * @param data        data to append.
+     * @param dataStart   the start index of data array
+     * @param dataLength  the length of data array
      * @return true if success; false otherwise.
      */
     boolean appendToCommitLog(final long startOffset, final byte[] data, int dataStart, int dataLength);
@@ -328,14 +387,27 @@ public interface MessageStore {
     /**
      * Query messages by given key.
      *
-     * @param topic topic of the message.
-     * @param key message key.
+     * @param topic  topic of the message.
+     * @param key    message key.
      * @param maxNum maximum number of the messages possible.
-     * @param begin begin timestamp.
-     * @param end end timestamp.
+     * @param begin  begin timestamp.
+     * @param end    end timestamp.
      */
     QueryMessageResult queryMessage(final String topic, final String key, final int maxNum, final long begin,
         final long end);
+
+    /**
+     * Asynchronous query messages by given key.
+     * @see #queryMessage(String, String, int, long, long) queryMessage
+     *
+     * @param topic  topic of the message.
+     * @param key    message key.
+     * @param maxNum maximum number of the messages possible.
+     * @param begin  begin timestamp.
+     * @param end    end timestamp.
+     */
+    CompletableFuture<QueryMessageResult> queryMessageAsync(final String topic, final String key, final int maxNum,
+        final long begin, final long end);
 
     /**
      * Update HA master address.
@@ -366,12 +438,21 @@ public interface MessageStore {
     long now();
 
     /**
-     * Clean unused topics.
+     * Delete topic's consume queue file and unused stats.
+     * This interface allows user delete system topic.
      *
-     * @param topics all valid topics.
+     * @param deleteTopics unused topic name set
+     * @return the number of the topics which has been deleted.
+     */
+    int deleteTopics(final Set<String> deleteTopics);
+
+    /**
+     * Clean unused topics which not in retain topic name set.
+     *
+     * @param retainTopics all valid topics.
      * @return number of the topics deleted.
      */
-    int cleanUnusedTopic(final Set<String> topics);
+    int cleanUnusedTopic(final Set<String> retainTopics);
 
     /**
      * Clean expired consume queues.
@@ -381,12 +462,34 @@ public interface MessageStore {
     /**
      * Check if the given message has been swapped out of the memory.
      *
-     * @param topic topic.
-     * @param queueId queue ID.
+     * @param topic         topic.
+     * @param queueId       queue ID.
      * @param consumeOffset consume queue offset.
      * @return true if the message is no longer in memory; false otherwise.
+     * @deprecated As of RIP-57, replaced by {@link #checkInMemByConsumeOffset(String, int, long, int)}, see <a href="https://github.com/apache/rocketmq/issues/5837">this issue</a> for more details
      */
+    @Deprecated
     boolean checkInDiskByConsumeOffset(final String topic, final int queueId, long consumeOffset);
+
+    /**
+     * Check if the given message is in the page cache.
+     *
+     * @param topic         topic.
+     * @param queueId       queue ID.
+     * @param consumeOffset consume queue offset.
+     * @return true if the message is in page cache; false otherwise.
+     */
+    boolean checkInMemByConsumeOffset(final String topic, final int queueId, long consumeOffset, int batchSize);
+
+    /**
+     * Check if the given message is in store.
+     *
+     * @param topic         topic.
+     * @param queueId       queue ID.
+     * @param consumeOffset consume queue offset.
+     * @return true if the message is in store; false otherwise.
+     */
+    boolean checkInStoreByConsumeOffset(final String topic, final int queueId, long consumeOffset);
 
     /**
      * Get number of the bytes that have been stored in commit log and not yet dispatched to consume queue.
@@ -460,9 +563,16 @@ public interface MessageStore {
     LinkedList<CommitLogDispatcher> getDispatcherList();
 
     /**
+     * Add dispatcher.
+     *
+     * @param dispatcher commit log dispatcher to add
+     */
+    void addDispatcher(CommitLogDispatcher dispatcher);
+
+    /**
      * Get consume queue of the topic/queue. If consume queue not exist, will return null
      *
-     * @param topic Topic.
+     * @param topic   Topic.
      * @param queueId Queue ID.
      * @return Consume queue.
      */
@@ -470,7 +580,7 @@ public interface MessageStore {
 
     /**
      * Get consume queue of the topic/queue. If consume queue not exist, will create one then return it.
-     * @param topic Topic.
+     * @param topic   Topic.
      * @param queueId Queue ID.
      * @return Consume queue.
      */
@@ -486,8 +596,8 @@ public interface MessageStore {
     /**
      * Will be triggered when a new message is appended to commit log.
      *
-     * @param msg the msg that is appended to commit log
-     * @param result append message result
+     * @param msg           the msg that is appended to commit log
+     * @param result        append message result
      * @param commitLogFile commit log file
      */
     void onCommitLogAppend(MessageExtBrokerInner msg, AppendMessageResult result, MappedFile commitLogFile);
@@ -496,10 +606,10 @@ public interface MessageStore {
      * Will be triggered when a new dispatch request is sent to message store.
      *
      * @param dispatchRequest dispatch request
-     * @param doDispatch do dispatch if true
-     * @param commitLogFile commit log file
-     * @param isRecover is from recover process
-     * @param isFileEnd if the dispatch request represents 'file end'
+     * @param doDispatch      do dispatch if true
+     * @param commitLogFile   commit log file
+     * @param isRecover       is from recover process
+     * @param isFileEnd       if the dispatch request represents 'file end'
      */
     void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile,
         boolean isRecover, boolean isFileEnd);
@@ -615,21 +725,20 @@ public interface MessageStore {
     boolean isSyncMaster();
 
     /**
-     * Assign an queue offset and increase it. If there is a race condition, you need to lock/unlock this method
+     * Assign a message to queue offset. If there is a race condition, you need to lock/unlock this method
      * yourself.
      *
-     * @param msg message
-     * @param messageNum message num
+     * @param msg        message
      */
-    void assignOffset(MessageExtBrokerInner msg, short messageNum);
+    void assignOffset(MessageExtBrokerInner msg);
 
     /**
-     * get topic config
+     * Increase queue offset in memory table. If there is a race condition, you need to lock/unlock this method
      *
-     * @param topic topic name
-     * @return topic config info
+     * @param msg        message
+     * @param messageNum message num
      */
-    Optional<TopicConfig> getTopicConfig(String topic);
+    void increaseOffset(MessageExtBrokerInner msg, short messageNum);
 
     /**
      * Get master broker message store in process in broker container
@@ -706,7 +815,7 @@ public interface MessageStore {
      * Calculate the checksum of a certain range of data.
      *
      * @param from begin offset
-     * @param to end offset
+     * @param to   end offset
      * @return checksum
      */
     byte[] calcDeltaChecksum(long from, long to);
@@ -826,4 +935,30 @@ public interface MessageStore {
      */
     boolean isShutdown();
 
+    /**
+     * Estimate number of messages, within [from, to], which match given filter
+     *
+     * @param topic   Topic name
+     * @param queueId Queue ID
+     * @param from    Lower boundary of the range, inclusive.
+     * @param to      Upper boundary of the range, inclusive.
+     * @param filter  The message filter.
+     * @return Estimate number of messages matching given filter.
+     */
+    long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter);
+
+    /**
+     * Get metrics view of store
+     *
+     * @return List of metrics selector and view pair
+     */
+    List<Pair<InstrumentSelector, View>> getMetricsView();
+
+    /**
+     * Init store metrics
+     *
+     * @param meter                     opentelemetry meter
+     * @param attributesBuilderSupplier metrics attributes builder
+     */
+    void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier);
 }

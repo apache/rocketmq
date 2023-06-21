@@ -22,16 +22,21 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
+import org.apache.rocketmq.client.common.NameserverAccessConfig;
+import org.apache.rocketmq.client.impl.mqclient.DoNothingClientRemotingProcessor;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.service.admin.AdminService;
+import org.apache.rocketmq.proxy.service.admin.DefaultAdminService;
 import org.apache.rocketmq.proxy.service.channel.ChannelManager;
 import org.apache.rocketmq.proxy.service.message.LocalMessageService;
 import org.apache.rocketmq.proxy.service.message.MessageService;
 import org.apache.rocketmq.proxy.service.metadata.LocalMetadataService;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
-import org.apache.rocketmq.proxy.service.mqclient.DoNothingClientRemotingProcessor;
-import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.relay.LocalProxyRelayService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.LocalTopicRouteService;
@@ -48,6 +53,7 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
     private final TransactionService transactionService;
     private final ProxyRelayService proxyRelayService;
     private final MetadataService metadataService;
+    private final AdminService adminService;
 
     private final MQClientAPIFactory mqClientAPIFactory;
     private final ChannelManager channelManager;
@@ -59,8 +65,12 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
         this.brokerController = brokerController;
         this.channelManager = new ChannelManager();
         this.messageService = new LocalMessageService(brokerController, channelManager, rpcHook);
+        ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        NameserverAccessConfig nameserverAccessConfig = new NameserverAccessConfig(proxyConfig.getNamesrvAddr(),
+            proxyConfig.getNamesrvDomain(), proxyConfig.getNamesrvDomainSubgroup());
         this.mqClientAPIFactory = new MQClientAPIFactory(
-            "TopicRouteServiceClient_",
+            nameserverAccessConfig,
+            "LocalMQClient_",
             1,
             new DoNothingClientRemotingProcessor(null),
             rpcHook,
@@ -70,6 +80,7 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
         this.transactionService = new LocalTransactionService(brokerController.getBrokerConfig());
         this.proxyRelayService = new LocalProxyRelayService(brokerController, this.transactionService);
         this.metadataService = new LocalMetadataService(brokerController);
+        this.adminService = new DefaultAdminService(this.mqClientAPIFactory);
         this.init();
     }
 
@@ -112,6 +123,11 @@ public class LocalServiceManager extends AbstractStartAndShutdown implements Ser
     @Override
     public MetadataService getMetadataService() {
         return this.metadataService;
+    }
+
+    @Override
+    public AdminService getAdminService() {
+        return this.adminService;
     }
 
     private class LocalServiceManagerStartAndShutdown implements StartAndShutdown {

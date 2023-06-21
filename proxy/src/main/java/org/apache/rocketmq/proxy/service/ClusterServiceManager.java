@@ -26,19 +26,24 @@ import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.broker.client.ProducerGroupEvent;
 import org.apache.rocketmq.broker.client.ProducerManager;
+import org.apache.rocketmq.client.common.NameserverAccessConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.service.admin.AdminService;
+import org.apache.rocketmq.proxy.service.admin.DefaultAdminService;
+import org.apache.rocketmq.proxy.service.client.ClusterConsumerManager;
 import org.apache.rocketmq.proxy.service.message.ClusterMessageService;
 import org.apache.rocketmq.proxy.service.message.MessageService;
 import org.apache.rocketmq.proxy.service.metadata.ClusterMetadataService;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
-import org.apache.rocketmq.proxy.service.mqclient.DoNothingClientRemotingProcessor;
-import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
-import org.apache.rocketmq.proxy.service.mqclient.ProxyClientRemotingProcessor;
+import org.apache.rocketmq.client.impl.mqclient.DoNothingClientRemotingProcessor;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
+import org.apache.rocketmq.proxy.service.client.ProxyClientRemotingProcessor;
 import org.apache.rocketmq.proxy.service.relay.ClusterProxyRelayService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ClusterTopicRouteService;
@@ -48,15 +53,16 @@ import org.apache.rocketmq.proxy.service.transaction.TransactionService;
 import org.apache.rocketmq.remoting.RPCHook;
 
 public class ClusterServiceManager extends AbstractStartAndShutdown implements ServiceManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected ClusterTransactionService clusterTransactionService;
     protected ProducerManager producerManager;
-    protected ConsumerManager consumerManager;
+    protected ClusterConsumerManager consumerManager;
     protected TopicRouteService topicRouteService;
     protected MessageService messageService;
     protected ProxyRelayService proxyRelayService;
     protected ClusterMetadataService metadataService;
+    protected AdminService adminService;
 
     protected ScheduledExecutorService scheduledExecutorService;
     protected MQClientAPIFactory messagingClientAPIFactory;
@@ -64,37 +70,45 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
     protected MQClientAPIFactory transactionClientAPIFactory;
 
     public ClusterServiceManager(RPCHook rpcHook) {
-        this.scheduledExecutorService = Executors.newScheduledThreadPool(3);
-        this.producerManager = new ProducerManager();
-        this.consumerManager = new ConsumerManager(new ConsumerIdsChangeListenerImpl());
-
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
+        NameserverAccessConfig nameserverAccessConfig = new NameserverAccessConfig(proxyConfig.getNamesrvAddr(),
+            proxyConfig.getNamesrvDomain(), proxyConfig.getNamesrvDomainSubgroup());
+        this.scheduledExecutorService = Executors.newScheduledThreadPool(3);
+
         this.messagingClientAPIFactory = new MQClientAPIFactory(
+            nameserverAccessConfig,
             "ClusterMQClient_",
             proxyConfig.getRocketmqMQClientNum(),
             new DoNothingClientRemotingProcessor(null),
             rpcHook,
             scheduledExecutorService);
         this.operationClientAPIFactory = new MQClientAPIFactory(
-            "TopicRouteServiceClient_",
+            nameserverAccessConfig,
+            "OperationClient_",
             1,
             new DoNothingClientRemotingProcessor(null),
             rpcHook,
             this.scheduledExecutorService
         );
+
+        this.topicRouteService = new ClusterTopicRouteService(operationClientAPIFactory);
+        this.messageService = new ClusterMessageService(this.topicRouteService, this.messagingClientAPIFactory);
+        this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
+        this.adminService = new DefaultAdminService(this.operationClientAPIFactory);
+
+        this.producerManager = new ProducerManager();
+        this.consumerManager = new ClusterConsumerManager(this.topicRouteService, this.adminService, this.operationClientAPIFactory, new ConsumerIdsChangeListenerImpl(), proxyConfig.getChannelExpiredTimeout(), rpcHook);
+
         this.transactionClientAPIFactory = new MQClientAPIFactory(
+            nameserverAccessConfig,
             "ClusterTransaction_",
             1,
             new ProxyClientRemotingProcessor(producerManager),
             rpcHook,
             scheduledExecutorService);
-
-        this.topicRouteService = new ClusterTopicRouteService(operationClientAPIFactory);
-        this.messageService = new ClusterMessageService(this.topicRouteService, this.messagingClientAPIFactory);
-        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager, rpcHook,
+        this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager,
             this.transactionClientAPIFactory);
         this.proxyRelayService = new ClusterProxyRelayService(this.clusterTransactionService);
-        this.metadataService = new ClusterMetadataService(topicRouteService, operationClientAPIFactory);
 
         this.init();
     }
@@ -118,6 +132,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         this.appendStartAndShutdown(this.topicRouteService);
         this.appendStartAndShutdown(this.clusterTransactionService);
         this.appendStartAndShutdown(this.metadataService);
+        this.appendStartAndShutdown(this.consumerManager);
     }
 
     @Override
@@ -155,6 +170,11 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         return this.metadataService;
     }
 
+    @Override
+    public AdminService getAdminService() {
+        return this.adminService;
+    }
+
     protected static class ConsumerIdsChangeListenerImpl implements ConsumerIdsChangeListener {
 
         @Override
@@ -172,7 +192,7 @@ public class ClusterServiceManager extends AbstractStartAndShutdown implements S
         @Override
         public void handle(ProducerGroupEvent event, String group, ClientChannelInfo clientChannelInfo) {
             if (event == ProducerGroupEvent.GROUP_UNREGISTER) {
-                getTransactionService().unSubscribeAllTransactionTopic(group);
+                getTransactionService().unSubscribeAllTransactionTopic(ProxyContext.createForInner(this.getClass()), group);
             }
         }
     }

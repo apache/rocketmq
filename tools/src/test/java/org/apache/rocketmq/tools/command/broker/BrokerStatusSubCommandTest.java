@@ -39,13 +39,12 @@ public class BrokerStatusSubCommandTest extends ServerResponseMocker {
     public void testExecute() throws SubCommandException {
         BrokerStatusSubCommand cmd = new BrokerStatusSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-b 127.0.0.1:" + listenPort(), "-c default-cluster"};
+        String[] subargs = new String[] {"-b 127.0.0.1:" + listenPort()};
         final CommandLine commandLine =
             ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                 cmd.buildCommandlineOptions(options), new DefaultParser());
 
         cmd.execute(commandLine, options, null);
     }
-
 
 }

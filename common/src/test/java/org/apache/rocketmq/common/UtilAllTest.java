@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.common;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -29,6 +31,7 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class UtilAllTest {
 
@@ -56,16 +59,26 @@ public class UtilAllTest {
 
     @Test
     public void testProperties2String() {
-        DemoConfig demoConfig = new DemoConfig();
+        DemoSubConfig demoConfig = new DemoSubConfig();
         demoConfig.setDemoLength(123);
         demoConfig.setDemoWidth(456);
         demoConfig.setDemoName("TestDemo");
         demoConfig.setDemoOK(true);
+
+        demoConfig.setSubField0("1");
+        demoConfig.setSubField1(false);
+
         Properties properties = MixAll.object2Properties(demoConfig);
         assertThat(properties.getProperty("demoLength")).isEqualTo("123");
         assertThat(properties.getProperty("demoWidth")).isEqualTo("456");
         assertThat(properties.getProperty("demoOK")).isEqualTo("true");
         assertThat(properties.getProperty("demoName")).isEqualTo("TestDemo");
+
+        assertThat(properties.getProperty("subField0")).isEqualTo("1");
+        assertThat(properties.getProperty("subField1")).isEqualTo("false");
+
+        properties = MixAll.object2Properties(new Object());
+        assertEquals(0, properties.size());
     }
 
     @Test
@@ -173,6 +186,27 @@ public class UtilAllTest {
         }
     }
 
+    static class DemoSubConfig extends DemoConfig {
+        private String subField0 = "0";
+        public boolean subField1 = true;
+
+        public String getSubField0() {
+            return subField0;
+        }
+
+        public void setSubField0(String subField0) {
+            this.subField0 = subField0;
+        }
+
+        public boolean isSubField1() {
+            return subField1;
+        }
+
+        public void setSubField1(boolean subField1) {
+            this.subField1 = subField1;
+        }
+    }
+
     @Test
     public void testCleanBuffer() {
         UtilAll.cleanBuffer(null);
@@ -188,5 +222,63 @@ public class UtilAllTest {
     @Test(expected = IllegalStateException.class)
     public void testInvoke() throws Exception {
         UtilAll.invoke(new Object(), "noMethod");
+    }
+
+    @Test
+    public void testCalculateFileSizeInPath() throws Exception {
+        /**
+         * testCalculateFileSizeInPath
+         *  - file_0
+         *  - dir_1
+         *      - file_1_0
+         *      - file_1_1
+         *      - dir_1_2
+         *          - file_1_2_0
+         *  - dir_2
+         */
+        String basePath = System.getProperty("java.io.tmpdir") + File.separator + "testCalculateFileSizeInPath";
+        File baseFile = new File(basePath);
+        // test empty path
+        assertEquals(0, UtilAll.calculateFileSizeInPath(baseFile));
+
+        // create baseDir
+        assertTrue(baseFile.mkdirs());
+
+        File file0 = new File(baseFile, "file_0");
+        assertTrue(file0.createNewFile());
+        writeFixedBytesToFile(file0, 1313);
+
+        assertEquals(1313, UtilAll.calculateFileSizeInPath(baseFile));
+
+        // build a file tree like above
+        File dir1 = new File(baseFile, "dir_1");
+        dir1.mkdirs();
+        File file10 = new File(dir1, "file_1_0");
+        File file11 = new File(dir1, "file_1_1");
+        File dir12 = new File(dir1, "dir_1_2");
+        dir12.mkdirs();
+        File file120 = new File(dir12, "file_1_2_0");
+        File dir2 = new File(baseFile, "dir_2");
+        dir2.mkdirs();
+
+        // write all file with 1313 bytes data
+        assertTrue(file10.createNewFile());
+        writeFixedBytesToFile(file10, 1313);
+        assertTrue(file11.createNewFile());
+        writeFixedBytesToFile(file11, 1313);
+        assertTrue(file120.createNewFile());
+        writeFixedBytesToFile(file120, 1313);
+
+        assertEquals(1313 * 4, UtilAll.calculateFileSizeInPath(baseFile));
+
+        // clear all file
+        baseFile.deleteOnExit();
+    }
+
+    private void writeFixedBytesToFile(File file, int size) throws Exception {
+        FileOutputStream outputStream = new FileOutputStream(file);
+        byte[] bytes = new byte[size];
+        outputStream.write(bytes, 0, size);
+        outputStream.close();
     }
 }

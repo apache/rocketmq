@@ -55,6 +55,7 @@ public class BrokerData implements Comparable<BrokerData> {
         if (brokerData.brokerAddrs != null) {
             this.brokerAddrs = new HashMap<>(brokerData.brokerAddrs);
         }
+        this.zoneName = brokerData.zoneName;
         this.enableActingMaster = brokerData.enableActingMaster;
     }
 
@@ -64,14 +65,16 @@ public class BrokerData implements Comparable<BrokerData> {
         this.brokerAddrs = brokerAddrs;
     }
 
-    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, boolean enableActingMaster) {
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs,
+        boolean enableActingMaster) {
         this.cluster = cluster;
         this.brokerName = brokerName;
         this.brokerAddrs = brokerAddrs;
         this.enableActingMaster = enableActingMaster;
     }
 
-    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, boolean enableActingMaster, String zoneName) {
+    public BrokerData(String cluster, String brokerName, HashMap<Long, String> brokerAddrs, boolean enableActingMaster,
+        String zoneName) {
         this.cluster = cluster;
         this.brokerName = brokerName;
         this.brokerAddrs = brokerAddrs;

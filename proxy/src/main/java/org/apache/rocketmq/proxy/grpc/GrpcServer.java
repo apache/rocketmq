@@ -18,17 +18,18 @@
 package org.apache.rocketmq.proxy.grpc;
 
 import java.util.concurrent.TimeUnit;
+import io.grpc.Server;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 
 public class GrpcServer implements StartAndShutdown {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
-    private final io.grpc.Server server;
+    private final Server server;
 
-    protected GrpcServer(io.grpc.Server server) {
+    protected GrpcServer(Server server) {
         this.server = server;
     }
 

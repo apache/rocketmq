@@ -24,15 +24,15 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.filter.util.BloomFilter;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 import org.apache.rocketmq.store.MessageFilter;
 
 public class ExpressionMessageFilter implements MessageFilter {
 
-    protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.FILTER_LOGGER_NAME);
 
     protected final SubscriptionData subscriptionData;
     protected final ConsumerFilterData consumerFilterData;

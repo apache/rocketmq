@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -48,13 +49,15 @@ public class BrokerStatusSubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
+        OptionGroup optionGroup = new OptionGroup();
         Option opt = new Option("b", "brokerAddr", true, "Broker address");
-        opt.setRequired(false);
-        options.addOption(opt);
+        optionGroup.addOption(opt);
 
         opt = new Option("c", "clusterName", true, "which cluster");
-        opt.setRequired(false);
-        options.addOption(opt);
+        optionGroup.addOption(opt);
+
+        optionGroup.setRequired(true);
+        options.addOptionGroup(optionGroup);
 
         return options;
     }

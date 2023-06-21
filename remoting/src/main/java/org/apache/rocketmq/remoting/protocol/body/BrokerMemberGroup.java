@@ -88,4 +88,13 @@ public class BrokerMemberGroup extends RemotingSerializable {
     public int hashCode() {
         return Objects.hashCode(cluster, brokerName, brokerAddrs);
     }
+
+    @Override
+    public String toString() {
+        return "BrokerMemberGroup{" +
+            "cluster='" + cluster + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            ", brokerAddrs=" + brokerAddrs +
+            '}';
+    }
 }

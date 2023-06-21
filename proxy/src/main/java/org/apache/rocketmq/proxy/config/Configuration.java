@@ -28,8 +28,8 @@ import java.nio.file.Files;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class Configuration {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -58,6 +58,7 @@ public class Configuration {
         }
 
         File file = new File(filePath);
+        log.info("The current configuration file path is {}", filePath);
         if (!file.exists()) {
             log.warn("the config file {} not exist", filePath);
             throw new RuntimeException(String.format("the config file %s not exist", filePath));

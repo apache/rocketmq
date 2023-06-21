@@ -18,13 +18,18 @@
 package org.apache.rocketmq.store.queue;
 
 import java.io.File;
+import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -34,9 +39,11 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
+import org.apache.rocketmq.store.ConsumeQueueExt;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
-import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -49,11 +56,15 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 
 public class BatchConsumeMessageTest extends QueueTestBase {
-    private MessageStore messageStore;
+    private static final int BATCH_NUM = 10;
+    private static final int TOTAL_MSGS = 200;
+    private DefaultMessageStore messageStore;
+    private ConcurrentMap<String, TopicConfig> topicConfigTableMap;
 
     @Before
     public void init() throws Exception {
-        messageStore = createMessageStore(null, true);
+        this.topicConfigTableMap = new ConcurrentHashMap<>();
+        messageStore = (DefaultMessageStore) createMessageStore(null, true, this.topicConfigTableMap);
         messageStore.load();
         messageStore.start();
     }
@@ -70,7 +81,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testSendMessagesToCqTopic() {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, CQType.SimpleCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        this.topicConfigTableMap.putAll(topicConfigTable);
 
 //        int batchNum = 10;
 
@@ -94,7 +106,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testSendMessagesToBcqTopic() {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
+        this.topicConfigTableMap.putAll(topicConfigTable);
 
         // case 1 has PROPERTY_INNER_NUM but has no INNER_BATCH_FLAG
 //        MessageExtBrokerInner messageExtBrokerInner = buildMessage(topic, 1);
@@ -117,7 +130,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testConsumeBatchMessage() {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
+        this.topicConfigTableMap.putAll(topicConfigTable);
         int batchNum = 10;
 
         MessageExtBrokerInner messageExtBrokerInner = buildMessage(topic, batchNum);
@@ -147,7 +161,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testNextBeginOffsetConsumeBatchMessage() {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
+        this.topicConfigTableMap.putAll(topicConfigTable);
         Random random = new Random();
         int putMessageCount = 1000;
 
@@ -185,7 +200,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     public void testGetOffsetInQueueByTime() throws Exception {
         String topic = "testGetOffsetInQueueByTime";
 
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
+        this.topicConfigTableMap.putAll(topicConfigTable);
         Assert.assertTrue(QueueTypeUtils.isBatchCq(messageStore.getTopicConfig(topic)));
 
         // The initial min max offset, before and after the creation of consume queue
@@ -225,7 +241,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testDispatchNormalConsumeQueue() throws Exception {
         String topic = "TestDispatchBuildConsumeQueue";
-        createTopic(topic, CQType.SimpleCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.SimpleCQ);
+        this.topicConfigTableMap.putAll(topicConfigTable);
 
         long timeStart = -1;
         long timeMid = -1;
@@ -255,7 +272,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
         Assert.assertEquals(0, consumeQueue.getOffsetInQueueByTime(0));
         Assert.assertEquals(50, consumeQueue.getOffsetInQueueByTime(timeMid));
-        Assert.assertEquals(99, consumeQueue.getOffsetInQueueByTime(timeMid + Integer.MAX_VALUE));
+        Assert.assertEquals(100, consumeQueue.getOffsetInQueueByTime(timeMid + Integer.MAX_VALUE));
         Assert.assertEquals(100, consumeQueue.getMaxOffsetInQueue());
         //check the messagestore
         Assert.assertEquals(100, messageStore.getMessageTotalInQueue(topic, 0));
@@ -275,7 +292,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         Assert.assertTrue(commitLogOffset <= messageStore.getMaxPhyOffset());
         Assert.assertEquals(commitLogMid, commitLogOffset);
 
-        Assert.assertFalse(messageStore.checkInDiskByConsumeOffset(topic, 0, 50));
+        Assert.assertTrue(messageStore.checkInMemByConsumeOffset(topic, 0, 50, 1));
     }
 
     @Test
@@ -285,7 +302,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         long timeStart = -1;
         long timeMid = -1;
 
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
+        this.topicConfigTableMap.putAll(topicConfigTable);
 
         for (int i = 0; i < 100; i++) {
             PutMessageResult putMessageResult = messageStore.putMessage(buildMessage(topic, batchNum));
@@ -325,7 +343,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         Assert.assertTrue(commitLogOffset >= messageStore.getMinPhyOffset());
         Assert.assertTrue(commitLogOffset <= messageStore.getMaxPhyOffset());
 
-        Assert.assertFalse(messageStore.checkInDiskByConsumeOffset(topic, 0, 300));
+        Assert.assertTrue(messageStore.checkInMemByConsumeOffset(topic, 0, 300, 1));
 
         //get the message Normally
         GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 0, 10 * batchNum, null);
@@ -343,7 +361,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     public void testGetBatchMessageWithinNumber() {
         String topic = UUID.randomUUID().toString();
 
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
+        this.topicConfigTableMap.putAll(topicConfigTable);
 
         int batchNum = 20;
         for (int i = 0; i < 200; i++) {
@@ -403,7 +422,8 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     @Test
     public void testGetBatchMessageWithinSize() {
         String topic = UUID.randomUUID().toString();
-        createTopic(topic, CQType.BatchCQ, messageStore);
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
+        this.topicConfigTableMap.putAll(topicConfigTable);
 
         int batchNum = 10;
         for (int i = 0; i < 100; i++) {
@@ -456,4 +476,102 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         }
     }
 
+    protected void putMsg(String topic) {
+        ConcurrentMap<String, TopicConfig>  topicConfigTable = createTopicConfigTable(topic, CQType.BatchCQ);
+        this.topicConfigTableMap.putAll(topicConfigTable);
+
+        for (int i = 0; i < TOTAL_MSGS; i++) {
+            MessageExtBrokerInner message = buildMessage(topic, BATCH_NUM * (i % 2 + 1));
+            switch (i % 3) {
+                case 0:
+                    message.setTags("TagA");
+                    break;
+
+                case 1:
+                    message.setTags("TagB");
+                    break;
+            }
+            message.setTagsCode(message.getTags().hashCode());
+            message.setPropertiesString(MessageDecoder.messageProperties2String(message.getProperties()));
+            PutMessageResult putMessageResult = messageStore.putMessage(message);
+            Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+        }
+
+        await().atMost(5, SECONDS).until(fullyDispatched(messageStore));
+    }
+
+    @Test
+    public void testEstimateMessageCountInEmptyConsumeQueue() {
+        String topic = UUID.randomUUID().toString();
+        ConsumeQueueInterface consumeQueue = messageStore.findConsumeQueue(topic, 0);
+        MessageFilter filter = new MessageFilter() {
+            @Override
+            public boolean isMatchedByConsumeQueue(Long tagsCode, ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                return tagsCode == "TagA".hashCode();
+            }
+
+            @Override
+            public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
+                return false;
+            }
+        };
+        long estimation = consumeQueue.estimateMessageCount(0, 0, filter);
+        Assert.assertEquals(-1, estimation);
+
+        // test for illegal offset
+        estimation = consumeQueue.estimateMessageCount(0, 100, filter);
+        Assert.assertEquals(-1, estimation);
+        estimation = consumeQueue.estimateMessageCount(100, 1000, filter);
+        Assert.assertEquals(-1, estimation);
+    }
+
+    @Test
+    public void testEstimateMessageCount() {
+        String topic = UUID.randomUUID().toString();
+        putMsg(topic);
+        ConsumeQueueInterface cq = messageStore.findConsumeQueue(topic, 0);
+        MessageFilter filter = new MessageFilter() {
+            @Override
+            public boolean isMatchedByConsumeQueue(Long tagsCode, ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                return tagsCode == "TagA".hashCode();
+            }
+
+            @Override
+            public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
+                return false;
+            }
+        };
+        long estimation = cq.estimateMessageCount(0, 2999, filter);
+        Assert.assertEquals(1000, estimation);
+
+        // test for illegal offset
+        estimation = cq.estimateMessageCount(0, Long.MAX_VALUE, filter);
+        Assert.assertEquals(-1, estimation);
+        estimation = cq.estimateMessageCount(100000, 1000000, filter);
+        Assert.assertEquals(-1, estimation);
+        estimation = cq.estimateMessageCount(100, 0, filter);
+        Assert.assertEquals(-1, estimation);
+    }
+
+    @Test
+    public void testEstimateMessageCountSample() {
+        String topic = UUID.randomUUID().toString();
+        putMsg(topic);
+        messageStore.getMessageStoreConfig().setSampleCountThreshold(10);
+        messageStore.getMessageStoreConfig().setMaxConsumeQueueScan(20);
+        ConsumeQueueInterface cq = messageStore.findConsumeQueue(topic, 0);
+        MessageFilter filter = new MessageFilter() {
+            @Override
+            public boolean isMatchedByConsumeQueue(Long tagsCode, ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                return tagsCode == "TagA".hashCode();
+            }
+
+            @Override
+            public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
+                return false;
+            }
+        };
+        long estimation = cq.estimateMessageCount(1000, 2000, filter);
+        Assert.assertEquals(300, estimation);
+    }
 }

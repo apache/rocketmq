@@ -45,6 +45,12 @@ public interface LitePullConsumer {
     boolean isRunning();
 
     /**
+     * Subscribe some topic with all tags
+     * @throws MQClientException if there is any client error.
+     */
+    void subscribe(final String topic) throws MQClientException;
+
+    /**
      * Subscribe some topic with subExpression
      *
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
@@ -182,18 +188,43 @@ public interface LitePullConsumer {
      */
     Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException;
 
+    @Deprecated
     /**
-     * Manually commit consume offset.
+     * The method is deprecated because its name is ambiguous, this method relies on the background thread commit consumerOffset rather than the synchronous commit offset.
+     * The method is expected to be removed after version 5.1.0. It is recommended to use the {@link #commit()} method.
+     *
+     * Manually commit consume offset saved by the system.
      */
     void commitSync();
 
+    @Deprecated
     /**
-     * Offset specified by batch commit
-     * @param offsetMap
-     * @param persist
+     * The method is deprecated because its name is ambiguous, this method relies on the background thread commit consumerOffset rather than the synchronous commit offset.
+     * The method is expected to be removed after version 5.1.0. It is recommended to use the {@link #commit(java.util.Map, boolean)} method.
+     *
+     * @param offsetMap Offset specified by batch commit
      */
     void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist);
 
+    /**
+     * Manually commit consume offset saved by the system. This is a non-blocking method.
+     */
+    void commit();
+
+    /**
+     * Offset specified by batch commit
+     *
+     * @param offsetMap Offset specified by batch commit
+     * @param persist Whether to persist to the broker
+     */
+    void commit(Map<MessageQueue, Long> offsetMap, boolean persist);
+
+    /**
+     * Manually commit consume offset saved by the system.
+     *
+     * @param messageQueues Message queues that need to submit consumer offset
+     * @param persist hether to persist to the broker
+     */
     void commit(final Set<MessageQueue> messageQueues, boolean persist);
 
     /**
