@@ -538,12 +538,23 @@ public class PopBufferMergeService extends ServiceThread {
                 return false;
             }
 
-            int indexOfAck = point.indexOfAck(ackMsg.getAckOffset());
-            if (indexOfAck > -1) {
-                markBitCAS(pointWrapper.getBits(), indexOfAck);
+            if (ackMsg instanceof BatchAckMsg) {
+                for (Long ackOffset : ((BatchAckMsg) ackMsg).getAckOffsetList()) {
+                    int indexOfAck = point.indexOfAck(ackOffset);
+                    if (indexOfAck > -1) {
+                        markBitCAS(pointWrapper.getBits(), indexOfAck);
+                    } else {
+                        POP_LOGGER.error("[PopBuffer]Invalid index of ack, reviveQid={}, {}, {}", reviveQid, ackMsg, point);
+                    }
+                }
             } else {
-                POP_LOGGER.error("[PopBuffer]Invalid index of ack, reviveQid={}, {}, {}", reviveQid, ackMsg, point);
-                return true;
+                int indexOfAck = point.indexOfAck(ackMsg.getAckOffset());
+                if (indexOfAck > -1) {
+                    markBitCAS(pointWrapper.getBits(), indexOfAck);
+                } else {
+                    POP_LOGGER.error("[PopBuffer]Invalid index of ack, reviveQid={}, {}, {}", reviveQid, ackMsg, point);
+                    return true;
+                }
             }
 
             if (brokerController.getBrokerConfig().isEnablePopLog()) {
