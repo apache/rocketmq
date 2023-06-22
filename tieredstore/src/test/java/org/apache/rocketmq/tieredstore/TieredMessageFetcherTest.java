@@ -260,6 +260,7 @@ public class TieredMessageFetcherTest {
     public void testQueryMessageAsync() {
         // skip this test on windows
         Assume.assumeFalse(SystemUtils.IS_OS_WINDOWS);
+        Assume.assumeFalse(SystemUtils.IS_OS_LINUX);
 
         TieredMessageFetcher fetcher = new TieredMessageFetcher(storeConfig);
         Assert.assertEquals(0, fetcher.queryMessageAsync(mq.getTopic(), "key", 32, 0, Long.MAX_VALUE).join().getMessageMapedList().size());

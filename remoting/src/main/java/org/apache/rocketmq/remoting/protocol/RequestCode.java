@@ -88,6 +88,7 @@ public class RequestCode {
 
     public static final int POP_MESSAGE = 200050;
     public static final int ACK_MESSAGE = 200051;
+    public static final int BATCH_ACK_MESSAGE = 200151;
     public static final int PEEK_MESSAGE = 200052;
     public static final int CHANGE_MESSAGE_INVISIBLETIME = 200053;
     public static final int NOTIFICATION = 200054;
