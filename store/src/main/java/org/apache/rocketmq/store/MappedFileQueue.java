@@ -247,8 +247,15 @@ public class MappedFileQueue implements Swappable {
         // ascending order
         files.sort(Comparator.comparing(File::getName));
 
-        for (File file : files) {
+        for (int i = 0; i < files.size(); i++) {
+            File file = files.get(i);
             if (file.isDirectory()) {
+                continue;
+            }
+
+            if (file.length() == 0 && i == files.size() - 1) {
+                boolean ok = file.delete();
+                log.warn("{} size is 0, auto delete. is_ok: {}", file, ok);
                 continue;
             }
 
