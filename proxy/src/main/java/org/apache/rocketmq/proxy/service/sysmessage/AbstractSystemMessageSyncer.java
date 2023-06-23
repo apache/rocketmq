@@ -51,12 +51,14 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
     protected final TopicRouteService topicRouteService;
     protected final AdminService adminService;
     protected final MQClientAPIFactory mqClientAPIFactory;
+    protected final RPCHook rpcHook;
     protected DefaultMQPushConsumer defaultMQPushConsumer;
 
-    public AbstractSystemMessageSyncer(TopicRouteService topicRouteService, AdminService adminService, MQClientAPIFactory mqClientAPIFactory) {
+    public AbstractSystemMessageSyncer(TopicRouteService topicRouteService, AdminService adminService, MQClientAPIFactory mqClientAPIFactory, RPCHook rpcHook) {
         this.topicRouteService = topicRouteService;
         this.adminService = adminService;
         this.mqClientAPIFactory = mqClientAPIFactory;
+        this.rpcHook = rpcHook;
     }
 
     protected String getSystemMessageProducerId() {
@@ -84,8 +86,8 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
         return 1;
     }
 
-    protected RPCHook getRpcHook() {
-        return null;
+    public RPCHook getRpcHook() {
+        return rpcHook;
     }
 
     protected void sendSystemMessage(Object data) {
