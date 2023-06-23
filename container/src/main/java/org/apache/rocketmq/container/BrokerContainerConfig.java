@@ -38,6 +38,11 @@ public class BrokerContainerConfig {
     private String brokerContainerIP = NetworkUtil.getLocalAddress();
 
     private String brokerConfigPaths = null;
+    
+    /**
+     * The interval to fetch namesrv addr, default value is 10 second
+     */
+    private long fetchNamesrvAddrInterval = 10 * 1000;
 
     public String getRocketmqHome() {
         return rocketmqHome;
@@ -82,5 +87,12 @@ public class BrokerContainerConfig {
     public void setBrokerConfigPaths(String brokerConfigPaths) {
         this.brokerConfigPaths = brokerConfigPaths;
     }
-
+    
+    public long getFetchNamesrvAddrInterval() {
+        return fetchNamesrvAddrInterval;
+    }
+    
+    public void setFetchNamesrvAddrInterval(final long fetchNamesrvAddrInterval) {
+        this.fetchNamesrvAddrInterval = fetchNamesrvAddrInterval;
+    }
 }
