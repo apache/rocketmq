@@ -16,10 +16,8 @@
  */
 package org.apache.rocketmq.broker.topic;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -38,6 +36,7 @@ import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.Attribute;
+import org.apache.rocketmq.common.attribute.AttributeUtil;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
@@ -466,8 +465,9 @@ public class TopicConfigManager extends ConfigManager {
         Map<String, String> newAttributes = request(topicConfig);
         Map<String, String> currentAttributes = current(topicConfig.getTopicName());
 
-        Map<String, String> finalAttributes = alterCurrentAttributes(
+        Map<String, String> finalAttributes = AttributeUtil.alterCurrentAttributes(
             this.topicConfigTable.get(topicConfig.getTopicName()) == null,
+            TopicAttributes.ALL,
             ImmutableMap.copyOf(currentAttributes),
             ImmutableMap.copyOf(newAttributes));
 
@@ -626,106 +626,6 @@ public class TopicConfigManager extends ConfigManager {
                 return attributes;
             }
         }
-    }
-
-    private Map<String, String> alterCurrentAttributes(boolean create, ImmutableMap<String, String> currentAttributes,
-        ImmutableMap<String, String> newAttributes) {
-        Map<String, String> init = new HashMap<>();
-        Map<String, String> add = new HashMap<>();
-        Map<String, String> update = new HashMap<>();
-        Map<String, String> delete = new HashMap<>();
-        Set<String> keys = new HashSet<>();
-
-        for (Entry<String, String> attribute : newAttributes.entrySet()) {
-            String key = attribute.getKey();
-            String realKey = realKey(key);
-            String value = attribute.getValue();
-
-            validate(realKey);
-            duplicationCheck(keys, realKey);
-
-            if (create) {
-                if (key.startsWith("+")) {
-                    init.put(realKey, value);
-                } else {
-                    throw new RuntimeException("only add attribute is supported while creating topic. key: " + realKey);
-                }
-            } else {
-                if (key.startsWith("+")) {
-                    if (!currentAttributes.containsKey(realKey)) {
-                        add.put(realKey, value);
-                    } else {
-                        update.put(realKey, value);
-                    }
-                } else if (key.startsWith("-")) {
-                    if (!currentAttributes.containsKey(realKey)) {
-                        throw new RuntimeException("attempt to delete a nonexistent key: " + realKey);
-                    }
-                    delete.put(realKey, value);
-                } else {
-                    throw new RuntimeException("wrong format key: " + realKey);
-                }
-            }
-        }
-
-        validateAlter(init, true, false);
-        validateAlter(add, false, false);
-        validateAlter(update, false, false);
-        validateAlter(delete, false, true);
-
-        log.info("add: {}, update: {}, delete: {}", add, update, delete);
-        HashMap<String, String> finalAttributes = new HashMap<>(currentAttributes);
-        finalAttributes.putAll(init);
-        finalAttributes.putAll(add);
-        finalAttributes.putAll(update);
-        for (String s : delete.keySet()) {
-            finalAttributes.remove(s);
-        }
-        return finalAttributes;
-    }
-
-    private void duplicationCheck(Set<String> keys, String key) {
-        boolean notExist = keys.add(key);
-        if (!notExist) {
-            throw new RuntimeException("alter duplication key. key: " + key);
-        }
-    }
-
-    private void validate(String kvAttribute) {
-        if (Strings.isNullOrEmpty(kvAttribute)) {
-            throw new RuntimeException("kv string format wrong.");
-        }
-
-        if (kvAttribute.contains("+")) {
-            throw new RuntimeException("kv string format wrong.");
-        }
-
-        if (kvAttribute.contains("-")) {
-            throw new RuntimeException("kv string format wrong.");
-        }
-    }
-
-    private void validateAlter(Map<String, String> alter, boolean init, boolean delete) {
-        for (Entry<String, String> entry : alter.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue();
-
-            Attribute attribute = allAttributes().get(key);
-            if (attribute == null) {
-                throw new RuntimeException("unsupported key: " + key);
-            }
-            if (!init && !attribute.isChangeable()) {
-                throw new RuntimeException("attempt to update an unchangeable attribute. key: " + key);
-            }
-
-            if (!delete) {
-                attribute.verify(value);
-            }
-        }
-    }
-
-    private String realKey(String key) {
-        return key.substring(1);
     }
 
     public boolean containsTopic(String topic) {

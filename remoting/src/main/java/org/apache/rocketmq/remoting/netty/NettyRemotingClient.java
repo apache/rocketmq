@@ -981,6 +981,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            LOGGER.info("NETTY CLIENT PIPELINE: channelInactive, the channel[{}]", remoteAddress);
+            closeChannel(ctx.channel());
+            super.channelInactive(ctx);
+        }
+
+        @Override
         public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
             if (evt instanceof IdleStateEvent) {
                 IdleStateEvent event = (IdleStateEvent) evt;

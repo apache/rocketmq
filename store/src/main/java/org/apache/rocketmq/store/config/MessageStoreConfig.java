@@ -235,7 +235,7 @@ public class MessageStoreConfig {
     private String dLegerPeers;
     private String dLegerSelfId;
     private String preferredLeaderId;
-    private boolean isEnableBatchPush = false;
+    private boolean enableBatchPush = false;
 
     private boolean enableScheduleMessageStats = true;
 
@@ -1132,11 +1132,11 @@ public class MessageStoreConfig {
     }
 
     public boolean isEnableBatchPush() {
-        return isEnableBatchPush;
+        return enableBatchPush;
     }
 
     public void setEnableBatchPush(boolean enableBatchPush) {
-        isEnableBatchPush = enableBatchPush;
+        this.enableBatchPush = enableBatchPush;
     }
 
     public boolean isEnableScheduleMessageStats() {
