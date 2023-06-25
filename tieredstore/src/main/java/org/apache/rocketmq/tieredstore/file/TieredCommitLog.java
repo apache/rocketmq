@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.container;
+package org.apache.rocketmq.tieredstore.file;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
-import org.apache.rocketmq.common.message.MessageQueue;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
@@ -28,93 +29,97 @@ import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 public class TieredCommitLog {
-    private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
-    public static final int CODA_SIZE = 4 /* item size: int, 4 bytes */
-        + 4 /* magic code: int, 4 bytes */
-        + 8 /* max store timestamp: long, 8 bytes */;
+
+    private static final Logger log = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+
+    /**
+     * item size: int, 4 bytes
+     * magic code: int, 4 bytes
+     * max store timestamp: long, 8 bytes
+     */
+    public static final int CODA_SIZE = 4 + 8 + 4;
     public static final int BLANK_MAGIC_CODE = 0xBBCCDDEE ^ 1880681586 + 8;
 
-    private final MessageQueue messageQueue;
     private final TieredMessageStoreConfig storeConfig;
-    private final TieredFileQueue fileQueue;
+    private final TieredFlatFile flatFile;
 
-    public TieredCommitLog(MessageQueue messageQueue, TieredMessageStoreConfig storeConfig)
-        throws ClassNotFoundException, NoSuchMethodException {
-        this.messageQueue = messageQueue;
-        this.storeConfig = storeConfig;
-        this.fileQueue = new TieredFileQueue(TieredFileSegment.FileSegmentType.COMMIT_LOG, messageQueue, storeConfig);
-        if (fileQueue.getBaseOffset() == -1) {
-            fileQueue.setBaseOffset(0);
-        }
+    public TieredCommitLog(TieredFileAllocator fileQueueFactory, String filePath) {
+        this.storeConfig = fileQueueFactory.getStoreConfig();
+        this.flatFile = fileQueueFactory.createFlatFileForCommitLog(filePath);
+    }
+
+    @VisibleForTesting
+    public TieredFlatFile getFlatFile() {
+        return flatFile;
     }
 
     public long getMinOffset() {
-        return fileQueue.getMinOffset();
+        return flatFile.getMinOffset();
     }
 
     public long getCommitOffset() {
-        return fileQueue.getCommitOffset();
+        return flatFile.getCommitOffset();
     }
 
-    public long getCommitMsgQueueOffset() {
-        return fileQueue.getCommitMsgQueueOffset();
+    public long getDispatchCommitOffset() {
+        return flatFile.getDispatchCommitOffset();
     }
 
     public long getMaxOffset() {
-        return fileQueue.getMaxOffset();
+        return flatFile.getMaxOffset();
     }
 
     public long getBeginTimestamp() {
-        TieredFileSegment firstIndexFile = fileQueue.getFileByIndex(0);
+        TieredFileSegment firstIndexFile = flatFile.getFileByIndex(0);
         if (firstIndexFile == null) {
-            return -1;
+            return -1L;
         }
-        long beginTimestamp = firstIndexFile.getBeginTimestamp();
+        long beginTimestamp = firstIndexFile.getMinTimestamp();
         return beginTimestamp != Long.MAX_VALUE ? beginTimestamp : -1;
     }
 
     public long getEndTimestamp() {
-        return fileQueue.getFileToWrite().getEndTimestamp();
+        return flatFile.getFileToWrite().getMaxTimestamp();
     }
 
     public AppendResult append(ByteBuffer byteBuf) {
-        return fileQueue.append(byteBuf, MessageBufferUtil.getStoreTimeStamp(byteBuf));
+        return flatFile.append(byteBuf, MessageBufferUtil.getStoreTimeStamp(byteBuf));
     }
 
     public AppendResult append(ByteBuffer byteBuf, boolean commit) {
-        return fileQueue.append(byteBuf, MessageBufferUtil.getStoreTimeStamp(byteBuf), commit);
+        return flatFile.append(byteBuf, MessageBufferUtil.getStoreTimeStamp(byteBuf), commit);
     }
 
     public CompletableFuture<ByteBuffer> readAsync(long offset, int length) {
-        return fileQueue.readAsync(offset, length);
+        return flatFile.readAsync(offset, length);
     }
 
     public void commit(boolean sync) {
-        fileQueue.commit(sync);
+        flatFile.commit(sync);
     }
 
     public void cleanExpiredFile(long expireTimestamp) {
-        fileQueue.cleanExpiredFile(expireTimestamp);
+        flatFile.cleanExpiredFile(expireTimestamp);
     }
 
     public void destroyExpiredFile() {
-        fileQueue.destroyExpiredFile();
-
-        if (fileQueue.getFileSegmentCount() == 0) {
+        flatFile.destroyExpiredFile();
+        if (flatFile.getFileSegmentCount() == 0) {
             return;
         }
-        TieredFileSegment fileSegment = fileQueue.getFileToWrite();
+        TieredFileSegment fileSegment = flatFile.getFileToWrite();
         try {
-            if (System.currentTimeMillis() - fileSegment.getEndTimestamp() > (long) storeConfig.getCommitLogRollingInterval() * 60 * 60 * 1000
-                && fileSegment.getSize() > storeConfig.getCommitLogRollingMinimumSize()) {
-                fileQueue.rollingNewFile();
+            if (System.currentTimeMillis() - fileSegment.getMaxTimestamp() >
+                TimeUnit.HOURS.toMillis(storeConfig.getCommitLogRollingInterval())
+                && fileSegment.getAppendPosition() > storeConfig.getCommitLogRollingMinimumSize()) {
+                flatFile.rollingNewFile();
             }
         } catch (Exception e) {
-            logger.error("Rolling to next file failed:", e);
+            log.error("Rolling to next file failed", e);
         }
     }
 
     public void destroy() {
-        fileQueue.destroy();
+        flatFile.destroy();
     }
 }

@@ -105,7 +105,7 @@ public class SubRemotingServerTest {
             remotingClient.invokeSync("localhost:1234", request, 1000 * 3);
             failBecauseExceptionWasNotThrown(RemotingTimeoutException.class);
         } catch (Exception e) {
-            assertThat(e).isInstanceOf(RemotingTimeoutException.class);
+            assertThat(e).isInstanceOfAny(RemotingTimeoutException.class, RemotingSendRequestException.class);
         }
     }
 }

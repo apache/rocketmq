@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.container;
+package org.apache.rocketmq.tieredstore.file;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -32,81 +32,68 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.BoundaryType;
-import org.apache.rocketmq.tieredstore.common.InflightRequestFuture;
-import org.apache.rocketmq.tieredstore.common.InflightRequestKey;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
+import org.apache.rocketmq.tieredstore.common.InFlightRequestFuture;
+import org.apache.rocketmq.tieredstore.common.InFlightRequestKey;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.metadata.QueueMetadata;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
-import org.apache.rocketmq.tieredstore.metadata.TopicMetadata;
 import org.apache.rocketmq.tieredstore.util.CQItemBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
-public class TieredMessageQueueContainer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+public class CompositeFlatFile implements CompositeAccess {
 
-    private volatile boolean closed = false;
+    protected static final Logger LOGGER = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
-    private final MessageQueue messageQueue;
-    private final int topicId;
-    private final TieredMessageStoreConfig storeConfig;
-    private final TieredMetadataStore metadataStore;
-    private final TieredCommitLog commitLog;
-    private final TieredConsumeQueue consumeQueue;
-    private final TieredIndexFile indexFile;
+    protected volatile boolean closed = false;
+    protected int readAheadFactor;
 
-    private QueueMetadata queueMetadata;
+    /**
+     * Dispatch offset represents the offset of the messages that have been
+     * dispatched to the current chunk, indicating the progress of the message distribution.
+     * It's consume queue current offset.
+     */
+    protected volatile long dispatchOffset;
 
-    private long dispatchOffset;
+    protected final ReentrantLock compositeFlatFileLock;
+    protected final TieredMessageStoreConfig storeConfig;
+    protected final TieredMetadataStore metadataStore;
 
-    private final ReentrantLock queueLock = new ReentrantLock();
+    protected final String filePath;
+    protected final TieredCommitLog commitLog;
+    protected final TieredConsumeQueue consumeQueue;
+    protected final Cache<String, Long> groupOffsetCache;
+    protected final ConcurrentMap<InFlightRequestKey, InFlightRequestFuture> inFlightRequestMap;
 
-    private int readAheadFactor;
-    private final Cache<String, Long> groupOffsetCache;
-    private final ConcurrentMap<InflightRequestKey, InflightRequestFuture> inFlightRequestMap;
+    public CompositeFlatFile(TieredFileAllocator fileQueueFactory, String filePath) {
+        this.filePath = filePath;
+        this.storeConfig = fileQueueFactory.getStoreConfig();
+        this.readAheadFactor = this.storeConfig.getReadAheadMinFactor();
+        this.metadataStore = TieredStoreUtil.getMetadataStore(this.storeConfig);
+        this.compositeFlatFileLock = new ReentrantLock();
+        this.inFlightRequestMap = new ConcurrentHashMap<>();
+        this.commitLog = new TieredCommitLog(fileQueueFactory, filePath);
+        this.consumeQueue = new TieredConsumeQueue(fileQueueFactory, filePath);
+        this.groupOffsetCache = this.initOffsetCache();
+    }
 
-    public TieredMessageQueueContainer(MessageQueue messageQueue, TieredMessageStoreConfig storeConfig)
-        throws ClassNotFoundException, NoSuchMethodException {
-        this.messageQueue = messageQueue;
-        this.storeConfig = storeConfig;
-        this.metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
-
-        TopicMetadata topicMetadata = metadataStore.getTopic(messageQueue.getTopic());
-        if (topicMetadata == null) {
-            // TODO specify reserveTime for each topic
-            topicMetadata = metadataStore.addTopic(messageQueue.getTopic(), -1L);
-        }
-        this.topicId = topicMetadata.getTopicId();
-
-        queueMetadata = metadataStore.getQueue(messageQueue);
-        if (queueMetadata == null) {
-            queueMetadata = metadataStore.addQueue(messageQueue, -1);
-        }
-        if (queueMetadata.getMaxOffset() < queueMetadata.getMinOffset()) {
-            queueMetadata.setMaxOffset(queueMetadata.getMinOffset());
-        }
-        this.dispatchOffset = queueMetadata.getMaxOffset();
-
-        this.commitLog = new TieredCommitLog(messageQueue, storeConfig);
-        this.consumeQueue = new TieredConsumeQueue(messageQueue, storeConfig);
+    protected void recoverMetadata() {
         if (!consumeQueue.isInitialized() && this.dispatchOffset != -1) {
             consumeQueue.setBaseOffset(this.dispatchOffset * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         }
-        this.indexFile = TieredContainerManager.getIndexFile(storeConfig);
-        this.readAheadFactor = storeConfig.getReadAheadMinFactor();
-        this.inFlightRequestMap = new ConcurrentHashMap<>();
-        this.groupOffsetCache = Caffeine.newBuilder()
+    }
+
+    private Cache<String, Long> initOffsetCache() {
+        return Caffeine.newBuilder()
             .expireAfterWrite(2, TimeUnit.MINUTES)
             .removalListener((key, value, cause) -> {
                 if (cause.equals(RemovalCause.EXPIRED)) {
-                    inFlightRequestMap.remove(new InflightRequestKey((String) key));
+                    inFlightRequestMap.remove(new InFlightRequestKey((String) key));
                 }
             }).build();
     }
@@ -115,12 +102,8 @@ public class TieredMessageQueueContainer {
         return closed;
     }
 
-    public ReentrantLock getQueueLock() {
-        return queueLock;
-    }
-
-    public MessageQueue getMessageQueue() {
-        return messageQueue;
+    public ReentrantLock getCompositeFlatFileLock() {
+        return compositeFlatFileLock;
     }
 
     public long getCommitLogMinOffset() {
@@ -139,6 +122,11 @@ public class TieredMessageQueueContainer {
         return consumeQueue.getBaseOffset();
     }
 
+    @Override
+    public long getCommitLogDispatchCommitOffset() {
+        return commitLog.getDispatchCommitOffset();
+    }
+
     public long getConsumeQueueMinOffset() {
         return consumeQueue.getMinOffset() / TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE;
     }
@@ -155,20 +143,21 @@ public class TieredMessageQueueContainer {
         return consumeQueue.getEndTimestamp();
     }
 
-    // CQ offset
     public long getDispatchOffset() {
         return dispatchOffset;
     }
 
+    @Override
     public CompletableFuture<ByteBuffer> getMessageAsync(long queueOffset) {
-        return readConsumeQueue(queueOffset).thenComposeAsync(cqBuffer -> {
+        return getConsumeQueueAsync(queueOffset).thenComposeAsync(cqBuffer -> {
             long commitLogOffset = CQItemBufferUtil.getCommitLogOffset(cqBuffer);
             int length = CQItemBufferUtil.getSize(cqBuffer);
-            return readCommitLog(commitLogOffset, length);
+            return getCommitLogAsync(commitLogOffset, length);
         });
     }
 
-    public long binarySearchInQueueByTime(long timestamp, BoundaryType boundaryType) {
+    @Override
+    public long getOffsetInConsumeQueueByTime(long timestamp, BoundaryType boundaryType) {
         Pair<Long, Long> pair = consumeQueue.getQueueOffsetInFileByTime(timestamp, boundaryType);
         long minQueueOffset = pair.getLeft();
         long maxQueueOffset = pair.getRight();
@@ -196,7 +185,7 @@ public class TieredMessageQueueContainer {
                 case UPPER:
                     return maxQueueOffset;
                 default:
-                    LOGGER.warn("TieredMessageQueueContainer#getQueueOffsetByTime: unknown boundary boundaryType");
+                    LOGGER.warn("CompositeFlatFile#getQueueOffsetByTime: unknown boundary boundaryType");
                     break;
             }
         }
@@ -211,7 +200,7 @@ public class TieredMessageQueueContainer {
                 case UPPER:
                     return 0L;
                 default:
-                    LOGGER.warn("TieredMessageQueueContainer#getQueueOffsetByTime: unknown boundary boundaryType");
+                    LOGGER.warn("CompositeFlatFile#getQueueOffsetByTime: unknown boundary boundaryType");
                     break;
             }
         }
@@ -276,7 +265,7 @@ public class TieredMessageQueueContainer {
                     offset = previousAttempt;
                     break;
                 default:
-                    LOGGER.warn("TieredMessageQueueContainer#getQueueOffsetByTime: unknown boundary boundaryType");
+                    LOGGER.warn("CompositeFlatFile#getQueueOffsetByTime: unknown boundary boundaryType");
                     break;
             }
         } else {
@@ -307,7 +296,7 @@ public class TieredMessageQueueContainer {
                     break;
                 }
                 default: {
-                    LOGGER.warn("TieredMessageQueueContainer#getQueueOffsetByTime: unknown boundary boundaryType");
+                    LOGGER.warn("CompositeFlatFile#getQueueOffsetByTime: unknown boundary boundaryType");
                     break;
                 }
             }
@@ -315,130 +304,95 @@ public class TieredMessageQueueContainer {
         return offset;
     }
 
+    @Override
     public void initOffset(long offset) {
-        if (!consumeQueue.isInitialized()) {
-            queueMetadata.setMinOffset(offset);
-            queueMetadata.setMaxOffset(offset);
-        }
         if (!consumeQueue.isInitialized()) {
             consumeQueue.setBaseOffset(offset * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         }
         dispatchOffset = offset;
     }
 
-    // CQ offset
-    public long getBuildCQMaxOffset() {
-        return commitLog.getCommitMsgQueueOffset();
-    }
-
+    @Override
     public AppendResult appendCommitLog(ByteBuffer message) {
         return appendCommitLog(message, false);
     }
 
+    @Override
     public AppendResult appendCommitLog(ByteBuffer message, boolean commit) {
         if (closed) {
             return AppendResult.FILE_CLOSED;
         }
+
         long queueOffset = MessageBufferUtil.getQueueOffset(message);
-        if (queueOffset != dispatchOffset) {
+        if (dispatchOffset != queueOffset) {
             return AppendResult.OFFSET_INCORRECT;
         }
 
         AppendResult result = commitLog.append(message, commit);
         if (result == AppendResult.SUCCESS) {
-            dispatchOffset++;
+            dispatchOffset = queueOffset + 1;
         }
-
         return result;
     }
 
+    @Override
     public AppendResult appendConsumeQueue(DispatchRequest request) {
         return appendConsumeQueue(request, false);
     }
 
+    @Override
     public AppendResult appendConsumeQueue(DispatchRequest request, boolean commit) {
         if (closed) {
             return AppendResult.FILE_CLOSED;
         }
+
         if (request.getConsumeQueueOffset() != getConsumeQueueMaxOffset()) {
             return AppendResult.OFFSET_INCORRECT;
         }
 
-        return consumeQueue.append(request.getCommitLogOffset(), request.getMsgSize(), request.getTagsCode(), request.getStoreTimestamp(), commit);
+        return consumeQueue.append(request.getCommitLogOffset(),
+            request.getMsgSize(), request.getTagsCode(), request.getStoreTimestamp(), commit);
     }
 
-    public AppendResult appendIndexFile(DispatchRequest request) {
-        if (closed) {
-            return AppendResult.FILE_CLOSED;
-        }
-
-        // building indexes with offsetId is no longer supported because offsetId has changed in tiered storage
-//        AppendResult result = indexFile.append(messageQueue, request.getOffsetId(), request.getCommitLogOffset(), request.getMsgSize(), request.getStoreTimestamp());
-//        if (result != AppendResult.SUCCESS) {
-//            return result;
-//        }
-
-        if (StringUtils.isNotBlank(request.getUniqKey())) {
-            AppendResult result = indexFile.append(messageQueue, topicId, request.getUniqKey(), request.getCommitLogOffset(), request.getMsgSize(), request.getStoreTimestamp());
-            if (result != AppendResult.SUCCESS) {
-                return result;
-            }
-        }
-
-        for (String key : request.getKeys().split(MessageConst.KEY_SEPARATOR)) {
-            if (StringUtils.isNotBlank(key)) {
-                AppendResult result = indexFile.append(messageQueue, topicId, key, request.getCommitLogOffset(), request.getMsgSize(), request.getStoreTimestamp());
-                if (result != AppendResult.SUCCESS) {
-                    return result;
-                }
-            }
-        }
-
-        return AppendResult.SUCCESS;
-    }
-
-    public CompletableFuture<ByteBuffer> readCommitLog(long offset, int length) {
+    @Override
+    public CompletableFuture<ByteBuffer> getCommitLogAsync(long offset, int length) {
         return commitLog.readAsync(offset, length);
     }
 
-    public CompletableFuture<ByteBuffer> readConsumeQueue(long queueOffset) {
-        return readConsumeQueue(queueOffset, 1);
+    @Override
+    public CompletableFuture<ByteBuffer> getConsumeQueueAsync(long queueOffset) {
+        return getConsumeQueueAsync(queueOffset, 1);
     }
 
-    public CompletableFuture<ByteBuffer> readConsumeQueue(long queueOffset, int count) {
-        return consumeQueue.readAsync(queueOffset * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE, count * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
+    @Override
+    public CompletableFuture<ByteBuffer> getConsumeQueueAsync(long queueOffset, int count) {
+        return consumeQueue.readAsync(queueOffset * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE,
+            count * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
     }
 
-    public void flushMetadata() {
-        try {
-            if (consumeQueue.getCommitOffset() < queueMetadata.getMinOffset()) {
-                return;
-            }
-            queueMetadata.setMaxOffset(consumeQueue.getCommitOffset() / TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
-            metadataStore.updateQueue(queueMetadata);
-        } catch (Exception e) {
-            LOGGER.error("TieredMessageQueueContainer#flushMetadata: update queue metadata failed: topic: {}, queue: {}", messageQueue.getTopic(), messageQueue.getQueueId(), e);
-        }
-    }
-
+    @Override
     public void commitCommitLog() {
         commitLog.commit(true);
     }
 
+    @Override
     public void commitConsumeQueue() {
         consumeQueue.commit(true);
     }
 
+    @Override
     public void cleanExpiredFile(long expireTimestamp) {
         commitLog.cleanExpiredFile(expireTimestamp);
         consumeQueue.cleanExpiredFile(expireTimestamp);
     }
 
+    @Override
     public void destroyExpiredFile() {
         commitLog.destroyExpiredFile();
         consumeQueue.destroyExpiredFile();
     }
 
+    @Override
     public void commit(boolean sync) {
         commitLog.commit(sync);
         consumeQueue.commit(sync);
@@ -476,20 +430,20 @@ public class TieredMessageQueueContainer {
         return groupOffsetCache.estimatedSize();
     }
 
-    public InflightRequestFuture getInflightRequest(long offset, int batchSize) {
-        Optional<InflightRequestFuture> optional = inFlightRequestMap.entrySet()
+    public InFlightRequestFuture getInflightRequest(long offset, int batchSize) {
+        Optional<InFlightRequestFuture> optional = inFlightRequestMap.entrySet()
             .stream()
             .filter(entry -> {
-                InflightRequestKey key = entry.getKey();
+                InFlightRequestKey key = entry.getKey();
                 return Math.max(key.getOffset(), offset) <= Math.min(key.getOffset() + key.getBatchSize(), offset + batchSize);
             })
             .max(Comparator.comparing(entry -> entry.getKey().getRequestTime()))
             .map(Map.Entry::getValue);
-        return optional.orElseGet(() -> new InflightRequestFuture(Long.MAX_VALUE, new ArrayList<>()));
+        return optional.orElseGet(() -> new InFlightRequestFuture(Long.MAX_VALUE, new ArrayList<>()));
     }
 
-    public InflightRequestFuture getInflightRequest(String group, long offset, int batchSize) {
-        InflightRequestFuture future = inFlightRequestMap.get(new InflightRequestKey(group));
+    public InFlightRequestFuture getInflightRequest(String group, long offset, int batchSize) {
+        InFlightRequestFuture future = inFlightRequestMap.get(new InFlightRequestKey(group));
         if (future != null && !future.isAllDone()) {
             return future;
         }
@@ -498,14 +452,14 @@ public class TieredMessageQueueContainer {
 
     public void putInflightRequest(String group, long offset, int requestMsgCount,
         List<Pair<Integer, CompletableFuture<Long>>> futureList) {
-        InflightRequestKey key = new InflightRequestKey(group, offset, requestMsgCount);
+        InFlightRequestKey key = new InFlightRequestKey(group, offset, requestMsgCount);
         inFlightRequestMap.remove(key);
-        inFlightRequestMap.putIfAbsent(key, new InflightRequestFuture(offset, futureList));
+        inFlightRequestMap.putIfAbsent(key, new InFlightRequestFuture(offset, futureList));
     }
 
     @Override
     public int hashCode() {
-        return messageQueue.hashCode();
+        return filePath.hashCode();
     }
 
     @Override
@@ -519,14 +473,13 @@ public class TieredMessageQueueContainer {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        return messageQueue.equals(((TieredMessageQueueContainer) obj).messageQueue);
+        return StringUtils.equals(filePath, ((CompositeFlatFile) obj).filePath);
     }
 
     public void shutdown() {
         closed = true;
         commitLog.commit(true);
         consumeQueue.commit(true);
-        flushMetadata();
     }
 
     public void destroy() {
@@ -534,10 +487,10 @@ public class TieredMessageQueueContainer {
         commitLog.destroy();
         consumeQueue.destroy();
         try {
-            metadataStore.deleteFileSegment(messageQueue);
-            metadataStore.deleteQueue(messageQueue);
+            metadataStore.deleteFileSegment(filePath, FileSegmentType.COMMIT_LOG);
+            metadataStore.deleteFileSegment(filePath, FileSegmentType.CONSUME_QUEUE);
         } catch (Exception e) {
-            LOGGER.error("TieredMessageQueueContainer#destroy: clean metadata failed: ", e);
+            LOGGER.error("CompositeFlatFile#destroy: clean metadata failed: ", e);
         }
     }
 }

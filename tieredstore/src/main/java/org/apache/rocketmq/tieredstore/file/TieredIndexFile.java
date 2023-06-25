@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.container;
+package org.apache.rocketmq.tieredstore.file;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -40,11 +41,12 @@ import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 public class TieredIndexFile {
+
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     public static final int INDEX_FILE_BEGIN_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 4;
     public static final int INDEX_FILE_END_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 8;
-    private static final int INDEX_FILE_HEADER_SIZE = 28;
+    public static final int INDEX_FILE_HEADER_SIZE = 28;
     public static final int INDEX_FILE_HASH_SLOT_SIZE = 8;
     public static final int INDEX_FILE_HASH_ORIGIN_INDEX_SIZE = 32;
     public static final int INDEX_FILE_HASH_COMPACT_INDEX_SIZE = 28;
@@ -52,8 +54,8 @@ public class TieredIndexFile {
     public static final int INDEX_FILE_HEADER_MAGIC_CODE_POSITION = 0;
     public static final int INDEX_FILE_HEADER_BEGIN_TIME_STAMP_POSITION = 4;
     public static final int INDEX_FILE_HEADER_END_TIME_STAMP_POSITION = 12;
-    private static final int INDEX_FILE_HEADER_SLOT_NUM_POSITION = 20;
-    private static final int INDEX_FILE_HEADER_INDEX_NUM_POSITION = 24;
+    public static final int INDEX_FILE_HEADER_SLOT_NUM_POSITION = 20;
+    public static final int INDEX_FILE_HEADER_INDEX_NUM_POSITION = 24;
 
     private static final String INDEX_FILE_DIR_NAME = "tiered_index_file";
     private static final String CUR_INDEX_FILE_NAME = "0000";
@@ -61,7 +63,7 @@ public class TieredIndexFile {
     private static final String COMPACT_FILE_NAME = "2222";
 
     private final TieredMessageStoreConfig storeConfig;
-    private final TieredFileQueue fileQueue;
+    private final TieredFlatFile flatFile;
     private final int maxHashSlotNum;
     private final int maxIndexNum;
     private final int fileMaxSize;
@@ -70,46 +72,55 @@ public class TieredIndexFile {
     private MappedFile preMappedFile;
     private MappedFile curMappedFile;
 
-    private ReentrantLock curFileLock = new ReentrantLock();
+    private final ReentrantLock curFileLock = new ReentrantLock();
     private Future<Void> inflightCompactFuture = CompletableFuture.completedFuture(null);
 
-    protected TieredIndexFile(TieredMessageStoreConfig storeConfig)
-        throws ClassNotFoundException, NoSuchMethodException, IOException {
-        this.storeConfig = storeConfig;
-        this.fileQueue = new TieredFileQueue(TieredFileSegment.FileSegmentType.INDEX, new MessageQueue(TieredStoreUtil.RMQ_SYS_TIERED_STORE_INDEX_TOPIC, storeConfig.getBrokerName(), 0), storeConfig);
-        if (fileQueue.getBaseOffset() == -1) {
-            fileQueue.setBaseOffset(0);
+    protected TieredIndexFile(TieredFileAllocator fileQueueFactory, String filePath) throws IOException {
+        this.storeConfig = fileQueueFactory.getStoreConfig();
+        this.flatFile = fileQueueFactory.createFlatFileForIndexFile(filePath);
+        if (flatFile.getBaseOffset() == -1) {
+            flatFile.setBaseOffset(0);
         }
         this.maxHashSlotNum = storeConfig.getTieredStoreIndexFileMaxHashSlotNum();
         this.maxIndexNum = storeConfig.getTieredStoreIndexFileMaxIndexNum();
-
-        this.fileMaxSize = IndexHeader.INDEX_HEADER_SIZE + (this.maxHashSlotNum * INDEX_FILE_HASH_SLOT_SIZE) + (this.maxIndexNum * INDEX_FILE_HASH_ORIGIN_INDEX_SIZE) + 4;
-        this.curFilePath = storeConfig.getStorePathRootDir() + File.separator + INDEX_FILE_DIR_NAME + File.separator + CUR_INDEX_FILE_NAME;
-        this.preFilepath = storeConfig.getStorePathRootDir() + File.separator + INDEX_FILE_DIR_NAME + File.separator + PRE_INDEX_FILE_NAME;
+        this.fileMaxSize = IndexHeader.INDEX_HEADER_SIZE
+            + this.maxHashSlotNum * INDEX_FILE_HASH_SLOT_SIZE
+            + this.maxIndexNum * INDEX_FILE_HASH_ORIGIN_INDEX_SIZE
+            + 4;
+        this.curFilePath = Paths.get(
+            storeConfig.getStorePathRootDir(), INDEX_FILE_DIR_NAME, CUR_INDEX_FILE_NAME).toString();
+        this.preFilepath = Paths.get(
+            storeConfig.getStorePathRootDir(), INDEX_FILE_DIR_NAME, PRE_INDEX_FILE_NAME).toString();
         initFile();
-        TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() -> {
+        TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(
+            this::doScheduleTask, 10, 10, TimeUnit.SECONDS);
+    }
+
+    private void doScheduleTask() {
+        try {
+            curFileLock.lock();
             try {
-                curFileLock.lock();
-                try {
-                    synchronized (TieredIndexFile.class) {
-                        MappedByteBuffer mappedByteBuffer = curMappedFile.getMappedByteBuffer();
-                        int indexNum = mappedByteBuffer.getInt(INDEX_FILE_HEADER_INDEX_NUM_POSITION);
-                        long lastIndexTime = mappedByteBuffer.getLong(INDEX_FILE_HEADER_END_TIME_STAMP_POSITION);
-                        if (indexNum > 0 && System.currentTimeMillis() - lastIndexTime > storeConfig.getTieredStoreIndexFileRollingIdleInterval()) {
-                            mappedByteBuffer.putInt(fileMaxSize - 4, INDEX_FILE_END_MAGIC_CODE);
-                            rollingFile();
-                        }
-                        if (inflightCompactFuture.isDone() && preMappedFile != null && preMappedFile.isAvailable()) {
-                            inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(new CompactTask(storeConfig, preMappedFile, fileQueue), null);
-                        }
+                synchronized (TieredIndexFile.class) {
+                    MappedByteBuffer mappedByteBuffer = curMappedFile.getMappedByteBuffer();
+                    int indexNum = mappedByteBuffer.getInt(INDEX_FILE_HEADER_INDEX_NUM_POSITION);
+                    long lastIndexTime = mappedByteBuffer.getLong(INDEX_FILE_HEADER_END_TIME_STAMP_POSITION);
+                    if (indexNum > 0 &&
+                        System.currentTimeMillis() - lastIndexTime >
+                            storeConfig.getTieredStoreIndexFileRollingIdleInterval()) {
+                        mappedByteBuffer.putInt(fileMaxSize - 4, INDEX_FILE_END_MAGIC_CODE);
+                        rollingFile();
                     }
-                } finally {
-                    curFileLock.unlock();
+                    if (inflightCompactFuture.isDone() && preMappedFile != null && preMappedFile.isAvailable()) {
+                        inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(
+                            new CompactTask(storeConfig, preMappedFile, flatFile), null);
+                    }
                 }
-            } catch (Throwable throwable) {
-                logger.error("TieredIndexFile: submit compact index file task failed:", throwable);
+            } finally {
+                curFileLock.unlock();
             }
-        }, 10, 10, TimeUnit.SECONDS);
+        } catch (Throwable throwable) {
+            logger.error("TieredIndexFile: submit compact index file task failed:", throwable);
+        }
     }
 
     private static boolean isFileSealed(MappedFile mappedFile) {
@@ -154,7 +165,7 @@ public class TieredIndexFile {
         if (preFileExists) {
             synchronized (TieredIndexFile.class) {
                 if (inflightCompactFuture.isDone()) {
-                    inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(new CompactTask(storeConfig, preMappedFile, fileQueue), null);
+                    inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(new CompactTask(storeConfig, preMappedFile, flatFile), null);
                 }
             }
         }
@@ -187,7 +198,7 @@ public class TieredIndexFile {
     private void tryToCompactPreFile() throws IOException {
         synchronized (TieredIndexFile.class) {
             if (inflightCompactFuture.isDone()) {
-                inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(new CompactTask(storeConfig, preMappedFile, fileQueue), null);
+                inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(new CompactTask(storeConfig, preMappedFile, flatFile), null);
             }
         }
     }
@@ -250,11 +261,11 @@ public class TieredIndexFile {
     public CompletableFuture<List<Pair<Long, ByteBuffer>>> queryAsync(String topic, String key, long beginTime, long endTime) {
         int hashCode = indexKeyHashMethod(buildKey(topic, key));
         int slotPosition = hashCode % maxHashSlotNum;
-        List<TieredFileSegment> fileSegmentList = fileQueue.getFileListByTime(beginTime, endTime);
+        List<TieredFileSegment> fileSegmentList = flatFile.getFileListByTime(beginTime, endTime);
         CompletableFuture<List<Pair<Long, ByteBuffer>>> future = null;
         for (int i = fileSegmentList.size() - 1; i >= 0; i--) {
             TieredFileSegment fileSegment = fileSegmentList.get(i);
-            CompletableFuture<ByteBuffer> tmpFuture = fileSegment.readAsync(INDEX_FILE_HEADER_SIZE + slotPosition * INDEX_FILE_HASH_SLOT_SIZE, INDEX_FILE_HASH_SLOT_SIZE)
+            CompletableFuture<ByteBuffer> tmpFuture = fileSegment.readAsync(INDEX_FILE_HEADER_SIZE + (long) slotPosition * INDEX_FILE_HASH_SLOT_SIZE, INDEX_FILE_HASH_SLOT_SIZE)
                 .thenCompose(slotBuffer -> {
                     int indexPosition = slotBuffer.getInt();
                     if (indexPosition == -1) {
@@ -271,14 +282,14 @@ public class TieredIndexFile {
                 future = tmpFuture.thenApply(indexBuffer -> {
                     List<Pair<Long, ByteBuffer>> result = new ArrayList<>();
                     if (indexBuffer != null) {
-                        result.add(Pair.of(fileSegment.getBeginTimestamp(), indexBuffer));
+                        result.add(Pair.of(fileSegment.getMinTimestamp(), indexBuffer));
                     }
                     return result;
                 });
             } else {
                 future = future.thenCombine(tmpFuture, (indexList, indexBuffer) -> {
                     if (indexBuffer != null) {
-                        indexList.add(Pair.of(fileSegment.getBeginTimestamp(), indexBuffer));
+                        indexList.add(Pair.of(fileSegment.getMinTimestamp(), indexBuffer));
                     }
                     return indexList;
                 });
@@ -300,7 +311,7 @@ public class TieredIndexFile {
     }
 
     public void commit(boolean sync) {
-        fileQueue.commit(sync);
+        flatFile.commit(sync);
         if (sync) {
             try {
                 inflightCompactFuture.get();
@@ -310,11 +321,11 @@ public class TieredIndexFile {
     }
 
     public void cleanExpiredFile(long expireTimestamp) {
-        fileQueue.cleanExpiredFile(expireTimestamp);
+        flatFile.cleanExpiredFile(expireTimestamp);
     }
 
     public void destroyExpiredFile() {
-        fileQueue.destroyExpiredFile();
+        flatFile.destroyExpiredFile();
     }
 
     public void destroy() {
@@ -330,7 +341,7 @@ public class TieredIndexFile {
         if (compactFile.exists()) {
             compactFile.delete();
         }
-        fileQueue.destroy();
+        flatFile.destroy();
     }
 
     static class CompactTask implements Runnable {
@@ -340,11 +351,11 @@ public class TieredIndexFile {
         private final int maxIndexNum;
         private final int fileMaxSize;
         private MappedFile originFile;
-        private TieredFileQueue fileQueue;
+        private TieredFlatFile fileQueue;
         private final MappedFile compactFile;
 
         public CompactTask(TieredMessageStoreConfig storeConfig, MappedFile originFile,
-            TieredFileQueue fileQueue) throws IOException {
+            TieredFlatFile fileQueue) throws IOException {
             this.storeConfig = storeConfig;
             this.maxHashSlotNum = storeConfig.getTieredStoreIndexFileMaxHashSlotNum();
             this.maxIndexNum = storeConfig.getTieredStoreIndexFileMaxIndexNum();

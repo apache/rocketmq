@@ -18,11 +18,12 @@
 package org.apache.rocketmq.proxy.service.metadata;
 
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public interface MetadataService {
 
-    TopicMessageType getTopicMessageType(String topic);
+    TopicMessageType getTopicMessageType(ProxyContext ctx, String topic);
 
-    SubscriptionGroupConfig getSubscriptionGroupConfig(String group);
+    SubscriptionGroupConfig getSubscriptionGroupConfig(ProxyContext ctx, String group);
 }

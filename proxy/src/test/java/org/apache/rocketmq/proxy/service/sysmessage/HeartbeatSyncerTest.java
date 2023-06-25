@@ -133,7 +133,7 @@ public class HeartbeatSyncerTest extends InitConfigTest {
             brokerData.setBrokerAddrs(brokerAddr);
             topicRouteData.getBrokerDatas().add(brokerData);
             MessageQueueView messageQueueView = new MessageQueueView("foo", topicRouteData);
-            when(this.topicRouteService.getAllMessageQueueView(anyString())).thenReturn(messageQueueView);
+            when(this.topicRouteService.getAllMessageQueueView(any(), anyString())).thenReturn(messageQueueView);
         }
     }
 
@@ -172,7 +172,7 @@ public class HeartbeatSyncerTest extends InitConfigTest {
             .build();
         when(grpcClientSettingsManager.getRawClientSettings(eq(clientId))).thenReturn(settings);
 
-        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(topicRouteService, adminService, consumerManager, mqClientAPIFactory);
+        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(topicRouteService, adminService, consumerManager, mqClientAPIFactory, null);
         heartbeatSyncer.onConsumerRegister(
             consumerGroup,
             clientChannelInfo,
@@ -240,7 +240,7 @@ public class HeartbeatSyncerTest extends InitConfigTest {
             4
         );
 
-        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(topicRouteService, adminService, consumerManager, mqClientAPIFactory);
+        HeartbeatSyncer heartbeatSyncer = new HeartbeatSyncer(topicRouteService, adminService, consumerManager, mqClientAPIFactory, null);
         SendResult okSendResult = new SendResult();
         okSendResult.setSendStatus(SendStatus.SEND_OK);
         {

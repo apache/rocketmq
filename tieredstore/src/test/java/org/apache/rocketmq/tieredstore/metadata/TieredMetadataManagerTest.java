@@ -18,36 +18,34 @@ package org.apache.rocketmq.tieredstore.metadata;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.io.FileUtils;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
-import org.apache.rocketmq.tieredstore.mock.MemoryFileSegment;
-import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
+import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class MetadataStoreTest {
+public class TieredMetadataManagerTest {
+
+    private final String storePath = TieredStoreTestUtil.getRandomStorePath();
     private MessageQueue mq0;
     private MessageQueue mq1;
     private MessageQueue mq2;
     private TieredMessageStoreConfig storeConfig;
     private TieredMetadataStore metadataStore;
 
-    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
-
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
+        storeConfig.setBrokerName("brokerName");
         storeConfig.setStorePathRootDir(storePath);
         mq0 = new MessageQueue("MetadataStoreTest0", storeConfig.getBrokerName(), 0);
         mq1 = new MessageQueue("MetadataStoreTest1", storeConfig.getBrokerName(), 0);
@@ -75,7 +73,7 @@ public class MetadataStoreTest {
         queueMetadata.setMaxOffset(0);
         metadataStore.updateQueue(queueMetadata);
         queueMetadata = metadataStore.getQueue(mq0);
-        Assert.assertTrue(queueMetadata.getUpdateTimestamp() >= currentTimeMillis);
+        Assert.assertTrue(Objects.requireNonNull(queueMetadata).getUpdateTimestamp() >= currentTimeMillis);
         Assert.assertEquals(queueMetadata.getMinOffset(), 0);
         Assert.assertEquals(queueMetadata.getMaxOffset(), 0);
 
@@ -100,23 +98,32 @@ public class MetadataStoreTest {
 
         metadataStore.addTopic(mq0.getTopic(), 2);
         topicMetadata = metadataStore.getTopic(mq0.getTopic());
-        Assert.assertEquals(mq0.getTopic(), topicMetadata.getTopic());
+        Assert.assertEquals(mq0.getTopic(), Objects.requireNonNull(topicMetadata).getTopic());
         Assert.assertEquals(topicMetadata.getStatus(), 0);
         Assert.assertEquals(topicMetadata.getReserveTime(), 2);
         Assert.assertEquals(topicMetadata.getTopicId(), 0);
 
-        metadataStore.updateTopicStatus(mq0.getTopic(), 1);
-        metadataStore.updateTopicReserveTime(mq0.getTopic(), 0);
+        topicMetadata.setStatus(1);
+        topicMetadata.setReserveTime(0);
+        metadataStore.updateTopic(topicMetadata);
         topicMetadata = metadataStore.getTopic(mq0.getTopic());
         Assert.assertNotNull(topicMetadata);
         Assert.assertEquals(topicMetadata.getStatus(), 1);
         Assert.assertEquals(topicMetadata.getReserveTime(), 0);
 
-        metadataStore.addTopic(mq0.getTopic() + "1", 1);
-        metadataStore.updateTopicStatus(mq0.getTopic() + "1", 2);
+        String topic1 = mq0.getTopic() + "1";
+        metadataStore.addTopic(topic1, 1);
+        TopicMetadata topicMetadata1 = metadataStore.getTopic(topic1);
+        Assert.assertNotNull(topicMetadata1);
+        topicMetadata1.setStatus(2);
+        metadataStore.updateTopic(topicMetadata1);
 
-        metadataStore.addTopic(mq0.getTopic() + "2", 2);
-        metadataStore.updateTopicStatus(mq0.getTopic() + "2", 3);
+        String topic2 = mq0.getTopic() + "2";
+        metadataStore.addTopic(topic2, 2);
+        TopicMetadata topicMetadata2 = metadataStore.getTopic(topic2);
+        Assert.assertNotNull(topicMetadata2);
+        topicMetadata2.setStatus(3);
+        metadataStore.updateTopic(topicMetadata2);
 
         AtomicInteger n = new AtomicInteger();
         metadataStore.iterateTopic(metadata -> {
@@ -128,47 +135,80 @@ public class MetadataStoreTest {
             }
             n.getAndIncrement();
         });
+
         Assert.assertEquals(3, n.get());
-
-        Assert.assertNull(metadataStore.getTopic(mq0.getTopic() + "2"));
-
+        Assert.assertNull(metadataStore.getTopic(topic2));
         Assert.assertNotNull(metadataStore.getTopic(mq0.getTopic()));
-        Assert.assertNotNull(metadataStore.getTopic(mq0.getTopic() + "1"));
+        Assert.assertNotNull(metadataStore.getTopic(topic1));
+    }
+
+    private long countFileSegment(TieredMetadataStore metadataStore) {
+        AtomicLong count = new AtomicLong();
+        metadataStore.iterateFileSegment(segmentMetadata -> count.incrementAndGet());
+        return count.get();
+    }
+
+    private long countFileSegment(TieredMetadataStore metadataStore, String filePath) {
+        AtomicLong count = new AtomicLong();
+        metadataStore.iterateFileSegment(
+            filePath, FileSegmentType.COMMIT_LOG, segmentMetadata -> count.incrementAndGet());
+        return count.get();
     }
 
     @Test
     public void testFileSegment() {
-        MemoryFileSegment fileSegment1 = new MemoryFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG,
-            mq0, 100, storeConfig);
-        fileSegment1.initPosition(fileSegment1.getSize());
-        FileSegmentMetadata metadata1 = metadataStore.updateFileSegment(fileSegment1);
-        Assert.assertEquals(mq0, metadata1.getQueue());
-        Assert.assertEquals(TieredFileSegment.FileSegmentType.COMMIT_LOG, TieredFileSegment.FileSegmentType.valueOf(metadata1.getType()));
-        Assert.assertEquals(100, metadata1.getBaseOffset());
-        Assert.assertEquals(0, metadata1.getSealTimestamp());
+        String filePath = TieredStoreUtil.toPath(mq0);
+        FileSegmentMetadata segmentMetadata1 = new FileSegmentMetadata(
+            filePath, 0L, FileSegmentType.COMMIT_LOG.getType());
+        metadataStore.updateFileSegment(segmentMetadata1);
+        Assert.assertEquals(1L, countFileSegment(metadataStore));
 
-        fileSegment1.setFull();
-        metadata1 = metadataStore.updateFileSegment(fileSegment1);
-        Assert.assertEquals(1000, metadata1.getSize());
-        Assert.assertEquals(0, metadata1.getSealTimestamp());
+        FileSegmentMetadata segmentMetadata2 = new FileSegmentMetadata(
+            filePath, 100, FileSegmentType.COMMIT_LOG.getType());
+        metadataStore.updateFileSegment(segmentMetadata2);
+        Assert.assertEquals(2L, countFileSegment(metadataStore));
 
-        fileSegment1.commit();
-        metadata1 = metadataStore.updateFileSegment(fileSegment1);
-        Assert.assertEquals(1000 + TieredCommitLog.CODA_SIZE, metadata1.getSize());
-        Assert.assertTrue(metadata1.getSealTimestamp() > 0);
+        FileSegmentMetadata segmentMetadata = metadataStore.getFileSegment(
+            filePath, FileSegmentType.COMMIT_LOG, 0L);
+        Assert.assertEquals(0L, segmentMetadata.getBaseOffset());
+        Assert.assertEquals(0L, segmentMetadata.getSealTimestamp());
+        Assert.assertEquals(FileSegmentMetadata.STATUS_NEW, segmentMetadata.getStatus());
 
-        MemoryFileSegment fileSegment2 = new MemoryFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG,
-            mq0, 1100, storeConfig);
-        metadataStore.updateFileSegment(fileSegment2);
-        List<FileSegmentMetadata> list = new ArrayList<>();
-        metadataStore.iterateFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG, mq0.getTopic(), mq0.getQueueId(), list::add);
-        Assert.assertEquals(2, list.size());
-        Assert.assertEquals(100, list.get(0).getBaseOffset());
-        Assert.assertEquals(1100, list.get(1).getBaseOffset());
+        segmentMetadata.markSealed();
+        metadataStore.updateFileSegment(segmentMetadata);
+        segmentMetadata = metadataStore.getFileSegment(
+            filePath, FileSegmentType.COMMIT_LOG, segmentMetadata.getBaseOffset());
+        Assert.assertEquals(FileSegmentMetadata.STATUS_SEALED, segmentMetadata.getStatus());
+        Assert.assertNotEquals(0L, segmentMetadata.getSealTimestamp());
 
-        Assert.assertNotNull(metadataStore.getFileSegment(fileSegment1));
-        metadataStore.deleteFileSegment(fileSegment1);
-        Assert.assertNull(metadataStore.getFileSegment(fileSegment1));
+        Assert.assertEquals(2L, countFileSegment(metadataStore, filePath));
+    }
+
+    @Test
+    public void testFileSegmentDelete() {
+        String filePath0 = TieredStoreUtil.toPath(mq0);
+        String filePath1 = TieredStoreUtil.toPath(mq1);
+        for (int i = 0; i < 10; i++) {
+            FileSegmentMetadata segmentMetadata = new FileSegmentMetadata(
+                filePath0, i * 1000L * 1000L, FileSegmentType.COMMIT_LOG.getType());
+            metadataStore.updateFileSegment(segmentMetadata);
+
+            segmentMetadata = new FileSegmentMetadata(
+                filePath1, i * 1000L * 1000L, FileSegmentType.COMMIT_LOG.getType());
+            metadataStore.updateFileSegment(segmentMetadata);
+        }
+        Assert.assertEquals(20, countFileSegment(metadataStore));
+        Assert.assertEquals(10, countFileSegment(metadataStore, filePath0));
+        Assert.assertEquals(10, countFileSegment(metadataStore, filePath1));
+
+        metadataStore.deleteFileSegment(filePath0, FileSegmentType.COMMIT_LOG);
+        for (int i = 0; i < 5; i++) {
+            metadataStore.deleteFileSegment(
+                filePath1, FileSegmentType.COMMIT_LOG, i * 1000L * 1000L);
+        }
+        Assert.assertEquals(0L, countFileSegment(metadataStore, filePath0));
+        Assert.assertEquals(5L, countFileSegment(metadataStore, filePath1));
+        Assert.assertEquals(5L, countFileSegment(metadataStore));
     }
 
     @Test
@@ -181,19 +221,19 @@ public class MetadataStoreTest {
         metadataManager.addQueue(mq1, 4);
         metadataManager.addQueue(mq2, 8);
 
-
-        MemoryFileSegment fileSegment = new MemoryFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG,
-            mq0, 100, storeConfig);
-        metadataStore.updateFileSegment(fileSegment);
-
-        fileSegment = new MemoryFileSegment(TieredFileSegment.FileSegmentType.COMMIT_LOG,
-            mq0, 200, storeConfig);
-        metadataStore.updateFileSegment(fileSegment);
+        String filePath0 = TieredStoreUtil.toPath(mq0);
+        FileSegmentMetadata segmentMetadata =
+            new FileSegmentMetadata(filePath0, 100, FileSegmentType.COMMIT_LOG.getType());
+        metadataStore.updateFileSegment(segmentMetadata);
+        segmentMetadata =
+            new FileSegmentMetadata(filePath0, 200, FileSegmentType.COMMIT_LOG.getType());
+        metadataStore.updateFileSegment(segmentMetadata);
 
         Assert.assertTrue(new File(metadataManager.configFilePath()).exists());
 
+        // Reload from disk
         metadataManager = new TieredMetadataManager(storeConfig);
-
+        metadataManager.load();
         TopicMetadata topicMetadata = metadataManager.getTopic(mq0.getTopic());
         Assert.assertNotNull(topicMetadata);
         Assert.assertEquals(topicMetadata.getReserveTime(), 1);
@@ -221,10 +261,10 @@ public class MetadataStoreTest {
         metadataManager.iterateFileSegment(metadata -> map.put(metadata.getBaseOffset(), metadata));
         FileSegmentMetadata fileSegmentMetadata = map.get(100L);
         Assert.assertNotNull(fileSegmentMetadata);
-        Assert.assertEquals(mq0, fileSegmentMetadata.getQueue());
+        Assert.assertEquals(filePath0, fileSegmentMetadata.getPath());
 
         fileSegmentMetadata = map.get(200L);
         Assert.assertNotNull(fileSegmentMetadata);
-        Assert.assertEquals(mq0, fileSegmentMetadata.getQueue());
+        Assert.assertEquals(filePath0, fileSegmentMetadata.getPath());
     }
 }

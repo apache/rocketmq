@@ -14,13 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.container;
+package org.apache.rocketmq.tieredstore.file;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
@@ -33,32 +30,31 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TieredContainerManagerTest {
+public class TieredFlatFileManagerTest {
+
+    private final String storePath = TieredStoreTestUtil.getRandomStorePath();
     private TieredMessageStoreConfig storeConfig;
     private MessageQueue mq;
     private TieredMetadataStore metadataStore;
-
-    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
 
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
         storeConfig.setStorePathRootDir(storePath);
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment");
         storeConfig.setBrokerName(storeConfig.getBrokerName());
-        mq = new MessageQueue("TieredContainerManagerTest", storeConfig.getBrokerName(), 0);
+        mq = new MessageQueue("TieredFlatFileManagerTest", storeConfig.getBrokerName(), 0);
         metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
         TieredStoreExecutor.init();
     }
 
     @After
     public void tearDown() throws IOException {
-        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyCompositeFlatFileManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
         TieredStoreExecutor.shutdown();
     }
-
 
     @Test
     public void testLoadAndDestroy() {
@@ -66,30 +62,30 @@ public class TieredContainerManagerTest {
         metadataStore.addQueue(mq, 100);
         MessageQueue mq1 = new MessageQueue(mq.getTopic(), mq.getBrokerName(), 1);
         metadataStore.addQueue(mq1, 200);
-        TieredContainerManager containerManager = TieredContainerManager.getInstance(storeConfig);
-        boolean load = containerManager.load();
+        TieredFlatFileManager flatFileManager = TieredFlatFileManager.getInstance(storeConfig);
+        boolean load = flatFileManager.load();
         Assert.assertTrue(load);
 
         Awaitility.await()
             .atMost(3, TimeUnit.SECONDS)
-            .until(() -> containerManager.getAllMQContainer().size() == 2);
+            .until(() -> flatFileManager.deepCopyFlatFileToList().size() == 2);
 
-        TieredMessageQueueContainer container = containerManager.getMQContainer(mq);
-        Assert.assertNotNull(container);
-        Assert.assertEquals(100, container.getDispatchOffset());
+        CompositeFlatFile flatFile = flatFileManager.getFlatFile(mq);
+        Assert.assertNotNull(flatFile);
+        Assert.assertEquals(100, flatFile.getDispatchOffset());
 
-        TieredMessageQueueContainer container1 = containerManager.getMQContainer(mq1);
-        Assert.assertNotNull(container1);
-        Assert.assertEquals(200, container1.getDispatchOffset());
+        CompositeFlatFile flatFile1 = flatFileManager.getFlatFile(mq1);
+        Assert.assertNotNull(flatFile1);
+        Assert.assertEquals(200, flatFile1.getDispatchOffset());
 
-        containerManager.destroyContainer(mq);
-        Assert.assertTrue(container.isClosed());
-        Assert.assertNull(containerManager.getMQContainer(mq));
+        flatFileManager.destroyCompositeFile(mq);
+        Assert.assertTrue(flatFile.isClosed());
+        Assert.assertNull(flatFileManager.getFlatFile(mq));
         Assert.assertNull(metadataStore.getQueue(mq));
 
-        containerManager.destroy();
-        Assert.assertTrue(container1.isClosed());
-        Assert.assertNull(containerManager.getMQContainer(mq1));
+        flatFileManager.destroy();
+        Assert.assertTrue(flatFile1.isClosed());
+        Assert.assertNull(flatFileManager.getFlatFile(mq1));
         Assert.assertNull(metadataStore.getQueue(mq1));
     }
 }
