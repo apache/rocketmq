@@ -111,7 +111,7 @@ public class TieredCommitLog {
         try {
             if (System.currentTimeMillis() - fileSegment.getMaxTimestamp() >
                 TimeUnit.HOURS.toMillis(storeConfig.getCommitLogRollingInterval())
-                && fileSegment.getSize() > storeConfig.getCommitLogRollingMinimumSize()) {
+                && fileSegment.getAppendPosition() > storeConfig.getCommitLogRollingMinimumSize()) {
                 flatFile.rollingNewFile();
             }
         } catch (Exception e) {

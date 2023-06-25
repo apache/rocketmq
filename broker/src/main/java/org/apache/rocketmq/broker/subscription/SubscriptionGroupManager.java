@@ -317,11 +317,8 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
-    public void setSubscriptionGroupTable(ConcurrentMap<String, SubscriptionGroupConfig> otherSubscriptionGroupTable) {
-        this.subscriptionGroupTable.clear();
-        for (String key : otherSubscriptionGroupTable.keySet()) {
-            this.subscriptionGroupTable.put(key, otherSubscriptionGroupTable.get(key));
-        }
+    public void setSubscriptionGroupTable(ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable) {
+        this.subscriptionGroupTable = subscriptionGroupTable;
     }
 
     public boolean containsSubscriptionGroup(String group) {
