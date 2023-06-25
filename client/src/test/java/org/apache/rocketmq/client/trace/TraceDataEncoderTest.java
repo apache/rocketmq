@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.client.trace;
 
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.common.message.MessageType;
 import org.junit.Assert;
@@ -195,6 +196,7 @@ public class TraceDataEncoderTest {
         subAfterContext.setTimeStamp(1625883640000L);
         subAfterContext.setGroupName("GroupName-test");
         subAfterContext.setContextCode(98623046);
+        subAfterContext.setAccessChannel(AccessChannel.LOCAL);
         TraceBean bean = new TraceBean();
         bean.setMsgId("AC1415116D1418B4AAC217FE1B4E0000");
         bean.setKeys("keys");
