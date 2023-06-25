@@ -381,7 +381,7 @@ public class MessageStoreConfig {
 
     private boolean coldDataFlowControlEnable = false;
     private boolean coldDataScanEnable = false;
-    private boolean dataReadAheadEnable = false;
+    private boolean dataReadAheadEnable = true;
     private int timerColdDataCheckIntervalMs = 60 * 1000;
     private int sampleSteps = 32;
     private int accessMessageInMemoryHotRatio = 26;
