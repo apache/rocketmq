@@ -60,10 +60,10 @@ public class ExpressionForRetryMessageFilter extends ExpressionMessageFilter {
             if (tempProperties == null && msgBuffer != null) {
                 decoded = true;
                 tempProperties = MessageDecoder.decodeProperties(msgBuffer);
-            }
-            String realTopic = tempProperties.get(MessageConst.PROPERTY_RETRY_TOPIC);
-            String group = subscriptionData.getTopic().substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
-            realFilterData = this.consumerFilterManager.get(realTopic, group);
+                String realTopic = tempProperties.get(MessageConst.PROPERTY_RETRY_TOPIC);
+                String group = subscriptionData.getTopic().substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+                realFilterData = this.consumerFilterManager.get(realTopic, group);
+            }           
         }
 
         // no expression
