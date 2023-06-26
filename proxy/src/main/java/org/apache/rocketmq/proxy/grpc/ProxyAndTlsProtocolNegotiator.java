@@ -16,13 +16,14 @@
  */
 package org.apache.rocketmq.proxy.grpc;
 
+import io.grpc.Attributes;
 import io.grpc.netty.shaded.io.grpc.netty.GrpcHttp2ConnectionHandler;
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiationEvent;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiator;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiators;
+import io.grpc.netty.shaded.io.grpc.netty.ProtocolNegotiationEvent;
 import io.grpc.netty.shaded.io.netty.buffer.ByteBuf;
-import io.grpc.netty.shaded.io.netty.channel.Channel;
 import io.grpc.netty.shaded.io.netty.channel.ChannelHandler;
 import io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext;
 import io.grpc.netty.shaded.io.netty.channel.ChannelInboundHandlerAdapter;
@@ -30,32 +31,30 @@ import io.grpc.netty.shaded.io.netty.handler.codec.ByteToMessageDecoder;
 import io.grpc.netty.shaded.io.netty.handler.codec.ProtocolDetectionResult;
 import io.grpc.netty.shaded.io.netty.handler.codec.ProtocolDetectionState;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessage;
+import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
+import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslHandler;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.grpc.netty.shaded.io.netty.util.AsciiString;
+import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.constant.HAProxyConstants;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.remoting.common.TlsMode;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-
-import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
-import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
-import io.grpc.netty.shaded.io.netty.util.AttributeKey;
-import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.common.constant.HAProxyConstants;
-import org.apache.rocketmq.proxy.config.ConfigurationManager;
-import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.remoting.common.TlsMode;
-import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
 public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator.ProtocolNegotiator {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -155,11 +154,16 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
 
     private static class HAProxyMessageHandler extends ChannelInboundHandlerAdapter {
 
+        private ProtocolNegotiationEvent pne = InternalProtocolNegotiationEvent.getDefault();
+
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             if (msg instanceof HAProxyMessage) {
                 HAProxyMessage message = (HAProxyMessage) msg;
-                this.addProxyProtocolHeader((HAProxyMessage) msg, ctx.channel());
+                Attributes attributes = this.addProxyProtocolHeader((HAProxyMessage) msg);
+                ProtocolNegotiationEvent event = InternalProtocolNegotiationEvent
+                        .withAttributes(InternalProtocolNegotiationEvent.getDefault(), attributes);
+                ctx.fireUserEventTriggered(event);
                 message.release();
             } else {
                 super.channelRead(ctx, msg);
@@ -170,32 +174,35 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         /**
          * The definition of key refers to the implementation of nginx
          * <a href="https://nginx.org/en/docs/http/ngx_http_core_module.html#var_proxy_protocol_addr">ngx_http_core_module</a>
+         *
          * @param msg
-         * @param channel
          */
-        private void addProxyProtocolHeader(HAProxyMessage msg, Channel channel) {
+        private Attributes addProxyProtocolHeader(HAProxyMessage msg) {
+            Attributes.Builder builder = InternalProtocolNegotiationEvent.getAttributes(pne).toBuilder();
             if (StringUtils.isNotBlank(msg.sourceAddress())) {
-                channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_ADDR)).set(msg.sourceAddress());
+                builder.set(Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_ADDR), msg.sourceAddress());
             }
             if (msg.sourcePort() > 0) {
-                channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_PORT)).set(msg.sourcePort());
+                builder.set(Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_PORT), msg.sourcePort());
             }
             if (StringUtils.isNotBlank(msg.destinationAddress())) {
-                channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_SERVER_ADDR)).set(msg.destinationAddress());
+                builder.set(Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_SERVER_ADDR), msg.destinationAddress());
             }
             if (msg.destinationPort() > 0) {
-                channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT)).set(msg.destinationPort());
+                builder.set(Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT), msg.destinationPort());
             }
             if (CollectionUtils.isNotEmpty(msg.tlvs())) {
                 msg.tlvs().forEach(tlv ->
-                        channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX
-                                        + String.format("%02x", tlv.typeByteValue())))
-                                .set(tlv.content().toString(CharsetUtil.UTF_8)));
+                        builder.set(Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX
+                                + String.format("%02x", tlv.typeByteValue())), tlv.content().toString(CharsetUtil.UTF_8)));
             }
+            return builder.build();
         }
     }
 
     public static class TlsModeHandler extends ByteToMessageDecoder {
+
+        private ProtocolNegotiationEvent pne = InternalProtocolNegotiationEvent.getDefault();
 
         private final ChannelHandler ssl;
         private final ChannelHandler plaintext;
@@ -222,17 +229,25 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                         return;
                     }
                     if (SslHandler.isEncrypted(in)) {
-                        ctx.pipeline().addAfter(ctx.name(), null, this.ssl);
+                        ctx.pipeline().addAfter(ctx.name(), "aaa", this.ssl);
                     } else {
-                        ctx.pipeline().addAfter(ctx.name(), null, this.plaintext);
+                        ctx.pipeline().addAfter(ctx.name(), "aaa", this.plaintext);
                     }
                 }
-                ctx.fireUserEventTriggered(InternalProtocolNegotiationEvent.getDefault());
+                ctx.fireUserEventTriggered(pne);
                 ctx.pipeline().remove(this);
             } catch (Exception e) {
                 log.error("process ssl protocol negotiator failed.", e);
                 throw e;
             }
+        }
+
+        @Override
+        public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+            if (evt instanceof ProtocolNegotiationEvent) {
+                pne = (ProtocolNegotiationEvent) evt;
+            }
+            super.userEventTriggered(ctx, evt);
         }
     }
 }
