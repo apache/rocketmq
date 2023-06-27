@@ -78,7 +78,8 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
             commitLogOffset += readPosInCurBuffer;
             readPosInCurBuffer = 0;
         }
-        if (readPosInCurBuffer >= MessageBufferUtil.PHYSICAL_OFFSET_POSITION && readPosInCurBuffer < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
+        if (readPosInCurBuffer >= MessageBufferUtil.PHYSICAL_OFFSET_POSITION
+            && readPosInCurBuffer < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
             res = (int) ((commitLogOffset >> (8 * (MessageBufferUtil.SYS_FLAG_OFFSET_POSITION - readPosInCurBuffer - 1))) & 0xff);
             readPosInCurBuffer++;
         } else {
