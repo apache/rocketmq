@@ -20,6 +20,7 @@ package org.apache.rocketmq.proxy.common;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
@@ -77,6 +78,22 @@ public class ReceiptHandleGroup {
                 .append("offset", offset)
                 .toString();
         }
+
+        public String getOriginalHandle() {
+            return originalHandle;
+        }
+
+        public String getBroker() {
+            return broker;
+        }
+
+        public int getQueueId() {
+            return queueId;
+        }
+
+        public long getOffset() {
+            return offset;
+        }
     }
 
     public static class HandleData {
@@ -98,6 +115,10 @@ public class ReceiptHandleGroup {
 
         public void unlock() {
             this.semaphore.release();
+        }
+
+        public MessageReceiptHandle getMessageReceiptHandle() {
+            return messageReceiptHandle;
         }
 
         @Override
@@ -194,6 +215,21 @@ public class ReceiptHandleGroup {
         });
         removeHandleMapKeyIfNeed(msgID);
         return res.get();
+    }
+
+    public MessageReceiptHandle removeOne(String msgID) {
+        Map<HandleKey, HandleData> handleMap = this.receiptHandleMap.get(msgID);
+        if (handleMap == null) {
+            return null;
+        }
+        Set<HandleKey> keys = handleMap.keySet();
+        for (HandleKey key : keys) {
+            MessageReceiptHandle res = this.remove(msgID, key.originalHandle);
+            if (res != null) {
+                return res;
+            }
+        }
+        return null;
     }
 
     public void computeIfPresent(String msgID, String handle,
