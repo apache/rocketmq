@@ -260,8 +260,16 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 logger.warn("TieredDispatcher#dispatchFlatFile: dispatch offset is too small, " +
                         "topic: {}, queueId: {}, dispatch offset: {}, local cq offset range {}-{}",
                     topic, queueId, dispatchOffset, minOffsetInQueue, maxOffsetInQueue);
-                flatFile.initOffset(minOffsetInQueue);
-                dispatchOffset = minOffsetInQueue;
+
+                // when dispatch offset is smaller than min offset in local cq
+                // some earliest messages may be lost at this time
+                tieredFlatFileManager.destroyCompositeFile(flatFile.getMessageQueue());
+                CompositeQueueFlatFile newFlatFile =
+                    tieredFlatFileManager.getOrCreateFlatFileIfAbsent(new MessageQueue(topic, brokerName, queueId));
+                if (newFlatFile != null) {
+                    newFlatFile.initOffset(maxOffsetInQueue);
+                }
+                return;
             }
             beforeOffset = dispatchOffset;
 
@@ -290,7 +298,8 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                     logger.error("TieredDispatcher#dispatchFlatFile: get message from next store failed, " +
                             "topic: {}, queueId: {}, commitLog offset: {}, size: {}",
                         topic, queueId, commitLogOffset, size);
-                    break;
+                    // not dispatch immediately
+                    return;
                 }
 
                 // append commitlog will increase dispatch offset here

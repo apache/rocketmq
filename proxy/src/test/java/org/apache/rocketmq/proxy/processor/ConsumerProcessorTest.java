@@ -124,6 +124,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
                 }
                 return PopMessageResultFilter.FilterResult.MATCH;
             },
+            null,
             Duration.ofSeconds(3).toMillis()
         ).get();
 

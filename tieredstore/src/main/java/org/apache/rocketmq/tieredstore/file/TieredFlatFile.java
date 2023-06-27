@@ -493,16 +493,16 @@ public class TieredFlatFile {
                         fileSegment.destroyFile();
                         if (!fileSegment.exists()) {
                             tieredMetadataStore.deleteFileSegment(filePath, fileType, metadata.getBaseOffset());
-                            logger.info("expired file {} is been destroyed", fileSegment.getPath());
+                            logger.info("Destroyed expired file, file path: {}", fileSegment.getPath());
                         }
                     } catch (Exception e) {
-                        logger.error("destroy expired failed: file path: {}, file type: {}",
+                        logger.error("Destroyed expired file failed, file path: {}, file type: {}",
                             filePath, fileType, e);
                     }
                 }
             });
         } catch (Exception e) {
-            logger.error("destroy expired file failed: file path: {}, file type: {}", filePath, fileType);
+            logger.error("Destroyed expired file, file path: {}, file type: {}", filePath, fileType);
         }
     }
 
@@ -520,7 +520,7 @@ public class TieredFlatFile {
                             this.updateFileSegment(segment);
                         } catch (Exception e) {
                             // TODO handle update segment metadata failed exception
-                            logger.error("update file segment metadata failed: " +
+                            logger.error("Update file segment metadata failed: " +
                                     "file path: {}, file type: {}, base offset: {}",
                                 filePath, fileType, segment.getBaseOffset(), e);
                         }
@@ -531,7 +531,7 @@ public class TieredFlatFile {
                 );
             }
         } catch (Exception e) {
-            logger.error("commit file segment failed: topic: {}, queue: {}, file type: {}", filePath, fileType, e);
+            logger.error("Commit file segment failed: topic: {}, queue: {}, file type: {}", filePath, fileType, e);
         }
         if (sync) {
             CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();
