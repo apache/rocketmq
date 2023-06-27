@@ -18,11 +18,15 @@
 package org.apache.rocketmq.proxy.grpc.interceptor;
 
 import com.google.common.net.HostAndPort;
+import io.grpc.Attributes;
 import io.grpc.Grpc;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.proxy.grpc.constant.GrpcConstant;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 
@@ -33,8 +37,11 @@ public class HeaderInterceptor implements ServerInterceptor {
         Metadata headers,
         ServerCallHandler<R, W> next
     ) {
-        SocketAddress remoteSocketAddress = call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
-        String remoteAddress = parseSocketAddress(remoteSocketAddress);
+        String remoteAddress = getProxyProtocolAddress(call.getAttributes());
+        if (StringUtils.isBlank(remoteAddress)) {
+            SocketAddress remoteSocketAddress = call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR);
+            remoteAddress = parseSocketAddress(remoteSocketAddress);
+        }
         headers.put(InterceptorConstants.REMOTE_ADDRESS, remoteAddress);
 
         SocketAddress localSocketAddress = call.getAttributes().get(Grpc.TRANSPORT_ATTR_LOCAL_ADDR);
@@ -54,5 +61,14 @@ public class HeaderInterceptor implements ServerInterceptor {
         }
 
         return "";
+    }
+
+    private String getProxyProtocolAddress(Attributes attributes) {
+        String proxyProtocolAddr = attributes.get(GrpcConstant.PROXY_PROTOCOL_ADDR);
+        Integer proxyProtocolPort = attributes.get(GrpcConstant.PROXY_PROTOCOL_PORT);
+        if (StringUtils.isBlank(proxyProtocolAddr) || proxyProtocolPort == null) {
+            return null;
+        }
+        return proxyProtocolAddr + ":" + proxyProtocolPort;
     }
 }

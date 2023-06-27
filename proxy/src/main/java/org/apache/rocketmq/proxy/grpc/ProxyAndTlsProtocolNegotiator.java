@@ -48,6 +48,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.grpc.constant.GrpcConstant;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
@@ -159,12 +160,8 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             if (msg instanceof HAProxyMessage) {
-                HAProxyMessage message = (HAProxyMessage) msg;
-                Attributes attributes = this.addProxyProtocolHeader((HAProxyMessage) msg);
-                ProtocolNegotiationEvent event = InternalProtocolNegotiationEvent
-                        .withAttributes(InternalProtocolNegotiationEvent.getDefault(), attributes);
-                ctx.fireUserEventTriggered(event);
-                message.release();
+                replaceEventWithMessage((HAProxyMessage) msg);
+                ctx.fireUserEventTriggered(pne);
             } else {
                 super.channelRead(ctx, msg);
             }
@@ -177,30 +174,33 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
          *
          * @param msg
          */
-        private Attributes addProxyProtocolHeader(HAProxyMessage msg) {
+        private void replaceEventWithMessage(HAProxyMessage msg) {
             Attributes.Builder builder = InternalProtocolNegotiationEvent.getAttributes(pne).toBuilder();
             if (StringUtils.isNotBlank(msg.sourceAddress())) {
-                builder.set(Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_ADDR), msg.sourceAddress());
+                builder.set(GrpcConstant.PROXY_PROTOCOL_ADDR, msg.sourceAddress());
             }
             if (msg.sourcePort() > 0) {
-                builder.set(Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_PORT), msg.sourcePort());
+                builder.set(GrpcConstant.PROXY_PROTOCOL_PORT, msg.sourcePort());
             }
             if (StringUtils.isNotBlank(msg.destinationAddress())) {
-                builder.set(Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_SERVER_ADDR), msg.destinationAddress());
+                builder.set(GrpcConstant.PROXY_PROTOCOL_SERVER_ADDR, msg.destinationAddress());
             }
             if (msg.destinationPort() > 0) {
-                builder.set(Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT), msg.destinationPort());
+                builder.set(GrpcConstant.PROXY_PROTOCOL_SERVER_PORT, msg.destinationPort());
             }
             if (CollectionUtils.isNotEmpty(msg.tlvs())) {
-                msg.tlvs().forEach(tlv ->
-                        builder.set(Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX
-                                + String.format("%02x", tlv.typeByteValue())), tlv.content().toString(CharsetUtil.UTF_8)));
+                msg.tlvs().forEach(tlv -> {
+                    Attributes.Key<String> key = Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX
+                            + String.format("%02x", tlv.typeByteValue()));
+                    builder.set(key, tlv.content().toString(CharsetUtil.UTF_8));
+                });
             }
-            return builder.build();
+            pne = InternalProtocolNegotiationEvent
+                    .withAttributes(InternalProtocolNegotiationEvent.getDefault(), builder.build());
         }
     }
 
-    public static class TlsModeHandler extends ByteToMessageDecoder {
+    private static class TlsModeHandler extends ByteToMessageDecoder {
 
         private ProtocolNegotiationEvent pne = InternalProtocolNegotiationEvent.getDefault();
 
@@ -215,8 +215,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         }
 
         @Override
-        protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
-                throws Exception {
+        protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
             try {
                 TlsMode tlsMode = TlsSystemConfig.tlsMode;
                 if (TlsMode.ENFORCING.equals(tlsMode)) {
@@ -229,9 +228,9 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                         return;
                     }
                     if (SslHandler.isEncrypted(in)) {
-                        ctx.pipeline().addAfter(ctx.name(), "aaa", this.ssl);
+                        ctx.pipeline().addAfter(ctx.name(), null, this.ssl);
                     } else {
-                        ctx.pipeline().addAfter(ctx.name(), "aaa", this.plaintext);
+                        ctx.pipeline().addAfter(ctx.name(), null, this.plaintext);
                     }
                 }
                 ctx.fireUserEventTriggered(pne);
@@ -246,8 +245,9 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
             if (evt instanceof ProtocolNegotiationEvent) {
                 pne = (ProtocolNegotiationEvent) evt;
+            } else {
+                super.userEventTriggered(ctx, evt);
             }
-            super.userEventTriggered(ctx, evt);
         }
     }
 }
