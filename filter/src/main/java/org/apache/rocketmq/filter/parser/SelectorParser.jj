@@ -170,6 +170,8 @@ TOKEN [IGNORE_CASE] :
   | <  NULL    : "NULL" >
   | <  IS      : "IS" >
   | <  CONTAINS    : "CONTAINS">
+  | <  STARTSWITH  : "STARTSWITH">
+  | <  ENDSWITH    : "ENDSWITH">
 }
 
 /* Literals */
@@ -332,6 +334,28 @@ Expression comparisonExpression() :
                 <NOT> <CONTAINS> t = stringLitteral()
                 {
                     left = ComparisonExpression.createNotContains(left, t);
+                }
+            |
+                <STARTSWITH> t = stringLitteral()
+                {
+                    left = ComparisonExpression.createStartsWith(left, t);
+                }
+            |
+                LOOKAHEAD(2)
+                <NOT> <STARTSWITH> t = stringLitteral()
+                {
+                    left = ComparisonExpression.createNotStartsWith(left, t);
+                }
+            |
+                <ENDSWITH> t = stringLitteral()
+                {
+                    left = ComparisonExpression.createEndsWith(left, t);
+                }
+            |
+                LOOKAHEAD(2)
+                <NOT> <ENDSWITH> t = stringLitteral()
+                {
+                    left = ComparisonExpression.createNotEndsWith(left, t);
                 }
             |
                 <BETWEEN> low = unaryExpr() <AND> high = unaryExpr()
