@@ -246,7 +246,7 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
             }, TieredStoreExecutor.fetchDataExecutor);
     }
 
-    private CompletableFuture<GetMessageResult> getMessageFromCacheAsync(CompositeQueueFlatFile flatFile,
+    public CompletableFuture<GetMessageResult> getMessageFromCacheAsync(CompositeQueueFlatFile flatFile,
         String group, long queueOffset, int maxCount, boolean waitInflightRequest) {
 
         MessageQueue mq = flatFile.getMessageQueue();
@@ -359,7 +359,7 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
         return resultFuture;
     }
 
-    protected CompletableFuture<GetMessageResult> getMessageFromTieredStoreAsync(CompositeQueueFlatFile flatFile,
+    public CompletableFuture<GetMessageResult> getMessageFromTieredStoreAsync(CompositeQueueFlatFile flatFile,
         long queueOffset, int batchSize) {
 
         GetMessageResult result = new GetMessageResult();
