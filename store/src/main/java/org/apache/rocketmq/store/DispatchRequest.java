@@ -234,6 +234,7 @@ public class DispatchRequest {
                 "topic='" + topic + '\'' +
                 ", queueId=" + queueId +
                 ", commitLogOffset=" + commitLogOffset +
+                ", consumeQueueOffset=" + consumeQueueOffset +
                 ", msgSize=" + msgSize +
                 ", success=" + success +
                 ", msgBaseOffset=" + msgBaseOffset +

@@ -178,7 +178,7 @@ public class ScheduleMessageService extends ConfigManager {
         ThreadUtils.shutdown(scheduledPersistService);
     }
 
-    public void stop() {
+    public boolean stop() {
         if (this.started.compareAndSet(true, false) && null != this.deliverExecutorService) {
             this.deliverExecutorService.shutdown();
             try {
@@ -202,6 +202,7 @@ public class ScheduleMessageService extends ConfigManager {
 
             this.persist();
         }
+        return true;
     }
 
     public boolean isStarted() {

@@ -70,7 +70,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
     }
 
     @After
-    public void destroy() {
+    public void destroy() throws Exception {
         messageStore.shutdown();
         messageStore.destroy();
 

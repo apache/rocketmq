@@ -77,7 +77,7 @@ public class MultiDispatchTest {
     }
 
     @Test
-    public void wrapMultiDispatch() {
+    public void wrapMultiDispatch() throws Exception {
         MessageExtBrokerInner messageExtBrokerInner = buildMessageMultiQueue();
         messageStore.assignOffset(messageExtBrokerInner);
         assertEquals(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET), "0,0");

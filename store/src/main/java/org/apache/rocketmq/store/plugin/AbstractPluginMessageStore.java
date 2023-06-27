@@ -57,7 +57,8 @@ import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
-import org.apache.rocketmq.store.queue.ConsumeQueueStore;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
@@ -257,17 +258,17 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public int deleteTopics(final Set<String> deleteTopics) {
+    public int deleteTopics(final Set<String> deleteTopics) throws Exception {
         return next.deleteTopics(deleteTopics);
     }
 
     @Override
-    public int cleanUnusedTopic(final Set<String> retainTopics) {
+    public int cleanUnusedTopic(final Set<String> retainTopics) throws Exception {
         return next.cleanUnusedTopic(retainTopics);
     }
 
     @Override
-    public void cleanExpiredConsumerQueue() {
+    public void cleanExpiredConsumerQueue() throws Exception {
         next.cleanExpiredConsumerQueue();
     }
 
@@ -459,7 +460,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public boolean truncateFiles(long offsetToTruncate) {
+    public boolean truncateFiles(long offsetToTruncate) throws Exception {
         return next.truncateFiles(offsetToTruncate);
     }
 
@@ -513,7 +514,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
 
     @Override
     public void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile,
-        boolean isRecover, boolean isFileEnd) {
+        boolean isRecover, boolean isFileEnd) throws Exception {
         next.onCommitLogDispatch(dispatchRequest, doDispatch, commitLogFile, isRecover, isFileEnd);
     }
 
@@ -553,7 +554,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public void truncateDirtyLogicFiles(long phyOffset) {
+    public void truncateDirtyLogicFiles(long phyOffset) throws Exception {
         next.truncateDirtyLogicFiles(phyOffset);
     }
 
@@ -573,7 +574,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public ConsumeQueueStore getQueueStore() {
+    public ConsumeQueueStoreInterface getQueueStore() {
         return next.getQueueStore();
     }
 
@@ -588,7 +589,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public void assignOffset(MessageExtBrokerInner msg) {
+    public void assignOffset(MessageExtBrokerInner msg) throws Exception {
         next.assignOffset(msg);
     }
 
@@ -650,5 +651,25 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
         next.initMetrics(meter, attributesBuilderSupplier);
+    }
+
+    @Override
+    public void finishCommitLogDispatch() {
+        next.finishCommitLogDispatch();
+    }
+
+    @Override
+    public void recoverTopicQueueTable() {
+        next.recoverTopicQueueTable();
+    }
+
+    @Override
+    public boolean loadLogics() {
+        return next.loadLogics();
+    }
+
+    @Override
+    public long getStoreTime(CqUnit cqUnit) {
+        return next.getStoreTime(cqUnit);
     }
 }

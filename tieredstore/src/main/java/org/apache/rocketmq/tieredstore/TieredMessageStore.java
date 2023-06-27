@@ -33,6 +33,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageFilter;
@@ -358,7 +359,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public int cleanUnusedTopic(Set<String> retainTopics) {
+    public int cleanUnusedTopic(Set<String> retainTopics) throws Exception {
         try {
             metadataStore.iterateTopic(topicMetadata -> {
                 String topic = topicMetadata.getTopic();
@@ -381,7 +382,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public int deleteTopics(Set<String> deleteTopics) {
+    public int deleteTopics(Set<String> deleteTopics) throws Exception {
         for (String topic : deleteTopics) {
             logger.info("TieredMessageStore#deleteTopics: start deleting topic {}", topic);
             try {

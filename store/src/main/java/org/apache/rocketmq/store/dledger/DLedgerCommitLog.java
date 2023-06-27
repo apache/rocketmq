@@ -282,7 +282,7 @@ public class DLedgerCommitLog extends CommitLog {
         return false;
     }
 
-    private void recover(long maxPhyOffsetOfConsumeQueue) {
+    private void recover(long maxPhyOffsetOfConsumeQueue) throws Exception {
         dLedgerFileStore.load();
         if (dLedgerFileList.getMappedFiles().size() > 0) {
             dLedgerFileStore.recover();
@@ -336,12 +336,12 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     @Override
-    public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
+    public void recoverNormally(long maxPhyOffsetOfConsumeQueue) throws Exception {
         recover(maxPhyOffsetOfConsumeQueue);
     }
 
     @Override
-    public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) {
+    public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) throws Exception {
         recover(maxPhyOffsetOfConsumeQueue);
     }
 
@@ -464,9 +464,6 @@ public class DLedgerCommitLog extends CommitLog {
                 String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
                 elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
                 appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.getData().length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
-            } catch (Exception e) {
-                log.error("Put message error", e);
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
             } finally {
                 beginTimeInDledgerLock = 0;
                 putMessageLock.unlock();
@@ -477,6 +474,9 @@ public class DLedgerCommitLog extends CommitLog {
             }
 
             defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
+        } catch (Exception e) {
+            log.error("Put message error", e);
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
         } finally {
             topicQueueLock.unlock(topicQueueKey);
         }
@@ -606,10 +606,7 @@ public class DLedgerCommitLog extends CommitLog {
                 appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, firstWroteOffset, encodeResult.totalMsgLen,
                     msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
                 appendResult.setMsgNum(msgNum);
-            } catch (Exception e) {
-                log.error("Put message error", e);
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
-            } finally {
+            }finally {
                 beginTimeInDledgerLock = 0;
                 putMessageLock.unlock();
             }
@@ -621,7 +618,10 @@ public class DLedgerCommitLog extends CommitLog {
 
             defaultMessageStore.increaseOffset(messageExtBatch, (short) batchNum);
 
-        } finally {
+        } catch (Exception e) {
+            log.error("Put message error", e);
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        }  finally {
             topicQueueLock.unlock(encodeResult.queueOffsetKey);
         }
 

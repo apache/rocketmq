@@ -532,7 +532,7 @@ public class TimerMessageStoreTest {
     }
 
     @After
-    public void clear() {
+    public void clear() throws Exception {
         for (TimerMessageStore store : timerStores) {
             store.shutdown();
         }

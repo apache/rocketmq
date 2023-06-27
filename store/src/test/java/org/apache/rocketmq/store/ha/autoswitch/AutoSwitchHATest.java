@@ -180,7 +180,7 @@ public class AutoSwitchHATest {
 
     private boolean changeMasterAndPutMessage(DefaultMessageStore master, MessageStoreConfig masterConfig,
         DefaultMessageStore slave, long slaveId, MessageStoreConfig slaveConfig, int epoch, String masterHaAddress,
-        int totalPutMessageNums) {
+        int totalPutMessageNums) throws Exception {
 
         boolean flag = true;
         // Change role

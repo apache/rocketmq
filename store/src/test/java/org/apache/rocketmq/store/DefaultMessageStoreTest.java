@@ -80,6 +80,7 @@ public class DefaultMessageStoreTest {
 
     @Before
     public void init() throws Exception {
+        System.out.println("init start");
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
 
@@ -87,6 +88,7 @@ public class DefaultMessageStoreTest {
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
+        System.out.println("init end");
     }
 
     @Test(expected = OverlappingFileLockException.class)
@@ -117,6 +119,7 @@ public class DefaultMessageStoreTest {
 
     @After
     public void destroy() {
+
         messageStore.shutdown();
         messageStore.destroy();
 
@@ -657,6 +660,8 @@ public class DefaultMessageStoreTest {
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
         long secondLastPhyOffset = messageStore.getMaxPhyOffset();
         long secondLastCqOffset = messageStore.getMaxOffsetInQueue(topic, 0);
+        System.out.println("secondLastPhyOffset="+ messageStore.getMaxPhyOffset() + ", rocksdbMaxPhyOffset=" + messageStore.getQueueStore().getMaxOffsetInConsumeQueue() + ", "
+            + "secondLastCqOffset=" + messageStore.getMaxOffsetInQueue(topic, 0));
 
         MessageExtBrokerInner messageExtBrokerInner = buildMessage();
         messageExtBrokerInner.setTopic(topic);
@@ -673,6 +678,8 @@ public class DefaultMessageStoreTest {
         load = messageStore.load();
         assertTrue(load);
         messageStore.start();
+        System.out.println("secondLastPhyOffset="+ messageStore.getMaxPhyOffset() + ", rocksdbMaxPhyOffset=" + messageStore.getQueueStore().getMaxOffsetInConsumeQueue() + ", "
+            + "secondLastCqOffset=" + messageStore.getMaxOffsetInQueue(topic, 0));
         assertTrue(secondLastPhyOffset == messageStore.getMaxPhyOffset());
         assertTrue(secondLastCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
 
@@ -898,7 +905,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void testDeleteTopics() {
+    public void testDeleteTopics() throws Exception {
         MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
             ((DefaultMessageStore) messageStore).getConsumeQueueTable();
@@ -920,7 +927,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void testCleanUnusedTopic() {
+    public void testCleanUnusedTopic() throws Exception {
         MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
             ((DefaultMessageStore) messageStore).getConsumeQueueTable();

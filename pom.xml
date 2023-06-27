@@ -136,6 +136,7 @@
         <opentelemetry.version>1.26.0</opentelemetry.version>
         <opentelemetry-exporter-prometheus.version>1.26.0-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
+        <rocksdb.version>1.0.0</rocksdb.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
@@ -963,6 +964,12 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>jul-to-slf4j</artifactId>
                 <version>${jul-to-slf4j.version}</version>
+            </dependency>
+            <!-- rocksdb -->
+            <dependency>
+                <groupId>com.alibaba.mq.rocksdb</groupId>
+                <artifactId>rocksdbjni</artifactId>
+                <version>${rocksdb.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

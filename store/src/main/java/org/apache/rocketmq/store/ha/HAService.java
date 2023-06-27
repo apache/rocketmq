@@ -53,7 +53,7 @@ public interface HAService {
      *
      * @param masterEpoch the new masterEpoch
      */
-    default boolean changeToMaster(int masterEpoch) {
+    default boolean changeToMaster(int masterEpoch) throws Exception {
         return false;
     }
 

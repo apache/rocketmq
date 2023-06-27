@@ -25,11 +25,11 @@
         </layout>
     </appender>
 
-    <logger name="org.apache.rocketmq" level="error" additivity="false">
+    <logger name="org.apache.rocketmq" level="info" additivity="false">
         <appender-ref ref="CONSOLE"/>
     </logger>
 
-    <root level="error">
+    <root level="info">
         <appender-ref ref="CONSOLE"/>
     </root>
 

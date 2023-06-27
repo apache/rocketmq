@@ -18,11 +18,13 @@
 package org.apache.rocketmq.remoting.protocol.subscription;
 
 import com.google.common.base.MoreObjects;
+
+import java.io.Serializable;
 import java.util.Set;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.rocketmq.common.MixAll;
 
-public class SubscriptionGroupConfig {
+public class SubscriptionGroupConfig implements Serializable {
 
     private String groupName;
 

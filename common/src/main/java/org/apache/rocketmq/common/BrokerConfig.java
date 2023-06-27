@@ -370,6 +370,7 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean estimateAccumulation = true;
 
+    private boolean enableKVLog = false;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1625,5 +1626,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setUseStaticSubscription(boolean useStaticSubscription) {
         this.useStaticSubscription = useStaticSubscription;
+    }
+
+    public boolean isEnableKVLog() {
+        return enableKVLog;
+    }
+
+    public void setEnableKVLog(boolean enableKVLog) {
+        this.enableKVLog = enableKVLog;
     }
 }

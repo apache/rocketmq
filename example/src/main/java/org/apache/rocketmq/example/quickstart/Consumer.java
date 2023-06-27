@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.example.quickstart;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
@@ -50,7 +52,7 @@ public class Consumer {
          * </pre>
          */
         // Uncomment the following line while debugging, namesrvAddr should be set to your local address
-//        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        consumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
         /*
          * Specify where to start in case the specific consumer group is a brand-new one.
@@ -65,8 +67,10 @@ public class Consumer {
         /*
          *  Register callback to execute on arrival of messages fetched from brokers.
          */
+        AtomicInteger count = new AtomicInteger();
         consumer.registerMessageListener((MessageListenerConcurrently) (msg, context) -> {
-            System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msg);
+            count.getAndIncrement();
+            System.out.printf("%s Receive %s New Messages: %s %n", Thread.currentThread().getName(), count.get(), msg);
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
 

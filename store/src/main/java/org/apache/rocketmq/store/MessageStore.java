@@ -35,13 +35,18 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
+import org.apache.rocketmq.store.DefaultMessageStore.CleanConsumeQueueService;
+import org.apache.rocketmq.store.DefaultMessageStore.CorrectLogicOffsetService;
+import org.apache.rocketmq.store.DefaultMessageStore.FlushConsumeQueueService;
+import org.apache.rocketmq.store.RocksDBMessageStore.RocksDBCorrectLogicOffsetService;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
-import org.apache.rocketmq.store.queue.ConsumeQueueStore;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
@@ -444,7 +449,7 @@ public interface MessageStore {
      * @param deleteTopics unused topic name set
      * @return the number of the topics which has been deleted.
      */
-    int deleteTopics(final Set<String> deleteTopics);
+    int deleteTopics(final Set<String> deleteTopics) throws Exception;
 
     /**
      * Clean unused topics which not in retain topic name set.
@@ -452,12 +457,12 @@ public interface MessageStore {
      * @param retainTopics all valid topics.
      * @return number of the topics deleted.
      */
-    int cleanUnusedTopic(final Set<String> retainTopics);
+    int cleanUnusedTopic(final Set<String> retainTopics) throws Exception;
 
     /**
      * Clean expired consume queues.
      */
-    void cleanExpiredConsumerQueue();
+    void cleanExpiredConsumerQueue() throws Exception;
 
     /**
      * Check if the given message has been swapped out of the memory.
@@ -610,9 +615,18 @@ public interface MessageStore {
      * @param commitLogFile   commit log file
      * @param isRecover       is from recover process
      * @param isFileEnd       if the dispatch request represents 'file end'
+     * @throws Exception      only in rocksdb mode
      */
     void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile,
-        boolean isRecover, boolean isFileEnd);
+        boolean isRecover, boolean isFileEnd) throws Exception;
+
+    /**
+     * Only used in rocksdb mode, because we build consumeQueue in batch(default 16 dispatchRequests)
+     * It will be triggered in two cases:
+     * 1.ReputMessageService.doReput
+     * 2.Commitlog.recoverAbnormally
+     */
+    void finishCommitLogDispatch();
 
     /**
      * Get the message store config
@@ -682,12 +696,17 @@ public interface MessageStore {
      *
      * @param phyOffset physical offset
      */
-    void truncateDirtyLogicFiles(long phyOffset);
+    void truncateDirtyLogicFiles(long phyOffset) throws Exception;
 
     /**
      * Destroy logics files
      */
     void destroyLogics();
+
+    /**
+     * Load logics files
+     */
+    boolean loadLogics();
 
     /**
      * Unlock mappedFile
@@ -708,7 +727,7 @@ public interface MessageStore {
      *
      * @return the queue store
      */
-    ConsumeQueueStore getQueueStore();
+    ConsumeQueueStoreInterface getQueueStore();
 
     /**
      * If 'sync disk flush' is configured in this message store
@@ -730,7 +749,7 @@ public interface MessageStore {
      *
      * @param msg        message
      */
-    void assignOffset(MessageExtBrokerInner msg);
+    void assignOffset(MessageExtBrokerInner msg) throws Exception;
 
     /**
      * Increase queue offset in memory table. If there is a race condition, you need to lock/unlock this method
@@ -826,13 +845,13 @@ public interface MessageStore {
      * @param offsetToTruncate offset to truncate
      * @return true if truncate succeed, false otherwise
      */
-    boolean truncateFiles(long offsetToTruncate);
+    boolean truncateFiles(long offsetToTruncate) throws Exception;
 
     /**
-     * Check if the offset is align with one message.
+     * Check if the offset is aligned with one message.
      *
      * @param offset offset to check
-     * @return true if align, false otherwise
+     * @return true if aligned, false otherwise
      */
     boolean isOffsetAligned(long offset);
 
@@ -961,4 +980,16 @@ public interface MessageStore {
      * @param attributesBuilderSupplier metrics attributes builder
      */
     void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier);
+
+    /**
+     * Recover topic queue table
+     */
+    void recoverTopicQueueTable();
+
+    /**
+     * Get store time from commitlog by cqUnit
+     * @param cqUnit
+     * @return
+     */
+    long getStoreTime(CqUnit cqUnit);
 }

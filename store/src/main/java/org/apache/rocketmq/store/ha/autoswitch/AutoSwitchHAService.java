@@ -112,7 +112,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override
-    public boolean changeToMaster(int masterEpoch) {
+    public boolean changeToMaster(int masterEpoch) throws Exception {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (masterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
@@ -490,7 +490,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     /**
      * Try to truncate incomplete msg transferred from master.
      */
-    public long truncateInvalidMsg() {
+    public long truncateInvalidMsg() throws Exception {
         long dispatchBehind = this.defaultMessageStore.dispatchBehindBytes();
         if (dispatchBehind <= 0) {
             LOGGER.info("Dispatch complete, skip truncate");
