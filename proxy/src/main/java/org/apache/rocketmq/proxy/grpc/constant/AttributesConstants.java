@@ -19,7 +19,7 @@ package org.apache.rocketmq.proxy.grpc.constant;
 import io.grpc.Attributes;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
 
-public class GrpcConstant {
+public class AttributesConstants {
 
     public static final Attributes.Key<String> PROXY_PROTOCOL_ADDR =
             Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_ADDR);

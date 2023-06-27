@@ -19,9 +19,10 @@ package org.apache.rocketmq.common.constant;
 
 public class HAProxyConstants {
 
-    public static final String PROXY_PROTOCOL_ADDR = "proxy_protocol_addr";
-    public static final String PROXY_PROTOCOL_PORT = "proxy_protocol_port";
-    public static final String PROXY_PROTOCOL_SERVER_ADDR = "proxy_protocol_server_addr";
-    public static final String PROXY_PROTOCOL_SERVER_PORT = "proxy_protocol_server_port";
-    public static final String PROXY_PROTOCOL_TLV_PREFIX = "proxy_protocol_tlv_0x";
+    public static final String PROXY_PROTOCOL_PREFIX = "proxy_protocol_";
+    public static final String PROXY_PROTOCOL_ADDR = PROXY_PROTOCOL_PREFIX + "addr";
+    public static final String PROXY_PROTOCOL_PORT = PROXY_PROTOCOL_PREFIX + "port";
+    public static final String PROXY_PROTOCOL_SERVER_ADDR = PROXY_PROTOCOL_PREFIX + "server_addr";
+    public static final String PROXY_PROTOCOL_SERVER_PORT = PROXY_PROTOCOL_PREFIX + "server_port";
+    public static final String PROXY_PROTOCOL_TLV_PREFIX = PROXY_PROTOCOL_PREFIX + "tlv_0x";
 }
