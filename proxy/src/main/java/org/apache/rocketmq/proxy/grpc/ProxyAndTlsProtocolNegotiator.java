@@ -180,13 +180,13 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                 builder.set(AttributesConstants.PROXY_PROTOCOL_ADDR, msg.sourceAddress());
             }
             if (msg.sourcePort() > 0) {
-                builder.set(AttributesConstants.PROXY_PROTOCOL_PORT, msg.sourcePort());
+                builder.set(AttributesConstants.PROXY_PROTOCOL_PORT, String.valueOf(msg.sourcePort()));
             }
             if (StringUtils.isNotBlank(msg.destinationAddress())) {
                 builder.set(AttributesConstants.PROXY_PROTOCOL_SERVER_ADDR, msg.destinationAddress());
             }
             if (msg.destinationPort() > 0) {
-                builder.set(AttributesConstants.PROXY_PROTOCOL_SERVER_PORT, msg.destinationPort());
+                builder.set(AttributesConstants.PROXY_PROTOCOL_SERVER_PORT, String.valueOf(msg.destinationPort()));
             }
             if (CollectionUtils.isNotEmpty(msg.tlvs())) {
                 msg.tlvs().forEach(tlv -> {

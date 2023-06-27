@@ -18,15 +18,8 @@ package org.apache.rocketmq.remoting.netty;
 
 import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.haproxy.HAProxyMessage;
-import io.netty.util.AttributeKey;
-import io.netty.util.CharsetUtil;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.constant.HAProxyConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -41,16 +34,6 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
 
     public NettyDecoder() {
         super(FRAME_MAX_LENGTH, 0, 4, 0, 4);
-    }
-
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof HAProxyMessage) {
-            HAProxyMessage message = (HAProxyMessage) msg;
-            this.addProxyProtocolHeader(message, ctx.channel());
-        } else {
-            super.channelRead(ctx, msg);
-        }
     }
 
     @Override
@@ -75,32 +58,5 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
         }
 
         return null;
-    }
-
-    /**
-     * The definition of key refers to the implementation of nginx
-     * <a href="https://nginx.org/en/docs/http/ngx_http_core_module.html#var_proxy_protocol_addr">ngx_http_core_module</a>
-     * @param msg
-     * @param channel
-     */
-    private void addProxyProtocolHeader(HAProxyMessage msg, Channel channel) {
-        if (StringUtils.isNotBlank(msg.sourceAddress())) {
-            channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_ADDR)).set(msg.sourceAddress());
-        }
-        if (msg.sourcePort() > 0) {
-            channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_PORT)).set(msg.sourcePort());
-        }
-        if (StringUtils.isNotBlank(msg.destinationAddress())) {
-            channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_SERVER_ADDR)).set(msg.destinationAddress());
-        }
-        if (msg.destinationPort() > 0) {
-            channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT)).set(msg.destinationPort());
-        }
-        if (CollectionUtils.isNotEmpty(msg.tlvs())) {
-            msg.tlvs().forEach(tlv ->
-                    channel.attr(AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX
-                                    + String.format("%02x", tlv.typeByteValue())))
-                            .set(tlv.content().toString(CharsetUtil.UTF_8)));
-        }
     }
 }

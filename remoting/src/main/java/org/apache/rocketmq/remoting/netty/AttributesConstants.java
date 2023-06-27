@@ -14,22 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.grpc.constant;
+package org.apache.rocketmq.remoting.netty;
 
-import io.grpc.Attributes;
+
+import io.netty.util.AttributeKey;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
 
 public class AttributesConstants {
 
-    public static final Attributes.Key<String> PROXY_PROTOCOL_ADDR =
-            Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_ADDR);
+    public static final AttributeKey<String> PROXY_PROTOCOL_ADDR =
+            AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_ADDR);
 
-    public static final Attributes.Key<String> PROXY_PROTOCOL_PORT =
-            Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_PORT);
+    public static final AttributeKey<String> PROXY_PROTOCOL_PORT =
+            AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_PORT);
 
-    public static final Attributes.Key<String> PROXY_PROTOCOL_SERVER_ADDR =
-            Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_SERVER_ADDR);
+    public static final AttributeKey<String> PROXY_PROTOCOL_SERVER_ADDR =
+            AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_SERVER_ADDR);
 
-    public static final Attributes.Key<String> PROXY_PROTOCOL_SERVER_PORT =
-            Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT);
+    public static final AttributeKey<String> PROXY_PROTOCOL_SERVER_PORT =
+            AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT);
 }

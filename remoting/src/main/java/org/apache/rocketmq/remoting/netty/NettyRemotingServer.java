@@ -24,6 +24,7 @@ import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -36,28 +37,22 @@ import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.AttributeKey;
+import io.netty.util.CharsetUtil;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.TimerTask;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.security.cert.CertificateException;
-import java.util.NoSuchElementException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.constant.HAProxyConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -71,6 +66,19 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.security.cert.CertificateException;
+import java.util.NoSuchElementException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("NullableProblems")
 public class NettyRemotingServer extends NettyRemotingAbstract implements RemotingServer {
@@ -97,6 +105,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private final ConcurrentMap<Integer/*Port*/, NettyRemotingAbstract> remotingServerTable = new ConcurrentHashMap<>();
 
     public static final String HA_PROXY_DECODER = "HAProxyDecoder";
+    public static final String HA_PROXY_HANDLER = "HAProxyHandler";
     public static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
     public static final String TLS_HANDLER_NAME = "sslHandler";
     public static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
@@ -252,7 +261,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
-            .addLast(this.getDefaultEventExecutorGroup(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
+            .addLast(defaultEventExecutorGroup, HA_PROXY_DECODER, new HAProxyMessageDecoder())
+            .addLast(defaultEventExecutorGroup, HA_PROXY_HANDLER, new HAProxyMessageHandler())
             .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
             .addLast(defaultEventExecutorGroup,
                 encoder,
@@ -707,6 +717,48 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         @Override
         public ExecutorService getCallbackExecutor() {
             return NettyRemotingServer.this.getCallbackExecutor();
+        }
+    }
+
+    public static class HAProxyMessageHandler extends ChannelInboundHandlerAdapter {
+
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+            if (msg instanceof HAProxyMessage) {
+                fillChannelWithMessage((HAProxyMessage) msg, ctx.channel());
+            } else {
+                super.channelRead(ctx, msg);
+            }
+            ctx.pipeline().remove(this);
+        }
+
+        /**
+         * The definition of key refers to the implementation of nginx
+         * <a href="https://nginx.org/en/docs/http/ngx_http_core_module.html#var_proxy_protocol_addr">ngx_http_core_module</a>
+         * @param msg
+         * @param channel
+         */
+        private void fillChannelWithMessage(HAProxyMessage msg, Channel channel) {
+            if (StringUtils.isNotBlank(msg.sourceAddress())) {
+                channel.attr(AttributesConstants.PROXY_PROTOCOL_ADDR).set(msg.sourceAddress());
+            }
+            if (msg.sourcePort() > 0) {
+                channel.attr(AttributesConstants.PROXY_PROTOCOL_PORT).set(String.valueOf(msg.sourcePort()));
+            }
+            if (StringUtils.isNotBlank(msg.destinationAddress())) {
+                channel.attr(AttributesConstants.PROXY_PROTOCOL_SERVER_ADDR).set(msg.destinationAddress());
+            }
+            if (msg.destinationPort() > 0) {
+                channel.attr(AttributesConstants.PROXY_PROTOCOL_SERVER_PORT).set(String.valueOf(msg.destinationPort()));
+            }
+            if (CollectionUtils.isNotEmpty(msg.tlvs())) {
+                msg.tlvs().forEach(tlv -> {
+                    AttributeKey<String> key = AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX
+                            + String.format("%02x", tlv.typeByteValue()));
+                    String value = StringUtils.trim(tlv.content().toString(CharsetUtil.UTF_8));
+                    channel.attr(key).set(value);
+                });
+            }
         }
     }
 }
