@@ -140,10 +140,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     protected abstract class AbstractTopicRouteCacheLoader extends AbstractCacheLoader<String, MessageQueueView> {
 
-        public AbstractTopicRouteCacheLoader() {
-            super(cacheRefreshExecutor);
-        }
-
         protected abstract TopicRouteData loadTopicRouteData(String topic) throws Exception;
 
         @Override

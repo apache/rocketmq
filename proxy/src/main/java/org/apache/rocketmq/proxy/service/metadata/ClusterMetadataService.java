@@ -17,8 +17,8 @@
 
 package org.apache.rocketmq.proxy.service.metadata;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import java.util.Optional;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -67,13 +67,15 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
             "MetadataCacheRefresh",
             config.getMetadataThreadPoolQueueCapacity()
         );
-        this.topicConfigCache = CacheBuilder.newBuilder()
+        this.topicConfigCache = Caffeine.newBuilder()
             .maximumSize(config.getTopicConfigCacheMaxNum())
             .refreshAfterWrite(config.getTopicConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
+            .executor(this.cacheRefreshExecutor)
             .build(new ClusterTopicConfigCacheLoader());
-        this.subscriptionGroupConfigCache = CacheBuilder.newBuilder()
+        this.subscriptionGroupConfigCache = Caffeine.newBuilder()
             .maximumSize(config.getSubscriptionGroupConfigCacheMaxNum())
             .refreshAfterWrite(config.getSubscriptionGroupConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
+            .executor(this.cacheRefreshExecutor)
             .build(new ClusterSubscriptionGroupConfigCacheLoader());
 
         this.init();
@@ -113,10 +115,6 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
 
     protected class ClusterSubscriptionGroupConfigCacheLoader extends AbstractCacheLoader<String, SubscriptionGroupConfig> {
 
-        public ClusterSubscriptionGroupConfigCacheLoader() {
-            super(cacheRefreshExecutor);
-        }
-
         @Override
         protected SubscriptionGroupConfig getDirectly(String consumerGroup) throws Exception {
             ProxyConfig config = ConfigurationManager.getProxyConfig();
@@ -136,10 +134,6 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
     }
 
     protected class ClusterTopicConfigCacheLoader extends AbstractCacheLoader<String, TopicConfigAndQueueMapping> {
-
-        public ClusterTopicConfigCacheLoader() {
-            super(cacheRefreshExecutor);
-        }
 
         @Override
         protected TopicConfigAndQueueMapping getDirectly(String topic) throws Exception {
