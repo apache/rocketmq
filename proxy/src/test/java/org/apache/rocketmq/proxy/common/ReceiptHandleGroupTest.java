@@ -173,8 +173,6 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
         assertTrue(receiptHandleGroup.isEmpty());
     }
 
-
-
     @Test
     public void testRemoveWhenComputeIfPresent() {
         String handle1 = createHandle();
@@ -266,6 +264,36 @@ public class ReceiptHandleGroupTest extends InitConfigTest {
                     latch.countDown();
                     latch.await();
                     MessageReceiptHandle handle = receiptHandleGroup.remove(msgID, handle1);
+                    if (handle != null) {
+                        removeHandleRef.set(handle);
+                        count.incrementAndGet();
+                    }
+                } catch (Exception ignored) {
+                }
+            });
+            thread.start();
+        }
+
+        await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertEquals(1, count.get()));
+        assertEquals(handle1, removeHandleRef.get().getReceiptHandleStr());
+        assertTrue(receiptHandleGroup.isEmpty());
+    }
+
+    @Test
+    public void testRemoveOne() {
+        String handle1 = createHandle();
+        AtomicReference<MessageReceiptHandle> removeHandleRef = new AtomicReference<>();
+        AtomicInteger count = new AtomicInteger();
+
+        receiptHandleGroup.put(msgID, createMessageReceiptHandle(handle1, msgID));
+        int threadNum = Math.max(Runtime.getRuntime().availableProcessors(), 3);
+        CountDownLatch latch = new CountDownLatch(threadNum);
+        for (int i = 0; i < threadNum; i++) {
+            Thread thread = new Thread(() -> {
+                try {
+                    latch.countDown();
+                    latch.await();
+                    MessageReceiptHandle handle = receiptHandleGroup.removeOne(msgID);
                     if (handle != null) {
                         removeHandleRef.set(handle);
                         count.incrementAndGet();
