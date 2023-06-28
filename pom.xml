@@ -100,8 +100,8 @@
         <maven.compiler.target>1.8</maven.compiler.target>
 
         <commons-cli.version>1.5.0</commons-cli.version>
-        <netty.version>4.1.93.Final</netty.version>
-        <netty.tcnative.version>2.0.61.Final</netty.tcnative.version>
+        <netty.version>4.1.65.Final</netty.version>
+        <netty.tcnative.version>2.0.53.Final</netty.tcnative.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
         <fastjson.version>1.2.83</fastjson.version>
         <javassist.version>3.20.0-GA</javassist.version>
