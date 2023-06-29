@@ -78,7 +78,7 @@ public class HeaderInterceptor implements ServerInterceptor {
     private String getProxyProtocolAddress(Attributes attributes) {
         String proxyProtocolAddr = attributes.get(AttributesConstants.PROXY_PROTOCOL_ADDR);
         String proxyProtocolPort = attributes.get(AttributesConstants.PROXY_PROTOCOL_PORT);
-        if (StringUtils.isBlank(proxyProtocolAddr) || StringUtils.isEmpty(proxyProtocolPort)) {
+        if (StringUtils.isBlank(proxyProtocolAddr) || StringUtils.isBlank(proxyProtocolPort)) {
             return null;
         }
         return proxyProtocolAddr + ":" + proxyProtocolPort;
