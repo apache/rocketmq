@@ -54,7 +54,7 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
     public void testGetProducerData() {
         ProxyContext context = ProxyContext.create().withVal(ContextVariable.CLIENT_ID, CLIENT_ID);
 
-        this.grpcClientSettingsManager.updateClientSettings(CLIENT_ID, Settings.newBuilder()
+        this.grpcClientSettingsManager.updateClientSettings(context, CLIENT_ID, Settings.newBuilder()
             .setBackoffPolicy(RetryPolicy.getDefaultInstance())
             .setPublishing(Publishing.getDefaultInstance())
             .build());
@@ -65,17 +65,17 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
 
     @Test
     public void testGetSubscriptionData() {
+        ProxyContext context = ProxyContext.create().withVal(ContextVariable.CLIENT_ID, CLIENT_ID);
+
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         when(this.messagingProcessor.getSubscriptionGroupConfig(any(), any()))
             .thenReturn(subscriptionGroupConfig);
 
-        this.grpcClientSettingsManager.updateClientSettings(CLIENT_ID, Settings.newBuilder()
+        this.grpcClientSettingsManager.updateClientSettings(context, CLIENT_ID, Settings.newBuilder()
             .setSubscription(Subscription.newBuilder()
                 .setGroup(Resource.newBuilder().setName("group").build())
                 .build())
             .build());
-
-        ProxyContext context = ProxyContext.create().withVal(ContextVariable.CLIENT_ID, CLIENT_ID);
 
         Settings settings = this.grpcClientSettingsManager.getClientSettings(context);
         assertEquals(settings.getBackoffPolicy(), this.grpcClientSettingsManager.createDefaultConsumerSettingsBuilder().build().getBackoffPolicy());

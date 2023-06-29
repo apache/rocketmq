@@ -259,14 +259,14 @@ public class TieredStoreMetricsManager {
         cacheCount = meter.gaugeBuilder(GAUGE_CACHE_COUNT)
             .setDescription("Tiered store cache message count")
             .ofLongs()
-            .buildWithCallback(measurement -> measurement.record(fetcher.getReadAheadCache().estimatedSize(), newAttributesBuilder().build()));
+            .buildWithCallback(measurement -> measurement.record(fetcher.getMessageCache().estimatedSize(), newAttributesBuilder().build()));
 
         cacheBytes = meter.gaugeBuilder(GAUGE_CACHE_BYTES)
             .setDescription("Tiered store cache message bytes")
             .setUnit("bytes")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                Optional<Policy.Eviction<MessageCacheKey, SelectMappedBufferResultWrapper>> eviction = fetcher.getReadAheadCache().policy().eviction();
+                Optional<Policy.Eviction<MessageCacheKey, SelectMappedBufferResultWrapper>> eviction = fetcher.getMessageCache().policy().eviction();
                 eviction.ifPresent(resultEviction -> measurement.record(resultEviction.weightedSize().orElse(0), newAttributesBuilder().build()));
             });
 

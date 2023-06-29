@@ -131,6 +131,7 @@ public interface MessagingProcessor extends StartAndShutdown {
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     );
 
@@ -287,7 +288,7 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     void doChannelCloseEvent(String remoteAddr, Channel channel);
 
-    ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup);
+    ConsumerGroupInfo getConsumerGroupInfo(ProxyContext ctx, String consumerGroup);
 
     void addTransactionSubscription(
         ProxyContext ctx,

@@ -60,52 +60,49 @@ import org.apache.rocketmq.tieredstore.util.CQItemBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
-public class TieredMessageFetcher {
+public class TieredMessageFetcher implements MessageStoreFetcher {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
-    private final TieredMessageStoreConfig storeConfig;
     private final String brokerName;
-    private TieredMetadataStore metadataStore;
+    private final TieredMessageStoreConfig storeConfig;
+    private final TieredMetadataStore metadataStore;
     private final TieredFlatFileManager flatFileManager;
-    protected final Cache<MessageCacheKey, SelectMappedBufferResultWrapper> readAheadCache;
+    private final Cache<MessageCacheKey, SelectMappedBufferResultWrapper> readAheadCache;
 
     public TieredMessageFetcher(TieredMessageStoreConfig storeConfig) {
         this.storeConfig = storeConfig;
         this.brokerName = storeConfig.getBrokerName();
+        this.metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
         this.flatFileManager = TieredFlatFileManager.getInstance(storeConfig);
-        this.readAheadCache = Caffeine.newBuilder()
+        this.readAheadCache = this.initCache(storeConfig);
+    }
+
+    private Cache<MessageCacheKey, SelectMappedBufferResultWrapper> initCache(TieredMessageStoreConfig storeConfig) {
+        long memoryMaxSize =
+            (long) (Runtime.getRuntime().maxMemory() * storeConfig.getReadAheadCacheSizeThresholdRate());
+
+        return Caffeine.newBuilder()
             .scheduler(Scheduler.systemScheduler())
-            // TODO adjust expire time dynamically
             .expireAfterWrite(storeConfig.getReadAheadCacheExpireDuration(), TimeUnit.MILLISECONDS)
-            .maximumWeight((long) (Runtime.getRuntime().maxMemory() * storeConfig.getReadAheadCacheSizeThresholdRate()))
+            .maximumWeight(memoryMaxSize)
+            // Using the buffer size of messages to calculate memory usage
             .weigher((MessageCacheKey key, SelectMappedBufferResultWrapper msg) -> msg.getDuplicateResult().getSize())
             .recordStats()
             .build();
-        try {
-            this.metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
-        } catch (Exception ignored) {
-
-        }
     }
 
-    public Cache<MessageCacheKey, SelectMappedBufferResultWrapper> getReadAheadCache() {
-        return readAheadCache;
+    protected SelectMappedBufferResultWrapper putMessageToCache(CompositeFlatFile flatFile,
+        long queueOffset, SelectMappedBufferResult result, long minOffset, long maxOffset, int size) {
+
+        return putMessageToCache(flatFile, queueOffset, result, minOffset, maxOffset, size, false);
     }
 
-    public CompletableFuture<GetMessageResult> getMessageFromCacheAsync(CompositeQueueFlatFile flatFile,
-        String group, long queueOffset, int maxMsgNums) {
-        // wait for inflight request by default
-        return getMessageFromCacheAsync(flatFile, group, queueOffset, maxMsgNums, true);
-    }
+    protected SelectMappedBufferResultWrapper putMessageToCache(CompositeFlatFile flatFile,
+        long queueOffset, SelectMappedBufferResult result, long minOffset, long maxOffset, int size, boolean used) {
 
-    protected SelectMappedBufferResultWrapper putMessageToCache(CompositeFlatFile flatFile, long queueOffset,
-        SelectMappedBufferResult msg, long minOffset, long maxOffset, int size) {
-        return putMessageToCache(flatFile, queueOffset, msg, minOffset, maxOffset, size, false);
-    }
-
-    protected SelectMappedBufferResultWrapper putMessageToCache(CompositeFlatFile flatFile, long queueOffset,
-        SelectMappedBufferResult msg, long minOffset, long maxOffset, int size, boolean used) {
-        SelectMappedBufferResultWrapper wrapper = new SelectMappedBufferResultWrapper(msg, queueOffset, minOffset, maxOffset, size);
+        SelectMappedBufferResultWrapper wrapper =
+            new SelectMappedBufferResultWrapper(result, queueOffset, minOffset, maxOffset, size);
         if (used) {
             wrapper.addAccessCount();
         }
@@ -113,9 +110,20 @@ public class TieredMessageFetcher {
         return wrapper;
     }
 
+    // Visible for metrics monitor
+    public Cache<MessageCacheKey, SelectMappedBufferResultWrapper> getMessageCache() {
+        return readAheadCache;
+    }
+
+    // Waiting for the request in transit to complete
+    protected CompletableFuture<GetMessageResult> getMessageFromCacheAsync(
+        CompositeQueueFlatFile flatFile, String group, long queueOffset, int maxCount) {
+
+        return getMessageFromCacheAsync(flatFile, group, queueOffset, maxCount, true);
+    }
+
     @Nullable
-    protected SelectMappedBufferResultWrapper getMessageFromCache(CompositeFlatFile flatFile,
-        long queueOffset) {
+    protected SelectMappedBufferResultWrapper getMessageFromCache(CompositeFlatFile flatFile, long queueOffset) {
         MessageCacheKey cacheKey = new MessageCacheKey(flatFile, queueOffset);
         return readAheadCache.getIfPresent(cacheKey);
     }
@@ -135,21 +143,21 @@ public class TieredMessageFetcher {
         }
     }
 
-    private void preFetchMessage(CompositeQueueFlatFile flatFile, String group, int maxMsgNums,
-        long nextBeginOffset) {
-        if (maxMsgNums == 1 || flatFile.getReadAheadFactor() == 1) {
+    private void prefetchMessage(CompositeQueueFlatFile flatFile, String group, int maxCount, long nextBeginOffset) {
+        if (maxCount == 1 || flatFile.getReadAheadFactor() == 1) {
             return;
         }
+
         MessageQueue mq = flatFile.getMessageQueue();
-        // make sure there is only one inflight request per group and request range
-        int prefetchBatchSize = Math.min(maxMsgNums * flatFile.getReadAheadFactor(), storeConfig.getReadAheadMessageCountThreshold());
+        // make sure there is only one request per group and request range
+        int prefetchBatchSize = Math.min(maxCount * flatFile.getReadAheadFactor(), storeConfig.getReadAheadMessageCountThreshold());
         InFlightRequestFuture inflightRequest = flatFile.getInflightRequest(group, nextBeginOffset, prefetchBatchSize);
         if (!inflightRequest.isAllDone()) {
             return;
         }
 
         synchronized (flatFile) {
-            inflightRequest = flatFile.getInflightRequest(nextBeginOffset, maxMsgNums);
+            inflightRequest = flatFile.getInflightRequest(nextBeginOffset, maxCount);
             if (!inflightRequest.isAllDone()) {
                 return;
             }
@@ -161,7 +169,10 @@ public class TieredMessageFetcher {
             int cacheRemainCount = (int) (maxOffsetOfLastRequest - nextBeginOffset);
             LOGGER.debug("TieredMessageFetcher#preFetchMessage: group={}, nextBeginOffset={}, maxOffsetOfLastRequest={}, lastRequestIsExpired={}, cacheRemainCount={}",
                 group, nextBeginOffset, maxOffsetOfLastRequest, lastRequestIsExpired, cacheRemainCount);
-            if (lastRequestIsExpired || maxOffsetOfLastRequest != -1L && nextBeginOffset >= inflightRequest.getStartOffset()) {
+
+            if (lastRequestIsExpired
+                || maxOffsetOfLastRequest != -1L && nextBeginOffset >= inflightRequest.getStartOffset()) {
+
                 long queueOffset;
                 if (lastRequestIsExpired) {
                     queueOffset = nextBeginOffset;
@@ -171,35 +182,35 @@ public class TieredMessageFetcher {
                     flatFile.increaseReadAheadFactor();
                 }
 
-                int factor = Math.min(flatFile.getReadAheadFactor(), storeConfig.getReadAheadMessageCountThreshold() / maxMsgNums);
+                int factor = Math.min(flatFile.getReadAheadFactor(), storeConfig.getReadAheadMessageCountThreshold() / maxCount);
                 int flag = 0;
                 int concurrency = 1;
                 if (factor > storeConfig.getReadAheadBatchSizeFactorThreshold()) {
                     flag = factor % storeConfig.getReadAheadBatchSizeFactorThreshold() == 0 ? 0 : 1;
                     concurrency = factor / storeConfig.getReadAheadBatchSizeFactorThreshold() + flag;
                 }
-                int requestBatchSize = maxMsgNums * Math.min(factor, storeConfig.getReadAheadBatchSizeFactorThreshold());
+                int requestBatchSize = maxCount * Math.min(factor, storeConfig.getReadAheadBatchSizeFactorThreshold());
 
                 List<Pair<Integer, CompletableFuture<Long>>> futureList = new ArrayList<>();
                 long nextQueueOffset = queueOffset;
                 if (flag == 1) {
-                    int firstBatchSize = factor % storeConfig.getReadAheadBatchSizeFactorThreshold() * maxMsgNums;
-                    CompletableFuture<Long> future = prefetchAndPutMsgToCache(flatFile, mq, nextQueueOffset, firstBatchSize);
+                    int firstBatchSize = factor % storeConfig.getReadAheadBatchSizeFactorThreshold() * maxCount;
+                    CompletableFuture<Long> future = prefetchMessageThenPutToCache(flatFile, mq, nextQueueOffset, firstBatchSize);
                     futureList.add(Pair.of(firstBatchSize, future));
                     nextQueueOffset += firstBatchSize;
                 }
                 for (long i = 0; i < concurrency - flag; i++) {
-                    CompletableFuture<Long> future = prefetchAndPutMsgToCache(flatFile, mq, nextQueueOffset + i * requestBatchSize, requestBatchSize);
+                    CompletableFuture<Long> future = prefetchMessageThenPutToCache(flatFile, mq, nextQueueOffset + i * requestBatchSize, requestBatchSize);
                     futureList.add(Pair.of(requestBatchSize, future));
                 }
-                flatFile.putInflightRequest(group, queueOffset, maxMsgNums * factor, futureList);
+                flatFile.putInflightRequest(group, queueOffset, maxCount * factor, futureList);
                 LOGGER.debug("TieredMessageFetcher#preFetchMessage: try to prefetch messages for later requests: next begin offset: {}, request offset: {}, factor: {}, flag: {}, request batch: {}, concurrency: {}",
                     nextBeginOffset, queueOffset, factor, flag, requestBatchSize, concurrency);
             }
         }
     }
 
-    private CompletableFuture<Long> prefetchAndPutMsgToCache(CompositeQueueFlatFile flatFile, MessageQueue mq,
+    private CompletableFuture<Long> prefetchMessageThenPutToCache(CompositeQueueFlatFile flatFile, MessageQueue mq,
         long queueOffset, int batchSize) {
         return getMessageFromTieredStoreAsync(flatFile, queueOffset, batchSize)
             .thenApplyAsync(result -> {
@@ -235,13 +246,14 @@ public class TieredMessageFetcher {
             }, TieredStoreExecutor.fetchDataExecutor);
     }
 
-    private CompletableFuture<GetMessageResult> getMessageFromCacheAsync(CompositeQueueFlatFile flatFile,
-        String group, long queueOffset, int maxMsgNums, boolean waitInflightRequest) {
+    public CompletableFuture<GetMessageResult> getMessageFromCacheAsync(CompositeQueueFlatFile flatFile,
+        String group, long queueOffset, int maxCount, boolean waitInflightRequest) {
+
         MessageQueue mq = flatFile.getMessageQueue();
 
         long lastGetOffset = queueOffset - 1;
-        List<SelectMappedBufferResultWrapper> resultWrapperList = new ArrayList<>(maxMsgNums);
-        for (int i = 0; i < maxMsgNums; i++) {
+        List<SelectMappedBufferResultWrapper> resultWrapperList = new ArrayList<>(maxCount);
+        for (int i = 0; i < maxCount; i++) {
             lastGetOffset++;
             SelectMappedBufferResultWrapper wrapper = getMessageFromCache(flatFile, lastGetOffset);
             if (wrapper == null) {
@@ -257,26 +269,26 @@ public class TieredMessageFetcher {
                 .put(TieredStoreMetricsConstant.LABEL_TOPIC, mq.getTopic())
                 .put(TieredStoreMetricsConstant.LABEL_GROUP, group)
                 .build();
-            TieredStoreMetricsManager.cacheAccess.add(maxMsgNums, attributes);
+            TieredStoreMetricsManager.cacheAccess.add(maxCount, attributes);
             TieredStoreMetricsManager.cacheHit.add(resultWrapperList.size(), attributes);
         }
 
         // if no cached message found and there is currently an inflight request, wait for the request to end before continuing
         if (resultWrapperList.isEmpty() && waitInflightRequest) {
-            CompletableFuture<Long> future = flatFile.getInflightRequest(group, queueOffset, maxMsgNums)
+            CompletableFuture<Long> future = flatFile.getInflightRequest(group, queueOffset, maxCount)
                 .getFuture(queueOffset);
             if (!future.isDone()) {
                 Stopwatch stopwatch = Stopwatch.createStarted();
                 // to prevent starvation issues, only allow waiting for inflight request once
                 return future.thenCompose(v -> {
                     LOGGER.debug("TieredMessageFetcher#getMessageFromCacheAsync: wait for inflight request cost: {}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
-                    return getMessageFromCacheAsync(flatFile, group, queueOffset, maxMsgNums, false);
+                    return getMessageFromCacheAsync(flatFile, group, queueOffset, maxCount, false);
                 });
             }
         }
 
         // try to get message from cache again when prefetch request is done
-        for (int i = 0; i < maxMsgNums - resultWrapperList.size(); i++) {
+        for (int i = 0; i < maxCount - resultWrapperList.size(); i++) {
             lastGetOffset++;
             SelectMappedBufferResultWrapper wrapper = getMessageFromCache(flatFile, lastGetOffset);
             if (wrapper == null) {
@@ -288,11 +300,11 @@ public class TieredMessageFetcher {
 
         recordCacheAccess(flatFile, group, queueOffset, resultWrapperList);
 
-        // if cache is hit, result will be returned immediately and asynchronously prefetch messages for later requests
+        // if cache hit, result will be returned immediately and asynchronously prefetch messages for later requests
         if (!resultWrapperList.isEmpty()) {
             LOGGER.debug("TieredMessageFetcher#getMessageFromCacheAsync: cache hit: topic: {}, queue: {}, queue offset: {}, max message num: {}, cache hit num: {}",
-                mq.getTopic(), mq.getQueueId(), queueOffset, maxMsgNums, resultWrapperList.size());
-            preFetchMessage(flatFile, group, maxMsgNums, lastGetOffset + 1);
+                mq.getTopic(), mq.getQueueId(), queueOffset, maxCount, resultWrapperList.size());
+            prefetchMessage(flatFile, group, maxCount, lastGetOffset + 1);
 
             GetMessageResult result = new GetMessageResult();
             result.setStatus(GetMessageStatus.FOUND);
@@ -305,10 +317,10 @@ public class TieredMessageFetcher {
 
         // if cache is miss, immediately pull messages
         LOGGER.warn("TieredMessageFetcher#getMessageFromCacheAsync: cache miss: topic: {}, queue: {}, queue offset: {}, max message num: {}",
-            mq.getTopic(), mq.getQueueId(), queueOffset, maxMsgNums);
+            mq.getTopic(), mq.getQueueId(), queueOffset, maxCount);
         CompletableFuture<GetMessageResult> resultFuture;
         synchronized (flatFile) {
-            int batchSize = maxMsgNums * storeConfig.getReadAheadMinFactor();
+            int batchSize = maxCount * storeConfig.getReadAheadMinFactor();
             resultFuture = getMessageFromTieredStoreAsync(flatFile, queueOffset, batchSize)
                 .thenApplyAsync(result -> {
                     if (result.getStatus() != GetMessageStatus.FOUND) {
@@ -329,8 +341,8 @@ public class TieredMessageFetcher {
                         SelectMappedBufferResult msg = msgList.get(i);
                         // put message into cache
                         SelectMappedBufferResultWrapper resultWrapper = putMessageToCache(flatFile, offset, msg, minOffset, maxOffset, size, true);
-                        // try to meet maxMsgNums
-                        if (newResult.getMessageMapedList().size() < maxMsgNums) {
+                        // try to meet maxCount
+                        if (newResult.getMessageMapedList().size() < maxCount) {
                             newResult.addMessage(resultWrapper.getDuplicateResult(), offset);
                         }
                     }
@@ -349,6 +361,7 @@ public class TieredMessageFetcher {
 
     public CompletableFuture<GetMessageResult> getMessageFromTieredStoreAsync(CompositeQueueFlatFile flatFile,
         long queueOffset, int batchSize) {
+
         GetMessageResult result = new GetMessageResult();
         result.setMinOffset(flatFile.getConsumeQueueMinOffset());
         result.setMaxOffset(flatFile.getConsumeQueueCommitOffset());
@@ -361,12 +374,15 @@ public class TieredMessageFetcher {
                     result.setStatus(GetMessageStatus.OFFSET_OVERFLOW_ONE);
                     result.setNextBeginOffset(queueOffset);
                     return CompletableFuture.completedFuture(result);
+                case ILLEGAL_PARAM:
+                case ILLEGAL_OFFSET:
                 default:
                     result.setStatus(GetMessageStatus.OFFSET_FOUND_NULL);
                     result.setNextBeginOffset(queueOffset);
                     return CompletableFuture.completedFuture(result);
             }
         }
+
         CompletableFuture<ByteBuffer> readCommitLogFuture = readConsumeQueueFuture.thenComposeAsync(cqBuffer -> {
             long firstCommitLogOffset = CQItemBufferUtil.getCommitLogOffset(cqBuffer);
             cqBuffer.position(cqBuffer.remaining() - TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
@@ -433,8 +449,10 @@ public class TieredMessageFetcher {
         });
     }
 
-    public CompletableFuture<GetMessageResult> getMessageAsync(String group, String topic, int queueId,
-        long queueOffset, int maxMsgNums, final MessageFilter messageFilter) {
+    @Override
+    public CompletableFuture<GetMessageResult> getMessageAsync(
+        String group, String topic, int queueId, long queueOffset, int maxCount, final MessageFilter messageFilter) {
+
         CompositeQueueFlatFile flatFile = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
         if (flatFile == null) {
             GetMessageResult result = new GetMessageResult();
@@ -442,10 +460,11 @@ public class TieredMessageFetcher {
             result.setStatus(GetMessageStatus.NO_MATCHED_LOGIC_QUEUE);
             return CompletableFuture.completedFuture(result);
         }
+
         GetMessageResult result = new GetMessageResult();
         long minQueueOffset = flatFile.getConsumeQueueMinOffset();
-        result.setMinOffset(minQueueOffset);
         long maxQueueOffset = flatFile.getConsumeQueueCommitOffset();
+        result.setMinOffset(minQueueOffset);
         result.setMaxOffset(maxQueueOffset);
 
         if (flatFile.getConsumeQueueCommitOffset() <= 0) {
@@ -468,24 +487,29 @@ public class TieredMessageFetcher {
             return CompletableFuture.completedFuture(result);
         }
 
-        return getMessageFromCacheAsync(flatFile, group, queueOffset, maxMsgNums);
+        return getMessageFromCacheAsync(flatFile, group, queueOffset, maxCount);
     }
 
+    @Override
     public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
         CompositeFlatFile flatFile = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
         if (flatFile == null) {
             return CompletableFuture.completedFuture(-1L);
         }
 
-        return flatFile.getCommitLogAsync(flatFile.getCommitLogMinOffset(), MessageBufferUtil.STORE_TIMESTAMP_POSITION + 8)
+        // read from timestamp to timestamp + length
+        int length = MessageBufferUtil.STORE_TIMESTAMP_POSITION + 8;
+        return flatFile.getCommitLogAsync(flatFile.getCommitLogMinOffset(), length)
             .thenApply(MessageBufferUtil::getStoreTimeStamp);
     }
 
+    @Override
     public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId, long queueOffset) {
         CompositeFlatFile flatFile = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
         if (flatFile == null) {
             return CompletableFuture.completedFuture(-1L);
         }
+
         return flatFile.getConsumeQueueAsync(queueOffset)
             .thenComposeAsync(cqItem -> {
                 long commitLogOffset = CQItemBufferUtil.getCommitLogOffset(cqItem);
@@ -494,27 +518,33 @@ public class TieredMessageFetcher {
             }, TieredStoreExecutor.fetchDataExecutor)
             .thenApply(MessageBufferUtil::getStoreTimeStamp)
             .exceptionally(e -> {
-                LOGGER.error("TieredMessageFetcher#getMessageStoreTimeStampAsync: get or decode message failed: topic: {}, queue: {}, offset: {}", topic, queueId, queueOffset, e);
+                LOGGER.error("TieredMessageFetcher#getMessageStoreTimeStampAsync: " +
+                    "get or decode message failed: topic: {}, queue: {}, offset: {}", topic, queueId, queueOffset, e);
                 return -1L;
             });
     }
 
-    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp,
-        BoundaryType type) {
+    @Override
+    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType type) {
         CompositeFlatFile flatFile = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
         if (flatFile == null) {
             return -1L;
         }
+
         try {
             return flatFile.getOffsetInConsumeQueueByTime(timestamp, type);
         } catch (Exception e) {
-            LOGGER.error("TieredMessageFetcher#getOffsetInQueueByTime: get offset in queue by time failed: topic: {}, queue: {}, timestamp: {}, type: {}", topic, queueId, timestamp, type, e);
+            LOGGER.error("TieredMessageFetcher#getOffsetInQueueByTime: " +
+                "get offset in queue by time failed: topic: {}, queue: {}, timestamp: {}, type: {}",
+                topic, queueId, timestamp, type, e);
         }
         return -1L;
     }
 
-    public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key, int maxNum, long begin,
-        long end) {
+    @Override
+    public CompletableFuture<QueryMessageResult> queryMessageAsync(
+        String topic, String key, int maxCount, long begin, long end) {
+
         TieredIndexFile indexFile = TieredFlatFileManager.getIndexFile(storeConfig);
 
         int hashCode = TieredIndexFile.indexKeyHashMethod(TieredIndexFile.buildKey(topic, key));
@@ -522,12 +552,12 @@ public class TieredMessageFetcher {
         try {
             TopicMetadata topicMetadata = metadataStore.getTopic(topic);
             if (topicMetadata == null) {
-                LOGGER.info("TieredMessageFetcher#queryMessageAsync: get topic id from metadata failed, topic metadata not found: topic: {}", topic);
+                LOGGER.info("TieredMessageFetcher#queryMessageAsync, topic metadata not found, topic: {}", topic);
                 return CompletableFuture.completedFuture(new QueryMessageResult());
             }
             topicId = topicMetadata.getTopicId();
         } catch (Exception e) {
-            LOGGER.error("TieredMessageFetcher#queryMessageAsync: get topic id from metadata failed: topic: {}", topic, e);
+            LOGGER.error("TieredMessageFetcher#queryMessageAsync, get topic id failed, topic: {}", topic, e);
             return CompletableFuture.completedFuture(new QueryMessageResult());
         }
 
@@ -535,15 +565,22 @@ public class TieredMessageFetcher {
             .thenCompose(indexBufferList -> {
                 QueryMessageResult result = new QueryMessageResult();
                 int resultCount = 0;
-                List<CompletableFuture<Void>> futureList = new ArrayList<>(maxNum);
+                List<CompletableFuture<Void>> futureList = new ArrayList<>(maxCount);
                 for (Pair<Long, ByteBuffer> pair : indexBufferList) {
                     Long fileBeginTimestamp = pair.getKey();
                     ByteBuffer indexBuffer = pair.getValue();
+
                     if (indexBuffer.remaining() % TieredIndexFile.INDEX_FILE_HASH_COMPACT_INDEX_SIZE != 0) {
-                        LOGGER.error("[Bug]TieredMessageFetcher#queryMessageAsync: index buffer size {} is not multiple of index item size {}", indexBuffer.remaining(), TieredIndexFile.INDEX_FILE_HASH_COMPACT_INDEX_SIZE);
+                        LOGGER.error("[Bug] TieredMessageFetcher#queryMessageAsync: " +
+                            "index buffer size {} is not multiple of index item size {}",
+                            indexBuffer.remaining(), TieredIndexFile.INDEX_FILE_HASH_COMPACT_INDEX_SIZE);
                         continue;
                     }
-                    for (int indexOffset = indexBuffer.position(); indexOffset < indexBuffer.limit(); indexOffset += TieredIndexFile.INDEX_FILE_HASH_COMPACT_INDEX_SIZE) {
+
+                    for (int indexOffset = indexBuffer.position();
+                        indexOffset < indexBuffer.limit();
+                        indexOffset += TieredIndexFile.INDEX_FILE_HASH_COMPACT_INDEX_SIZE) {
+
                         int indexItemHashCode = indexBuffer.getInt(indexOffset);
                         if (indexItemHashCode != hashCode) {
                             continue;
@@ -555,11 +592,13 @@ public class TieredMessageFetcher {
                         }
 
                         int queueId = indexBuffer.getInt(indexOffset + 4 + 4);
-                        CompositeFlatFile flatFile = TieredFlatFileManager.getInstance(storeConfig).getFlatFile(new MessageQueue(topic, brokerName, queueId));
+                        CompositeFlatFile flatFile =
+                            flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
                         if (flatFile == null) {
                             continue;
                         }
 
+                        // decode index item
                         long offset = indexBuffer.getLong(indexOffset + 4 + 4 + 4);
                         int size = indexBuffer.getInt(indexOffset + 4 + 4 + 4 + 8);
                         int timeDiff = indexBuffer.getInt(indexOffset + 4 + 4 + 4 + 8 + 4);
@@ -567,16 +606,19 @@ public class TieredMessageFetcher {
                         if (indexTimestamp < begin || indexTimestamp > end) {
                             continue;
                         }
+
                         CompletableFuture<Void> getMessageFuture = flatFile.getCommitLogAsync(offset, size)
-                            .thenAccept(messageBuffer -> result.addMessage(new SelectMappedBufferResult(0, messageBuffer, size, null)));
+                            .thenAccept(messageBuffer -> result.addMessage(
+                                new SelectMappedBufferResult(0, messageBuffer, size, null)));
                         futureList.add(getMessageFuture);
 
                         resultCount++;
-                        if (resultCount >= maxNum) {
+                        if (resultCount >= maxCount) {
                             break;
                         }
                     }
-                    if (resultCount >= maxNum) {
+
+                    if (resultCount >= maxCount) {
                         break;
                     }
                 }

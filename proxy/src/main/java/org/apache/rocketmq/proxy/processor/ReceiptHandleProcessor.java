@@ -240,18 +240,16 @@ public class ReceiptHandleProcessor extends AbstractStartAndShutdown {
         return this.messagingProcessor.findConsumerChannel(createContext("JudgeClientOnline"), groupKey.group, groupKey.channel) == null;
     }
 
-    public void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, String receiptHandle,
-        MessageReceiptHandle messageReceiptHandle) {
-        this.addReceiptHandle(ctx, new ReceiptHandleGroupKey(channel, group), msgID, receiptHandle, messageReceiptHandle);
+    public void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, MessageReceiptHandle messageReceiptHandle) {
+        this.addReceiptHandle(ctx, new ReceiptHandleGroupKey(channel, group), msgID, messageReceiptHandle);
     }
 
-    protected void addReceiptHandle(ProxyContext ctx, ReceiptHandleGroupKey key, String msgID, String receiptHandle,
-        MessageReceiptHandle messageReceiptHandle) {
+    protected void addReceiptHandle(ProxyContext ctx, ReceiptHandleGroupKey key, String msgID, MessageReceiptHandle messageReceiptHandle) {
         if (key == null) {
             return;
         }
         ConcurrentHashMapUtils.computeIfAbsent(this.receiptHandleGroupMap, key,
-            k -> new ReceiptHandleGroup()).put(msgID, receiptHandle, messageReceiptHandle);
+            k -> new ReceiptHandleGroup()).put(msgID, messageReceiptHandle);
     }
 
     public MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, String receiptHandle) {

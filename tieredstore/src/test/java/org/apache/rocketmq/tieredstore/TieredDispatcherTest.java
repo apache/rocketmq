@@ -118,15 +118,15 @@ public class TieredDispatcherTest {
         flatFile.commitCommitLog();
         Assert.assertEquals(10, flatFile.getDispatchOffset());
 
-        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, flatFile, 8, 8, 0, 0, 0, buffer1);
-        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, flatFile, 9, 9, 0, 0, 0, buffer2);
+        dispatcher.doRedispatchRequestToWriteMap(AppendResult.SUCCESS, flatFile, 8, 8, 0, 0, buffer1);
+        dispatcher.doRedispatchRequestToWriteMap(AppendResult.SUCCESS, flatFile, 9, 9, 0, 0, buffer2);
         dispatcher.buildConsumeQueueAndIndexFile();
         Assert.assertEquals(7, flatFile.getConsumeQueueMaxOffset());
         Assert.assertEquals(7, flatFile.getDispatchOffset());
 
-        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, flatFile, 7, 7, 0, 0, 0, buffer1);
-        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, flatFile, 8, 8, 0, 0, 0, buffer2);
-        dispatcher.handleAppendCommitLogResult(AppendResult.SUCCESS, flatFile, 9, 9, 0, 0, 0, buffer3);
+        dispatcher.doRedispatchRequestToWriteMap(AppendResult.SUCCESS, flatFile, 7, 7, 0, 0, buffer1);
+        dispatcher.doRedispatchRequestToWriteMap(AppendResult.SUCCESS, flatFile, 8, 8, 0, 0, buffer2);
+        dispatcher.doRedispatchRequestToWriteMap(AppendResult.SUCCESS, flatFile, 9, 9, 0, 0, buffer3);
         dispatcher.buildConsumeQueueAndIndexFile();
         Assert.assertEquals(10, flatFile.getConsumeQueueMaxOffset());
     }

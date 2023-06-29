@@ -83,6 +83,7 @@ public class ConsumerProcessor extends AbstractProcessor {
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     ) {
         CompletableFuture<PopResult> future = new CompletableFuture<>();
@@ -91,7 +92,8 @@ public class ConsumerProcessor extends AbstractProcessor {
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no readable queue");
             }
-            return popMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, timeoutMillis);
+            return popMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime, initMode,
+                subscriptionData, fifo, popMessageResultFilter, attemptId, timeoutMillis);
         }  catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -110,6 +112,7 @@ public class ConsumerProcessor extends AbstractProcessor {
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     ) {
         CompletableFuture<PopResult> future = new CompletableFuture<>();
@@ -131,6 +134,7 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setExpType(subscriptionData.getExpressionType());
             requestHeader.setExp(subscriptionData.getSubString());
             requestHeader.setOrder(fifo);
+            requestHeader.setAttemptId(attemptId);
 
             future = this.serviceManager.getMessageService().popMessage(
                     ctx,
