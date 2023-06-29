@@ -150,8 +150,7 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     }
 
     @Override
-    public StreamObserver<TelemetryCommand> telemetry(ProxyContext ctx,
-        StreamObserver<TelemetryCommand> responseObserver) {
-        return this.clientActivity.telemetry(ctx, responseObserver);
+    public ContextStreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
+        return this.clientActivity.telemetry(responseObserver);
     }
 }

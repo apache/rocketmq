@@ -290,8 +290,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup) {
-        return this.clientProcessor.getConsumerGroupInfo(consumerGroup);
+    public ConsumerGroupInfo getConsumerGroupInfo(ProxyContext ctx, String consumerGroup) {
+        return this.clientProcessor.getConsumerGroupInfo(ctx, consumerGroup);
     }
 
     @Override

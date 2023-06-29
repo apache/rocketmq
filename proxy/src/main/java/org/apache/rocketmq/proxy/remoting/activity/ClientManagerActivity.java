@@ -80,7 +80,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
 
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-                this.remotingChannelManager.createProducerChannel(ctx.channel(), data.getGroupName(), clientId),
+                this.remotingChannelManager.createProducerChannel(context, ctx.channel(), data.getGroupName(), clientId),
                 clientId, request.getLanguage(),
                 request.getVersion());
             setClientPropertiesToChannelAttr(clientChannelInfo);
@@ -89,7 +89,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
 
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-                this.remotingChannelManager.createConsumerChannel(ctx.channel(), data.getGroupName(), clientId, data.getSubscriptionDataSet()),
+                this.remotingChannelManager.createConsumerChannel(context, ctx.channel(), data.getGroupName(), clientId, data.getSubscriptionDataSet()),
                 clientId, request.getLanguage(),
                 request.getVersion());
             setClientPropertiesToChannelAttr(clientChannelInfo);
@@ -122,7 +122,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
             (UnregisterClientRequestHeader) request.decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
         final String producerGroup = requestHeader.getProducerGroup();
         if (producerGroup != null) {
-            RemotingChannel channel = this.remotingChannelManager.removeProducerChannel(producerGroup, ctx.channel());
+            RemotingChannel channel = this.remotingChannelManager.removeProducerChannel(context, producerGroup, ctx.channel());
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
                 channel,
                 requestHeader.getClientID(),
@@ -132,7 +132,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
         }
         final String consumerGroup = requestHeader.getConsumerGroup();
         if (consumerGroup != null) {
-            RemotingChannel channel = this.remotingChannelManager.removeConsumerChannel(consumerGroup, ctx.channel());
+            RemotingChannel channel = this.remotingChannelManager.removeConsumerChannel(context, consumerGroup, ctx.channel());
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
                 channel,
                 requestHeader.getClientID(),
@@ -170,7 +170,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
                 }
                 if (args[0] instanceof ClientChannelInfo) {
                     ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
-                    remotingChannelManager.removeConsumerChannel(group, clientChannelInfo.getChannel());
+                    remotingChannelManager.removeConsumerChannel(ProxyContext.createForInner(this.getClass()), group, clientChannelInfo.getChannel());
                     log.info("remove remoting channel when client unregister. clientChannelInfo:{}", clientChannelInfo);
                 }
             }
@@ -187,7 +187,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
         @Override
         public void handle(ProducerGroupEvent event, String group, ClientChannelInfo clientChannelInfo) {
             if (event == ProducerGroupEvent.CLIENT_UNREGISTER) {
-                remotingChannelManager.removeProducerChannel(group, clientChannelInfo.getChannel());
+                remotingChannelManager.removeProducerChannel(ProxyContext.createForInner(this.getClass()), group, clientChannelInfo.getChannel());
             }
         }
     }

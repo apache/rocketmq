@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
@@ -98,5 +99,18 @@ public class NotificationRequestHeader extends TopicQueueRequestHeader {
 
     public void setAttemptId(String attemptId) {
         this.attemptId = attemptId;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("topic", topic)
+            .add("queueId", queueId)
+            .add("pollTime", pollTime)
+            .add("bornTime", bornTime)
+            .add("order", order)
+            .add("attemptId", attemptId)
+            .toString();
     }
 }
