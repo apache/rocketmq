@@ -15,18 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy;
+package org.apache.rocketmq.proxy.common;
 
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
-import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 
-public class RenewTask {
+public class RenewEvent {
     protected MessageReceiptHandle messageReceiptHandle;
     protected long renewTime;
     protected CompletableFuture<AckResult> future;
 
-    public RenewTask(MessageReceiptHandle messageReceiptHandle, long renewTime, CompletableFuture<AckResult> future) {
+    public RenewEvent(MessageReceiptHandle messageReceiptHandle, long renewTime, CompletableFuture<AckResult> future) {
         this.messageReceiptHandle = messageReceiptHandle;
         this.renewTime = renewTime;
         this.future = future;

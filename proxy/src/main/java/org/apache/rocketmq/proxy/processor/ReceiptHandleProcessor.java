@@ -25,7 +25,7 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.state.StateEventListener;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.proxy.RenewTask;
+import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager;
@@ -37,7 +37,7 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
 
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager) {
         super(messagingProcessor, serviceManager);
-        StateEventListener<RenewTask> eventListener = event -> {
+        StateEventListener<RenewEvent> eventListener = event -> {
             ProxyContext context = createContext("RenewMessage");
             MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
             ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());

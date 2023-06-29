@@ -34,7 +34,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.state.StateEventListener;
-import org.apache.rocketmq.proxy.RenewTask;
+import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -87,9 +87,9 @@ public class ReceiptHandleManagerTest extends BaseServiceTest {
 
     @Before
     public void setup() {
-        receiptHandleManager = new ReceiptHandleManager(metadataService, consumerManager, new StateEventListener<RenewTask>() {
+        receiptHandleManager = new ReceiptHandleManager(metadataService, consumerManager, new StateEventListener<RenewEvent>() {
             @Override
-            public void fireEvent(RenewTask event) {
+            public void fireEvent(RenewEvent event) {
                 MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
                 ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
                 messagingProcessor.changeInvisibleTime(PROXY_CONTEXT, handle, messageReceiptHandle.getMessageId(),

@@ -44,7 +44,7 @@ import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.proxy.RenewTask;
+import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
@@ -65,13 +65,13 @@ public class ReceiptHandleManager extends AbstractStartAndShutdown {
     protected final MetadataService metadataService;
     protected final ConsumerManager consumerManager;
     protected final ConcurrentMap<ReceiptHandleProcessor.ReceiptHandleGroupKey, ReceiptHandleGroup> receiptHandleGroupMap;
-    protected final StateEventListener<RenewTask> eventListener;
+    protected final StateEventListener<RenewEvent> eventListener;
     protected final static RetryPolicy RENEW_POLICY = new RenewStrategyPolicy();
     protected final ScheduledExecutorService scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RenewalScheduledThread_"));
     protected ThreadPoolExecutor renewalWorkerService;
 
-    public ReceiptHandleManager(MetadataService metadataService, ConsumerManager consumerManager, StateEventListener<RenewTask> eventListener) {
+    public ReceiptHandleManager(MetadataService metadataService, ConsumerManager consumerManager, StateEventListener<RenewEvent> eventListener) {
         this.metadataService = metadataService;
         this.consumerManager = consumerManager;
         this.eventListener = eventListener;
@@ -188,7 +188,7 @@ public class ReceiptHandleManager extends AbstractStartAndShutdown {
             }
             if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
-                eventListener.fireEvent(new RenewTask(messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()), future));
+                eventListener.fireEvent(new RenewEvent(messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()), future));
                 future.whenComplete((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when renew. handle:{}", messageReceiptHandle, throwable);
@@ -218,7 +218,7 @@ public class ReceiptHandleManager extends AbstractStartAndShutdown {
                 }
                 RetryPolicy retryPolicy = subscriptionGroupConfig.getGroupRetryPolicy().getRetryPolicy();
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
-                eventListener.fireEvent(new RenewTask(messageReceiptHandle, retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()), future));
+                eventListener.fireEvent(new RenewEvent(messageReceiptHandle, retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()), future));
                 future.whenComplete((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when nack in renew. handle:{}", messageReceiptHandle, throwable);
@@ -246,7 +246,7 @@ public class ReceiptHandleManager extends AbstractStartAndShutdown {
             try {
                 handleGroup.computeIfPresent(msgID, handle, messageReceiptHandle -> {
                     CompletableFuture<AckResult> future = new CompletableFuture<>();
-                    eventListener.fireEvent(new RenewTask(messageReceiptHandle, proxyConfig.getInvisibleTimeMillisWhenClear(), future));
+                    eventListener.fireEvent(new RenewEvent(messageReceiptHandle, proxyConfig.getInvisibleTimeMillisWhenClear(), future));
                     return CompletableFuture.completedFuture(null);
                 });
             } catch (Exception e) {
