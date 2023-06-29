@@ -62,7 +62,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
 
     private static final String HA_PROXY_DECODER = "HAProxyDecoder";
     private static final String HA_PROXY_HANDLER = "HAProxyHandler";
-    private static final String TLS_HANDLER = "TlsHandler";
+    private static final String TLS_MODE_HANDLER = "TlsModeHandler";
     /**
      * the length of the ssl record header (in bytes)
      */
@@ -139,9 +139,9 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                 if (ha.state() == ProtocolDetectionState.DETECTED) {
                     ctx.pipeline().addAfter(ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
                             .addAfter(HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
-                            .addAfter(HA_PROXY_HANDLER, TLS_HANDLER, new TlsModeHandler(grpcHandler));
+                            .addAfter(HA_PROXY_HANDLER, TLS_MODE_HANDLER, new TlsModeHandler(grpcHandler));
                 } else {
-                    ctx.pipeline().addAfter(ctx.name(), TLS_HANDLER, new TlsModeHandler(grpcHandler));
+                    ctx.pipeline().addAfter(ctx.name(), TLS_MODE_HANDLER, new TlsModeHandler(grpcHandler));
                 }
 
                 ctx.fireUserEventTriggered(InternalProtocolNegotiationEvent.getDefault());

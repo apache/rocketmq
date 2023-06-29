@@ -37,8 +37,11 @@ import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.ProtocolDetectionResult;
+import io.netty.handler.codec.ProtocolDetectionState;
 import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
+import io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -104,9 +107,10 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     private final ConcurrentMap<Integer/*Port*/, NettyRemotingAbstract> remotingServerTable = new ConcurrentHashMap<>();
 
+    public static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
     public static final String HA_PROXY_DECODER = "HAProxyDecoder";
     public static final String HA_PROXY_HANDLER = "HAProxyHandler";
-    public static final String HANDSHAKE_HANDLER_NAME = "handshakeHandler";
+    public static final String TLS_MODE_HANDLER = "TlsModeHandler";
     public static final String TLS_HANDLER_NAME = "sslHandler";
     public static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
 
@@ -261,8 +265,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
-            .addLast(defaultEventExecutorGroup, HA_PROXY_DECODER, new HAProxyMessageDecoder())
-            .addLast(defaultEventExecutorGroup, HA_PROXY_HANDLER, new HAProxyMessageHandler())
             .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
             .addLast(defaultEventExecutorGroup,
                 encoder,
@@ -400,7 +402,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     private void prepareSharableHandlers() {
-        handshakeHandler = new HandshakeHandler(TlsSystemConfig.tlsMode);
+        handshakeHandler = new HandshakeHandler();
         encoder = new NettyEncoder();
         connectionManageHandler = new NettyConnectManageHandler();
         serverHandler = new NettyServerHandler();
@@ -447,14 +449,48 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         return distributionHandler;
     }
 
-    @ChannelHandler.Sharable
     public class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf in) {
+            try {
+                ProtocolDetectionResult<HAProxyProtocolVersion> ha = HAProxyMessageDecoder.detectProtocol(
+                        in);
+                if (ha.state() == ProtocolDetectionState.NEEDS_MORE_DATA) {
+                    return;
+                }
+                if (ha.state() == ProtocolDetectionState.DETECTED) {
+                    ctx.pipeline().addAfter(ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
+                            .addAfter(HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
+                            .addAfter(HA_PROXY_HANDLER, TLS_MODE_HANDLER, new TlsModeHandler(TlsSystemConfig.tlsMode));
+                } else {
+                    ctx.pipeline().addAfter(ctx.name(), TLS_MODE_HANDLER, new TlsModeHandler(TlsSystemConfig.tlsMode));
+                }
+
+                try {
+                    // Remove this handler
+                    ctx.pipeline().remove(this);
+                } catch (NoSuchElementException e) {
+                    log.error("Error while removing HandshakeHandler", e);
+                }
+
+                // Hand over this message to the next .
+                ctx.fireChannelRead(in.retain());
+            } catch (Exception e) {
+                log.error("process proxy protocol negotiator failed.", e);
+                throw e;
+            }
+        }
+    }
+
+    @ChannelHandler.Sharable
+    public class TlsModeHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
         private final TlsMode tlsMode;
 
         private static final byte HANDSHAKE_MAGIC_CODE = 0x16;
 
-        HandshakeHandler(TlsMode tlsMode) {
+        TlsModeHandler(TlsMode tlsMode) {
             this.tlsMode = tlsMode;
         }
 
@@ -496,7 +532,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 // Remove this handler
                 ctx.pipeline().remove(this);
             } catch (NoSuchElementException e) {
-                log.error("Error while removing HandshakeHandler", e);
+                log.error("Error while removing TlsModeHandler", e);
             }
 
             // Hand over this message to the next .
