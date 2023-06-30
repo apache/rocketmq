@@ -69,7 +69,7 @@ public class ReceiptHandleManager extends AbstractStartAndShutdown {
     protected final static RetryPolicy RENEW_POLICY = new RenewStrategyPolicy();
     protected final ScheduledExecutorService scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RenewalScheduledThread_"));
-    protected ThreadPoolExecutor renewalWorkerService;
+    protected final ThreadPoolExecutor renewalWorkerService;
 
     public ReceiptHandleManager(MetadataService metadataService, ConsumerManager consumerManager, StateEventListener<RenewEvent> eventListener) {
         this.metadataService = metadataService;

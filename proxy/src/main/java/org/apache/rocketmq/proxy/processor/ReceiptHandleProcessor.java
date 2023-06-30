@@ -33,7 +33,7 @@ import org.apache.rocketmq.proxy.service.ServiceManager;
 
 public class ReceiptHandleProcessor extends AbstractProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    protected final ReceiptHandleManager receiptHandleManager;
+    protected ReceiptHandleManager receiptHandleManager;
 
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager) {
         super(messagingProcessor, serviceManager);
