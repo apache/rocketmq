@@ -54,9 +54,6 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
         this.receiptHandleManager = new ReceiptHandleManager(serviceManager.getMetadataService(), serviceManager.getConsumerManager(), eventListener);
     }
 
-    protected void init() {
-    }
-
     protected ProxyContext createContext(String actionName) {
         return ProxyContext.createForInner(this.getClass().getSimpleName() + actionName);
     }
