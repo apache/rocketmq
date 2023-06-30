@@ -108,9 +108,10 @@ public class ImportMessageCommand implements SubCommand {
             File dir = new File(directory);
             String[] topics = dir.list();
             if (topics == null || topics.length == 0) {
-                producer.shutdown();
                 return;
             }
+            producer.start();
+
             for (String topicFileName : topics) {
                 String topicPath = directory + File.separator + topicFileName;
                 String[] brokerNames = new File(topicPath).list();
