@@ -137,7 +137,7 @@ public class ImportMessageCommand implements SubCommand {
                             continue;
                         }
 
-                        System.out.println("import queueFile=" + queueFile.getAbsolutePath());
+                        System.out.printf("import queueFile=%s%n", queueFile.getAbsolutePath());
                         List<String> lines = new ArrayList<>(BATCH_SEND_SIZE);
                         int sendSuccessCount = 0;
                         MQAdminUtils.printProgressWithFixedWidth(total, sendSuccessCount);
@@ -169,9 +169,9 @@ public class ImportMessageCommand implements SubCommand {
                             }
                             while (msgStr != null);
                             // new line for printProgressWithFixedWidth
-                            System.out.println();
+                            System.out.printf("%n");
                         } catch (IOException e) {
-                            System.out.println("read file failed, file=" + queueFile.getAbsolutePath());
+                            System.out.printf("read file failed, file=%s%n", queueFile.getAbsolutePath());
                         }
                     }
                 }

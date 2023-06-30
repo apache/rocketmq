@@ -143,7 +143,7 @@ public class ExportMessageCommand implements SubCommand {
                 File brokerDirFile = new File(brokerDir);
                 FileUtils.forceMkdir(brokerDirFile);
                 File queueFile = new File(queueFilepath);
-                System.out.println("exporrt queueFile queueFilepath=" + queueFile.getAbsoluteFile());
+                System.out.printf("exporrt queueFile queueFilepath=%s%n", queueFile.getAbsoluteFile());
 
                 long minOffset = defaultMQPullConsumer.minOffset(mq);
                 long maxOffset = defaultMQPullConsumer.maxOffset(mq);
@@ -187,7 +187,7 @@ public class ExportMessageCommand implements SubCommand {
                     }
                 }
                 // new line for printProgressWithFixedWidth
-                System.out.println();
+                System.out.printf("%n");
             }
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
