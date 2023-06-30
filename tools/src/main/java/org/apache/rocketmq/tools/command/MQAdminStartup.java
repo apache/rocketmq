@@ -72,6 +72,8 @@ import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
 import org.apache.rocketmq.tools.command.message.ConsumeMessageCommand;
 import org.apache.rocketmq.tools.command.message.DumpCompactionLogCommand;
+import org.apache.rocketmq.tools.command.message.ExportMessageCommand;
+import org.apache.rocketmq.tools.command.message.ImportMessageCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageByQueueCommand;
 import org.apache.rocketmq.tools.command.message.PrintMessageSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByIdSubCommand;
@@ -198,6 +200,8 @@ public class MQAdminStartup {
 
         initCommand(new PrintMessageSubCommand());
         initCommand(new PrintMessageByQueueCommand());
+        initCommand(new ExportMessageCommand());
+        initCommand(new ImportMessageCommand());
         initCommand(new SendMsgStatusCommand());
         initCommand(new BrokerConsumeStatsSubCommad());
 
