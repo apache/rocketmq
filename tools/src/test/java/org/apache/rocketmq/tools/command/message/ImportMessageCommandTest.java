@@ -74,7 +74,7 @@ public class ImportMessageCommandTest {
 
     @Test
     public void testExecuteDefault() throws SubCommandException, IOException {
-        String importDir = System.getProperty("java.io.tmpdir") + "rocketmq-import-dir";
+        String importDir = "./rocketmq-import";
         String topicDir = importDir + File.separator + "topic1";
         String brokerDir = topicDir + File.separator + "broker-a";
         FileUtils.forceMkdirParent(new File(brokerDir));
