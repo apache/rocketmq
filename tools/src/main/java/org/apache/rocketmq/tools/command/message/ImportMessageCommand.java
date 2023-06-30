@@ -21,9 +21,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.LineNumberReader;
+import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -127,7 +129,7 @@ public class ImportMessageCommand implements SubCommand {
                     for (File queueFile : queueFiles) {
                         //get line numbers
                         int total;
-                        try (FileReader fileReader = new FileReader(queueFile)) {
+                        try (Reader fileReader = new InputStreamReader(new FileInputStream(queueFile), charsetName)) {
                             LineNumberReader lineNumberReader = new LineNumberReader(fileReader);
                             lineNumberReader.skip(queueFile.length());
                             total = lineNumberReader.getLineNumber();
@@ -142,7 +144,7 @@ public class ImportMessageCommand implements SubCommand {
                         int sendSuccessCount = 0;
                         MQAdminUtils.printProgressWithFixedWidth(total, sendSuccessCount);
                         SendResult sendResult;
-                        try (BufferedReader reader = new BufferedReader(new FileReader(queueFile))) {
+                        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(queueFile), charsetName))) {
                             String msgStr;
                             do {
                                 msgStr = reader.readLine();

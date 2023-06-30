@@ -20,6 +20,16 @@ package org.apache.rocketmq.tools.command.message;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -35,16 +45,6 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.MQAdminUtils;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ExportMessageCommand implements SubCommand {
     public static final String DEFAULT_EXPORT_DIRECTORY = "./rocketmq-export";
@@ -161,7 +161,7 @@ public class ExportMessageCommand implements SubCommand {
                 }
 
                 System.out.printf("export %s minOffset=%s, maxOffset=%s%n", minOffset, maxOffset, mq);
-                try (BufferedWriter writer = new BufferedWriter(new FileWriter(queueFile))) {
+                try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(queueFile), charsetName))) {
                     READQ:
                     for (long offset = minOffset; offset < maxOffset; ) {
                         try {
