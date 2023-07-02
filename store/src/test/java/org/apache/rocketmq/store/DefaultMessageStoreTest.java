@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.store;
 
-import com.google.common.collect.Sets;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
@@ -41,6 +40,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.google.common.collect.Sets;
+
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageBatch;
@@ -80,7 +82,6 @@ public class DefaultMessageStoreTest {
 
     @Before
     public void init() throws Exception {
-        System.out.println("init start");
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
 
@@ -88,7 +89,6 @@ public class DefaultMessageStoreTest {
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
-        System.out.println("init end");
     }
 
     @Test(expected = OverlappingFileLockException.class)
@@ -660,8 +660,6 @@ public class DefaultMessageStoreTest {
         StoreTestUtil.waitCommitLogReput((DefaultMessageStore) messageStore);
         long secondLastPhyOffset = messageStore.getMaxPhyOffset();
         long secondLastCqOffset = messageStore.getMaxOffsetInQueue(topic, 0);
-        System.out.println("secondLastPhyOffset="+ messageStore.getMaxPhyOffset() + ", rocksdbMaxPhyOffset=" + messageStore.getQueueStore().getMaxOffsetInConsumeQueue() + ", "
-            + "secondLastCqOffset=" + messageStore.getMaxOffsetInQueue(topic, 0));
 
         MessageExtBrokerInner messageExtBrokerInner = buildMessage();
         messageExtBrokerInner.setTopic(topic);
@@ -678,8 +676,6 @@ public class DefaultMessageStoreTest {
         load = messageStore.load();
         assertTrue(load);
         messageStore.start();
-        System.out.println("secondLastPhyOffset="+ messageStore.getMaxPhyOffset() + ", rocksdbMaxPhyOffset=" + messageStore.getQueueStore().getMaxOffsetInConsumeQueue() + ", "
-            + "secondLastCqOffset=" + messageStore.getMaxOffsetInQueue(topic, 0));
         assertTrue(secondLastPhyOffset == messageStore.getMaxPhyOffset());
         assertTrue(secondLastCqOffset == messageStore.getMaxOffsetInQueue(topic, 0));
 
@@ -831,8 +827,6 @@ public class DefaultMessageStoreTest {
             MessageExtBrokerInner msg1 = buildMessage();
             messageStore.putMessage(msg1);
         }
-
-        System.out.printf("%d%n", defaultMessageStore.getMaxPhyOffset());
 
         List<SelectMappedBufferResult> bufferResultList = defaultMessageStore.getBulkCommitLogData(0, (int) defaultMessageStore.getMaxPhyOffset());
         List<MessageExt> msgList = new ArrayList<>();

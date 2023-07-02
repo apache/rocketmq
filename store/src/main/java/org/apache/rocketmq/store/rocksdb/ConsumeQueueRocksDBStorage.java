@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.rocksdb.AbstractRocksDBStorage;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -79,7 +80,7 @@ public class ConsumeQueueRocksDBStorage extends AbstractRocksDBStorage {
 
             ColumnFamilyOptions offsetCfOptions = RocksDBOptionsFactory.createOffsetCFOptions();
             this.cfOptions.add(offsetCfOptions);
-            cfDescriptors.add(new ColumnFamilyDescriptor("offset".getBytes(), offsetCfOptions));
+            cfDescriptors.add(new ColumnFamilyDescriptor("offset".getBytes(RocksDBConsumeQueueStore.CHARSET_UTF8), offsetCfOptions));
 
             final List<ColumnFamilyHandle> cfHandles = new ArrayList();
             open(cfDescriptors, cfHandles);

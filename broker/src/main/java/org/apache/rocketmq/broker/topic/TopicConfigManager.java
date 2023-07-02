@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.broker.topic;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -29,6 +27,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
@@ -59,6 +61,10 @@ public class TopicConfigManager extends ConfigManager {
     protected ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>(1024);
     private DataVersion dataVersion = new DataVersion();
     protected transient BrokerController brokerController;
+
+    public TopicConfigManager() {
+
+    }
 
     public TopicConfigManager(BrokerController brokerController) {
         this(brokerController, false);

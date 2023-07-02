@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.broker.offset;
 
-import com.google.common.base.Strings;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,6 +25,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.google.common.base.Strings;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -60,11 +62,6 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public ConsumerOffsetManager(BrokerController brokerController) {
         this.brokerController = brokerController;
-    }
-
-    @Override
-    public boolean load() {
-        return rocksDBConfigManager.load(configFilePath(), this::decode0);
     }
 
     protected void removeConsumerOffset(String topicAtGroup) {

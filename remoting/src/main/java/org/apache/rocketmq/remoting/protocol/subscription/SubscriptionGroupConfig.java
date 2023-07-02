@@ -17,10 +17,11 @@
 
 package org.apache.rocketmq.remoting.protocol.subscription;
 
-import com.google.common.base.MoreObjects;
-
 import java.io.Serializable;
 import java.util.Set;
+
+import com.google.common.base.MoreObjects;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.rocketmq.common.MixAll;
 
@@ -36,7 +37,7 @@ public class SubscriptionGroupConfig implements Serializable {
     private int retryQueueNums = 1;
 
     private int retryMaxTimes = 16;
-    private GroupRetryPolicy groupRetryPolicy = new GroupRetryPolicy();
+    private transient GroupRetryPolicy groupRetryPolicy = new GroupRetryPolicy();
 
     private long brokerId = MixAll.MASTER_ID;
 
@@ -49,7 +50,7 @@ public class SubscriptionGroupConfig implements Serializable {
     // Only valid for push consumer
     private int consumeTimeoutMinute = 15;
 
-    private Set<SimpleSubscriptionData> subscriptionDataSet;
+    private transient Set<SimpleSubscriptionData> subscriptionDataSet;
 
     public String getGroupName() {
         return groupName;

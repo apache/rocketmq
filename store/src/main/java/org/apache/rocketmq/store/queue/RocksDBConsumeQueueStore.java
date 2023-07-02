@@ -57,8 +57,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private static final Logger ERROR_LOG = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final Logger ROCKSDB_LOG = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
     public static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
-    private static final byte[] MAX_BYTES = "max".getBytes();
-    private static final byte[] MIN_BYTES = "min".getBytes();
+    private static final byte[] MAX_BYTES = "max".getBytes(CHARSET_UTF8);
+    private static final byte[] MIN_BYTES = "min".getBytes(CHARSET_UTF8);
     private static final int BATCH_SIZE = 16;
     private static final byte CTRL_0 = '\u0000';
     private static final byte CTRL_A = '\u0001';
@@ -96,7 +96,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private static final ByteBuffer INNER_CHECKPOINT_TOPIC;
     private static final int INNER_CHECKPOINT_TOPIC_LEN;
     static {
-        byte[] topicBytes = "CHECKPOINT_TOPIC".getBytes();
+        byte[] topicBytes = "CHECKPOINT_TOPIC".getBytes(CHARSET_UTF8);
         INNER_CHECKPOINT_TOPIC_LEN = 14 + topicBytes.length;
         INNER_CHECKPOINT_TOPIC = ByteBuffer.allocateDirect(INNER_CHECKPOINT_TOPIC_LEN);
         buildOffsetKeyBB0(INNER_CHECKPOINT_TOPIC, topicBytes, 0, true);
@@ -377,7 +377,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 break;
             }
             long queueOffset = byteBuffer.getLong(CQ_OFFSET_OFFSET);
-            if ((i > 0) && (queueOffset != preQueueOffset + 1)) {
+            if (i > 0 && queueOffset != preQueueOffset + 1) {
                 throw new Exception("rocksdb bug, data damaged");
             }
             preQueueOffset = queueOffset;

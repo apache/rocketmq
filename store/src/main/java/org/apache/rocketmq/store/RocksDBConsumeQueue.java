@@ -163,7 +163,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public int getUnitSize() {
-        // attention：unitSize should equal to 'ConsumeQueue.CQ_STORE_UNIT_SIZE'
+        // attention: unitSize should equal to 'ConsumeQueue.CQ_STORE_UNIT_SIZE'
         return ConsumeQueue.CQ_STORE_UNIT_SIZE;
     }
 

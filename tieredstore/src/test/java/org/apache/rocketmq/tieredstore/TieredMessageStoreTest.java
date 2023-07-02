@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.tieredstore;
 
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -26,6 +24,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -50,6 +49,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -265,7 +267,7 @@ public class TieredMessageStoreTest {
     }
 
     @Test
-    public void testCleanUnusedTopics() {
+    public void testCleanUnusedTopics() throws Exception {
         Set<String> topicSet = new HashSet<>();
         store.cleanUnusedTopic(topicSet);
         Assert.assertNull(TieredContainerManager.getInstance(store.getStoreConfig()).getMQContainer(mq));
@@ -274,7 +276,7 @@ public class TieredMessageStoreTest {
     }
 
     @Test
-    public void testDeleteTopics() {
+    public void testDeleteTopics() throws Exception {
         Set<String> topicSet = new HashSet<>();
         topicSet.add(mq.getTopic());
         store.deleteTopics(topicSet);

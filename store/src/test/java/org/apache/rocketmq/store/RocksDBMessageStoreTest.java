@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.rocketmq.store;
 
 import java.io.File;
@@ -67,7 +84,6 @@ public class RocksDBMessageStoreTest {
 
     @Before
     public void init() throws Exception {
-        System.out.println("init start");
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
 
@@ -75,7 +91,6 @@ public class RocksDBMessageStoreTest {
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
-        System.out.println("init end");
     }
 
     @Test(expected = OverlappingFileLockException.class)
@@ -106,14 +121,12 @@ public class RocksDBMessageStoreTest {
 
     @After
     public void destroy() {
-        System.out.println("destroy start");
         messageStore.shutdown();
         messageStore.destroy();
 
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         File file = new File(messageStoreConfig.getStorePathRootDir());
         UtilAll.deleteFile(file);
-        System.out.println("destroy end");
     }
 
     private MessageStore buildMessageStore() throws Exception {
@@ -819,8 +832,6 @@ public class RocksDBMessageStoreTest {
             MessageExtBrokerInner msg1 = buildMessage();
             messageStore.putMessage(msg1);
         }
-
-        System.out.printf("%d%n", defaultMessageStore.getMaxPhyOffset());
 
         List<SelectMappedBufferResult> bufferResultList = defaultMessageStore.getBulkCommitLogData(0, (int) defaultMessageStore.getMaxPhyOffset());
         List<MessageExt> msgList = new ArrayList<>();
