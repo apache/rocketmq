@@ -123,40 +123,6 @@ public class RocksDBOptionsFactory {
                 setInplaceUpdateSupport(true);
     }
 
-    public static ColumnFamilyOptions createConfigOptions() {
-        BlockBasedTableConfig tconfig = new BlockBasedTableConfig().
-                setFormatVersion(5).
-                setIndexType(IndexType.kBinarySearch).
-                setDataBlockIndexType(DataBlockIndexType.kDataBlockBinarySearch).
-                setBlockSize(32 * SizeUnit.KB).
-                setFilterPolicy(new BloomFilter(16, false)).
-                setCacheIndexAndFilterBlocks(false).
-                setCacheIndexAndFilterBlocksWithHighPriority(true).
-                setPinL0FilterAndIndexBlocksInCache(false).
-                setPinTopLevelIndexAndFilter(true).
-                setBlockCache(new LRUCache(4 * SizeUnit.MB, 8, false)).
-                setWholeKeyFiltering(true);
-
-        ColumnFamilyOptions options = new ColumnFamilyOptions();
-        return options.setMaxWriteBufferNumber(2).
-                setWriteBufferSize(8 * SizeUnit.MB).
-                setMinWriteBufferNumberToMerge(1).
-                setTableFormatConfig(tconfig).
-                setMemTableConfig(new SkipListMemTableConfig()).
-                setCompressionType(CompressionType.NO_COMPRESSION).
-                setNumLevels(7).
-                setCompactionStyle(CompactionStyle.LEVEL).
-                setLevel0FileNumCompactionTrigger(4).
-                setLevel0SlowdownWritesTrigger(8).
-                setLevel0StopWritesTrigger(12).
-                setTargetFileSizeBase(64 * SizeUnit.MB).
-                setTargetFileSizeMultiplier(2).
-                setMaxBytesForLevelBase(256 * SizeUnit.MB).
-                setMaxBytesForLevelMultiplier(2).
-                setMergeOperator(new StringAppendOperator()).
-                setInplaceUpdateSupport(true);
-    }
-
     /**
      * Create a rocksdb db options, the user must take care to close it after closing db.
      * @return

@@ -17,11 +17,6 @@
 
 package org.apache.rocketmq.store.plugin;
 
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
-
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -62,6 +57,11 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
+
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
 
 public abstract class AbstractPluginMessageStore implements MessageStore {
     protected MessageStore next = null;
@@ -268,7 +268,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public void cleanExpiredConsumerQueue() throws Exception {
+    public void cleanExpiredConsumerQueue() {
         next.cleanExpiredConsumerQueue();
     }
 

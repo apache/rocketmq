@@ -132,6 +132,7 @@ public interface ConsumeQueueStoreInterface {
      * Apply the dispatched request. This function should be idempotent.
      *
      * @param request dispatch request
+     * @throws Exception only in rocksdb mode will throw exception
      */
     void putMessagePositionInfoWrapper(DispatchRequest request) throws Exception;
 
@@ -229,7 +230,7 @@ public interface ConsumeQueueStoreInterface {
      * @param topic
      * @param queueId
      * @return the min offset of specific topic-queueId in consumeQueue
-     * @throws Exception
+     * @throws Exception only in rocksdb mode
      */
     long getMinOffsetInQueue(final String topic, final int queueId) throws Exception;
 
@@ -238,7 +239,7 @@ public interface ConsumeQueueStoreInterface {
      * @param topic
      * @param queueId
      * @return the max offset of specific topic-queueId in consumeQueue
-     * @throws Exception
+     * @throws Exception only in rocksdb mode
      */
     long getMaxOffsetInQueue(final String topic, final int queueId) throws Exception;
 

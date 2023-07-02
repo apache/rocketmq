@@ -143,7 +143,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public long getMaxOffsetInQueue(String topic, int queueId) throws Exception {
+    public long getMaxOffsetInQueue(String topic, int queueId) {
         ConsumeQueueInterface logic = findOrCreateConsumeQueue(topic, queueId);
         if (logic != null) {
             return logic.getMaxOffsetInQueue();
@@ -276,7 +276,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public long getMinOffsetInQueue(String topic, int queueId) throws Exception {
+    public long getMinOffsetInQueue(String topic, int queueId) {
         ConsumeQueueInterface logic = findOrCreateConsumeQueue(topic, queueId);
         if (logic != null) {
             return logic.getMinOffsetInQueue();

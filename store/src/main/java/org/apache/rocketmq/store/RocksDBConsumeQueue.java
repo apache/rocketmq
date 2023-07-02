@@ -43,7 +43,6 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger ERROR_LOG = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
-
     private final MessageStore messageStore;
     private final String topic;
     private final int queueId;
@@ -189,6 +188,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
         String topicQueueKey = getTopic() + "-" + getQueueId();
         Long queueOffset = queueOffsetOperator.getTopicQueueNextOffset(topicQueueKey);
         if (queueOffset == null) {
+            // we will recover topic queue table from rocksdb when we use it
             queueOffset = getTopicQueueNextOffset(getTopic(), getQueueId());
             queueOffsetOperator.updateQueueOffset(topicQueueKey, queueOffset);
         }

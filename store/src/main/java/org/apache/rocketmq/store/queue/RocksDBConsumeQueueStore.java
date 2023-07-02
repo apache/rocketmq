@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -302,11 +303,9 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     private void putCache(final String topic, final int queueId, final long cqOffset, final long phyOffset,
         final int msgSize, final long tagsCode, final long storeTimeStamp) {
-        //long start = System.nanoTime();
         TopicQueueOffset key = new TopicQueueOffset(topic, queueId, cqOffset);
         final ByteBuffer value = buildCQValueBB(phyOffset, msgSize, tagsCode, storeTimeStamp, cqOffset);
         this.consumeQueueCache.putIfAbsent(key, value);
-        //brokerLog.info("putCache rt: {}, {}, {}, {}", System.nanoTime() - start, topic, queueId, cqOffset);
     }
 
     private ByteBuffer getCache(final String topic, final int queueId, final long cqOffset) {
@@ -1074,6 +1073,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private void cleanTopic(final Set<String> existTopicSet) {
         RocksIterator iterator = null;
         try {
+            Set<String> topicToBeDeletedSet = new HashSet<>();
             iterator = rocksDBStorage.seekOffsetCF();
             if (iterator == null) {
                 return;
@@ -1095,6 +1095,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                     continue;
                 }
                 if (!existTopicSet.contains(topic)) {
+                    topicToBeDeletedSet.add(topic);
                     int queueId = keyBB.getInt(10 + topicLen);
                     ByteBuffer valueBB = ByteBuffer.wrap(value);
                     long cqOffset = valueBB.getLong(OFFSET_CQ_OFFSET);
@@ -1102,6 +1103,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                         topic, queueId, cqOffset);
                 }
             }
+            this.messageStore.deleteTopics(topicToBeDeletedSet);
         } catch (Exception e) {
             log.error("cleanUnusedTopic Failed.", e);
         } finally {

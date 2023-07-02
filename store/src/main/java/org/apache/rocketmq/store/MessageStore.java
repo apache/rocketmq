@@ -16,11 +16,6 @@
  */
 package org.apache.rocketmq.store;
 
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
-
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -35,10 +30,6 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
-import org.apache.rocketmq.store.DefaultMessageStore.CleanConsumeQueueService;
-import org.apache.rocketmq.store.DefaultMessageStore.CorrectLogicOffsetService;
-import org.apache.rocketmq.store.DefaultMessageStore.FlushConsumeQueueService;
-import org.apache.rocketmq.store.RocksDBMessageStore.RocksDBCorrectLogicOffsetService;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.hook.PutMessageHook;
@@ -50,6 +41,11 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
+
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
 
 /**
  * This class defines contracting interfaces to implement, allowing third-party vendor to use customized message store.
@@ -448,6 +444,7 @@ public interface MessageStore {
      *
      * @param deleteTopics unused topic name set
      * @return the number of the topics which has been deleted.
+     * @throws Exception only in rocksdb mode
      */
     int deleteTopics(final Set<String> deleteTopics) throws Exception;
 
@@ -462,7 +459,7 @@ public interface MessageStore {
     /**
      * Clean expired consume queues.
      */
-    void cleanExpiredConsumerQueue() throws Exception;
+    void cleanExpiredConsumerQueue();
 
     /**
      * Check if the given message has been swapped out of the memory.
@@ -695,6 +692,7 @@ public interface MessageStore {
      * Truncate dirty logic files
      *
      * @param phyOffset physical offset
+     * @throws Exception only in rocksdb mode
      */
     void truncateDirtyLogicFiles(long phyOffset) throws Exception;
 
@@ -844,6 +842,7 @@ public interface MessageStore {
      *
      * @param offsetToTruncate offset to truncate
      * @return true if truncate succeed, false otherwise
+     * @throws Exception only in rocksdb mode
      */
     boolean truncateFiles(long offsetToTruncate) throws Exception;
 

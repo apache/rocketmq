@@ -57,11 +57,14 @@ public class RocksDBMessageStore extends DefaultMessageStore {
         return new RocksDBCorrectLogicOffsetService();
     }
 
+    /**
+     * Try to set topicQueueTable = new HashMap<>(), otherwise it will cause bug when broker role changes.
+     * And unlike method in DefaultMessageStore, we don't need to really recover topic queue table advance,
+     * because we can recover topic queue table from rocksdb when we need to use it.
+     * @see RocksDBConsumeQueue#assignQueueOffset
+     */
     @Override
     public void recoverTopicQueueTable() {
-        // try to set topicQueueTable = new HashMap<>(), otherwise it will cause bug when broker role changes
-        // unlike method in DefaultMessageStore, we don't need to really recover topic queue table,
-        // because we can recover topic queue table from rocksdb (you can see method assignQueueOffset in RocksDBConsumeQueue)
         this.consumeQueueStore.setTopicQueueTable(new ConcurrentHashMap<>());
     }
 
@@ -87,7 +90,7 @@ public class RocksDBMessageStore extends DefaultMessageStore {
             Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.85"));
 
         @Override
-        protected void deleteExpiredFiles() throws Exception {
+        protected void deleteExpiredFiles() {
 
             long minOffset = RocksDBMessageStore.this.commitLog.getMinOffset();
             if (minOffset > this.lastPhysicalMinOffset) {

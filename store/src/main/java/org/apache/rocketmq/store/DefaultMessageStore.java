@@ -117,7 +117,7 @@ public class DefaultMessageStore implements MessageStore {
 
     public final PerfCounter.Ticks perfs = new PerfCounter.Ticks(LOGGER);
 
-    protected final MessageStoreConfig messageStoreConfig;
+    private final MessageStoreConfig messageStoreConfig;
     // CommitLog
     protected final CommitLog commitLog;
 
@@ -135,7 +135,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private final AllocateMappedFileService allocateMappedFileService;
 
-    protected ReputMessageService reputMessageService;
+    private ReputMessageService reputMessageService;
 
     private HAService haService;
 
@@ -184,7 +184,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private volatile long brokerInitMaxOffset = -1L;
 
-    protected List<PutMessageHook> putMessageHookList = new ArrayList<>();
+    private List<PutMessageHook> putMessageHookList = new ArrayList<>();
 
     private SendMessageBackHook sendMessageBackHook;
 
@@ -1381,6 +1381,7 @@ public class DefaultMessageStore implements MessageStore {
      * If offset table is cleaned, and old messages are dispatching after the old consume queue is cleaned,
      * consume queue will be created with old offset, then later message with new offset table can not be
      * dispatched to consume queue.
+     * @throws Exception only in rocksdb mode
      */
     @Override
     public int deleteTopics(final Set<String> deleteTopics) throws Exception {
@@ -1443,7 +1444,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public void cleanExpiredConsumerQueue() throws Exception {
+    public void cleanExpiredConsumerQueue() {
         long minCommitLogOffset = this.commitLog.getMinOffset();
 
         this.consumeQueueStore.cleanExpired(minCommitLogOffset);
@@ -2472,7 +2473,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
-        protected void deleteExpiredFiles() throws Exception {
+        protected void deleteExpiredFiles() {
             int deleteLogicsFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteConsumeQueueFilesInterval();
 
             long minOffset = DefaultMessageStore.this.commitLog.getMinOffset();
