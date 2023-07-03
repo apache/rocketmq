@@ -34,8 +34,6 @@ public class TopicPublishInfo {
     private boolean haveTopicRouterInfo = false;
     private List<MessageQueue> messageQueueList = new ArrayList<>();
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
-    private ConcurrentMap<Integer, ThreadLocalIndex> sendQueueMap = new ConcurrentHashMap<Integer, ThreadLocalIndex>();
-    private Map<Integer, List<MessageQueue>> queueListMap = new HashMap<Integer, List<MessageQueue>>();
     private TopicRouteData topicRouteData;
 
     public interface QueueFilter {

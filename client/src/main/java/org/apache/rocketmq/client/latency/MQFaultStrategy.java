@@ -25,7 +25,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class MQFaultStrategy {
-    private final static Logger log = LoggerFactory.getLogger(MQFaultStrategy.class);
     private LatencyFaultTolerance<String> latencyFaultTolerance;
     private boolean sendLatencyFaultEnable;
     private boolean startDetectorEnable;
