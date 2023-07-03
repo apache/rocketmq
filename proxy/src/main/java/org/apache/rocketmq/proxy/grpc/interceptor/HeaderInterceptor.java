@@ -26,7 +26,7 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
-import org.apache.rocketmq.proxy.grpc.constant.AttributesConstants;
+import org.apache.rocketmq.proxy.grpc.constant.AttributeKeys;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -76,8 +76,8 @@ public class HeaderInterceptor implements ServerInterceptor {
     }
 
     private String getProxyProtocolAddress(Attributes attributes) {
-        String proxyProtocolAddr = attributes.get(AttributesConstants.PROXY_PROTOCOL_ADDR);
-        String proxyProtocolPort = attributes.get(AttributesConstants.PROXY_PROTOCOL_PORT);
+        String proxyProtocolAddr = attributes.get(AttributeKeys.PROXY_PROTOCOL_ADDR);
+        String proxyProtocolPort = attributes.get(AttributeKeys.PROXY_PROTOCOL_PORT);
         if (StringUtils.isBlank(proxyProtocolAddr) || StringUtils.isBlank(proxyProtocolPort)) {
             return null;
         }

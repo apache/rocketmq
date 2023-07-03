@@ -776,21 +776,21 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
          */
         private void fillChannelWithMessage(HAProxyMessage msg, Channel channel) {
             if (StringUtils.isNotBlank(msg.sourceAddress())) {
-                channel.attr(AttributesConstants.PROXY_PROTOCOL_ADDR).set(msg.sourceAddress());
+                channel.attr(AttributeKeys.PROXY_PROTOCOL_ADDR).set(msg.sourceAddress());
             }
             if (msg.sourcePort() > 0) {
-                channel.attr(AttributesConstants.PROXY_PROTOCOL_PORT).set(String.valueOf(msg.sourcePort()));
+                channel.attr(AttributeKeys.PROXY_PROTOCOL_PORT).set(String.valueOf(msg.sourcePort()));
             }
             if (StringUtils.isNotBlank(msg.destinationAddress())) {
-                channel.attr(AttributesConstants.PROXY_PROTOCOL_SERVER_ADDR).set(msg.destinationAddress());
+                channel.attr(AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR).set(msg.destinationAddress());
             }
             if (msg.destinationPort() > 0) {
-                channel.attr(AttributesConstants.PROXY_PROTOCOL_SERVER_PORT).set(String.valueOf(msg.destinationPort()));
+                channel.attr(AttributeKeys.PROXY_PROTOCOL_SERVER_PORT).set(String.valueOf(msg.destinationPort()));
             }
             if (CollectionUtils.isNotEmpty(msg.tlvs())) {
                 msg.tlvs().forEach(tlv -> {
-                    AttributeKey<String> key = AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX
-                            + String.format("%02x", tlv.typeByteValue()));
+                    AttributeKey<String> key = AttributeKeys.valueOf(
+                            HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
                     String value = StringUtils.trim(tlv.content().toString(CharsetUtil.UTF_8));
                     channel.attr(key).set(value);
                 });

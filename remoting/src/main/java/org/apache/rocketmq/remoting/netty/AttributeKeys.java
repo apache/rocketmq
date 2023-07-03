@@ -20,7 +20,10 @@ package org.apache.rocketmq.remoting.netty;
 import io.netty.util.AttributeKey;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
 
-public class AttributesConstants {
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class AttributeKeys {
 
     public static final AttributeKey<String> PROXY_PROTOCOL_ADDR =
             AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_ADDR);
@@ -33,4 +36,10 @@ public class AttributesConstants {
 
     public static final AttributeKey<String> PROXY_PROTOCOL_SERVER_PORT =
             AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT);
+
+    private static final Map<String, AttributeKey<String>> ATTRIBUTE_KEY_MAP = new ConcurrentHashMap<>();
+
+    public static AttributeKey<String> valueOf(String name) {
+        return ATTRIBUTE_KEY_MAP.computeIfAbsent(name, AttributeKeys::valueOf);
+    }
 }

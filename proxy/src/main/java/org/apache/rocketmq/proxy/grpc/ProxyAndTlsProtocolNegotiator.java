@@ -48,7 +48,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.grpc.constant.AttributesConstants;
+import org.apache.rocketmq.proxy.grpc.constant.AttributeKeys;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 
@@ -177,21 +177,21 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         private void replaceEventWithMessage(HAProxyMessage msg) {
             Attributes.Builder builder = InternalProtocolNegotiationEvent.getAttributes(pne).toBuilder();
             if (StringUtils.isNotBlank(msg.sourceAddress())) {
-                builder.set(AttributesConstants.PROXY_PROTOCOL_ADDR, msg.sourceAddress());
+                builder.set(AttributeKeys.PROXY_PROTOCOL_ADDR, msg.sourceAddress());
             }
             if (msg.sourcePort() > 0) {
-                builder.set(AttributesConstants.PROXY_PROTOCOL_PORT, String.valueOf(msg.sourcePort()));
+                builder.set(AttributeKeys.PROXY_PROTOCOL_PORT, String.valueOf(msg.sourcePort()));
             }
             if (StringUtils.isNotBlank(msg.destinationAddress())) {
-                builder.set(AttributesConstants.PROXY_PROTOCOL_SERVER_ADDR, msg.destinationAddress());
+                builder.set(AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR, msg.destinationAddress());
             }
             if (msg.destinationPort() > 0) {
-                builder.set(AttributesConstants.PROXY_PROTOCOL_SERVER_PORT, String.valueOf(msg.destinationPort()));
+                builder.set(AttributeKeys.PROXY_PROTOCOL_SERVER_PORT, String.valueOf(msg.destinationPort()));
             }
             if (CollectionUtils.isNotEmpty(msg.tlvs())) {
                 msg.tlvs().forEach(tlv -> {
-                    Attributes.Key<String> key = Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX
-                            + String.format("%02x", tlv.typeByteValue()));
+                    Attributes.Key<String> key = AttributeKeys.valueOf(
+                            HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
                     String value = StringUtils.trim(tlv.content().toString(CharsetUtil.UTF_8));
                     builder.set(key, value);
                 });

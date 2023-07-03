@@ -19,7 +19,10 @@ package org.apache.rocketmq.proxy.grpc.constant;
 import io.grpc.Attributes;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
 
-public class AttributesConstants {
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class AttributeKeys {
 
     public static final Attributes.Key<String> PROXY_PROTOCOL_ADDR =
             Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_ADDR);
@@ -32,4 +35,10 @@ public class AttributesConstants {
 
     public static final Attributes.Key<String> PROXY_PROTOCOL_SERVER_PORT =
             Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT);
+
+    private static final Map<String, Attributes.Key<String>> ATTRIBUTES_KEY_MAP = new ConcurrentHashMap<>();
+
+    public static Attributes.Key<String> valueOf(String name) {
+        return ATTRIBUTES_KEY_MAP.computeIfAbsent(name, key -> Attributes.Key.create(name));
+    }
 }
