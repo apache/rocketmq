@@ -161,12 +161,17 @@ public class MessageQueueSelector {
 
     public AddressableMessageQueue selectOneByPipeline(boolean onlyBroker) {
         if (topicRouteService != null && topicRouteService.getMqFaultStrategy().isSendLatencyFaultEnable()) {
+            List<MessageQueue> messageQueueList = null;
             MessageQueue messageQueue = null;
-            List<MessageQueue> messageQueueList = transferAddressableQueues(queues);
+            if (onlyBroker) {
+                messageQueueList = transferAddressableQueues(brokerActingQueues);
+            } else {
+                messageQueueList = transferAddressableQueues(queues);
+            }
             AddressableMessageQueue addressableMessageQueue = null;
             MQFaultStrategy mqFaultStrategy = topicRouteService.getMqFaultStrategy();
 
-            // using both available filter.
+            // use both available filter.
             messageQueue = selectOneMessageQueue(messageQueueList, onlyBroker ? brokerIndex : queueIndex,
                     mqFaultStrategy.getAvailableFilter(), mqFaultStrategy.getReachableFilter());
             addressableMessageQueue = transferQueue2Addressable(messageQueue);
@@ -174,7 +179,7 @@ public class MessageQueueSelector {
                 return addressableMessageQueue;
             }
 
-            // using available filter.
+            // use available filter.
             messageQueue = selectOneMessageQueue(messageQueueList, onlyBroker ? brokerIndex : queueIndex,
                     mqFaultStrategy.getAvailableFilter());
             addressableMessageQueue = transferQueue2Addressable(messageQueue);
@@ -182,7 +187,7 @@ public class MessageQueueSelector {
                 return addressableMessageQueue;
             }
 
-            // no available filter, then using reachable filter.
+            // no available filter, then use reachable filter.
             messageQueue = selectOneMessageQueue(messageQueueList, onlyBroker ? brokerIndex : queueIndex,
                     mqFaultStrategy.getReachableFilter());
             addressableMessageQueue = transferQueue2Addressable(messageQueue);
