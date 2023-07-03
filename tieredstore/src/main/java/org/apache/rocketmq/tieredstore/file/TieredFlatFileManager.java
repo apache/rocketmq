@@ -265,12 +265,19 @@ public class TieredFlatFileManager {
     }
 
     public void destroyCompositeFile(MessageQueue mq) {
+        if (mq == null) {
+            return;
+        }
+
+        // delete memory reference
         CompositeQueueFlatFile flatFile = queueFlatFileMap.remove(mq);
         if (flatFile != null) {
             MessageQueue messageQueue = flatFile.getMessageQueue();
             logger.info("TieredFlatFileManager#destroyCompositeFile: " +
                     "try to destroy composite flat file: topic: {}, queueId: {}",
                 messageQueue.getTopic(), messageQueue.getQueueId());
+
+            // delete queue metadata
             flatFile.destroy();
         }
     }
