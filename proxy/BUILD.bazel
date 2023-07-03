@@ -95,6 +95,7 @@ java_library(
         "@maven//:io_grpc_grpc_netty_shaded",
         "@maven//:io_grpc_grpc_stub",
         "@maven//:io_netty_netty_all",
+        "@maven//:io_github_aliyunmq_rocketmq_grpc_netty_codec_haproxy",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
         "@maven//:io_opentelemetry_opentelemetry_exporter_prometheus",
