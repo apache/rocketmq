@@ -449,13 +449,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         return distributionHandler;
     }
 
+    @ChannelHandler.Sharable
     public class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf in) {
             try {
-                ProtocolDetectionResult<HAProxyProtocolVersion> ha = HAProxyMessageDecoder.detectProtocol(
-                        in);
+                ProtocolDetectionResult<HAProxyProtocolVersion> ha = HAProxyMessageDecoder.detectProtocol(in);
                 if (ha.state() == ProtocolDetectionState.NEEDS_MORE_DATA) {
                     return;
                 }
