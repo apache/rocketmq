@@ -545,6 +545,20 @@ public class DefaultMessageStore implements MessageStore {
         this.consumeQueueStore.destroy();
     }
 
+    private PutMessageStatus checkLmqMessage(MessageExtBrokerInner msg) {
+        if (msg.getProperties() != null
+            && StringUtils.isNotBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))
+            && this.isLmqConsumeQueueNumExceeded()) {
+            return PutMessageStatus.LMQ_CONSUME_QUEUE_NUM_EXCEEDED;
+        }
+        return PutMessageStatus.PUT_OK;
+    }
+
+    private boolean isLmqConsumeQueueNumExceeded() {
+        return this.getMessageStoreConfig().isEnableLmq() && this.getMessageStoreConfig().isEnableMultiDispatch()
+            && this.consumeQueueStore.getLmqConsumeQueueNum().get() > this.messageStoreConfig.getMaxLmqConsumeQueueNum();
+    }
+
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
 
@@ -567,6 +581,11 @@ public class DefaultMessageStore implements MessageStore {
                 LOGGER.error("[BUG]The message is an inner batch but cq type is not batch cq");
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
             }
+        }
+
+        PutMessageStatus lmqMsgCheckStatus = this.checkLmqMessage(msg);
+        if (lmqMsgCheckStatus == PutMessageStatus.LMQ_CONSUME_QUEUE_NUM_EXCEEDED) {
+            return CompletableFuture.completedFuture(new PutMessageResult(lmqMsgCheckStatus, null));
         }
 
         long beginTime = this.getSystemClock().now();
@@ -770,6 +789,11 @@ public class DefaultMessageStore implements MessageStore {
 
         if (!this.runningFlags.isReadable()) {
             LOGGER.warn("message store is not readable, so getMessage is forbidden " + this.runningFlags.getFlagBits());
+            return null;
+        }
+
+        if (MixAll.isLmq(topic) && this.isLmqConsumeQueueNumExceeded()) {
+            LOGGER.warn("message store is not available, broker config enableLmq and enableMultiDispatch, lmq consumeQueue num exceed maxLmqConsumeQueueNum config num");
             return null;
         }
 
@@ -3285,5 +3309,27 @@ public class DefaultMessageStore implements MessageStore {
 
     public long getReputFromOffset() {
         return this.reputMessageService.getReputFromOffset();
+    }
+
+    public void cleanUnusedLmqTopic(String topic) {
+        if (this.consumeQueueStore.getConsumeQueueTable().containsKey(topic)) {
+            ConcurrentMap<Integer, ConsumeQueueInterface> map = this.consumeQueueStore.getConsumeQueueTable().get(topic);
+            if (map != null) {
+                ConsumeQueue cq = (ConsumeQueue) map.get(0);
+                cq.destroy();
+                LOGGER.info("cleanUnusedLmqTopic: {} {} ConsumeQueue cleaned",
+                    cq.getTopic(),
+                    cq.getQueueId()
+                );
+
+                this.consumeQueueStore.removeTopicQueueTable(cq.getTopic(), cq.getQueueId());
+                this.consumeQueueStore.getLmqConsumeQueueNum().getAndDecrement();
+            }
+            this.consumeQueueStore.getConsumeQueueTable().remove(topic);
+            if (this.brokerConfig.isAutoDeleteUnusedStats()) {
+                this.brokerStatsManager.onTopicDeleted(topic);
+            }
+            LOGGER.info("cleanUnusedLmqTopic: {},topic destroyed", topic);
+        }
     }
 }

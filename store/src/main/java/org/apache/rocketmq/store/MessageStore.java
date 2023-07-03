@@ -961,4 +961,14 @@ public interface MessageStore {
      * @param attributesBuilderSupplier metrics attributes builder
      */
     void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier);
+
+    /**
+     * Clean unused lmq topic.
+     * When calling to clean up the lmq topic,
+     * the lmq topic cannot be used to write messages at the same time,
+     * otherwise the messages of the cleaning lmq topic may be lost,
+     * please call this method with caution
+     * @param topic lmq topic
+     */
+    void cleanUnusedLmqTopic(String topic);
 }

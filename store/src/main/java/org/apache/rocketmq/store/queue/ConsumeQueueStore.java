@@ -26,6 +26,8 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.CQType;
@@ -51,6 +53,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.String.format;
 import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathBatchConsumeQueue;
@@ -63,6 +66,7 @@ public class ConsumeQueueStore {
     protected final MessageStoreConfig messageStoreConfig;
     protected final QueueOffsetOperator queueOffsetOperator = new QueueOffsetOperator();
     protected final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface>> consumeQueueTable;
+    private final AtomicInteger lmqConsumeQueueNum = new AtomicInteger(0);
 
     public ConsumeQueueStore(DefaultMessageStore messageStore, MessageStoreConfig messageStoreConfig) {
         this.messageStore = messageStore;
@@ -356,6 +360,9 @@ public class ConsumeQueueStore {
             logic = oldLogic;
         } else {
             logic = newLogic;
+            if (MixAll.isLmq(topic)) {
+                lmqConsumeQueueNum.getAndIncrement();
+            }
         }
 
         return logic;
@@ -401,12 +408,19 @@ public class ConsumeQueueStore {
         return consumeQueueTable;
     }
 
+    public AtomicInteger getLmqConsumeQueueNum() {
+        return lmqConsumeQueueNum;
+    }
+
     private void putConsumeQueue(final String topic, final int queueId, final ConsumeQueueInterface consumeQueue) {
         ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface> map = this.consumeQueueTable.get(topic);
         if (null == map) {
             map = new ConcurrentHashMap<>();
             map.put(queueId, consumeQueue);
             this.consumeQueueTable.put(topic, map);
+            if (MixAll.isLmq(topic)) {
+                this.lmqConsumeQueueNum.getAndIncrement();
+            }
         } else {
             map.put(queueId, consumeQueue);
         }

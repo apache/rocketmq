@@ -364,6 +364,11 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
+    public void cleanUnusedLmqTopic(String topic) {
+        super.cleanUnusedLmqTopic(topic);
+    }
+
+    @Override
     public void shutdown() {
         next.shutdown();
 

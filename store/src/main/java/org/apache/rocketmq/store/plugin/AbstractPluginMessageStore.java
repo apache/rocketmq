@@ -651,4 +651,9 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
         next.initMetrics(meter, attributesBuilderSupplier);
     }
+
+    @Override
+    public void cleanUnusedLmqTopic(String topic) {
+        next.cleanUnusedLmqTopic(topic);
+    }
 }

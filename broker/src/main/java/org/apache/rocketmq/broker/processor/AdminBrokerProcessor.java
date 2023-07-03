@@ -529,6 +529,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
 
+        if (MixAll.isLmq(topic)) {
+            this.brokerController.getMessageStore().cleanUnusedLmqTopic(topic);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+            return response;
+        }
+
         this.brokerController.getTopicConfigManager().deleteTopicConfig(requestHeader.getTopic());
         this.brokerController.getTopicQueueMappingManager().delete(requestHeader.getTopic());
         this.brokerController.getConsumerOffsetManager().cleanOffsetByTopic(requestHeader.getTopic());
