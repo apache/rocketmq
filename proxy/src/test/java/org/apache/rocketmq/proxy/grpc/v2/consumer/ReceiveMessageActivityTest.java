@@ -74,7 +74,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     public void before() throws Throwable {
         super.before();
         ConfigurationManager.getProxyConfig().setGrpcClientConsumerMinLongPollingTimeoutMillis(0);
-        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor,
+        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor,
             grpcClientSettingsManager, grpcChannelManager);
     }
 
