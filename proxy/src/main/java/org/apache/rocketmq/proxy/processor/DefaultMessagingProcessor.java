@@ -168,10 +168,11 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     ) {
         return this.consumerProcessor.popMessage(ctx, queueSelector, consumerGroup, topic, maxMsgNums,
-            invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, timeoutMillis);
+            invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, attemptId, timeoutMillis);
     }
 
     @Override
@@ -289,8 +290,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup) {
-        return this.clientProcessor.getConsumerGroupInfo(consumerGroup);
+    public ConsumerGroupInfo getConsumerGroupInfo(ProxyContext ctx, String consumerGroup) {
+        return this.clientProcessor.getConsumerGroupInfo(ctx, consumerGroup);
     }
 
     @Override

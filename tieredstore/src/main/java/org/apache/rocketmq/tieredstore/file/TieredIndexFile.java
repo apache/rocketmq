@@ -44,18 +44,21 @@ public class TieredIndexFile {
 
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
-    public static final int INDEX_FILE_BEGIN_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 4;
-    public static final int INDEX_FILE_END_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 8;
-    public static final int INDEX_FILE_HEADER_SIZE = 28;
-    public static final int INDEX_FILE_HASH_SLOT_SIZE = 8;
-    public static final int INDEX_FILE_HASH_ORIGIN_INDEX_SIZE = 32;
-    public static final int INDEX_FILE_HASH_COMPACT_INDEX_SIZE = 28;
-
+    // header format:
+    // magic code(4) + begin timestamp(8) + end timestamp(8) + slot num(4) + index num(4)
     public static final int INDEX_FILE_HEADER_MAGIC_CODE_POSITION = 0;
     public static final int INDEX_FILE_HEADER_BEGIN_TIME_STAMP_POSITION = 4;
     public static final int INDEX_FILE_HEADER_END_TIME_STAMP_POSITION = 12;
     public static final int INDEX_FILE_HEADER_SLOT_NUM_POSITION = 20;
     public static final int INDEX_FILE_HEADER_INDEX_NUM_POSITION = 24;
+    public static final int INDEX_FILE_HEADER_SIZE = 28;
+
+    // index item
+    public static final int INDEX_FILE_BEGIN_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 4;
+    public static final int INDEX_FILE_END_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 8;
+    public static final int INDEX_FILE_HASH_SLOT_SIZE = 8;
+    public static final int INDEX_FILE_HASH_ORIGIN_INDEX_SIZE = 32;
+    public static final int INDEX_FILE_HASH_COMPACT_INDEX_SIZE = 28;
 
     private static final String INDEX_FILE_DIR_NAME = "tiered_index_file";
     private static final String CUR_INDEX_FILE_NAME = "0000";
