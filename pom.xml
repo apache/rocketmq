@@ -889,6 +889,11 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>io.github.aliyunmq</groupId>
+                <artifactId>rocketmq-grpc-netty-codec-haproxy</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
                 <groupId>com.conversantmedia</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>

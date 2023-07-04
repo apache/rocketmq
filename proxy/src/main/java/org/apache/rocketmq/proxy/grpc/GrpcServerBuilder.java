@@ -50,7 +50,7 @@ public class GrpcServerBuilder {
     protected GrpcServerBuilder(ThreadPoolExecutor executor, int port) {
         serverBuilder = NettyServerBuilder.forPort(port);
 
-        serverBuilder.protocolNegotiator(new OptionalSSLProtocolNegotiator());
+        serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());
 
         // build server
         int bossLoopNum = ConfigurationManager.getProxyConfig().getGrpcBossLoopNum();

@@ -104,6 +104,7 @@ maven_install(
         "software.amazon.awssdk:s3:2.20.29",
         "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
         "com.adobe.testing:s3mock-junit4:2.11.0",
+        "io.github.aliyunmq:rocketmq-grpc-netty-codec-haproxy:1.0.0",
     ],
     fetch_sources = True,
     repositories = [
