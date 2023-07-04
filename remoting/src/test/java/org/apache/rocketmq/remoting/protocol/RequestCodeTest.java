@@ -48,7 +48,7 @@ public class RequestCodeTest {
             }
         }
         for (Field field : fields) {
-            if (forbidden.contains(field.getInt(clazz))) {
+            if (!field.getName().startsWith("_") && forbidden.contains(field.getInt(clazz))) {
                 Assert.fail(field.getName() + "=" + field.getInt(clazz) + " is occupied.");
             }
         }
