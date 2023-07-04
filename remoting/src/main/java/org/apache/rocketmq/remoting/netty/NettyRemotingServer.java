@@ -452,6 +452,12 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     @ChannelHandler.Sharable
     public class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
+        private final TlsModeHandler tlsModeHandler;
+
+        public HandshakeHandler() {
+            tlsModeHandler = new TlsModeHandler(TlsSystemConfig.tlsMode);
+        }
+
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf in) {
             try {
@@ -460,11 +466,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     return;
                 }
                 if (ha.state() == ProtocolDetectionState.DETECTED) {
-                    ctx.pipeline().addAfter(ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
-                            .addAfter(HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
-                            .addAfter(HA_PROXY_HANDLER, TLS_MODE_HANDLER, new TlsModeHandler(TlsSystemConfig.tlsMode));
+                    ctx.pipeline().addAfter(defaultEventExecutorGroup, ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
+                            .addAfter(defaultEventExecutorGroup, HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
+                            .addAfter(defaultEventExecutorGroup, HA_PROXY_HANDLER, TLS_MODE_HANDLER, tlsModeHandler);
                 } else {
-                    ctx.pipeline().addAfter(ctx.name(), TLS_MODE_HANDLER, new TlsModeHandler(TlsSystemConfig.tlsMode));
+                    ctx.pipeline().addAfter(defaultEventExecutorGroup, ctx.name(), TLS_MODE_HANDLER, tlsModeHandler);
                 }
 
                 try {
@@ -510,7 +516,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     case ENFORCING:
                         if (null != sslContext) {
                             ctx.pipeline()
-                                .addAfter(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
+                                .addAfter(defaultEventExecutorGroup, TLS_MODE_HANDLER, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
                                 .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
                             log.info("Handlers prepended to channel pipeline to establish SSL connection");
                         } else {
