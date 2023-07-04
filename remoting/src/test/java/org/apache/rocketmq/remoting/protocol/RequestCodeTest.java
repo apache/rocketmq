@@ -17,8 +17,11 @@
 package org.apache.rocketmq.remoting.protocol;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -35,22 +38,21 @@ public class RequestCodeTest {
         ignored.add("NOTIFICATION");
         ignored.add("POLLING_INFO");
 
-        Set<Integer> forbidden = new HashSet<>();
+        Map<Integer, String> occupied = new HashMap<>();
         Class clazz = RequestCode.class;
         Field[] fields = clazz.getFields();
         for (Field field : fields) {
             if (ignored.contains(field.getName())) {
-                forbidden.add((int) (short) field.getInt(clazz));
                 continue;
             }
             if (field.getInt(clazz) > Short.MAX_VALUE) {
                 Assert.fail(field.getName() + "=" + field.getInt(clazz) + " should be short, to support serializeTypeCurrentRPC=ROCKETMQ");
             }
-        }
-        for (Field field : fields) {
-            if (!field.getName().startsWith("_") && forbidden.contains(field.getInt(clazz))) {
-                Assert.fail(field.getName() + "=" + field.getInt(clazz) + " is occupied.");
+            String name = occupied.get(field.getInt(clazz));
+            if (name != null) {
+                Assert.fail(field.getName() + "=" + field.getInt(clazz) + " is occupied by " + name);
             }
+            occupied.put(field.getInt(clazz), field.getName());
         }
     }
 }
