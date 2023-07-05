@@ -16,9 +16,17 @@
  */
 package org.apache.rocketmq.store.timer;
 
+/**
+ * Represents a slot of timing wheel. Format:
+ * ┌────────────┬───────────┬───────────┬───────────┬───────────┐
+ * │delayed time│ first pos │ last pos  │    num    │   magic   │
+ * ├────────────┼───────────┼───────────┼───────────┼───────────┤
+ * │   8bytes   │   8bytes  │  8bytes   │   4bytes  │   4bytes  │
+ * └────────────┴───────────┴───────────┴───────────┴───────────┘
+ */
 public class Slot {
     public static final short SIZE = 32;
-    public final long timeMs;
+    public final long timeMs; //delayed time
     public final long firstPos;
     public final long lastPos;
     public final int num;
