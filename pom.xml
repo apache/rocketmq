@@ -126,7 +126,7 @@
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
         <rocketmq-proto.version>2.0.3</rocketmq-proto.version>
-        <grpc.version>1.50.0</grpc.version>
+        <grpc.version>1.53.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
