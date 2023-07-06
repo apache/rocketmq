@@ -53,6 +53,12 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
         this.queueId = queueId;
     }
 
+    public RocksDBConsumeQueue(final String topic, final int queueId) {
+        this.messageStore = null;
+        this.topic = topic;
+        this.queueId = queueId;
+    }
+
     @Override
     public boolean load() {
         return true;

@@ -40,7 +40,7 @@ public class ConsumeQueueCompactionFilterFactory extends AbstractCompactionFilte
     @Override
     public RemoveConsumeQueueCompactionFilter createCompactionFilter(final AbstractCompactionFilter.Context context) {
         long minPhyOffset = this.messageStore.getMinPhyOffset();
-        LOGGER.info("manualCompaction. minPhyOffset: {}, isFull: {}, isManual: {}",
+        LOGGER.info("manualCompaction minPhyOffset: {}, isFull: {}, isManual: {}",
                 minPhyOffset, context.isFullCompaction(), context.isManualCompaction());
         return new RemoveConsumeQueueCompactionFilter(minPhyOffset);
     }

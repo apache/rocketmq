@@ -32,8 +32,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
@@ -1073,7 +1073,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private void cleanTopic(final Set<String> existTopicSet) {
         RocksIterator iterator = null;
         try {
-            Set<String> topicToBeDeletedSet = new HashSet<>();
+            Map<String/* topic */, Set<Integer/* queueId */>> topicQueueIdToBeDeletedMap = new HashMap<>();
             iterator = rocksDBStorage.seekOffsetCF();
             if (iterator == null) {
                 return;
@@ -1095,15 +1095,28 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                     continue;
                 }
                 if (!existTopicSet.contains(topic)) {
-                    topicToBeDeletedSet.add(topic);
                     int queueId = keyBB.getInt(10 + topicLen);
                     ByteBuffer valueBB = ByteBuffer.wrap(value);
                     long cqOffset = valueBB.getLong(OFFSET_CQ_OFFSET);
+
+                    Set<Integer> topicQueueIdSet = topicQueueIdToBeDeletedMap.get(topic);
+                    if (topicQueueIdSet == null) {
+                        Set<Integer> newSet = new HashSet<>();
+                        newSet.add(queueId);
+                        topicQueueIdToBeDeletedMap.put(topic, newSet);
+                    } else {
+                        topicQueueIdSet.add(queueId);
+                    }
                     ERROR_LOG.info("consumeQueue store has dirty cqOffset. topic: {}, queueId: {}, cqOffset: {}",
                         topic, queueId, cqOffset);
                 }
             }
-            this.messageStore.deleteTopics(topicToBeDeletedSet);
+            for (Map.Entry<String, Set<Integer>> entry : topicQueueIdToBeDeletedMap.entrySet()) {
+                String topic = entry.getKey();
+                for (int queueId : entry.getValue()) {
+                    destroy(new RocksDBConsumeQueue(topic, queueId));
+                }
+            }
         } catch (Exception e) {
             log.error("cleanUnusedTopic Failed.", e);
         } finally {
