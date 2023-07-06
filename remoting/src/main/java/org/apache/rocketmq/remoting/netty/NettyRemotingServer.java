@@ -477,6 +477,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 log.error("process proxy protocol negotiator failed.", e);
                 throw e;
             }
+
+            // Hand over this message to the next .
+            ctx.fireChannelRead(in.retain());
         }
     }
 

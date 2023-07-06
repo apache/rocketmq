@@ -49,6 +49,6 @@ public class AttributeKeys {
     private static final Map<String, AttributeKey<String>> ATTRIBUTE_KEY_MAP = new ConcurrentHashMap<>();
 
     public static AttributeKey<String> valueOf(String name) {
-        return ATTRIBUTE_KEY_MAP.computeIfAbsent(name, AttributeKeys::valueOf);
+        return ATTRIBUTE_KEY_MAP.computeIfAbsent(name, AttributeKey::valueOf);
     }
 }
