@@ -33,7 +33,7 @@ import org.apache.rocketmq.proxy.service.ServiceManager;
 
 public class ReceiptHandleProcessor extends AbstractProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    protected DefaultReceiptHandleManager defaultReceiptHandleManager;
+    protected DefaultReceiptHandleManager receiptHandleManager;
 
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager) {
         super(messagingProcessor, serviceManager);
@@ -51,7 +51,7 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
                     event.getFuture().complete(v);
                 });
         };
-        this.defaultReceiptHandleManager = new DefaultReceiptHandleManager(serviceManager.getMetadataService(), serviceManager.getConsumerManager(), eventListener);
+        this.receiptHandleManager = new DefaultReceiptHandleManager(serviceManager.getMetadataService(), serviceManager.getConsumerManager(), eventListener);
     }
 
     protected ProxyContext createContext(String actionName) {
@@ -59,11 +59,11 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
     }
 
     public void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, MessageReceiptHandle messageReceiptHandle) {
-        defaultReceiptHandleManager.addReceiptHandle(ctx, channel, group, msgID, messageReceiptHandle);
+        receiptHandleManager.addReceiptHandle(ctx, channel, group, msgID, messageReceiptHandle);
     }
 
     public MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, String receiptHandle) {
-        return defaultReceiptHandleManager.removeReceiptHandle(ctx, channel, group, msgID, receiptHandle);
+        return receiptHandleManager.removeReceiptHandle(ctx, channel, group, msgID, receiptHandle);
     }
 
     public static class ReceiptHandleGroupKey {
