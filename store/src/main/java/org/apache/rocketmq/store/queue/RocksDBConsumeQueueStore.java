@@ -45,6 +45,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.FixedSizeCache;
 import org.apache.rocketmq.store.RocksDBConsumeQueue;
+import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
 import org.rocksdb.ColumnFamilyHandle;
@@ -273,6 +274,14 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             this.rocksDBStorage.batchPut(writeBatch);
 
             updateTopicQueueMaxCqOffset(tempTopicQueueMaxOffsetMap);
+
+            long storeTimeStamp = bufferDRList.get(size - 1).getStoreTimestamp();
+            if (this.messageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE ||
+                this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
+                this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimeStamp);
+            }
+            this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(storeTimeStamp);
+
             notifyMessageArriveAndClear();
             return true;
         } catch (Exception e) {

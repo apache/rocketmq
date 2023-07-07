@@ -757,8 +757,8 @@ public class CommitLog implements Swappable {
         }
 
         int sysFlag = byteBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
-        int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
-        int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornhostLength;
+        int bornHostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
+        int msgStoreTimePos = 4 + 4 + 4 + 4 + 4 + 8 + 8 + 4 + 8 + bornHostLength;
         long storeTimestamp = byteBuffer.getLong(msgStoreTimePos);
         if (0 == storeTimestamp) {
             return false;

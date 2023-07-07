@@ -223,7 +223,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
         msg.removeWaitStorePropertyString();
     }
 
-    public long getTopicQueueNextOffset(String topic, int queueId) throws Exception {
+    private long getTopicQueueNextOffset(String topic, int queueId) throws Exception {
         try {
             return this.messageStore.getQueueStore().getMaxOffsetInQueue(topic, queueId);
         } catch (Exception e) {
