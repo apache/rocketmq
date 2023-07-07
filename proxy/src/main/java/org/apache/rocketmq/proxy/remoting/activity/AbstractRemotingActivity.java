@@ -128,7 +128,7 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
             .setProtocolType(ChannelProtocolType.REMOTING.getName())
             .setChannel(channel)
             .setLocalAddress(NetworkUtil.socketAddress2String(ctx.channel().localAddress()))
-            .setRemoteAddress(NetworkUtil.socketAddress2String(ctx.channel().remoteAddress()));
+            .setRemoteAddress(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         Optional.ofNullable(RemotingHelper.getAttributeValue(AttributeKeys.LANGUAGE_CODE_KEY, channel))
             .ifPresent(language -> context.setLanguage(language.name()));
