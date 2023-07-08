@@ -393,6 +393,8 @@ public class MessageStoreConfig {
     // rocksdb mode
     private boolean enableCacheForRocksDBStore = false;
     private boolean realTimePersistRocksDBConfig = true;
+    private long cleanDirtyConsumeQueueIntervalMin = 60;
+    private long statConsumeQueueRocksDbIntervalSec = 10;
     private long memTableFlushInterval = 60 * 60 * 1000L;
 
     public boolean isDebugLockEnable() {
@@ -1688,6 +1690,22 @@ public class MessageStoreConfig {
 
     public void setRealTimePersistRocksDBConfig(boolean realTimePersistRocksDBConfig) {
         this.realTimePersistRocksDBConfig = realTimePersistRocksDBConfig;
+    }
+
+    public long getStatConsumeQueueRocksDbIntervalSec() {
+        return statConsumeQueueRocksDbIntervalSec;
+    }
+
+    public void setStatConsumeQueueRocksDbIntervalSec(long statConsumeQueueRocksDbIntervalSec) {
+        this.statConsumeQueueRocksDbIntervalSec = statConsumeQueueRocksDbIntervalSec;
+    }
+
+    public long getCleanDirtyConsumeQueueIntervalMin() {
+        return cleanDirtyConsumeQueueIntervalMin;
+    }
+
+    public void setCleanDirtyConsumeQueueIntervalMin(long cleanDirtyConsumeQueueIntervalMin) {
+        this.cleanDirtyConsumeQueueIntervalMin = cleanDirtyConsumeQueueIntervalMin;
     }
 
     public long getMemTableFlushInterval() {

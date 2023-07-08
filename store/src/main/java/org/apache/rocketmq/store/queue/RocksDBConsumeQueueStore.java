@@ -48,6 +48,7 @@ import org.apache.rocketmq.store.RocksDBConsumeQueue;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.FlushOptions;
 import org.rocksdb.RocksDBException;
@@ -145,11 +146,11 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         log.info("RocksDB ConsumeQueueStore start!");
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             rocksDBStorage.statRocksdb(ROCKSDB_LOG);
-        }, 10, 10, TimeUnit.SECONDS);
+        }, 10, this.messageStoreConfig.getStatConsumeQueueRocksDbIntervalSec(), TimeUnit.SECONDS);
 
         this.scheduledExecutorService.scheduleWithFixedDelay(() -> {
             cleanTopic(messageStore.getTopicConfigs().keySet());
-        }, 10, 60, TimeUnit.MINUTES);
+        }, 10, this.messageStoreConfig.getCleanDirtyConsumeQueueIntervalMin(), TimeUnit.MINUTES);
     }
 
     @Override
@@ -463,7 +464,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     public void destroy(ConsumeQueueInterface consumeQueue) throws Exception {
         String topic = consumeQueue.getTopic();
         int queueId = consumeQueue.getQueueId();
-        if (StringUtils.isEmpty(topic) || queueId <= 0 || !this.rocksDBStorage.hold()) {
+        if (StringUtils.isEmpty(topic) || queueId < 0 || !this.rocksDBStorage.hold()) {
             return;
         }
         WriteBatch writeBatch = new WriteBatch();
@@ -471,32 +472,28 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             final ColumnFamilyHandle defaultCFH = this.rocksDBStorage.getDefaultCFHandle();
             final ColumnFamilyHandle offsetCFH = this.rocksDBStorage.getOffsetCFHandle();
             final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
-            for (int i = 0; i < queueId; i++) {
-                final ByteBuffer minOffsetKey = buildOffsetKeyBB(topicBytes, i, false);
-                byte[] minOffsetBytes = this.rocksDBStorage.getOffset(minOffsetKey.array());
-                Long startCQOffset = (minOffsetBytes != null) ? ByteBuffer.wrap(minOffsetBytes).getLong(OFFSET_CQ_OFFSET) : null;
+            final ByteBuffer minOffsetKey = buildOffsetKeyBB(topicBytes, queueId, false);
+            byte[] minOffsetBytes = this.rocksDBStorage.getOffset(minOffsetKey.array());
+            Long startCQOffset = (minOffsetBytes != null) ? ByteBuffer.wrap(minOffsetBytes).getLong(OFFSET_CQ_OFFSET) : null;
 
-                final ByteBuffer maxOffsetKey = buildOffsetKeyBB(topicBytes, i, true);
-                byte[] maxOffsetBytes = this.rocksDBStorage.getOffset(maxOffsetKey.array());
-                Long endCQOffset = (maxOffsetBytes != null) ? ByteBuffer.wrap(maxOffsetBytes).getLong(OFFSET_CQ_OFFSET) : null;
+            final ByteBuffer maxOffsetKey = buildOffsetKeyBB(topicBytes, queueId, true);
+            byte[] maxOffsetBytes = this.rocksDBStorage.getOffset(maxOffsetKey.array());
+            Long endCQOffset = (maxOffsetBytes != null) ? ByteBuffer.wrap(maxOffsetBytes).getLong(OFFSET_CQ_OFFSET) : null;
 
-                final ByteBuffer cqStartKey = buildDeleteCQKey(true, topicBytes, i);
-                final ByteBuffer cqEndKey = buildDeleteCQKey(false, topicBytes, i);
+            final ByteBuffer cqStartKey = buildDeleteCQKey(true, topicBytes, queueId);
+            final ByteBuffer cqEndKey = buildDeleteCQKey(false, topicBytes, queueId);
 
-                writeBatch.deleteRange(defaultCFH, cqStartKey.array(), cqEndKey.array());
-                writeBatch.delete(offsetCFH, minOffsetKey.array());
-                writeBatch.delete(offsetCFH, maxOffsetKey.array());
+            writeBatch.deleteRange(defaultCFH, cqStartKey.array(), cqEndKey.array());
+            writeBatch.delete(offsetCFH, minOffsetKey.array());
+            writeBatch.delete(offsetCFH, maxOffsetKey.array());
 
-                log.info("kv delete topic. {}, {}, minOffset: {}, maxOffset: {}", topic, i, startCQOffset, endCQOffset);
-            }
+            log.info("kv delete topic. {}, {}, minOffset: {}, maxOffset: {}", topic, queueId, startCQOffset, endCQOffset);
 
             this.rocksDBStorage.batchPut(writeBatch);
 
-            for (int i = 0; i < queueId; i++) {
-                String topicQueueId = buildTopicQueueId(topic, i);
-                removeHeapMinCqOffset(topicQueueId);
-                removeHeapMaxCqOffset(topicQueueId);
-            }
+            String topicQueueId = buildTopicQueueId(topic, queueId);
+            removeHeapMinCqOffset(topicQueueId);
+            removeHeapMaxCqOffset(topicQueueId);
         } catch (Exception e) {
             ERROR_LOG.error("kv deleteTopic {} Failed.", topic, e);
             throw e;
@@ -1100,7 +1097,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 keyBB.get(topicBytes);
 
                 String topic = new String(topicBytes, CHARSET_UTF8);
-                if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(topic)) {
+                if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(topic) || TimerMessageStore.TIMER_TOPIC.equals(topic)) {
                     continue;
                 }
                 if (!existTopicSet.contains(topic)) {
