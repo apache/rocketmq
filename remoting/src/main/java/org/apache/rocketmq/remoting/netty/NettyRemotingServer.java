@@ -459,13 +459,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
 
         @Override
-        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf in) {
+        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf byteBuf) {
             try {
-                ProtocolDetectionResult<HAProxyProtocolVersion> ha = HAProxyMessageDecoder.detectProtocol(in);
-                if (ha.state() == ProtocolDetectionState.NEEDS_MORE_DATA) {
+                ProtocolDetectionResult<HAProxyProtocolVersion> detectionResult = HAProxyMessageDecoder.detectProtocol(byteBuf);
+                if (detectionResult.state() == ProtocolDetectionState.NEEDS_MORE_DATA) {
                     return;
                 }
-                if (ha.state() == ProtocolDetectionState.DETECTED) {
+                if (detectionResult.state() == ProtocolDetectionState.DETECTED) {
                     ctx.pipeline().addAfter(defaultEventExecutorGroup, ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
                             .addAfter(defaultEventExecutorGroup, HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
                             .addAfter(defaultEventExecutorGroup, HA_PROXY_HANDLER, TLS_MODE_HANDLER, tlsModeHandler);
@@ -481,7 +481,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
 
                 // Hand over this message to the next .
-                ctx.fireChannelRead(in.retain());
+                ctx.fireChannelRead(byteBuf.retain());
             } catch (Exception e) {
                 log.error("process proxy protocol negotiator failed.", e);
                 throw e;
@@ -503,8 +503,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) {
 
-            // Peek the first byte to determine if the content is starting with TLS handshake
-            byte b = msg.getByte(0);
+            // Peek the current read index byte to determine if the content is starting with TLS handshake
+            byte b = msg.getByte(msg.readerIndex());
 
             if (b == HANDSHAKE_MAGIC_CODE) {
                 switch (tlsMode) {
