@@ -42,3 +42,18 @@ accounts:
     # if it is admin, it could access all resources
     admin: true
 
+  - accessKey: rocketmq3
+    secretKey: 12345678
+    admin: false
+    defaultTopicPerm: DENY
+    defaultGroupPerm: DENY
+    topicPerms:
+      - topicA=PUB
+      - topicB=SUB
+      - topicC=PUB|SUB
+      - topicD=DENY
+    groupPerms:
+      - groupB=SUB
+      - groupC=PUB|SUB
+      - groupD=DENY
+

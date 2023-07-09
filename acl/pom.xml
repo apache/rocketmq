@@ -73,5 +73,12 @@
             <artifactId>spring-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client-java</artifactId>
+            <version>${rocketmq-client-java.version}</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 </project>
