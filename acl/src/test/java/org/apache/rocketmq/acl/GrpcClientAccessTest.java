@@ -51,11 +51,12 @@ public class GrpcClientAccessTest {
 
     @Before
     public void init() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
-        String folder = "conf";
+        String folder = "access_acl_conf";
         confHome = AclTestHelper.copyResources(folder, true);
         System.setProperty("rocketmq.home.dir", confHome.getAbsolutePath());
-        plainAccessValidator = new PlainAccessValidator();
+        System.setProperty("rocketmq.acl.plain.file", "/access_acl_conf/acl/plain_acl.yml".replace("/", File.separator));
 
+        plainAccessValidator = new PlainAccessValidator();
         String accessKey = "rocketmq3";
         String secretKey = "12345678";
         String endpoint = "127.0.0.1:8081";

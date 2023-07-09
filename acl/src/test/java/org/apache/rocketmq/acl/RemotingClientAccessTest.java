@@ -47,9 +47,11 @@ public class RemotingClientAccessTest {
 
     @Before
     public void init() throws IOException {
-        String folder = "conf";
+        String folder = "access_acl_conf";
         confHome = AclTestHelper.copyResources(folder, true);
         System.setProperty("rocketmq.home.dir", confHome.getAbsolutePath());
+        System.setProperty("rocketmq.acl.plain.file", "/access_acl_conf/acl/plain_acl.yml".replace("/", File.separator));
+
         plainAccessValidator = new PlainAccessValidator();
         sessionCredentials = new SessionCredentials();
         sessionCredentials.setAccessKey("rocketmq3");
