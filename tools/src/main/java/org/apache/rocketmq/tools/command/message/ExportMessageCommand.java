@@ -193,10 +193,10 @@ public class ExportMessageCommand implements SubCommand {
                     Object endOffsetObj = jsonObject.get("endOffset");
                     Long beginOffset = beginOffsetObj instanceof Integer ? ((Integer) beginOffsetObj).longValue() : (Long) beginOffsetObj;
                     Long endOffset = endOffsetObj instanceof Integer ? ((Integer) endOffsetObj).longValue() : (Long) endOffsetObj;
-                    boolean isOutOfRange = beginOffset != minOffset || (beginOffset == minOffset && maxOffset < endOffset);
+                    boolean isOutOfRange = beginOffset == minOffset && maxOffset < endOffset;
                     if (beginOffset == minOffset && maxOffset == endOffset) {
                         continue;
-                    } else if (isOutOfRange) {
+                    } else if (beginOffset != minOffset || isOutOfRange) {
                         FileUtils.forceDeleteOnExit(new File(queueFilepath));
                     } else if (beginOffset == minOffset && maxOffset > endOffset) {
                         // continue to write to message file
