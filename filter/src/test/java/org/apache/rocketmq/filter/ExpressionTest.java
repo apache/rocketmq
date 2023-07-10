@@ -46,6 +46,372 @@ public class ExpressionTest {
     private static String nullOrExpression = "a is null OR a='hello'";
     private static String stringHasString = "TAGS is not null and TAGS='''''tag'''''";
 
+
+    @Test
+    public void testContains_StartsWith_EndsWith_has() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", "axb")
+        );
+        eval(genExp("value contains 'x'"), context, Boolean.TRUE);
+        eval(genExp("value startswith 'ax'"), context, Boolean.TRUE);
+        eval(genExp("value endswith 'xb'"), context, Boolean.TRUE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_has() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", "axb")
+        );
+        eval(genExp("value not contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value not startswith 'ax'"), context, Boolean.FALSE);
+        eval(genExp("value not endswith 'xb'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_has_not() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", "abb")
+        );
+        eval(genExp("value contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value startswith 'x'"), context, Boolean.FALSE);
+        eval(genExp("value endswith 'x'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_has_not() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", "abb")
+        );
+        eval(genExp("value not contains 'x'"), context, Boolean.TRUE);
+        eval(genExp("value not startswith 'x'"), context, Boolean.TRUE);
+        eval(genExp("value not endswith 'x'"), context, Boolean.TRUE);
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_hasEmpty() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", "axb")
+        );
+        eval(genExp("value contains ''"), context, Boolean.FALSE);
+        eval(genExp("value startswith ''"), context, Boolean.FALSE);
+        eval(genExp("value endswith ''"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_hasEmpty() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", "axb")
+        );
+        eval(genExp("value not contains ''"), context, Boolean.FALSE);
+        eval(genExp("value not startswith ''"), context, Boolean.FALSE);
+        eval(genExp("value not endswith ''"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_null_has_1() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", null)
+        );
+        eval(genExp("value contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value startswith 'x'"), context, Boolean.FALSE);
+        eval(genExp("value endswith 'x'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_null_has_1() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", null)
+        );
+        eval(genExp("value not contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value not startswith 'x'"), context, Boolean.FALSE);
+        eval(genExp("value not endswith 'x'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_null_has_2() throws Exception {
+        EvaluationContext context = genContext(
+//                KeyValue.c("value", null)
+        );
+        eval(genExp("value contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value startswith 'x'"), context, Boolean.FALSE);
+        eval(genExp("value endswith 'x'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_null_has_2() throws Exception {
+        EvaluationContext context = genContext(
+//                KeyValue.c("value", null)
+        );
+        eval(genExp("value not contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value not startswith 'x'"), context, Boolean.FALSE);
+        eval(genExp("value not endswith 'x'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_number_has() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", 1.23)
+        );
+        eval(genExp("value contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value startswith 'x'"), context, Boolean.FALSE);
+        eval(genExp("value endswith 'x'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_number_has() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", 1.23)
+        );
+        eval(genExp("value not contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value not startswith 'x'"), context, Boolean.FALSE);
+        eval(genExp("value not endswith 'x'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_boolean_has() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", Boolean.TRUE)
+        );
+        eval(genExp("value contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value startswith 'x'"), context, Boolean.FALSE);
+        eval(genExp("value endswith 'x'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_boolean_has() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", Boolean.TRUE)
+        );
+        eval(genExp("value not contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value not startswith 'x'"), context, Boolean.FALSE);
+        eval(genExp("value not endswith 'x'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_object_has() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("value", new Object())
+        );
+        eval(genExp("value contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("value startswith 'x'"), context, Boolean.FALSE);
+        eval(genExp("value endswith 'x'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContains_has_not_string_1() throws Exception {
+        try {
+            Expression expr = genExp("value contains x");  // will throw parse exception.
+            EvaluationContext context = genContext(
+                    KeyValue.c("value", "axb")
+            );
+            eval(expr, context, Boolean.FALSE);
+        } catch (Throwable e) {
+        }
+    }
+
+    @Test
+    public void test_notContains_has_not_string_1() throws Exception {
+        try {
+            Expression expr = genExp("value not contains x");  // will throw parse exception.
+            EvaluationContext context = genContext(
+                    KeyValue.c("value", "axb")
+            );
+            eval(expr, context, Boolean.FALSE);
+        } catch (Throwable e) {
+        }
+    }
+
+    @Test
+    public void testContains_has_not_string_2() throws Exception {
+        try {
+            Expression expr = genExp("value contains 123");  // will throw parse exception.
+            EvaluationContext context = genContext(
+                    KeyValue.c("value", "axb")
+            );
+            eval(expr, context, Boolean.FALSE);
+        } catch (Throwable e) {
+        }
+    }
+
+    @Test
+    public void test_notContains_has_not_string_2() throws Exception {
+        try {
+            Expression expr = genExp("value not contains 123");  // will throw parse exception.
+            EvaluationContext context = genContext(
+                    KeyValue.c("value", "axb")
+            );
+            eval(expr, context, Boolean.FALSE);
+        } catch (Throwable e) {
+        }
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_string_has_string() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("'axb' contains 'x'"), context, Boolean.TRUE);
+        eval(genExp("'axb' startswith 'ax'"), context, Boolean.TRUE);
+        eval(genExp("'axb' endswith 'xb'"), context, Boolean.TRUE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_string_has_string() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("'axb' not contains 'x'"), context, Boolean.FALSE);
+        eval(genExp("'axb' not startswith 'ax'"), context, Boolean.FALSE);
+        eval(genExp("'axb' not endswith 'xb'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContains_startsWith_endsWith_string_has_not_string() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("'axb' contains 'u'"), context, Boolean.FALSE);
+        eval(genExp("'axb' startswith 'u'"), context, Boolean.FALSE);
+        eval(genExp("'axb' endswith 'u'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_string_has_not_string() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("'axb' not contains 'u'"), context, Boolean.TRUE);
+        eval(genExp("'axb' not startswith 'u'"), context, Boolean.TRUE);
+        eval(genExp("'axb' not endswith 'u'"), context, Boolean.TRUE);
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_string_has_empty() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("'axb' contains ''"), context, Boolean.FALSE);
+        eval(genExp("'axb' startswith ''"), context, Boolean.FALSE);
+        eval(genExp("'axb' endswith ''"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_string_has_empty() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("'axb' not contains ''"), context, Boolean.FALSE);
+        eval(genExp("'axb' not startswith ''"), context, Boolean.FALSE);
+        eval(genExp("'axb' not endswith ''"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_string_has_space() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("' ' contains ' '"), context, Boolean.TRUE);
+        eval(genExp("' ' startswith ' '"), context, Boolean.TRUE);
+        eval(genExp("' ' endswith ' '"), context, Boolean.TRUE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_string_has_space() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("' ' not contains ' '"), context, Boolean.FALSE);
+        eval(genExp("' ' not startswith ' '"), context, Boolean.FALSE);
+        eval(genExp("' ' not endswith ' '"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContains_string_has_nothing() throws Exception {
+        try {
+            Expression expr = genExp("'axb' contains ");  // will throw parse exception.
+            EvaluationContext context = genContext(
+                    KeyValue.c("whatever", "whatever")
+            );
+            eval(expr, context, Boolean.TRUE);
+        } catch (Throwable e) {
+        }
+    }
+
+    @Test
+    public void test_notContains_string_has_nothing() throws Exception {
+        try {
+            Expression expr = genExp("'axb' not contains ");  // will throw parse exception.
+            EvaluationContext context = genContext(
+                    KeyValue.c("whatever", "whatever")
+            );
+            eval(expr, context, Boolean.TRUE);
+        } catch (Throwable e) {
+        }
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_string_has_special_1() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("'axb' contains '.'"), context, Boolean.FALSE);
+        eval(genExp("'axb' startswith '.'"), context, Boolean.FALSE);
+        eval(genExp("'axb' endswith '.'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void test_notContains_notStartsWith_notEndsWith_string_has_special_1() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("'axb' not contains '.'"), context, Boolean.TRUE);
+        eval(genExp("'axb' not startswith '.'"), context, Boolean.TRUE);
+        eval(genExp("'axb' not endswith '.'"), context, Boolean.TRUE);
+    }
+
+    @Test
+    public void testContains_StartsWith_EndsWith_string_has_special_2() throws Exception {
+        EvaluationContext context = genContext(
+                KeyValue.c("whatever", "whatever")
+        );
+        eval(genExp("'s' contains '\\'"), context, Boolean.FALSE);
+        eval(genExp("'s' startswith '\\'"), context, Boolean.FALSE);
+        eval(genExp("'s' endswith '\\'"), context, Boolean.FALSE);
+    }
+
+    @Test
+    public void testContainsAllInOne() throws Exception {
+        Expression expr = genExp("a not in ('4', '4', '5') and b between 3 and 10 and c not contains 'axbc'");
+        EvaluationContext context = genContext(
+                KeyValue.c("a", "3"),
+                KeyValue.c("b", 3),
+                KeyValue.c("c", "axbdc")
+        );
+        eval(expr, context, Boolean.TRUE);
+    }
+
+    @Test
+    public void testStartsWithAllInOne() throws Exception {
+        Expression expr = genExp("a not in ('4', '4', '5') and b between 3 and 10 and c not startswith 'axbc'");
+        EvaluationContext context = genContext(
+                KeyValue.c("a", "3"),
+                KeyValue.c("b", 3),
+                KeyValue.c("c", "axbdc")
+        );
+        eval(expr, context, Boolean.TRUE);
+    }
+
+    @Test
+    public void testEndsWithAllInOne() throws Exception {
+        Expression expr = genExp("a not in ('4', '4', '5') and b between 3 and 10 and c not endswith 'axbc'");
+        EvaluationContext context = genContext(
+                KeyValue.c("a", "3"),
+                KeyValue.c("b", 3),
+                KeyValue.c("c", "axbdc")
+        );
+        eval(expr, context, Boolean.TRUE);
+    }
+
     @Test
     public void testEvaluate_stringHasString() throws Exception {
         Expression expr = genExp(stringHasString);

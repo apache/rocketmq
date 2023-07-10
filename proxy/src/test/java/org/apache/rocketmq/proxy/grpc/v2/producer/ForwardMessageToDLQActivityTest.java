@@ -44,7 +44,7 @@ public class ForwardMessageToDLQActivityTest extends BaseActivityTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(messagingProcessor,receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
     }
 
     @Test
@@ -75,7 +75,7 @@ public class ForwardMessageToDLQActivityTest extends BaseActivityTest {
             .thenReturn(CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "")));
 
         String savedHandleStr = buildReceiptHandle("topic", System.currentTimeMillis(),3000);
-        when(receiptHandleProcessor.removeReceiptHandle(any(), anyString(), anyString(), anyString()))
+        when(messagingProcessor.removeReceiptHandle(any(), any(), anyString(), anyString(), anyString()))
             .thenReturn(new MessageReceiptHandle("group", "topic", 0, savedHandleStr, "msgId", 0, 0));
 
         ForwardMessageToDeadLetterQueueResponse response = this.forwardMessageToDLQActivity.forwardMessageToDeadLetterQueue(

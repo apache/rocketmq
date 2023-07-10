@@ -49,7 +49,7 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(messagingProcessor, receiptHandleProcessor,
+        this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(messagingProcessor,
             grpcClientSettingsManager, grpcChannelManager);
     }
 
@@ -92,7 +92,7 @@ public class ChangeInvisibleDurationActivityTest extends BaseActivityTest {
         when(this.messagingProcessor.changeInvisibleTime(
             any(), receiptHandleCaptor.capture(), anyString(), anyString(), anyString(), invisibleTimeArgumentCaptor.capture()
         )).thenReturn(CompletableFuture.completedFuture(ackResult));
-        when(receiptHandleProcessor.removeReceiptHandle(any(), anyString(), anyString(), anyString()))
+        when(messagingProcessor.removeReceiptHandle(any(), any(), anyString(), anyString(), anyString()))
             .thenReturn(new MessageReceiptHandle("group", "topic", 0, savedHandleStr, "msgId", 0, 0));
 
         ChangeInvisibleDurationResponse response = this.changeInvisibleDurationActivity.changeInvisibleDuration(

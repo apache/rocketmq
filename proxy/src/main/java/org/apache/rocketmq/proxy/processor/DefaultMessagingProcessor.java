@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
@@ -41,6 +40,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
+import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -64,6 +64,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     protected TransactionProcessor transactionProcessor;
     protected ClientProcessor clientProcessor;
     protected RequestBrokerProcessor requestBrokerProcessor;
+    protected ReceiptHandleProcessor receiptHandleProcessor;
 
     protected ThreadPoolExecutor producerProcessorExecutor;
     protected ThreadPoolExecutor consumerProcessorExecutor;
@@ -95,6 +96,7 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         this.transactionProcessor = new TransactionProcessor(this, serviceManager);
         this.clientProcessor = new ClientProcessor(this, serviceManager);
         this.requestBrokerProcessor = new RequestBrokerProcessor(this, serviceManager);
+        this.receiptHandleProcessor = new ReceiptHandleProcessor(this, serviceManager);
 
         this.init();
     }
@@ -127,13 +129,13 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     @Override
     public SubscriptionGroupConfig getSubscriptionGroupConfig(ProxyContext ctx, String consumerGroupName) {
-        return this.serviceManager.getMetadataService().getSubscriptionGroupConfig(consumerGroupName);
+        return this.serviceManager.getMetadataService().getSubscriptionGroupConfig(ctx, consumerGroupName);
     }
 
     @Override
     public ProxyTopicRouteData getTopicRouteDataForProxy(ProxyContext ctx, List<Address> requestHostAndPortList,
         String topicName) throws Exception {
-        return this.serviceManager.getTopicRouteService().getTopicRouteForProxy(requestHostAndPortList, topicName);
+        return this.serviceManager.getTopicRouteService().getTopicRouteForProxy(ctx, requestHostAndPortList, topicName);
     }
 
     @Override
@@ -168,10 +170,11 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     ) {
         return this.consumerProcessor.popMessage(ctx, queueSelector, consumerGroup, topic, maxMsgNums,
-            invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, timeoutMillis);
+            invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, attemptId, timeoutMillis);
     }
 
     @Override
@@ -289,8 +292,8 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public ConsumerGroupInfo getConsumerGroupInfo(String consumerGroup) {
-        return this.clientProcessor.getConsumerGroupInfo(consumerGroup);
+    public ConsumerGroupInfo getConsumerGroupInfo(ProxyContext ctx, String consumerGroup) {
+        return this.clientProcessor.getConsumerGroupInfo(ctx, consumerGroup);
     }
 
     @Override
@@ -306,5 +309,17 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     @Override
     public MetadataService getMetadataService() {
         return this.serviceManager.getMetadataService();
+    }
+
+    @Override
+    public void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
+        MessageReceiptHandle messageReceiptHandle) {
+        receiptHandleProcessor.addReceiptHandle(ctx, channel, group, msgID, messageReceiptHandle);
+    }
+
+    @Override
+    public MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID,
+        String receiptHandle) {
+        return receiptHandleProcessor.removeReceiptHandle(ctx, channel, group, msgID, receiptHandle);
     }
 }

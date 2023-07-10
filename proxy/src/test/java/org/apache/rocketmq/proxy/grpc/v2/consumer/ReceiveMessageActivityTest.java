@@ -74,7 +74,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     public void before() throws Throwable {
         super.before();
         ConfigurationManager.getProxyConfig().setGrpcClientConsumerMinLongPollingTimeoutMillis(0);
-        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor,
+        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor,
             grpcClientSettingsManager, grpcChannelManager);
     }
 
@@ -89,7 +89,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             .setRequestTimeout(Durations.fromSeconds(3))
             .build());
         when(this.messagingProcessor.popMessage(any(), any(), anyString(), anyString(), anyInt(), anyLong(),
-            pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), anyLong()))
+            pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), anyString(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
 
 
@@ -245,6 +245,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             any(),
             anyBoolean(),
             any(),
+            anyString(),
             anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
 
         this.receiveMessageActivity.receiveMessage(

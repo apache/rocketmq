@@ -18,9 +18,11 @@
 package org.apache.rocketmq.remoting.protocol.subscription;
 
 import java.io.Serializable;
-import java.util.Set;
 
 import com.google.common.base.MoreObjects;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.rocketmq.common.MixAll;
@@ -51,6 +53,8 @@ public class SubscriptionGroupConfig implements Serializable {
     private int consumeTimeoutMinute = 15;
 
     private transient Set<SimpleSubscriptionData> subscriptionDataSet;
+
+    private Map<String, String> attributes = new HashMap<>();
 
     public String getGroupName() {
         return groupName;
@@ -164,6 +168,14 @@ public class SubscriptionGroupConfig implements Serializable {
         this.subscriptionDataSet = subscriptionDataSet;
     }
 
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, String> attributes) {
+        this.attributes = attributes;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -181,6 +193,7 @@ public class SubscriptionGroupConfig implements Serializable {
         result = prime * result + groupSysFlag;
         result = prime * result + consumeTimeoutMinute;
         result = prime * result + subscriptionDataSet.hashCode();
+        result = prime * result + attributes.hashCode();
         return result;
     }
 
@@ -205,6 +218,7 @@ public class SubscriptionGroupConfig implements Serializable {
             .append(groupSysFlag, other.groupSysFlag)
             .append(consumeTimeoutMinute, other.consumeTimeoutMinute)
             .append(subscriptionDataSet, other.subscriptionDataSet)
+            .append(attributes, other.attributes)
             .isEquals();
     }
 
@@ -219,11 +233,13 @@ public class SubscriptionGroupConfig implements Serializable {
             .add("retryQueueNums", retryQueueNums)
             .add("retryMaxTimes", retryMaxTimes)
             .add("groupRetryPolicy", groupRetryPolicy)
+            .add("brokerId", brokerId)
             .add("whichBrokerWhenConsumeSlowly", whichBrokerWhenConsumeSlowly)
             .add("notifyConsumerIdsChangedEnable", notifyConsumerIdsChangedEnable)
             .add("groupSysFlag", groupSysFlag)
             .add("consumeTimeoutMinute", consumeTimeoutMinute)
-            .add("subscriptionTopicSet", subscriptionDataSet)
+            .add("subscriptionDataSet", subscriptionDataSet)
+            .add("attributes", attributes)
             .toString();
     }
 }
