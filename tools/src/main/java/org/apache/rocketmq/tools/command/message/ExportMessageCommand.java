@@ -19,16 +19,27 @@ package org.apache.rocketmq.tools.command.message;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -41,6 +52,8 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.admin.MQAdminUtils;
 import org.apache.rocketmq.tools.command.SubCommand;
@@ -48,7 +61,14 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ExportMessageCommand implements SubCommand {
     public static final String DEFAULT_EXPORT_DIRECTORY = "./rocketmq-export";
+    public static final int MAX_EXPORT_QUEUE_MESSAGE_RANGE = 1000 * 1000;
+    private static final int ASYNC_WRITE_QUEUE_CAPACITY = 1024;
+    private static final int WRITE_INTERVAL_MILLISECONDS = 100;
+    private static final int MAX_WRITE_MESSAGE_SIZE = 256;
+    private final Logger logger = LoggerFactory.getLogger(ImportMessageCommand.class);
     private DefaultMQPullConsumer defaultMQPullConsumer;
+    private String charsetName;
+    private String bodyFormat;
 
     @Override
     public String commandName() {
@@ -106,8 +126,10 @@ public class ExportMessageCommand implements SubCommand {
         if (defaultMQPullConsumer == null) {
             defaultMQPullConsumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
         }
+        final Map<String, BufferedWriter> writersMap = new HashMap<>();
+
         try {
-            String charsetName =
+            charsetName =
                 !commandLine.hasOption('c') ? "UTF-8" : commandLine.getOptionValue('c').trim();
 
             String subExpression =
@@ -120,8 +142,8 @@ public class ExportMessageCommand implements SubCommand {
                 throw new SubCommandException("Please set the brokerName before queueId!");
             }
             String directory =
-                !commandLine.hasOption('d') ? DEFAULT_EXPORT_DIRECTORY : commandLine.getOptionValue('s').trim();
-            String bodyFormat =
+                !commandLine.hasOption('d') ? DEFAULT_EXPORT_DIRECTORY : commandLine.getOptionValue('d').trim();
+            bodyFormat =
                 !commandLine.hasOption('f') ? "base64" : commandLine.getOptionValue('f').trim();
 
             defaultMQPullConsumer.start();
@@ -135,15 +157,15 @@ public class ExportMessageCommand implements SubCommand {
             }
 
             String topicDir = directory + File.separator + topic;
-            FileUtils.forceDeleteOnExit(new File(topicDir));
+            // FileUtils.forceDeleteOnExit(new File(topicDir));
             FileUtils.forceMkdirParent(new File(topicDir));
+            ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
             for (MessageQueue mq : messageQueues) {
                 String brokerDir = topicDir + File.separator + mq.getBrokerName();
                 String queueFilepath = brokerDir + File.separator + mq.getQueueId();
-                File brokerDirFile = new File(brokerDir);
-                FileUtils.forceMkdir(brokerDirFile);
-                File queueFile = new File(queueFilepath);
-                System.out.printf("exporrt queueFile queueFilepath=%s%n", queueFile.getAbsoluteFile());
+                String offsetFilepath = queueFilepath + ".log";
+                FileUtils.forceMkdir(new File(brokerDir));
+                System.out.printf("export queueFile queueFilepath=%s%n", queueFilepath);
 
                 long minOffset = defaultMQPullConsumer.minOffset(mq);
                 long maxOffset = defaultMQPullConsumer.maxOffset(mq);
@@ -160,17 +182,49 @@ public class ExportMessageCommand implements SubCommand {
                     maxOffset = defaultMQPullConsumer.searchOffset(mq, timeValue);
                 }
 
+                if (maxOffset - minOffset > MAX_EXPORT_QUEUE_MESSAGE_RANGE) {
+                    System.out.printf("export message range exceed max limit . queueId=%s, minOffset=%s, maxOffset=%s%n", queueId, minOffset, maxOffset);
+                    return;
+                }
+
+                if (!new File(offsetFilepath).exists() || !new File(queueFilepath).exists()) {
+                    FileUtils.forceDeleteOnExit(new File(offsetFilepath));
+                    FileUtils.forceDeleteOnExit(new File(queueFilepath));
+                } else {
+                    String jsonStr = FileUtils.readFileToString(new File(offsetFilepath), StandardCharsets.UTF_8);
+                    JSONObject jsonObject = JSON.parseObject(jsonStr);
+                    Object beginOffsetObj = jsonObject.get("beginOffset");
+                    Object endOffsetObj = jsonObject.get("endOffset");
+                    Long beginOffset = beginOffsetObj instanceof Integer ? ((Integer) beginOffsetObj).longValue() : (Long) beginOffsetObj;
+                    Long endOffset = endOffsetObj instanceof Integer ? ((Integer) endOffsetObj).longValue() : (Long) endOffsetObj;
+                    if (beginOffset == minOffset && maxOffset == endOffset) {
+                        continue;
+                    } else if (beginOffset != minOffset || (beginOffset == minOffset && maxOffset < endOffset)) {
+                        FileUtils.forceDeleteOnExit(new File(queueFilepath));
+                    } else if (beginOffset == minOffset && maxOffset > endOffset) {
+                        // continue to write to message file
+                        minOffset = endOffset;
+                    }
+                }
+
                 System.out.printf("export %s minOffset=%s, maxOffset=%s%n", minOffset, maxOffset, mq);
-                try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(queueFile), charsetName))) {
+                try (BufferedWriter messageWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(queueFilepath), charsetName));//
+                     FileWriter offsetWriter = new FileWriter(offsetFilepath, false);
+                ) {
+                    final AtomicLong messageCounter = new AtomicLong();
+                    final ArrayBlockingQueue<MessageExt> blockingQueue = new ArrayBlockingQueue<MessageExt>(ASYNC_WRITE_QUEUE_CAPACITY);
+                    asyncWriteMessageFile(executor, minOffset, messageWriter, offsetWriter, messageCounter, blockingQueue);
                     READQ:
                     for (long offset = minOffset; offset < maxOffset; ) {
                         try {
-                            PullResult pullResult = defaultMQPullConsumer.pull(mq, subExpression, offset, 128);
+                            PullResult pullResult = defaultMQPullConsumer.pull(mq, subExpression, offset, 32);
                             offset = pullResult.getNextBeginOffset();
                             switch (pullResult.getPullStatus()) {
                                 case FOUND:
-                                    MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, offset - minOffset);
-                                    exportMessage(writer, pullResult.getMsgFoundList(), charsetName, bodyFormat);
+                                    MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
+                                    for (MessageExt messageExt : pullResult.getMsgFoundList()) {
+                                        blockingQueue.put(messageExt);
+                                    }
                                     break;
                                 case NO_MATCHED_MSG:
                                     System.out.printf("%s no matched msg. status=%s, offset=%s%n", mq, pullResult.getPullStatus(), offset);
@@ -181,14 +235,33 @@ public class ExportMessageCommand implements SubCommand {
                                     break READQ;
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
-                            break;
+                            logger.error("pull message error. ", e);
+                            return;
                         }
                     }
+                    // wait all message write to disk
+                    while (true) {
+                        long writeTotal = messageCounter.get();
+                        if (writeTotal == (maxOffset - minOffset)) {
+                            MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
+                            break;
+                        }
+                        // when exception, exit
+                        if (writeTotal < 0) {
+                            MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
+                            return;
+                        }
+                        Thread.sleep(WRITE_INTERVAL_MILLISECONDS);
+                        MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
+                    }
+                    messageWriter.flush();
+                } catch (Exception e) {
+                    logger.error("export message to file error. ", e);
                 }
                 // new line for printProgressWithFixedWidth
                 System.out.printf("%n");
             }
+            executor.shutdown();
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
@@ -196,8 +269,28 @@ public class ExportMessageCommand implements SubCommand {
         }
     }
 
-    private static void exportMessage(BufferedWriter writer, List<MessageExt> msgFoundList, String charsetName,
-        String bodyFormat) throws IOException, SubCommandException {
+    private void asyncWriteMessageFile(ScheduledExecutorService executor, long minOffset, BufferedWriter messageWriter,
+        FileWriter offsetWriter, AtomicLong messageCounter, ArrayBlockingQueue<MessageExt> blockingQueue) {
+        long finalMinOffset = minOffset;
+        executor.scheduleWithFixedDelay(() -> {
+            List<MessageExt> messages = new ArrayList<>();
+            blockingQueue.drainTo(messages, MAX_WRITE_MESSAGE_SIZE);
+            if (!messages.isEmpty()) {
+                try {
+                    exportMessage(messageWriter, messages);
+                    long total = messageCounter.addAndGet(messages.size());
+                    offsetWriter.write(JSON.toJSONString(ImmutableMap.of("beginOffset", finalMinOffset, "endOffset", finalMinOffset + total)));
+                    offsetWriter.flush();
+                } catch (Exception e) {
+                    messageCounter.set(Long.MIN_VALUE);
+                    logger.error("write message to file error. ", e);
+                }
+            }
+        }, 1, WRITE_INTERVAL_MILLISECONDS, TimeUnit.MILLISECONDS);
+    }
+
+    private void exportMessage(BufferedWriter writer,
+        List<MessageExt> msgFoundList) throws IOException, SubCommandException {
         for (MessageExt messageExt : msgFoundList) {
             JSONObject jsonObject = new JSONObject();
             jsonObject.put("topic", messageExt.getTopic());
@@ -206,8 +299,8 @@ public class ExportMessageCommand implements SubCommand {
             jsonObject.put("transactionId", messageExt.getTransactionId());
             jsonObject.put("msgId", messageExt.getMsgId());
             jsonObject.put("queueOffset", messageExt.getQueueOffset());
-            jsonObject.put("bodyFormat", bodyFormat);
-            jsonObject.put("body", formatBody(messageExt.getBody(), bodyFormat, charsetName));
+            jsonObject.put("bodyFormat", this.bodyFormat);
+            jsonObject.put("body", formatBody(messageExt.getBody(), this.bodyFormat, this.charsetName));
             writer.write(JSON.toJSONString(jsonObject));
             writer.newLine();
         }
