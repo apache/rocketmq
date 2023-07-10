@@ -29,6 +29,7 @@ public class MessageReceiptHandle {
     private final String messageId;
     private final long queueOffset;
     private final String originalReceiptHandleStr;
+    private final ReceiptHandle originalReceiptHandle;
     private final int reconsumeTimes;
 
     private final AtomicInteger renewRetryTimes = new AtomicInteger(0);
@@ -38,7 +39,7 @@ public class MessageReceiptHandle {
 
     public MessageReceiptHandle(String group, String topic, int queueId, String receiptHandleStr, String messageId,
         long queueOffset, int reconsumeTimes) {
-        ReceiptHandle receiptHandle = ReceiptHandle.decode(receiptHandleStr);
+        this.originalReceiptHandle = ReceiptHandle.decode(receiptHandleStr);
         this.group = group;
         this.topic = topic;
         this.queueId = queueId;
@@ -47,7 +48,7 @@ public class MessageReceiptHandle {
         this.messageId = messageId;
         this.queueOffset = queueOffset;
         this.reconsumeTimes = reconsumeTimes;
-        this.consumeTimestamp = receiptHandle.getRetrieveTime();
+        this.consumeTimestamp = originalReceiptHandle.getRetrieveTime();
     }
 
     @Override
@@ -148,4 +149,7 @@ public class MessageReceiptHandle {
         return this.renewRetryTimes.get();
     }
 
+    public ReceiptHandle getOriginalReceiptHandle() {
+        return originalReceiptHandle;
+    }
 }

@@ -101,7 +101,7 @@ public class RouteActivityTest extends BaseActivityTest {
             .thenReturn(createProxyTopicRouteData(2, 2, 6));
         MetadataService metadataService = Mockito.mock(LocalMetadataService.class);
         when(this.messagingProcessor.getMetadataService()).thenReturn(metadataService);
-        when(metadataService.getTopicMessageType(anyString())).thenReturn(TopicMessageType.NORMAL);
+        when(metadataService.getTopicMessageType(any(), anyString())).thenReturn(TopicMessageType.NORMAL);
 
         QueryRouteResponse response = this.routeActivity.queryRoute(
             createContext(),

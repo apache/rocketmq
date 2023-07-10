@@ -17,17 +17,27 @@
 
 package org.apache.rocketmq.tieredstore.provider.inputstream;
 
-import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 
 public class TieredFileSegmentInputStream extends InputStream {
 
-    private final TieredFileSegment.FileSegmentType fileType;
+    /**
+     * file type, can be commitlog, consume queue or indexfile now
+     */
+    protected final FileSegmentType fileType;
+
+    /**
+     * hold bytebuffer
+     */
     protected final List<ByteBuffer> uploadBufferList;
+
+    /**
+     * total remaining of bytebuffer list
+     */
     protected final int contentLength;
 
     /**
@@ -55,12 +65,12 @@ public class TieredFileSegmentInputStream extends InputStream {
 
     private int markReadPosInCurBuffer = -1;
 
-    public TieredFileSegmentInputStream(TieredFileSegment.FileSegmentType fileType, List<ByteBuffer> uploadBufferList,
+    public TieredFileSegmentInputStream(FileSegmentType fileType, List<ByteBuffer> uploadBufferList,
         int contentLength) {
         this.fileType = fileType;
         this.contentLength = contentLength;
         this.uploadBufferList = uploadBufferList;
-        if (uploadBufferList.size() > 0) {
+        if (uploadBufferList != null && uploadBufferList.size() > 0) {
             this.curBuffer = uploadBufferList.get(curReadBufferIndex);
         }
     }
@@ -146,7 +156,7 @@ public class TieredFileSegmentInputStream extends InputStream {
         while (needRead > 0 && bufIndex < uploadBufferList.size()) {
             curBuf = uploadBufferList.get(bufIndex);
             int remaining = curBuf.remaining() - posInCurBuffer;
-            int readLen = remaining < needRead ? remaining : needRead;
+            int readLen = Math.min(remaining, needRead);
             // read from curBuf
             curBuf.position(posInCurBuffer);
             curBuf.get(b, off, readLen);
@@ -156,7 +166,7 @@ public class TieredFileSegmentInputStream extends InputStream {
             needRead -= readLen;
             pos += readLen;
             posInCurBuffer += readLen;
-            if (posInCurBuffer == curBuffer.remaining()) {
+            if (posInCurBuffer == curBuf.remaining()) {
                 // read from next buf
                 bufIndex++;
                 posInCurBuffer = 0;
