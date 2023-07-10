@@ -105,7 +105,7 @@ public class MessageStoreConfig {
 
     // default, defaultRocksDB
     @ImportantField
-    private String storeType = StoreType.DEFAULT_ROCKSDB.getStoreType();
+    private String storeType = StoreType.DEFAULT.getStoreType();
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
