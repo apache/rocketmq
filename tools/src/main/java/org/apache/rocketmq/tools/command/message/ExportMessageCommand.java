@@ -126,7 +126,6 @@ public class ExportMessageCommand implements SubCommand {
         if (defaultMQPullConsumer == null) {
             defaultMQPullConsumer = new DefaultMQPullConsumer(MixAll.TOOLS_CONSUMER_GROUP, rpcHook);
         }
-        final Map<String, BufferedWriter> writersMap = new HashMap<>();
 
         try {
             charsetName =
@@ -197,19 +196,21 @@ public class ExportMessageCommand implements SubCommand {
                     Object endOffsetObj = jsonObject.get("endOffset");
                     Long beginOffset = beginOffsetObj instanceof Integer ? ((Integer) beginOffsetObj).longValue() : (Long) beginOffsetObj;
                     Long endOffset = endOffsetObj instanceof Integer ? ((Integer) endOffsetObj).longValue() : (Long) endOffsetObj;
+                    boolean isOutOfRange = beginOffset != minOffset || (beginOffset == minOffset && maxOffset < endOffset);
                     if (beginOffset == minOffset && maxOffset == endOffset) {
                         continue;
-                    } else if (beginOffset != minOffset || (beginOffset == minOffset && maxOffset < endOffset)) {
+                    } else if (isOutOfRange) {
                         FileUtils.forceDeleteOnExit(new File(queueFilepath));
                     } else if (beginOffset == minOffset && maxOffset > endOffset) {
                         // continue to write to message file
                         minOffset = endOffset;
                     }
+
                 }
 
                 System.out.printf("export %s minOffset=%s, maxOffset=%s%n", minOffset, maxOffset, mq);
                 try (BufferedWriter messageWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(queueFilepath), charsetName));//
-                     FileWriter offsetWriter = new FileWriter(offsetFilepath, false);
+                     BufferedWriter offsetWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(queueFilepath,false), charsetName));
                 ) {
                     final AtomicLong messageCounter = new AtomicLong();
                     final ArrayBlockingQueue<MessageExt> blockingQueue = new ArrayBlockingQueue<MessageExt>(ASYNC_WRITE_QUEUE_CAPACITY);
@@ -270,7 +271,7 @@ public class ExportMessageCommand implements SubCommand {
     }
 
     private void asyncWriteMessageFile(ScheduledExecutorService executor, long minOffset, BufferedWriter messageWriter,
-        FileWriter offsetWriter, AtomicLong messageCounter, ArrayBlockingQueue<MessageExt> blockingQueue) {
+        BufferedWriter offsetWriter, AtomicLong messageCounter, ArrayBlockingQueue<MessageExt> blockingQueue) {
         long finalMinOffset = minOffset;
         executor.scheduleWithFixedDelay(() -> {
             List<MessageExt> messages = new ArrayList<>();
