@@ -21,8 +21,6 @@ import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo.QueueFilter;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class MQFaultStrategy {
     private LatencyFaultTolerance<String> latencyFaultTolerance;
