@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.tieredstore;
 
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.sdk.OpenTelemetrySdk;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashSet;
