@@ -28,12 +28,12 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.service.receipt.ReceiptHandleManager;
+import org.apache.rocketmq.proxy.service.receipt.DefaultReceiptHandleManager;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 
 public class ReceiptHandleProcessor extends AbstractProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    protected ReceiptHandleManager receiptHandleManager;
+    protected DefaultReceiptHandleManager receiptHandleManager;
 
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager) {
         super(messagingProcessor, serviceManager);
@@ -51,7 +51,7 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
                     event.getFuture().complete(v);
                 });
         };
-        this.receiptHandleManager = new ReceiptHandleManager(serviceManager.getMetadataService(), serviceManager.getConsumerManager(), eventListener);
+        this.receiptHandleManager = new DefaultReceiptHandleManager(serviceManager.getMetadataService(), serviceManager.getConsumerManager(), eventListener);
     }
 
     protected ProxyContext createContext(String actionName) {
@@ -59,11 +59,11 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
     }
 
     public void addReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, MessageReceiptHandle messageReceiptHandle) {
-        receiptHandleManager.addReceiptHandle(channel, group, msgID, messageReceiptHandle);
+        receiptHandleManager.addReceiptHandle(ctx, channel, group, msgID, messageReceiptHandle);
     }
 
     public MessageReceiptHandle removeReceiptHandle(ProxyContext ctx, Channel channel, String group, String msgID, String receiptHandle) {
-        return receiptHandleManager.removeReceiptHandle(channel, group, msgID, receiptHandle);
+        return receiptHandleManager.removeReceiptHandle(ctx, channel, group, msgID, receiptHandle);
     }
 
     public static class ReceiptHandleGroupKey {
