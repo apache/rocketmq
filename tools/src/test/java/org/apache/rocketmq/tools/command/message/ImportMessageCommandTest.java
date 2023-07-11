@@ -94,5 +94,6 @@ public class ImportMessageCommandTest {
         System.setOut(out);
         String s = new String(bos.toByteArray());
         Assert.assertTrue(s.contains("100%"));
+        FileUtils.forceDeleteOnExit(new File(importDir));
     }
 }
