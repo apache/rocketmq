@@ -17,11 +17,7 @@
 package org.apache.rocketmq.client.impl.producer;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.base.Preconditions;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
