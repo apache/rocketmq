@@ -57,6 +57,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -89,7 +90,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             .setRequestTimeout(Durations.fromSeconds(3))
             .build());
         when(this.messagingProcessor.popMessage(any(), any(), anyString(), anyString(), anyInt(), anyLong(),
-            pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), anyString(), anyLong()))
+            pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), isNull(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
 
 
@@ -223,7 +224,6 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         assertEquals(Code.ILLEGAL_INVISIBLE_TIME, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
     }
 
-
     @Test
     public void testReceiveMessage() {
         StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
@@ -245,7 +245,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             any(),
             anyBoolean(),
             any(),
-            anyString(),
+            isNull(),
             anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
 
         this.receiveMessageActivity.receiveMessage(
