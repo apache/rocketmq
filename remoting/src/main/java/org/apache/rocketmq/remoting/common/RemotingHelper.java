@@ -22,7 +22,6 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.constant.HAProxyConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -31,8 +30,8 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.netty.AttributeKeys;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
-import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -51,16 +50,6 @@ public class RemotingHelper {
     public static final String DEFAULT_CIDR_ALL = "0.0.0.0/0";
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
-    private static final AttributeKey<String> REMOTE_ADDR_KEY = AttributeKey.valueOf("RemoteAddr");
-
-    private static final AttributeKey<String> PROXY_PROTOCOL_ADDR = AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_ADDR);
-    private static final AttributeKey<String> PROXY_PROTOCOL_PORT = AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_PORT);
-
-    public static final AttributeKey<String> CLIENT_ID_KEY = AttributeKey.valueOf("ClientId");
-
-    public static final AttributeKey<Integer> VERSION_KEY = AttributeKey.valueOf("Version");
-
-    public static final AttributeKey<LanguageCode> LANGUAGE_CODE_KEY = AttributeKey.valueOf("LanguageCode");
 
     public static final Map<Integer, String> REQUEST_CODE_MAP = new HashMap<Integer, String>() {
         {
@@ -213,7 +202,7 @@ public class RemotingHelper {
         if (StringUtils.isNotBlank(addr)) {
             return addr;
         }
-        Attribute<String> att = channel.attr(REMOTE_ADDR_KEY);
+        Attribute<String> att = channel.attr(AttributeKeys.REMOTE_ADDR_KEY);
         if (att == null) {
             // mocked in unit test
             return parseChannelRemoteAddr0(channel);
@@ -227,11 +216,11 @@ public class RemotingHelper {
     }
 
     private static String getProxyProtocolAddress(Channel channel) {
-        if (!channel.hasAttr(PROXY_PROTOCOL_ADDR)) {
+        if (!channel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
             return null;
         }
-        String proxyProtocolAddr = getAttributeValue(PROXY_PROTOCOL_ADDR, channel);
-        String proxyProtocolPort = getAttributeValue(PROXY_PROTOCOL_PORT, channel);
+        String proxyProtocolAddr = getAttributeValue(AttributeKeys.PROXY_PROTOCOL_ADDR, channel);
+        String proxyProtocolPort = getAttributeValue(AttributeKeys.PROXY_PROTOCOL_PORT, channel);
         if (StringUtils.isBlank(proxyProtocolAddr) || proxyProtocolPort == null) {
             return null;
         }

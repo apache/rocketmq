@@ -37,6 +37,7 @@ import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.ProtocolDetectionResult;
 import io.netty.handler.codec.ProtocolDetectionState;
 import io.netty.handler.codec.haproxy.HAProxyMessage;
@@ -73,6 +74,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -115,7 +117,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     public static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
 
     // sharable handlers
-    private HandshakeHandler handshakeHandler;
+    private TlsModeHandler tlsModeHandler;
     private NettyEncoder encoder;
     private NettyConnectManageHandler connectionManageHandler;
     private NettyServerHandler serverHandler;
@@ -265,7 +267,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
-            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
+            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
             .addLast(defaultEventExecutorGroup,
                 encoder,
                 new NettyDecoder(),
@@ -402,7 +404,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     private void prepareSharableHandlers() {
-        handshakeHandler = new HandshakeHandler();
+        tlsModeHandler = new TlsModeHandler(TlsSystemConfig.tlsMode);
         encoder = new NettyEncoder();
         connectionManageHandler = new NettyConnectManageHandler();
         serverHandler = new NettyServerHandler();
@@ -429,10 +431,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         return defaultEventExecutorGroup;
     }
 
-    public HandshakeHandler getHandshakeHandler() {
-        return handshakeHandler;
-    }
-
     public NettyEncoder getEncoder() {
         return encoder;
     }
@@ -449,17 +447,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         return distributionHandler;
     }
 
-    @ChannelHandler.Sharable
-    public class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
-
-        private final TlsModeHandler tlsModeHandler;
+    public class HandshakeHandler extends ByteToMessageDecoder {
 
         public HandshakeHandler() {
-            tlsModeHandler = new TlsModeHandler(TlsSystemConfig.tlsMode);
         }
 
         @Override
-        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf byteBuf) {
+        protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) throws Exception {
             try {
                 ProtocolDetectionResult<HAProxyProtocolVersion> detectionResult = HAProxyMessageDecoder.detectProtocol(byteBuf);
                 if (detectionResult.state() == ProtocolDetectionState.NEEDS_MORE_DATA) {
@@ -479,9 +473,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 } catch (NoSuchElementException e) {
                     log.error("Error while removing HandshakeHandler", e);
                 }
-
-                // Hand over this message to the next .
-                ctx.fireChannelRead(byteBuf.retain());
             } catch (Exception e) {
                 log.error("process proxy protocol negotiator failed.", e);
                 throw e;
