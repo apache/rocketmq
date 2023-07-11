@@ -2091,12 +2091,7 @@ public class CommitLog implements Swappable {
                     }
 
                     if (pageSize < 0) {
-                        try {
-                            initPageSize();
-                        } catch (Exception e) {
-                            log.error("Before scanning files in pagecache, initing has failed.", e);
-                            return;
-                        }
+                        initPageSize();
                     }
 
                     long beginClockTimestamp = this.systemClock.now();
