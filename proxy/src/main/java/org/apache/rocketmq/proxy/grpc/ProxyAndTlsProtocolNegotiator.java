@@ -175,29 +175,33 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
          * @param msg
          */
         private void replaceEventWithMessage(HAProxyMessage msg) {
-            Attributes.Builder builder = InternalProtocolNegotiationEvent.getAttributes(pne).toBuilder();
-            if (StringUtils.isNotBlank(msg.sourceAddress())) {
-                builder.set(AttributeKeys.PROXY_PROTOCOL_ADDR, msg.sourceAddress());
+            try {
+                Attributes.Builder builder = InternalProtocolNegotiationEvent.getAttributes(pne).toBuilder();
+                if (StringUtils.isNotBlank(msg.sourceAddress())) {
+                    builder.set(AttributeKeys.PROXY_PROTOCOL_ADDR, msg.sourceAddress());
+                }
+                if (msg.sourcePort() > 0) {
+                    builder.set(AttributeKeys.PROXY_PROTOCOL_PORT, String.valueOf(msg.sourcePort()));
+                }
+                if (StringUtils.isNotBlank(msg.destinationAddress())) {
+                    builder.set(AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR, msg.destinationAddress());
+                }
+                if (msg.destinationPort() > 0) {
+                    builder.set(AttributeKeys.PROXY_PROTOCOL_SERVER_PORT, String.valueOf(msg.destinationPort()));
+                }
+                if (CollectionUtils.isNotEmpty(msg.tlvs())) {
+                    msg.tlvs().forEach(tlv -> {
+                        Attributes.Key<String> key = AttributeKeys.valueOf(
+                                HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
+                        String value = StringUtils.trim(tlv.content().toString(CharsetUtil.UTF_8));
+                        builder.set(key, value);
+                    });
+                }
+                pne = InternalProtocolNegotiationEvent
+                        .withAttributes(InternalProtocolNegotiationEvent.getDefault(), builder.build());
+            } finally {
+                msg.release();
             }
-            if (msg.sourcePort() > 0) {
-                builder.set(AttributeKeys.PROXY_PROTOCOL_PORT, String.valueOf(msg.sourcePort()));
-            }
-            if (StringUtils.isNotBlank(msg.destinationAddress())) {
-                builder.set(AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR, msg.destinationAddress());
-            }
-            if (msg.destinationPort() > 0) {
-                builder.set(AttributeKeys.PROXY_PROTOCOL_SERVER_PORT, String.valueOf(msg.destinationPort()));
-            }
-            if (CollectionUtils.isNotEmpty(msg.tlvs())) {
-                msg.tlvs().forEach(tlv -> {
-                    Attributes.Key<String> key = AttributeKeys.valueOf(
-                            HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
-                    String value = StringUtils.trim(tlv.content().toString(CharsetUtil.UTF_8));
-                    builder.set(key, value);
-                });
-            }
-            pne = InternalProtocolNegotiationEvent
-                    .withAttributes(InternalProtocolNegotiationEvent.getDefault(), builder.build());
         }
     }
 
