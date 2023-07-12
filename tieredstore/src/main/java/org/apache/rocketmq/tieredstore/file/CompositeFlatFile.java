@@ -323,14 +323,9 @@ public class CompositeFlatFile implements CompositeAccess {
             return AppendResult.FILE_CLOSED;
         }
 
-        long queueOffset = MessageBufferUtil.getQueueOffset(message);
-        if (dispatchOffset != queueOffset) {
-            return AppendResult.OFFSET_INCORRECT;
-        }
-
         AppendResult result = commitLog.append(message, commit);
         if (result == AppendResult.SUCCESS) {
-            dispatchOffset = queueOffset + 1;
+            dispatchOffset++;
         }
         return result;
     }
@@ -483,14 +478,17 @@ public class CompositeFlatFile implements CompositeAccess {
     }
 
     public void destroy() {
-        closed = true;
-        commitLog.destroy();
-        consumeQueue.destroy();
         try {
+            closed = true;
+            compositeFlatFileLock.lock();
+            commitLog.destroy();
+            consumeQueue.destroy();
             metadataStore.deleteFileSegment(filePath, FileSegmentType.COMMIT_LOG);
             metadataStore.deleteFileSegment(filePath, FileSegmentType.CONSUME_QUEUE);
         } catch (Exception e) {
-            LOGGER.error("CompositeFlatFile#destroy: clean metadata failed: ", e);
+            LOGGER.error("CompositeFlatFile#destroy: delete file failed", e);
+        } finally {
+            compositeFlatFileLock.unlock();
         }
     }
 }
