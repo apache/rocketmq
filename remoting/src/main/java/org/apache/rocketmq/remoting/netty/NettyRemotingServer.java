@@ -758,7 +758,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             if (msg instanceof HAProxyMessage) {
-                fillChannelWithMessage((HAProxyMessage) msg, ctx.channel());
+                handleWithMessage((HAProxyMessage) msg, ctx.channel());
             } else {
                 super.channelRead(ctx, msg);
             }
@@ -771,7 +771,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
          * @param msg
          * @param channel
          */
-        private void fillChannelWithMessage(HAProxyMessage msg, Channel channel) {
+        private void handleWithMessage(HAProxyMessage msg, Channel channel) {
             try {
                 if (StringUtils.isNotBlank(msg.sourceAddress())) {
                     channel.attr(AttributeKeys.PROXY_PROTOCOL_ADDR).set(msg.sourceAddress());

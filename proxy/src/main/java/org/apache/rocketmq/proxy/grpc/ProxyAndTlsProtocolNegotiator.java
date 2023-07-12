@@ -160,7 +160,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             if (msg instanceof HAProxyMessage) {
-                replaceEventWithMessage((HAProxyMessage) msg);
+                handleWithMessage((HAProxyMessage) msg);
                 ctx.fireUserEventTriggered(pne);
             } else {
                 super.channelRead(ctx, msg);
@@ -174,7 +174,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
          *
          * @param msg
          */
-        private void replaceEventWithMessage(HAProxyMessage msg) {
+        private void handleWithMessage(HAProxyMessage msg) {
             try {
                 Attributes.Builder builder = InternalProtocolNegotiationEvent.getAttributes(pne).toBuilder();
                 if (StringUtils.isNotBlank(msg.sourceAddress())) {
