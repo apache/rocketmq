@@ -341,6 +341,9 @@ public class MQAdminUtils {
     }
 
     public static void printProgressWithFixedWidth(long total, long current) {
+        if (total == 0) {
+            return;
+        }
         String prefix = "Progress:[";
         String suffix = String.format("]%d/%d=%d%c", current, total, (int) ((double) current * 100) / total, '%');
         String arrow = ">";

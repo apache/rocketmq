@@ -269,16 +269,16 @@ public class ExportMessageCommand implements SubCommand {
 
     private void asyncWriteMessageFile(ScheduledExecutorService executor, long minOffset, BufferedWriter messageWriter,
         BufferedWriter offsetWriter, AtomicLong messageCounter, ArrayBlockingQueue<MessageExt> blockingQueue) {
-        long finalMinOffset = minOffset;
         executor.scheduleWithFixedDelay(() -> {
             List<MessageExt> messages = new ArrayList<>();
             blockingQueue.drainTo(messages, MAX_WRITE_MESSAGE_SIZE);
             if (!messages.isEmpty()) {
                 try {
                     exportMessage(messageWriter, messages);
-                    long total = messageCounter.addAndGet(messages.size());
-                    offsetWriter.write(JSON.toJSONString(ImmutableMap.of("beginOffset", finalMinOffset, "endOffset", finalMinOffset + total)));
+                    int size = messages.size();
+                    offsetWriter.write(JSON.toJSONString(ImmutableMap.of("beginOffset", minOffset, "endOffset", minOffset + messageCounter.get() + size)));
                     offsetWriter.flush();
+                    messageCounter.addAndGet(size);
                 } catch (Exception e) {
                     messageCounter.set(Long.MIN_VALUE);
                     logger.error("write message to file error. ", e);
