@@ -29,6 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -58,7 +59,7 @@ public class CompositeFlatFile implements CompositeAccess {
      * dispatched to the current chunk, indicating the progress of the message distribution.
      * It's consume queue current offset.
      */
-    protected volatile long dispatchOffset;
+    protected final AtomicLong dispatchOffset;
 
     protected final ReentrantLock compositeFlatFileLock;
     protected final TieredMessageStoreConfig storeConfig;
@@ -75,6 +76,7 @@ public class CompositeFlatFile implements CompositeAccess {
         this.storeConfig = fileQueueFactory.getStoreConfig();
         this.readAheadFactor = this.storeConfig.getReadAheadMinFactor();
         this.metadataStore = TieredStoreUtil.getMetadataStore(this.storeConfig);
+        this.dispatchOffset = new AtomicLong();
         this.compositeFlatFileLock = new ReentrantLock();
         this.inFlightRequestMap = new ConcurrentHashMap<>();
         this.commitLog = new TieredCommitLog(fileQueueFactory, filePath);
@@ -83,8 +85,8 @@ public class CompositeFlatFile implements CompositeAccess {
     }
 
     protected void recoverMetadata() {
-        if (!consumeQueue.isInitialized() && this.dispatchOffset != -1) {
-            consumeQueue.setBaseOffset(this.dispatchOffset * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
+        if (!consumeQueue.isInitialized() && this.dispatchOffset.get() != -1) {
+            consumeQueue.setBaseOffset(this.dispatchOffset.get() * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         }
     }
 
@@ -144,7 +146,7 @@ public class CompositeFlatFile implements CompositeAccess {
     }
 
     public long getDispatchOffset() {
-        return dispatchOffset;
+        return dispatchOffset.get();
     }
 
     @Override
@@ -309,7 +311,7 @@ public class CompositeFlatFile implements CompositeAccess {
         if (!consumeQueue.isInitialized()) {
             consumeQueue.setBaseOffset(offset * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         }
-        dispatchOffset = offset;
+        dispatchOffset.set(offset);
     }
 
     @Override
@@ -325,7 +327,7 @@ public class CompositeFlatFile implements CompositeAccess {
 
         AppendResult result = commitLog.append(message, commit);
         if (result == AppendResult.SUCCESS) {
-            dispatchOffset++;
+            dispatchOffset.incrementAndGet();
         }
         return result;
     }
