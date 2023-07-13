@@ -106,8 +106,8 @@
         </dependency>
         <!-- rocksdb -->
         <dependency>
-            <groupId>com.alibaba.mq.rocksdb</groupId>
-            <artifactId>rocksdbjni</artifactId>
+            <groupId>io.github.aliyunmq</groupId>
+            <artifactId>rocketmq-rocksdb</artifactId>
         </dependency>
     </dependencies>
 </project>
