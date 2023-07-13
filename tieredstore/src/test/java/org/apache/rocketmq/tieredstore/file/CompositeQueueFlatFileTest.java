@@ -73,8 +73,8 @@ public class CompositeQueueFlatFileTest {
         CompositeQueueFlatFile flatFile = new CompositeQueueFlatFile(tieredFileAllocator, mq);
         ByteBuffer message = MessageBufferUtilTest.buildMockedMessageBuffer();
         AppendResult result = flatFile.appendCommitLog(message);
-        Assert.assertEquals(AppendResult.OFFSET_INCORRECT, result);
-        Assert.assertEquals(0L, flatFile.commitLog.getFlatFile().getFileToWrite().getAppendPosition());
+        Assert.assertEquals(AppendResult.SUCCESS, result);
+        Assert.assertEquals(122L, flatFile.commitLog.getFlatFile().getFileToWrite().getAppendPosition());
         Assert.assertEquals(0L, flatFile.commitLog.getFlatFile().getFileToWrite().getCommitPosition());
 
         flatFile = new CompositeQueueFlatFile(tieredFileAllocator, mq);
