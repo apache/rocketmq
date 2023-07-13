@@ -320,7 +320,8 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public CqUnit get(long index) {
-        return getUnitAndStoreTime(index).getObject1();
+        Pair<CqUnit, Long> pair = getUnitAndStoreTime(index);
+        return pair == null ? null : pair.getObject1();
     }
 
     @Override
