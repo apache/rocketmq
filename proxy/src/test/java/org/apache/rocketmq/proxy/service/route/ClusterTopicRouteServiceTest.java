@@ -59,6 +59,9 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
     protected static final String BROKER2_NAME = "broker2";
     protected static final String BROKER2_ADDR = "127.0.0.2:10911";
 
+    protected static final String BROKER3_NAME = "broker3";
+    protected static final String BROKER3_ADDR = "127.0.0.1:20911";
+
     @Before
     public void before() throws Throwable {
         super.before();
@@ -83,9 +86,17 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
         broker2Addrs.put(MixAll.MASTER_ID, BROKER2_ADDR);
         broke2Data.setBrokerAddrs(broker2Addrs);
 
+        // build broker3
+        BrokerData broker3Data = new BrokerData();
+        broker3Data.setCluster(CLUSTER_NAME);
+        broker3Data.setBrokerName(BROKER3_NAME);
+        HashMap<Long, String> broker3Addrs = new HashMap<>();
+        broker3Addrs.put(MixAll.FIRST_SLAVE_ID, BROKER3_ADDR);
+        broker3Data.setBrokerAddrs(broker3Addrs);
+
         // add brokers
         TopicRouteData brokerTopicRouteData = new TopicRouteData();
-        brokerTopicRouteData.setBrokerDatas(Lists.newArrayList(brokerData, broke2Data));
+        brokerTopicRouteData.setBrokerDatas(Lists.newArrayList(brokerData, broke2Data, broker3Data));
 
         // add queue data
         QueueData queueData = new QueueData();
@@ -93,9 +104,13 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
 
         QueueData queue2Data = new QueueData();
         queue2Data.setBrokerName(BROKER2_NAME);
-        brokerTopicRouteData.setQueueDatas(Lists.newArrayList(queueData, queue2Data));
+
+        QueueData queue3Data = new QueueData();
+        queue3Data.setBrokerName(BROKER3_NAME);
+        brokerTopicRouteData.setQueueDatas(Lists.newArrayList(queueData, queue2Data, queue3Data));
         when(this.mqClientAPIExt.getTopicRouteInfoFromNameServer(eq(BROKER_NAME), anyLong())).thenReturn(brokerTopicRouteData);
         when(this.mqClientAPIExt.getTopicRouteInfoFromNameServer(eq(BROKER2_NAME), anyLong())).thenReturn(brokerTopicRouteData);
+        when(this.mqClientAPIExt.getTopicRouteInfoFromNameServer(eq(BROKER3_NAME), anyLong())).thenReturn(brokerTopicRouteData);
     }
 
     @Test
@@ -114,6 +129,7 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
         ProxyContext ctx = ProxyContext.create();
         assertEquals(BROKER_ADDR, topicRouteService.getBrokerAddr(ctx, BROKER_NAME));
         assertEquals(BROKER2_ADDR, topicRouteService.getBrokerAddr(ctx, BROKER2_NAME));
+        assertEquals(BROKER3_ADDR, topicRouteService.getBrokerAddr(ctx, BROKER3_NAME));
     }
 
     @Test
