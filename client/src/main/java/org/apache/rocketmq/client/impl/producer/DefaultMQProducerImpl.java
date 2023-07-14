@@ -1293,10 +1293,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         TransactionSendResult transactionSendResult = new TransactionSendResult();
         transactionSendResult.setSendStatus(sendResult.getSendStatus());
-        transactionSendResult.setMessageQueue(sendResult.getMessageQueue());
         transactionSendResult.setMsgId(sendResult.getMsgId());
+        transactionSendResult.setMessageQueue(sendResult.getMessageQueue());
         transactionSendResult.setQueueOffset(sendResult.getQueueOffset());
         transactionSendResult.setTransactionId(sendResult.getTransactionId());
+        transactionSendResult.setOffsetMsgId(sendResult.getOffsetMsgId());
+        transactionSendResult.setRegionId(sendResult.getRegionId());
+        transactionSendResult.setTraceOn(sendResult.isTraceOn());
         transactionSendResult.setLocalTransactionState(localTransactionState);
         return transactionSendResult;
     }
