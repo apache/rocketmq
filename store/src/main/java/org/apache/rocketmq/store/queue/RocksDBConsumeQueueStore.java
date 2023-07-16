@@ -66,16 +66,62 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private static final byte CTRL_A = '\u0001';
     private static final byte CTRL_2 = '\u0002';
 
-    public static final int CQ_UNIT_SIZE = 36;
-
-    private static final int MAX_KEY_LEN = 300;
-    private static final int MAX_VALUE_LEN = CQ_UNIT_SIZE;
-
+    /**
+     * Rocksdb ConsumeQueue's store unit. Format:
+     *
+     * <pre>
+     * ┌─────────────────────────┬───────────┬───────────────────────┬───────────┬───────────┬───────────┬───────────────────────┐
+     * │ Topic Bytes Array Size  │  CTRL_A   │   Topic Bytes Array   │  CTRL_A   │  QueueId  │  CTRL_A   │  ConsumeQueue Offset  │
+     * │        (4 Bytes)        │ (1 Bytes) │       (n Bytes)       │ (1 Bytes) │ (4 Bytes) │ (1 Bytes) │     (8 Bytes)         │
+     * ├─────────────────────────┴───────────┴───────────────────────┴───────────┴───────────┴───────────┴───────────────────────┤
+     * │                                                    Key Unit                                                             │
+     * │                                                                                                                         │
+     * </pre>
+     *
+     * <pre>
+     * ┌─────────────────────────────┬───────────────────┬──────────────────┬──────────────────┬───────────────────────┐
+     * │  CommitLog Physical Offset  │      Body Size    │   Tag HashCode   │  Msg Store Time  │  ConsumeQueue Offset  │
+     * │        (8 Bytes)            │      (4 Bytes)    │    (8 Bytes)     │    (8 Bytes)     │      (8 Bytes)        │
+     * ├─────────────────────────────┴───────────────────┴──────────────────┴──────────────────┴───────────────────────┤
+     * │                                                    Value Unit                                                 │
+     * │                                                                                                               │
+     * </pre>
+     * ConsumeQueue's store unit. Size:
+     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) + Msg Store Time(8) + ConsumeQueue Offset(8) =  36 Bytes
+     */
     public static final int PHY_OFFSET_OFFSET = 0;
     public static final int PHY_MSG_LEN_OFFSET = 8;
     public static final int MSG_TAG_HASHCODE_OFFSET = 12;
     public static final int MSG_STORE_TIME_SIZE_OFFSET = 20;
     public static final int CQ_OFFSET_OFFSET = 28;
+    public static final int CQ_UNIT_SIZE = 36;
+
+    private static final int MAX_KEY_LEN = 300;
+    private static final int MAX_VALUE_LEN = CQ_UNIT_SIZE;
+
+    /**
+     * Rocksdb ConsumeQueue's Offset unit. Format:
+     *
+     * <pre>
+     * ┌─────────────────────────┬───────────┬───────────────────────┬───────────┬───────────┬───────────┬─────────────┐
+     * │ Topic Bytes Array Size  │  CTRL_A   │   Topic Bytes Array   │  CTRL_A   │  Max(min) │  CTRL_A   │   QueueId   │
+     * │        (4 Bytes)        │ (1 Bytes) │       (n Bytes)       │ (1 Bytes) │ (3 Bytes) │ (1 Bytes) │  (4 Bytes)  │
+     * ├─────────────────────────┴───────────┴───────────────────────┴───────────┴───────────┴───────────┴─────────────┤
+     * │                                                    Key Unit                                                   │
+     * │                                                                                                               │
+     * </pre>
+     *
+     * <pre>
+     * ┌─────────────────────────────┬───────────┬────────────────────────┐
+     * │  CommitLog Physical Offset  │  CTRL_A   │   ConsumeQueue Offset  │
+     * │        (8 Bytes)            │ (1 Bytes) │    (8 Bytes)           │
+     * ├─────────────────────────────┴───────────┴────────────────────────┤
+     * │                     Value Unit                                   │
+     * │                                                                  │
+     * </pre>
+     * ConsumeQueue's store unit. Size:
+     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) + Msg Store Time(8) + ConsumeQueue Offset(8) =  36 Bytes
+     */
     private static final int OFFSET_PHY_OFFSET = 0;
     private static final int OFFSET_CQ_OFFSET = 9;
 
