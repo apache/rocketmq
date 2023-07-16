@@ -14,13 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.controller.dledger.event;
 
-package org.apache.rocketmq.controller.helper;
+/**
+ * The parent class of Event, the subclass needs to indicate eventType.
+ */
+public interface EventMessage {
 
-import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
-
-public interface BrokerLiveInfoGetter {
-
-    BrokerLiveInfo get(String clusterName, String brokerName, Long brokerId);
-
+    /**
+     * Returns the event type of this message
+     */
+    EventType getEventType();
 }

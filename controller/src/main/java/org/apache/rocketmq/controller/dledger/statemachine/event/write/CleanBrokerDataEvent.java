@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.helper;
+package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
-import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
-
-public interface BrokerLiveInfoGetter {
-
-    BrokerLiveInfo get(String clusterName, String brokerName, Long brokerId);
-
+public class CleanBrokerDataEvent implements WriteEventMessage {
+    @Override
+    public WriteEventType getEventType() {
+        return WriteEventType.CLEAN_BROKER_DATA;
+    }
 }

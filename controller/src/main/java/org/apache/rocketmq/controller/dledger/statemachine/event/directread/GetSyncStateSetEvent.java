@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.helper;
+package org.apache.rocketmq.controller.dledger.statemachine.event.directread;
 
-import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
-
-public interface BrokerLiveInfoGetter {
-
-    BrokerLiveInfo get(String clusterName, String brokerName, Long brokerId);
-
+public class GetSyncStateSetEvent implements DirectReadEventMessage {
+    @Override
+    public DirectReadEventType getEventType() {
+        return DirectReadEventType.GET_SYNC_STATE_SET;
+    }
 }

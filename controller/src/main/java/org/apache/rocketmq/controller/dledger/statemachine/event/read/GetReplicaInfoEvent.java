@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.helper;
+package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
-import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
+public class GetReplicaInfoEvent implements ReadEventMessage {
 
-public interface BrokerLiveInfoGetter {
-
-    BrokerLiveInfo get(String clusterName, String brokerName, Long brokerId);
+    @Override
+    public ReadEventType getEventType() {
+        return ReadEventType.GET_REPLICA_INFO;
+    }
 
 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.impl.event;
+package org.apache.rocketmq.controller.dledger.event;
 
 import java.util.Set;
 

@@ -19,7 +19,7 @@ package org.apache.rocketmq.controller;
 import io.netty.channel.Channel;
 import java.util.Map;
 import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
-import org.apache.rocketmq.controller.impl.heartbeat.BrokerLiveInfo;
+import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
 
 public interface BrokerHeartbeatManager {
 

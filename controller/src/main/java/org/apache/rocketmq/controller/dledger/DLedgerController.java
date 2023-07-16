@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl;
+package org.apache.rocketmq.controller.dledger;
 
 import com.google.common.base.Stopwatch;
-import io.openmessaging.storage.dledger.AppendFuture;
+import io.openmessaging.storage.dledger.common.AppendFuture;
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerLeaderElector;
 import io.openmessaging.storage.dledger.DLedgerServer;
@@ -45,14 +45,16 @@ import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.Controller;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventSerializer;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
-import org.apache.rocketmq.controller.impl.event.ControllerResult;
-import org.apache.rocketmq.controller.impl.event.EventMessage;
-import org.apache.rocketmq.controller.impl.event.EventSerializer;
-import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
+import org.apache.rocketmq.controller.dledger.event.ControllerResult;
+import org.apache.rocketmq.controller.dledger.event.EventMessage;
+import org.apache.rocketmq.controller.dledger.event.EventSerializer;
+import org.apache.rocketmq.controller.dledger.manager.ReplicasInfoManager;
+import org.apache.rocketmq.controller.dledger.statemachine.DLedgerControllerStateMachine;
 import org.apache.rocketmq.controller.metrics.ControllerMetricsConstant;
 import org.apache.rocketmq.controller.metrics.ControllerMetricsManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -92,7 +94,7 @@ public class DLedgerController implements Controller {
     private final DLedgerConfig dLedgerConfig;
     private final ReplicasInfoManager replicasInfoManager;
     private final EventScheduler scheduler;
-    private final EventSerializer eventSerializer;
+    private final WriteEventSerializer eventSerializer;
     private final RoleChangeHandler roleHandler;
     private final DLedgerControllerStateMachine statemachine;
     private final ScheduledExecutorService scanInactiveMasterService;
@@ -117,7 +119,7 @@ public class DLedgerController implements Controller {
         final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener,
         final ElectPolicy electPolicy) {
         this.controllerConfig = controllerConfig;
-        this.eventSerializer = new EventSerializer();
+        this.eventSerializer = new WriteEventSerializer();
         this.scheduler = new EventScheduler();
         this.brokerAlivePredicate = brokerAlivePredicate;
         this.electPolicy = electPolicy == null ? new DefaultElectPolicy() : electPolicy;
@@ -130,7 +132,7 @@ public class DLedgerController implements Controller {
 
         this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
         this.replicasInfoManager = new ReplicasInfoManager(controllerConfig);
-        this.statemachine = new DLedgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig.getGroup(), dLedgerConfig.getSelfId());
+        this.statemachine = new DLedgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig);
 
         // Register statemachine and role handler.
         this.dLedgerServer = new DLedgerServer(dLedgerConfig, nettyServerConfig, nettyClientConfig, channelEventListener);

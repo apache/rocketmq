@@ -14,18 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl;
+package org.apache.rocketmq.controller.dledger.statemachine;
 
+import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.entry.DLedgerEntry;
+import io.openmessaging.storage.dledger.exception.DLedgerException;
 import io.openmessaging.storage.dledger.snapshot.SnapshotReader;
 import io.openmessaging.storage.dledger.snapshot.SnapshotWriter;
 import io.openmessaging.storage.dledger.statemachine.CommittedEntryIterator;
 import io.openmessaging.storage.dledger.statemachine.StateMachine;
-import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.controller.impl.event.EventMessage;
-import org.apache.rocketmq.controller.impl.event.EventSerializer;
-import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
+import org.apache.rocketmq.controller.dledger.manager.ReplicasInfoManager;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventMessage;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventSerializer;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
@@ -35,14 +36,14 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 public class DLedgerControllerStateMachine implements StateMachine {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private final ReplicasInfoManager replicasInfoManager;
-    private final EventSerializer eventSerializer;
+    private final WriteEventSerializer eventSerializer;
     private final String dLedgerId;
 
     public DLedgerControllerStateMachine(final ReplicasInfoManager replicasInfoManager,
-        final EventSerializer eventSerializer, final String dLedgerGroupId, final String dLedgerSelfId) {
+        final WriteEventSerializer eventSerializer, final DLedgerConfig dLedgerConfig) {
         this.replicasInfoManager = replicasInfoManager;
         this.eventSerializer = eventSerializer;
-        this.dLedgerId = generateDLedgerId(dLedgerGroupId, dLedgerSelfId);
+        this.dLedgerId = generateDLedgerId(dLedgerConfig.getGroup(), dLedgerConfig.getSelfId());
     }
 
     @Override
@@ -54,7 +55,7 @@ public class DLedgerControllerStateMachine implements StateMachine {
             final DLedgerEntry entry = iterator.next();
             final byte[] body = entry.getBody();
             if (body != null && body.length > 0) {
-                final EventMessage event = this.eventSerializer.deserialize(body);
+                final WriteEventMessage event = this.eventSerializer.deserialize(body);
                 this.replicasInfoManager.applyEvent(event);
             }
             firstApplyIndex = firstApplyIndex == -1 ? entry.getIndex() : firstApplyIndex;
@@ -65,16 +66,24 @@ public class DLedgerControllerStateMachine implements StateMachine {
     }
 
     @Override
-    public void onSnapshotSave(SnapshotWriter writer, CompletableFuture<Boolean> future) {
+    public boolean onSnapshotSave(SnapshotWriter writer) {
+        log.error("Controller {} snapshot save not supported", this.dLedgerId);
+        return false;
     }
 
     @Override
     public boolean onSnapshotLoad(SnapshotReader reader) {
+        log.error("Controller {} snapshot load not supported", this.dLedgerId);
         return false;
     }
 
     @Override
     public void onShutdown() {
+    }
+
+    @Override
+    public void onError(DLedgerException e) {
+        log.error("Controller {} on error", this.dLedgerId, e);
     }
 
     @Override

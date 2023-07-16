@@ -14,15 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl.event;
 
-/**
- * The parent class of Event, the subclass needs to indicate eventType.
- */
-public interface EventMessage {
+package org.apache.rocketmq.controller.dledger.statemachine.event.directread;
+
+import org.apache.rocketmq.controller.dledger.statemachine.event.EventMessage;
+import org.apache.rocketmq.controller.dledger.statemachine.event.directread.DirectReadEventType;
+
+public interface DirectReadEventMessage extends EventMessage {
 
     /**
-     * Returns the event type of this message
-     */
-    EventType getEventType();
+    * Returns the event type of this message
+    */
+    DirectReadEventType getEventType();
 }

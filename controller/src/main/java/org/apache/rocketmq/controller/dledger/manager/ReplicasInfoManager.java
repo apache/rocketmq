@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl.manager;
+package org.apache.rocketmq.controller.dledger.manager;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,16 +31,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.controller.dledger.event.ControllerResult;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.AlterSyncStateSetEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.ApplyBrokerIdEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.CleanBrokerDataEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.ElectMasterEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.RegisterBrokerEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventMessage;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventType;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
-import org.apache.rocketmq.controller.impl.event.AlterSyncStateSetEvent;
-import org.apache.rocketmq.controller.impl.event.ApplyBrokerIdEvent;
-import org.apache.rocketmq.controller.impl.event.CleanBrokerDataEvent;
-import org.apache.rocketmq.controller.impl.event.ControllerResult;
-import org.apache.rocketmq.controller.impl.event.ElectMasterEvent;
-import org.apache.rocketmq.controller.impl.event.EventMessage;
-import org.apache.rocketmq.controller.impl.event.EventType;
-import org.apache.rocketmq.controller.impl.event.UpdateBrokerAddressEvent;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -457,27 +457,47 @@ public class ReplicasInfoManager {
      *
      * @param event event message
      */
-    public void applyEvent(final EventMessage event) {
-        final EventType type = event.getEventType();
+    public void applyEvent(final WriteEventMessage event) {
+        final WriteEventType type = event.getEventType();
         switch (type) {
-            case ALTER_SYNC_STATE_SET_EVENT:
-                handleAlterSyncStateSet((AlterSyncStateSetEvent) event);
+            case APPLY_BROKER_ID:
+                dealApplyBrokerId((ApplyBrokerIdEvent) event);
                 break;
-            case APPLY_BROKER_ID_EVENT:
-                handleApplyBrokerId((ApplyBrokerIdEvent) event);
+            case REGISTER_BROKER:
+                dealRegisterBroker((RegisterBrokerEvent) event);
                 break;
-            case ELECT_MASTER_EVENT:
-                handleElectMaster((ElectMasterEvent) event);
+            case ELECT_MASTER:
+                dealElectMaster((ElectMasterEvent) event);
                 break;
-            case CLEAN_BROKER_DATA_EVENT:
-                handleCleanBrokerDataEvent((CleanBrokerDataEvent) event);
+            case ALTER_SYNC_STATE_SET:
+                dealAlterSyncStateSet((AlterSyncStateSetEvent) event);
                 break;
-            case UPDATE_BROKER_ADDRESS:
-                handleUpdateBrokerAddress((UpdateBrokerAddressEvent) event);
+            case CLEAN_BROKER_DATA:
+                dealCleanBrokerData((CleanBrokerDataEvent) event);
                 break;
             default:
                 break;
         }
+    }
+
+    private void dealApplyBrokerId(final ApplyBrokerIdEvent event) {
+
+    }
+
+    private void dealRegisterBroker(final RegisterBrokerEvent event) {
+
+    }
+
+    private void dealElectMaster(final ElectMasterEvent event) {
+
+    }
+
+    private void dealAlterSyncStateSet(final AlterSyncStateSetEvent event) {
+
+    }
+
+    private void dealCleanBrokerData(final CleanBrokerDataEvent event) {
+
     }
 
     private void handleAlterSyncStateSet(final AlterSyncStateSetEvent event) {

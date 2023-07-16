@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl.event;
+package org.apache.rocketmq.controller.dledger.event;
 
 /**
  * The event trys to elect a new master for target broker.

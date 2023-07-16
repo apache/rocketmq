@@ -40,6 +40,7 @@
                     <artifactId>rocketmq-remoting</artifactId>
                 </exclusion>
             </exclusions>
+            <version>0.3.3-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

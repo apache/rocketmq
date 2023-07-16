@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl.heartbeat;
+package org.apache.rocketmq.controller.heartbeat;
 
 import java.util.Objects;
 

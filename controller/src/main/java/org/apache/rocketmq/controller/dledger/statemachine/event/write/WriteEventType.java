@@ -14,51 +14,50 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl.event;
 
-/**
- * Event type (name, id);
- */
-public enum EventType {
-    ALTER_SYNC_STATE_SET_EVENT("AlterSyncStateSetEvent", (short) 1),
-    APPLY_BROKER_ID_EVENT("ApplyBrokerIdEvent", (short) 2),
-    ELECT_MASTER_EVENT("ElectMasterEvent", (short) 3),
-    READ_EVENT("ReadEvent", (short) 4),
-    CLEAN_BROKER_DATA_EVENT("CleanBrokerDataEvent", (short) 5),
+package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
-    UPDATE_BROKER_ADDRESS("UpdateBrokerAddressEvent", (short) 6);
+
+public enum WriteEventType {
+    APPLY_BROKER_ID("ApplyBrokerIdEvent", (short) 1),
+    REGISTER_BROKER("RegisterBrokerEvent", (short) 2),
+    ELECT_MASTER("ElectMasterEvent", (short) 3),
+    ALTER_SYNC_STATE_SET("AlterSyncStateSetEvent", (short) 4),
+    CLEAN_BROKER_DATA("CleanBrokerDataEvent", (short) 5),
+
+    UNKNOWN("UnknownEvent", (short) -1);
 
     private final String name;
+
     private final short id;
 
-    EventType(String name, short id) {
+
+    WriteEventType(String name, short id) {
         this.name = name;
         this.id = id;
     }
 
-    public static EventType from(short id) {
+    public static WriteEventType valueOf(short id) {
         switch (id) {
             case 1:
-                return ALTER_SYNC_STATE_SET_EVENT;
+                return APPLY_BROKER_ID;
             case 2:
-                return APPLY_BROKER_ID_EVENT;
+                return REGISTER_BROKER;
             case 3:
-                return ELECT_MASTER_EVENT;
+                return ELECT_MASTER;
             case 4:
-                return READ_EVENT;
+                return ALTER_SYNC_STATE_SET;
             case 5:
-                return CLEAN_BROKER_DATA_EVENT;
-            case 6:
-                return UPDATE_BROKER_ADDRESS;
+                return CLEAN_BROKER_DATA;
         }
-        return null;
-    }
-
-    public String getName() {
-        return name;
+        return UNKNOWN;
     }
 
     public short getId() {
         return id;
+    }
+
+    public String getName() {
+        return name;
     }
 }

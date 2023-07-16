@@ -14,32 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl.event;
 
-/**
- * The event trys to apply a new id for a new broker.
- * Triggered by the RegisterBrokerApi.
- */
-public class ApplyBrokerIdEvent implements EventMessage {
-    private final String clusterName;
-    private final String brokerName;
-    private final String brokerAddress;
+package org.apache.rocketmq.controller.dledger.event;
 
-    private final String registerCheckCode;
+public class UpdateBrokerAddressEvent implements EventMessage {
 
-    private final long newBrokerId;
+    private String clusterName;
 
-    public ApplyBrokerIdEvent(String clusterName, String brokerName, String brokerAddress, long newBrokerId, String registerCheckCode) {
+    private String brokerName;
+
+    private String brokerAddress;
+
+    private Long brokerId;
+
+    public UpdateBrokerAddressEvent(String clusterName, String brokerName, String brokerAddress, Long brokerId) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddress = brokerAddress;
-        this.newBrokerId = newBrokerId;
-        this.registerCheckCode = registerCheckCode;
+        this.brokerId = brokerId;
     }
 
-    @Override
-    public EventType getEventType() {
-        return EventType.APPLY_BROKER_ID_EVENT;
+    public String getClusterName() {
+        return clusterName;
     }
 
     public String getBrokerName() {
@@ -50,26 +46,22 @@ public class ApplyBrokerIdEvent implements EventMessage {
         return brokerAddress;
     }
 
-    public long getNewBrokerId() {
-        return newBrokerId;
-    }
-
-    public String getClusterName() {
-        return clusterName;
-    }
-
-    public String getRegisterCheckCode() {
-        return registerCheckCode;
+    public Long getBrokerId() {
+        return brokerId;
     }
 
     @Override
     public String toString() {
-        return "ApplyBrokerIdEvent{" +
+        return "UpdateBrokerAddressEvent{" +
                 "clusterName='" + clusterName + '\'' +
                 ", brokerName='" + brokerName + '\'' +
                 ", brokerAddress='" + brokerAddress + '\'' +
-                ", registerCheckCode='" + registerCheckCode + '\'' +
-                ", newBrokerId=" + newBrokerId +
+                ", brokerId=" + brokerId +
                 '}';
+    }
+
+    @Override
+    public EventType getEventType() {
+        return EventType.UPDATE_BROKER_ADDRESS;
     }
 }

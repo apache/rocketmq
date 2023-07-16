@@ -14,18 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.controller.impl.event;
+
+package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
 import org.apache.commons.lang3.SerializationException;
 import org.apache.rocketmq.common.utils.FastJsonSerializer;
 
-/**
- * EventMessage serializer
- */
-public class EventSerializer {
+public class WriteEventSerializer {
+
     private final FastJsonSerializer serializer;
 
-    public EventSerializer() {
+    public WriteEventSerializer() {
         this.serializer = new FastJsonSerializer();
     }
 
@@ -38,7 +37,8 @@ public class EventSerializer {
         return (short) (memory[index] << 8 | memory[index + 1] & 0xFF);
     }
 
-    public byte[] serialize(EventMessage message) throws SerializationException {
+    public byte[] serialize(
+        WriteEventMessage message) throws SerializationException {
         final short eventType = message.getEventType().getId();
         final byte[] data = this.serializer.serialize(message);
         if (data != null && data.length > 0) {
@@ -50,7 +50,7 @@ public class EventSerializer {
         return null;
     }
 
-    public EventMessage deserialize(byte[] bytes) throws SerializationException {
+    public WriteEventMessage deserialize(byte[] bytes) throws SerializationException {
         if (bytes.length < 2) {
             return null;
         }
@@ -58,22 +58,20 @@ public class EventSerializer {
         if (eventId > 0) {
             final byte[] data = new byte[bytes.length - 2];
             System.arraycopy(bytes, 2, data, 0, data.length);
-            final EventType eventType = EventType.from(eventId);
-            if (eventType != null) {
-                switch (eventType) {
-                    case ALTER_SYNC_STATE_SET_EVENT:
-                        return this.serializer.deserialize(data, AlterSyncStateSetEvent.class);
-                    case APPLY_BROKER_ID_EVENT:
-                        return this.serializer.deserialize(data, ApplyBrokerIdEvent.class);
-                    case ELECT_MASTER_EVENT:
-                        return this.serializer.deserialize(data, ElectMasterEvent.class);
-                    case CLEAN_BROKER_DATA_EVENT:
-                        return this.serializer.deserialize(data, CleanBrokerDataEvent.class);
-                    case UPDATE_BROKER_ADDRESS:
-                        return this.serializer.deserialize(data, UpdateBrokerAddressEvent.class);
-                    default:
-                        break;
-                }
+            final WriteEventType eventType = WriteEventType.valueOf(eventId);
+            switch (eventType) {
+                case APPLY_BROKER_ID:
+                    return this.serializer.deserialize(data, ApplyBrokerIdEvent.class);
+                case REGISTER_BROKER:
+                    return this.serializer.deserialize(data, RegisterBrokerEvent.class);
+                case ELECT_MASTER:
+                    return this.serializer.deserialize(data, ElectMasterEvent.class);
+                case CLEAN_BROKER_DATA:
+                    return this.serializer.deserialize(data, CleanBrokerDataEvent.class);
+                case ALTER_SYNC_STATE_SET:
+                    return this.serializer.deserialize(data, AlterSyncStateSetEvent.class);
+                default:
+                    break;
             }
         }
         return null;

@@ -15,12 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.helper;
+package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
-import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
+import org.apache.rocketmq.controller.dledger.statemachine.event.EventMessage;
 
-public interface BrokerLiveInfoGetter {
+public interface WriteEventMessage extends EventMessage {
 
-    BrokerLiveInfo get(String clusterName, String brokerName, Long brokerId);
+    /**
+     * Returns the event type of this message
+     */
+    WriteEventType getEventType();
 
 }

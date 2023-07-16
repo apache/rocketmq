@@ -22,13 +22,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.controller.dledger.manager.ReplicasInfoManager;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
-import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManager;
-import org.apache.rocketmq.controller.impl.event.ControllerResult;
-import org.apache.rocketmq.controller.impl.event.ElectMasterEvent;
-import org.apache.rocketmq.controller.impl.event.EventMessage;
+import org.apache.rocketmq.controller.heartbeat.DefaultBrokerHeartbeatManager;
+import org.apache.rocketmq.controller.dledger.event.ControllerResult;
+import org.apache.rocketmq.controller.dledger.event.ElectMasterEvent;
+import org.apache.rocketmq.controller.dledger.event.EventMessage;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;

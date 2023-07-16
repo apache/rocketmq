@@ -17,7 +17,7 @@
 package org.apache.rocketmq.controller.elect.impl;
 
 import org.apache.rocketmq.controller.elect.ElectPolicy;
-import org.apache.rocketmq.controller.impl.heartbeat.BrokerLiveInfo;
+import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
 import org.apache.rocketmq.controller.helper.BrokerLiveInfoGetter;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
 
