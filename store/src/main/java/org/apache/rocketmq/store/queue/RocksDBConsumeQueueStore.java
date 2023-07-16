@@ -119,8 +119,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
      * │                     Value Unit                                   │
      * │                                                                  │
      * </pre>
-     * ConsumeQueue's store unit. Size:
-     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) + Msg Store Time(8) + ConsumeQueue Offset(8) =  36 Bytes
+     * ConsumeQueue's Offset unit. Size: CommitLog Physical Offset(8) + CTRL_A(1) + ConsumeQueue Offset(8) =  17 Bytes
      */
     private static final int OFFSET_PHY_OFFSET = 0;
     private static final int OFFSET_CQ_OFFSET = 9;
