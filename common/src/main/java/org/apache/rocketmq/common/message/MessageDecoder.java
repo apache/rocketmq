@@ -22,6 +22,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -70,7 +71,7 @@ public class MessageDecoder {
 //        + 8; // 14 Prepared Transaction Offset
 
     public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) {
-        input.flip();
+        ((Buffer)input).flip();
         int msgIDLength = addr.limit() == 8 ? 16 : 28;
         input.limit(msgIDLength);
 
@@ -87,7 +88,7 @@ public class MessageDecoder {
         byteBuffer.put(inetSocketAddress.getAddress().getAddress());
         byteBuffer.putInt(inetSocketAddress.getPort());
         byteBuffer.putLong(transactionIdhashCode);
-        byteBuffer.flip();
+        ((Buffer)byteBuffer).flip();
         return UtilAll.bytes2string(byteBuffer.array());
     }
 

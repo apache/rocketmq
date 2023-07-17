@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tieredstore.file;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.tuple.Pair;
@@ -81,7 +82,7 @@ public class TieredConsumeQueue {
         cqItem.putLong(offset);
         cqItem.putInt(size);
         cqItem.putLong(tagsCode);
-        cqItem.flip();
+        ((Buffer)cqItem).flip();
         return flatFile.append(cqItem, timeStamp, commit);
     }
 

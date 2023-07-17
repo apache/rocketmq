@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store;
 
+import java.nio.Buffer;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -519,7 +520,7 @@ public class ConsumeQueueExt {
                 temp = ByteBuffer.allocate(this.size);
             }
 
-            temp.flip();
+            ((Buffer)temp).flip();
             temp.limit(this.size);
 
             temp.putShort(this.size);

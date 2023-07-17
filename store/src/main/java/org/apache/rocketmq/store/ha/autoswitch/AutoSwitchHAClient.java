@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -301,7 +302,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         // Slave brokerId
         this.handshakeHeaderBuffer.putLong(this.brokerId);
 
-        this.handshakeHeaderBuffer.flip();
+        ((Buffer)this.handshakeHeaderBuffer).flip();
         return this.haWriter.write(this.socketChannel, this.handshakeHeaderBuffer);
     }
 
@@ -324,7 +325,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
         this.transferHeaderBuffer.limit(TRANSFER_HEADER_SIZE);
         this.transferHeaderBuffer.putInt(currentState.ordinal());
         this.transferHeaderBuffer.putLong(offsetToReport);
-        this.transferHeaderBuffer.flip();
+        ((Buffer)this.transferHeaderBuffer).flip();
         return this.haWriter.write(this.socketChannel, this.transferHeaderBuffer);
     }
 

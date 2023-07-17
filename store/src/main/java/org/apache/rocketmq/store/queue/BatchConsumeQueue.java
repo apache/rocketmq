@@ -18,6 +18,7 @@
 package org.apache.rocketmq.store.queue;
 
 import java.io.File;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -552,7 +553,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
             log.warn("Reput behind {} topic:{} queue:{} offset:{} behind:{}", flag, topic, queueId, offset, behind);
         }
 
-        this.byteBufferItem.flip();
+        ((Buffer)this.byteBufferItem).flip();
         this.byteBufferItem.limit(CQ_STORE_UNIT_SIZE);
         this.byteBufferItem.putLong(offset);
         this.byteBufferItem.putInt(size);

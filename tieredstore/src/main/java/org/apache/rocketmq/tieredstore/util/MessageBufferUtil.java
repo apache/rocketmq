@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.util;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -100,7 +101,7 @@ public class MessageBufferUtil {
         idBuffer.limit(TieredStoreUtil.MSG_ID_LENGTH);
         idBuffer.putLong(message.getLong(message.position() + STORE_HOST_POSITION));
         idBuffer.putLong(getCommitLogOffset(message));
-        idBuffer.flip();
+        ((Buffer)idBuffer).flip();
         return idBuffer;
     }
 

@@ -20,6 +20,7 @@ import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
@@ -77,7 +78,7 @@ public class MessageExt extends Message {
             byteBuffer.put(inetSocketAddress.getAddress().getAddress(), 0, 16);
         }
         byteBuffer.putInt(inetSocketAddress.getPort());
-        byteBuffer.flip();
+        ((Buffer)byteBuffer).flip();
         return byteBuffer;
     }
 

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tieredstore.file;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -568,7 +569,7 @@ public class TieredFlatFile {
             .thenCombine(fileSegment2.readAsync(0, length - segment1Length), (buffer1, buffer2) -> {
                 ByteBuffer compositeBuffer = ByteBuffer.allocate(buffer1.remaining() + buffer2.remaining());
                 compositeBuffer.put(buffer1).put(buffer2);
-                compositeBuffer.flip();
+                ((Buffer)compositeBuffer).flip();
                 return compositeBuffer;
             });
     }

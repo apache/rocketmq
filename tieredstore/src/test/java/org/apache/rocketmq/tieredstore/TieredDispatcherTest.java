@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tieredstore;
 
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -146,7 +147,7 @@ public class TieredDispatcherTest {
         cqItem.putLong(7);
         cqItem.putInt(MessageBufferUtilTest.MSG_LEN);
         cqItem.putLong(1);
-        cqItem.flip();
+        ((Buffer)cqItem).flip();
         SelectMappedBufferResult mockResult = new SelectMappedBufferResult(0, cqItem, ConsumeQueue.CQ_STORE_UNIT_SIZE, null);
         Mockito.when(((ConsumeQueue) defaultStore.getConsumeQueue(mq.getTopic(), mq.getQueueId())).getIndexBuffer(6)).thenReturn(mockResult);
 
@@ -154,7 +155,7 @@ public class TieredDispatcherTest {
         cqItem.putLong(8);
         cqItem.putInt(MessageBufferUtilTest.MSG_LEN);
         cqItem.putLong(1);
-        cqItem.flip();
+        ((Buffer)cqItem).flip();
         mockResult = new SelectMappedBufferResult(0, cqItem, ConsumeQueue.CQ_STORE_UNIT_SIZE, null);
 
         Mockito.when(((ConsumeQueue) defaultStore.getConsumeQueue(mq.getTopic(), mq.getQueueId())).getIndexBuffer(7)).thenReturn(mockResult);

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store;
 
+import java.nio.Buffer;
 import java.util.concurrent.CountDownLatch;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.rocketmq.common.MixAll;
@@ -204,7 +205,7 @@ public class MappedFileQueueTest {
             byte[] padding = new byte[12];
             Arrays.fill(padding, (byte) '0');
             byteBuffer.put(padding);
-            byteBuffer.flip();
+            ((Buffer)byteBuffer).flip();
 
             assertThat(mappedFile.appendMessage(byteBuffer.array())).isTrue();
         }

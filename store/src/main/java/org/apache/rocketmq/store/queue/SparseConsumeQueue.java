@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import java.nio.Buffer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -251,7 +252,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
     public void putEndPositionInfo(MappedFile mappedFile) {
         // cache max offset
         if (!mappedFile.isFull()) {
-            this.byteBufferItem.flip();
+            ((Buffer)this.byteBufferItem).flip();
             this.byteBufferItem.limit(CQ_STORE_UNIT_SIZE);
             this.byteBufferItem.putLong(-1);
             this.byteBufferItem.putInt(0);

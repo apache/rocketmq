@@ -18,6 +18,7 @@ package org.apache.rocketmq.tieredstore.provider;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -281,7 +282,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         codaBuffer.putInt(TieredCommitLog.CODA_SIZE);
         codaBuffer.putInt(TieredCommitLog.BLANK_MAGIC_CODE);
         codaBuffer.putLong(maxTimestamp);
-        codaBuffer.flip();
+        ((Buffer)codaBuffer).flip();
         appendPosition += TieredCommitLog.CODA_SIZE;
     }
 

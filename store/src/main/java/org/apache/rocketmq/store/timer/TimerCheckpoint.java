@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.timer;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -129,7 +130,7 @@ public class TimerCheckpoint {
         byteBuffer.putLong(another.getDataVersion().getStateVersion());
         byteBuffer.putLong(another.getDataVersion().getTimestamp());
         byteBuffer.putLong(another.getDataVersion().getCounter().get());
-        byteBuffer.flip();
+        ((Buffer)byteBuffer).flip();
         return byteBuffer;
     }
 

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.provider;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -84,7 +85,7 @@ public class TieredFileSegmentTest {
         cqItem.putLong(commitLogOffset);
         cqItem.putInt(2);
         cqItem.putLong(3);
-        cqItem.flip();
+        ((Buffer)cqItem).flip();
         return cqItem;
     }
 

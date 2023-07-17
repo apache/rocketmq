@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.util;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.junit.Assert;
@@ -31,7 +32,7 @@ public class CQItemBufferUtilTest {
         cqItem.putLong(1);
         cqItem.putInt(2);
         cqItem.putLong(3);
-        cqItem.flip();
+        ((Buffer)cqItem).flip();
     }
 
     @Test

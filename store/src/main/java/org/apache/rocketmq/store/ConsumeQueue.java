@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store;
 
 import java.io.File;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -884,7 +885,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
             return true;
         }
 
-        this.byteBufferIndex.flip();
+        ((Buffer)this.byteBufferIndex).flip();
         this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
         this.byteBufferIndex.putLong(offset);
         this.byteBufferIndex.putInt(size);

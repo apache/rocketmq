@@ -18,6 +18,7 @@
 package org.apache.rocketmq.store.ha.autoswitch;
 
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -487,7 +488,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             this.byteBufferHeader.putLong(maxPhyOffset);
             // Epoch
             this.byteBufferHeader.putInt(lastEpoch);
-            this.byteBufferHeader.flip();
+            ((Buffer)this.byteBufferHeader).flip();
 
             // EpochEntries
             this.handShakeBuffer.position(0);
@@ -498,7 +499,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                     this.handShakeBuffer.putLong(entry.getStartOffset());
                 }
             }
-            this.handShakeBuffer.flip();
+            ((Buffer)this.handShakeBuffer).flip();
             LOGGER.info("Master build handshake header: maxEpoch:{}, maxOffset:{}, epochEntries:{}", lastEpoch, maxPhyOffset, epochEntries);
             return true;
         }
@@ -549,7 +550,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             // Additional info(confirm offset)
             final long confirmOffset = AutoSwitchHAConnection.this.haService.getDefaultMessageStore().getConfirmOffset();
             this.byteBufferHeader.putLong(confirmOffset);
-            this.byteBufferHeader.flip();
+            ((Buffer)this.byteBufferHeader).flip();
         }
 
         private boolean sendHeartbeatIfNeeded() throws Exception {

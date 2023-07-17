@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,7 +37,7 @@ public class MessageEncodeDecodeTest {
         byte[] bytes = MessageDecoder.encodeMessage(message);
         ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
         buffer.put(bytes);
-        buffer.flip();
+        ((Buffer)buffer).flip();
         Message newMessage = MessageDecoder.decodeMessage(buffer);
 
         assertTrue(message.getFlag() == newMessage.getFlag());
@@ -57,7 +58,7 @@ public class MessageEncodeDecodeTest {
 
         ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
         buffer.put(bytes);
-        buffer.flip();
+        ((Buffer)buffer).flip();
 
         List<Message> newMsgs = MessageDecoder.decodeMessages(buffer);
 

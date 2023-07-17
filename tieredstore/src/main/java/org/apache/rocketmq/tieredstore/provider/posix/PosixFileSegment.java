@@ -23,6 +23,7 @@ import io.opentelemetry.api.common.AttributesBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
@@ -156,7 +157,7 @@ public class PosixFileSegment extends TieredFileSegment {
         try {
             readFileChannel.position(position);
             readFileChannel.read(byteBuffer);
-            byteBuffer.flip();
+            ((Buffer)byteBuffer).flip();
 
             attributesBuilder.put(LABEL_SUCCESS, true);
             long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);

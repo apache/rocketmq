@@ -21,6 +21,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
+import java.nio.Buffer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.NetworkUtil;
@@ -172,7 +173,7 @@ public class RemotingHelper {
                     Thread.sleep(1);
                 }
 
-                byteBufferBody.flip();
+                ((Buffer)byteBufferBody).flip();
                 return RemotingCommand.decode(byteBufferBody);
             } catch (IOException e) {
                 log.error("invokeSync failure", e);

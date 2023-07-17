@@ -32,6 +32,7 @@ import io.openmessaging.storage.dledger.store.file.SelectMmapBufferResult;
 import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
@@ -970,7 +971,7 @@ public class DLedgerCommitLog extends CommitLog {
         }
 
         private void resetByteBuffer(final ByteBuffer byteBuffer, final int limit) {
-            byteBuffer.flip();
+            ((Buffer)byteBuffer).flip();
             byteBuffer.limit(limit);
         }
     }

@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.timer;
 import com.conversantmedia.util.concurrent.DisruptorBlockingQueue;
 import java.io.File;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -1013,7 +1014,7 @@ public class TimerMessageStore {
             bufferLocal.get().limit(sizePy);
             boolean res = messageStore.getData(offsetPy, sizePy, bufferLocal.get());
             if (res) {
-                bufferLocal.get().flip();
+                ((Buffer)bufferLocal.get()).flip();
                 msgExt = MessageDecoder.decode(bufferLocal.get(), true, false, false);
             }
             if (null == msgExt) {

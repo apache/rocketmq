@@ -19,6 +19,7 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.net.InetSocketAddress;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -179,8 +180,8 @@ public class AppendCallbackTest {
             msgIds.add(msgId);
         }
         assertEquals(messages.size(), msgIds.size());
-
-        List<MessageExt> decodeMsgs = MessageDecoder.decodes((ByteBuffer) buff.flip());
+        ((Buffer) buff).flip();
+        List<MessageExt> decodeMsgs = MessageDecoder.decodes(buff);
         assertEquals(decodeMsgs.size(), decodeMsgs.size());
         long queueOffset = decodeMsgs.get(0).getQueueOffset();
         long storeTimeStamp = decodeMsgs.get(0).getStoreTimestamp();
@@ -241,8 +242,8 @@ public class AppendCallbackTest {
             msgIds.add(msgId);
         }
         assertEquals(messages.size(), msgIds.size());
-
-        List<MessageExt> decodeMsgs = MessageDecoder.decodes((ByteBuffer) buff.flip());
+        ((Buffer) buff).flip();
+        List<MessageExt> decodeMsgs = MessageDecoder.decodes(buff);
         assertEquals(decodeMsgs.size(), decodeMsgs.size());
         long queueOffset = decodeMsgs.get(0).getQueueOffset();
         long storeTimeStamp = decodeMsgs.get(0).getStoreTimestamp();

@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tieredstore.util;
 
 import java.net.InetSocketAddress;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -93,7 +94,7 @@ public class MessageBufferUtilTest {
         byte[] propertiesBytes = properties.getBytes(StandardCharsets.UTF_8);
         buffer.putShort((short) propertiesBytes.length);
         buffer.put(propertiesBytes);
-        buffer.flip();
+        ((Buffer)buffer).flip();
 
         Assert.assertEquals(MSG_LEN, buffer.remaining());
         return buffer;
@@ -107,7 +108,7 @@ public class MessageBufferUtilTest {
         byteBuffer.putInt(2);
         // 3 TAG_HASH_CODE
         byteBuffer.putLong(3);
-        byteBuffer.flip();
+        ((Buffer)byteBuffer).flip();
         return byteBuffer;
     }
 
@@ -159,7 +160,7 @@ public class MessageBufferUtilTest {
         msgBuffer2.putInt(TieredCommitLog.CODA_SIZE);
         msgBuffer2.putInt(TieredCommitLog.BLANK_MAGIC_CODE);
         msgBuffer2.putLong(System.currentTimeMillis());
-        msgBuffer2.flip();
+        ((Buffer)msgBuffer2).flip();
 
         ByteBuffer msgBuffer3 = buildMockedMessageBuffer();
         msgBuffer3.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 11);
@@ -169,42 +170,42 @@ public class MessageBufferUtilTest {
         msgBuffer.put(msgBuffer1);
         msgBuffer.put(msgBuffer2);
         msgBuffer.put(msgBuffer3);
-        msgBuffer.flip();
+        ((Buffer)msgBuffer).flip();
 
         ByteBuffer cqBuffer1 = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         cqBuffer1.putLong(1000);
         cqBuffer1.putInt(MSG_LEN);
         cqBuffer1.putLong(0);
-        cqBuffer1.flip();
+        ((Buffer)cqBuffer1).flip();
 
         ByteBuffer cqBuffer2 = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         cqBuffer2.putLong(1000 + TieredCommitLog.CODA_SIZE + MSG_LEN);
         cqBuffer2.putInt(MSG_LEN);
         cqBuffer2.putLong(0);
-        cqBuffer2.flip();
+        ((Buffer)cqBuffer2).flip();
 
         ByteBuffer cqBuffer3 = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         cqBuffer3.putLong(1000 + MSG_LEN);
         cqBuffer3.putInt(MSG_LEN);
         cqBuffer3.putLong(0);
-        cqBuffer3.flip();
+        ((Buffer)cqBuffer3).flip();
 
         ByteBuffer cqBuffer4 = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         cqBuffer4.putLong(1000 + TieredCommitLog.CODA_SIZE + MSG_LEN);
         cqBuffer4.putInt(MSG_LEN - 10);
         cqBuffer4.putLong(0);
-        cqBuffer4.flip();
+        ((Buffer)cqBuffer4).flip();
 
         ByteBuffer cqBuffer5 = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         cqBuffer5.putLong(1000 + TieredCommitLog.CODA_SIZE + MSG_LEN);
         cqBuffer5.putInt(MSG_LEN * 10);
         cqBuffer5.putLong(0);
-        cqBuffer5.flip();
+        ((Buffer)cqBuffer5).flip();
 
         ByteBuffer cqBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE * 2);
         cqBuffer.put(cqBuffer1);
         cqBuffer.put(cqBuffer2);
-        cqBuffer.flip();
+        ((Buffer)cqBuffer).flip();
         cqBuffer1.rewind();
         cqBuffer2.rewind();
         List<Pair<Integer, Integer>> msgList = MessageBufferUtil.splitMessageBuffer(cqBuffer, msgBuffer);
@@ -215,7 +216,7 @@ public class MessageBufferUtilTest {
         cqBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE * 2);
         cqBuffer.put(cqBuffer1);
         cqBuffer.put(cqBuffer4);
-        cqBuffer.flip();
+        ((Buffer)cqBuffer).flip();
         cqBuffer1.rewind();
         cqBuffer4.rewind();
         msgList = MessageBufferUtil.splitMessageBuffer(cqBuffer, msgBuffer);
@@ -225,7 +226,7 @@ public class MessageBufferUtilTest {
         cqBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE * 3);
         cqBuffer.put(cqBuffer1);
         cqBuffer.put(cqBuffer3);
-        cqBuffer.flip();
+        ((Buffer)cqBuffer).flip();
         msgList = MessageBufferUtil.splitMessageBuffer(cqBuffer, msgBuffer);
         Assert.assertEquals(2, msgList.size());
         Assert.assertEquals(Pair.of(0, MSG_LEN), msgList.get(0));
@@ -233,7 +234,7 @@ public class MessageBufferUtilTest {
 
         cqBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         cqBuffer.put(cqBuffer5);
-        cqBuffer.flip();
+        ((Buffer)cqBuffer).flip();
         msgList = MessageBufferUtil.splitMessageBuffer(cqBuffer, msgBuffer);
         Assert.assertEquals(0, msgList.size());
     }
@@ -259,7 +260,7 @@ public class MessageBufferUtilTest {
         ByteBuffer addr = ByteBuffer.allocate(Long.BYTES);
         addr.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
         addr.putInt(inetSocketAddress.getPort());
-        addr.flip();
+        ((Buffer)addr).flip();
         for (int i = 0; i < addr.remaining(); i++) {
             buffer.put(MessageBufferUtil.STORE_HOST_POSITION + i, addr.get(i));
         }

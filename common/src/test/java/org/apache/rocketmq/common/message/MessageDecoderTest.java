@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.message;
 
+import java.nio.Buffer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.junit.Test;
@@ -200,7 +201,7 @@ public class MessageDecoderTest {
         ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
         byteBuffer.put(msgBytes);
 
-        byteBuffer.flip();
+        ((Buffer)byteBuffer).flip();
         MessageExt decodedMsg = MessageDecoder.decode(byteBuffer);
 
         assertThat(decodedMsg).isNotNull();
@@ -261,7 +262,7 @@ public class MessageDecoderTest {
         ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
         byteBuffer.put(msgBytes);
 
-        byteBuffer.flip();
+        ((Buffer)byteBuffer).flip();
         MessageExt decodedMsg = MessageDecoder.decode(byteBuffer);
 
         assertThat(decodedMsg).isNotNull();

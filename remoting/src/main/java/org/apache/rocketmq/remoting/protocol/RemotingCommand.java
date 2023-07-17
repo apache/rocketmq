@@ -399,7 +399,7 @@ public class RemotingCommand {
             result.put(this.body);
         }
 
-        result.flip();
+        ((Buffer)result).flip();
 
         return result;
     }
