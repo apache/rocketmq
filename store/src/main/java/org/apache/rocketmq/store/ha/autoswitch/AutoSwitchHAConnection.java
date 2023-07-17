@@ -330,7 +330,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 }
 
                                 isSlaveSendHandshake = true;
-                                byteBufferRead.position(readSocketPos);
+                                ((Buffer)byteBufferRead).position(readSocketPos);
                                 ReadSocketService.this.processPosition += AutoSwitchHAClient.HANDSHAKE_HEADER_SIZE;
                                 LOGGER.info("Receive slave handshake, slaveBrokerId:{}, isSyncFromLastFile:{}, isAsyncLearner:{}",
                                     AutoSwitchHAConnection.this.slaveId, AutoSwitchHAConnection.this.isSyncFromLastFile, AutoSwitchHAConnection.this.isAsyncLearner);
@@ -343,7 +343,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                                 if (slaveRequestOffset < 0) {
                                     slaveRequestOffset = slaveMaxOffset;
                                 }
-                                byteBufferRead.position(readSocketPos);
+                                ((Buffer)byteBufferRead).position(readSocketPos);
                                 maybeExpandInSyncStateSet(slaveMaxOffset);
                                 AutoSwitchHAConnection.this.haService.updateConfirmOffsetWhenSlaveAck(AutoSwitchHAConnection.this.slaveId);
                                 AutoSwitchHAConnection.this.haService.notifyTransferSome(AutoSwitchHAConnection.this.slaveAckOffset);
@@ -363,7 +363,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                     }
 
                     if (!byteBufferRead.hasRemaining()) {
-                        byteBufferRead.position(ReadSocketService.this.processPosition);
+                        ((Buffer)byteBufferRead).position(ReadSocketService.this.processPosition);
                         byteBufferRead.compact();
                         ReadSocketService.this.processPosition = 0;
                     }
@@ -478,7 +478,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             final List<EpochEntry> epochEntries = AutoSwitchHAConnection.this.epochCache.getAllEntries();
             final int lastEpoch = AutoSwitchHAConnection.this.epochCache.lastEpoch();
             final long maxPhyOffset = AutoSwitchHAConnection.this.haService.getDefaultMessageStore().getMaxPhyOffset();
-            this.byteBufferHeader.position(0);
+            ((Buffer)this.byteBufferHeader).position(0);
             this.byteBufferHeader.limit(HANDSHAKE_HEADER_SIZE);
             // State
             this.byteBufferHeader.putInt(currentState.ordinal());
@@ -491,7 +491,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             ((Buffer)this.byteBufferHeader).flip();
 
             // EpochEntries
-            this.handShakeBuffer.position(0);
+            ((Buffer)this.handShakeBuffer).position(0);
             this.handShakeBuffer.limit(EPOCH_ENTRY_SIZE * epochEntries.size());
             for (final EpochEntry entry : epochEntries) {
                 if (entry != null) {
@@ -535,7 +535,7 @@ public class AutoSwitchHAConnection implements HAConnection {
                 entry = AutoSwitchHAConnection.this.epochCache.firstEntry();
             }
             // Build Header
-            this.byteBufferHeader.position(0);
+            ((Buffer)this.byteBufferHeader).position(0);
             this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
             // State
             this.byteBufferHeader.putInt(currentState.ordinal());

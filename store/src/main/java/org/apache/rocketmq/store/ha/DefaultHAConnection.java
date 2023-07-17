@@ -315,7 +315,7 @@ public class DefaultHAConnection implements HAConnection {
                             .getHaSendHeartbeatInterval()) {
 
                             // Build Header
-                            this.byteBufferHeader.position(0);
+                            ((Buffer)this.byteBufferHeader).position(0);
                             this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
                             this.byteBufferHeader.putLong(this.nextTransferFromWhere);
                             this.byteBufferHeader.putInt(0);
@@ -357,7 +357,7 @@ public class DefaultHAConnection implements HAConnection {
                         this.selectMappedBufferResult = selectResult;
 
                         // Build Header
-                        this.byteBufferHeader.position(0);
+                        ((Buffer)this.byteBufferHeader).position(0);
                         this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
                         this.byteBufferHeader.putLong(thisOffset);
                         this.byteBufferHeader.putInt(size);

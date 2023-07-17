@@ -65,7 +65,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
             long processOffset = mappedFile.getFileFromOffset();
             while (true) {
                 for (int i = 0; i < mappedFileSize; i += CQ_STORE_UNIT_SIZE) {
-                    byteBuffer.position(i);
+                    ((Buffer)byteBuffer).position(i);
                     long offset = byteBuffer.getLong();
                     int size = byteBuffer.getInt();
                     byteBuffer.getLong();   //tagscode
@@ -322,7 +322,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
 
         ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
         for (int i = mappedFile.getReadPosition() - CQ_STORE_UNIT_SIZE; i >= 0; i -= CQ_STORE_UNIT_SIZE) {
-            byteBuffer.position(i);
+            ((Buffer)byteBuffer).position(i);
             long offset = byteBuffer.getLong();
             int size = byteBuffer.getInt();
             long tagsCode = byteBuffer.getLong();   //tagscode
@@ -330,7 +330,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
             long msgBaseOffset = byteBuffer.getLong();
             short batchSize = byteBuffer.getShort();
             if (offset >= 0 && size > 0 && msgBaseOffset >= 0 && batchSize > 0) {
-                byteBuffer.position(i);     //reset position
+                ((Buffer)byteBuffer).position(i);     //reset position
                 return function.apply(byteBuffer.slice());
             }
         }
@@ -346,7 +346,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
 
         ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
         for (int i = mappedFile.getReadPosition() - CQ_STORE_UNIT_SIZE; i >= 0; i -= CQ_STORE_UNIT_SIZE) {
-            byteBuffer.position(i);
+            ((Buffer)byteBuffer).position(i);
             long offset = byteBuffer.getLong();
             int size = byteBuffer.getInt();
             byteBuffer.getLong();   //tagscode

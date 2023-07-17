@@ -245,7 +245,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     long phyOffset;
                     int size;
                     // Handle case 1
-                    byteBuffer.position(ceiling);
+                    ((Buffer)byteBuffer).position(ceiling);
                     phyOffset = byteBuffer.getLong();
                     size = byteBuffer.getInt();
                     storeTime = messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
@@ -262,7 +262,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     }
 
                     // Handle case 2
-                    byteBuffer.position(floor);
+                    ((Buffer)byteBuffer).position(floor);
                     phyOffset = byteBuffer.getLong();
                     size = byteBuffer.getInt();
                     storeTime = messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
@@ -281,7 +281,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     // Perform binary search
                     while (high >= low) {
                         midOffset = (low + high) / (2 * CQ_STORE_UNIT_SIZE) * CQ_STORE_UNIT_SIZE;
-                        byteBuffer.position(midOffset);
+                        ((Buffer)byteBuffer).position(midOffset);
                         phyOffset = byteBuffer.getLong();
                         size = byteBuffer.getInt();
                         if (phyOffset < minPhysicOffset) {
@@ -317,7 +317,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                                     if (attempt < floor) {
                                         break;
                                     }
-                                    byteBuffer.position(attempt);
+                                    ((Buffer)byteBuffer).position(attempt);
                                     long physicalOffset = byteBuffer.getLong();
                                     int messageSize = byteBuffer.getInt();
                                     long messageStoreTimestamp = messageStore.getCommitLog()
@@ -338,7 +338,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                                     if (attempt > ceiling) {
                                         break;
                                     }
-                                    byteBuffer.position(attempt);
+                                    ((Buffer)byteBuffer).position(attempt);
                                     long physicalOffset = byteBuffer.getLong();
                                     int messageSize = byteBuffer.getInt();
                                     long messageStoreTimestamp = messageStore.getCommitLog()
@@ -498,7 +498,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 position = 0;
 
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
-            byteBuffer.position(position);
+            ((Buffer)byteBuffer).position(position);
             for (int i = 0; i < logicFileSize; i += CQ_STORE_UNIT_SIZE) {
                 long offset = byteBuffer.getLong();
                 int size = byteBuffer.getInt();
@@ -626,7 +626,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                         break;
                     }
                     int mid = (low + high) / 2 / ConsumeQueue.CQ_STORE_UNIT_SIZE * ConsumeQueue.CQ_STORE_UNIT_SIZE;
-                    buffer.position(mid);
+                    ((Buffer)buffer).position(mid);
                     commitLogOffset = buffer.getLong();
                     if (commitLogOffset > minCommitLogOffset) {
                         high = mid;
@@ -641,9 +641,9 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
                 // Examine the last one or two entries
                 for (int i = low; i <= high; i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
-                    buffer.position(i);
+                    ((Buffer)buffer).position(i);
                     long offsetPy = buffer.getLong();
-                    buffer.position(i + 12);
+                    ((Buffer)buffer).position(i + 12);
                     long tagsCode = buffer.getLong();
 
                     if (offsetPy >= minCommitLogOffset) {
@@ -1223,7 +1223,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     int current = 0;
                     while (current < len) {
                         // skip physicalOffset and message length fields.
-                        buffer.position(current + MSG_TAG_OFFSET_INDEX);
+                        ((Buffer)buffer).position(current + MSG_TAG_OFFSET_INDEX);
                         long tagCode = buffer.getLong();
                         ConsumeQueueExt.CqExtUnit ext = null;
                         if (isExtWriteEnable()) {

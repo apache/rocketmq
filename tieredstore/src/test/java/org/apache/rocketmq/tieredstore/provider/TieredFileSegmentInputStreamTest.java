@@ -231,7 +231,7 @@ public class TieredFileSegmentInputStreamTest {
     private void verifyInputStream(InputStream inputStream, ByteBuffer expectedBuffer, int expectedBufferReadPos,
         int expectedMarkCalledPos) {
         try {
-            expectedBuffer.position(expectedBufferReadPos);
+            ((Buffer)expectedBuffer).position(expectedBufferReadPos);
             while (true) {
                 if (expectedMarkCalledPos == expectedBuffer.position()) {
                     inputStream.mark(0);
@@ -259,7 +259,7 @@ public class TieredFileSegmentInputStreamTest {
     private void verifyInputStreamViaBatchRead(InputStream inputStream, ByteBuffer expectedBuffer,
         int expectedBufferReadPos, int expectedMarkCalledPos, int readBatchSize) {
         try {
-            expectedBuffer.position(expectedBufferReadPos);
+            ((Buffer)expectedBuffer).position(expectedBufferReadPos);
             byte[] buf = new byte[readBatchSize];
             while (true) {
                 if (expectedMarkCalledPos == expectedBuffer.position()) {

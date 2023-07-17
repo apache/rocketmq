@@ -244,7 +244,7 @@ public class ConsumeQueueExt {
 
     protected void fullFillToEnd(final MappedFile mappedFile, final int wrotePosition) {
         ByteBuffer mappedFileBuffer = mappedFile.sliceByteBuffer();
-        mappedFileBuffer.position(wrotePosition);
+        ((Buffer)mappedFileBuffer).position(wrotePosition);
 
         // ending.
         mappedFileBuffer.putShort((short) -1);
@@ -499,7 +499,7 @@ public class ConsumeQueueExt {
             this.size = tempSize;
 
             if (tempSize > 0) {
-                buffer.position(buffer.position() + this.size);
+                ((Buffer)buffer).position(((Buffer)buffer).position() + this.size);
             }
         }
 

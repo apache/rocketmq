@@ -136,13 +136,13 @@ public class MessageDecoder {
             + 8; // 14 Prepared Transaction Offset
 
         int topicLengthPosition = bodySizePosition + 4 + byteBuffer.getInt(bodySizePosition);
-        byteBuffer.position(topicLengthPosition);
+        ((Buffer)byteBuffer).position(topicLengthPosition);
         int topicLengthSize = version.getTopicLengthSize();
         int topicLength = version.getTopicLength(byteBuffer);
 
         int propertiesPosition = topicLengthPosition + topicLengthSize + topicLength;
         short propertiesLength = byteBuffer.getShort(propertiesPosition);
-        byteBuffer.position(propertiesPosition + 2);
+        ((Buffer)byteBuffer).position(propertiesPosition + 2);
 
         if (propertiesLength > 0) {
             byte[] properties = new byte[propertiesLength];
@@ -496,7 +496,7 @@ public class MessageDecoder {
 
                     msgExt.setBody(body);
                 } else {
-                    byteBuffer.position(byteBuffer.position() + bodyLen);
+                    ((Buffer)byteBuffer).position(((Buffer)byteBuffer).position() + bodyLen);
                 }
             }
 
@@ -533,7 +533,7 @@ public class MessageDecoder {
 
             return msgExt;
         } catch (Exception e) {
-            byteBuffer.position(byteBuffer.limit());
+            ((Buffer)byteBuffer).position(byteBuffer.limit());
         }
 
         return null;
@@ -760,7 +760,7 @@ public class MessageDecoder {
             count++;
             int currPos = buffer.position();
             int size = buffer.getInt();
-            buffer.position(currPos + size);
+            ((Buffer)buffer).position(currPos + size);
         }
         return count;
     }

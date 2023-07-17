@@ -258,7 +258,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             this.lastReadTimestamp = 0;
             this.processPosition = 0;
 
-            this.byteBufferRead.position(0);
+            ((Buffer)this.byteBufferRead).position(0);
             this.byteBufferRead.limit(READ_MAX_BUFFER_SIZE);
         }
     }
@@ -289,7 +289,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     private boolean sendHandshakeHeader() throws IOException {
-        this.handshakeHeaderBuffer.position(0);
+        ((Buffer)this.handshakeHeaderBuffer).position(0);
         this.handshakeHeaderBuffer.limit(HANDSHAKE_HEADER_SIZE);
         // Original state
         this.handshakeHeaderBuffer.putInt(HAConnectionState.HANDSHAKE.ordinal());
@@ -321,7 +321,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     }
 
     private boolean reportSlaveOffset(HAConnectionState currentState, final long offsetToReport) throws IOException {
-        this.transferHeaderBuffer.position(0);
+        ((Buffer)this.transferHeaderBuffer).position(0);
         this.transferHeaderBuffer.limit(TRANSFER_HEADER_SIZE);
         this.transferHeaderBuffer.putInt(currentState.ordinal());
         this.transferHeaderBuffer.putLong(offsetToReport);
@@ -525,7 +525,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                     long startOffset = byteBufferRead.getLong(AutoSwitchHAClient.this.processPosition + i * entrySize + 4);
                                     epochEntries.add(new EpochEntry(epoch, startOffset));
                                 }
-                                byteBufferRead.position(readSocketPos);
+                                ((Buffer)byteBufferRead).position(readSocketPos);
                                 AutoSwitchHAClient.this.processPosition += bodySize;
                                 LOGGER.info("Receive handshake, masterMaxPosition {}, masterEpochEntries:{}, try truncate log", masterOffset, epochEntries);
                                 if (!doTruncate(epochEntries, masterOffset)) {
@@ -542,9 +542,9 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                                     break;
                                 }
                                 byte[] bodyData = new byte[bodySize];
-                                byteBufferRead.position(AutoSwitchHAClient.this.processPosition + AutoSwitchHAConnection.TRANSFER_HEADER_SIZE);
+                                ((Buffer)byteBufferRead).position(AutoSwitchHAClient.this.processPosition + AutoSwitchHAConnection.TRANSFER_HEADER_SIZE);
                                 byteBufferRead.get(bodyData);
-                                byteBufferRead.position(readSocketPos);
+                                ((Buffer)byteBufferRead).position(readSocketPos);
                                 AutoSwitchHAClient.this.processPosition += AutoSwitchHAConnection.TRANSFER_HEADER_SIZE + bodySize;
                                 long slavePhyOffset = AutoSwitchHAClient.this.messageStore.getMaxPhyOffset();
                                 if (slavePhyOffset != 0) {
@@ -583,7 +583,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
                     }
 
                     if (!byteBufferRead.hasRemaining()) {
-                        byteBufferRead.position(AutoSwitchHAClient.this.processPosition);
+                        ((Buffer)byteBufferRead).position(AutoSwitchHAClient.this.processPosition);
                         byteBufferRead.compact();
                         AutoSwitchHAClient.this.processPosition = 0;
                     }
