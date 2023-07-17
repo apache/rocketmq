@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.store.logfile.MappedFile;
 
@@ -48,7 +49,7 @@ public class SelectMappedBufferResult {
 
     public void setSize(final int s) {
         this.size = s;
-        this.byteBuffer.limit(this.size);
+        ((Buffer)this.byteBuffer).limit(this.size);
     }
 
     public MappedFile getMappedFile() {

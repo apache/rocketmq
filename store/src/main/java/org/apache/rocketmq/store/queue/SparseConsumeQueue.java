@@ -253,7 +253,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
         // cache max offset
         if (!mappedFile.isFull()) {
             ((Buffer)this.byteBufferItem).flip();
-            this.byteBufferItem.limit(CQ_STORE_UNIT_SIZE);
+            ((Buffer)this.byteBufferItem).limit(CQ_STORE_UNIT_SIZE);
             this.byteBufferItem.putLong(-1);
             this.byteBufferItem.putInt(0);
             this.byteBufferItem.putLong(0);

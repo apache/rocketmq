@@ -521,7 +521,7 @@ public class ConsumeQueueExt {
             }
 
             ((Buffer)temp).flip();
-            temp.limit(this.size);
+            ((Buffer)temp).limit(this.size);
 
             temp.putShort(this.size);
             temp.putLong(this.tagsCode);

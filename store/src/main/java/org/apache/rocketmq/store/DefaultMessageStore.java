@@ -29,6 +29,7 @@ import java.io.RandomAccessFile;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
 import java.nio.charset.StandardCharsets;
@@ -1268,7 +1269,7 @@ public class DefaultMessageStore implements MessageStore {
                     SelectMappedBufferResult result = this.commitLog.getData(offset, false);
                     if (result != null) {
                         int size = result.getByteBuffer().getInt(0);
-                        result.getByteBuffer().limit(size);
+                        ((Buffer)result.getByteBuffer()).limit(size);
                         result.setSize(size);
                         queryMessageResult.addMessage(result);
                     }
@@ -2924,8 +2925,8 @@ public class DefaultMessageStore implements MessageStore {
                     batchDispatchRequestExecutor.execute(() -> {
                         try {
                             ByteBuffer tmpByteBuffer = task.byteBuffer;
-                            tmpByteBuffer.position(task.position);
-                            tmpByteBuffer.limit(task.position + task.size);
+                            ((Buffer)tmpByteBuffer).position(task.position);
+                            ((Buffer)tmpByteBuffer).limit(task.position + task.size);
                             List<DispatchRequest> dispatchRequestList = new ArrayList<>();
                             while (tmpByteBuffer.hasRemaining()) {
                                 DispatchRequest dispatchRequest = DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(tmpByteBuffer, false, false, false);
@@ -3103,7 +3104,7 @@ public class DefaultMessageStore implements MessageStore {
                                 batchDispatchRequestStart = -1;
                                 batchDispatchRequestSize = -1;
                             }
-                            byteBuffer.position(byteBuffer.position() + totalSize);
+                            ((Buffer)byteBuffer).position(byteBuffer.position() + totalSize);
                             this.reputFromOffset += totalSize;
                             readSize += totalSize;
                         } else {

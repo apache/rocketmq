@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.provider.memory;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -53,7 +54,7 @@ public class MemoryFileSegment extends TieredFileSegment {
                 memStore = null;
                 break;
         }
-        memStore.position((int) getSize());
+        ((Buffer)memStore).position((int) getSize());
     }
 
     @Override
@@ -77,9 +78,9 @@ public class MemoryFileSegment extends TieredFileSegment {
     @Override
     public CompletableFuture<ByteBuffer> read0(long position, int length) {
         ByteBuffer buffer = memStore.duplicate();
-        buffer.position((int) position);
+        ((Buffer)buffer).position((int) position);
         ByteBuffer slice = buffer.slice();
-        slice.limit(length);
+        ((Buffer)slice).limit(length);
         return CompletableFuture.completedFuture(slice);
     }
 

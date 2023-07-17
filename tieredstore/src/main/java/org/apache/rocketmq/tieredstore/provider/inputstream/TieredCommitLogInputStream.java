@@ -18,6 +18,7 @@
 package org.apache.rocketmq.tieredstore.provider.inputstream;
 
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
@@ -125,9 +126,9 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
                 // read from coda buffer
                 remaining = codaBuffer.remaining() - posInCurBuffer;
                 readLen = Math.min(remaining, needRead);
-                codaBuffer.position(posInCurBuffer);
+                ((Buffer)codaBuffer).position(posInCurBuffer);
                 codaBuffer.get(b, off, readLen);
-                codaBuffer.position(0);
+                ((Buffer)codaBuffer).position(0);
                 // update flags
                 off += readLen;
                 needRead -= readLen;
@@ -141,9 +142,9 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
             if (posInCurBuffer < MessageBufferUtil.PHYSICAL_OFFSET_POSITION) {
                 realReadLen = Math.min(MessageBufferUtil.PHYSICAL_OFFSET_POSITION - posInCurBuffer, readLen);
                 // read from commitLog buffer
-                curBuf.position(posInCurBuffer);
+                ((Buffer)curBuf).position(posInCurBuffer);
                 curBuf.get(b, off, realReadLen);
-                curBuf.position(0);
+                ((Buffer)curBuf).position(0);
             } else if (posInCurBuffer < MessageBufferUtil.SYS_FLAG_OFFSET_POSITION) {
                 realReadLen = Math.min(MessageBufferUtil.SYS_FLAG_OFFSET_POSITION - posInCurBuffer, readLen);
                 // read from converted PHYSICAL_OFFSET_POSITION
@@ -155,9 +156,9 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
             } else {
                 realReadLen = readLen;
                 // read from commitLog buffer
-                curBuf.position(posInCurBuffer);
+                ((Buffer)curBuf).position(posInCurBuffer);
                 curBuf.get(b, off, readLen);
-                curBuf.position(0);
+                ((Buffer)curBuf).position(0);
             }
             // update flags
             off += realReadLen;

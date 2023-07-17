@@ -19,6 +19,7 @@ package org.apache.rocketmq.tieredstore.provider.inputstream;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
@@ -158,9 +159,9 @@ public class TieredFileSegmentInputStream extends InputStream {
             int remaining = curBuf.remaining() - posInCurBuffer;
             int readLen = Math.min(remaining, needRead);
             // read from curBuf
-            curBuf.position(posInCurBuffer);
+            ((Buffer)curBuf).position(posInCurBuffer);
             curBuf.get(b, off, readLen);
-            curBuf.position(0);
+            ((Buffer)curBuf).position(0);
             // update flags
             off += readLen;
             needRead -= readLen;

@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.ha;
 
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
@@ -108,11 +109,11 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
     }
 
     private boolean reportSlaveMaxOffset(final long maxOffset) {
-        this.reportOffset.position(0);
-        this.reportOffset.limit(REPORT_HEADER_SIZE);
+        ((Buffer)this.reportOffset).position(0);
+        ((Buffer)this.reportOffset).limit(REPORT_HEADER_SIZE);
         this.reportOffset.putLong(maxOffset);
-        this.reportOffset.position(0);
-        this.reportOffset.limit(REPORT_HEADER_SIZE);
+        ((Buffer)this.reportOffset).position(0);
+        ((Buffer)this.reportOffset).limit(REPORT_HEADER_SIZE);
 
         for (int i = 0; i < 3 && this.reportOffset.hasRemaining(); i++) {
             try {
@@ -130,17 +131,17 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
     private void reallocateByteBuffer() {
         int remain = READ_MAX_BUFFER_SIZE - this.dispatchPosition;
         if (remain > 0) {
-            this.byteBufferRead.position(this.dispatchPosition);
+            ((Buffer)this.byteBufferRead).position(this.dispatchPosition);
 
-            this.byteBufferBackup.position(0);
-            this.byteBufferBackup.limit(READ_MAX_BUFFER_SIZE);
+            ((Buffer)this.byteBufferBackup).position(0);
+            ((Buffer)this.byteBufferBackup).limit(READ_MAX_BUFFER_SIZE);
             this.byteBufferBackup.put(this.byteBufferRead);
         }
 
         this.swapByteBuffer();
 
-        this.byteBufferRead.position(remain);
-        this.byteBufferRead.limit(READ_MAX_BUFFER_SIZE);
+        ((Buffer)this.byteBufferRead).position(remain);
+        ((Buffer)this.byteBufferRead).limit(READ_MAX_BUFFER_SIZE);
         this.dispatchPosition = 0;
     }
 
@@ -207,7 +208,7 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
                     this.defaultMessageStore.appendToCommitLog(
                         masterPhyOffset, bodyData, dataStart, bodySize);
 
-                    this.byteBufferRead.position(readSocketPos);
+                    ((Buffer)this.byteBufferRead).position(readSocketPos);
                     this.dispatchPosition += DefaultHAConnection.TRANSFER_HEADER_SIZE + bodySize;
 
                     if (!reportSlaveMaxOffsetPlus()) {
@@ -291,11 +292,11 @@ public class DefaultHAClient extends ServiceThread implements HAClient {
             this.lastReadTimestamp = 0;
             this.dispatchPosition = 0;
 
-            this.byteBufferBackup.position(0);
-            this.byteBufferBackup.limit(READ_MAX_BUFFER_SIZE);
+            ((Buffer)this.byteBufferBackup).position(0);
+            ((Buffer)this.byteBufferBackup).limit(READ_MAX_BUFFER_SIZE);
 
-            this.byteBufferRead.position(0);
-            this.byteBufferRead.limit(READ_MAX_BUFFER_SIZE);
+            ((Buffer)this.byteBufferRead).position(0);
+            ((Buffer)this.byteBufferRead).limit(READ_MAX_BUFFER_SIZE);
         }
     }
 

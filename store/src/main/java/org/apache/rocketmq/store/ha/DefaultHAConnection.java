@@ -316,7 +316,7 @@ public class DefaultHAConnection implements HAConnection {
 
                             // Build Header
                             ((Buffer)this.byteBufferHeader).position(0);
-                            this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
+                            ((Buffer)this.byteBufferHeader).limit(TRANSFER_HEADER_SIZE);
                             this.byteBufferHeader.putLong(this.nextTransferFromWhere);
                             this.byteBufferHeader.putInt(0);
                             ((Buffer)this.byteBufferHeader).flip();
@@ -353,12 +353,12 @@ public class DefaultHAConnection implements HAConnection {
                         long thisOffset = this.nextTransferFromWhere;
                         this.nextTransferFromWhere += size;
 
-                        selectResult.getByteBuffer().limit(size);
+                        ((Buffer)selectResult.getByteBuffer()).limit(size);
                         this.selectMappedBufferResult = selectResult;
 
                         // Build Header
                         ((Buffer)this.byteBufferHeader).position(0);
-                        this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
+                        ((Buffer)this.byteBufferHeader).limit(TRANSFER_HEADER_SIZE);
                         this.byteBufferHeader.putLong(thisOffset);
                         this.byteBufferHeader.putInt(size);
                         ((Buffer)this.byteBufferHeader).flip();

@@ -886,7 +886,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
 
         ((Buffer)this.byteBufferIndex).flip();
-        this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
+        ((Buffer)this.byteBufferIndex).limit(CQ_STORE_UNIT_SIZE);
         this.byteBufferIndex.putLong(offset);
         this.byteBufferIndex.putInt(size);
         this.byteBufferIndex.putLong(tagsCode);

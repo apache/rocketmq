@@ -26,6 +26,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
+import java.nio.Buffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
@@ -745,7 +746,7 @@ public class DefaultMessageStoreTest {
             MappedByteBuffer mappedByteBuffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, 1024 * 1024 * 10);
             int bodyLen = mappedByteBuffer.getInt((int) offset + 84);
             int topicLenIndex = (int) offset + 84 + bodyLen + 4;
-            mappedByteBuffer.position(topicLenIndex);
+            ((Buffer)mappedByteBuffer).position(topicLenIndex);
             mappedByteBuffer.putInt(0);
             mappedByteBuffer.putInt(0);
             mappedByteBuffer.putInt(0);

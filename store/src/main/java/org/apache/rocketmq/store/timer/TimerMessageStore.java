@@ -716,7 +716,7 @@ public class TimerMessageStore {
         String realTopic = messageExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
         Slot slot = timerWheel.getSlot(delayedTime);
         ByteBuffer tmpBuffer = timerLogBuffer;
-        tmpBuffer.clear();
+        ((Buffer)tmpBuffer).clear();
         tmpBuffer.putInt(TimerLog.UNIT_SIZE); //size
         tmpBuffer.putLong(slot.lastPos); //prev pos
         tmpBuffer.putInt(magic); //magic
@@ -1011,7 +1011,7 @@ public class TimerMessageStore {
         for (int i = 0; i < 3; i++) {
             MessageExt msgExt = null;
             ((Buffer)bufferLocal.get()).position(0);
-            bufferLocal.get().limit(sizePy);
+            ((Buffer)bufferLocal.get()).limit(sizePy);
             boolean res = messageStore.getData(offsetPy, sizePy, bufferLocal.get());
             if (res) {
                 ((Buffer)bufferLocal.get()).flip();

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.acl.plain;
 
+import java.nio.Buffer;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclConstants;
 import org.apache.rocketmq.acl.common.AclException;
@@ -239,7 +240,7 @@ public class PlainAccessControlFlowTest {
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(
                 RemotingCommand.decode(buf), remoteAddr);
@@ -270,7 +271,7 @@ public class PlainAccessControlFlowTest {
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
         buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(
                 RemotingCommand.decode(buf), remoteAddr);

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import java.nio.Buffer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -89,7 +90,7 @@ public class SparseConsumeQueueTest {
         Files.createDirectories(Paths.get(path, topic, String.valueOf(queueId)));
         Files.write(Paths.get(path, topic, String.valueOf(queueId), file1), bb.array(),
             StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        bb.clear();
+        ((Buffer)bb).clear();
         fillByteBuf(bb, phyOffset + 1, queueOffset + 1);
         Files.write(Paths.get(path, topic, String.valueOf(queueId), file2), bb.array(),
             StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
@@ -132,7 +133,7 @@ public class SparseConsumeQueueTest {
                 StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
             basePhyOffset = i * 100 + 1;
             baseQueueOffset = i * 100 + 1;
-            bb.clear();
+            ((Buffer)bb).clear();
         }
 
         scq.load();

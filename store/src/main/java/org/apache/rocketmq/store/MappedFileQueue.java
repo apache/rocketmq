@@ -19,6 +19,7 @@ package org.apache.rocketmq.store;
 import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -576,7 +577,7 @@ public class MappedFileQueue implements Swappable {
                         result.getByteBuffer().getLong(); //prev pos
                         int magic = result.getByteBuffer().getInt();
                         if (size == unitSize && (magic | 0xF) == 0xF) {
-                            result.getByteBuffer().position(position + MixAll.UNIT_PRE_SIZE_FOR_MSG);
+                            ((Buffer)result.getByteBuffer()).position(position + MixAll.UNIT_PRE_SIZE_FOR_MSG);
                             long maxOffsetPy = result.getByteBuffer().getLong();
                             destroy = maxOffsetPy < offset;
                             if (destroy) {

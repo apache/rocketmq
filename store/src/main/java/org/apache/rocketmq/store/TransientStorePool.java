@@ -18,6 +18,7 @@ package org.apache.rocketmq.store;
 
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -67,8 +68,8 @@ public class TransientStorePool {
     }
 
     public void returnBuffer(ByteBuffer byteBuffer) {
-        byteBuffer.position(0);
-        byteBuffer.limit(fileSize);
+        ((Buffer)byteBuffer).position(0);
+        ((Buffer)byteBuffer).limit(fileSize);
         this.availableBuffers.offerFirst(byteBuffer);
     }
 

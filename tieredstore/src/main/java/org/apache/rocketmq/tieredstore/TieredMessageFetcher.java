@@ -22,6 +22,7 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Sets;
 import io.opentelemetry.api.common.Attributes;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -385,7 +386,7 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
 
         CompletableFuture<ByteBuffer> readCommitLogFuture = readConsumeQueueFuture.thenComposeAsync(cqBuffer -> {
             long firstCommitLogOffset = CQItemBufferUtil.getCommitLogOffset(cqBuffer);
-            cqBuffer.position(cqBuffer.remaining() - TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
+            ((Buffer)cqBuffer).position(cqBuffer.remaining() - TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
             long lastCommitLogOffset = CQItemBufferUtil.getCommitLogOffset(cqBuffer);
             if (lastCommitLogOffset < firstCommitLogOffset) {
                 MessageQueue mq = flatFile.getMessageQueue();
@@ -398,8 +399,8 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
             // prevent OOM
             long originLength = length;
             while (cqBuffer.limit() > TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE && length > storeConfig.getReadAheadMessageSizeThreshold()) {
-                cqBuffer.limit(cqBuffer.position());
-                cqBuffer.position(cqBuffer.limit() - TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
+                ((Buffer)cqBuffer).limit(((Buffer)cqBuffer).position());
+                ((Buffer)cqBuffer).position(cqBuffer.limit() - TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
                 length = CQItemBufferUtil.getCommitLogOffset(cqBuffer) - firstCommitLogOffset + CQItemBufferUtil.getSize(cqBuffer);
             }
 
@@ -419,9 +420,9 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
                 result.setStatus(GetMessageStatus.FOUND);
                 result.setNextBeginOffset(queueOffset + msgList.size());
                 msgList.forEach(pair -> {
-                    msgBuffer.position(pair.getLeft());
+                    ((Buffer)msgBuffer).position(pair.getLeft());
                     ByteBuffer slice = msgBuffer.slice();
-                    slice.limit(pair.getRight());
+                    ((Buffer)slice).limit(pair.getRight());
                     result.addMessage(new SelectMappedBufferResult(pair.getLeft(), slice, pair.getRight(), null), MessageBufferUtil.getQueueOffset(slice));
                 });
                 if (requestSize != msgList.size()) {

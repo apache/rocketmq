@@ -98,7 +98,7 @@ public class MessageBufferUtil {
 
     public static ByteBuffer getOffsetIdBuffer(ByteBuffer message) {
         ByteBuffer idBuffer = ByteBuffer.allocate(TieredStoreUtil.MSG_ID_LENGTH);
-        idBuffer.limit(TieredStoreUtil.MSG_ID_LENGTH);
+        ((Buffer)idBuffer).limit(TieredStoreUtil.MSG_ID_LENGTH);
         idBuffer.putLong(message.getLong(message.position() + STORE_HOST_POSITION));
         idBuffer.putLong(getCommitLogOffset(message));
         ((Buffer)idBuffer).flip();

@@ -554,7 +554,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
         }
 
         ((Buffer)this.byteBufferItem).flip();
-        this.byteBufferItem.limit(CQ_STORE_UNIT_SIZE);
+        ((Buffer)this.byteBufferItem).limit(CQ_STORE_UNIT_SIZE);
         this.byteBufferItem.putLong(offset);
         this.byteBufferItem.putInt(size);
         this.byteBufferItem.putLong(tagsCode);
@@ -916,7 +916,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
             ByteBuffer tmpBuffer = sbr.getByteBuffer().slice();
             ((Buffer)tmpBuffer).position(MSG_COMPACT_OFFSET_INDEX);
             ByteBuffer compactOffsetStoreBuffer = tmpBuffer.slice();
-            compactOffsetStoreBuffer.limit(MSG_COMPACT_OFFSET_LENGTH);
+            ((Buffer)compactOffsetStoreBuffer).limit(MSG_COMPACT_OFFSET_LENGTH);
 
             int relativePos = sbr.getByteBuffer().position();
             long offsetPy = sbr.getByteBuffer().getLong();

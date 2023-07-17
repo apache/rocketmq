@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
+import java.nio.Buffer;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -76,13 +77,13 @@ public class DumpCompactionLogCommand implements SubCommand {
 
                 int current = 0;
                 while (current < fileSize) {
-                    buf.position(current);
+                    ((Buffer)buf).position(current);
                     ByteBuffer bb = buf.slice();
                     int size = bb.getInt();
                     if (size > buf.capacity() || size < 0) {
                         break;
                     } else {
-                        bb.limit(size);
+                        ((Buffer)bb).limit(size);
                         bb.rewind();
                     }
 

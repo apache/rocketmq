@@ -259,7 +259,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
             this.processPosition = 0;
 
             ((Buffer)this.byteBufferRead).position(0);
-            this.byteBufferRead.limit(READ_MAX_BUFFER_SIZE);
+            ((Buffer)this.byteBufferRead).limit(READ_MAX_BUFFER_SIZE);
         }
     }
 
@@ -290,7 +290,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     private boolean sendHandshakeHeader() throws IOException {
         ((Buffer)this.handshakeHeaderBuffer).position(0);
-        this.handshakeHeaderBuffer.limit(HANDSHAKE_HEADER_SIZE);
+        ((Buffer)this.handshakeHeaderBuffer).limit(HANDSHAKE_HEADER_SIZE);
         // Original state
         this.handshakeHeaderBuffer.putInt(HAConnectionState.HANDSHAKE.ordinal());
         // IsSyncFromLastFile
@@ -322,7 +322,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
 
     private boolean reportSlaveOffset(HAConnectionState currentState, final long offsetToReport) throws IOException {
         ((Buffer)this.transferHeaderBuffer).position(0);
-        this.transferHeaderBuffer.limit(TRANSFER_HEADER_SIZE);
+        ((Buffer)this.transferHeaderBuffer).limit(TRANSFER_HEADER_SIZE);
         this.transferHeaderBuffer.putInt(currentState.ordinal());
         this.transferHeaderBuffer.putLong(offsetToReport);
         ((Buffer)this.transferHeaderBuffer).flip();

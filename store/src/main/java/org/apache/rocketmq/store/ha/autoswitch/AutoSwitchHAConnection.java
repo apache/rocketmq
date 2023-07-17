@@ -402,7 +402,7 @@ public class AutoSwitchHAConnection implements HAConnection {
         protected boolean transferData(int maxTransferSize) throws Exception {
 
             if (null != this.selectMappedBufferResult && maxTransferSize >= 0) {
-                this.selectMappedBufferResult.getByteBuffer().limit(maxTransferSize);
+                ((Buffer)this.selectMappedBufferResult.getByteBuffer()).limit(maxTransferSize);
             }
 
             // Write Header
@@ -479,7 +479,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             final int lastEpoch = AutoSwitchHAConnection.this.epochCache.lastEpoch();
             final long maxPhyOffset = AutoSwitchHAConnection.this.haService.getDefaultMessageStore().getMaxPhyOffset();
             ((Buffer)this.byteBufferHeader).position(0);
-            this.byteBufferHeader.limit(HANDSHAKE_HEADER_SIZE);
+            ((Buffer)this.byteBufferHeader).limit(HANDSHAKE_HEADER_SIZE);
             // State
             this.byteBufferHeader.putInt(currentState.ordinal());
             // Body size
@@ -492,7 +492,7 @@ public class AutoSwitchHAConnection implements HAConnection {
 
             // EpochEntries
             ((Buffer)this.handShakeBuffer).position(0);
-            this.handShakeBuffer.limit(EPOCH_ENTRY_SIZE * epochEntries.size());
+            ((Buffer)this.handShakeBuffer).limit(EPOCH_ENTRY_SIZE * epochEntries.size());
             for (final EpochEntry entry : epochEntries) {
                 if (entry != null) {
                     this.handShakeBuffer.putInt(entry.getEpoch());
@@ -536,7 +536,7 @@ public class AutoSwitchHAConnection implements HAConnection {
             }
             // Build Header
             ((Buffer)this.byteBufferHeader).position(0);
-            this.byteBufferHeader.limit(TRANSFER_HEADER_SIZE);
+            ((Buffer)this.byteBufferHeader).limit(TRANSFER_HEADER_SIZE);
             // State
             this.byteBufferHeader.putInt(currentState.ordinal());
             // Body size

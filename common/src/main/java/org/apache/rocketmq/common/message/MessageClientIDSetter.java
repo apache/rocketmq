@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.message;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Calendar;
 import java.util.Date;
@@ -69,7 +70,7 @@ public class MessageClientIDSetter {
         buf.put((byte) 0);
         buf.put((byte) 0);
         buf.put(bytes, ipLength + 2 + 4, 4);
-        buf.position(0);
+        ((Buffer)buf).position(0);
         long spanMS = buf.getLong();
         Calendar cal = Calendar.getInstance();
         long now = cal.getTimeInMillis();
@@ -143,7 +144,7 @@ public class MessageClientIDSetter {
     public static byte[] createFakeIP() {
         ByteBuffer bb = ByteBuffer.allocate(8);
         bb.putLong(System.currentTimeMillis());
-        bb.position(4);
+        ((Buffer)bb).position(4);
         byte[] fakeIP = new byte[4];
         bb.get(fakeIP);
         return fakeIP;

@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -245,7 +246,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         int currentPos = WROTE_POSITION_UPDATER.get(this);
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = appendMessageBuffer().slice();
-            byteBuffer.position(currentPos);
+            ((Buffer)byteBuffer).position(currentPos);
             AppendMessageResult result = cb.doAppend(byteBuffer, this.fileFromOffset, this.fileSize - currentPos, byteBufferMsg);
             WROTE_POSITION_UPDATER.addAndGet(this, result.getWroteBytes());
             this.storeTimestamp = result.getStoreTimestamp();
@@ -276,7 +277,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         if (currentPos < this.fileSize) {
             ByteBuffer byteBuffer = appendMessageBuffer().slice();
-            byteBuffer.position(currentPos);
+            ((Buffer)byteBuffer).position(currentPos);
             AppendMessageResult result;
             if (messageExt instanceof MessageExtBatch && !((MessageExtBatch) messageExt).isInnerBatch()) {
                 // traditional batch message
@@ -345,7 +346,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         if ((currentPos + length) <= this.fileSize) {
             try {
                 ByteBuffer buf = this.mappedByteBuffer.slice();
-                buf.position(currentPos);
+                ((Buffer)buf).position(currentPos);
                 buf.put(data, offset, length);
             } catch (Throwable e) {
                 log.error("Error occurred when append message to mappedFile.", e);
@@ -425,8 +426,8 @@ public class DefaultMappedFile extends AbstractMappedFile {
         if (writePos - lastCommittedPosition > 0) {
             try {
                 ByteBuffer byteBuffer = writeBuffer.slice();
-                byteBuffer.position(lastCommittedPosition);
-                byteBuffer.limit(writePos);
+                ((Buffer)byteBuffer).position(lastCommittedPosition);
+                ((Buffer)byteBuffer).limit(writePos);
                 this.fileChannel.position(lastCommittedPosition);
                 this.fileChannel.write(byteBuffer);
                 COMMITTED_POSITION_UPDATER.set(this, writePos);
@@ -489,9 +490,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
                 this.mappedByteBufferAccessCountSinceLastSwap++;
 
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
-                byteBuffer.position(pos);
+                ((Buffer)byteBuffer).position(pos);
                 ByteBuffer byteBufferNew = byteBuffer.slice();
-                byteBufferNew.limit(size);
+                ((Buffer)byteBufferNew).limit(size);
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             } else {
                 log.warn("matched, but hold failed, request pos: " + pos + ", fileFromOffset: "
@@ -512,10 +513,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
             if (this.hold()) {
                 this.mappedByteBufferAccessCountSinceLastSwap++;
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
-                byteBuffer.position(pos);
+                ((Buffer)byteBuffer).position(pos);
                 int size = readPosition - pos;
                 ByteBuffer byteBufferNew = byteBuffer.slice();
-                byteBufferNew.limit(size);
+                ((Buffer)byteBufferNew).limit(size);
                 return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);
             }
         }
@@ -889,7 +890,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             this.start = pos;
             this.current = pos;
             this.buf = mappedByteBuffer.slice();
-            this.buf.position(start);
+            ((Buffer)this.buf).position(start);
         }
 
         @Override
@@ -903,10 +904,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
             if (current < readPosition && current >= 0) {
                 if (hold()) {
                     ByteBuffer byteBuffer = buf.slice();
-                    byteBuffer.position(current);
+                    ((Buffer)byteBuffer).position(current);
                     int size = byteBuffer.getInt(current);
                     ByteBuffer bufferResult = byteBuffer.slice();
-                    bufferResult.limit(size);
+                    ((Buffer)bufferResult).limit(size);
                     current += size;
                     return new SelectMappedBufferResult(fileFromOffset + current, bufferResult, size,
                         DefaultMappedFile.this);

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.timer;
 
+import java.nio.Buffer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -100,10 +101,10 @@ public class TimerWheel {
 
     public void flush() {
         ByteBuffer bf = localBuffer.get();
-        bf.position(0);
-        bf.limit(wheelLength);
-        mappedByteBuffer.position(0);
-        mappedByteBuffer.limit(wheelLength);
+        ((Buffer)bf).position(0);
+        ((Buffer)bf).limit(wheelLength);
+        ((Buffer)mappedByteBuffer).position(0);
+        ((Buffer)mappedByteBuffer).limit(wheelLength);
         for (int i = 0; i < wheelLength; i++) {
             if (bf.get(i) != mappedByteBuffer.get(i)) {
                 mappedByteBuffer.put(i, bf.get(i));
@@ -122,7 +123,7 @@ public class TimerWheel {
 
     //testable
     public Slot getRawSlot(long timeMs) {
-        localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
+        ((Buffer)localBuffer.get()).position(getSlotIndex(timeMs) * Slot.SIZE);
         return new Slot(localBuffer.get().getLong() * precisionMs,
             localBuffer.get().getLong(), localBuffer.get().getLong(), localBuffer.get().getInt(), localBuffer.get().getInt());
     }
@@ -132,7 +133,7 @@ public class TimerWheel {
     }
 
     public void putSlot(long timeMs, long firstPos, long lastPos) {
-        localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
+        ((Buffer)localBuffer.get()).position(getSlotIndex(timeMs) * Slot.SIZE);
         // To be compatible with previous version.
         // The previous version's precision is fixed at 1000ms and it store timeMs / 1000 in slot.
         localBuffer.get().putLong(timeMs / precisionMs);
@@ -140,7 +141,7 @@ public class TimerWheel {
         localBuffer.get().putLong(lastPos);
     }
     public void putSlot(long timeMs, long firstPos, long lastPos, int num, int magic) {
-        localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
+        ((Buffer)localBuffer.get()).position(getSlotIndex(timeMs) * Slot.SIZE);
         localBuffer.get().putLong(timeMs / precisionMs);
         localBuffer.get().putLong(firstPos);
         localBuffer.get().putLong(lastPos);
@@ -149,7 +150,7 @@ public class TimerWheel {
     }
 
     public void reviseSlot(long timeMs, long firstPos, long lastPos, boolean force) {
-        localBuffer.get().position(getSlotIndex(timeMs) * Slot.SIZE);
+        ((Buffer)localBuffer.get()).position(getSlotIndex(timeMs) * Slot.SIZE);
 
         if (timeMs / precisionMs != localBuffer.get().getLong()) {
             if (force) {
@@ -173,7 +174,7 @@ public class TimerWheel {
         int firstSlotIndex = getSlotIndex(timeStartMs);
         for (int i = 0; i < slotsTotal * 2; i++) {
             int slotIndex = (firstSlotIndex + i) % (slotsTotal * 2);
-            localBuffer.get().position(slotIndex * Slot.SIZE);
+            ((Buffer)localBuffer.get()).position(slotIndex * Slot.SIZE);
             if ((timeStartMs + i * precisionMs) / precisionMs != localBuffer.get().getLong()) {
                 continue;
             }
@@ -197,7 +198,7 @@ public class TimerWheel {
         int firstSlotIndex = getSlotIndex(timeStartMs);
         for (int i = 0; i < slotsTotal * 2; i++) {
             int slotIndex = (firstSlotIndex + i) % (slotsTotal * 2);
-            localBuffer.get().position(slotIndex * Slot.SIZE);
+            ((Buffer)localBuffer.get()).position(slotIndex * Slot.SIZE);
             if ((timeStartMs + i * precisionMs) / precisionMs == localBuffer.get().getLong()) {
                 localBuffer.get().getLong(); //first pos
                 localBuffer.get().getLong(); //last pos

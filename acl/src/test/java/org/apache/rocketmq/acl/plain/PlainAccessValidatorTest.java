@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -93,8 +94,8 @@ public class PlainAccessValidatorTest {
 
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "127.0.0.1");
             String signature = AclUtils.calSignature(accessResource.getContent(), sessionCredentials.getSecretKey());
@@ -117,8 +118,8 @@ public class PlainAccessValidatorTest {
 
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -139,8 +140,8 @@ public class PlainAccessValidatorTest {
 
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -160,8 +161,8 @@ public class PlainAccessValidatorTest {
 
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -181,8 +182,8 @@ public class PlainAccessValidatorTest {
 
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -202,8 +203,8 @@ public class PlainAccessValidatorTest {
 
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6:9876");
             plainAccessValidator.validate(accessResource);
@@ -239,8 +240,8 @@ public class PlainAccessValidatorTest {
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -260,8 +261,8 @@ public class PlainAccessValidatorTest {
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -280,8 +281,8 @@ public class PlainAccessValidatorTest {
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -301,8 +302,8 @@ public class PlainAccessValidatorTest {
         remotingCommand.addExtField(MixAll.UNIQUE_MSG_QUERY_FLAG, "false");
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.1.1:9876");
             plainAccessValidator.validate(accessResource);
@@ -336,8 +337,8 @@ public class PlainAccessValidatorTest {
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encode();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -356,8 +357,8 @@ public class PlainAccessValidatorTest {
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -376,8 +377,8 @@ public class PlainAccessValidatorTest {
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -396,8 +397,8 @@ public class PlainAccessValidatorTest {
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "123.4.5.6");
             plainAccessValidator.validate(accessResource);
@@ -421,8 +422,8 @@ public class PlainAccessValidatorTest {
 
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.1.1");
             plainAccessValidator.validate(accessResource);
@@ -446,8 +447,8 @@ public class PlainAccessValidatorTest {
 
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "192.168.1.1");
             plainAccessValidator.validate(accessResource);
@@ -465,8 +466,8 @@ public class PlainAccessValidatorTest {
 
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), whiteRemoteAddress);
             plainAccessValidator.validate(accessResource);
@@ -1043,8 +1044,8 @@ public class PlainAccessValidatorTest {
         aclClient.doBeforeRequest("", remotingCommand);
         ByteBuffer buf = remotingCommand.encodeHeader();
         buf.getInt();
-        buf = ByteBuffer.allocate(buf.limit() - buf.position()).put(buf);
-        buf.position(0);
+        buf = ByteBuffer.allocate(buf.limit() - ((Buffer)buf).position()).put(buf);
+        ((Buffer)buf).position(0);
         try {
             PlainAccessResource accessResource = (PlainAccessResource) plainAccessValidator.parse(RemotingCommand.decode(buf), "1.1.1.1:9876");
             plainAccessValidator.validate(accessResource);

@@ -18,6 +18,7 @@ package org.apache.rocketmq.tieredstore.file;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.file.Paths;
@@ -436,7 +437,7 @@ public class TieredIndexFile {
             }
             compactMappedByteBuffer.putInt(INDEX_FILE_HEADER_MAGIC_CODE_POSITION, INDEX_FILE_END_MAGIC_CODE);
             compactMappedByteBuffer.putInt(rePutSlotValue, INDEX_FILE_BEGIN_MAGIC_CODE);
-            compactMappedByteBuffer.limit(rePutSlotValue + 4);
+            ((Buffer)compactMappedByteBuffer).limit(rePutSlotValue + 4);
         }
     }
 }

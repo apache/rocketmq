@@ -19,6 +19,7 @@ package org.apache.rocketmq.store;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
+import java.nio.Buffer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -202,11 +203,11 @@ public class MessageExtEncoder {
             int bodyLen = messagesByteBuff.getInt();
             int bodyPos = messagesByteBuff.position();
             int bodyCrc = UtilAll.crc32(messagesByteBuff.array(), bodyPos, bodyLen);
-            messagesByteBuff.position(bodyPos + bodyLen);
+            ((Buffer)messagesByteBuff).position(bodyPos + bodyLen);
             // 6 properties
             short propertiesLen = messagesByteBuff.getShort();
             int propertiesPos = messagesByteBuff.position();
-            messagesByteBuff.position(propertiesPos + propertiesLen);
+            ((Buffer)messagesByteBuff).position(propertiesPos + propertiesLen);
             boolean needAppendLastPropertySeparator = propertiesLen > 0 && batchPropLen > 0
                 && messagesByteBuff.get(messagesByteBuff.position() - 1) != MessageDecoder.PROPERTY_SEPARATOR;
 

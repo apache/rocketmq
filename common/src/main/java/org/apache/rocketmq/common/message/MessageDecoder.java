@@ -73,7 +73,7 @@ public class MessageDecoder {
     public static String createMessageId(final ByteBuffer input, final ByteBuffer addr, final long offset) {
         ((Buffer)input).flip();
         int msgIDLength = addr.limit() == 8 ? 16 : 28;
-        input.limit(msgIDLength);
+        ((Buffer)input).limit(msgIDLength);
 
         input.put(addr);
         input.putLong(offset);

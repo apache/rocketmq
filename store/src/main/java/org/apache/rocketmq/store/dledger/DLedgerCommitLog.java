@@ -962,7 +962,7 @@ public class DLedgerCommitLog extends CommitLog {
                     msgStoreItemMemory.put(messagesByteBuff.array(), propertiesPos, propertiesLen);
                 }
                 byte[] data = new byte[msgLen];
-                msgStoreItemMemory.clear();
+                ((Buffer)msgStoreItemMemory).clear();
                 msgStoreItemMemory.get(data);
                 batchBody.add(data);
             }
@@ -972,7 +972,7 @@ public class DLedgerCommitLog extends CommitLog {
 
         private void resetByteBuffer(final ByteBuffer byteBuffer, final int limit) {
             ((Buffer)byteBuffer).flip();
-            byteBuffer.limit(limit);
+            ((Buffer)byteBuffer).limit(limit);
         }
     }
 

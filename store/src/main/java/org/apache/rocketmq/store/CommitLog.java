@@ -18,6 +18,7 @@ package org.apache.rocketmq.store;
 
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -473,7 +474,7 @@ public class CommitLog implements Swappable {
                         }
                     }
                 } else {
-                    byteBuffer.position(byteBuffer.position() + bodyLen);
+                    ((Buffer)byteBuffer).position(((Buffer)byteBuffer).position() + bodyLen);
                 }
             }
 
@@ -700,7 +701,7 @@ public class CommitLog implements Swappable {
                         log.warn("found a half message at {}, it will be truncated.", processOffset + mappedFileOffset);
                     }
 
-                    log.info("recover physics file end, " + mappedFile.getFileName() + " pos=" + byteBuffer.position());
+                    log.info("recover physics file end, " + mappedFile.getFileName() + " pos=" + ((Buffer)byteBuffer).position());
                     break;
                 }
             }
@@ -1759,7 +1760,7 @@ public class CommitLog implements Swappable {
                 int msgIdLen = (sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
                 ByteBuffer msgIdBuffer = ByteBuffer.allocate(msgIdLen);
                 MessageExt.socketAddress2ByteBuffer(msgInner.getStoreHost(), msgIdBuffer);
-                msgIdBuffer.clear();//because socketAddress2ByteBuffer flip the buffer
+                ((Buffer)msgIdBuffer).clear();//because socketAddress2ByteBuffer flip the buffer
                 msgIdBuffer.putLong(msgIdLen - 8, wroteOffset);
                 return UtilAll.bytes2string(msgIdBuffer.array());
             };
@@ -1789,7 +1790,7 @@ public class CommitLog implements Swappable {
 
             // Determines whether there is sufficient free space
             if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
-                this.msgStoreItemMemory.clear();
+                ((Buffer)this.msgStoreItemMemory).clear();
                 // 1 TOTALSIZE
                 this.msgStoreItemMemory.putInt(maxBlank);
                 // 2 MAGICCODE
@@ -1849,7 +1850,7 @@ public class CommitLog implements Swappable {
                 long[] phyPosArray = putMessageContext.getPhyPos();
                 ByteBuffer msgIdBuffer = ByteBuffer.allocate(msgIdLen);
                 MessageExt.socketAddress2ByteBuffer(messageExtBatch.getStoreHost(), msgIdBuffer);
-                msgIdBuffer.clear();//because socketAddress2ByteBuffer flip the buffer
+                ((Buffer)msgIdBuffer).clear();//because socketAddress2ByteBuffer flip the buffer
 
                 StringBuilder buffer = new StringBuilder(batchCount * msgIdLen * 2 + batchCount - 1);
                 for (int i = 0; i < phyPosArray.length; i++) {
@@ -1873,7 +1874,7 @@ public class CommitLog implements Swappable {
                 totalMsgLen += msgLen;
                 // Determines whether there is sufficient free space
                 if ((totalMsgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
-                    this.msgStoreItemMemory.clear();
+                    ((Buffer)this.msgStoreItemMemory).clear();
                     // 1 TOTALSIZE
                     this.msgStoreItemMemory.putInt(maxBlank);
                     // 2 MAGICCODE
@@ -1900,11 +1901,11 @@ public class CommitLog implements Swappable {
                 putMessageContext.getPhyPos()[index++] = wroteOffset + totalMsgLen - msgLen;
                 queueOffset++;
                 msgNum++;
-                messagesByteBuff.position(msgPos + msgLen);
+                ((Buffer)messagesByteBuff).position(msgPos + msgLen);
             }
 
-            messagesByteBuff.position(0);
-            messagesByteBuff.limit(totalMsgLen);
+            ((Buffer)messagesByteBuff).position(0);
+            ((Buffer)messagesByteBuff).limit(totalMsgLen);
             byteBuffer.put(messagesByteBuff);
             messageExtBatch.setEncodedBuff(null);
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, totalMsgLen, msgIdSupplier,

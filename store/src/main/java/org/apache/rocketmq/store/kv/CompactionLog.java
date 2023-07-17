@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.kv;
 
 import com.google.common.collect.Lists;
+import java.nio.Buffer;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -164,7 +165,7 @@ public class CompactionLog {
             if (size < 0 || size > byteBuffer.capacity()) {
                 break;
             } else {
-                bb.limit(size);
+                ((Buffer)bb).limit(size);
                 bb.rewind();
             }
 
@@ -179,7 +180,7 @@ public class CompactionLog {
                 return false;
             }
 
-            byteBuffer.position(mark + size);
+            ((Buffer)byteBuffer).position(mark + size);
         }
 
         return true;
@@ -868,7 +869,7 @@ public class CompactionLog {
             int destPos = bbDest.position();
             long physicalOffset = fileFromOffset + bbDest.position();
             bbSrc.rewind();
-            bbSrc.limit(msgLen);
+            ((Buffer)bbSrc).limit(msgLen);
             bbDest.put(bbSrc);
             bbDest.putLong(destPos + logicOffsetPos + 8, physicalOffset);       //replace physical offset
 
@@ -915,7 +916,7 @@ public class CompactionLog {
             int tryNum = 0;
             int index = indexOf(hash1, tryNum);
             while (!isEmpty(index)) {
-                dataBytes.position(index);
+                ((Buffer)dataBytes).position(index);
                 dataBytes.get(hash2);
                 if (Arrays.equals(hash1, hash2)) {
                     dataBytes.putLong(offset);
@@ -926,7 +927,7 @@ public class CompactionLog {
                 index = indexOf(hash1, tryNum);
             }
 
-            dataBytes.position(index);
+            ((Buffer)dataBytes).position(index);
             dataBytes.put(hash1);
             dataBytes.putLong(offset);
             lastOffset = offset;
@@ -943,7 +944,7 @@ public class CompactionLog {
                     return -1L;
                 }
                 index = indexOf(hash1, tryNum);
-                dataBytes.position(index);
+                ((Buffer)dataBytes).position(index);
                 if (isEmpty(index)) {
                     return -1L;
                 }
