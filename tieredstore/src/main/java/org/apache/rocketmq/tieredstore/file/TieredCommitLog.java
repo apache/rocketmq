@@ -20,6 +20,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
@@ -31,6 +32,7 @@ import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 public class TieredCommitLog {
 
     private static final Logger log = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Long NOT_EXIST_MIN_OFFSET = -1L;
 
     /**
      * item size: int, 4 bytes
@@ -42,10 +44,12 @@ public class TieredCommitLog {
 
     private final TieredMessageStoreConfig storeConfig;
     private final TieredFlatFile flatFile;
+    private final AtomicLong minConsumeQueueOffset;
 
     public TieredCommitLog(TieredFileAllocator fileQueueFactory, String filePath) {
         this.storeConfig = fileQueueFactory.getStoreConfig();
         this.flatFile = fileQueueFactory.createFlatFileForCommitLog(filePath);
+        this.minConsumeQueueOffset = new AtomicLong(NOT_EXIST_MIN_OFFSET);
     }
 
     @VisibleForTesting
@@ -59,6 +63,10 @@ public class TieredCommitLog {
 
     public long getCommitOffset() {
         return flatFile.getCommitOffset();
+    }
+
+    public long getMinConsumeQueueOffset() {
+        return minConsumeQueueOffset.get() != NOT_EXIST_MIN_OFFSET ? minConsumeQueueOffset.get() : correctMinOffset();
     }
 
     public long getDispatchCommitOffset() {
@@ -80,6 +88,37 @@ public class TieredCommitLog {
 
     public long getEndTimestamp() {
         return flatFile.getFileToWrite().getMaxTimestamp();
+    }
+
+    public synchronized long correctMinOffset() {
+        if (flatFile.getFileSegmentCount() == 0) {
+            this.minConsumeQueueOffset.set(NOT_EXIST_MIN_OFFSET);
+            return -1L;
+        }
+
+        // queue offset field length is 8
+        int length = MessageBufferUtil.QUEUE_OFFSET_POSITION + 8;
+        if (flatFile.getMaxOffset() - flatFile.getMinOffset() < length) {
+            this.minConsumeQueueOffset.set(NOT_EXIST_MIN_OFFSET);
+            return -1L;
+        }
+
+        try {
+            return this.flatFile.readAsync(this.flatFile.getMinOffset(), length)
+                .thenApply(buffer -> {
+                    long offset = MessageBufferUtil.getQueueOffset(buffer);
+                    minConsumeQueueOffset.set(offset);
+                    return offset;
+                })
+                .exceptionally(throwable -> {
+                    log.warn("Correct min offset in tiered commitlog error, filePath={}",
+                        flatFile.getFilePath(), throwable);
+                    return minConsumeQueueOffset.get();
+                }).get();
+        } catch (Exception e) {
+            log.warn("Correct min offset in tiered commitlog error, filePath={}", flatFile.getFilePath(), e);
+        }
+        return minConsumeQueueOffset.get();
     }
 
     public AppendResult append(ByteBuffer byteBuf) {
@@ -107,6 +146,7 @@ public class TieredCommitLog {
         if (flatFile.getFileSegmentCount() == 0) {
             return;
         }
+        correctMinOffset();
         TieredFileSegment fileSegment = flatFile.getFileToWrite();
         try {
             if (System.currentTimeMillis() - fileSegment.getMaxTimestamp() >

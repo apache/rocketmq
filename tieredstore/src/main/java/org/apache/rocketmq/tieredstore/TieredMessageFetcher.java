@@ -473,6 +473,11 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
             return CompletableFuture.completedFuture(result);
         }
 
+        // request range | result
+        // (0, min)      | too small
+        // [min, max)    | correct
+        // [max, max]    | overflow one
+        // (max, +oo)    | overflow badly
         if (queueOffset < minQueueOffset) {
             result.setStatus(GetMessageStatus.OFFSET_TOO_SMALL);
             result.setNextBeginOffset(flatFile.getConsumeQueueMinOffset());
