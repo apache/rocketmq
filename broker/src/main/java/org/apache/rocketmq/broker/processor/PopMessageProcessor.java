@@ -591,8 +591,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 atomicRestNum.set(result.getMaxOffset() - result.getNextBeginOffset() + atomicRestNum.get());
                 String brokerName = brokerController.getBrokerConfig().getBrokerName();
                 for (SelectMappedBufferResult mapedBuffer : result.getMessageMapedList()) {
-                    // We should not recode buffer for normal topic message
-                    if (!isRetry) {
+                    // We should not recode buffer when popResponseReturnActualRetryTopic is true or topic is not retry topic
+                    if (brokerController.getBrokerConfig().isPopResponseReturnActualRetryTopic() || !isRetry) {
                         getMessageResult.addMessage(mapedBuffer);
                     } else {
                         List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mapedBuffer.getByteBuffer(),
