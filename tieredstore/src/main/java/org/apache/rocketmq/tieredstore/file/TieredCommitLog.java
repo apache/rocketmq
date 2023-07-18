@@ -50,6 +50,7 @@ public class TieredCommitLog {
         this.storeConfig = fileQueueFactory.getStoreConfig();
         this.flatFile = fileQueueFactory.createFlatFileForCommitLog(filePath);
         this.minConsumeQueueOffset = new AtomicLong(NOT_EXIST_MIN_OFFSET);
+        this.correctMinOffset();
     }
 
     @VisibleForTesting
@@ -93,14 +94,14 @@ public class TieredCommitLog {
     public synchronized long correctMinOffset() {
         if (flatFile.getFileSegmentCount() == 0) {
             this.minConsumeQueueOffset.set(NOT_EXIST_MIN_OFFSET);
-            return -1L;
+            return NOT_EXIST_MIN_OFFSET;
         }
 
         // queue offset field length is 8
         int length = MessageBufferUtil.QUEUE_OFFSET_POSITION + 8;
         if (flatFile.getMaxOffset() - flatFile.getMinOffset() < length) {
             this.minConsumeQueueOffset.set(NOT_EXIST_MIN_OFFSET);
-            return -1L;
+            return NOT_EXIST_MIN_OFFSET;
         }
 
         try {
@@ -108,6 +109,8 @@ public class TieredCommitLog {
                 .thenApply(buffer -> {
                     long offset = MessageBufferUtil.getQueueOffset(buffer);
                     minConsumeQueueOffset.set(offset);
+                    log.info("Correct min offset in tiered commitlog success, offset={}, filePath={}",
+                        offset, flatFile.getFilePath());
                     return offset;
                 })
                 .exceptionally(throwable -> {
