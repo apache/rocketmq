@@ -120,17 +120,19 @@ public class CompositeFlatFile implements CompositeAccess {
         return commitLog.getBeginTimestamp();
     }
 
-    public long getConsumeQueueBaseOffset() {
-        return consumeQueue.getBaseOffset();
-    }
-
     @Override
     public long getCommitLogDispatchCommitOffset() {
         return commitLog.getDispatchCommitOffset();
     }
 
+    public long getConsumeQueueBaseOffset() {
+        return consumeQueue.getBaseOffset();
+    }
+
     public long getConsumeQueueMinOffset() {
-        return consumeQueue.getMinOffset() / TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE;
+        long cqOffset = consumeQueue.getMinOffset() / TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE;
+        long effectiveOffset = this.commitLog.getMinConsumeQueueOffset();
+        return Math.max(cqOffset, effectiveOffset);
     }
 
     public long getConsumeQueueCommitOffset() {

@@ -133,6 +133,14 @@ public class TieredFlatFile {
         }
     }
 
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public FileSegmentType getFileType() {
+        return fileType;
+    }
+
     @VisibleForTesting
     public List<TieredFileSegment> getFileSegmentList() {
         return fileSegmentList;
@@ -333,10 +341,9 @@ public class TieredFlatFile {
             TieredFileSegment fileSegment = this.newSegment(fileType, offset, true);
             fileSegmentList.add(fileSegment);
             needCommitFileSegmentList.add(fileSegment);
-
             Collections.sort(fileSegmentList);
-
-            logger.debug("Create a new file segment: baseOffset: {}, file: {}, file type: {}", baseOffset, fileSegment.getPath(), fileType);
+            logger.debug("Create a new file segment: baseOffset: {}, file: {}, file type: {}",
+                offset, fileSegment.getPath(), fileType);
             return fileSegment;
         } finally {
             fileSegmentLock.writeLock().unlock();
@@ -429,7 +436,7 @@ public class TieredFlatFile {
         return result;
     }
 
-    public void cleanExpiredFile(long expireTimestamp) {
+    public int cleanExpiredFile(long expireTimestamp) {
         Set<Long> needToDeleteSet = new HashSet<>();
         try {
             tieredMetadataStore.iterateFileSegment(filePath, fileType, metadata -> {
@@ -438,32 +445,32 @@ public class TieredFlatFile {
                 }
             });
         } catch (Exception e) {
-            logger.error("clean expired failed: filePath: {}, file type: {}, expire timestamp: {}",
+            logger.error("Clean expired file, filePath: {}, file type: {}, expire timestamp: {}",
                 filePath, fileType, expireTimestamp);
         }
 
         if (needToDeleteSet.isEmpty()) {
-            return;
+            return 0;
         }
 
         fileSegmentLock.writeLock().lock();
         try {
             for (int i = 0; i < fileSegmentList.size(); i++) {
+                TieredFileSegment fileSegment = fileSegmentList.get(i);
                 try {
-                    TieredFileSegment fileSegment = fileSegmentList.get(i);
                     if (needToDeleteSet.contains(fileSegment.getBaseOffset())) {
                         fileSegment.close();
                         fileSegmentList.remove(fileSegment);
                         needCommitFileSegmentList.remove(fileSegment);
                         i--;
                         this.updateFileSegment(fileSegment);
-                        logger.info("expired file {} is been cleaned", fileSegment.getPath());
+                        logger.debug("Clean expired file, filePath: {}", fileSegment.getPath());
                     } else {
                         break;
                     }
                 } catch (Exception e) {
-                    logger.error("clean expired file failed: filePath: {}, file type: {}, expire timestamp: {}",
-                        filePath, fileType, expireTimestamp, e);
+                    logger.error("Clean expired file failed: filePath: {}, file type: {}, expire timestamp: {}",
+                        fileSegment.getPath(), fileSegment.getFileType(), expireTimestamp, e);
                 }
             }
             if (fileSegmentList.size() > 0) {
@@ -476,6 +483,7 @@ public class TieredFlatFile {
         } finally {
             fileSegmentLock.writeLock().unlock();
         }
+        return needToDeleteSet.size();
     }
 
     @VisibleForTesting
@@ -493,7 +501,6 @@ public class TieredFlatFile {
                         fileSegment.destroyFile();
                         if (!fileSegment.exists()) {
                             tieredMetadataStore.deleteFileSegment(filePath, fileType, metadata.getBaseOffset());
-                            logger.info("Destroyed expired file, file path: {}", fileSegment.getPath());
                         }
                     } catch (Exception e) {
                         logger.error("Destroyed expired file failed, file path: {}, file type: {}",
