@@ -101,7 +101,7 @@ public class TieredCommitLogTest {
         segmentList.remove(0).destroyFile();
         segmentList.remove(0).destroyFile();
 
-        tieredCommitLog.destroyExpiredFile();
+        tieredCommitLog.correctMinOffset();
         Assert.assertEquals(4, tieredCommitLog.getFlatFile().getFileSegmentCount());
         Assert.assertEquals(6 + 8 + 8, tieredCommitLog.getMinConsumeQueueOffset());
     }

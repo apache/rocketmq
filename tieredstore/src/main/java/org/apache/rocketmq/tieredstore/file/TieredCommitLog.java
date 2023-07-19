@@ -142,6 +142,7 @@ public class TieredCommitLog {
 
     public void cleanExpiredFile(long expireTimestamp) {
         flatFile.cleanExpiredFile(expireTimestamp);
+        correctMinOffset();
     }
 
     public void destroyExpiredFile() {
@@ -149,7 +150,6 @@ public class TieredCommitLog {
         if (flatFile.getFileSegmentCount() == 0) {
             return;
         }
-        correctMinOffset();
         TieredFileSegment fileSegment = flatFile.getFileToWrite();
         try {
             if (System.currentTimeMillis() - fileSegment.getMaxTimestamp() >
