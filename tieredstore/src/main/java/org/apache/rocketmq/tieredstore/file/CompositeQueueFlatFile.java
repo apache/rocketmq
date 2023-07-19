@@ -64,7 +64,7 @@ public class CompositeQueueFlatFile extends CompositeFlatFile {
         if (queueMetadata.getMaxOffset() < queueMetadata.getMinOffset()) {
             queueMetadata.setMaxOffset(queueMetadata.getMinOffset());
         }
-        this.dispatchOffset = queueMetadata.getMaxOffset();
+        this.dispatchOffset.set(queueMetadata.getMaxOffset());
     }
 
     public void persistMetadata() {
