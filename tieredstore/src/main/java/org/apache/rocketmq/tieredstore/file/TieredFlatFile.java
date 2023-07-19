@@ -436,7 +436,7 @@ public class TieredFlatFile {
         return result;
     }
 
-    public void cleanExpiredFile(long expireTimestamp) {
+    public int cleanExpiredFile(long expireTimestamp) {
         Set<Long> needToDeleteSet = new HashSet<>();
         try {
             tieredMetadataStore.iterateFileSegment(filePath, fileType, metadata -> {
@@ -450,7 +450,7 @@ public class TieredFlatFile {
         }
 
         if (needToDeleteSet.isEmpty()) {
-            return;
+            return 0;
         }
 
         fileSegmentLock.writeLock().lock();
@@ -483,6 +483,7 @@ public class TieredFlatFile {
         } finally {
             fileSegmentLock.writeLock().unlock();
         }
+        return needToDeleteSet.size();
     }
 
     @VisibleForTesting

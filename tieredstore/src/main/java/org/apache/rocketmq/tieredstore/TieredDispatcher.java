@@ -352,7 +352,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             case SUCCESS:
                 long offset = MessageBufferUtil.getQueueOffset(message);
                 if (queueOffset != offset) {
-                    logger.error("Message cq offset in commitlog does not meet expectations, " +
+                    logger.warn("Message cq offset in commitlog does not meet expectations, " +
                             "result={}, topic={}, queueId={}, cq offset={}, msg offset={}",
                         AppendResult.OFFSET_INCORRECT, topic, queueId, queueOffset, offset);
                 }

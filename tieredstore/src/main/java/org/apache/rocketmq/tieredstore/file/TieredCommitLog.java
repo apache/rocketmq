@@ -99,7 +99,7 @@ public class TieredCommitLog {
 
         // queue offset field length is 8
         int length = MessageBufferUtil.QUEUE_OFFSET_POSITION + 8;
-        if (flatFile.getMaxOffset() - flatFile.getMinOffset() < length) {
+        if (flatFile.getCommitOffset() - flatFile.getMinOffset() < length) {
             this.minConsumeQueueOffset.set(NOT_EXIST_MIN_OFFSET);
             return NOT_EXIST_MIN_OFFSET;
         }
@@ -109,17 +109,17 @@ public class TieredCommitLog {
                 .thenApply(buffer -> {
                     long offset = MessageBufferUtil.getQueueOffset(buffer);
                     minConsumeQueueOffset.set(offset);
-                    log.info("Correct min offset in tiered commitlog success, offset={}, filePath={}",
-                        offset, flatFile.getFilePath());
+                    log.info("Correct commitlog min cq offset success, filePath={}, min cq offset={}, range={}-{}",
+                        flatFile.getFilePath(), offset, flatFile.getMinOffset(), flatFile.getCommitOffset());
                     return offset;
                 })
                 .exceptionally(throwable -> {
-                    log.warn("Correct min offset in tiered commitlog error, filePath={}",
-                        flatFile.getFilePath(), throwable);
+                    log.warn("Correct commitlog min cq offset error, filePath={}, range={}-{}",
+                        flatFile.getFilePath(), flatFile.getMinOffset(), flatFile.getCommitOffset(), throwable);
                     return minConsumeQueueOffset.get();
                 }).get();
         } catch (Exception e) {
-            log.warn("Correct min offset in tiered commitlog error, filePath={}", flatFile.getFilePath(), e);
+            log.error("Correct commitlog min cq offset error, filePath={}", flatFile.getFilePath(), e);
         }
         return minConsumeQueueOffset.get();
     }
@@ -141,8 +141,9 @@ public class TieredCommitLog {
     }
 
     public void cleanExpiredFile(long expireTimestamp) {
-        flatFile.cleanExpiredFile(expireTimestamp);
-        correctMinOffset();
+        if (flatFile.cleanExpiredFile(expireTimestamp) > 0) {
+            correctMinOffset();
+        }
     }
 
     public void destroyExpiredFile() {
