@@ -330,22 +330,27 @@ public class MixAll {
             Field[] fields = objectClass.getDeclaredFields();
             for (Field field : fields) {
                 if (!Modifier.isStatic(field.getModifiers())) {
-                    String name = field.getName();
-                    if (!name.startsWith("this")) {
-                        Object value = null;
-                        try {
-                            field.setAccessible(true);
-                            value = field.get(object);
-                        } catch (IllegalAccessException e) {
-                            log.error("Failed to handle properties", e);
-                        }
+                    continue;
+                }
 
-                        if (value != null) {
-                            properties.setProperty(name, value.toString());
-                        }
-                    }
+                String name = field.getName();
+                if (name.startsWith("this")) {
+                    continue;
+                }
+
+                Object value = null;
+                try {
+                    field.setAccessible(true);
+                    value = field.get(object);
+                } catch (IllegalAccessException e) {
+                    log.error("Failed to handle properties", e);
+                }
+
+                if (value != null) {
+                    properties.setProperty(name, value.toString());
                 }
             }
+
             if (objectClass == Object.class || objectClass.getSuperclass() == Object.class) {
                 break;
             }
