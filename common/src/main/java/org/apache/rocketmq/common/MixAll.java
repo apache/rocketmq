@@ -187,7 +187,6 @@ public class MixAll {
     }
 
     public static synchronized void string2File(final String str, final String fileName) throws IOException {
-
         String bakFile = fileName + ".bak";
         String prevContent = file2String(fileName);
         if (prevContent != null) {
