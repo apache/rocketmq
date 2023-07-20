@@ -29,6 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -58,7 +59,7 @@ public class CompositeFlatFile implements CompositeAccess {
      * dispatched to the current chunk, indicating the progress of the message distribution.
      * It's consume queue current offset.
      */
-    protected volatile long dispatchOffset;
+    protected final AtomicLong dispatchOffset;
 
     protected final ReentrantLock compositeFlatFileLock;
     protected final TieredMessageStoreConfig storeConfig;
@@ -75,6 +76,7 @@ public class CompositeFlatFile implements CompositeAccess {
         this.storeConfig = fileQueueFactory.getStoreConfig();
         this.readAheadFactor = this.storeConfig.getReadAheadMinFactor();
         this.metadataStore = TieredStoreUtil.getMetadataStore(this.storeConfig);
+        this.dispatchOffset = new AtomicLong();
         this.compositeFlatFileLock = new ReentrantLock();
         this.inFlightRequestMap = new ConcurrentHashMap<>();
         this.commitLog = new TieredCommitLog(fileQueueFactory, filePath);
@@ -83,8 +85,8 @@ public class CompositeFlatFile implements CompositeAccess {
     }
 
     protected void recoverMetadata() {
-        if (!consumeQueue.isInitialized() && this.dispatchOffset != -1) {
-            consumeQueue.setBaseOffset(this.dispatchOffset * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
+        if (!consumeQueue.isInitialized() && this.dispatchOffset.get() != -1) {
+            consumeQueue.setBaseOffset(this.dispatchOffset.get() * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         }
     }
 
@@ -118,17 +120,19 @@ public class CompositeFlatFile implements CompositeAccess {
         return commitLog.getBeginTimestamp();
     }
 
-    public long getConsumeQueueBaseOffset() {
-        return consumeQueue.getBaseOffset();
-    }
-
     @Override
     public long getCommitLogDispatchCommitOffset() {
         return commitLog.getDispatchCommitOffset();
     }
 
+    public long getConsumeQueueBaseOffset() {
+        return consumeQueue.getBaseOffset();
+    }
+
     public long getConsumeQueueMinOffset() {
-        return consumeQueue.getMinOffset() / TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE;
+        long cqOffset = consumeQueue.getMinOffset() / TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE;
+        long effectiveOffset = this.commitLog.getMinConsumeQueueOffset();
+        return Math.max(cqOffset, effectiveOffset);
     }
 
     public long getConsumeQueueCommitOffset() {
@@ -144,7 +148,7 @@ public class CompositeFlatFile implements CompositeAccess {
     }
 
     public long getDispatchOffset() {
-        return dispatchOffset;
+        return dispatchOffset.get();
     }
 
     @Override
@@ -309,7 +313,7 @@ public class CompositeFlatFile implements CompositeAccess {
         if (!consumeQueue.isInitialized()) {
             consumeQueue.setBaseOffset(offset * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         }
-        dispatchOffset = offset;
+        dispatchOffset.set(offset);
     }
 
     @Override
@@ -323,14 +327,9 @@ public class CompositeFlatFile implements CompositeAccess {
             return AppendResult.FILE_CLOSED;
         }
 
-        long queueOffset = MessageBufferUtil.getQueueOffset(message);
-        if (dispatchOffset != queueOffset) {
-            return AppendResult.OFFSET_INCORRECT;
-        }
-
         AppendResult result = commitLog.append(message, commit);
         if (result == AppendResult.SUCCESS) {
-            dispatchOffset = queueOffset + 1;
+            dispatchOffset.incrementAndGet();
         }
         return result;
     }
@@ -483,14 +482,17 @@ public class CompositeFlatFile implements CompositeAccess {
     }
 
     public void destroy() {
-        closed = true;
-        commitLog.destroy();
-        consumeQueue.destroy();
         try {
+            closed = true;
+            compositeFlatFileLock.lock();
+            commitLog.destroy();
+            consumeQueue.destroy();
             metadataStore.deleteFileSegment(filePath, FileSegmentType.COMMIT_LOG);
             metadataStore.deleteFileSegment(filePath, FileSegmentType.CONSUME_QUEUE);
         } catch (Exception e) {
-            LOGGER.error("CompositeFlatFile#destroy: clean metadata failed: ", e);
+            LOGGER.error("CompositeFlatFile#destroy: delete file failed", e);
+        } finally {
+            compositeFlatFileLock.unlock();
         }
     }
 }

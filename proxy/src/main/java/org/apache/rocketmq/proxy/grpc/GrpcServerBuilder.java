@@ -28,9 +28,7 @@ import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -50,7 +48,7 @@ public class GrpcServerBuilder {
     protected GrpcServerBuilder(ThreadPoolExecutor executor, int port) {
         serverBuilder = NettyServerBuilder.forPort(port);
 
-        serverBuilder.protocolNegotiator(new OptionalSSLProtocolNegotiator());
+        serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());
 
         // build server
         int bossLoopNum = ConfigurationManager.getProxyConfig().getGrpcBossLoopNum();
@@ -98,14 +96,8 @@ public class GrpcServerBuilder {
         return new GrpcServer(this.serverBuilder.build());
     }
 
-    public GrpcServerBuilder configInterceptor() {
+    public GrpcServerBuilder configInterceptor(List<AccessValidator> accessValidators) {
         // grpc interceptors, including acl, logging etc.
-        List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
-        if (accessValidators.isEmpty()) {
-            log.info("ServiceProvider loaded no AccessValidator, using default org.apache.rocketmq.acl.plain.PlainAccessValidator");
-            accessValidators.add(new PlainAccessValidator());
-        }
-
         this.serverBuilder.intercept(new AuthenticationInterceptor(accessValidators));
 
         this.serverBuilder

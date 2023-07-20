@@ -429,8 +429,15 @@ public class PopBufferMergeService extends ServiceThread {
      * @param nextBeginOffset
      * @return
      */
-    public void addCkJustOffset(PopCheckPoint point, int reviveQueueId, long reviveQueueOffset, long nextBeginOffset) {
+    public boolean addCkJustOffset(PopCheckPoint point, int reviveQueueId, long reviveQueueOffset, long nextBeginOffset) {
         PopCheckPointWrapper pointWrapper = new PopCheckPointWrapper(reviveQueueId, reviveQueueOffset, point, nextBeginOffset, true);
+
+        if (this.buffer.containsKey(pointWrapper.getMergeKey())) {
+            // when mergeKey conflict
+            // will cause PopBufferMergeService.scanCommitOffset cannot poll PopCheckPointWrapper
+            POP_LOGGER.warn("[PopBuffer]mergeKey conflict when add ckJustOffset. ck:{}, mergeKey:{}", pointWrapper, pointWrapper.getMergeKey());
+            return false;
+        }
 
         this.putCkToStore(pointWrapper, !checkQueueOk(pointWrapper));
 
@@ -440,6 +447,7 @@ public class PopBufferMergeService extends ServiceThread {
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("[PopBuffer]add ck just offset, {}", pointWrapper);
         }
+        return  true;
     }
 
     public void addCkMock(String group, String topic, int queueId, long startOffset, long invisibleTime,
@@ -489,6 +497,13 @@ public class PopBufferMergeService extends ServiceThread {
         PopCheckPointWrapper pointWrapper = new PopCheckPointWrapper(reviveQueueId, reviveQueueOffset, point, nextBeginOffset);
 
         if (!checkQueueOk(pointWrapper)) {
+            return false;
+        }
+
+        if (this.buffer.containsKey(pointWrapper.getMergeKey())) {
+            // when mergeKey conflict
+            // will cause PopBufferMergeService.scanCommitOffset cannot poll PopCheckPointWrapper
+            POP_LOGGER.warn("[PopBuffer]mergeKey conflict when add ck. ck:{}, mergeKey:{}", pointWrapper, pointWrapper.getMergeKey());
             return false;
         }
 

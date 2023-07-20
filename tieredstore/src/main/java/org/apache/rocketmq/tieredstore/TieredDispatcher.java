@@ -308,9 +308,18 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 doRedispatchRequestToWriteMap(
                     result, flatFile, dispatchOffset, newCommitLogOffset, size, tagCode, message.getByteBuffer());
                 message.release();
-                if (result != AppendResult.SUCCESS) {
-                    dispatchOffset--;
-                    break;
+
+                switch (result) {
+                    case SUCCESS:
+                        continue;
+                    case FILE_CLOSED:
+                        tieredFlatFileManager.destroyCompositeFile(flatFile.getMessageQueue());
+                        logger.info("TieredDispatcher#dispatchFlatFile: file has been close and destroy, " +
+                            "topic: {}, queueId: {}", topic, queueId);
+                        return;
+                    default:
+                        dispatchOffset--;
+                        break;
                 }
             }
 
@@ -341,15 +350,13 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
 
         switch (result) {
             case SUCCESS:
-                break;
-            case OFFSET_INCORRECT:
                 long offset = MessageBufferUtil.getQueueOffset(message);
                 if (queueOffset != offset) {
-                    logger.error("[Bug] Commitlog offset incorrect, " +
-                            "result={}, topic={}, queueId={}, offset={}, msg offset={}",
-                        result, topic, queueId, queueOffset, offset);
+                    logger.warn("Message cq offset in commitlog does not meet expectations, " +
+                            "result={}, topic={}, queueId={}, cq offset={}, msg offset={}",
+                        AppendResult.OFFSET_INCORRECT, topic, queueId, queueOffset, offset);
                 }
-                return;
+                break;
             case BUFFER_FULL:
                 logger.debug("Commitlog buffer full, result={}, topic={}, queueId={}, offset={}",
                     result, topic, queueId, queueOffset);
