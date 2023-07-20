@@ -272,7 +272,18 @@ public class UtilAllTest {
         assertEquals(1313 * 4, UtilAll.calculateFileSizeInPath(baseFile));
 
         // clear all file
-        baseFile.deleteOnExit();
+        deleteDirectory(baseFile);
+    }
+
+    private void deleteDirectory(File directoryToBeDeleted) {
+        File[] allContents = directoryToBeDeleted.listFiles();
+        if (allContents != null) {
+            for (File file : allContents) {
+                deleteDirectory(file);
+            }
+        }
+
+        directoryToBeDeleted.delete();
     }
 
     private void writeFixedBytesToFile(File file, int size) throws Exception {
