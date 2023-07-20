@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.annotation.Annotation;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -173,16 +174,16 @@ public class MixAll {
     }
 
     public static long getPID() {
-        String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
-        if (StringUtils.isNotEmpty(processName)) {
-            try {
-                return Long.parseLong(processName.split("@")[0]);
-            } catch (Exception e) {
-                return 0;
-            }
+        String processName = ManagementFactory.getRuntimeMXBean().getName();
+        if (StringUtils.isEmpty(processName)) {
+            return 0;
         }
 
-        return 0;
+        try {
+            return Long.parseLong(processName.split("@")[0]);
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     public static synchronized void string2File(final String str, final String fileName) throws IOException {
