@@ -329,7 +329,7 @@ public class MixAll {
         while (true) {
             Field[] fields = objectClass.getDeclaredFields();
             for (Field field : fields) {
-                if (!Modifier.isStatic(field.getModifiers())) {
+                if (Modifier.isStatic(field.getModifiers())) {
                     continue;
                 }
 
