@@ -211,19 +211,22 @@ public class MixAll {
     }
 
     public static String file2String(final File file) throws IOException {
-        if (file.exists()) {
-            byte[] data = new byte[(int) file.length()];
-            boolean result;
-
-            try (FileInputStream inputStream = new FileInputStream(file)) {
-                int len = inputStream.read(data);
-                result = len == data.length;
-            }
-
-            if (result) {
-                return new String(data, "UTF-8");
-            }
+        if (!file.exists()) {
+            return null;
         }
+
+        byte[] data = new byte[(int) file.length()];
+        boolean result;
+
+        try (FileInputStream inputStream = new FileInputStream(file)) {
+            int len = inputStream.read(data);
+            result = len == data.length;
+        }
+
+        if (result) {
+            return new String(data, "UTF-8");
+        }
+
         return null;
     }
 
