@@ -261,31 +261,35 @@ public class MixAll {
         final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
-            if (!Modifier.isStatic(field.getModifiers())) {
-                String name = field.getName();
-                if (!name.startsWith("this")) {
-                    if (onlyImportantField) {
-                        Annotation annotation = field.getAnnotation(ImportantField.class);
-                        if (null == annotation) {
-                            continue;
-                        }
-                    }
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
 
-                    Object value = null;
-                    try {
-                        field.setAccessible(true);
-                        value = field.get(object);
-                        if (null == value) {
-                            value = "";
-                        }
-                    } catch (IllegalAccessException e) {
-                        log.error("Failed to obtain object properties", e);
-                    }
+            String name = field.getName();
+            if (name.startsWith("this")) {
+                continue;
+            }
 
-                    if (logger != null) {
-                        logger.info(name + "=" + value);
-                    }
+            if (onlyImportantField) {
+                Annotation annotation = field.getAnnotation(ImportantField.class);
+                if (null == annotation) {
+                    continue;
                 }
+            }
+
+            Object value = null;
+            try {
+                field.setAccessible(true);
+                value = field.get(object);
+                if (null == value) {
+                    value = "";
+                }
+            } catch (IllegalAccessException e) {
+                log.error("Failed to obtain object properties", e);
+            }
+
+            if (logger != null) {
+                logger.info(name + "=" + value);
             }
         }
     }
