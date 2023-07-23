@@ -223,7 +223,7 @@ public class TieredFlatFileManager {
     public CompositeQueueFlatFile getOrCreateFlatFileIfAbsent(MessageQueue messageQueue) {
         return queueFlatFileMap.computeIfAbsent(messageQueue, mq -> {
             try {
-                logger.info("TieredFlatFileManager#getOrCreateFlatFileIfAbsent: " +
+                logger.debug("TieredFlatFileManager#getOrCreateFlatFileIfAbsent: " +
                         "try to create new flat file: topic: {}, queueId: {}",
                     messageQueue.getTopic(), messageQueue.getQueueId());
                 return new CompositeQueueFlatFile(tieredFileAllocator, mq);

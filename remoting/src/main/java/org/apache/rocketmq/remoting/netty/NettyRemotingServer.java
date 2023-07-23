@@ -37,6 +37,7 @@ import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.ProtocolDetectionResult;
 import io.netty.handler.codec.ProtocolDetectionState;
 import io.netty.handler.codec.haproxy.HAProxyMessage;
@@ -73,6 +74,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -115,7 +117,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     public static final String FILE_REGION_ENCODER_NAME = "fileRegionEncoder";
 
     // sharable handlers
-    private HandshakeHandler handshakeHandler;
+    private TlsModeHandler tlsModeHandler;
     private NettyEncoder encoder;
     private NettyConnectManageHandler connectionManageHandler;
     private NettyServerHandler serverHandler;
@@ -265,7 +267,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
-            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
+            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
             .addLast(defaultEventExecutorGroup,
                 encoder,
                 new NettyDecoder(),
@@ -402,7 +404,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     private void prepareSharableHandlers() {
-        handshakeHandler = new HandshakeHandler();
+        tlsModeHandler = new TlsModeHandler(TlsSystemConfig.tlsMode);
         encoder = new NettyEncoder();
         connectionManageHandler = new NettyConnectManageHandler();
         serverHandler = new NettyServerHandler();
@@ -429,10 +431,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         return defaultEventExecutorGroup;
     }
 
-    public HandshakeHandler getHandshakeHandler() {
-        return handshakeHandler;
-    }
-
     public NettyEncoder getEncoder() {
         return encoder;
     }
@@ -449,17 +447,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         return distributionHandler;
     }
 
-    @ChannelHandler.Sharable
-    public class HandshakeHandler extends SimpleChannelInboundHandler<ByteBuf> {
-
-        private final TlsModeHandler tlsModeHandler;
+    public class HandshakeHandler extends ByteToMessageDecoder {
 
         public HandshakeHandler() {
-            tlsModeHandler = new TlsModeHandler(TlsSystemConfig.tlsMode);
         }
 
         @Override
-        protected void channelRead0(ChannelHandlerContext ctx, ByteBuf byteBuf) {
+        protected void decode(ChannelHandlerContext ctx, ByteBuf byteBuf, List<Object> out) throws Exception {
             try {
                 ProtocolDetectionResult<HAProxyProtocolVersion> detectionResult = HAProxyMessageDecoder.detectProtocol(byteBuf);
                 if (detectionResult.state() == ProtocolDetectionState.NEEDS_MORE_DATA) {
@@ -479,9 +473,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 } catch (NoSuchElementException e) {
                     log.error("Error while removing HandshakeHandler", e);
                 }
-
-                // Hand over this message to the next .
-                ctx.fireChannelRead(byteBuf.retain());
             } catch (Exception e) {
                 log.error("process proxy protocol negotiator failed.", e);
                 throw e;
@@ -767,7 +758,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
             if (msg instanceof HAProxyMessage) {
-                fillChannelWithMessage((HAProxyMessage) msg, ctx.channel());
+                handleWithMessage((HAProxyMessage) msg, ctx.channel());
             } else {
                 super.channelRead(ctx, msg);
             }
@@ -780,26 +771,30 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
          * @param msg
          * @param channel
          */
-        private void fillChannelWithMessage(HAProxyMessage msg, Channel channel) {
-            if (StringUtils.isNotBlank(msg.sourceAddress())) {
-                channel.attr(AttributeKeys.PROXY_PROTOCOL_ADDR).set(msg.sourceAddress());
-            }
-            if (msg.sourcePort() > 0) {
-                channel.attr(AttributeKeys.PROXY_PROTOCOL_PORT).set(String.valueOf(msg.sourcePort()));
-            }
-            if (StringUtils.isNotBlank(msg.destinationAddress())) {
-                channel.attr(AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR).set(msg.destinationAddress());
-            }
-            if (msg.destinationPort() > 0) {
-                channel.attr(AttributeKeys.PROXY_PROTOCOL_SERVER_PORT).set(String.valueOf(msg.destinationPort()));
-            }
-            if (CollectionUtils.isNotEmpty(msg.tlvs())) {
-                msg.tlvs().forEach(tlv -> {
-                    AttributeKey<String> key = AttributeKeys.valueOf(
-                            HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
-                    String value = StringUtils.trim(tlv.content().toString(CharsetUtil.UTF_8));
-                    channel.attr(key).set(value);
-                });
+        private void handleWithMessage(HAProxyMessage msg, Channel channel) {
+            try {
+                if (StringUtils.isNotBlank(msg.sourceAddress())) {
+                    channel.attr(AttributeKeys.PROXY_PROTOCOL_ADDR).set(msg.sourceAddress());
+                }
+                if (msg.sourcePort() > 0) {
+                    channel.attr(AttributeKeys.PROXY_PROTOCOL_PORT).set(String.valueOf(msg.sourcePort()));
+                }
+                if (StringUtils.isNotBlank(msg.destinationAddress())) {
+                    channel.attr(AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR).set(msg.destinationAddress());
+                }
+                if (msg.destinationPort() > 0) {
+                    channel.attr(AttributeKeys.PROXY_PROTOCOL_SERVER_PORT).set(String.valueOf(msg.destinationPort()));
+                }
+                if (CollectionUtils.isNotEmpty(msg.tlvs())) {
+                    msg.tlvs().forEach(tlv -> {
+                        AttributeKey<String> key = AttributeKeys.valueOf(
+                                HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
+                        String value = StringUtils.trim(tlv.content().toString(CharsetUtil.UTF_8));
+                        channel.attr(key).set(value);
+                    });
+                }
+            } finally {
+                msg.release();
             }
         }
     }
