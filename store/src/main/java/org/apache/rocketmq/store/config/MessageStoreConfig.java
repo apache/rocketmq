@@ -402,6 +402,7 @@ public class MessageStoreConfig {
     private long cleanDirtyConsumeQueueIntervalMin = 60;
     private long statConsumeQueueRocksDbIntervalSec = 10;
     private long memTableFlushInterval = 60 * 60 * 1000L;
+    private boolean enableRocksDBLog = false;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -1768,5 +1769,13 @@ public class MessageStoreConfig {
 
     public void setMemTableFlushInterval(long memTableFlushInterval) {
         this.memTableFlushInterval = memTableFlushInterval;
+    }
+
+    public boolean isEnableRocksDBLog() {
+        return enableRocksDBLog;
+    }
+
+    public void setEnableRocksDBLog(boolean enableRocksDBLog) {
+        this.enableRocksDBLog = enableRocksDBLog;
     }
 }

@@ -41,8 +41,8 @@ import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_FILE_TYPE;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_OPERATION;
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_PATH;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_SUCCESS;
-import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_TOPIC;
 
 /**
  * this class is experimental and may change without notice.
@@ -55,6 +55,7 @@ public class PosixFileSegment extends TieredFileSegment {
     private static final String OPERATION_POSIX_READ = "read";
     private static final String OPERATION_POSIX_WRITE = "write";
 
+    private final String fullPath;
     private volatile File file;
     private volatile FileChannel readFileChannel;
     private volatile FileChannel writeFileChannel;
@@ -71,7 +72,7 @@ public class PosixFileSegment extends TieredFileSegment {
         // fullPath: basePath/hash_cluster/broker/topic/queueId/fileType/baseOffset
         String brokerClusterName = storeConfig.getBrokerClusterName();
         String clusterBasePath = TieredStoreUtil.getHash(brokerClusterName) + UNDERLINE + brokerClusterName;
-        String fullPath = Paths.get(basePath, clusterBasePath, filePath,
+        this.fullPath = Paths.get(basePath, clusterBasePath, filePath,
             fileType.toString(), TieredStoreUtil.offset2FileName(baseOffset)).toString();
         logger.info("Constructing Posix FileSegment, filePath: {}", fullPath);
 
@@ -80,13 +81,13 @@ public class PosixFileSegment extends TieredFileSegment {
 
     protected AttributesBuilder newAttributesBuilder() {
         return TieredStoreMetricsManager.newAttributesBuilder()
-            .put(LABEL_TOPIC, filePath)
+            .put(LABEL_PATH, filePath)
             .put(LABEL_FILE_TYPE, fileType.name().toLowerCase());
     }
 
     @Override
     public String getPath() {
-        return filePath;
+        return fullPath;
     }
 
     @Override
@@ -107,7 +108,7 @@ public class PosixFileSegment extends TieredFileSegment {
         if (file == null) {
             synchronized (this) {
                 if (file == null) {
-                    File file = new File(filePath);
+                    File file = new File(fullPath);
                     try {
                         File dir = file.getParentFile();
                         if (!dir.exists()) {
@@ -136,8 +137,9 @@ public class PosixFileSegment extends TieredFileSegment {
             if (writeFileChannel != null && writeFileChannel.isOpen()) {
                 writeFileChannel.close();
             }
+            logger.info("Destroy Posix FileSegment, filePath: {}", fullPath);
         } catch (IOException e) {
-            logger.error("PosixFileSegment#destroyFile: destroy file {} failed: ", filePath, e);
+            logger.error("Destroy Posix FileSegment failed, filePath: {}", fullPath, e);
         }
 
         if (file.exists()) {
@@ -181,8 +183,9 @@ public class PosixFileSegment extends TieredFileSegment {
     }
 
     @Override
-    public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length,
-                                              boolean append) {
+    public CompletableFuture<Boolean> commit0(
+        TieredFileSegmentInputStream inputStream, long position, int length, boolean append) {
+
         Stopwatch stopwatch = Stopwatch.createStarted();
         AttributesBuilder attributesBuilder = newAttributesBuilder()
             .put(LABEL_OPERATION, OPERATION_POSIX_WRITE);

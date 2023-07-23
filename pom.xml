@@ -148,6 +148,7 @@
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
         <s3mock-junit4.version>2.11.0</s3mock-junit4.version>
+        <rocketmq-client-java.version>5.0.5</rocketmq-client-java.version>
 
         <!-- Build plugin dependencies -->
         <versions-maven-plugin.version>2.2</versions-maven-plugin.version>

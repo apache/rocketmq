@@ -790,10 +790,9 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         if (maxCqOffset == null) {
             final ByteBuffer bb = getMaxCQInKV(topic, queueId);
             maxCqOffset = (bb != null) ? bb.getLong(OFFSET_CQ_OFFSET) : null;
-            // put for avoid get kv, bug! if value = 0, getMaxOffsetInQueue = 1, topic put begin 1
             String topicQueueId = buildTopicQueueId(topic, queueId);
             this.topicQueueMaxCqOffset.putIfAbsent(topicQueueId, maxCqOffset != null ? maxCqOffset : -1L);
-            if (messageStore.getBrokerConfig().isEnableKVLog()) {
+            if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
                 ROCKSDB_LOG.warn("updateMaxOffsetInQueue. {}, {}", topicQueueId, maxCqOffset);
             }
         }
@@ -808,7 +807,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         final long cqOffset = pair.getObject2();
         if (!pair.getObject1() && correctMinCQOffset(topic, queueId, cqOffset, minPhyOffset)) {
             PhyAndCQOffset phyAndCQOffset = getHeapMinCqOffset(topic, queueId);
-            if (messageStore.getBrokerConfig().isEnableKVLog()) {
+            if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
                 String topicQueueId = buildTopicQueueId(topic, queueId);
                 ROCKSDB_LOG.warn("getMinOffsetInQueue miss heap. {}, old: {}, new: {}", topicQueueId, cqOffset, phyAndCQOffset);
             }
@@ -838,7 +837,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             String topicQueueId = buildTopicQueueId(topic, queueId);
             PhyAndCQOffset kvPhyAndCQOffset = new PhyAndCQOffset(phyOffset, cqOffset);
             this.topicQueueMinCqOffset.putIfAbsent(topicQueueId, kvPhyAndCQOffset);
-            if (messageStore.getBrokerConfig().isEnableKVLog()) {
+            if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
                 ROCKSDB_LOG.warn("updateMinOffsetInQueue. {}, {}", topicQueueId, kvPhyAndCQOffset);
             }
             return new Pair(true, cqOffset);
@@ -868,7 +867,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             if (maxCQOffset != minCQOffset) {
                 updateTopicQueueMaxOffset(topic, queueId, minPhyAndCQOffset.getPhyOffset(), minCQOffset);
             }
-            if (messageStore.getBrokerConfig().isEnableKVLog()) {
+            if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
                 ROCKSDB_LOG.warn("correct error. {}, {}, {}, {}, {}", topic, queueId, minCQOffset, maxCQOffset, minPhyAndCQOffset.getPhyOffset());
             }
             return false;
@@ -903,7 +902,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             if (maxCQOffset != minCQOffset) {
                 updateTopicQueueMinOffset(topic, queueId, maxPhyOffset, maxCQOffset);
             }
-            if (messageStore.getBrokerConfig().isEnableKVLog()) {
+            if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
                 ROCKSDB_LOG.warn("correct error. {}, {}, {}, {}, {}", topic, queueId, minCQOffset, maxCQOffset, minPhyOffset);
             }
             return false;
@@ -919,7 +918,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         while (high >= low) {
             long midOffset = low + ((high - low) >>> 1);
             ByteBuffer byteBuffer = get(topic, queueId, midOffset);
-            if (messageStore.getBrokerConfig().isEnableKVLog()) {
+            if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
                 ROCKSDB_LOG.warn("binarySearchInCQ. {}, {}, {}, {}, {}", topic, queueId, midOffset, low, high);
             }
             if (byteBuffer == null) {
@@ -974,7 +973,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         } finally {
             writeBatch.close();
             this.rocksDBStorage.release();
-            if (messageStore.getBrokerConfig().isEnableKVLog()) {
+            if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
                 ROCKSDB_LOG.warn("updateTopicQueueMinOffset. {}, {}, {}, {}", topic, queueId, minPhyOffset, minCQOffset);
             }
         }
@@ -1003,7 +1002,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         } finally {
             writeBatch.close();
             this.rocksDBStorage.release();
-            if (messageStore.getBrokerConfig().isEnableKVLog()) {
+            if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
                 ROCKSDB_LOG.warn("updateTopicQueueMaxOffset. {}, {}, {}, {}", topic, queueId, maxPhyOffset, maxCQOffset);
             }
         }

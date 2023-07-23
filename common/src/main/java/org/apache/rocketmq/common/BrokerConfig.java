@@ -381,7 +381,10 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private long fetchNamesrvAddrInterval = 10 * 1000;
 
-    private boolean enableKVLog = false;
+    /**
+     * Pop response returns the actual retry topic rather than tampering with the original topic
+     */
+    private boolean popResponseReturnActualRetryTopic = false;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1670,13 +1673,6 @@ public class BrokerConfig extends BrokerIdentity {
     public void setUseStaticSubscription(boolean useStaticSubscription) {
         this.useStaticSubscription = useStaticSubscription;
     }
-    public boolean isEnableKVLog() {
-        return enableKVLog;
-    }
-
-    public void setEnableKVLog(boolean enableKVLog) {
-        this.enableKVLog = enableKVLog;
-    }
     
     public long getFetchNamesrvAddrInterval() {
         return fetchNamesrvAddrInterval;
@@ -1684,5 +1680,13 @@ public class BrokerConfig extends BrokerIdentity {
     
     public void setFetchNamesrvAddrInterval(final long fetchNamesrvAddrInterval) {
         this.fetchNamesrvAddrInterval = fetchNamesrvAddrInterval;
+    }
+
+    public boolean isPopResponseReturnActualRetryTopic() {
+        return popResponseReturnActualRetryTopic;
+    }
+
+    public void setPopResponseReturnActualRetryTopic(boolean popResponseReturnActualRetryTopic) {
+        this.popResponseReturnActualRetryTopic = popResponseReturnActualRetryTopic;
     }
 }

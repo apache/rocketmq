@@ -2102,6 +2102,11 @@ public class CommitLog implements Swappable {
                     } else {
                         this.waitForRunning(defaultMessageStore.getMessageStoreConfig().getTimerColdDataCheckIntervalMs());
                     }
+
+                    if (pageSize < 0) {
+                        initPageSize();
+                    }
+
                     long beginClockTimestamp = this.systemClock.now();
                     scanFilesInPageCache();
                     long costTime = this.systemClock.now() - beginClockTimestamp;
@@ -2195,7 +2200,7 @@ public class CommitLog implements Swappable {
         }
 
         private void initPageSize() {
-            if (pageSize < 0) {
+            if (pageSize < 0 && defaultMessageStore.getMessageStoreConfig().isColdDataFlowControlEnable()) {
                 try {
                     if (!MixAll.isWindows()) {
                         pageSize = LibC.INSTANCE.getpagesize();

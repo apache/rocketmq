@@ -130,7 +130,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                     subscriptionData,
                     fifo,
                     new PopMessageResultFilterImpl(maxAttempts),
-                    request.getAttemptId(),
+                    request.hasAttemptId() ? request.getAttemptId() : null,
                     timeRemaining
                 ).thenAccept(popResult -> {
                     if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
