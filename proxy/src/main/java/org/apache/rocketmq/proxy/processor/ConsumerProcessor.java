@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.processor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -425,13 +426,15 @@ public class ConsumerProcessor extends AbstractProcessor {
     }
 
     protected Set<AddressableMessageQueue> buildAddressableSet(ProxyContext ctx, Set<MessageQueue> mqSet) {
-        return mqSet.stream().map(mq -> {
+        Set<AddressableMessageQueue> addressableMessageQueueSet = new HashSet<>(mqSet.size());
+        for (MessageQueue mq:mqSet) {
             try {
-                return serviceManager.getTopicRouteService().buildAddressableMessageQueue(ctx, mq);
+                addressableMessageQueueSet.add(serviceManager.getTopicRouteService().buildAddressableMessageQueue(ctx, mq)) ;
             } catch (Exception e) {
-                return null;
+                log.error("build addressable message queue fail, messageQueue = {}", mq, e);
             }
-        }).collect(Collectors.toSet());
+        }
+        return addressableMessageQueueSet;
     }
 
     protected HashMap<String, List<AddressableMessageQueue>> buildAddressableMapByBrokerName(
