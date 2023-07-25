@@ -1036,7 +1036,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(SearchOffsetResponseHeader.class);
         final SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.readCustomHeader();
-
         final SearchOffsetRequestHeader requestHeader =
             (SearchOffsetRequestHeader) request.decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
 
