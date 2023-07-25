@@ -107,6 +107,6 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
     @Override
     public String configFilePath() {
-        return this.brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config" + File.separator + "subscriptionGroups/";
+        return this.brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config" + File.separator + "subscriptionGroups" + File.separator;
     }
 }

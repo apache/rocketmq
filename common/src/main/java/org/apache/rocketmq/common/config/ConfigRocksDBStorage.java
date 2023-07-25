@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.config;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -197,12 +198,14 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
             setUseDirectReads(true);
     }
 
-    private static String getDBLogDir() {
+    public static String getDBLogDir() {
         String rootPath = System.getProperty("user.home");
         if (StringUtils.isEmpty(rootPath)) {
             return "";
         }
-        return rootPath + "/logs/rocketmqlogs/";
+        rootPath = rootPath + File.separator + "logs";
+        UtilAll.ensureDirOK(rootPath);
+        return rootPath + File.separator + "rocketmqlogs" + File.separator;
     }
 
     public void put(final byte[] keyBytes, final int keyLen, final byte[] valueBytes) throws Exception {

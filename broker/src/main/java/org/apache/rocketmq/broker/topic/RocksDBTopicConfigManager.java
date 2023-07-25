@@ -58,7 +58,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
 
     @Override
     public String configFilePath() {
-        return this.brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config" + File.separator + "topics/";
+        return this.brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config" + File.separator + "topics" + File.separator;
     }
 
     @Override

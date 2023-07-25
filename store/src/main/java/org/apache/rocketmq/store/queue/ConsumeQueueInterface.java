@@ -165,6 +165,7 @@ public interface ConsumeQueueInterface extends FileQueueLifeCycle {
      * Assign queue offset.
      * @param queueOffsetAssigner the delegated queue offset assigner
      * @param msg message itself
+     * @throws Exception only in rocksdb mode
      */
     void assignQueueOffset(QueueOffsetOperator queueOffsetAssigner, MessageExtBrokerInner msg) throws Exception;
 

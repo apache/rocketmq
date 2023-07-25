@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.store.rocksdb;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.store.MessageStore;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
@@ -134,7 +134,7 @@ public class RocksDBOptionsFactory {
         Statistics statistics = new Statistics();
         statistics.setStatsLevel(StatsLevel.EXCEPT_DETAILED_TIMERS);
         return options.
-                setDbLogDir(getDBLogDir()).
+                setDbLogDir(ConfigRocksDBStorage.getDBLogDir()).
                 setInfoLogLevel(InfoLogLevel.INFO_LEVEL).
                 setWalRecoveryMode(WALRecoveryMode.PointInTimeRecovery).
                 setManualWalFlush(true).
@@ -157,13 +157,5 @@ public class RocksDBOptionsFactory {
                 setRateLimiter(new RateLimiter(100 * SizeUnit.MB)).
                 setUseDirectIoForFlushAndCompaction(false).
                 setUseDirectReads(false);
-    }
-
-    private static String getDBLogDir() {
-        String rootPath = System.getProperty("user.home");
-        if (StringUtils.isEmpty(rootPath)) {
-            return "";
-        }
-        return rootPath + "/logs/rocketmqlogs/";
     }
 }
