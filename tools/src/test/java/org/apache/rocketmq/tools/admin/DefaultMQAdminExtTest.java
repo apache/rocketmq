@@ -18,16 +18,7 @@ package org.apache.rocketmq.tools.admin;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -510,6 +501,30 @@ public class DefaultMQAdminExtTest {
     public void testSearchOffset() throws Exception {
         when(mQClientAPIImpl.searchOffset(anyString(), any(MessageQueue.class), anyLong(), anyLong())).thenReturn(101L);
         assertThat(defaultMQAdminExt.searchOffset(new MessageQueue(TOPIC1, BROKER1_NAME, 0), System.currentTimeMillis())).isEqualTo(101L);
+    }
+
+    @Test
+    public void testSearchOffsetWithSpecificBoundaryType() throws Exception {
+
+        String namesrvAddr = "127.0.0.1:9876";
+        String topic = "test-topic";
+
+        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
+        mqAdminExt.setInstanceName(UUID.randomUUID().toString());
+        mqAdminExt.setNamesrvAddr(namesrvAddr);
+
+        mqAdminExt.start();
+        List<QueueTimeSpan> timeSpanList = mqAdminExt.queryConsumeTimeSpan(topic, null);
+        if (timeSpanList != null && timeSpanList.size() > 0) {
+            for (QueueTimeSpan timeSpan: timeSpanList) {
+                MessageQueue mq = timeSpan.getMessageQueue();
+                long maxOffset = mqAdminExt.maxOffset(mq);
+                long minOffset = mqAdminExt.minOffset(mq);
+                // if there is at least one message in queue, the maxOffset returns the queue's latest offset + 1
+                assertThat((maxOffset == 0 ? 0 : maxOffset - 1) == mqAdminExt.searchUpperBoundaryOffset(mq, timeSpan.getMaxTimeStamp())).isTrue();
+                assertThat(minOffset == mqAdminExt.searchLowerBoundaryOffset(mq, timeSpan.getMinTimeStamp())).isTrue();
+            }
+        }
     }
 
     @Test

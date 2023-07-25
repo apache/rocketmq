@@ -58,16 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.AbstractBrokerRunnable;
-import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.BrokerIdentity;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.common.SystemClock;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.*;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.CleanupPolicy;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -1015,9 +1006,18 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
+        return getOffsetInQueueByTime(topic, queueId, timestamp, BoundaryType.LOWER);
+    }
+
+    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
         ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            long resultOffset = logic.getOffsetInQueueByTime(timestamp);
+            long resultOffset = -1;
+            if (logic instanceof ConsumeQueue) {
+                resultOffset = ((ConsumeQueue) logic).getOffsetInQueueByTime(timestamp, boundaryType);
+            } else {
+                resultOffset = logic.getOffsetInQueueByTime(timestamp);
+            }
             // Make sure the result offset is in valid range.
             resultOffset = Math.max(resultOffset, logic.getMinOffsetInQueue());
             resultOffset = Math.min(resultOffset, logic.getMaxOffsetInQueue());

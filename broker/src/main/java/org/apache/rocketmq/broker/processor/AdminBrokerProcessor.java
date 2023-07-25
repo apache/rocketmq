@@ -988,7 +988,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     continue;
                 }
                 if (mappingDetail.getBname().equals(item.getBname())) {
-                    offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(mappingContext.getTopic(), item.getQueueId(), timestamp);
+                    MessageStore messageStore = this.brokerController.getMessageStore();
+                    if (messageStore instanceof DefaultMessageStore) {
+                        // get offset with specific boundary type
+                        offset = ((DefaultMessageStore) messageStore).getOffsetInQueueByTime(requestHeader.getTopic(),
+                                requestHeader.getQueueId(), requestHeader.getTimestamp(), requestHeader.getBoundaryType());
+                    } else {
+                        offset = messageStore.getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
+                                requestHeader.getTimestamp());
+                    }
                     if (offset > 0) {
                         offset = item.computeStaticQueueOffsetStrictly(offset);
                         break;
@@ -1028,6 +1036,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(SearchOffsetResponseHeader.class);
         final SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.readCustomHeader();
+
         final SearchOffsetRequestHeader requestHeader =
             (SearchOffsetRequestHeader) request.decodeCommandCustomHeader(SearchOffsetRequestHeader.class);
 
@@ -1038,8 +1047,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return rewriteResult;
         }
 
-        long offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
-            requestHeader.getTimestamp());
+        long offset = -1;
+
+        MessageStore messageStore = this.brokerController.getMessageStore();
+        if (messageStore instanceof DefaultMessageStore) {
+            // get offset with specific boundary type
+            offset = ((DefaultMessageStore) messageStore).getOffsetInQueueByTime(requestHeader.getTopic(),
+                    requestHeader.getQueueId(), requestHeader.getTimestamp(), requestHeader.getBoundaryType());
+        } else {
+            offset = messageStore.getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
+                    requestHeader.getTimestamp());
+        }
 
         responseHeader.setOffset(offset);
 

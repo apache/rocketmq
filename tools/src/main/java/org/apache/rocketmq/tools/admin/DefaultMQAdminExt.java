@@ -25,10 +25,7 @@ import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.AclConfig;
-import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.PlainAccessConfig;
-import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.*;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageRequestMode;
@@ -120,6 +117,14 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         return defaultMQAdminExtImpl.searchOffset(mq, timestamp);
+    }
+
+    public long searchLowerBoundaryOffset(MessageQueue mq, long timestamp) throws MQClientException {
+        return defaultMQAdminExtImpl.searchOffset(mq, timestamp, BoundaryType.LOWER);
+    }
+
+    public long searchUpperBoundaryOffset(MessageQueue mq, long timestamp) throws MQClientException {
+        return defaultMQAdminExtImpl.searchOffset(mq, timestamp, BoundaryType.UPPER);
     }
 
     @Override
