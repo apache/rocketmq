@@ -74,7 +74,7 @@ import static org.junit.Assert.assertTrue;
 public class RocksDBMessageStoreTest {
     private final String storeMessage = "Once, there was a chance for me!";
     private final String messageTopic = "FooBar";
-    private final String storeType = StoreType.DEFAULT_ROCKSDB.getStoreType();
+    private final String storeType = StoreType.DEFAULT.getStoreType();
     private int queueTotal = 100;
     private AtomicInteger queueId = new AtomicInteger(0);
     private SocketAddress bornHost;
