@@ -250,7 +250,6 @@ public class ScheduleMessageService extends ConfigManager {
                 }
                 if (correctDelayOffset != currentDelayOffset) {
                     log.error("correct delay offset [ delayLevel {} ] from {} to {}", delayLevel, currentDelayOffset, correctDelayOffset);
-                    offsetTable.put(delayLevel, correctDelayOffset);
                 }
             }
         } catch (Exception e) {
