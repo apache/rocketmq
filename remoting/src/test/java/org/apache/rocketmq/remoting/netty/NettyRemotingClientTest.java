@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.rocketmq.remoting.InvokeCallback;
+import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -122,5 +123,15 @@ public class NettyRemotingClientTest {
         CompletableFuture<RemotingCommand> future = remotingClient.invoke("0.0.0.0", request, 1000);
         Throwable thrown = catchThrowable(future::get);
         assertThat(thrown.getCause()).isInstanceOf(RemotingException.class);
+    }
+
+    @Test
+    public void testInvokeOnewayException() throws Exception {
+        String addr = "0.0.0.0";
+        try {
+            remotingClient.invokeOneway(addr, null, 1000);
+        } catch (RemotingConnectException e) {
+            assertThat(e.getMessage()).contains(addr);
+        }
     }
 }

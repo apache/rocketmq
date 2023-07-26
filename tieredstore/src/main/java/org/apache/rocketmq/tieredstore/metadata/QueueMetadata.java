@@ -19,6 +19,7 @@ package org.apache.rocketmq.tieredstore.metadata;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class QueueMetadata {
+
     private MessageQueue queue;
     private long minOffset;
     private long maxOffset;

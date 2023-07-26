@@ -28,7 +28,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>5.1.2-SNAPSHOT</version>
+    <version>5.1.4-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -125,7 +125,7 @@
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
-        <rocketmq-proto.version>2.0.2</rocketmq-proto.version>
+        <rocketmq-proto.version>2.0.3</rocketmq-proto.version>
         <grpc.version>1.50.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
@@ -147,6 +147,7 @@
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
         <s3mock-junit4.version>2.11.0</s3mock-junit4.version>
+        <rocketmq-client-java.version>5.0.5</rocketmq-client-java.version>
 
         <!-- Build plugin dependencies -->
         <versions-maven-plugin.version>2.2</versions-maven-plugin.version>
@@ -887,6 +888,11 @@
                         <artifactId>gson</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.github.aliyunmq</groupId>
+                <artifactId>rocketmq-grpc-netty-codec-haproxy</artifactId>
+                <version>1.0.0</version>
             </dependency>
             <dependency>
                 <groupId>com.conversantmedia</groupId>

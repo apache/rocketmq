@@ -410,19 +410,7 @@ public class MQAdminImpl {
                     for (MessageExt msgExt : qr.getMessageList()) {
                         if (isUniqKey) {
                             if (msgExt.getMsgId().equals(key)) {
-
-                                if (messageList.size() > 0) {
-
-                                    if (messageList.get(0).getStoreTimestamp() > msgExt.getStoreTimestamp()) {
-
-                                        messageList.clear();
-                                        messageList.add(msgExt);
-                                    }
-
-                                } else {
-
-                                    messageList.add(msgExt);
-                                }
+                                messageList.add(msgExt);
                             } else {
                                 log.warn("queryMessage by uniqKey, find message key not matched, maybe hash duplicate {}", msgExt.toString());
                             }

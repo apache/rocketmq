@@ -17,19 +17,20 @@
 package org.apache.rocketmq.tieredstore.common;
 
 import java.util.Objects;
-import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
+import org.apache.rocketmq.tieredstore.file.CompositeFlatFile;
 
 public class MessageCacheKey {
-    private TieredMessageQueueContainer container;
-    private long offset;
 
-    public MessageCacheKey(TieredMessageQueueContainer container, long offset) {
-        this.container = container;
+    private final CompositeFlatFile flatFile;
+    private final long offset;
+
+    public MessageCacheKey(CompositeFlatFile flatFile, long offset) {
+        this.flatFile = flatFile;
         this.offset = offset;
     }
 
-    public TieredMessageQueueContainer getContainer() {
-        return container;
+    public CompositeFlatFile getFlatFile() {
+        return flatFile;
     }
 
     public long getOffset() {
@@ -45,11 +46,11 @@ public class MessageCacheKey {
             return false;
         }
         MessageCacheKey that = (MessageCacheKey) o;
-        return offset == that.offset && Objects.equals(container, that.container);
+        return offset == that.offset && Objects.equals(flatFile, that.flatFile);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(container, offset);
+        return Objects.hash(flatFile, offset);
     }
 }

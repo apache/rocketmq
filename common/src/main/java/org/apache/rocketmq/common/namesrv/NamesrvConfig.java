@@ -82,6 +82,15 @@ public class NamesrvConfig {
 
     private int waitSecondsForService = 45;
 
+    /**
+     * If enable this flag, the topics that don't exist in broker registration payload will be deleted from name server.
+     *
+     * WARNING:
+     * 1. Enable this flag and "enableSingleTopicRegister" of broker config meanwhile to avoid losing topic route info unexpectedly.
+     * 2. This flag does not support static topic currently.
+     */
+    private boolean deleteTopicWithBrokerRegistration = false;
+
     public boolean isOrderMessageEnable() {
         return orderMessageEnable;
     }
@@ -240,5 +249,13 @@ public class NamesrvConfig {
 
     public void setWaitSecondsForService(int waitSecondsForService) {
         this.waitSecondsForService = waitSecondsForService;
+    }
+
+    public boolean isDeleteTopicWithBrokerRegistration() {
+        return deleteTopicWithBrokerRegistration;
+    }
+
+    public void setDeleteTopicWithBrokerRegistration(boolean deleteTopicWithBrokerRegistration) {
+        this.deleteTopicWithBrokerRegistration = deleteTopicWithBrokerRegistration;
     }
 }

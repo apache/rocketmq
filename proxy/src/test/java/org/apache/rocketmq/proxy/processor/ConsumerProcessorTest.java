@@ -73,7 +73,6 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
     @Before
     public void before() throws Throwable {
         super.before();
-        ReceiptHandleProcessor receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
         this.consumerProcessor = new ConsumerProcessor(messagingProcessor, serviceManager, Executors.newCachedThreadPool());
     }
 
@@ -124,6 +123,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
                 }
                 return PopMessageResultFilter.FilterResult.MATCH;
             },
+            null,
             Duration.ofSeconds(3).toMillis()
         ).get();
 

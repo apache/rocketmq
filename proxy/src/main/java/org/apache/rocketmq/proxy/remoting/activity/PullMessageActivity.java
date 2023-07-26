@@ -41,7 +41,7 @@ public class PullMessageActivity extends AbstractRemotingActivity {
         PullMessageRequestHeader requestHeader = (PullMessageRequestHeader) request.decodeCommandCustomHeader(PullMessageRequestHeader.class);
         int sysFlag = requestHeader.getSysFlag();
         if (!PullSysFlag.hasSubscriptionFlag(sysFlag)) {
-            ConsumerGroupInfo consumerInfo = messagingProcessor.getConsumerGroupInfo(requestHeader.getConsumerGroup());
+            ConsumerGroupInfo consumerInfo = messagingProcessor.getConsumerGroupInfo(context, requestHeader.getConsumerGroup());
             if (consumerInfo == null) {
                 return RemotingCommand.buildErrorResponse(ResponseCode.SUBSCRIPTION_NOT_LATEST,
                     "the consumer's subscription not latest");

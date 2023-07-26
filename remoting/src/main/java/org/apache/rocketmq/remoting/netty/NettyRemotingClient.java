@@ -756,7 +756,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             }
         } else {
             this.closeChannel(addr, channel);
-            throw new RemotingConnectException(channelRemoteAddr);
+            throw new RemotingConnectException(addr);
         }
     }
 
@@ -978,6 +978,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             if (NettyRemotingClient.this.channelEventListener != null) {
                 NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.CLOSE, remoteAddress, ctx.channel()));
             }
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+            final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+            LOGGER.info("NETTY CLIENT PIPELINE: channelInactive, the channel[{}]", remoteAddress);
+            closeChannel(ctx.channel());
+            super.channelInactive(ctx);
         }
 
         @Override

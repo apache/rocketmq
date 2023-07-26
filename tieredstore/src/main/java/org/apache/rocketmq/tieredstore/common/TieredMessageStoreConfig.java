@@ -92,7 +92,7 @@ public class TieredMessageStoreConfig {
     // index file will force rolling to next file after idle specified time, default is 3h
     private int tieredStoreIndexFileRollingIdleInterval = 3 * 60 * 60 * 1000;
     private String tieredMetadataServiceProvider = "org.apache.rocketmq.tieredstore.metadata.TieredMetadataManager";
-    private String tieredBackendServiceProvider = "org.apache.rocketmq.tieredstore.provider.posix.PosixFileSegment";
+    private String tieredBackendServiceProvider = "org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment";
     // file reserved time, default is 72 hour
     private int tieredStoreFileReservedTime = 72;
     // time of forcing commitLog to roll to next file, default is 24 hour
@@ -115,17 +115,15 @@ public class TieredMessageStoreConfig {
     private long readAheadCacheExpireDuration = 10 * 1000;
     private double readAheadCacheSizeThresholdRate = 0.3;
 
-    private String tieredStoreFilepath = "";
+    private String tieredStoreFilePath = "";
 
-    private String objectStoreRegion = "";
+    private String objectStoreEndpoint = "";
 
     private String objectStoreBucket = "";
 
     private String objectStoreAccessKey = "";
 
     private String objectStoreSecretKey = "";
-
-    private boolean enableMerge = false;
 
     public static String localHostName() {
         try {
@@ -352,16 +350,16 @@ public class TieredMessageStoreConfig {
         this.readAheadCacheSizeThresholdRate = rate;
     }
 
-    public String getTieredStoreFilepath() {
-        return tieredStoreFilepath;
+    public String getTieredStoreFilePath() {
+        return tieredStoreFilePath;
     }
 
-    public void setTieredStoreFilepath(String tieredStoreFilepath) {
-        this.tieredStoreFilepath = tieredStoreFilepath;
+    public void setTieredStoreFilePath(String tieredStoreFilePath) {
+        this.tieredStoreFilePath = tieredStoreFilePath;
     }
 
-    public void setObjectStoreRegion(String objectStoreRegion) {
-        this.objectStoreRegion = objectStoreRegion;
+    public void setObjectStoreEndpoint(String objectStoreEndpoint) {
+        this.objectStoreEndpoint = objectStoreEndpoint;
     }
 
     public String getObjectStoreBucket() {
@@ -388,15 +386,7 @@ public class TieredMessageStoreConfig {
         this.objectStoreSecretKey = objectStoreSecretKey;
     }
 
-    public String getObjectStoreRegion() {
-        return objectStoreRegion;
-    }
-
-    public boolean isEnableMerge() {
-        return enableMerge;
-    }
-
-    public void setEnableMerge(boolean enableMerge) {
-        this.enableMerge = enableMerge;
+    public String getObjectStoreEndpoint() {
+        return objectStoreEndpoint;
     }
 }

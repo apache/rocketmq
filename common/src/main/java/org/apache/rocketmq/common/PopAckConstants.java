@@ -42,4 +42,8 @@ public class PopAckConstants {
     public static String buildClusterReviveTopic(String clusterName) {
         return PopAckConstants.REVIVE_TOPIC + clusterName;
     }
+
+    public static boolean isStartWithRevivePrefix(String topicName) {
+        return topicName != null && topicName.startsWith(REVIVE_TOPIC);
+    }
 }

@@ -235,7 +235,7 @@ public class MessageStoreConfig {
     private String dLegerPeers;
     private String dLegerSelfId;
     private String preferredLeaderId;
-    private boolean isEnableBatchPush = false;
+    private boolean enableBatchPush = false;
 
     private boolean enableScheduleMessageStats = true;
 
@@ -381,7 +381,7 @@ public class MessageStoreConfig {
 
     private boolean coldDataFlowControlEnable = false;
     private boolean coldDataScanEnable = false;
-    private boolean dataReadAheadEnable = false;
+    private boolean dataReadAheadEnable = true;
     private int timerColdDataCheckIntervalMs = 60 * 1000;
     private int sampleSteps = 32;
     private int accessMessageInMemoryHotRatio = 26;
@@ -1132,11 +1132,11 @@ public class MessageStoreConfig {
     }
 
     public boolean isEnableBatchPush() {
-        return isEnableBatchPush;
+        return enableBatchPush;
     }
 
     public void setEnableBatchPush(boolean enableBatchPush) {
-        isEnableBatchPush = enableBatchPush;
+        this.enableBatchPush = enableBatchPush;
     }
 
     public boolean isEnableScheduleMessageStats() {
