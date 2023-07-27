@@ -218,8 +218,7 @@ public class ScheduleMessageService extends ConfigManager {
 
     @Override
     public boolean load() {
-        boolean result = super.load();
-        result = result && this.parseDelayLevel();
+        boolean result = this.parseDelayLevel();
         result = result && this.correctDelayOffset();
         return result;
     }
@@ -250,6 +249,7 @@ public class ScheduleMessageService extends ConfigManager {
                 }
                 if (correctDelayOffset != currentDelayOffset) {
                     log.error("correct delay offset [ delayLevel {} ] from {} to {}", delayLevel, currentDelayOffset, correctDelayOffset);
+                    offsetTable.put(delayLevel, correctDelayOffset);
                 }
             }
         } catch (Exception e) {
