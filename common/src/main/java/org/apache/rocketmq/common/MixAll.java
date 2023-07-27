@@ -32,8 +32,11 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -517,5 +520,28 @@ public class MixAll {
             return true;
         }
         return false;
+    }
+
+    public static String loadLatestFile(String newConfigPath, String oldConfigPath) {
+        String targetConfigPath =
+            getFileModificationTime(newConfigPath) > getFileModificationTime(oldConfigPath)
+            ? newConfigPath
+            : oldConfigPath;
+        log.info("load target file path {}", targetConfigPath);
+        return targetConfigPath;
+    }
+
+    public static long getFileModificationTime(String filePath) {
+        Path path = FileSystems.getDefault().getPath(filePath);
+
+        try {
+            BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+            long modificationTime = attributes.lastModifiedTime().toMillis();
+            log.info("{} modification time is {}", filePath, modificationTime);
+            return modificationTime;
+        } catch (IOException e) {
+            log.warn("get file modification time failed", e);
+        }
+        return -1;
     }
 }

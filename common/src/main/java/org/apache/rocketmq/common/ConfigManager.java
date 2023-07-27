@@ -48,7 +48,7 @@ public abstract class ConfigManager {
         }
     }
 
-    private boolean loadBak() {
+    protected boolean loadBak() {
         String fileName = null;
         try {
             fileName = this.configFilePath();
