@@ -1201,6 +1201,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         this.makeSureStateOK();
         Validators.checkMessage(msg, this.defaultMQProducer);
 
+        if (!msg.containsProperty(MessageConst.PROPERTY_SHARDING_KEY)) {
+            msg.putUserProperty(MessageConst.PROPERTY_SHARDING_KEY, String.valueOf(arg));
+        }
+
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             MessageQueue mq = null;
