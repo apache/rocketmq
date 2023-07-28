@@ -180,10 +180,6 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 message.release();
                 flatFile.getCompositeFlatFileLock().unlock();
             }
-        } else {
-            if (!flatFile.getCompositeFlatFileLock().isLocked()) {
-                this.dispatchFlatFileAsync(flatFile);
-            }
         }
     }
 
@@ -199,6 +195,11 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
     }
 
     public void dispatchFlatFileAsync(CompositeQueueFlatFile flatFile, Consumer<Long> consumer) {
+        // Avoid dispatch tasks too much
+        if (TieredStoreExecutor.dispatchThreadPoolQueue.size() >
+            TieredStoreExecutor.QUEUE_CAPACITY * 0.75) {
+            return;
+        }
         TieredStoreExecutor.dispatchExecutor.execute(() -> {
             try {
                 dispatchFlatFile(flatFile);
