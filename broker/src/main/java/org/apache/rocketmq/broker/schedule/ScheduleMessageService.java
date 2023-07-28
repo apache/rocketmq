@@ -218,7 +218,14 @@ public class ScheduleMessageService extends ConfigManager {
 
     @Override
     public boolean load() {
-        boolean result = this.parseDelayLevel();
+        boolean result = super.load();
+        result = result && this.parseDelayLevel();
+        result = result && this.correctDelayOffset();
+        return result;
+    }
+    
+    public boolean loadWhenSyncDelayOffset() {
+         boolean result = this.parseDelayLevel();
         result = result && this.correctDelayOffset();
         return result;
     }
