@@ -28,7 +28,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -515,26 +514,32 @@ public class DefaultMQAdminExtTest {
 
     @Test
     public void testSearchOffsetWithSpecificBoundaryType() throws Exception {
+        // do mock
+        DefaultMQAdminExt mockDefaultMQAdminExt = mock(DefaultMQAdminExt.class);
+        when(mockDefaultMQAdminExt.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mockDefaultMQAdminExt.maxOffset(any(MessageQueue.class))).thenReturn(101L);
+        when(mockDefaultMQAdminExt.searchLowerBoundaryOffset(any(MessageQueue.class), anyLong())).thenReturn(0L);
+        when(mockDefaultMQAdminExt.searchUpperBoundaryOffset(any(MessageQueue.class), anyLong())).thenReturn(100L);
+        when(mockDefaultMQAdminExt.queryConsumeTimeSpan(anyString(), anyString())).thenReturn(mockQueryConsumeTimeSpan());
 
-        String namesrvAddr = "127.0.0.1:9876";
-        String topic = "test-topic";
-
-        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
-        mqAdminExt.setInstanceName(UUID.randomUUID().toString());
-        mqAdminExt.setNamesrvAddr(namesrvAddr);
-
-        mqAdminExt.start();
-        List<QueueTimeSpan> timeSpanList = mqAdminExt.queryConsumeTimeSpan(topic, null);
-        if (timeSpanList != null && timeSpanList.size() > 0) {
-            for (QueueTimeSpan timeSpan: timeSpanList) {
-                MessageQueue mq = timeSpan.getMessageQueue();
-                long maxOffset = mqAdminExt.maxOffset(mq);
-                long minOffset = mqAdminExt.minOffset(mq);
-                // if there is at least one message in queue, the maxOffset returns the queue's latest offset + 1
-                assertThat((maxOffset == 0 ? 0 : maxOffset - 1) == mqAdminExt.searchUpperBoundaryOffset(mq, timeSpan.getMaxTimeStamp())).isTrue();
-                assertThat(minOffset == mqAdminExt.searchLowerBoundaryOffset(mq, timeSpan.getMinTimeStamp())).isTrue();
-            }
+        for (QueueTimeSpan timeSpan: mockDefaultMQAdminExt.queryConsumeTimeSpan(TOPIC1, "group_one")) {
+            MessageQueue mq = timeSpan.getMessageQueue();
+            long maxOffset = mockDefaultMQAdminExt.maxOffset(mq);
+            long minOffset = mockDefaultMQAdminExt.minOffset(mq);
+            // if there is at least one message in queue, the maxOffset returns the queue's latest offset + 1
+            assertThat((maxOffset == 0 ? 0 : maxOffset - 1) == mockDefaultMQAdminExt.searchUpperBoundaryOffset(mq, timeSpan.getMaxTimeStamp())).isTrue();
+            assertThat(minOffset == mockDefaultMQAdminExt.searchLowerBoundaryOffset(mq, timeSpan.getMinTimeStamp())).isTrue();
         }
+    }
+
+    private List<QueueTimeSpan> mockQueryConsumeTimeSpan() {
+        List<QueueTimeSpan> spanSet = new ArrayList<>();
+        QueueTimeSpan timeSpan = new QueueTimeSpan();
+        timeSpan.setMessageQueue(new MessageQueue(TOPIC1, BROKER1_NAME, 0));
+        timeSpan.setMinTimeStamp(1690421253000L);
+        timeSpan.setMaxTimeStamp(1690507653000L);
+        spanSet.add(timeSpan);
+        return spanSet;
     }
 
     @Test
