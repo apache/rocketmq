@@ -82,7 +82,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() ->
             tieredFlatFileManager.deepCopyFlatFileToList().forEach(flatFile -> {
                 if (!flatFile.getCompositeFlatFileLock().isLocked()) {
-                    dispatchFlatFile(flatFile);
+                    dispatchFlatFileAsync(flatFile);
                 }
             }), 30, 10, TimeUnit.SECONDS);
     }
