@@ -37,12 +37,12 @@ import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class ConsumerOffsetManager extends ConfigManager {
-    private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     public static final String TOPIC_GROUP_SEPARATOR = "@";
 
     private DataVersion dataVersion = new DataVersion();
 
-    private ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
+    protected ConcurrentMap<String/* topic@group */, ConcurrentMap<Integer, Long>> offsetTable =
         new ConcurrentHashMap<>(512);
 
     private final ConcurrentMap<String, ConcurrentMap<Integer, Long>> resetOffsetTable =
@@ -60,6 +60,10 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public ConsumerOffsetManager(BrokerController brokerController) {
         this.brokerController = brokerController;
+    }
+
+    protected void removeConsumerOffset(String topicAtGroup) {
+
     }
 
     public void cleanOffset(String group) {
