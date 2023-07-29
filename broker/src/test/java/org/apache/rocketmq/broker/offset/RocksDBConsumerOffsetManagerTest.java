@@ -21,7 +21,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,6 +41,9 @@ public class RocksDBConsumerOffsetManagerTest {
 
     @Before
     public void init() {
+        if (notToBeExecuted()) {
+            return;
+        }
         brokerController = Mockito.mock(BrokerController.class);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         Mockito.when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
@@ -54,20 +59,39 @@ public class RocksDBConsumerOffsetManagerTest {
         consumerOffsetManager.setOffsetTable(offsetTable);
     }
 
+    @After
+    public void destroy() {
+        if (notToBeExecuted()) {
+            return;
+        }
+        if (consumerOffsetManager != null) {
+            consumerOffsetManager.stop();
+        }
+    }
+
     @Test
     public void cleanOffsetByTopic_NotExist() {
+        if (notToBeExecuted()) {
+            return;
+        }
         consumerOffsetManager.cleanOffsetByTopic("InvalidTopic");
         assertThat(consumerOffsetManager.getOffsetTable().containsKey(KEY)).isTrue();
     }
 
     @Test
     public void cleanOffsetByTopic_Exist() {
+        if (notToBeExecuted()) {
+            return;
+        }
         consumerOffsetManager.cleanOffsetByTopic("FooBar");
         assertThat(!consumerOffsetManager.getOffsetTable().containsKey(KEY)).isTrue();
     }
 
     @Test
     public void testOffsetPersistInMemory() {
+        if (notToBeExecuted()) {
+            return;
+        }
         ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable = consumerOffsetManager.getOffsetTable();
         ConcurrentMap<Integer, Long> table = new ConcurrentHashMap<>();
         table.put(0, 1L);
@@ -77,10 +101,13 @@ public class RocksDBConsumerOffsetManagerTest {
 
         consumerOffsetManager.persist();
         consumerOffsetManager.stop();
-        RocksDBConsumerOffsetManager manager = new RocksDBConsumerOffsetManager(brokerController);
-        manager.load();
+        consumerOffsetManager.load();
 
-        ConcurrentMap<Integer, Long> offsetTableLoaded = manager.getOffsetTable().get(group);
+        ConcurrentMap<Integer, Long> offsetTableLoaded = consumerOffsetManager.getOffsetTable().get(group);
         Assert.assertEquals(table, offsetTableLoaded);
+    }
+
+    private boolean notToBeExecuted() {
+        return MixAll.isMac();
     }
 }

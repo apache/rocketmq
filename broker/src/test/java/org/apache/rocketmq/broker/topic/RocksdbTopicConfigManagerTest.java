@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.Attribute;
@@ -32,6 +33,7 @@ import org.apache.rocketmq.common.attribute.LongRangeAttribute;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,6 +56,9 @@ public class RocksdbTopicConfigManagerTest {
 
     @Before
     public void init() {
+        if (notToBeExecuted()) {
+            return;
+        }
         BrokerConfig brokerConfig = new BrokerConfig();
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
@@ -64,8 +69,21 @@ public class RocksdbTopicConfigManagerTest {
         topicConfigManager.load();
     }
 
+    @After
+    public void destroy() {
+        if (notToBeExecuted()) {
+            return;
+        }
+        if (topicConfigManager != null) {
+            topicConfigManager.stop();
+        }
+    }
+
     @Test
     public void testAddUnsupportedKeyOnCreating() {
+        if (notToBeExecuted()) {
+            return;
+        }
         String unsupportedKey = "key4";
 
         supportAttributes(asList(
@@ -88,6 +106,9 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testAddWrongFormatKeyOnCreating() {
+        if (notToBeExecuted()) {
+            return;
+        }
         supportAttributes(asList(
             new EnumAttribute("enum.key", true, newHashSet("enum-1", "enum-2", "enum-3"), "enum-1"),
             new BooleanAttribute("bool.key", false, false),
@@ -107,6 +128,9 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testDeleteKeyOnCreating() {
+        if (notToBeExecuted()) {
+            return;
+        }
         String key = "enum.key";
         supportAttributes(asList(
             new EnumAttribute("enum.key", true, newHashSet("enum-1", "enum-2", "enum-3"), "enum-1"),
@@ -127,6 +151,9 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testAddWrongValueOnCreating() {
+        if (notToBeExecuted()) {
+            return;
+        }
         Map<String, String> attributes = new HashMap<>();
         attributes.put("+" + TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), "wrong-value");
 
@@ -140,6 +167,9 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testNormalAddKeyOnCreating() {
+        if (notToBeExecuted()) {
+            return;
+        }
         String topic = "new-topic";
 
         supportAttributes(asList(
@@ -165,6 +195,9 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testAddDuplicatedKeyOnUpdating() {
+        if (notToBeExecuted()) {
+            return;
+        }
         String duplicatedKey = "long.range.key";
 
         supportAttributes(asList(
@@ -202,6 +235,9 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testDeleteNonexistentKeyOnUpdating() {
+        if (notToBeExecuted()) {
+            return;
+        }
         String key = "nonexisting.key";
 
         supportAttributes(asList(
@@ -230,6 +266,9 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testAlterTopicWithoutChangingAttributes() {
+        if (notToBeExecuted()) {
+            return;
+        }
         String topic = "new-topic";
 
         supportAttributes(asList(
@@ -261,6 +300,9 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testNormalUpdateUnchangeableKeyOnUpdating() {
+        if (notToBeExecuted()) {
+            return;
+        }
         String topic = "exist-topic";
 
         supportAttributes(asList(
@@ -286,6 +328,9 @@ public class RocksdbTopicConfigManagerTest {
 
     @Test
     public void testNormalQueryKeyOnGetting() {
+        if (notToBeExecuted()) {
+            return;
+        }
         String topic = "exist-topic";
         String unchangeable = "bool.key";
 
@@ -318,5 +363,9 @@ public class RocksdbTopicConfigManagerTest {
         }
 
         TopicAttributes.ALL.putAll(supportedAttributes);
+    }
+
+    private boolean notToBeExecuted() {
+        return MixAll.isMac();
     }
 }

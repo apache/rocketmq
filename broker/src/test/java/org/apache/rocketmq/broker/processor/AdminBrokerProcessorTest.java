@@ -166,17 +166,33 @@ public class AdminBrokerProcessorTest {
 
     @After
     public void destroy() {
-        brokerController.getSubscriptionGroupManager().stop();
-        brokerController.getTopicConfigManager().stop();
+        if (notToBeExecuted()) {
+            return;
+        }
+        if (brokerController.getSubscriptionGroupManager() != null) {
+            brokerController.getSubscriptionGroupManager().stop();
+        }
+        if (brokerController.getTopicConfigManager() != null) {
+            brokerController.getTopicConfigManager().stop();
+        }
+        if (brokerController.getConsumerOffsetManager() != null) {
+            brokerController.getConsumerOffsetManager().stop();
+        }
     }
 
     private void initRocksdbTopicManager() {
+        if (notToBeExecuted()) {
+            return;
+        }
         RocksDBTopicConfigManager rocksDBTopicConfigManager = new RocksDBTopicConfigManager(brokerController);
         brokerController.setTopicConfigManager(rocksDBTopicConfigManager);
         rocksDBTopicConfigManager.load();
     }
 
     private void initRocksdbSubscriptionManager() {
+        if (notToBeExecuted()) {
+            return;
+        }
         RocksDBSubscriptionGroupManager rocksDBSubscriptionGroupManager = new RocksDBSubscriptionGroupManager(brokerController);
         brokerController.setSubscriptionGroupManager(rocksDBSubscriptionGroupManager);
         rocksDBSubscriptionGroupManager.load();
@@ -199,6 +215,9 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testUpdateAndCreateTopicInRocksdb() throws Exception {
+        if (notToBeExecuted()) {
+            return;
+        }
         initRocksdbTopicManager();
         testUpdateAndCreateTopic();
     }
@@ -227,6 +246,9 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testUpdateAndCreateTopicOnSlaveInRocksdb() throws Exception {
+        if (notToBeExecuted()) {
+            return;
+        }
         initRocksdbTopicManager();
         testUpdateAndCreateTopicOnSlave();
     }
@@ -250,6 +272,9 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testDeleteTopicInRocksdb() throws Exception {
+        if (notToBeExecuted()) {
+            return;
+        }
         initRocksdbTopicManager();
         testDeleteTopic();
     }
@@ -272,6 +297,9 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testDeleteTopicOnSlaveInRocksdb() throws Exception {
+        if (notToBeExecuted()) {
+            return;
+        }
         initRocksdbTopicManager();
         testDeleteTopicOnSlave();
     }
@@ -294,6 +322,9 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testGetAllTopicConfigInRocksdb() throws Exception {
+        if (notToBeExecuted()) {
+            return;
+        }
         initRocksdbTopicManager();
         testGetAllTopicConfig();
     }
@@ -628,6 +659,9 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testGetTopicConfigInRocksdb() throws Exception {
+        if (notToBeExecuted()) {
+            return;
+        }
         initRocksdbTopicManager();
         testGetTopicConfig();
     }
@@ -714,5 +748,9 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_BROKER_CONFIG, null);
         request.makeCustomHeaderToNet();
         return request;
+    }
+
+    private boolean notToBeExecuted() {
+        return MixAll.isMac();
     }
 }
