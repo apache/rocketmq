@@ -66,14 +66,14 @@ public class TopicConfigManager extends ConfigManager {
     }
 
     public TopicConfigManager(BrokerController brokerController) {
-        this.brokerController = brokerController;
+        this(brokerController, true);
     }
 
-    @Override
-    public boolean load() {
-        super.load();
-        init();
-        return true;
+    public TopicConfigManager(BrokerController brokerController, boolean init) {
+        this.brokerController = brokerController;
+        if (init) {
+            init();
+        }
     }
 
     protected void init() {

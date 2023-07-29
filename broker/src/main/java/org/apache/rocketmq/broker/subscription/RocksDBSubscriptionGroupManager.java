@@ -29,7 +29,7 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
     public RocksDBSubscriptionGroupManager(BrokerController brokerController) {
-        super(brokerController);
+        super(brokerController, false);
         this.rocksDBConfigManager = new RocksDBConfigManager(this.brokerController.getMessageStoreConfig().getMemTableFlushInterval());
     }
 

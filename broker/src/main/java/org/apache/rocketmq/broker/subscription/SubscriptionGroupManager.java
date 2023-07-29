@@ -56,14 +56,14 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
     public SubscriptionGroupManager(BrokerController brokerController) {
-        this.brokerController = brokerController;
+        this(brokerController, true);
     }
 
-    @Override
-    public boolean load() {
-        super.load();
-        this.init();
-        return true;
+    public SubscriptionGroupManager(BrokerController brokerController, boolean init) {
+        this.brokerController = brokerController;
+        if (init) {
+            init();
+        }
     }
 
     protected void init() {

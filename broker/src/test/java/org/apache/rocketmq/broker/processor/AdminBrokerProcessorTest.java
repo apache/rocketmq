@@ -36,6 +36,8 @@ import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
+import org.apache.rocketmq.broker.subscription.RocksDBSubscriptionGroupManager;
+import org.apache.rocketmq.broker.topic.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -75,6 +77,7 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.stats.BrokerStats;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -113,7 +116,7 @@ public class AdminBrokerProcessorTest {
     private SendMessageProcessor sendMessageProcessor;
 
     @Mock
-    private ConcurrentMap<TopicQueueId, LongAdder> inFlyWritingCouterMap;
+    private ConcurrentMap<TopicQueueId, LongAdder> inFlyWritingCounterMap;
 
     private Set<String> systemTopicSet;
     private String topic;
@@ -161,6 +164,24 @@ public class AdminBrokerProcessorTest {
         brokerController.getMessageStoreConfig().setTimerWheelEnable(false);
     }
 
+    @After
+    public void destroy() {
+        brokerController.getSubscriptionGroupManager().stop();
+        brokerController.getTopicConfigManager().stop();
+    }
+
+    private void initRocksdbTopicManager() {
+        RocksDBTopicConfigManager rocksDBTopicConfigManager = new RocksDBTopicConfigManager(brokerController);
+        brokerController.setTopicConfigManager(rocksDBTopicConfigManager);
+        rocksDBTopicConfigManager.load();
+    }
+
+    private void initRocksdbSubscriptionManager() {
+        RocksDBSubscriptionGroupManager rocksDBSubscriptionGroupManager = new RocksDBSubscriptionGroupManager(brokerController);
+        brokerController.setSubscriptionGroupManager(rocksDBSubscriptionGroupManager);
+        rocksDBSubscriptionGroupManager.load();
+    }
+
     @Test
     public void testProcessRequest_success() throws RemotingCommandException, UnknownHostException {
         RemotingCommand request = createUpdateBrokerConfigCommand();
@@ -174,6 +195,12 @@ public class AdminBrokerProcessorTest {
         when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(createSelectMappedBufferResult());
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    public void testUpdateAndCreateTopicInRocksdb() throws Exception {
+        initRocksdbTopicManager();
+        testUpdateAndCreateTopic();
     }
 
     @Test
@@ -196,7 +223,12 @@ public class AdminBrokerProcessorTest {
         request = buildCreateTopicRequest(topic);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
 
+    @Test
+    public void testUpdateAndCreateTopicOnSlaveInRocksdb() throws Exception {
+        initRocksdbTopicManager();
+        testUpdateAndCreateTopicOnSlave();
     }
 
     @Test
@@ -217,6 +249,12 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testDeleteTopicInRocksdb() throws Exception {
+        initRocksdbTopicManager();
+        testDeleteTopic();
+    }
+
+    @Test
     public void testDeleteTopic() throws Exception {
         //test system topic
         for (String topic : systemTopicSet) {
@@ -233,6 +271,12 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testDeleteTopicOnSlaveInRocksdb() throws Exception {
+        initRocksdbTopicManager();
+        testDeleteTopicOnSlave();
+    }
+
+    @Test
     public void testDeleteTopicOnSlave() throws Exception {
         // setup
         MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
@@ -246,6 +290,12 @@ public class AdminBrokerProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
         assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
             "please execute it from master broker.");
+    }
+
+    @Test
+    public void testGetAllTopicConfigInRocksdb() throws Exception {
+        initRocksdbTopicManager();
+        testGetAllTopicConfig();
     }
 
     @Test
@@ -400,6 +450,12 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateAndCreateSubscriptionGroupInRocksdb() throws Exception {
+        initRocksdbSubscriptionManager();
+        testUpdateAndCreateSubscriptionGroup();
+    }
+
+    @Test
     public void testUpdateAndCreateSubscriptionGroup() throws RemotingCommandException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
@@ -412,6 +468,12 @@ public class AdminBrokerProcessorTest {
         request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes());
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testUpdateAndCreateSubscriptionGroupOnSlaveInRocksdb() throws Exception {
+        initRocksdbSubscriptionManager();
+        testUpdateAndCreateSubscriptionGroupOnSlave();
     }
 
     @Test
@@ -439,10 +501,22 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testGetAllSubscriptionGroupInRocksdb() throws Exception {
+        initRocksdbSubscriptionManager();
+        testGetAllSubscriptionGroup();
+    }
+
+    @Test
     public void testGetAllSubscriptionGroup() throws RemotingCommandException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupInRocksdb() throws Exception {
+        initRocksdbSubscriptionManager();
+        testDeleteSubscriptionGroup();
     }
 
     @Test
@@ -452,6 +526,12 @@ public class AdminBrokerProcessorTest {
         request.addExtField("removeOffset", "true");
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testDeleteSubscriptionGroupOnSlaveInRocksdb() throws Exception {
+        initRocksdbSubscriptionManager();
+        testDeleteSubscriptionGroupOnSlave();
     }
 
     @Test
@@ -544,6 +624,12 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_DELAY_OFFSET, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetTopicConfigInRocksdb() throws Exception {
+        initRocksdbTopicManager();
+        testGetTopicConfig();
     }
 
     @Test

@@ -23,6 +23,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.SubscriptionGroupAttributes;
 import org.apache.rocketmq.common.attribute.BooleanAttribute;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,6 +53,13 @@ public class SubscriptionGroupManagerTest {
         subscriptionGroupManager = spy(new SubscriptionGroupManager(brokerControllerMock));
         when(brokerControllerMock.getMessageStore()).thenReturn(null);
         doNothing().when(subscriptionGroupManager).persist();
+    }
+
+    @Test
+    public void testUpdateAndCreateSubscriptionGroupInRocksdb() {
+        when(brokerControllerMock.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        subscriptionGroupManager = spy(new RocksDBSubscriptionGroupManager(brokerControllerMock));
+        updateSubscriptionGroupConfig();
     }
 
     @Test
