@@ -76,7 +76,8 @@ public class RocksDBConsumerOffsetManagerTest {
         offsetTable.put(group, table);
 
         consumerOffsetManager.persist();
-        ConsumerOffsetManager manager = new ConsumerOffsetManager(brokerController);
+        consumerOffsetManager.stop();
+        RocksDBConsumerOffsetManager manager = new RocksDBConsumerOffsetManager(brokerController);
         manager.load();
 
         ConcurrentMap<Integer, Long> offsetTableLoaded = manager.getOffsetTable().get(group);
