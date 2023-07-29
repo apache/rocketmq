@@ -220,17 +220,18 @@ public class ScheduleMessageService extends ConfigManager {
     public boolean load() {
         boolean result = super.load();
         result = result && this.parseDelayLevel();
-        result = result && this.correctDelayOffset();
+        result = result && this.correctDelayOffset(false);
         return result;
     }
     
     public boolean loadWhenSyncDelayOffset() {
-         boolean result = this.parseDelayLevel();
-        result = result && this.correctDelayOffset();
+        boolean result = super.load();
+        result = result && this.parseDelayLevel();
+        result = result && this.correctDelayOffset(true);
         return result;
     }
 
-    public boolean correctDelayOffset() {
+    public boolean correctDelayOffset(boolean syncDelayOffset) {
         try {
             for (int delayLevel : delayLevelTable.keySet()) {
                 ConsumeQueueInterface cq =
@@ -254,7 +255,7 @@ public class ScheduleMessageService extends ConfigManager {
                     log.error("schedule CQ offset invalid. offset={}, cqMinOffset={}, cqMaxOffset={}, queueId={}",
                         currentDelayOffset, cqMinOffset, cqMaxOffset, cq.getQueueId());
                 }
-                if (correctDelayOffset != currentDelayOffset) {
+                if (correctDelayOffset != currentDelayOffset && !syncDelayOffset) {
                     log.error("correct delay offset [ delayLevel {} ] from {} to {}", delayLevel, currentDelayOffset, correctDelayOffset);
                     offsetTable.put(delayLevel, correctDelayOffset);
                 }
