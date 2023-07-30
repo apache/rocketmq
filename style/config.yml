@@ -1,0 +1,151 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+default: true # includes/excludes all rules by default
+
+# Heading levels should only increment by one level at a time <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md001>
+MD001: true
+
+# Heading style <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md003>
+MD003: true
+
+# Unordered list style <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md004>
+MD004: true
+
+# Inconsistent indentation for list items at the same level <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md005>
+MD005: true
+
+# Consider starting bulleted lists at the beginning of the line <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md006>
+MD006: true
+
+# Unordered list indentation <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md007>
+MD007: true
+
+# Trailing spaces <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md009>
+MD009: true
+
+# Hard tabs <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md010>
+MD010: true
+
+# Reversed link syntax <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md011>
+MD011: true
+
+# Multiple consecutive blank lines <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md012>
+MD012: true
+
+# Line length <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md013>
+MD013: false
+
+# Dollar signs used before commands without showing output <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md014>
+MD014: false
+
+# No space after hash on atx style heading <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md018>
+MD018: true
+
+# Multiple spaces after hash on atx style heading <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md019>
+MD019: true
+
+# No space inside hashes on closed atx style heading <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md020>
+MD020: true
+
+# Multiple spaces inside hashes on closed atx style heading <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md021>
+MD021: true
+
+# Headings should be surrounded by blank lines <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md022>
+MD022: true
+
+# Headings must start at the beginning of the line <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md023>
+MD023: true
+
+# Multiple headings with the same content <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md024>
+MD024:
+  allow_different_nesting: true
+
+# Multiple top level headings in the same document <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md025>
+MD025: true
+
+# Trailing punctuation in heading <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md026>
+MD026: true
+
+# Multiple spaces after blockquote symbol <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md027>
+MD027: true
+
+# Blank line inside blockquote <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md028>
+MD028: false
+
+# Ordered list item prefix <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md029>
+MD029:
+  style: "ordered"
+
+# Spaces after list markers <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md030>
+MD030: true
+
+# Fenced code blocks should be surrounded by blank lines <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md031>
+MD031: true
+
+# Lists should be surrounded by blank lines <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md032>
+MD032: true
+
+# Inline HTML <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md033>
+MD033:
+  allowed_elements: ["div", "img"]
+
+# Bare URL used <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md034>
+MD034: true
+
+# Horizontal rule style <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md035>
+MD035:
+  style: "---"
+
+# Emphasis used instead of a heading <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md036>
+MD036: true
+
+# Spaces inside emphasis markers <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md037>
+MD037: true
+
+# Spaces inside code span elements <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md038>
+MD038: true
+
+# Spaces inside link text <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md039>
+MD039: true
+
+# Fenced code blocks should have a language specified <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md040>
+MD040: true
+
+# First line in file should be a top level heading <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md041>
+MD041: true
+
+# No empty links <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md042>
+MD042: true
+
+# Required heading structure <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md043>
+MD043: false
+
+# Proper names should have the correct capitalization <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md044>
+MD044: false
+
+# Images should have alternate text (alt text) <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md045>
+MD045: false
+
+# Code block style <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md046>
+MD046:
+  style: "fenced"
+
+# Files should end with a single newline character <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md047>
+MD047: true
+
+# Code fence style <https://github.com/DavidAnson/markdownlint/blob/master/doc/Rules.md#md048>
+MD048:
+  style: "backtick"
