@@ -20,7 +20,6 @@ package org.apache.rocketmq.broker.subscription;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
