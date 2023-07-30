@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.broker.substription;
+package org.apache.rocketmq.broker.subscription;
 
 import static org.junit.Assert.assertEquals;
 

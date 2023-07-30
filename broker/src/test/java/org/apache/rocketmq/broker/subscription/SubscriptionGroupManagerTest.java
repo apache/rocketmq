@@ -74,6 +74,8 @@ public class SubscriptionGroupManagerTest {
         }
         when(brokerControllerMock.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         subscriptionGroupManager = spy(new RocksDBSubscriptionGroupManager(brokerControllerMock));
+        subscriptionGroupManager.load();
+        group += System.currentTimeMillis();
         updateSubscriptionGroupConfig();
     }
 

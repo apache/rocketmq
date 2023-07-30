@@ -85,6 +85,7 @@ public class RocksdbTopicConfigManagerTest {
             return;
         }
         String unsupportedKey = "key4";
+        String topicName = "testAddUnsupportedKeyOnCreating-" + System.currentTimeMillis();
 
         supportAttributes(asList(
             new EnumAttribute("enum.key", true, newHashSet("enum-1", "enum-2", "enum-3"), "enum-1"),
@@ -97,7 +98,7 @@ public class RocksdbTopicConfigManagerTest {
         attributes.put("+" + unsupportedKey, "value1");
 
         TopicConfig topicConfig = new TopicConfig();
-        topicConfig.setTopicName("new-topic");
+        topicConfig.setTopicName(topicName);
         topicConfig.setAttributes(attributes);
 
         RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> topicConfigManager.updateTopicConfig(topicConfig));
@@ -109,6 +110,8 @@ public class RocksdbTopicConfigManagerTest {
         if (notToBeExecuted()) {
             return;
         }
+        String topicName = "testAddWrongFormatKeyOnCreating-" + System.currentTimeMillis();
+
         supportAttributes(asList(
             new EnumAttribute("enum.key", true, newHashSet("enum-1", "enum-2", "enum-3"), "enum-1"),
             new BooleanAttribute("bool.key", false, false),
@@ -119,7 +122,7 @@ public class RocksdbTopicConfigManagerTest {
         attributes.put("++enum.key", "value1");
 
         TopicConfig topicConfig = new TopicConfig();
-        topicConfig.setTopicName("new-topic");
+        topicConfig.setTopicName(topicName);
         topicConfig.setAttributes(attributes);
 
         RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> topicConfigManager.updateTopicConfig(topicConfig));
@@ -131,6 +134,8 @@ public class RocksdbTopicConfigManagerTest {
         if (notToBeExecuted()) {
             return;
         }
+        String topicName = "testDeleteKeyOnCreating-" + System.currentTimeMillis();
+
         String key = "enum.key";
         supportAttributes(asList(
             new EnumAttribute("enum.key", true, newHashSet("enum-1", "enum-2", "enum-3"), "enum-1"),
@@ -142,7 +147,7 @@ public class RocksdbTopicConfigManagerTest {
         attributes.put("-" + key, "");
 
         TopicConfig topicConfig = new TopicConfig();
-        topicConfig.setTopicName("new-topic");
+        topicConfig.setTopicName(topicName);
         topicConfig.setAttributes(attributes);
 
         RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> topicConfigManager.updateTopicConfig(topicConfig));
@@ -154,11 +159,13 @@ public class RocksdbTopicConfigManagerTest {
         if (notToBeExecuted()) {
             return;
         }
+        String topicName = "testAddWrongValueOnCreating-" + System.currentTimeMillis();
+
         Map<String, String> attributes = new HashMap<>();
         attributes.put("+" + TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), "wrong-value");
 
         TopicConfig topicConfig = new TopicConfig();
-        topicConfig.setTopicName("new-topic");
+        topicConfig.setTopicName(topicName);
         topicConfig.setAttributes(attributes);
 
         RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> topicConfigManager.updateTopicConfig(topicConfig));
@@ -170,7 +177,7 @@ public class RocksdbTopicConfigManagerTest {
         if (notToBeExecuted()) {
             return;
         }
-        String topic = "new-topic";
+        String topic = "testNormalAddKeyOnCreating-" + System.currentTimeMillis();
 
         supportAttributes(asList(
             new EnumAttribute("enum.key", true, newHashSet("enum-1", "enum-2", "enum-3"), "enum-1"),
@@ -199,6 +206,7 @@ public class RocksdbTopicConfigManagerTest {
             return;
         }
         String duplicatedKey = "long.range.key";
+        String topicName = "testAddDuplicatedKeyOnUpdating-" + System.currentTimeMillis();
 
         supportAttributes(asList(
             new EnumAttribute("enum.key", true, newHashSet("enum-1", "enum-2", "enum-3"), "enum-1"),
@@ -206,31 +214,26 @@ public class RocksdbTopicConfigManagerTest {
             new LongRangeAttribute("long.range.key", true, 10, 20, 15)
         ));
 
-        createTopic();
-
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("+" + duplicatedKey, "11");
-        attributes.put("-" + duplicatedKey, "");
-
-        TopicConfig topicConfig = new TopicConfig();
-        topicConfig.setTopicName("new-topic");
-        topicConfig.setAttributes(attributes);
-
-        RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> topicConfigManager.updateTopicConfig(topicConfig));
-        Assert.assertEquals("alter duplication key. key: " + duplicatedKey, runtimeException.getMessage());
-    }
-
-    private void createTopic() {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("+enum.key", "enum-3");
         attributes.put("+bool.key", "true");
         attributes.put("+long.range.key", "12");
-
         TopicConfig topicConfig = new TopicConfig();
-        topicConfig.setTopicName("new-topic");
+        topicConfig.setTopicName(topicName);
         topicConfig.setAttributes(attributes);
-
         topicConfigManager.updateTopicConfig(topicConfig);
+
+
+
+        attributes = new HashMap<>();
+        attributes.put("+" + duplicatedKey, "11");
+        attributes.put("-" + duplicatedKey, "");
+        TopicConfig duplicateTopicConfig = new TopicConfig();
+        duplicateTopicConfig.setTopicName(topicName);
+        duplicateTopicConfig.setAttributes(attributes);
+
+        RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> topicConfigManager.updateTopicConfig(duplicateTopicConfig));
+        Assert.assertEquals("alter duplication key. key: " + duplicatedKey, runtimeException.getMessage());
     }
 
     @Test
@@ -239,6 +242,7 @@ public class RocksdbTopicConfigManagerTest {
             return;
         }
         String key = "nonexisting.key";
+        String topicName = "testDeleteNonexistentKeyOnUpdating-" + System.currentTimeMillis();
 
         supportAttributes(asList(
             new EnumAttribute("enum.key", true, newHashSet("enum-1", "enum-2", "enum-3"), "enum-1"),
@@ -251,7 +255,7 @@ public class RocksdbTopicConfigManagerTest {
         attributes.put("+bool.key", "true");
 
         TopicConfig topicConfig = new TopicConfig();
-        topicConfig.setTopicName("new-topic");
+        topicConfig.setTopicName(topicName);
         topicConfig.setAttributes(attributes);
 
         topicConfigManager.updateTopicConfig(topicConfig);
@@ -269,7 +273,7 @@ public class RocksdbTopicConfigManagerTest {
         if (notToBeExecuted()) {
             return;
         }
-        String topic = "new-topic";
+        String topic = "testAlterTopicWithoutChangingAttributes-" + System.currentTimeMillis();
 
         supportAttributes(asList(
             new EnumAttribute("enum.key", true, newHashSet("enum-1", "enum-2", "enum-3"), "enum-1"),
@@ -303,7 +307,7 @@ public class RocksdbTopicConfigManagerTest {
         if (notToBeExecuted()) {
             return;
         }
-        String topic = "exist-topic";
+        String topic = "testNormalUpdateUnchangeableKeyOnUpdating-" + System.currentTimeMillis();
 
         supportAttributes(asList(
             new EnumAttribute("enum.key", true, newHashSet("enum-1", "enum-2", "enum-3"), "enum-1"),
@@ -331,7 +335,7 @@ public class RocksdbTopicConfigManagerTest {
         if (notToBeExecuted()) {
             return;
         }
-        String topic = "exist-topic";
+        String topic = "testNormalQueryKeyOnGetting-" + System.currentTimeMillis();
         String unchangeable = "bool.key";
 
         supportAttributes(asList(
