@@ -1022,12 +1022,7 @@ public class DefaultMessageStore implements MessageStore {
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
         ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            long resultOffset = -1;
-            if (logic instanceof ConsumeQueue) {
-                resultOffset = ((ConsumeQueue) logic).getOffsetInQueueByTime(timestamp, boundaryType);
-            } else {
-                resultOffset = logic.getOffsetInQueueByTime(timestamp);
-            }
+            long resultOffset = logic.getOffsetInQueueByTime(timestamp, boundaryType);
             // Make sure the result offset is in valid range.
             resultOffset = Math.max(resultOffset, logic.getMinOffsetInQueue());
             resultOffset = Math.min(resultOffset, logic.getMaxOffsetInQueue());
