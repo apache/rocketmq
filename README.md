@@ -1,3 +1,10 @@
+## Wolforest RocketMQ
+RocketMQ with better code
+
+### branch agreements
+* wolf          the main branch 
+* develop       use to create pr for community branch, please create branch with prefix pr_*****, and after the pr accepted by the community then merge the pr_ branch to develop branch 
+
 ## Apache RocketMQ
 
 [![Build Status][maven-build-image]][maven-build-url]
