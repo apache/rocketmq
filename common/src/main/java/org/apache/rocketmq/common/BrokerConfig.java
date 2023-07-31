@@ -386,6 +386,12 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean popResponseReturnActualRetryTopic = false;
 
+    /**
+     * If both the deleteTopicWithBrokerRegistration flag in the NameServer configuration and this flag are set to true,
+     * it guarantees the ultimate consistency of data between the broker and the nameserver during topic deletion.
+     */
+    private boolean enableSingleTopicRegister = false;
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }
@@ -1688,5 +1694,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setPopResponseReturnActualRetryTopic(boolean popResponseReturnActualRetryTopic) {
         this.popResponseReturnActualRetryTopic = popResponseReturnActualRetryTopic;
+    }
+
+    public boolean isEnableSingleTopicRegister() {
+        return enableSingleTopicRegister;
+    }
+
+    public void setEnableSingleTopicRegister(boolean enableSingleTopicRegister) {
+        this.enableSingleTopicRegister = enableSingleTopicRegister;
     }
 }
