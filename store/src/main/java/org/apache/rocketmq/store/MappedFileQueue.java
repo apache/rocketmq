@@ -63,20 +63,22 @@ public class MappedFileQueue implements Swappable {
 
     public void checkSelf() {
         List<MappedFile> mappedFiles = new ArrayList<>(this.mappedFiles);
-        if (!mappedFiles.isEmpty()) {
-            Iterator<MappedFile> iterator = mappedFiles.iterator();
-            MappedFile pre = null;
-            while (iterator.hasNext()) {
-                MappedFile cur = iterator.next();
+        if (mappedFiles.isEmpty()) {
+            return;
+        }
 
-                if (pre != null) {
-                    if (cur.getFileFromOffset() - pre.getFileFromOffset() != this.mappedFileSize) {
-                        LOG_ERROR.error("[BUG]The mappedFile queue's data is damaged, the adjacent mappedFile's offset don't match. pre file {}, cur file {}",
-                            pre.getFileName(), cur.getFileName());
-                    }
+        Iterator<MappedFile> iterator = mappedFiles.iterator();
+        MappedFile pre = null;
+        while (iterator.hasNext()) {
+            MappedFile cur = iterator.next();
+
+            if (pre != null) {
+                if (cur.getFileFromOffset() - pre.getFileFromOffset() != this.mappedFileSize) {
+                    LOG_ERROR.error("[BUG]The mappedFile queue's data is damaged, the adjacent mappedFile's offset don't match. pre file {}, cur file {}",
+                        pre.getFileName(), cur.getFileName());
                 }
-                pre = cur;
             }
+            pre = cur;
         }
     }
 
