@@ -317,19 +317,20 @@ public class DefaultMappedFile extends AbstractMappedFile {
         int currentPos = WROTE_POSITION_UPDATER.get(this);
         int remaining = data.remaining();
 
-        if ((currentPos + remaining) <= this.fileSize) {
-            try {
-                this.fileChannel.position(currentPos);
-                while (data.hasRemaining()) {
-                    this.fileChannel.write(data);
-                }
-            } catch (Throwable e) {
-                log.error("Error occurred when append message to mappedFile.", e);
-            }
-            WROTE_POSITION_UPDATER.addAndGet(this, remaining);
-            return true;
+        if ((currentPos + remaining) > this.fileSize) {
+            return false;
         }
-        return false;
+
+        try {
+            this.fileChannel.position(currentPos);
+            while (data.hasRemaining()) {
+                this.fileChannel.write(data);
+            }
+        } catch (Throwable e) {
+            log.error("Error occurred when append message to mappedFile.", e);
+        }
+        WROTE_POSITION_UPDATER.addAndGet(this, remaining);
+        return true;
     }
 
     /**
