@@ -214,24 +214,25 @@ public class MappedFileQueue implements Swappable {
 
     void deleteExpiredFile(List<MappedFile> files) {
 
-        if (!files.isEmpty()) {
+        if (files.isEmpty()) {
+           return;
+        }
 
-            Iterator<MappedFile> iterator = files.iterator();
-            while (iterator.hasNext()) {
-                MappedFile cur = iterator.next();
-                if (!this.mappedFiles.contains(cur)) {
-                    iterator.remove();
-                    log.info("This mappedFile {} is not contained by mappedFiles, so skip it.", cur.getFileName());
-                }
+        Iterator<MappedFile> iterator = files.iterator();
+        while (iterator.hasNext()) {
+            MappedFile cur = iterator.next();
+            if (!this.mappedFiles.contains(cur)) {
+                iterator.remove();
+                log.info("This mappedFile {} is not contained by mappedFiles, so skip it.", cur.getFileName());
             }
+        }
 
-            try {
-                if (!this.mappedFiles.removeAll(files)) {
-                    log.error("deleteExpiredFile remove failed.");
-                }
-            } catch (Exception e) {
-                log.error("deleteExpiredFile has exception.", e);
+        try {
+            if (!this.mappedFiles.removeAll(files)) {
+                log.error("deleteExpiredFile remove failed.");
             }
+        } catch (Exception e) {
+            log.error("deleteExpiredFile has exception.", e);
         }
     }
 
