@@ -1,3 +1,25 @@
+## Wolforest RocketMQ
+RocketMQ with better code
+
+### Branch agreements
+* wolf:          the main branch 
+* develop:       use to create pr for community branch, please create branch with prefix pr_*****, and after the pr accepted by the community then merge the pr_ branch to develop branch 
+
+### Build RocketMQ locally
+* *mvn*
+    ```shell
+     mvn clean install
+    ```
+* *mvnd*
+    
+   If you use mvnd to build, you need to ignore the spotbugs plugin, or use single-threaded compilation,because it does not support multithreading
+
+    ```shell
+     mvnd -Dspotbugs.skip=true clean install
+    ```
+    ```shell
+     mvnd -T1 clean install
+    ```
 ## Apache RocketMQ
 
 [![Build Status][maven-build-image]][maven-build-url]
