@@ -181,7 +181,7 @@ public class ScheduleMessageServiceTest {
             assertEquals(entry.getValue(), offsetTable1.get(entry.getKey()));
         }
 
-        boolean success = scheduleMessageService.correctDelayOffset(false);
+        boolean success = scheduleMessageService.correctDelayOffset();
 
         System.out.printf("correctDelayOffset %s", success);
 
