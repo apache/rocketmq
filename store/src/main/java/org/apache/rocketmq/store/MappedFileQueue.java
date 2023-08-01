@@ -213,7 +213,6 @@ public class MappedFileQueue implements Swappable {
     }
 
     void deleteExpiredFile(List<MappedFile> files) {
-
         if (files.isEmpty()) {
            return;
         }
@@ -415,15 +414,16 @@ public class MappedFileQueue implements Swappable {
     }
 
     public long getMinOffset() {
+        if (this.mappedFiles.isEmpty()) {
+            return -1;
+        }
 
-        if (!this.mappedFiles.isEmpty()) {
-            try {
-                return this.mappedFiles.get(0).getFileFromOffset();
-            } catch (IndexOutOfBoundsException e) {
-                //continue;
-            } catch (Exception e) {
-                log.error("getMinOffset has exception.", e);
-            }
+        try {
+            return this.mappedFiles.get(0).getFileFromOffset();
+        } catch (IndexOutOfBoundsException e) {
+            //continue;
+        } catch (Exception e) {
+            log.error("getMinOffset has exception.", e);
         }
         return -1;
     }
