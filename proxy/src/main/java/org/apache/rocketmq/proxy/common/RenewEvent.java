@@ -21,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.consumer.AckResult;
 
 public class RenewEvent {
+    protected ReceiptHandleGroupKey key;
     protected MessageReceiptHandle messageReceiptHandle;
     protected long renewTime;
     protected EventType eventType;
@@ -32,11 +33,17 @@ public class RenewEvent {
         CLEAR_GROUP
     }
 
-    public RenewEvent(MessageReceiptHandle messageReceiptHandle, long renewTime, EventType eventType, CompletableFuture<AckResult> future) {
+    public RenewEvent(ReceiptHandleGroupKey key, MessageReceiptHandle messageReceiptHandle, long renewTime,
+        EventType eventType, CompletableFuture<AckResult> future) {
+        this.key = key;
         this.messageReceiptHandle = messageReceiptHandle;
         this.renewTime = renewTime;
         this.eventType = eventType;
         this.future = future;
+    }
+
+    public ReceiptHandleGroupKey getKey() {
+        return key;
     }
 
     public MessageReceiptHandle getMessageReceiptHandle() {
