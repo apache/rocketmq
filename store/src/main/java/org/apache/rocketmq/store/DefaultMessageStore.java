@@ -2984,29 +2984,46 @@ public class DefaultMessageStore implements MessageStore {
         private void dispatch() {
             dispatchRequestsList.clear();
             dispatchRequestOrderlyQueue.get(dispatchRequestsList);
-            if (!dispatchRequestsList.isEmpty()) {
-                for (DispatchRequest[] dispatchRequests : dispatchRequestsList) {
-                    for (DispatchRequest dispatchRequest : dispatchRequests) {
-                        DefaultMessageStore.this.doDispatch(dispatchRequest);
-                        // wake up long-polling
-                        if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
-                                && DefaultMessageStore.this.messageArrivingListener != null) {
-                            DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
-                                    dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
-                                    dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
-                                    dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
-                            DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
-                        }
-                        if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
-                                DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
-                            DefaultMessageStore.this.storeStatsService
-                                    .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(1);
-                            DefaultMessageStore.this.storeStatsService
-                                    .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
-                                    .add(dispatchRequest.getMsgSize());
-                        }
-                    }
+            if (dispatchRequestsList.isEmpty()) {
+                return;
+            }
+
+            for (DispatchRequest[] dispatchRequests : dispatchRequestsList) {
+                for (DispatchRequest dispatchRequest : dispatchRequests) {
+                    DefaultMessageStore.this.doDispatch(dispatchRequest);
+                    activeMessageArrivingListener(dispatchRequest);
+                    increaseTopicCounter(dispatchRequest);
                 }
+            }
+        }
+
+        private void activeMessageArrivingListener(DispatchRequest dispatchRequest) {
+            if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
+                    && DefaultMessageStore.this.messageArrivingListener != null) {
+                DefaultMessageStore.this.messageArrivingListener.arriving(
+                        dispatchRequest.getTopic(),
+                        dispatchRequest.getQueueId(),
+                        dispatchRequest.getConsumeQueueOffset() + 1,
+                        dispatchRequest.getTagsCode(),
+                        dispatchRequest.getStoreTimestamp(),
+                        dispatchRequest.getBitMap(),
+                        dispatchRequest.getPropertiesMap()
+                );
+                DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
+            }
+        }
+
+        private void increaseTopicCounter(DispatchRequest dispatchRequest) {
+            // wake up long-polling
+            if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()
+                    && DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+
+                DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicTimesTotal(
+                                dispatchRequest.getTopic() )
+                        .add(1);
+                DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicSizeTotal(
+                                dispatchRequest.getTopic())
+                        .add(dispatchRequest.getMsgSize());
             }
         }
 
