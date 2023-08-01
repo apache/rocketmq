@@ -37,6 +37,7 @@ import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -311,7 +312,7 @@ public class AdminBrokerProcessorTest {
     @Test
     public void testSearchOffsetByTimestamp() throws Exception {
         messageStore = mock(MessageStore.class);
-        when(messageStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong())).thenReturn(Long.MIN_VALUE);
+        when(messageStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), any(BoundaryType.class))).thenReturn(Long.MIN_VALUE);
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         SearchOffsetRequestHeader searchOffsetRequestHeader = new SearchOffsetRequestHeader();
         searchOffsetRequestHeader.setTopic("topic");
