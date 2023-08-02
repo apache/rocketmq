@@ -223,6 +223,12 @@ public class ScheduleMessageService extends ConfigManager {
         result = result && this.correctDelayOffset();
         return result;
     }
+    
+    public boolean loadWhenSyncDelayOffset() {
+        boolean result = super.load();
+        result = result && this.parseDelayLevel();
+        return result;
+    }
 
     public boolean correctDelayOffset() {
         try {
