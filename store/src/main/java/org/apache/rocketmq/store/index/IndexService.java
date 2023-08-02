@@ -136,22 +136,24 @@ public class IndexService {
     }
 
     private void deleteExpiredFile(List<IndexFile> files) {
-        if (!files.isEmpty()) {
-            try {
-                this.readWriteLock.writeLock().lock();
-                for (IndexFile file : files) {
-                    boolean destroyed = file.destroy(3000);
-                    destroyed = destroyed && this.indexFileList.remove(file);
-                    if (!destroyed) {
-                        LOGGER.error("deleteExpiredFile remove failed.");
-                        break;
-                    }
+        if (files.isEmpty()) {
+            return;
+        }
+
+        try {
+            this.readWriteLock.writeLock().lock();
+            for (IndexFile file : files) {
+                boolean destroyed = file.destroy(3000);
+                destroyed = destroyed && this.indexFileList.remove(file);
+                if (!destroyed) {
+                    LOGGER.error("deleteExpiredFile remove failed.");
+                    break;
                 }
-            } catch (Exception e) {
-                LOGGER.error("deleteExpiredFile has exception.", e);
-            } finally {
-                this.readWriteLock.writeLock().unlock();
             }
+        } catch (Exception e) {
+            LOGGER.error("deleteExpiredFile has exception.", e);
+        } finally {
+            this.readWriteLock.writeLock().unlock();
         }
     }
 
