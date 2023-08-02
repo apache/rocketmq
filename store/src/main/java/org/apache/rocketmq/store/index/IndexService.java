@@ -66,19 +66,7 @@ public class IndexService {
         Arrays.sort(files);
         for (File file : files) {
             try {
-                IndexFile f = new IndexFile(file.getPath(), this.hashSlotNum, this.indexNum, 0, 0);
-                f.load();
-
-                if (!lastExitOK) {
-                    if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
-                        .getIndexMsgTimestamp()) {
-                        f.destroy(0);
-                        continue;
-                    }
-                }
-
-                LOGGER.info("load index file OK, " + f.getFileName());
-                this.indexFileList.add(f);
+                loadFile(file, lastExitOK);
             } catch (IOException e) {
                 LOGGER.error("load file {} error", file, e);
                 return false;
@@ -88,6 +76,22 @@ public class IndexService {
         }
 
         return true;
+    }
+
+    private void loadFile(File file, final boolean lastExitOK) throws IOException {
+        IndexFile f = new IndexFile(file.getPath(), this.hashSlotNum, this.indexNum, 0, 0);
+        f.load();
+
+        if (!lastExitOK) {
+            if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
+                .getIndexMsgTimestamp()) {
+                f.destroy(0);
+                return;
+            }
+        }
+
+        LOGGER.info("load index file OK, " + f.getFileName());
+        this.indexFileList.add(f);
     }
 
     public long getTotalSize() {
