@@ -3019,7 +3019,7 @@ public class DefaultMessageStore implements MessageStore {
                     && DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
 
                 DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicTimesTotal(
-                                dispatchRequest.getTopic() )
+                                dispatchRequest.getTopic())
                         .add(1);
                 DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicSizeTotal(
                                 dispatchRequest.getTopic())

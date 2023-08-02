@@ -214,7 +214,7 @@ public class MappedFileQueue implements Swappable {
 
     void deleteExpiredFile(List<MappedFile> files) {
         if (files.isEmpty()) {
-           return;
+            return;
         }
 
         Iterator<MappedFile> iterator = files.iterator();
