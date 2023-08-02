@@ -126,8 +126,8 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
 
     }
 
-    public ColumnFamilyOptions createConfigOptions() {
-        BlockBasedTableConfig tconfig = new BlockBasedTableConfig().
+    private ColumnFamilyOptions createConfigOptions() {
+        BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig().
             setFormatVersion(5).
             setIndexType(IndexType.kBinarySearch).
             setDataBlockIndexType(DataBlockIndexType.kDataBlockBinarySearch).
@@ -146,7 +146,7 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
             // MemTable size, memtable(cache) -> immutable memtable(cache) -> sst(disk)
             setWriteBufferSize(8 * SizeUnit.MB).
             setMinWriteBufferNumberToMerge(1).
-            setTableFormatConfig(tconfig).
+            setTableFormatConfig(blockBasedTableConfig).
             setMemTableConfig(new SkipListMemTableConfig()).
             setCompressionType(CompressionType.NO_COMPRESSION).
             setNumLevels(7).
@@ -164,7 +164,7 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
             setInplaceUpdateSupport(true);
     }
 
-    public DBOptions createConfigDBOptions() {
+    private DBOptions createConfigDBOptions() {
         //Turn based on https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide
         // and http://gitlab.alibaba-inc.com/aloha/aloha/blob/branch_2_5_0/jstorm-core/src/main/java/com/alibaba/jstorm/cache/rocksdb/RocksDbOptionsFactory.java
         DBOptions options = new DBOptions();
@@ -197,7 +197,7 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
             setUseDirectReads(true);
     }
 
-    public static String getDBLogDir() {
+    private static String getDBLogDir() {
         String rootPath = System.getProperty("user.home");
         if (StringUtils.isEmpty(rootPath)) {
             return "";
