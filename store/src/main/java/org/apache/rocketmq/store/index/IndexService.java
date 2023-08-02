@@ -58,30 +58,32 @@ public class IndexService {
     public boolean load(final boolean lastExitOK) {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
-        if (files != null) {
-            // ascending order
-            Arrays.sort(files);
-            for (File file : files) {
-                try {
-                    IndexFile f = new IndexFile(file.getPath(), this.hashSlotNum, this.indexNum, 0, 0);
-                    f.load();
+        if (files == null) {
+            return true;
+        }
 
-                    if (!lastExitOK) {
-                        if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
-                            .getIndexMsgTimestamp()) {
-                            f.destroy(0);
-                            continue;
-                        }
+        // ascending order
+        Arrays.sort(files);
+        for (File file : files) {
+            try {
+                IndexFile f = new IndexFile(file.getPath(), this.hashSlotNum, this.indexNum, 0, 0);
+                f.load();
+
+                if (!lastExitOK) {
+                    if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
+                        .getIndexMsgTimestamp()) {
+                        f.destroy(0);
+                        continue;
                     }
-
-                    LOGGER.info("load index file OK, " + f.getFileName());
-                    this.indexFileList.add(f);
-                } catch (IOException e) {
-                    LOGGER.error("load file {} error", file, e);
-                    return false;
-                } catch (NumberFormatException e) {
-                    LOGGER.error("load file {} error", file, e);
                 }
+
+                LOGGER.info("load index file OK, " + f.getFileName());
+                this.indexFileList.add(f);
+            } catch (IOException e) {
+                LOGGER.error("load file {} error", file, e);
+                return false;
+            } catch (NumberFormatException e) {
+                LOGGER.error("load file {} error", file, e);
             }
         }
 
