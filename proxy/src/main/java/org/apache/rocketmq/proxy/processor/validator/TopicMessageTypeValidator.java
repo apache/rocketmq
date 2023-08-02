@@ -24,7 +24,7 @@ public interface TopicMessageTypeValidator {
      * Will throw {@link org.apache.rocketmq.proxy.common.ProxyException} if validate failed.
      *
      * @param expectedType Target topic
-     * @param actualType      Message's type
+     * @param actualType   Message's type
      */
     void validate(TopicMessageType expectedType, TopicMessageType actualType);
 }
