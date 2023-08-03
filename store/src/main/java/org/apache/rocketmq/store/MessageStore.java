@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -225,6 +226,17 @@ public interface MessageStore {
      * @return physical offset which matches.
      */
     long getOffsetInQueueByTime(final String topic, final int queueId, final long timestamp);
+
+    /**
+     * Look up the physical offset of the message whose store timestamp is as specified with specific boundaryType.
+     *
+     * @param topic        Topic of the message.
+     * @param queueId      Queue ID.
+     * @param timestamp    Timestamp to look up.
+     * @param boundaryType Lower or Upper
+     * @return physical offset which matches.
+     */
+    long getOffsetInQueueByTime(final String topic, final int queueId, final long timestamp, final BoundaryType boundaryType);
 
     /**
      * Look up the message by given commit log offset.

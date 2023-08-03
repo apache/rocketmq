@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store.queue;
 
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.DispatchRequest;
@@ -92,6 +93,15 @@ public interface ConsumeQueueInterface extends FileQueueLifeCycle {
      * @return the offset(index)
      */
     long getOffsetInQueueByTime(final long timestamp);
+
+    /**
+     * Get the message whose timestamp is the smallest, greater than or equal to the given time and when there are more
+     * than one message satisfy the condition, decide which one to return based on boundaryType.
+     * @param timestamp    timestamp
+     * @param boundaryType Lower or Upper
+     * @return the offset(index)
+     */
+    long getOffsetInQueueByTime(final long timestamp, final BoundaryType boundaryType);
 
     /**
      * The max physical offset of commitlog has been dispatched to this queue.
