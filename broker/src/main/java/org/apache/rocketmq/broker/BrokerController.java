@@ -2004,23 +2004,25 @@ public class BrokerController {
         }
     }
 
-    public void updateMinBroker(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr,
-        String masterHaAddr) {
-        if (brokerConfig.isEnableSlaveActingMaster() && brokerConfig.getBrokerId() != MixAll.MASTER_ID) {
-            try {
-                if (lock.tryLock(3000, TimeUnit.MILLISECONDS)) {
-                    try {
-                        if (minBrokerId != this.minBrokerIdInGroup) {
-                            onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, masterHaAddr);
-                        }
-                    } finally {
-                        lock.unlock();
-                    }
+    public void updateMinBroker(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr, String masterHaAddr) {
+        if (!brokerConfig.isEnableSlaveActingMaster() || brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
+            return;
+        }
 
-                }
-            } catch (InterruptedException e) {
-                LOG.error("Update min broker error, {}", e);
+        try {
+            if (!lock.tryLock(3000, TimeUnit.MILLISECONDS)) {
+                return;
             }
+
+            try {
+                if (minBrokerId != this.minBrokerIdInGroup) {
+                    onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, masterHaAddr);
+                }
+            } finally {
+                lock.unlock();
+            }
+        } catch (InterruptedException e) {
+            LOG.error("Update min broker error, {}", e);
         }
     }
 
