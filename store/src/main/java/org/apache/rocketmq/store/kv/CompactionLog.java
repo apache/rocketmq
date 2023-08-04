@@ -17,12 +17,32 @@
 package org.apache.rocketmq.store.kv;
 
 import com.google.common.collect.Lists;
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.security.DigestException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.TopicAttributes;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.AppendMessageResult;
@@ -32,7 +52,6 @@ import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MappedFileQueue;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageLock;
 import org.apache.rocketmq.store.PutMessageReentrantLock;
@@ -48,23 +67,6 @@ import org.apache.rocketmq.store.queue.BatchConsumeQueue;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.queue.SparseConsumeQueue;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Paths;
-import java.security.DigestException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import static org.apache.rocketmq.common.message.MessageDecoder.BLANK_MAGIC_CODE;
 
@@ -92,10 +94,14 @@ public class CompactionLog {
     private TopicPartitionLog current;
     private TopicPartitionLog compacting;
     private TopicPartitionLog replicating;
+    private final AtomicInteger compactionScheduleIdleTimes;
+    private final int scheduleIdleTimes;
+    private long deleteRetentionMs = TopicAttributes.DELETE_RETENTION_MS_ATTRIBUTE.getDefaultValue();
     private final CompactionPositionMgr positionMgr;
     private final AtomicReference<State> state;
 
-    public CompactionLog(final MessageStore messageStore, final CompactionStore compactionStore, final String topic, final int queueId)
+    public CompactionLog(final MessageStore messageStore, final CompactionStore compactionStore, final String topic,
+        final int queueId)
         throws IOException {
         this.topic = topic;
         this.queueId = queueId;
@@ -103,6 +109,9 @@ public class CompactionLog {
         this.compactionStore = compactionStore;
         this.messageStoreConfig = messageStore.getMessageStoreConfig();
         this.offsetMapMemorySize = compactionStore.getOffsetMapSize();
+        // default 5 times
+        this.scheduleIdleTimes = messageStore.getMessageStoreConfig().getCompactionScheduleIdleTimes();
+        this.compactionScheduleIdleTimes = new AtomicInteger(this.scheduleIdleTimes);
         this.compactionCqMappedFileSize =
             messageStoreConfig.getCompactionCqMappedFileSize() / BatchConsumeQueue.CQ_STORE_UNIT_SIZE
                 * BatchConsumeQueue.CQ_STORE_UNIT_SIZE;
@@ -112,6 +121,11 @@ public class CompactionLog {
             topic, String.valueOf(queueId)).toString();
         this.compactionCqFilePath = compactionStore.getCompactionCqPath();        // batch consume queue already separated
         this.positionMgr = compactionStore.getPositionMgr();
+
+        TopicConfig topicConfig = this.defaultMessageStore.getTopicConfig(topic).get();
+        if (topicConfig.getAttributes().containsKey(TopicAttributes.DELETE_RETENTION_MS_ATTRIBUTE.getName())) {
+            this.deleteRetentionMs = Long.parseLong(topicConfig.getAttributes().get(TopicAttributes.DELETE_RETENTION_MS_ATTRIBUTE.getName()));
+        }
 
         this.putMessageLock =
             messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() :
@@ -320,6 +334,8 @@ public class CompactionLog {
     }
 
     boolean shouldRetainMsg(final MessageExt msgExt, final OffsetMap map) throws DigestException {
+        // When the data in OffsetMap is empty, it proves that there is no new data.
+        // However, the main purpose of continuing compression is to clear the empty data
         if (msgExt.getQueueOffset() > map.getLastOffset()) {
             return true;
         }
@@ -328,11 +344,18 @@ public class CompactionLog {
         if (StringUtils.isNotBlank(key)) {
             boolean keyNotExistOrOffsetBigger = msgExt.getQueueOffset() >= map.get(key);
             boolean hasBody = ArrayUtils.isNotEmpty(msgExt.getBody());
-            return keyNotExistOrOffsetBigger && hasBody;
+            return keyNotExistOrOffsetBigger && !verifyDeleted(hasBody, msgExt);
         } else {
             log.error("message has no keys");
             return false;
         }
+    }
+
+    public boolean verifyDeleted(boolean hasBody, MessageExt message) {
+        if (hasBody) {
+            return false;
+        }
+        return message.getStoreTimestamp() + deleteRetentionMs < System.currentTimeMillis();
     }
 
     public void checkAndPutMessage(final SelectMappedBufferResult selectMappedBufferResult, final MessageExt msgExt,
@@ -343,7 +366,8 @@ public class CompactionLog {
         }
     }
 
-    public CompletableFuture<PutMessageResult> asyncPutMessage(final SelectMappedBufferResult selectMappedBufferResult) {
+    public CompletableFuture<PutMessageResult> asyncPutMessage(
+        final SelectMappedBufferResult selectMappedBufferResult) {
         return asyncPutMessage(selectMappedBufferResult, current);
     }
 
@@ -600,9 +624,9 @@ public class CompactionLog {
             }
         }
 
-        if (newFiles.isEmpty()) {
-            return null;
-        }
+//        if (newFiles.isEmpty()) {
+//            return null;
+//        }
 
         return new ProcessFileList(toCompactFiles, newFiles);
     }
@@ -611,14 +635,23 @@ public class CompactionLog {
         if (compactFiles == null || compactFiles.isEmpty()) {
             return;
         }
-
+        if (CollectionUtils.isEmpty(compactFiles.newFiles)) {
+            if (compactionScheduleIdleTimes.decrementAndGet() > 0) {
+                return;
+            } else {
+                log.info("Number of idle times of arrival scheduling {}, start compact.", scheduleIdleTimes - compactionScheduleIdleTimes.get());
+            }
+        }
         long startTime = System.nanoTime();
+        // When the new file is empty, the history file will also be compacted to clear the empty message
         OffsetMap offsetMap = getOffsetMap(compactFiles.newFiles);
         compaction(compactFiles.toCompactFiles, offsetMap);
         replaceFiles(compactFiles.toCompactFiles, current, compacting);
         positionMgr.setOffset(topic, queueId, offsetMap.lastOffset);
         positionMgr.persist();
         compacting.clean(false, false);
+        // reset idle times
+        compactionScheduleIdleTimes.set(this.scheduleIdleTimes);
         log.info("this compaction elapsed {} milliseconds",
             TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
 
@@ -640,7 +673,11 @@ public class CompactionLog {
 
     protected OffsetMap getOffsetMap(List<MappedFile> mappedFileList) throws NoSuchAlgorithmException, DigestException {
         OffsetMap offsetMap = new OffsetMap(offsetMapMemorySize);
-
+        if (CollectionUtils.isEmpty(mappedFileList)) {
+            // Set the last position
+            offsetMap.setLastOffset(positionMgr.getOffset(topic, queueId));
+            return offsetMap;
+        }
         for (MappedFile mappedFile : mappedFileList) {
             Iterator<SelectMappedBufferResult> iterator = mappedFile.iterator(0);
             while (iterator.hasNext()) {
@@ -949,12 +986,17 @@ public class CompactionLog {
                 }
                 dataBytes.get(hash2);
                 tryNum++;
-            } while (!Arrays.equals(hash1, hash2));
+            }
+            while (!Arrays.equals(hash1, hash2));
             return dataBytes.getLong();
         }
 
         public long getLastOffset() {
             return lastOffset;
+        }
+
+        public void setLastOffset(long lastOffset) {
+            this.lastOffset = lastOffset;
         }
 
         private boolean isEmpty(int pos) {
@@ -1142,7 +1184,7 @@ public class CompactionLog {
         }
 
         boolean isEmpty() {
-            return CollectionUtils.isEmpty(newFiles) || CollectionUtils.isEmpty(toCompactFiles);
+            return CollectionUtils.isEmpty(newFiles) && CollectionUtils.isEmpty(toCompactFiles);
         }
     }
 

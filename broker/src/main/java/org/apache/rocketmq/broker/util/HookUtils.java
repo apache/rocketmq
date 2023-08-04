@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.common.MixAll;
@@ -86,18 +87,16 @@ public class HookUtils {
         final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
         boolean retryTopic = msg.getTopic() != null && msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
         if (!retryTopic && topicData.length > Byte.MAX_VALUE) {
-            LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker",
-                msg.getTopic(), topicData.length);
+            LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker", msg.getTopic(), topicData.length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
         if (topicData.length > MAX_TOPIC_LENGTH) {
-            LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker",
-                msg.getTopic(), topicData.length);
+            LOG.warn("putMessage message topic[{}] length too long {}, but it is not supported by broker", msg.getTopic(), topicData.length);
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
 
-        if (msg.getBody() == null) {
+        if (StringUtils.isEmpty(msg.getKeys()) && msg.getBody() == null) {
             LOG.warn("putMessage message topic[{}], but message body is null", msg.getTopic());
             return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
         }
