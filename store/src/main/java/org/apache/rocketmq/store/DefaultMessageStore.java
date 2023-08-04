@@ -117,7 +117,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private final MessageStoreConfig messageStoreConfig;
     // CommitLog
-    private final CommitLog commitLog;
+    private CommitLog commitLog;
 
     private final ConsumeQueueStore consumeQueueStore;
 
@@ -149,7 +149,7 @@ public class DefaultMessageStore implements MessageStore {
     private final RunningFlags runningFlags = new RunningFlags();
     private final SystemClock systemClock = new SystemClock();
 
-    private final ScheduledExecutorService scheduledExecutorService;
+    private ScheduledExecutorService scheduledExecutorService;
     private final BrokerStatsManager brokerStatsManager;
     private final MessageArrivingListener messageArrivingListener;
     private final BrokerConfig brokerConfig;
@@ -159,7 +159,7 @@ public class DefaultMessageStore implements MessageStore {
     private StoreCheckpoint storeCheckpoint;
     private TimerMessageStore timerMessageStore;
 
-    private final LinkedList<CommitLogDispatcher> dispatcherList;
+    private LinkedList<CommitLogDispatcher> dispatcherList;
 
     private RandomAccessFile lockFile;
 
@@ -207,7 +207,8 @@ public class DefaultMessageStore implements MessageStore {
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
-        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
+        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
+        final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
@@ -215,21 +216,37 @@ public class DefaultMessageStore implements MessageStore {
         this.brokerStatsManager = brokerStatsManager;
         this.topicConfigTable = topicConfigTable;
         this.allocateMappedFileService = new AllocateMappedFileService(this);
-        if (messageStoreConfig.isEnableDLegerCommitLog()) {
-            this.commitLog = new DLedgerCommitLog(this);
-        } else {
-            this.commitLog = new CommitLog(this);
-        }
-
         this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig);
-
         this.flushConsumeQueueService = new FlushConsumeQueueService();
         this.cleanCommitLogService = new CleanCommitLogService();
         this.cleanConsumeQueueService = new CleanConsumeQueueService();
         this.correctLogicOffsetService = new CorrectLogicOffsetService();
         this.storeStatsService = new StoreStatsService(getBrokerIdentity());
         this.indexService = new IndexService(this);
+        this.transientStorePool = new TransientStorePool(this);
 
+        initCommitLog();
+        initHaService();
+        initReputMessageService();
+        initDispatchList();
+        initScheduledExecutorService();
+        initLockFile();
+        initDelayLevel();
+    }
+
+    private void initScheduledExecutorService() {
+        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
+    }
+
+    private void initCommitLog() {
+        if (messageStoreConfig.isEnableDLegerCommitLog()) {
+            this.commitLog = new DLedgerCommitLog(this);
+        } else {
+            this.commitLog = new CommitLog(this);
+        }
+    }
+
+    private void initHaService() {
         if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             if (brokerConfig.isEnableControllerMode()) {
                 this.haService = new AutoSwitchHAService();
@@ -242,18 +259,17 @@ public class DefaultMessageStore implements MessageStore {
                 }
             }
         }
+    }
 
+    private void initReputMessageService() {
         if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
             this.reputMessageService = new ReputMessageService();
         } else {
             this.reputMessageService = new ConcurrentReputMessageService();
         }
+    }
 
-        this.transientStorePool = new TransientStorePool(this);
-
-        this.scheduledExecutorService =
-            Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
-
+    private void initDispatchList() {
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
@@ -262,17 +278,17 @@ public class DefaultMessageStore implements MessageStore {
             this.compactionService = new CompactionService(commitLog, this, compactionStore);
             this.dispatcherList.addLast(new CommitLogDispatcherCompaction(compactionService));
         }
+    }
 
+    private void initLockFile() throws IOException {
         File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
         UtilAll.ensureDirOK(file.getParent());
         UtilAll.ensureDirOK(getStorePathPhysic());
         UtilAll.ensureDirOK(getStorePathLogic());
         lockFile = new RandomAccessFile(file, "rw");
-
-        parseDelayLevel();
     }
 
-    public boolean parseDelayLevel() {
+    private void initDelayLevel() {
         HashMap<String, Long> timeUnitTable = new HashMap<>();
         timeUnitTable.put("s", 1000L);
         timeUnitTable.put("m", 1000L * 60);
@@ -297,10 +313,8 @@ public class DefaultMessageStore implements MessageStore {
             }
         } catch (Exception e) {
             LOGGER.error("parse message delay level failed. messageDelayLevel = {}", levelString, e);
-            return false;
         }
 
-        return true;
     }
 
     @Override
