@@ -1988,19 +1988,21 @@ public class BrokerController {
 
     public void updateMinBroker(long minBrokerId, String minBrokerAddr) {
         if (brokerConfig.isEnableSlaveActingMaster() && brokerConfig.getBrokerId() != MixAll.MASTER_ID) {
-            if (lock.tryLock()) {
-                try {
-                    if (minBrokerId != this.minBrokerIdInGroup) {
-                        String offlineBrokerAddr = null;
-                        if (minBrokerId > this.minBrokerIdInGroup) {
-                            offlineBrokerAddr = this.minBrokerAddrInGroup;
-                        }
-                        onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, null);
-                    }
-                } finally {
-                    lock.unlock();
-                }
+            if (!lock.tryLock()) {
+                return;
             }
+        }
+
+        try {
+            if (minBrokerId != this.minBrokerIdInGroup) {
+                String offlineBrokerAddr = null;
+                if (minBrokerId > this.minBrokerIdInGroup) {
+                    offlineBrokerAddr = this.minBrokerAddrInGroup;
+                }
+                onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, null);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
