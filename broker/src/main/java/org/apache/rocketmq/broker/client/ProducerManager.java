@@ -112,7 +112,10 @@ public class ProducerManager {
                 long diff = System.currentTimeMillis() - info.getLastUpdateTimestamp();
                 if (diff > CHANNEL_EXPIRED_TIMEOUT) {
                     it.remove();
-                    clientChannelTable.remove(info.getClientId());
+                    Channel channelInClientTable = clientChannelTable.get(info.getClientId());
+                    if (channelInClientTable != null && channelInClientTable.equals(info.getChannel())) {
+                        clientChannelTable.remove(info.getClientId());
+                    }
                     log.warn(
                             "ProducerManager#scanNotActiveChannel: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
                             RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);

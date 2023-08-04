@@ -17,19 +17,17 @@
 
 package org.apache.rocketmq.proxy.processor;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import io.netty.channel.Channel;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.state.StateEventListener;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.service.receipt.DefaultReceiptHandleManager;
+import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.service.ServiceManager;
+import org.apache.rocketmq.proxy.service.receipt.DefaultReceiptHandleManager;
 
 public class ReceiptHandleProcessor extends AbstractProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -38,7 +36,8 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
     public ReceiptHandleProcessor(MessagingProcessor messagingProcessor, ServiceManager serviceManager) {
         super(messagingProcessor, serviceManager);
         StateEventListener<RenewEvent> eventListener = event -> {
-            ProxyContext context = createContext(event.getEventType().name());
+            ProxyContext context = createContext(event.getEventType().name())
+                .setChannel(event.getKey().getChannel());
             MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
             ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
             messagingProcessor.changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),
@@ -66,50 +65,4 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
         return receiptHandleManager.removeReceiptHandle(ctx, channel, group, msgID, receiptHandle);
     }
 
-    public static class ReceiptHandleGroupKey {
-        protected final Channel channel;
-        protected final String group;
-
-        public ReceiptHandleGroupKey(Channel channel, String group) {
-            this.channel = channel;
-            this.group = group;
-        }
-
-        protected String getChannelId() {
-            return channel.id().asLongText();
-        }
-
-        public String getGroup() {
-            return group;
-        }
-
-        public Channel getChannel() {
-            return channel;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            ReceiptHandleGroupKey key = (ReceiptHandleGroupKey) o;
-            return Objects.equal(getChannelId(), key.getChannelId()) && Objects.equal(group, key.group);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(getChannelId(), group);
-        }
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(this)
-                .add("channelId", getChannelId())
-                .add("group", group)
-                .toString();
-        }
-    }
 }

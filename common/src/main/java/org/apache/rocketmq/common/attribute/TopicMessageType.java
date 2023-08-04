@@ -27,7 +27,8 @@ public enum TopicMessageType {
     NORMAL("NORMAL"),
     FIFO("FIFO"),
     DELAY("DELAY"),
-    TRANSACTION("TRANSACTION");
+    TRANSACTION("TRANSACTION"),
+    MIXED("MIXED");
 
     private final String value;
     TopicMessageType(String value) {
@@ -35,7 +36,7 @@ public enum TopicMessageType {
     }
 
     public static Set<String> topicMessageTypeSet() {
-        return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value);
+        return Sets.newHashSet(UNSPECIFIED.value, NORMAL.value, FIFO.value, DELAY.value, TRANSACTION.value, MIXED.value);
     }
 
     public String getValue() {
