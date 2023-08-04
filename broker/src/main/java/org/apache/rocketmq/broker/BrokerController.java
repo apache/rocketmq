@@ -1934,21 +1934,7 @@ public class BrokerController {
         boolean needSyncMasterFlushOffset = this.messageStore.getMasterFlushedOffset() == 0
             && this.messageStoreConfig.isSyncMasterFlushOffsetWhenStartup();
         if (masterHaAddr == null || needSyncMasterFlushOffset) {
-            try {
-                BrokerSyncInfo brokerSyncInfo = this.brokerOuterAPI.retrieveBrokerHaInfo(masterAddr);
-
-                if (needSyncMasterFlushOffset) {
-                    LOG.info("Set master flush offset in slave to {}", brokerSyncInfo.getMasterFlushOffset());
-                    this.messageStore.setMasterFlushedOffset(brokerSyncInfo.getMasterFlushOffset());
-                }
-
-                if (masterHaAddr == null) {
-                    this.messageStore.updateHaMasterAddress(brokerSyncInfo.getMasterHaAddress());
-                    this.messageStore.updateMasterAddress(brokerSyncInfo.getMasterAddress());
-                }
-            } catch (Exception e) {
-                LOG.error("retrieve master ha info exception, {}", e);
-            }
+            doSyncMasterFlushOffset(masterAddr, masterHaAddr, needSyncMasterFlushOffset);
         }
 
         // set master HA address.
@@ -1958,6 +1944,24 @@ public class BrokerController {
 
         // wakeup HAClient
         this.messageStore.wakeupHAClient();
+    }
+
+    private void doSyncMasterFlushOffset(String masterAddr, String masterHaAddr, boolean needSyncMasterFlushOffset) {
+        try {
+            BrokerSyncInfo brokerSyncInfo = this.brokerOuterAPI.retrieveBrokerHaInfo(masterAddr);
+
+            if (needSyncMasterFlushOffset) {
+                LOG.info("Set master flush offset in slave to {}", brokerSyncInfo.getMasterFlushOffset());
+                this.messageStore.setMasterFlushedOffset(brokerSyncInfo.getMasterFlushOffset());
+            }
+
+            if (masterHaAddr == null) {
+                this.messageStore.updateHaMasterAddress(brokerSyncInfo.getMasterHaAddress());
+                this.messageStore.updateMasterAddress(brokerSyncInfo.getMasterAddress());
+            }
+        } catch (Exception e) {
+            LOG.error("retrieve master ha info exception, {}", e);
+        }
     }
 
     private void onMinBrokerChange(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr,
