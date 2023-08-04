@@ -1618,6 +1618,19 @@ public class BrokerController {
             this.registerBrokerAll(true, false, true);
         }
 
+        scheduleRegisterBrokerAll();
+        scheduleSlaveActingMaster();
+
+        if (this.brokerConfig.isEnableControllerMode()) {
+            scheduleSendHeartbeat();
+        }
+
+        if (brokerConfig.isSkipPreOnline()) {
+            startServiceWithoutCondition();
+        }
+    }
+
+    private void scheduleRegisterBrokerAll() {
         scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
             @Override
             public void run0() {
@@ -1636,29 +1649,25 @@ public class BrokerController {
                 }
             }
         }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS));
+    }
 
-        if (this.brokerConfig.isEnableSlaveActingMaster()) {
-            scheduleSendHeartbeat();
+    private void scheduleSlaveActingMaster() {
+        if (!this.brokerConfig.isEnableSlaveActingMaster()) {
+            return;
+        }
 
-            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
-                @Override
-                public void run0() {
-                    try {
-                        BrokerController.this.syncBrokerMemberGroup();
-                    } catch (Throwable e) {
-                        BrokerController.LOG.error("sync BrokerMemberGroup error. ", e);
-                    }
+        scheduleSendHeartbeat();
+
+        scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+            @Override
+            public void run0() {
+                try {
+                    BrokerController.this.syncBrokerMemberGroup();
+                } catch (Throwable e) {
+                    BrokerController.LOG.error("sync BrokerMemberGroup error. ", e);
                 }
-            }, 1000, this.brokerConfig.getSyncBrokerMemberGroupPeriod(), TimeUnit.MILLISECONDS));
-        }
-
-        if (this.brokerConfig.isEnableControllerMode()) {
-            scheduleSendHeartbeat();
-        }
-
-        if (brokerConfig.isSkipPreOnline()) {
-            startServiceWithoutCondition();
-        }
+            }
+        }, 1000, this.brokerConfig.getSyncBrokerMemberGroupPeriod(), TimeUnit.MILLISECONDS));
     }
 
     protected void scheduleSendHeartbeat() {
