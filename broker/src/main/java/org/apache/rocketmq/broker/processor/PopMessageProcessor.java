@@ -639,20 +639,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
         long offset = this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, queueId);
         if (offset < 0) {
-            if (ConsumeInitMode.MIN == initMode) {
-                offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
-            } else {
-                // pop last one,then commit offset.
-                offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - 1;
-                // max & no consumer offset
-                if (offset < 0) {
-                    offset = 0;
-                }
-                if (init) {
-                    this.brokerController.getConsumerOffsetManager().commitOffset(
-                        "getPopOffset", group, topic, queueId, offset);
-                }
-            }
+            offset = this.getInitOffset(topic, group, queueId, initMode, init);
         }
 
         if (checkResetOffset) {
@@ -668,6 +655,31 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         } else {
             return Math.max(bufferOffset, offset);
         }
+    }
+
+    private long getInitOffset(String topic, String group, int queueId, int initMode, boolean init) {
+        long offset;
+        if (ConsumeInitMode.MIN == initMode) {
+            return this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
+        } else {
+            if (this.brokerController.getBrokerConfig().isInitPopOffsetByCheckMsgInMem() &&
+                this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId) <= 0 &&
+                this.brokerController.getMessageStore().checkInMemByConsumeOffset(topic, queueId, 0, 1)) {
+                offset = 0;
+            } else {
+                // pop last one,then commit offset.
+                offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - 1;
+                // max & no consumer offset
+                if (offset < 0) {
+                    offset = 0;
+                }
+            }
+            if (init) {
+                this.brokerController.getConsumerOffsetManager().commitOffset(
+                    "getPopOffset", group, topic, queueId, offset);
+            }
+        }
+        return offset;
     }
 
     public final MessageExtBrokerInner buildCkMsg(final PopCheckPoint ck, final int reviveQid) {
