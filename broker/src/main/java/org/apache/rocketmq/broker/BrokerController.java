@@ -354,40 +354,9 @@ public class BrokerController {
         this.loadBalanceThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getLoadBalanceThreadPoolQueueCapacity());
 
         this.brokerFastFailure = new BrokerFastFailure(this);
-
-        String brokerConfigPath;
-        if (brokerConfig.getBrokerConfigPath() != null && !brokerConfig.getBrokerConfigPath().isEmpty()) {
-            brokerConfigPath = brokerConfig.getBrokerConfigPath();
-        } else {
-            brokerConfigPath = BrokerPathConfigHelper.getBrokerConfigPath();
-        }
-        this.configuration = new Configuration(
-            LOG,
-            brokerConfigPath,
-            this.brokerConfig, this.nettyServerConfig, this.nettyClientConfig, this.messageStoreConfig
-        );
-
-        this.brokerStatsManager.setProduerStateGetter(new BrokerStatsManager.StateGetter() {
-            @Override
-            public boolean online(String instanceId, String group, String topic) {
-                if (getTopicConfigManager().getTopicConfigTable().containsKey(NamespaceUtil.wrapNamespace(instanceId, topic))) {
-                    return getProducerManager().groupOnline(NamespaceUtil.wrapNamespace(instanceId, group));
-                } else {
-                    return getProducerManager().groupOnline(group);
-                }
-            }
-        });
-        this.brokerStatsManager.setConsumerStateGetter(new BrokerStatsManager.StateGetter() {
-            @Override
-            public boolean online(String instanceId, String group, String topic) {
-                String topicFullName = NamespaceUtil.wrapNamespace(instanceId, topic);
-                if (getTopicConfigManager().getTopicConfigTable().containsKey(topicFullName)) {
-                    return getConsumerManager().findSubscriptionData(NamespaceUtil.wrapNamespace(instanceId, group), topicFullName) != null;
-                } else {
-                    return getConsumerManager().findSubscriptionData(group, topic) != null;
-                }
-            }
-        });
+        initConfiguration();
+        initProducerStateGetter();
+        initConsumerStateGetter();
 
         this.brokerMemberGroup = new BrokerMemberGroup(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName());
         this.brokerMemberGroup.getBrokerAddrs().put(this.brokerConfig.getBrokerId(), this.getBrokerAddr());
@@ -399,6 +368,47 @@ public class BrokerController {
         if (this.brokerConfig.isEnableSlaveActingMaster() && !this.brokerConfig.isSkipPreOnline()) {
             this.brokerPreOnlineService = new BrokerPreOnlineService(this);
         }
+    }
+
+    private void initProducerStateGetter() {
+        this.brokerStatsManager.setProduerStateGetter(new BrokerStatsManager.StateGetter() {
+            @Override
+            public boolean online(String instanceId, String group, String topic) {
+                if (getTopicConfigManager().getTopicConfigTable().containsKey(NamespaceUtil.wrapNamespace(instanceId, topic))) {
+                    return getProducerManager().groupOnline(NamespaceUtil.wrapNamespace(instanceId, group));
+                } else {
+                    return getProducerManager().groupOnline(group);
+                }
+            }
+        });
+    }
+
+    private void initConsumerStateGetter() {
+        this.brokerStatsManager.setConsumerStateGetter(new BrokerStatsManager.StateGetter() {
+            @Override
+            public boolean online(String instanceId, String group, String topic) {
+                String topicFullName = NamespaceUtil.wrapNamespace(instanceId, topic);
+                if (getTopicConfigManager().getTopicConfigTable().containsKey(topicFullName)) {
+                    return getConsumerManager().findSubscriptionData(NamespaceUtil.wrapNamespace(instanceId, group), topicFullName) != null;
+                } else {
+                    return getConsumerManager().findSubscriptionData(group, topic) != null;
+                }
+            }
+        });
+    }
+
+    private void initConfiguration() {
+        String brokerConfigPath;
+        if (brokerConfig.getBrokerConfigPath() != null && !brokerConfig.getBrokerConfigPath().isEmpty()) {
+            brokerConfigPath = brokerConfig.getBrokerConfigPath();
+        } else {
+            brokerConfigPath = BrokerPathConfigHelper.getBrokerConfigPath();
+        }
+        this.configuration = new Configuration(
+            LOG,
+            brokerConfigPath,
+            this.brokerConfig, this.nettyServerConfig, this.nettyClientConfig, this.messageStoreConfig
+        );
     }
 
     public BrokerConfig getBrokerConfig() {
