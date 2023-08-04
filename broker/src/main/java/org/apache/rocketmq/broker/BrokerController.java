@@ -1128,16 +1128,20 @@ public class BrokerController {
     }
 
     public void protectBroker() {
-        if (this.brokerConfig.isDisableConsumeIfConsumerReadSlowly()) {
-            for (Map.Entry<String, MomentStatsItem> next : this.brokerStatsManager.getMomentStatsItemSetFallSize().getStatsItemTable().entrySet()) {
-                final long fallBehindBytes = next.getValue().getValue().get();
-                if (fallBehindBytes > this.brokerConfig.getConsumerFallbehindThreshold()) {
-                    final String[] split = next.getValue().getStatsKey().split("@");
-                    final String group = split[2];
-                    LOG_PROTECTION.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
-                    this.subscriptionGroupManager.disableConsume(group);
-                }
+        if (!this.brokerConfig.isDisableConsumeIfConsumerReadSlowly()) {
+            return;
+        }
+
+        for (Map.Entry<String, MomentStatsItem> next : this.brokerStatsManager.getMomentStatsItemSetFallSize().getStatsItemTable().entrySet()) {
+            final long fallBehindBytes = next.getValue().getValue().get();
+            if (fallBehindBytes <= this.brokerConfig.getConsumerFallbehindThreshold()) {
+                continue;
             }
+
+            final String[] split = next.getValue().getStatsKey().split("@");
+            final String group = split[2];
+            LOG_PROTECTION.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
+            this.subscriptionGroupManager.disableConsume(group);
         }
     }
 
