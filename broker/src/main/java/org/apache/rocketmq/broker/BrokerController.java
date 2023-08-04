@@ -792,7 +792,6 @@ public class BrokerController {
     }
 
     public boolean recoverAndInitService() throws CloneNotSupportedException {
-
         boolean result = true;
 
         if (this.brokerConfig.isEnableControllerMode()) {
@@ -820,66 +819,67 @@ public class BrokerController {
 
         this.brokerMetricsManager = new BrokerMetricsManager(this);
 
-        if (result) {
-
-            initializeRemotingServer();
-
-            initializeResources();
-
-            registerProcessor();
-
-            initializeScheduledTasks();
-
-            initialTransaction();
-
-            initialAcl();
-
-            initialRpcHooks();
-
-            if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
-                // Register a listener to reload SslContext
-                try {
-                    fileWatchService = new FileWatchService(
-                        new String[] {
-                            TlsSystemConfig.tlsServerCertPath,
-                            TlsSystemConfig.tlsServerKeyPath,
-                            TlsSystemConfig.tlsServerTrustCertPath
-                        },
-                        new FileWatchService.Listener() {
-                            boolean certChanged, keyChanged = false;
-
-                            @Override
-                            public void onChanged(String path) {
-                                if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
-                                    LOG.info("The trust certificate changed, reload the ssl context");
-                                    reloadServerSslContext();
-                                }
-                                if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
-                                    certChanged = true;
-                                }
-                                if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
-                                    keyChanged = true;
-                                }
-                                if (certChanged && keyChanged) {
-                                    LOG.info("The certificate and private key changed, reload the ssl context");
-                                    certChanged = keyChanged = false;
-                                    reloadServerSslContext();
-                                }
-                            }
-
-                            private void reloadServerSslContext() {
-                                ((NettyRemotingServer) remotingServer).loadSslContext();
-                                ((NettyRemotingServer) fastRemotingServer).loadSslContext();
-                            }
-                        });
-                } catch (Exception e) {
-                    result = false;
-                    LOG.warn("FileWatchService created error, can't load the certificate dynamically");
-                }
-            }
+        if (!result) {
+            return false;
         }
 
-        return result;
+        initializeRemotingServer();
+        initializeResources();
+        registerProcessor();
+        initializeScheduledTasks();
+        initialTransaction();
+        initialAcl();
+        initialRpcHooks();
+
+        return initialFileWatchService();
+    }
+
+    private boolean initialFileWatchService() {
+        if (TlsSystemConfig.tlsMode == TlsMode.DISABLED) {
+            return true;
+        }
+
+        // Register a listener to reload SslContext
+        try {
+            fileWatchService = new FileWatchService(
+                new String[] {
+                    TlsSystemConfig.tlsServerCertPath,
+                    TlsSystemConfig.tlsServerKeyPath,
+                    TlsSystemConfig.tlsServerTrustCertPath
+                },
+                new FileWatchService.Listener() {
+                    boolean certChanged, keyChanged = false;
+
+                    @Override
+                    public void onChanged(String path) {
+                        if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
+                            LOG.info("The trust certificate changed, reload the ssl context");
+                            reloadServerSslContext();
+                        }
+                        if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
+                            certChanged = true;
+                        }
+                        if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
+                            keyChanged = true;
+                        }
+                        if (certChanged && keyChanged) {
+                            LOG.info("The certificate and private key changed, reload the ssl context");
+                            certChanged = keyChanged = false;
+                            reloadServerSslContext();
+                        }
+                    }
+
+                    private void reloadServerSslContext() {
+                        ((NettyRemotingServer) remotingServer).loadSslContext();
+                        ((NettyRemotingServer) fastRemotingServer).loadSslContext();
+                    }
+                });
+        } catch (Exception e) {
+            LOG.warn("FileWatchService created error, can't load the certificate dynamically");
+            return false;
+        }
+
+        return true;
     }
 
     public void registerMessageStoreHook() {
