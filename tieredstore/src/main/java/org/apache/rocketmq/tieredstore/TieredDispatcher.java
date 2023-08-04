@@ -279,6 +279,9 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             long upperBound = Math.min(dispatchOffset + maxCount, maxOffsetInQueue);
             ConsumeQueue consumeQueue = (ConsumeQueue) defaultStore.getConsumeQueue(topic, queueId);
 
+            logger.debug("Batch dispatchFlatFile, topic={}, queueId={}, cq range={}-{}, dispatch offset={}-{}",
+                topic, queueId, minOffsetInQueue, maxOffsetInQueue, dispatchOffset, upperBound - 1);
+
             for (; dispatchOffset < upperBound; dispatchOffset++) {
                 // get consume queue
                 SelectMappedBufferResult cqItem = consumeQueue.getIndexBuffer(dispatchOffset);

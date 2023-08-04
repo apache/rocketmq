@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.tieredstore.metadata;
 
+import java.util.Objects;
+
 public class FileSegmentMetadata {
 
     public static final int STATUS_NEW = 0;
@@ -43,7 +45,6 @@ public class FileSegmentMetadata {
         this.baseOffset = baseOffset;
         this.type = type;
         this.status = STATUS_NEW;
-        this.createTimestamp = System.currentTimeMillis();
     }
 
     public void markSealed() {
@@ -121,5 +122,28 @@ public class FileSegmentMetadata {
 
     public void setSealTimestamp(long sealTimestamp) {
         this.sealTimestamp = sealTimestamp;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        FileSegmentMetadata metadata = (FileSegmentMetadata) o;
+        return size == metadata.size
+            && baseOffset == metadata.baseOffset
+            && status == metadata.status
+            && path.equals(metadata.path)
+            && type == metadata.type
+            && createTimestamp == metadata.createTimestamp
+            && beginTimestamp == metadata.beginTimestamp
+            && endTimestamp == metadata.endTimestamp
+            && sealTimestamp == metadata.sealTimestamp;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, path, baseOffset, status, size, createTimestamp, beginTimestamp, endTimestamp, sealTimestamp);
     }
 }
