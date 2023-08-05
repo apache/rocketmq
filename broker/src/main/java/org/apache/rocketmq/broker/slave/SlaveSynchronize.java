@@ -152,7 +152,7 @@ public class SlaveSynchronize {
                                     .getMessageStoreConfig().getStorePathRootDir());
                     try {
                         MixAll.string2File(delayOffset, fileName);
-                        this.brokerController.getScheduleMessageService().load();
+                        this.brokerController.getScheduleMessageService().loadWhenSyncDelayOffset();
                     } catch (IOException e) {
                         LOGGER.error("Persist file Exception, {}", fileName, e);
                     }
