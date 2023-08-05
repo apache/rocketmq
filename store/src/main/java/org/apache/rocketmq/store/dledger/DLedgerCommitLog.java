@@ -16,26 +16,13 @@
  */
 package org.apache.rocketmq.store.dledger;
 
-import io.openmessaging.storage.dledger.AppendFuture;
-import io.openmessaging.storage.dledger.BatchAppendFuture;
-import io.openmessaging.storage.dledger.DLedgerConfig;
-import io.openmessaging.storage.dledger.DLedgerServer;
-import io.openmessaging.storage.dledger.entry.DLedgerEntry;
-import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
-import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
-import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
-import io.openmessaging.storage.dledger.protocol.DLedgerResponseCode;
-import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
-import io.openmessaging.storage.dledger.store.file.MmapFile;
-import io.openmessaging.storage.dledger.store.file.MmapFileList;
-import io.openmessaging.storage.dledger.store.file.SelectMmapBufferResult;
-import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -54,6 +41,22 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreStatsService;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.rocksdb.RocksDBException;
+
+import io.openmessaging.storage.dledger.AppendFuture;
+import io.openmessaging.storage.dledger.BatchAppendFuture;
+import io.openmessaging.storage.dledger.DLedgerConfig;
+import io.openmessaging.storage.dledger.DLedgerServer;
+import io.openmessaging.storage.dledger.entry.DLedgerEntry;
+import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
+import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
+import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
+import io.openmessaging.storage.dledger.protocol.DLedgerResponseCode;
+import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
+import io.openmessaging.storage.dledger.store.file.MmapFile;
+import io.openmessaging.storage.dledger.store.file.MmapFileList;
+import io.openmessaging.storage.dledger.store.file.SelectMmapBufferResult;
+import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -264,7 +267,7 @@ public class DLedgerCommitLog extends CommitLog {
 
         return null;
     }
-     
+
     @Override
     public boolean getData(final long offset, final int size, final ByteBuffer byteBuffer) {
         if (offset < dividedCommitlogOffset) {
@@ -282,7 +285,7 @@ public class DLedgerCommitLog extends CommitLog {
         return false;
     }
 
-    private void recover(long maxPhyOffsetOfConsumeQueue) {
+    private void recover(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
         dLedgerFileStore.load();
         if (dLedgerFileList.getMappedFiles().size() > 0) {
             dLedgerFileStore.recover();
@@ -336,12 +339,12 @@ public class DLedgerCommitLog extends CommitLog {
     }
 
     @Override
-    public void recoverNormally(long maxPhyOffsetOfConsumeQueue) {
+    public void recoverNormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
         recover(maxPhyOffsetOfConsumeQueue);
     }
 
     @Override
-    public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) {
+    public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
         recover(maxPhyOffsetOfConsumeQueue);
     }
 
@@ -464,9 +467,6 @@ public class DLedgerCommitLog extends CommitLog {
                 String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
                 elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
                 appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.getData().length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
-            } catch (Exception e) {
-                log.error("Put message error", e);
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
             } finally {
                 beginTimeInDledgerLock = 0;
                 putMessageLock.unlock();
@@ -477,6 +477,9 @@ public class DLedgerCommitLog extends CommitLog {
             }
 
             defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
+        } catch (Exception e) {
+            log.error("Put message error", e);
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
         } finally {
             topicQueueLock.unlock(topicQueueKey);
         }
@@ -606,9 +609,6 @@ public class DLedgerCommitLog extends CommitLog {
                 appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, firstWroteOffset, encodeResult.totalMsgLen,
                     msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
                 appendResult.setMsgNum(msgNum);
-            } catch (Exception e) {
-                log.error("Put message error", e);
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
             } finally {
                 beginTimeInDledgerLock = 0;
                 putMessageLock.unlock();
@@ -621,7 +621,10 @@ public class DLedgerCommitLog extends CommitLog {
 
             defaultMessageStore.increaseOffset(messageExtBatch, (short) batchNum);
 
-        } finally {
+        } catch (Exception e) {
+            log.error("Put message error", e);
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+        }  finally {
             topicQueueLock.unlock(encodeResult.queueOffsetKey);
         }
 

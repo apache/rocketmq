@@ -538,7 +538,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         this.brokerController.getTopicQueueMappingManager().delete(requestHeader.getTopic());
         this.brokerController.getConsumerOffsetManager().cleanOffsetByTopic(requestHeader.getTopic());
         this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNumByTopicName(requestHeader.getTopic());
-        this.brokerController.getMessageStore().deleteTopics(Sets.newHashSet(requestHeader.getTopic()));
+        try {
+            this.brokerController.getMessageStore().deleteTopics(Sets.newHashSet(requestHeader.getTopic()));
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
@@ -2071,7 +2075,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     public RemotingCommand cleanExpiredConsumeQueue() {
         LOGGER.info("AdminBrokerProcessor#cleanExpiredConsumeQueue: start.");
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        brokerController.getMessageStore().cleanExpiredConsumerQueue();
+        try {
+            brokerController.getMessageStore().cleanExpiredConsumerQueue();
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
         LOGGER.info("AdminBrokerProcessor#cleanExpiredConsumeQueue: end.");
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -2091,7 +2099,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     public RemotingCommand cleanUnusedTopic() {
         LOGGER.warn("invoke cleanUnusedTopic start.");
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        brokerController.getMessageStore().cleanUnusedTopic(brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
+        try {
+            brokerController.getMessageStore().cleanUnusedTopic(brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
         LOGGER.warn("invoke cleanUnusedTopic end.");
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -2765,7 +2777,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         final ReplicasManager replicasManager = this.brokerController.getReplicasManager();
         if (replicasManager != null) {
-            replicasManager.changeBrokerRole(requestHeader.getMasterBrokerId(), requestHeader.getMasterAddress(), requestHeader.getMasterEpoch(), requestHeader.getSyncStateSetEpoch(), syncStateSetInfo.getSyncStateSet());
+            try {
+                replicasManager.changeBrokerRole(requestHeader.getMasterBrokerId(), requestHeader.getMasterAddress(), requestHeader.getMasterEpoch(), requestHeader.getSyncStateSetEpoch(), syncStateSetInfo.getSyncStateSet());
+            } catch (Exception e) {
+                throw new RemotingCommandException(e.getMessage());
+            }
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

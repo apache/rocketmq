@@ -16,17 +16,12 @@
  */
 package org.apache.rocketmq.tieredstore;
 
-import com.google.common.base.Stopwatch;
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import com.google.common.base.Stopwatch;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
@@ -54,6 +49,13 @@ import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+import org.rocksdb.RocksDBException;
+
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
 
 public class TieredMessageStore extends AbstractPluginMessageStore {
 
@@ -386,7 +388,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public int cleanUnusedTopic(Set<String> retainTopics) {
+    public int cleanUnusedTopic(Set<String> retainTopics) throws RocksDBException {
         try {
             metadataStore.iterateTopic(topicMetadata -> {
                 String topic = topicMetadata.getTopic();
@@ -404,7 +406,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public int deleteTopics(Set<String> deleteTopics) {
+    public int deleteTopics(Set<String> deleteTopics) throws RocksDBException {
         for (String topic : deleteTopics) {
             this.destroyCompositeFlatFile(topic);
         }

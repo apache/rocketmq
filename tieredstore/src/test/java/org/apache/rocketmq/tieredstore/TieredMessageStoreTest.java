@@ -47,6 +47,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.rocksdb.RocksDBException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -263,7 +264,7 @@ public class TieredMessageStoreTest {
     }
 
     @Test
-    public void testCleanUnusedTopics() {
+    public void testCleanUnusedTopics() throws RocksDBException {
         Set<String> topicSet = new HashSet<>();
         store.cleanUnusedTopic(topicSet);
         Assert.assertNull(TieredFlatFileManager.getInstance(store.getStoreConfig()).getFlatFile(mq));
@@ -272,7 +273,7 @@ public class TieredMessageStoreTest {
     }
 
     @Test
-    public void testDeleteTopics() {
+    public void testDeleteTopics() throws RocksDBException {
         Set<String> topicSet = new HashSet<>();
         topicSet.add(mq.getTopic());
         store.deleteTopics(topicSet);

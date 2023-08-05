@@ -17,11 +17,6 @@
 
 package org.apache.rocketmq.store.plugin;
 
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
-
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -57,10 +52,17 @@ import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
-import org.apache.rocketmq.store.queue.ConsumeQueueStore;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
+import org.rocksdb.RocksDBException;
+
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
 
 public abstract class AbstractPluginMessageStore implements MessageStore {
     protected MessageStore next = null;
@@ -257,12 +259,12 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public int deleteTopics(final Set<String> deleteTopics) {
+    public int deleteTopics(final Set<String> deleteTopics) throws RocksDBException {
         return next.deleteTopics(deleteTopics);
     }
 
     @Override
-    public int cleanUnusedTopic(final Set<String> retainTopics) {
+    public int cleanUnusedTopic(final Set<String> retainTopics) throws RocksDBException {
         return next.cleanUnusedTopic(retainTopics);
     }
 
@@ -459,7 +461,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public boolean truncateFiles(long offsetToTruncate) {
+    public boolean truncateFiles(long offsetToTruncate) throws RocksDBException {
         return next.truncateFiles(offsetToTruncate);
     }
 
@@ -513,7 +515,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
 
     @Override
     public void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile,
-        boolean isRecover, boolean isFileEnd) {
+        boolean isRecover, boolean isFileEnd) throws RocksDBException {
         next.onCommitLogDispatch(dispatchRequest, doDispatch, commitLogFile, isRecover, isFileEnd);
     }
 
@@ -553,7 +555,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public void truncateDirtyLogicFiles(long phyOffset) {
+    public void truncateDirtyLogicFiles(long phyOffset) throws RocksDBException {
         next.truncateDirtyLogicFiles(phyOffset);
     }
 
@@ -573,7 +575,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public ConsumeQueueStore getQueueStore() {
+    public ConsumeQueueStoreInterface getQueueStore() {
         return next.getQueueStore();
     }
 
@@ -588,7 +590,7 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public void assignOffset(MessageExtBrokerInner msg) {
+    public void assignOffset(MessageExtBrokerInner msg) throws RocksDBException {
         next.assignOffset(msg);
     }
 
@@ -650,5 +652,25 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
         next.initMetrics(meter, attributesBuilderSupplier);
+    }
+
+    @Override
+    public void finishCommitLogDispatch() {
+        next.finishCommitLogDispatch();
+    }
+
+    @Override
+    public void recoverTopicQueueTable() {
+        next.recoverTopicQueueTable();
+    }
+
+    @Override
+    public boolean loadLogics() {
+        return next.loadLogics();
+    }
+
+    @Override
+    public long getStoreTime(CqUnit cqUnit) {
+        return next.getStoreTime(cqUnit);
     }
 }

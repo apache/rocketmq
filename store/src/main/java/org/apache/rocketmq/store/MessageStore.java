@@ -16,11 +16,6 @@
  */
 package org.apache.rocketmq.store;
 
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
-
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -28,7 +23,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
@@ -42,10 +36,16 @@ import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
-import org.apache.rocketmq.store.queue.ConsumeQueueStore;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
+import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
+import org.rocksdb.RocksDBException;
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.View;
 
 /**
  * This class defines contracting interfaces to implement, allowing third-party vendor to use customized message store.
@@ -455,16 +455,18 @@ public interface MessageStore {
      *
      * @param deleteTopics unused topic name set
      * @return the number of the topics which has been deleted.
+     * @throws RocksDBException only in rocksdb mode
      */
-    int deleteTopics(final Set<String> deleteTopics);
+    int deleteTopics(final Set<String> deleteTopics) throws RocksDBException;
 
     /**
      * Clean unused topics which not in retain topic name set.
      *
      * @param retainTopics all valid topics.
      * @return number of the topics deleted.
+     * @throws RocksDBException only in rocksdb mode
      */
-    int cleanUnusedTopic(final Set<String> retainTopics);
+    int cleanUnusedTopic(final Set<String> retainTopics) throws RocksDBException;
 
     /**
      * Clean expired consume queues.
@@ -547,7 +549,7 @@ public interface MessageStore {
     void setConfirmOffset(long phyOffset);
 
     /**
-     * Check if the operation system page cache is busy or not.
+     * Check if the operating system page cache is busy or not.
      *
      * @return true if the OS page cache is busy; false otherwise.
      */
@@ -622,9 +624,18 @@ public interface MessageStore {
      * @param commitLogFile   commit log file
      * @param isRecover       is from recover process
      * @param isFileEnd       if the dispatch request represents 'file end'
+     * @throws RocksDBException      only in rocksdb mode
      */
     void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile,
-        boolean isRecover, boolean isFileEnd);
+        boolean isRecover, boolean isFileEnd) throws RocksDBException;
+
+    /**
+     * Only used in rocksdb mode, because we build consumeQueue in batch(default 16 dispatchRequests)
+     * It will be triggered in two cases:
+     * 1.ReputMessageService.doReput
+     * 2.Commitlog.recoverAbnormally
+     */
+    void finishCommitLogDispatch();
 
     /**
      * Get the message store config
@@ -693,13 +704,19 @@ public interface MessageStore {
      * Truncate dirty logic files
      *
      * @param phyOffset physical offset
+     * @throws RocksDBException only in rocksdb mode
      */
-    void truncateDirtyLogicFiles(long phyOffset);
+    void truncateDirtyLogicFiles(long phyOffset) throws RocksDBException;
 
     /**
      * Destroy logics files
      */
     void destroyLogics();
+
+    /**
+     * Load logics files
+     */
+    boolean loadLogics();
 
     /**
      * Unlock mappedFile
@@ -720,7 +737,7 @@ public interface MessageStore {
      *
      * @return the queue store
      */
-    ConsumeQueueStore getQueueStore();
+    ConsumeQueueStoreInterface getQueueStore();
 
     /**
      * If 'sync disk flush' is configured in this message store
@@ -741,8 +758,9 @@ public interface MessageStore {
      * yourself.
      *
      * @param msg        message
+     * @throws RocksDBException
      */
-    void assignOffset(MessageExtBrokerInner msg);
+    void assignOffset(MessageExtBrokerInner msg) throws RocksDBException;
 
     /**
      * Increase queue offset in memory table. If there is a race condition, you need to lock/unlock this method
@@ -837,14 +855,15 @@ public interface MessageStore {
      *
      * @param offsetToTruncate offset to truncate
      * @return true if truncate succeed, false otherwise
+     * @throws RocksDBException only in rocksdb mode
      */
-    boolean truncateFiles(long offsetToTruncate);
+    boolean truncateFiles(long offsetToTruncate) throws RocksDBException;
 
     /**
-     * Check if the offset is align with one message.
+     * Check if the offset is aligned with one message.
      *
      * @param offset offset to check
-     * @return true if align, false otherwise
+     * @return true if aligned, false otherwise
      */
     boolean isOffsetAligned(long offset);
 
@@ -973,4 +992,16 @@ public interface MessageStore {
      * @param attributesBuilderSupplier metrics attributes builder
      */
     void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier);
+
+    /**
+     * Recover topic queue table
+     */
+    void recoverTopicQueueTable();
+
+    /**
+     * Get store time from commitlog by cqUnit
+     * @param cqUnit
+     * @return
+     */
+    long getStoreTime(CqUnit cqUnit);
 }

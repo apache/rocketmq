@@ -31,6 +31,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.rocksdb.RocksDBException;
 
 import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathConsumeQueue;
 import static org.junit.Assert.assertEquals;
@@ -77,7 +78,7 @@ public class MultiDispatchTest {
     }
 
     @Test
-    public void wrapMultiDispatch() {
+    public void wrapMultiDispatch() throws RocksDBException {
         MessageExtBrokerInner messageExtBrokerInner = buildMessageMultiQueue();
         messageStore.assignOffset(messageExtBrokerInner);
         assertEquals(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET), "0,0");

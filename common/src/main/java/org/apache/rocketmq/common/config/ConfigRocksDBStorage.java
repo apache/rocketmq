@@ -197,7 +197,7 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
             setUseDirectReads(true);
     }
 
-    private static String getDBLogDir() {
+    public static String getDBLogDir() {
         String rootPath = System.getProperty("user.home");
         if (StringUtils.isEmpty(rootPath)) {
             return "";
