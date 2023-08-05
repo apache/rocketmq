@@ -219,26 +219,26 @@ public interface ConsumeQueueStoreInterface {
     Long getMaxOffset(String topic, int queueId);
 
     /**
-     * get max offset in consumeQueue
-     * @return the max offset in consumeQueue
+     * get max physic offset in consumeQueue
+     * @return the max physic offset in consumeQueue
      * @throws Exception only in rocksdb mode
      */
     long getMaxOffsetInConsumeQueue() throws Exception;
 
     /**
-     * get min offset of specific topic-queueId in consumeQueue
+     * get min logic offset of specific topic-queueId in consumeQueue
      * @param topic
      * @param queueId
-     * @return the min offset of specific topic-queueId in consumeQueue
+     * @return the min logic offset of specific topic-queueId in consumeQueue
      * @throws Exception only in rocksdb mode
      */
     long getMinOffsetInQueue(final String topic, final int queueId) throws Exception;
 
     /**
-     * get max offset of specific topic-queueId in consumeQueue
+     * get max logic offset of specific topic-queueId in consumeQueue
      * @param topic
      * @param queueId
-     * @return the max offset of specific topic-queueId in consumeQueue
+     * @return the max logic offset of specific topic-queueId in consumeQueue
      * @throws Exception only in rocksdb mode
      */
     long getMaxOffsetInQueue(final String topic, final int queueId) throws Exception;

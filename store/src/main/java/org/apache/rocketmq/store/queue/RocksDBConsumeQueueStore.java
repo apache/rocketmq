@@ -48,7 +48,6 @@ import org.apache.rocketmq.store.RocksDBConsumeQueue;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
-import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.FlushOptions;
 import org.rocksdb.RocksDBException;
@@ -1141,7 +1140,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 keyBB.get(topicBytes);
 
                 String topic = new String(topicBytes, CHARSET_UTF8);
-                if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(topic) || TimerMessageStore.TIMER_TOPIC.equals(topic)) {
+                if (TopicValidator.isSystemTopic(topic)) {
                     continue;
                 }
                 if (!existTopicSet.contains(topic)) {
