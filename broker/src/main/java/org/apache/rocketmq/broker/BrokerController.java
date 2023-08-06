@@ -370,6 +370,8 @@ public class BrokerController {
         }
     }
 
+    //************************ constructor end: depends about 100 objects ***************************************
+    //************************ public methods start: 373~651, about 278 lines ***************************************
     public boolean initialize() throws CloneNotSupportedException {
         boolean result = this.initializeMetadata();
         if (!result) {
