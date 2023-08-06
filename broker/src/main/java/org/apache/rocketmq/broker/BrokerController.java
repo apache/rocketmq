@@ -719,10 +719,12 @@ public class BrokerController {
             DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
 
             if (messageStoreConfig.isEnableDLegerCommitLog()) {
-                DLedgerRoleChangeHandler roleChangeHandler =
-                    new DLedgerRoleChangeHandler(this, defaultMessageStore);
-                ((DLedgerCommitLog) defaultMessageStore.getCommitLog())
-                    .getdLedgerServer().getDLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
+                DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, defaultMessageStore);
+                DLedgerCommitLog dLedgerCommitLog =   (DLedgerCommitLog) defaultMessageStore.getCommitLog();
+
+                dLedgerCommitLog.getdLedgerServer()
+                    .getDLedgerLeaderElector()
+                    .addRoleChangeHandler(roleChangeHandler);
             }
 
             this.brokerStats = new BrokerStats(defaultMessageStore);
@@ -730,8 +732,11 @@ public class BrokerController {
             // Load store plugin
             MessageStorePluginContext context = new MessageStorePluginContext(
                 messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig, configuration);
+
             this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
+
             this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
+
             if (messageStoreConfig.isTimerWheelEnable()) {
                 this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
                 TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
@@ -739,6 +744,7 @@ public class BrokerController {
                 this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
                 this.messageStore.setTimerMessageStore(this.timerMessageStore);
             }
+
         } catch (IOException e) {
             result = false;
             LOG.error("BrokerController#initialize: unexpected error occurs", e);
@@ -781,8 +787,10 @@ public class BrokerController {
         initializeRemotingServer();
         initializeResources();
         registerProcessor();
+
         initializeScheduledTasks();
         initialTransaction();
+
         initialAcl();
         initialRpcHooks();
 
