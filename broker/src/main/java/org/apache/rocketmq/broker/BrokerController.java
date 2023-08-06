@@ -370,6 +370,566 @@ public class BrokerController {
         }
     }
 
+
+    public boolean initialize() throws CloneNotSupportedException {
+        boolean result = this.initializeMetadata();
+        if (!result) {
+            return false;
+        }
+
+        result = this.initializeMessageStore();
+        if (!result) {
+            return false;
+        }
+
+        return this.recoverAndInitService();
+    }
+
+    public boolean initializeMetadata() {
+        boolean result = this.topicConfigManager.load();
+        result = result && this.topicQueueMappingManager.load();
+        result = result && this.consumerOffsetManager.load();
+        result = result && this.subscriptionGroupManager.load();
+        result = result && this.consumerFilterManager.load();
+        result = result && this.consumerOrderInfoManager.load();
+        return result;
+    }
+
+    public boolean initializeMessageStore() {
+        boolean result = true;
+        try {
+            DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
+
+            if (messageStoreConfig.isEnableDLegerCommitLog()) {
+                DLedgerRoleChangeHandler roleChangeHandler =
+                    new DLedgerRoleChangeHandler(this, defaultMessageStore);
+                ((DLedgerCommitLog) defaultMessageStore.getCommitLog())
+                    .getdLedgerServer().getDLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
+            }
+
+            this.brokerStats = new BrokerStats(defaultMessageStore);
+
+            // Load store plugin
+            MessageStorePluginContext context = new MessageStorePluginContext(
+                messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig, configuration);
+            this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
+            this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
+            if (messageStoreConfig.isTimerWheelEnable()) {
+                this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
+                TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
+                this.timerMessageStore = new TimerMessageStore(messageStore, messageStoreConfig, timerCheckpoint, timerMetrics, brokerStatsManager);
+                this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
+                this.messageStore.setTimerMessageStore(this.timerMessageStore);
+            }
+        } catch (IOException e) {
+            result = false;
+            LOG.error("BrokerController#initialize: unexpected error occurs", e);
+        }
+        return result;
+    }
+
+
+    public boolean recoverAndInitService() throws CloneNotSupportedException {
+        boolean result = true;
+
+        if (this.brokerConfig.isEnableControllerMode()) {
+            this.replicasManager = new ReplicasManager(this);
+            this.replicasManager.setFenced(true);
+        }
+
+        if (messageStore != null) {
+            registerMessageStoreHook();
+            result = this.messageStore.load();
+        }
+
+        if (messageStoreConfig.isTimerWheelEnable()) {
+            result = result && this.timerMessageStore.load();
+        }
+
+        //scheduleMessageService load after messageStore load success
+        result = result && this.scheduleMessageService.load();
+
+        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
+            if (brokerAttachedPlugin != null) {
+                result = result && brokerAttachedPlugin.load();
+            }
+        }
+
+        this.brokerMetricsManager = new BrokerMetricsManager(this);
+
+        if (!result) {
+            return false;
+        }
+
+        initializeRemotingServer();
+        initializeResources();
+        registerProcessor();
+        initializeScheduledTasks();
+        initialTransaction();
+        initialAcl();
+        initialRpcHooks();
+
+        return initialFileWatchService();
+    }
+
+    public void registerProcessor() {
+        /*
+         * SendMessageProcessor
+         */
+        sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
+        sendMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
+
+        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageProcessor, this.sendMessageExecutor);
+        /**
+         * PullMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, this.pullMessageProcessor, this.pullMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.LITE_PULL_MESSAGE, this.pullMessageProcessor, this.litePullMessageExecutor);
+        this.pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
+        /**
+         * PeekMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.PEEK_MESSAGE, this.peekMessageProcessor, this.pullMessageExecutor);
+        /**
+         * PopMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.POP_MESSAGE, this.popMessageProcessor, this.pullMessageExecutor);
+
+        /**
+         * AckMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
+
+        this.remotingServer.registerProcessor(RequestCode.BATCH_ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.BATCH_ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
+        /**
+         * ChangeInvisibleTimeProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, this.changeInvisibleTimeProcessor, this.ackMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, this.changeInvisibleTimeProcessor, this.ackMessageExecutor);
+        /**
+         * notificationProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.NOTIFICATION, this.notificationProcessor, this.pullMessageExecutor);
+
+        /**
+         * pollingInfoProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.POLLING_INFO, this.pollingInfoProcessor, this.pullMessageExecutor);
+
+        /**
+         * ReplyMessageProcessor
+         */
+
+        replyMessageProcessor.registerSendMessageHook(sendMessageHookList);
+
+        this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
+
+        /**
+         * QueryMessageProcessor
+         */
+        NettyRequestProcessor queryProcessor = new QueryMessageProcessor(this);
+        this.remotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor, this.queryMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor, this.queryMessageExecutor);
+
+        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor, this.queryMessageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor, this.queryMessageExecutor);
+
+        /**
+         * ClientManageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientManageProcessor, this.heartbeatExecutor);
+        this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientManageProcessor, this.clientManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientManageProcessor, this.clientManageExecutor);
+
+        this.fastRemotingServer.registerProcessor(RequestCode.HEART_BEAT, clientManageProcessor, this.heartbeatExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientManageProcessor, this.clientManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientManageProcessor, this.clientManageExecutor);
+
+        /**
+         * ConsumerManageProcessor
+         */
+        ConsumerManageProcessor consumerManageProcessor = new ConsumerManageProcessor(this);
+        this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+
+        this.fastRemotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+
+        /**
+         * QueryAssignmentProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.QUERY_ASSIGNMENT, queryAssignmentProcessor, loadBalanceExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_ASSIGNMENT, queryAssignmentProcessor, loadBalanceExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SET_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.SET_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
+
+        /**
+         * EndTransactionProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION, endTransactionProcessor, this.endTransactionExecutor);
+        this.fastRemotingServer.registerProcessor(RequestCode.END_TRANSACTION, endTransactionProcessor, this.endTransactionExecutor);
+
+        /*
+         * Default
+         */
+        AdminBrokerProcessor adminProcessor = new AdminBrokerProcessor(this);
+        this.remotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
+        this.fastRemotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
+    }
+
+    public void protectBroker() {
+        if (!this.brokerConfig.isDisableConsumeIfConsumerReadSlowly()) {
+            return;
+        }
+
+        for (Map.Entry<String, MomentStatsItem> next : this.brokerStatsManager.getMomentStatsItemSetFallSize().getStatsItemTable().entrySet()) {
+            final long fallBehindBytes = next.getValue().getValue().get();
+            if (fallBehindBytes <= this.brokerConfig.getConsumerFallbehindThreshold()) {
+                continue;
+            }
+
+            final String[] split = next.getValue().getStatsKey().split("@");
+            final String group = split[2];
+            LOG_PROTECTION.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
+            this.subscriptionGroupManager.disableConsume(group);
+        }
+    }
+
+    public long headSlowTimeMills(BlockingQueue<Runnable> q) {
+        long slowTimeMills = 0;
+        final Runnable peek = q.peek();
+        if (peek != null) {
+            RequestTask rt = BrokerFastFailure.castRunnable(peek);
+            slowTimeMills = rt == null ? 0 : this.messageStore.now() - rt.getCreateTimestamp();
+        }
+
+        if (slowTimeMills < 0) {
+            slowTimeMills = 0;
+        }
+
+        return slowTimeMills;
+    }
+
+    public long headSlowTimeMills4SendThreadPoolQueue() {
+        return this.headSlowTimeMills(this.sendThreadPoolQueue);
+    }
+
+    public long headSlowTimeMills4PullThreadPoolQueue() {
+        return this.headSlowTimeMills(this.pullThreadPoolQueue);
+    }
+
+    public long headSlowTimeMills4LitePullThreadPoolQueue() {
+        return this.headSlowTimeMills(this.litePullThreadPoolQueue);
+    }
+
+    public long headSlowTimeMills4QueryThreadPoolQueue() {
+        return this.headSlowTimeMills(this.queryThreadPoolQueue);
+    }
+
+    public ChangeInvisibleTimeProcessor getChangeInvisibleTimeProcessor() {
+        return changeInvisibleTimeProcessor;
+    }
+
+    public void shutdown() {
+
+        shutdownBasicService();
+
+        for (ScheduledFuture<?> scheduledFuture : scheduledFutures) {
+            scheduledFuture.cancel(true);
+        }
+
+        if (this.brokerOuterAPI != null) {
+            this.brokerOuterAPI.shutdown();
+        }
+    }
+
+    public void start() throws Exception {
+
+        this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
+
+        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
+            isIsolated = true;
+        }
+
+        if (this.brokerOuterAPI != null) {
+            this.brokerOuterAPI.start();
+        }
+
+        startBasicService();
+
+        if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
+            changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
+            this.registerBrokerAll(true, false, true);
+        }
+
+        scheduleRegisterBrokerAll();
+        scheduleSlaveActingMaster();
+
+        if (this.brokerConfig.isEnableControllerMode()) {
+            scheduleSendHeartbeat();
+        }
+
+        if (brokerConfig.isSkipPreOnline()) {
+            startServiceWithoutCondition();
+        }
+    }
+
+    public synchronized void registerSingleTopicAll(final TopicConfig topicConfig) {
+        TopicConfig tmpTopic = topicConfig;
+        if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
+            || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
+            // Copy the topic config and modify the perm
+            tmpTopic = new TopicConfig(topicConfig);
+            tmpTopic.setPerm(topicConfig.getPerm() & this.brokerConfig.getBrokerPermission());
+        }
+        this.brokerOuterAPI.registerSingleTopicAll(this.brokerConfig.getBrokerName(), tmpTopic, 3000);
+    }
+
+    public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
+        this.registerIncrementBrokerData(Collections.singletonList(topicConfig), dataVersion);
+    }
+
+    public synchronized void registerIncrementBrokerData(List<TopicConfig> topicConfigList, DataVersion dataVersion) {
+        if (topicConfigList == null || topicConfigList.isEmpty()) {
+            return;
+        }
+
+        TopicConfigAndMappingSerializeWrapper topicConfigSerializeWrapper = new TopicConfigAndMappingSerializeWrapper();
+        topicConfigSerializeWrapper.setDataVersion(dataVersion);
+
+        ConcurrentMap<String, TopicConfig> topicConfigTable = topicConfigList.stream()
+            .map(topicConfig -> {
+                TopicConfig registerTopicConfig;
+                if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
+                    || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
+                    registerTopicConfig =
+                        new TopicConfig(topicConfig.getTopicName(),
+                            topicConfig.getReadQueueNums(),
+                            topicConfig.getWriteQueueNums(),
+                            this.brokerConfig.getBrokerPermission(), topicConfig.getTopicSysFlag());
+                } else {
+                    registerTopicConfig = new TopicConfig(topicConfig);
+                }
+                return registerTopicConfig;
+            })
+            .collect(Collectors.toConcurrentMap(TopicConfig::getTopicName, Function.identity()));
+        topicConfigSerializeWrapper.setTopicConfigTable(topicConfigTable);
+
+        Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = topicConfigList.stream()
+            .map(TopicConfig::getTopicName)
+            .map(topicName -> Optional.ofNullable(this.topicQueueMappingManager.getTopicQueueMapping(topicName))
+                .map(info -> new AbstractMap.SimpleImmutableEntry<>(topicName, TopicQueueMappingDetail.cloneAsMappingInfo(info)))
+                .orElse(null))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        if (!topicQueueMappingInfoMap.isEmpty()) {
+            topicConfigSerializeWrapper.setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
+        }
+
+        doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
+    }
+
+    public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
+
+        TopicConfigAndMappingSerializeWrapper topicConfigWrapper = new TopicConfigAndMappingSerializeWrapper();
+
+        topicConfigWrapper.setDataVersion(this.getTopicConfigManager().getDataVersion());
+        topicConfigWrapper.setTopicConfigTable(this.getTopicConfigManager().getTopicConfigTable());
+
+        topicConfigWrapper.setTopicQueueMappingInfoMap(this.getTopicQueueMappingManager().getTopicQueueMappingTable().entrySet().stream().map(
+            entry -> new AbstractMap.SimpleImmutableEntry<>(entry.getKey(), TopicQueueMappingDetail.cloneAsMappingInfo(entry.getValue()))
+        ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+
+        if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
+            || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
+            ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+            for (TopicConfig topicConfig : topicConfigWrapper.getTopicConfigTable().values()) {
+                TopicConfig tmp =
+                    new TopicConfig(topicConfig.getTopicName(), topicConfig.getReadQueueNums(), topicConfig.getWriteQueueNums(),
+                        topicConfig.getPerm() & this.brokerConfig.getBrokerPermission(), topicConfig.getTopicSysFlag());
+                topicConfigTable.put(topicConfig.getTopicName(), tmp);
+            }
+            topicConfigWrapper.setTopicConfigTable(topicConfigTable);
+        }
+
+        if (forceRegister || needRegister(this.brokerConfig.getBrokerClusterName(),
+            this.getBrokerAddr(),
+            this.brokerConfig.getBrokerName(),
+            this.brokerConfig.getBrokerId(),
+            this.brokerConfig.getRegisterBrokerTimeoutMills(),
+            this.brokerConfig.isInBrokerContainer())) {
+            doRegisterBrokerAll(checkOrderConfig, oneway, topicConfigWrapper);
+        }
+    }
+
+    public void startService(long minBrokerId, String minBrokerAddr) {
+        BrokerController.LOG.info("{} start service, min broker id is {}, min broker addr: {}",
+            this.brokerConfig.getCanonicalName(), minBrokerId, minBrokerAddr);
+        this.minBrokerIdInGroup = minBrokerId;
+        this.minBrokerAddrInGroup = minBrokerAddr;
+
+        this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == minBrokerId);
+        this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
+
+        isIsolated = false;
+    }
+
+    public void startServiceWithoutCondition() {
+        BrokerController.LOG.info("{} start service", this.brokerConfig.getCanonicalName());
+
+        this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
+        this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
+
+        isIsolated = false;
+    }
+
+    public void stopService() {
+        BrokerController.LOG.info("{} stop service", this.getBrokerConfig().getCanonicalName());
+        isIsolated = true;
+        this.changeSpecialServiceStatus(false);
+    }
+
+    public boolean isSpecialServiceRunning() {
+        if (isScheduleServiceStart() && isTransactionCheckServiceStart()) {
+            return true;
+        }
+
+        return this.ackMessageProcessor != null && this.ackMessageProcessor.isPopReviveServiceRunning();
+    }
+
+    public void updateMinBroker(long minBrokerId, String minBrokerAddr) {
+        if (brokerConfig.isEnableSlaveActingMaster() && brokerConfig.getBrokerId() != MixAll.MASTER_ID) {
+            if (!lock.tryLock()) {
+                return;
+            }
+        }
+
+        try {
+            if (minBrokerId != this.minBrokerIdInGroup) {
+                String offlineBrokerAddr = null;
+                if (minBrokerId > this.minBrokerIdInGroup) {
+                    offlineBrokerAddr = this.minBrokerAddrInGroup;
+                }
+                onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, null);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public void updateMinBroker(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr, String masterHaAddr) {
+        if (!brokerConfig.isEnableSlaveActingMaster() || brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
+            return;
+        }
+
+        try {
+            if (!lock.tryLock(3000, TimeUnit.MILLISECONDS)) {
+                return;
+            }
+
+            try {
+                if (minBrokerId != this.minBrokerIdInGroup) {
+                    onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, masterHaAddr);
+                }
+            } finally {
+                lock.unlock();
+            }
+        } catch (InterruptedException e) {
+            LOG.error("Update min broker error, {}", e);
+        }
+    }
+
+    public void changeSpecialServiceStatus(boolean shouldStart) {
+
+        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
+            if (brokerAttachedPlugin != null) {
+                brokerAttachedPlugin.statusChanged(shouldStart);
+            }
+        }
+
+        changeScheduleServiceStatus(shouldStart);
+
+        changeTransactionCheckServiceStatus(shouldStart);
+
+        if (this.ackMessageProcessor != null) {
+            LOG.info("Set PopReviveService Status to {}", shouldStart);
+            this.ackMessageProcessor.setPopReviveServiceStatus(shouldStart);
+        }
+    }
+
+    public MessageStore getMessageStoreByBrokerName(String brokerName) {
+        if (this.brokerConfig.getBrokerName().equals(brokerName)) {
+            return this.getMessageStore();
+        }
+        return null;
+    }
+
+    public BrokerIdentity getBrokerIdentity() {
+        if (messageStoreConfig.isEnableDLegerCommitLog()) {
+            return new BrokerIdentity(
+                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
+                Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1)), brokerConfig.isInBrokerContainer());
+        } else {
+            return new BrokerIdentity(
+                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
+                brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
+        }
+    }
+
+    public void registerSendMessageHook(final SendMessageHook hook) {
+        this.sendMessageHookList.add(hook);
+        LOG.info("register SendMessageHook Hook, {}", hook.hookName());
+    }
+
+    public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
+        this.consumeMessageHookList.add(hook);
+        LOG.info("register ConsumeMessageHook Hook, {}", hook.hookName());
+    }
+
+    public void registerServerRPCHook(RPCHook rpcHook) {
+        getRemotingServer().registerRPCHook(rpcHook);
+        this.fastRemotingServer.registerRPCHook(rpcHook);
+    }
+
+    public void registerClientRPCHook(RPCHook rpcHook) {
+        this.getBrokerOuterAPI().registerRPCHook(rpcHook);
+    }
+
+    //**************************************** debug methods start ****************************************************
+    public void printWaterMark() {
+        LOG_WATER_MARK.info("[WATERMARK] Send Queue Size: {} SlowTimeMills: {}", this.sendThreadPoolQueue.size(), headSlowTimeMills4SendThreadPoolQueue());
+        LOG_WATER_MARK.info("[WATERMARK] Pull Queue Size: {} SlowTimeMills: {}", this.pullThreadPoolQueue.size(), headSlowTimeMills4PullThreadPoolQueue());
+        LOG_WATER_MARK.info("[WATERMARK] Query Queue Size: {} SlowTimeMills: {}", this.queryThreadPoolQueue.size(), headSlowTimeMills4QueryThreadPoolQueue());
+        LOG_WATER_MARK.info("[WATERMARK] Lite Pull Queue Size: {} SlowTimeMills: {}", this.litePullThreadPoolQueue.size(), headSlowTimeMills4LitePullThreadPoolQueue());
+        LOG_WATER_MARK.info("[WATERMARK] Transaction Queue Size: {} SlowTimeMills: {}", this.endTransactionThreadPoolQueue.size(), headSlowTimeMills(this.endTransactionThreadPoolQueue));
+        LOG_WATER_MARK.info("[WATERMARK] ClientManager Queue Size: {} SlowTimeMills: {}", this.clientManagerThreadPoolQueue.size(), this.headSlowTimeMills(this.clientManagerThreadPoolQueue));
+        LOG_WATER_MARK.info("[WATERMARK] Heartbeat Queue Size: {} SlowTimeMills: {}", this.heartbeatThreadPoolQueue.size(), this.headSlowTimeMills(this.heartbeatThreadPoolQueue));
+        LOG_WATER_MARK.info("[WATERMARK] Ack Queue Size: {} SlowTimeMills: {}", this.ackThreadPoolQueue.size(), headSlowTimeMills(this.ackThreadPoolQueue));
+    }
+
+    protected void printMasterAndSlaveDiff() {
+        if (messageStore.getHaService() != null && messageStore.getHaService().getConnectionCount().get() > 0) {
+            long diff = this.messageStore.slaveFallBehindMuch();
+            LOG.info("CommitLog: slave fall behind master {}bytes", diff);
+        }
+    }
+
+    //**************************************** private or protected methods start ****************************************************
+
     private void initProducerStateGetter() {
         this.brokerStatsManager.setProduerStateGetter(new BrokerStatsManager.StateGetter() {
             @Override
@@ -409,30 +969,6 @@ public class BrokerController {
             brokerConfigPath,
             this.brokerConfig, this.nettyServerConfig, this.nettyClientConfig, this.messageStoreConfig
         );
-    }
-
-    public BrokerConfig getBrokerConfig() {
-        return brokerConfig;
-    }
-
-    public NettyServerConfig getNettyServerConfig() {
-        return nettyServerConfig;
-    }
-
-    public NettyClientConfig getNettyClientConfig() {
-        return nettyClientConfig;
-    }
-
-    public BlockingQueue<Runnable> getPullThreadPoolQueue() {
-        return pullThreadPoolQueue;
-    }
-
-    public BlockingQueue<Runnable> getQueryThreadPoolQueue() {
-        return queryThreadPoolQueue;
-    }
-
-    public BrokerMetricsManager getBrokerMetricsManager() {
-        return brokerMetricsManager;
     }
 
     protected void initializeRemotingServer() throws CloneNotSupportedException {
@@ -660,7 +1196,7 @@ public class BrokerController {
                                 BrokerController.this.getSlaveSynchronize().syncAll();
                                 lastSyncTimeMs = System.currentTimeMillis();
                             }
-                            
+
                             //timer checkpoint, latency-sensitive, so sync it more frequently
                             if (messageStoreConfig.isTimerWheelEnable()) {
                                 BrokerController.this.getSlaveSynchronize().syncTimerCheckPoint();
@@ -741,107 +1277,6 @@ public class BrokerController {
         } else {
             this.brokerOuterAPI.updateNameServerAddressList(this.brokerConfig.getNamesrvAddr());
         }
-    }
-
-    public boolean initializeMetadata() {
-        boolean result = this.topicConfigManager.load();
-        result = result && this.topicQueueMappingManager.load();
-        result = result && this.consumerOffsetManager.load();
-        result = result && this.subscriptionGroupManager.load();
-        result = result && this.consumerFilterManager.load();
-        result = result && this.consumerOrderInfoManager.load();
-        return result;
-    }
-
-    public boolean initializeMessageStore() {
-        boolean result = true;
-        try {
-            DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
-
-            if (messageStoreConfig.isEnableDLegerCommitLog()) {
-                DLedgerRoleChangeHandler roleChangeHandler =
-                    new DLedgerRoleChangeHandler(this, defaultMessageStore);
-                ((DLedgerCommitLog) defaultMessageStore.getCommitLog())
-                    .getdLedgerServer().getDLedgerLeaderElector().addRoleChangeHandler(roleChangeHandler);
-            }
-
-            this.brokerStats = new BrokerStats(defaultMessageStore);
-
-            // Load store plugin
-            MessageStorePluginContext context = new MessageStorePluginContext(
-                messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig, configuration);
-            this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
-            this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
-            if (messageStoreConfig.isTimerWheelEnable()) {
-                this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
-                TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
-                this.timerMessageStore = new TimerMessageStore(messageStore, messageStoreConfig, timerCheckpoint, timerMetrics, brokerStatsManager);
-                this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
-                this.messageStore.setTimerMessageStore(this.timerMessageStore);
-            }
-        } catch (IOException e) {
-            result = false;
-            LOG.error("BrokerController#initialize: unexpected error occurs", e);
-        }
-        return result;
-    }
-
-    public boolean initialize() throws CloneNotSupportedException {
-
-        boolean result = this.initializeMetadata();
-        if (!result) {
-            return false;
-        }
-
-        result = this.initializeMessageStore();
-        if (!result) {
-            return false;
-        }
-
-        return this.recoverAndInitService();
-    }
-
-    public boolean recoverAndInitService() throws CloneNotSupportedException {
-        boolean result = true;
-
-        if (this.brokerConfig.isEnableControllerMode()) {
-            this.replicasManager = new ReplicasManager(this);
-            this.replicasManager.setFenced(true);
-        }
-
-        if (messageStore != null) {
-            registerMessageStoreHook();
-            result = this.messageStore.load();
-        }
-
-        if (messageStoreConfig.isTimerWheelEnable()) {
-            result = result && this.timerMessageStore.load();
-        }
-
-        //scheduleMessageService load after messageStore load success
-        result = result && this.scheduleMessageService.load();
-
-        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
-            if (brokerAttachedPlugin != null) {
-                result = result && brokerAttachedPlugin.load();
-            }
-        }
-
-        this.brokerMetricsManager = new BrokerMetricsManager(this);
-
-        if (!result) {
-            return false;
-        }
-
-        initializeRemotingServer();
-        initializeResources();
-        registerProcessor();
-        initializeScheduledTasks();
-        initialTransaction();
-        initialAcl();
-        initialRpcHooks();
-
-        return initialFileWatchService();
     }
 
     private boolean initialFileWatchService() {
@@ -953,16 +1388,16 @@ public class BrokerController {
         this.transactionalMessageService = ServiceProvider.loadClass(TransactionalMessageService.class);
         if (null == this.transactionalMessageService) {
             this.transactionalMessageService = new TransactionalMessageServiceImpl(
-                    new TransactionalMessageBridge(this, this.getMessageStore()));
+                new TransactionalMessageBridge(this, this.getMessageStore()));
             LOG.warn("Load default transaction message hook service: {}",
-                    TransactionalMessageServiceImpl.class.getSimpleName());
+                TransactionalMessageServiceImpl.class.getSimpleName());
         }
         this.transactionalMessageCheckListener = ServiceProvider.loadClass(
-                AbstractTransactionalMessageCheckListener.class);
+            AbstractTransactionalMessageCheckListener.class);
         if (null == this.transactionalMessageCheckListener) {
             this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
             LOG.warn("Load default discard message hook service: {}",
-                    DefaultTransactionalMessageCheckListener.class.getSimpleName());
+                DefaultTransactionalMessageCheckListener.class.getSimpleName());
         }
         this.transactionalMessageCheckListener.setBrokerController(this);
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
@@ -1008,292 +1443,6 @@ public class BrokerController {
         for (RPCHook rpcHook : rpcHooks) {
             this.registerServerRPCHook(rpcHook);
         }
-    }
-
-    public void registerProcessor() {
-        /*
-         * SendMessageProcessor
-         */
-        sendMessageProcessor.registerSendMessageHook(sendMessageHookList);
-        sendMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
-
-        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageProcessor, this.sendMessageExecutor);
-        /**
-         * PullMessageProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, this.pullMessageProcessor, this.pullMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.LITE_PULL_MESSAGE, this.pullMessageProcessor, this.litePullMessageExecutor);
-        this.pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
-        /**
-         * PeekMessageProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.PEEK_MESSAGE, this.peekMessageProcessor, this.pullMessageExecutor);
-        /**
-         * PopMessageProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.POP_MESSAGE, this.popMessageProcessor, this.pullMessageExecutor);
-
-        /**
-         * AckMessageProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
-
-        this.remotingServer.registerProcessor(RequestCode.BATCH_ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.BATCH_ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
-        /**
-         * ChangeInvisibleTimeProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, this.changeInvisibleTimeProcessor, this.ackMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, this.changeInvisibleTimeProcessor, this.ackMessageExecutor);
-        /**
-         * notificationProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.NOTIFICATION, this.notificationProcessor, this.pullMessageExecutor);
-
-        /**
-         * pollingInfoProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.POLLING_INFO, this.pollingInfoProcessor, this.pullMessageExecutor);
-
-        /**
-         * ReplyMessageProcessor
-         */
-
-        replyMessageProcessor.registerSendMessageHook(sendMessageHookList);
-
-        this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
-
-        /**
-         * QueryMessageProcessor
-         */
-        NettyRequestProcessor queryProcessor = new QueryMessageProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor, this.queryMessageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor, this.queryMessageExecutor);
-
-        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor, this.queryMessageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor, this.queryMessageExecutor);
-
-        /**
-         * ClientManageProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientManageProcessor, this.heartbeatExecutor);
-        this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientManageProcessor, this.clientManageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientManageProcessor, this.clientManageExecutor);
-
-        this.fastRemotingServer.registerProcessor(RequestCode.HEART_BEAT, clientManageProcessor, this.heartbeatExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientManageProcessor, this.clientManageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientManageProcessor, this.clientManageExecutor);
-
-        /**
-         * ConsumerManageProcessor
-         */
-        ConsumerManageProcessor consumerManageProcessor = new ConsumerManageProcessor(this);
-        this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
-        this.remotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
-
-        this.fastRemotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
-
-        /**
-         * QueryAssignmentProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.QUERY_ASSIGNMENT, queryAssignmentProcessor, loadBalanceExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.QUERY_ASSIGNMENT, queryAssignmentProcessor, loadBalanceExecutor);
-        this.remotingServer.registerProcessor(RequestCode.SET_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.SET_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
-
-        /**
-         * EndTransactionProcessor
-         */
-        this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION, endTransactionProcessor, this.endTransactionExecutor);
-        this.fastRemotingServer.registerProcessor(RequestCode.END_TRANSACTION, endTransactionProcessor, this.endTransactionExecutor);
-
-        /*
-         * Default
-         */
-        AdminBrokerProcessor adminProcessor = new AdminBrokerProcessor(this);
-        this.remotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
-        this.fastRemotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
-    }
-
-    public BrokerStats getBrokerStats() {
-        return brokerStats;
-    }
-
-    public void setBrokerStats(BrokerStats brokerStats) {
-        this.brokerStats = brokerStats;
-    }
-
-    public void protectBroker() {
-        if (!this.brokerConfig.isDisableConsumeIfConsumerReadSlowly()) {
-            return;
-        }
-
-        for (Map.Entry<String, MomentStatsItem> next : this.brokerStatsManager.getMomentStatsItemSetFallSize().getStatsItemTable().entrySet()) {
-            final long fallBehindBytes = next.getValue().getValue().get();
-            if (fallBehindBytes <= this.brokerConfig.getConsumerFallbehindThreshold()) {
-                continue;
-            }
-
-            final String[] split = next.getValue().getStatsKey().split("@");
-            final String group = split[2];
-            LOG_PROTECTION.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
-            this.subscriptionGroupManager.disableConsume(group);
-        }
-    }
-
-    public long headSlowTimeMills(BlockingQueue<Runnable> q) {
-        long slowTimeMills = 0;
-        final Runnable peek = q.peek();
-        if (peek != null) {
-            RequestTask rt = BrokerFastFailure.castRunnable(peek);
-            slowTimeMills = rt == null ? 0 : this.messageStore.now() - rt.getCreateTimestamp();
-        }
-
-        if (slowTimeMills < 0) {
-            slowTimeMills = 0;
-        }
-
-        return slowTimeMills;
-    }
-
-    public long headSlowTimeMills4SendThreadPoolQueue() {
-        return this.headSlowTimeMills(this.sendThreadPoolQueue);
-    }
-
-    public long headSlowTimeMills4PullThreadPoolQueue() {
-        return this.headSlowTimeMills(this.pullThreadPoolQueue);
-    }
-
-    public long headSlowTimeMills4LitePullThreadPoolQueue() {
-        return this.headSlowTimeMills(this.litePullThreadPoolQueue);
-    }
-
-    public long headSlowTimeMills4QueryThreadPoolQueue() {
-        return this.headSlowTimeMills(this.queryThreadPoolQueue);
-    }
-
-    public void printWaterMark() {
-        LOG_WATER_MARK.info("[WATERMARK] Send Queue Size: {} SlowTimeMills: {}", this.sendThreadPoolQueue.size(), headSlowTimeMills4SendThreadPoolQueue());
-        LOG_WATER_MARK.info("[WATERMARK] Pull Queue Size: {} SlowTimeMills: {}", this.pullThreadPoolQueue.size(), headSlowTimeMills4PullThreadPoolQueue());
-        LOG_WATER_MARK.info("[WATERMARK] Query Queue Size: {} SlowTimeMills: {}", this.queryThreadPoolQueue.size(), headSlowTimeMills4QueryThreadPoolQueue());
-        LOG_WATER_MARK.info("[WATERMARK] Lite Pull Queue Size: {} SlowTimeMills: {}", this.litePullThreadPoolQueue.size(), headSlowTimeMills4LitePullThreadPoolQueue());
-        LOG_WATER_MARK.info("[WATERMARK] Transaction Queue Size: {} SlowTimeMills: {}", this.endTransactionThreadPoolQueue.size(), headSlowTimeMills(this.endTransactionThreadPoolQueue));
-        LOG_WATER_MARK.info("[WATERMARK] ClientManager Queue Size: {} SlowTimeMills: {}", this.clientManagerThreadPoolQueue.size(), this.headSlowTimeMills(this.clientManagerThreadPoolQueue));
-        LOG_WATER_MARK.info("[WATERMARK] Heartbeat Queue Size: {} SlowTimeMills: {}", this.heartbeatThreadPoolQueue.size(), this.headSlowTimeMills(this.heartbeatThreadPoolQueue));
-        LOG_WATER_MARK.info("[WATERMARK] Ack Queue Size: {} SlowTimeMills: {}", this.ackThreadPoolQueue.size(), headSlowTimeMills(this.ackThreadPoolQueue));
-    }
-
-    public MessageStore getMessageStore() {
-        return messageStore;
-    }
-
-    public void setMessageStore(MessageStore messageStore) {
-        this.messageStore = messageStore;
-    }
-
-    protected void printMasterAndSlaveDiff() {
-        if (messageStore.getHaService() != null && messageStore.getHaService().getConnectionCount().get() > 0) {
-            long diff = this.messageStore.slaveFallBehindMuch();
-            LOG.info("CommitLog: slave fall behind master {}bytes", diff);
-        }
-    }
-
-    public Broker2Client getBroker2Client() {
-        return broker2Client;
-    }
-
-    public ConsumerManager getConsumerManager() {
-        return consumerManager;
-    }
-
-    public ConsumerFilterManager getConsumerFilterManager() {
-        return consumerFilterManager;
-    }
-
-    public ConsumerOrderInfoManager getConsumerOrderInfoManager() {
-        return consumerOrderInfoManager;
-    }
-
-    public PopInflightMessageCounter getPopInflightMessageCounter() {
-        return popInflightMessageCounter;
-    }
-
-    public ConsumerOffsetManager getConsumerOffsetManager() {
-        return consumerOffsetManager;
-    }
-
-    public BroadcastOffsetManager getBroadcastOffsetManager() {
-        return broadcastOffsetManager;
-    }
-
-    public MessageStoreConfig getMessageStoreConfig() {
-        return messageStoreConfig;
-    }
-
-    public ProducerManager getProducerManager() {
-        return producerManager;
-    }
-
-    public void setFastRemotingServer(RemotingServer fastRemotingServer) {
-        this.fastRemotingServer = fastRemotingServer;
-    }
-
-    public RemotingServer getFastRemotingServer() {
-        return fastRemotingServer;
-    }
-
-    public PullMessageProcessor getPullMessageProcessor() {
-        return pullMessageProcessor;
-    }
-
-    public PullRequestHoldService getPullRequestHoldService() {
-        return pullRequestHoldService;
-    }
-
-    public void setSubscriptionGroupManager(SubscriptionGroupManager subscriptionGroupManager) {
-        this.subscriptionGroupManager = subscriptionGroupManager;
-    }
-
-    public SubscriptionGroupManager getSubscriptionGroupManager() {
-        return subscriptionGroupManager;
-    }
-
-    public PopMessageProcessor getPopMessageProcessor() {
-        return popMessageProcessor;
-    }
-
-    public NotificationProcessor getNotificationProcessor() {
-        return notificationProcessor;
-    }
-
-    public TimerMessageStore getTimerMessageStore() {
-        return timerMessageStore;
-    }
-
-    public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
-        this.timerMessageStore = timerMessageStore;
-    }
-
-    public AckMessageProcessor getAckMessageProcessor() {
-        return ackMessageProcessor;
-    }
-
-    public ChangeInvisibleTimeProcessor getChangeInvisibleTimeProcessor() {
-        return changeInvisibleTimeProcessor;
     }
 
     protected void shutdownBasicService() {
@@ -1473,19 +1622,6 @@ public class BrokerController {
         }
     }
 
-    public void shutdown() {
-
-        shutdownBasicService();
-
-        for (ScheduledFuture<?> scheduledFuture : scheduledFutures) {
-            scheduledFuture.cancel(true);
-        }
-
-        if (this.brokerOuterAPI != null) {
-            this.brokerOuterAPI.shutdown();
-        }
-    }
-
     protected void shutdownScheduledExecutorService(ScheduledExecutorService scheduledExecutorService) {
         if (scheduledExecutorService == null) {
             return;
@@ -1505,10 +1641,6 @@ public class BrokerController {
             this.getBrokerAddr(),
             this.brokerConfig.getBrokerName(),
             this.brokerConfig.getBrokerId());
-    }
-
-    public String getBrokerAddr() {
-        return this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
     }
 
     protected void startBasicService() throws Exception {
@@ -1613,37 +1745,6 @@ public class BrokerController {
         }
     }
 
-    public void start() throws Exception {
-
-        this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
-
-        if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
-            isIsolated = true;
-        }
-
-        if (this.brokerOuterAPI != null) {
-            this.brokerOuterAPI.start();
-        }
-
-        startBasicService();
-
-        if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
-            changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
-            this.registerBrokerAll(true, false, true);
-        }
-
-        scheduleRegisterBrokerAll();
-        scheduleSlaveActingMaster();
-
-        if (this.brokerConfig.isEnableControllerMode()) {
-            scheduleSendHeartbeat();
-        }
-
-        if (brokerConfig.isSkipPreOnline()) {
-            startServiceWithoutCondition();
-        }
-    }
-
     private void scheduleRegisterBrokerAll() {
         scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
             @Override
@@ -1699,94 +1800,6 @@ public class BrokerController {
 
             }
         }, 1000, brokerConfig.getBrokerHeartbeatInterval(), TimeUnit.MILLISECONDS));
-    }
-
-    public synchronized void registerSingleTopicAll(final TopicConfig topicConfig) {
-        TopicConfig tmpTopic = topicConfig;
-        if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
-            || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
-            // Copy the topic config and modify the perm
-            tmpTopic = new TopicConfig(topicConfig);
-            tmpTopic.setPerm(topicConfig.getPerm() & this.brokerConfig.getBrokerPermission());
-        }
-        this.brokerOuterAPI.registerSingleTopicAll(this.brokerConfig.getBrokerName(), tmpTopic, 3000);
-    }
-
-    public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
-        this.registerIncrementBrokerData(Collections.singletonList(topicConfig), dataVersion);
-    }
-
-    public synchronized void registerIncrementBrokerData(List<TopicConfig> topicConfigList, DataVersion dataVersion) {
-        if (topicConfigList == null || topicConfigList.isEmpty()) {
-            return;
-        }
-
-        TopicConfigAndMappingSerializeWrapper topicConfigSerializeWrapper = new TopicConfigAndMappingSerializeWrapper();
-        topicConfigSerializeWrapper.setDataVersion(dataVersion);
-
-        ConcurrentMap<String, TopicConfig> topicConfigTable = topicConfigList.stream()
-            .map(topicConfig -> {
-                TopicConfig registerTopicConfig;
-                if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
-                    || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
-                    registerTopicConfig =
-                        new TopicConfig(topicConfig.getTopicName(),
-                            topicConfig.getReadQueueNums(),
-                            topicConfig.getWriteQueueNums(),
-                            this.brokerConfig.getBrokerPermission(), topicConfig.getTopicSysFlag());
-                } else {
-                    registerTopicConfig = new TopicConfig(topicConfig);
-                }
-                return registerTopicConfig;
-            })
-            .collect(Collectors.toConcurrentMap(TopicConfig::getTopicName, Function.identity()));
-        topicConfigSerializeWrapper.setTopicConfigTable(topicConfigTable);
-
-        Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = topicConfigList.stream()
-            .map(TopicConfig::getTopicName)
-            .map(topicName -> Optional.ofNullable(this.topicQueueMappingManager.getTopicQueueMapping(topicName))
-                .map(info -> new AbstractMap.SimpleImmutableEntry<>(topicName, TopicQueueMappingDetail.cloneAsMappingInfo(info)))
-                .orElse(null))
-            .filter(Objects::nonNull)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        if (!topicQueueMappingInfoMap.isEmpty()) {
-            topicConfigSerializeWrapper.setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
-        }
-
-        doRegisterBrokerAll(true, false, topicConfigSerializeWrapper);
-    }
-
-    public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
-
-        TopicConfigAndMappingSerializeWrapper topicConfigWrapper = new TopicConfigAndMappingSerializeWrapper();
-
-        topicConfigWrapper.setDataVersion(this.getTopicConfigManager().getDataVersion());
-        topicConfigWrapper.setTopicConfigTable(this.getTopicConfigManager().getTopicConfigTable());
-
-        topicConfigWrapper.setTopicQueueMappingInfoMap(this.getTopicQueueMappingManager().getTopicQueueMappingTable().entrySet().stream().map(
-            entry -> new AbstractMap.SimpleImmutableEntry<>(entry.getKey(), TopicQueueMappingDetail.cloneAsMappingInfo(entry.getValue()))
-        ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-
-        if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
-            || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
-            ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
-            for (TopicConfig topicConfig : topicConfigWrapper.getTopicConfigTable().values()) {
-                TopicConfig tmp =
-                    new TopicConfig(topicConfig.getTopicName(), topicConfig.getReadQueueNums(), topicConfig.getWriteQueueNums(),
-                        topicConfig.getPerm() & this.brokerConfig.getBrokerPermission(), topicConfig.getTopicSysFlag());
-                topicConfigTable.put(topicConfig.getTopicName(), tmp);
-            }
-            topicConfigWrapper.setTopicConfigTable(topicConfigTable);
-        }
-
-        if (forceRegister || needRegister(this.brokerConfig.getBrokerClusterName(),
-            this.getBrokerAddr(),
-            this.brokerConfig.getBrokerName(),
-            this.brokerConfig.getBrokerId(),
-            this.brokerConfig.getRegisterBrokerTimeoutMills(),
-            this.brokerConfig.isInBrokerContainer())) {
-            doRegisterBrokerAll(checkOrderConfig, oneway, topicConfigWrapper);
-        }
     }
 
     protected void doRegisterBrokerAll(boolean checkOrderConfig, boolean oneway,
@@ -1906,39 +1919,33 @@ public class BrokerController {
         return needRegister;
     }
 
-    public void startService(long minBrokerId, String minBrokerAddr) {
-        BrokerController.LOG.info("{} start service, min broker id is {}, min broker addr: {}",
-            this.brokerConfig.getCanonicalName(), minBrokerId, minBrokerAddr);
-        this.minBrokerIdInGroup = minBrokerId;
-        this.minBrokerAddrInGroup = minBrokerAddr;
 
-        this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == minBrokerId);
-        this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
-
-        isIsolated = false;
-    }
-
-    public void startServiceWithoutCondition() {
-        BrokerController.LOG.info("{} start service", this.brokerConfig.getCanonicalName());
-
-        this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
-        this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
-
-        isIsolated = false;
-    }
-
-    public void stopService() {
-        BrokerController.LOG.info("{} stop service", this.getBrokerConfig().getCanonicalName());
-        isIsolated = true;
-        this.changeSpecialServiceStatus(false);
-    }
-
-    public boolean isSpecialServiceRunning() {
-        if (isScheduleServiceStart() && isTransactionCheckServiceStart()) {
-            return true;
+    private synchronized void changeTransactionCheckServiceStatus(boolean shouldStart) {
+        if (isTransactionCheckServiceStart != shouldStart) {
+            LOG.info("TransactionCheckService status changed to {}", shouldStart);
+            if (shouldStart) {
+                this.transactionalMessageCheckService.start();
+            } else {
+                this.transactionalMessageCheckService.shutdown(true);
+            }
+            isTransactionCheckServiceStart = shouldStart;
         }
+    }
 
-        return this.ackMessageProcessor != null && this.ackMessageProcessor.isPopReviveServiceRunning();
+    private synchronized void changeScheduleServiceStatus(boolean shouldStart) {
+        if (isScheduleServiceStart != shouldStart) {
+            LOG.info("ScheduleServiceStatus changed to {}", shouldStart);
+            if (shouldStart) {
+                this.scheduleMessageService.start();
+            } else {
+                this.scheduleMessageService.stop();
+            }
+            isScheduleServiceStart = shouldStart;
+
+            if (timerMessageStore != null) {
+                timerMessageStore.setShouldRunningDequeue(shouldStart);
+            }
+        }
     }
 
     private void onMasterOffline() {
@@ -2013,111 +2020,132 @@ public class BrokerController {
         }
     }
 
-    public void updateMinBroker(long minBrokerId, String minBrokerAddr) {
-        if (brokerConfig.isEnableSlaveActingMaster() && brokerConfig.getBrokerId() != MixAll.MASTER_ID) {
-            if (!lock.tryLock()) {
-                return;
-            }
-        }
+    //**************************************** private or protected methods end   ****************************************************
 
-        try {
-            if (minBrokerId != this.minBrokerIdInGroup) {
-                String offlineBrokerAddr = null;
-                if (minBrokerId > this.minBrokerIdInGroup) {
-                    offlineBrokerAddr = this.minBrokerAddrInGroup;
-                }
-                onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, null);
-            }
-        } finally {
-            lock.unlock();
-        }
+    //**************************************** getter and setter start ****************************************************
+
+    public BrokerConfig getBrokerConfig() {
+        return brokerConfig;
     }
 
-    public void updateMinBroker(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr, String masterHaAddr) {
-        if (!brokerConfig.isEnableSlaveActingMaster() || brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
-            return;
-        }
-
-        try {
-            if (!lock.tryLock(3000, TimeUnit.MILLISECONDS)) {
-                return;
-            }
-
-            try {
-                if (minBrokerId != this.minBrokerIdInGroup) {
-                    onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, masterHaAddr);
-                }
-            } finally {
-                lock.unlock();
-            }
-        } catch (InterruptedException e) {
-            LOG.error("Update min broker error, {}", e);
-        }
+    public NettyServerConfig getNettyServerConfig() {
+        return nettyServerConfig;
     }
 
-    public void changeSpecialServiceStatus(boolean shouldStart) {
-
-        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
-            if (brokerAttachedPlugin != null) {
-                brokerAttachedPlugin.statusChanged(shouldStart);
-            }
-        }
-
-        changeScheduleServiceStatus(shouldStart);
-
-        changeTransactionCheckServiceStatus(shouldStart);
-
-        if (this.ackMessageProcessor != null) {
-            LOG.info("Set PopReviveService Status to {}", shouldStart);
-            this.ackMessageProcessor.setPopReviveServiceStatus(shouldStart);
-        }
+    public NettyClientConfig getNettyClientConfig() {
+        return nettyClientConfig;
     }
 
-    private synchronized void changeTransactionCheckServiceStatus(boolean shouldStart) {
-        if (isTransactionCheckServiceStart != shouldStart) {
-            LOG.info("TransactionCheckService status changed to {}", shouldStart);
-            if (shouldStart) {
-                this.transactionalMessageCheckService.start();
-            } else {
-                this.transactionalMessageCheckService.shutdown(true);
-            }
-            isTransactionCheckServiceStart = shouldStart;
-        }
+    public BlockingQueue<Runnable> getPullThreadPoolQueue() {
+        return pullThreadPoolQueue;
     }
 
-    public synchronized void changeScheduleServiceStatus(boolean shouldStart) {
-        if (isScheduleServiceStart != shouldStart) {
-            LOG.info("ScheduleServiceStatus changed to {}", shouldStart);
-            if (shouldStart) {
-                this.scheduleMessageService.start();
-            } else {
-                this.scheduleMessageService.stop();
-            }
-            isScheduleServiceStart = shouldStart;
-
-            if (timerMessageStore != null) {
-                timerMessageStore.setShouldRunningDequeue(shouldStart);
-            }
-        }
+    public BlockingQueue<Runnable> getQueryThreadPoolQueue() {
+        return queryThreadPoolQueue;
     }
 
-    public MessageStore getMessageStoreByBrokerName(String brokerName) {
-        if (this.brokerConfig.getBrokerName().equals(brokerName)) {
-            return this.getMessageStore();
-        }
-        return null;
+    public BrokerMetricsManager getBrokerMetricsManager() {
+        return brokerMetricsManager;
     }
 
-    public BrokerIdentity getBrokerIdentity() {
-        if (messageStoreConfig.isEnableDLegerCommitLog()) {
-            return new BrokerIdentity(
-                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
-                Integer.parseInt(messageStoreConfig.getdLegerSelfId().substring(1)), brokerConfig.isInBrokerContainer());
-        } else {
-            return new BrokerIdentity(
-                brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
-                brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
-        }
+    public BrokerStats getBrokerStats() {
+        return brokerStats;
+    }
+
+    public void setBrokerStats(BrokerStats brokerStats) {
+        this.brokerStats = brokerStats;
+    }
+
+    public MessageStore getMessageStore() {
+        return messageStore;
+    }
+
+    public void setMessageStore(MessageStore messageStore) {
+        this.messageStore = messageStore;
+    }
+
+    public Broker2Client getBroker2Client() {
+        return broker2Client;
+    }
+
+    public ConsumerManager getConsumerManager() {
+        return consumerManager;
+    }
+
+    public ConsumerFilterManager getConsumerFilterManager() {
+        return consumerFilterManager;
+    }
+
+    public ConsumerOrderInfoManager getConsumerOrderInfoManager() {
+        return consumerOrderInfoManager;
+    }
+
+    public PopInflightMessageCounter getPopInflightMessageCounter() {
+        return popInflightMessageCounter;
+    }
+
+    public ConsumerOffsetManager getConsumerOffsetManager() {
+        return consumerOffsetManager;
+    }
+
+    public BroadcastOffsetManager getBroadcastOffsetManager() {
+        return broadcastOffsetManager;
+    }
+
+    public MessageStoreConfig getMessageStoreConfig() {
+        return messageStoreConfig;
+    }
+
+    public ProducerManager getProducerManager() {
+        return producerManager;
+    }
+
+    public void setFastRemotingServer(RemotingServer fastRemotingServer) {
+        this.fastRemotingServer = fastRemotingServer;
+    }
+
+    public RemotingServer getFastRemotingServer() {
+        return fastRemotingServer;
+    }
+
+    public PullMessageProcessor getPullMessageProcessor() {
+        return pullMessageProcessor;
+    }
+
+    public PullRequestHoldService getPullRequestHoldService() {
+        return pullRequestHoldService;
+    }
+
+    public void setSubscriptionGroupManager(SubscriptionGroupManager subscriptionGroupManager) {
+        this.subscriptionGroupManager = subscriptionGroupManager;
+    }
+
+    public SubscriptionGroupManager getSubscriptionGroupManager() {
+        return subscriptionGroupManager;
+    }
+
+    public PopMessageProcessor getPopMessageProcessor() {
+        return popMessageProcessor;
+    }
+
+    public NotificationProcessor getNotificationProcessor() {
+        return notificationProcessor;
+    }
+
+    public TimerMessageStore getTimerMessageStore() {
+        return timerMessageStore;
+    }
+
+    public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
+        this.timerMessageStore = timerMessageStore;
+    }
+
+    public AckMessageProcessor getAckMessageProcessor() {
+        return ackMessageProcessor;
+    }
+
+    public String getBrokerAddr() {
+        return this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
     }
 
     public TopicConfigManager getTopicConfigManager() {
@@ -2176,23 +2204,8 @@ public class BrokerController {
         return sendMessageHookList;
     }
 
-    public void registerSendMessageHook(final SendMessageHook hook) {
-        this.sendMessageHookList.add(hook);
-        LOG.info("register SendMessageHook Hook, {}", hook.hookName());
-    }
-
     public List<ConsumeMessageHook> getConsumeMessageHookList() {
         return consumeMessageHookList;
-    }
-
-    public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
-        this.consumeMessageHookList.add(hook);
-        LOG.info("register ConsumeMessageHook Hook, {}", hook.hookName());
-    }
-
-    public void registerServerRPCHook(RPCHook rpcHook) {
-        getRemotingServer().registerRPCHook(rpcHook);
-        this.fastRemotingServer.registerRPCHook(rpcHook);
     }
 
     public RemotingServer getRemotingServer() {
@@ -2209,10 +2222,6 @@ public class BrokerController {
 
     public void setRemotingServerStartLatch(CountDownLatch remotingServerStartLatch) {
         this.remotingServerStartLatch = remotingServerStartLatch;
-    }
-
-    public void registerClientRPCHook(RPCHook rpcHook) {
-        this.getBrokerOuterAPI().registerRPCHook(rpcHook);
     }
 
     public BrokerOuterAPI getBrokerOuterAPI() {
@@ -2406,4 +2415,5 @@ public class BrokerController {
     public void setColdDataCgCtrService(ColdDataCgCtrService coldDataCgCtrService) {
         this.coldDataCgCtrService = coldDataCgCtrService;
     }
+    //**************************************** getter and setter end ****************************************************
 }
