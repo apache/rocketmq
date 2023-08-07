@@ -224,7 +224,7 @@ public interface ConsumeQueueStoreInterface {
      * @return the max physic offset in consumeQueue
      * @throws RocksDBException only in rocksdb mode
      */
-    long getMaxOffsetInConsumeQueue() throws RocksDBException;
+    long getMaxPhyOffsetInConsumeQueue() throws RocksDBException;
 
     /**
      * get min logic offset of specific topic-queueId in consumeQueue

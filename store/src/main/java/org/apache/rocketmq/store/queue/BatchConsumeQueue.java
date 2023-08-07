@@ -327,7 +327,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     }
 
     @Override
-    public Pair<CqUnit, Long> getUnitAndStoreTime(long index) {
+    public Pair<CqUnit, Long> getCqUnitAndStoreTime(long index) {
         CqUnit cqUnit = get(index);
         Long messageStoreTime = this.messageStore.getStoreTime(cqUnit);
         return new Pair<>(cqUnit, messageStoreTime);

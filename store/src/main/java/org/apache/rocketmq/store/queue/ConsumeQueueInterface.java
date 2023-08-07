@@ -67,7 +67,7 @@ public interface ConsumeQueueInterface extends FileQueueLifeCycle {
      * Get earliest cq unit
      * @return the cq unit and message storeTime at index
      */
-    Pair<CqUnit, Long> getUnitAndStoreTime(long index);
+    Pair<CqUnit, Long> getCqUnitAndStoreTime(long index);
 
     /**
      * Get earliest cq unit

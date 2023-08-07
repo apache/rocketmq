@@ -1148,7 +1148,6 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.getMaxOffset();
     }
 
-
     @Override
     public long getMinPhyOffset() {
         return this.commitLog.getMinOffset();
@@ -1210,7 +1209,7 @@ public class DefaultMessageStore implements MessageStore {
     public long getMessageStoreTimeStamp(String topic, int queueId, long consumeQueueOffset) {
         ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {
-            Pair<CqUnit, Long> pair = logicQueue.getUnitAndStoreTime(consumeQueueOffset);
+            Pair<CqUnit, Long> pair = logicQueue.getCqUnitAndStoreTime(consumeQueueOffset);
             if (pair != null && pair.getObject2() != null) {
                 return pair.getObject2();
             }
@@ -1716,7 +1715,7 @@ public class DefaultMessageStore implements MessageStore {
         return this.consumeQueueStore.findOrCreateConsumeQueue(topic, queueId);
     }
 
-    protected long nextOffsetCorrection(long oldOffset, long newOffset) {
+    private long nextOffsetCorrection(long oldOffset, long newOffset) {
         long nextOffset = oldOffset;
         if (this.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE ||
             this.getMessageStoreConfig().isOffsetCheckInSlave()) {
@@ -1725,7 +1724,7 @@ public class DefaultMessageStore implements MessageStore {
         return nextOffset;
     }
 
-    protected boolean estimateInMemByCommitOffset(long offsetPy, long maxOffsetPy) {
+    private boolean estimateInMemByCommitOffset(long offsetPy, long maxOffsetPy) {
         long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
         return (maxOffsetPy - offsetPy) <= memory;
     }
@@ -1804,7 +1803,7 @@ public class DefaultMessageStore implements MessageStore {
         MixAll.string2File(Long.toString(MixAll.getPID()), file.getAbsolutePath());
     }
 
-    protected void addScheduleTask() {
+    private void addScheduleTask() {
 
         this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
             @Override
@@ -1895,7 +1894,7 @@ public class DefaultMessageStore implements MessageStore {
         // recover consume queue
         long recoverConsumeQueueStart = System.currentTimeMillis();
         this.recoverConsumeQueue();
-        long maxPhyOffsetOfConsumeQueue = this.getMaxOffsetInConsumeQueue();
+        long maxPhyOffsetOfConsumeQueue = this.getMaxPhyOffsetInConsumeQueue();
         long recoverConsumeQueueEnd = System.currentTimeMillis();
 
         // recover commitlog
@@ -1948,8 +1947,8 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    private long getMaxOffsetInConsumeQueue() throws RocksDBException {
-        return this.consumeQueueStore.getMaxOffsetInConsumeQueue();
+    private long getMaxPhyOffsetInConsumeQueue() throws RocksDBException {
+        return this.consumeQueueStore.getMaxPhyOffsetInConsumeQueue();
     }
 
     @Override

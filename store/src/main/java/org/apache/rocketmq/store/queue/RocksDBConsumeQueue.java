@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
+package org.apache.rocketmq.store.queue;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -31,11 +31,10 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
-import org.apache.rocketmq.store.queue.CqUnit;
-import org.apache.rocketmq.store.queue.QueueOffsetOperator;
-import org.apache.rocketmq.store.queue.ReferredIterator;
-import org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore;
+import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.MessageFilter;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.rocksdb.RocksDBException;
 
@@ -178,20 +177,22 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
         return ConsumeQueue.CQ_STORE_UNIT_SIZE;
     }
 
+    /**
+     * Ignored, we already implement this method
+     * @see org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable#getMinConsumeOffset(String, int)
+     */
     @Override
     public void correctMinOffset(long minCommitLogOffset) {
-        /**
-         * Ignore, we already implement this method
-         * @see RocksDBConsumeQueueStore#getMinOffsetInQueue()
-         */
+
     }
 
+    /**
+     * Ignored, in rocksdb mode, we build cq in RocksDBConsumeQueueStore
+     * @see org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore#putMessagePosition()
+     */
     @Override
     public void putMessagePositionInfoWrapper(DispatchRequest request) {
-        /**
-         * Ignore, in rocksdb mode, we build cq in QueueStore
-         * @see RocksDBConsumeQueueStore#putMessagePosition0()
-         */
+
     }
 
     @Override
@@ -325,12 +326,12 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public CqUnit get(long index) {
-        Pair<CqUnit, Long> pair = getUnitAndStoreTime(index);
+        Pair<CqUnit, Long> pair = getCqUnitAndStoreTime(index);
         return pair == null ? null : pair.getObject1();
     }
 
     @Override
-    public Pair<CqUnit, Long> getUnitAndStoreTime(long index) {
+    public Pair<CqUnit, Long> getCqUnitAndStoreTime(long index) {
         ByteBuffer byteBuffer;
         try {
             byteBuffer = this.messageStore.getQueueStore().get(topic, queueId, index);
@@ -338,7 +339,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
             ERROR_LOG.error("getUnitAndStoreTime Failed. topic: {}, queueId: {}", topic, queueId, e);
             return null;
         }
-        if (byteBuffer == null || byteBuffer.remaining() < RocksDBConsumeQueueStore.CQ_UNIT_SIZE) {
+        if (byteBuffer == null || byteBuffer.remaining() < RocksDBConsumeQueueTable.CQ_UNIT_SIZE) {
             return null;
         }
         long phyOffset = byteBuffer.getLong();
@@ -352,7 +353,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
     public Pair<CqUnit, Long> getEarliestUnitAndStoreTime() {
         try {
             long minOffset = this.messageStore.getQueueStore().getMinOffsetInQueue(topic, queueId);
-            return getUnitAndStoreTime(minOffset);
+            return getCqUnitAndStoreTime(minOffset);
         } catch (RocksDBException e) {
             ERROR_LOG.error("getEarliestUnitAndStoreTime Failed. topic: {}, queueId: {}", topic, queueId, e);
         }

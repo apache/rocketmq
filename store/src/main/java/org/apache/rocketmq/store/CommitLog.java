@@ -714,7 +714,6 @@ public class CommitLog implements Swappable {
             // only for rocksdb mode
             this.getMessageStore().finishCommitLogDispatch();
 
-
             processOffset += mappedFileOffset;
             if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
                 if (this.defaultMessageStore.getConfirmOffset() < this.defaultMessageStore.getMinPhyOffset()) {

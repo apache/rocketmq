@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
+import org.apache.rocketmq.store.queue.RocksDBConsumeQueue;
 import org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.rocksdb.RocksDBException;
@@ -152,7 +153,7 @@ public class RocksDBMessageStore extends DefaultMessageStore {
         public void run() {
             /**
              * There is no need to correct min offset of consume queue, we already fix this problem
-             *  @see RocksDBConsumeQueueStore#getMinOffsetInQueue()
+             *  @see RocksDBConsumeQueueOffsetTable#getMinConsumeOffset()
              */
         }
     }

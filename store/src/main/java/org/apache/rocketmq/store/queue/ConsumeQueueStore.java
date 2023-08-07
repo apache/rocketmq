@@ -279,7 +279,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public long getMaxOffsetInConsumeQueue() {
+    public long getMaxPhyOffsetInConsumeQueue() {
         long maxPhysicOffset = -1L;
         for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueueInterface logic : maps.values()) {
