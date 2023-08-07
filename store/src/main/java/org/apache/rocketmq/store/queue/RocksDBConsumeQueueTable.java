@@ -34,8 +34,8 @@ import org.rocksdb.WriteBatch;
 
 import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CHARSET_UTF8;
 import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_0;
-import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_2;
 import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_1;
+import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_2;
 
 /**
  * We use RocksDBConsumeQueueTable to store cqUnit.
@@ -57,22 +57,21 @@ public class RocksDBConsumeQueueTable {
      * </pre>
      *
      * <pre>
-     * ┌─────────────────────────────┬───────────────────┬──────────────────┬──────────────────┬───────────────────────┐
-     * │  CommitLog Physical Offset  │      Body Size    │   Tag HashCode   │  Msg Store Time  │  ConsumeQueue Offset  │
-     * │        (8 Bytes)            │      (4 Bytes)    │    (8 Bytes)     │    (8 Bytes)     │      (8 Bytes)        │
-     * ├─────────────────────────────┴───────────────────┴──────────────────┴──────────────────┴───────────────────────┤
-     * │                                                    Value Unit                                                 │
-     * │                                                                                                               │
+     * ┌─────────────────────────────┬───────────────────┬──────────────────┬──────────────────┐
+     * │  CommitLog Physical Offset  │      Body Size    │   Tag HashCode   │  Msg Store Time  │
+     * │        (8 Bytes)            │      (4 Bytes)    │    (8 Bytes)     │    (8 Bytes)     │
+     * ├─────────────────────────────┴───────────────────┴──────────────────┴──────────────────┤
+     * │                                                    Value Unit                         │
+     * │                                                                                       │
      * </pre>
      * ConsumeQueue's store unit. Size:
-     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) + Msg Store Time(8) + ConsumeQueue Offset(8) =  36 Bytes
+     * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) + Msg Store Time(8) = 28 Bytes
      */
     public static final int PHY_OFFSET_OFFSET = 0;
     public static final int PHY_MSG_LEN_OFFSET = 8;
     public static final int MSG_TAG_HASHCODE_OFFSET = 12;
     public static final int MSG_STORE_TIME_SIZE_OFFSET = 20;
-    public static final int CQ_OFFSET_OFFSET = 28;
-    public static final int CQ_UNIT_SIZE = 36;
+    public static final int CQ_UNIT_SIZE = 28;
 
     private final ConsumeQueueRocksDBStorage rocksDBStorage;
     private final DefaultMessageStore messageStore;
@@ -94,8 +93,7 @@ public class RocksDBConsumeQueueTable {
         buildCQKeyBB(cqKey, topicBytes, request.getQueueId(), request.getConsumeQueueOffset());
 
         final ByteBuffer cqValue = cqBBPair.getObject2();
-        buildCQValueBB(cqValue, request.getCommitLogOffset(), request.getMsgSize(), request.getTagsCode(),
-            request.getStoreTimestamp(), request.getConsumeQueueOffset());
+        buildCQValueBB(cqValue, request.getCommitLogOffset(), request.getMsgSize(), request.getTagsCode(), request.getStoreTimestamp());
 
         writeBatch.put(defaultCFH, cqKey, cqValue);
     }
@@ -138,17 +136,11 @@ public class RocksDBConsumeQueueTable {
 
         final int resultSize = resultList.length;
         List<ByteBuffer> bbValueList = new ArrayList(resultSize);
-        long preQueueOffset = 0;
         for (int i = 0; i < resultSize; i++) {
             ByteBuffer byteBuffer = resultList[i];
             if (byteBuffer == null) {
                 break;
             }
-            long queueOffset = byteBuffer.getLong(CQ_OFFSET_OFFSET);
-            if (i > 0 && queueOffset != preQueueOffset + 1) {
-                throw new RocksDBException("rocksdb bug, data damaged");
-            }
-            preQueueOffset = queueOffset;
             bbValueList.add(byteBuffer);
         }
         return bbValueList;
@@ -229,14 +221,14 @@ public class RocksDBConsumeQueueTable {
     }
 
     private void buildCQValueBB(final ByteBuffer bb, final long phyOffset, final int msgSize,
-        final long tagsCode, final long storeTimestamp, final long cqOffset) {
+        final long tagsCode, final long storeTimestamp) {
         bb.position(0).limit(CQ_UNIT_SIZE);
-        buildCQValueBB0(bb, phyOffset, msgSize, tagsCode, storeTimestamp, cqOffset);
+        buildCQValueBB0(bb, phyOffset, msgSize, tagsCode, storeTimestamp);
     }
 
     private void buildCQValueBB0(final ByteBuffer bb, final long phyOffset, final int msgSize,
-        final long tagsCode, final long storeTimestamp, final long cqOffset) {
-        bb.putLong(phyOffset).putInt(msgSize).putLong(tagsCode).putLong(storeTimestamp).putLong(cqOffset);
+        final long tagsCode, final long storeTimestamp) {
+        bb.putLong(phyOffset).putInt(msgSize).putLong(tagsCode).putLong(storeTimestamp);
         bb.flip();
     }
 
