@@ -155,10 +155,6 @@ public class BrokerScheduleService {
         }
     }
 
-
-
-
-
     public void shutdownScheduledExecutorService(ScheduledExecutorService scheduledExecutorService) {
         if (scheduledExecutorService == null) {
             return;

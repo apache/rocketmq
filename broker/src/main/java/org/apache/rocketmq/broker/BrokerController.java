@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.bootstrap.BrokerNettyServer;
 import org.apache.rocketmq.broker.bootstrap.BrokerScheduleService;
+import org.apache.rocketmq.broker.bootstrap.MessageStoreService;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
@@ -141,7 +142,7 @@ public class BrokerController {
     protected final ConsumerOrderInfoManager consumerOrderInfoManager;
     protected final PopInflightMessageCounter popInflightMessageCounter;
     protected final ProducerManager producerManager;
-    protected final ScheduleMessageService scheduleMessageService;
+
 
     protected final Broker2Client broker2Client;
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
@@ -151,7 +152,6 @@ public class BrokerController {
 
     protected final BrokerStatsManager brokerStatsManager;
 
-    protected MessageStore messageStore;
     protected RemotingServer remotingServer;
     protected RemotingServer fastRemotingServer;
     protected TopicConfigManager topicConfigManager;
@@ -159,10 +159,9 @@ public class BrokerController {
     protected TopicQueueMappingManager topicQueueMappingManager;
 
     protected boolean updateMasterHAServerAddrPeriodically = false;
-    private BrokerStats brokerStats;
+
     private InetSocketAddress storeHost;
-    private TimerMessageStore timerMessageStore;
-    private TimerCheckpoint timerCheckpoint;
+
     protected BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
     protected TopicQueueMappingCleanService topicQueueMappingCleanService;
@@ -174,7 +173,7 @@ public class BrokerController {
     private volatile boolean isScheduleServiceStart = false;
     private volatile boolean isTransactionCheckServiceStart = false;
     protected volatile BrokerMemberGroup brokerMemberGroup;
-    protected EscapeBridge escapeBridge;
+
     protected List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
     protected volatile long shouldStartTime;
     private BrokerPreOnlineService brokerPreOnlineService;
@@ -189,9 +188,9 @@ public class BrokerController {
     private ColdDataCgCtrService coldDataCgCtrService;
 
     private final BrokerNettyServer brokerNettyServer;
-
-
     private final BrokerScheduleService brokerScheduleService;
+    private MessageStoreService messageStoreService;
+
     private final SystemClock systemClock = new SystemClock();
 
 
@@ -249,7 +248,6 @@ public class BrokerController {
         this.popInflightMessageCounter = new PopInflightMessageCounter(this);
 
         this.broker2Client = new Broker2Client(this);
-        this.scheduleMessageService = new ScheduleMessageService(this);
         this.coldDataPullRequestHoldService = new ColdDataPullRequestHoldService(this);
         this.coldDataCgCtrService = new ColdDataCgCtrService(this);
 
@@ -264,8 +262,6 @@ public class BrokerController {
 
         this.brokerMemberGroup = new BrokerMemberGroup(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName());
         this.brokerMemberGroup.getBrokerAddrs().put(this.brokerConfig.getBrokerId(), this.getBrokerAddr());
-
-        this.escapeBridge = new EscapeBridge(this);
 
         this.topicRouteInfoManager = new TopicRouteInfoManager(this);
 
@@ -546,7 +542,7 @@ public class BrokerController {
         final Runnable peek = q.peek();
         if (peek != null) {
             RequestTask rt = BrokerFastFailure.castRunnable(peek);
-            slowTimeMills = rt == null ? 0 : this.messageStore.now() - rt.getCreateTimestamp();
+            slowTimeMills = rt == null ? 0 : this.now() - rt.getCreateTimestamp();
         }
 
         if (slowTimeMills < 0) {
@@ -589,54 +585,8 @@ public class BrokerController {
     }
 
     public boolean initializeMessageStore() {
-        boolean result = true;
-        try {
-            DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager,
-                this.brokerNettyServer.getMessageArrivingListener(), this.brokerConfig, topicConfigManager.getTopicConfigTable());
-
-            if (messageStoreConfig.isEnableDLegerCommitLog()) {
-                DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(this, defaultMessageStore);
-                DLedgerCommitLog dLedgerCommitLog =   (DLedgerCommitLog) defaultMessageStore.getCommitLog();
-
-                dLedgerCommitLog.getdLedgerServer()
-                    .getDLedgerLeaderElector()
-                    .addRoleChangeHandler(roleChangeHandler);
-            }
-
-            this.brokerStats = new BrokerStats(defaultMessageStore);
-
-            // Load store plugin
-            MessageStorePluginContext context = new MessageStorePluginContext(
-                messageStoreConfig, brokerStatsManager, brokerNettyServer.getMessageArrivingListener(), brokerConfig, configuration);
-
-            this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
-
-            this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
-
-            if (messageStoreConfig.isTimerWheelEnable()) {
-                this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
-                TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
-                this.timerMessageStore = new TimerMessageStore(messageStore, messageStoreConfig, timerCheckpoint, timerMetrics, brokerStatsManager);
-                this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
-                this.messageStore.setTimerMessageStore(this.timerMessageStore);
-            }
-
-            if (messageStore != null) {
-                registerMessageStoreHook();
-                result = this.messageStore.load();
-            }
-
-            if (messageStoreConfig.isTimerWheelEnable()) {
-                result = result && this.timerMessageStore.load();
-            }
-
-            //scheduleMessageService load after messageStore load success
-            result = result && this.scheduleMessageService.load();
-        } catch (IOException e) {
-            result = false;
-            LOG.error("BrokerController#initialize: unexpected error occurs", e);
-        }
-        return result;
+        this.messageStoreService = new MessageStoreService(this);
+        return messageStoreService.init();
     }
 
     public boolean initAndLoadService() throws CloneNotSupportedException {
@@ -740,63 +690,6 @@ public class BrokerController {
         );
     }
 
-    public void registerMessageStoreHook() {
-        List<PutMessageHook> putMessageHookList = messageStore.getPutMessageHookList();
-
-        putMessageHookList.add(new PutMessageHook() {
-            @Override
-            public String hookName() {
-                return "checkBeforePutMessage";
-            }
-
-            @Override
-            public PutMessageResult executeBeforePutMessage(MessageExt msg) {
-                return HookUtils.checkBeforePutMessage(BrokerController.this, msg);
-            }
-        });
-
-        putMessageHookList.add(new PutMessageHook() {
-            @Override
-            public String hookName() {
-                return "innerBatchChecker";
-            }
-
-            @Override
-            public PutMessageResult executeBeforePutMessage(MessageExt msg) {
-                if (msg instanceof MessageExtBrokerInner) {
-                    return HookUtils.checkInnerBatch(BrokerController.this, msg);
-                }
-                return null;
-            }
-        });
-
-        putMessageHookList.add(new PutMessageHook() {
-            @Override
-            public String hookName() {
-                return "handleScheduleMessage";
-            }
-
-            @Override
-            public PutMessageResult executeBeforePutMessage(MessageExt msg) {
-                if (msg instanceof MessageExtBrokerInner) {
-                    return HookUtils.handleScheduleMessage(BrokerController.this, (MessageExtBrokerInner) msg);
-                }
-                return null;
-            }
-        });
-
-        SendMessageBackHook sendMessageBackHook = new SendMessageBackHook() {
-            @Override
-            public boolean executeSendMessageBack(List<MessageExt> msgList, String brokerName, String brokerAddr) {
-                return HookUtils.sendMessageBack(BrokerController.this, msgList, brokerName, brokerAddr);
-            }
-        };
-
-        if (messageStore != null) {
-            messageStore.setSendMessageBackHook(sendMessageBackHook);
-        }
-    }
-
     private void initialTransaction() {
         this.transactionalMessageService = ServiceProvider.loadClass(TransactionalMessageService.class);
         if (null == this.transactionalMessageService) {
@@ -824,6 +717,7 @@ public class BrokerController {
             this.shutdownHook.beforeShutdown(this);
         }
         this.getBrokerNettyServer().shutdown();
+        this.messageStoreService.shutdown();
 
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.shutdown();
@@ -832,17 +726,9 @@ public class BrokerController {
         if (this.topicQueueMappingCleanService != null) {
             this.topicQueueMappingCleanService.shutdown();
         }
-        //it is better to make sure the timerMessageStore shutdown firstly
-        if (this.timerMessageStore != null) {
-            this.timerMessageStore.shutdown();
-        }
 
         if (this.broadcastOffsetManager != null) {
             this.broadcastOffsetManager.shutdown();
-        }
-
-        if (this.messageStore != null) {
-            this.messageStore.shutdown();
         }
 
         if (this.replicasManager != null) {
@@ -863,17 +749,8 @@ public class BrokerController {
             this.consumerOrderInfoManager.persist();
         }
 
-        if (this.scheduleMessageService != null) {
-            this.scheduleMessageService.persist();
-            this.scheduleMessageService.shutdown();
-        }
-
         if (this.transactionalMessageCheckService != null) {
             this.transactionalMessageCheckService.shutdown(false);
-        }
-
-        if (this.escapeBridge != null) {
-            escapeBridge.shutdown();
         }
 
         if (this.topicRouteInfoManager != null) {
@@ -927,15 +804,6 @@ public class BrokerController {
     }
 
     protected void startBasicService() throws Exception {
-
-        if (this.messageStore != null) {
-            this.messageStore.start();
-        }
-
-        if (this.timerMessageStore != null) {
-            this.timerMessageStore.start();
-        }
-
         if (this.replicasManager != null) {
             this.replicasManager.start();
         }
@@ -948,7 +816,8 @@ public class BrokerController {
             }
         }
 
-        this.getBrokerNettyServer().start();
+        this.brokerNettyServer.start();
+        this.messageStoreService.start();
 
         if (this.topicQueueMappingCleanService != null) {
             this.topicQueueMappingCleanService.start();
@@ -964,10 +833,6 @@ public class BrokerController {
 
         if (this.broadcastOffsetManager != null) {
             this.broadcastOffsetManager.start();
-        }
-
-        if (this.escapeBridge != null) {
-            this.escapeBridge.start();
         }
 
         if (this.topicRouteInfoManager != null) {
@@ -1025,7 +890,8 @@ public class BrokerController {
             BrokerController.LOG.warn("Couldn't find any broker member from namesrv in {}/{}", this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName());
             return;
         }
-        this.messageStore.setAliveReplicaNumInGroup(calcAliveBrokerNumInGroup(brokerMemberGroup.getBrokerAddrs()));
+        messageStoreService.getMessageStore().setAliveReplicaNumInGroup(calcAliveBrokerNumInGroup(brokerMemberGroup.getBrokerAddrs()));
+
 
         if (!this.isIsolated) {
             long minBrokerId = brokerMemberGroup.minimumBrokerId();
@@ -1046,8 +912,8 @@ public class BrokerController {
         for (RegisterBrokerResult registerBrokerResult : registerBrokerResultList) {
             if (registerBrokerResult != null) {
                 if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
-                    this.messageStore.updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
-                    this.messageStore.updateMasterAddress(registerBrokerResult.getMasterAddr());
+                    messageStoreService.getMessageStore().updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
+                    messageStoreService.getMessageStore().updateMasterAddress(registerBrokerResult.getMasterAddr());
                 }
 
                 this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
@@ -1092,17 +958,7 @@ public class BrokerController {
 
     private synchronized void changeScheduleServiceStatus(boolean shouldStart) {
         if (isScheduleServiceStart != shouldStart) {
-            LOG.info("ScheduleServiceStatus changed to {}", shouldStart);
-            if (shouldStart) {
-                this.scheduleMessageService.start();
-            } else {
-                this.scheduleMessageService.stop();
-            }
-            isScheduleServiceStart = shouldStart;
-
-            if (timerMessageStore != null) {
-                timerMessageStore.setShouldRunningDequeue(shouldStart);
-            }
+             messageStoreService.changeScheduleServiceStatus(shouldStart);
         }
     }
 
@@ -1115,11 +971,11 @@ public class BrokerController {
         }
         // master not available, stop sync
         this.slaveSynchronize.setMasterAddr(null);
-        this.messageStore.updateHaMasterAddress(null);
+        messageStoreService.getMessageStore().updateHaMasterAddress(null);
     }
 
     private void onMasterOnline(String masterAddr, String masterHaAddr) {
-        boolean needSyncMasterFlushOffset = this.messageStore.getMasterFlushedOffset() == 0
+        boolean needSyncMasterFlushOffset = messageStoreService.getMessageStore().getMasterFlushedOffset() == 0
             && this.messageStoreConfig.isSyncMasterFlushOffsetWhenStartup();
         if (masterHaAddr == null || needSyncMasterFlushOffset) {
             doSyncMasterFlushOffset(masterAddr, masterHaAddr, needSyncMasterFlushOffset);
@@ -1127,11 +983,11 @@ public class BrokerController {
 
         // set master HA address.
         if (masterHaAddr != null) {
-            this.messageStore.updateHaMasterAddress(masterHaAddr);
+            messageStoreService.getMessageStore().updateHaMasterAddress(masterHaAddr);
         }
 
         // wakeup HAClient
-        this.messageStore.wakeupHAClient();
+        messageStoreService.getMessageStore().wakeupHAClient();
     }
 
     private void doSyncMasterFlushOffset(String masterAddr, String masterHaAddr, boolean needSyncMasterFlushOffset) {
@@ -1140,12 +996,12 @@ public class BrokerController {
 
             if (needSyncMasterFlushOffset) {
                 LOG.info("Set master flush offset in slave to {}", brokerSyncInfo.getMasterFlushOffset());
-                this.messageStore.setMasterFlushedOffset(brokerSyncInfo.getMasterFlushOffset());
+                messageStoreService.getMessageStore().setMasterFlushedOffset(brokerSyncInfo.getMasterFlushOffset());
             }
 
             if (masterHaAddr == null) {
-                this.messageStore.updateHaMasterAddress(brokerSyncInfo.getMasterHaAddress());
-                this.messageStore.updateMasterAddress(brokerSyncInfo.getMasterAddress());
+                messageStoreService.getMessageStore().updateHaMasterAddress(brokerSyncInfo.getMasterHaAddress());
+                messageStoreService.getMessageStore().updateMasterAddress(brokerSyncInfo.getMasterAddress());
             }
         } catch (Exception e) {
             LOG.error("retrieve master ha info exception, {}", e);
@@ -1202,11 +1058,7 @@ public class BrokerController {
     }
 
     public BrokerStats getBrokerStats() {
-        return brokerStats;
-    }
-
-    public void setBrokerStats(BrokerStats brokerStats) {
-        this.brokerStats = brokerStats;
+        return messageStoreService.getBrokerStats();
     }
 
     public boolean isUpdateMasterHAServerAddrPeriodically() {
@@ -1218,11 +1070,11 @@ public class BrokerController {
     }
 
     public MessageStore getMessageStore() {
-        return messageStore;
+        return messageStoreService.getMessageStore();
     }
 
     public void setMessageStore(MessageStore messageStore) {
-        this.messageStore = messageStore;
+        messageStoreService.setMessageStore(messageStore);
     }
 
     public Broker2Client getBroker2Client() {
@@ -1278,12 +1130,9 @@ public class BrokerController {
     }
 
     public TimerMessageStore getTimerMessageStore() {
-        return timerMessageStore;
+        return messageStoreService.getTimerMessageStore();
     }
 
-    public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
-        this.timerMessageStore = timerMessageStore;
-    }
 
     public String getBrokerAddr() {
         return this.brokerConfig.getBrokerIP1() + ":" + this.nettyServerConfig.getListenPort();
@@ -1406,7 +1255,7 @@ public class BrokerController {
     }
 
     public EscapeBridge getEscapeBridge() {
-        return escapeBridge;
+        return messageStoreService.getEscapeBridge();
     }
 
     public long getShouldStartTime() {
@@ -1426,7 +1275,7 @@ public class BrokerController {
     }
 
     public ScheduleMessageService getScheduleMessageService() {
-        return scheduleMessageService;
+        return messageStoreService.getScheduleMessageService();
     }
 
     public ReplicasManager getReplicasManager() {
@@ -1442,7 +1291,7 @@ public class BrokerController {
     }
 
     public TimerCheckpoint getTimerCheckpoint() {
-        return timerCheckpoint;
+        return messageStoreService.getTimerCheckpoint();
     }
 
     public TopicRouteInfoManager getTopicRouteInfoManager() {
