@@ -260,6 +260,14 @@ public class BrokerNettyServer {
             this.adminBrokerExecutor.shutdown();
         }
 
+        if (this.remotingServer != null) {
+            this.remotingServer.shutdown();
+        }
+
+        if (this.fastRemotingServer != null) {
+            this.fastRemotingServer.shutdown();
+        }
+
     }
 
     public void registerProcessor() {

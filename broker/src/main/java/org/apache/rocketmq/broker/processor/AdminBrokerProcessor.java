@@ -994,7 +994,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     continue;
                 }
                 if (mappingDetail.getBname().equals(item.getBname())) {
-                    offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(mappingContext.getTopic(), item.getQueueId(), timestamp);
+                    offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(mappingContext.getTopic(), item.getQueueId(), timestamp, requestHeader.getBoundaryType());
                     if (offset > 0) {
                         offset = item.computeStaticQueueOffsetStrictly(offset);
                         break;
@@ -1045,7 +1045,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         long offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
-            requestHeader.getTimestamp());
+            requestHeader.getTimestamp(), requestHeader.getBoundaryType());
 
         responseHeader.setOffset(offset);
 

@@ -14,17 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.broker.offset;
 
-package org.apache.rocketmq.proxy.processor.validator;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public interface TopicMessageTypeValidator {
-    /**
-     * Will throw {@link org.apache.rocketmq.proxy.common.ProxyException} if validate failed.
-     *
-     * @param expectedType Target topic
-     * @param actualType   Message's type
-     */
-    void validate(TopicMessageType expectedType, TopicMessageType actualType);
+public class RocksDBOffsetSerializeWrapper extends RemotingSerializable {
+    private ConcurrentMap<Integer, Long> offsetTable = new ConcurrentHashMap(16);
+
+    public ConcurrentMap<Integer, Long> getOffsetTable() {
+        return offsetTable;
+    }
+
+    public void setOffsetTable(ConcurrentMap<Integer, Long> offsetTable) {
+        this.offsetTable = offsetTable;
+    }
 }
