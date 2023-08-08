@@ -59,6 +59,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+// Ignore this test case as it is currently unable to pass on ubuntu workflow
 @Ignore
 public class PlainAccessValidatorTest {
 
