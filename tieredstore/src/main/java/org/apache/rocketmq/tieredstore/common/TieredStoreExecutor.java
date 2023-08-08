@@ -27,7 +27,7 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 
 public class TieredStoreExecutor {
 
-    private static final int QUEUE_CAPACITY = 10000;
+    public static final int QUEUE_CAPACITY = 10000;
 
     // Visible for monitor
     public static BlockingQueue<Runnable> dispatchThreadPoolQueue;

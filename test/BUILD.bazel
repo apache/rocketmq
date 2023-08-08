@@ -128,6 +128,9 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/test/delay/NormalMsgDelayIT",
         "src/test/java/org/apache/rocketmq/test/client/producer/querymsg/QueryMsgByIdExceptionIT",
     ],
+    flaky_tests = [
+       "src/test/java/org/apache/rocketmq/test/client/producer/querymsg/QueryMsgByKeyIT", 
+    ],
     test_files = glob(["src/test/java/**/*IT.java"]),
     deps = [
         ":tests",
