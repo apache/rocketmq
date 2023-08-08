@@ -54,6 +54,7 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -146,6 +147,11 @@ public class BrokerNettyServer {
         initRemotingServer();
         initResources();
         registerProcessor();
+    }
+
+    public void registerServerRPCHook(RPCHook rpcHook) {
+        this.remotingServer.registerRPCHook(rpcHook);
+        this.fastRemotingServer.registerRPCHook(rpcHook);
     }
 
     public void start() {
@@ -270,7 +276,7 @@ public class BrokerNettyServer {
 
     }
 
-    public void registerProcessor() {
+    private void registerProcessor() {
         /*
          * SendMessageProcessor
          */
