@@ -170,6 +170,19 @@ public class BrokerNettyServer {
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
         }
+
+        if (this.remotingServer != null) {
+            this.remotingServer.start();
+
+            // In test scenarios where it is up to OS to pick up an available port, set the listening port back to config
+            if (null != nettyServerConfig && 0 == nettyServerConfig.getListenPort()) {
+                nettyServerConfig.setListenPort(remotingServer.localListenPort());
+            }
+        }
+
+        if (this.fastRemotingServer != null) {
+            this.fastRemotingServer.start();
+        }
     }
 
     public void shutdown() {
