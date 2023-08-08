@@ -72,8 +72,8 @@ public class RocksDBConsumeQueueOffsetTable {
      * </pre>
      * ConsumeQueue's Offset unit. Size: CommitLog Physical Offset(8) + ConsumeQueue Offset(8) =  16 Bytes
      */
-    public static final int OFFSET_PHY_OFFSET = 0;
-    public static final int OFFSET_CQ_OFFSET = 8;
+    private static final int OFFSET_PHY_OFFSET = 0;
+    private static final int OFFSET_CQ_OFFSET = 8;
     /**
      *
      * ┌─────────────────────────┬───────────┬───────────┬───────────┬───────────┬─────────────┐
@@ -81,7 +81,7 @@ public class RocksDBConsumeQueueOffsetTable {
      * │        (4 Bytes)        │ (1 Bytes) │ (1 Bytes) │ (3 Bytes) │ (1 Bytes) │  (4 Bytes)  │
      * ├─────────────────────────┴───────────┴───────────┴───────────┴───────────┴─────────────┤
      */
-    public static final int OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES = 4 + 1 + 1 + 3 + 1 + 4;
+    private static final int OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES = 4 + 1 + 1 + 3 + 1 + 4;
     public static final int OFFSET_VALUE_LENGTH = 8 + 8;
 
     /**

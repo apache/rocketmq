@@ -71,7 +71,23 @@ public class RocksDBConsumeQueueTable {
     public static final int PHY_MSG_LEN_OFFSET = 8;
     public static final int MSG_TAG_HASHCODE_OFFSET = 12;
     public static final int MSG_STORE_TIME_SIZE_OFFSET = 20;
-    public static final int CQ_UNIT_SIZE = 28;
+    public static final int CQ_UNIT_SIZE = 8 + 4 + 8 + 8;
+
+    /**
+     * ┌─────────────────────────┬───────────┬───────────┬───────────┬───────────┬───────────────────────┐
+     * │ Topic Bytes Array Size  │  CTRL_1   │  CTRL_1   │  QueueId  │  CTRL_1   │  ConsumeQueue Offset  │
+     * │        (4 Bytes)        │ (1 Bytes) │ (1 Bytes) │ (4 Bytes) │ (1 Bytes) │     (8 Bytes)         │
+     * ├─────────────────────────┴───────────┴───────────┴───────────┴───────────┴───────────────────────┤
+     */
+    private static final int CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES = 4 + 1 + 1 + 4 + 1 + 8;
+
+    /**
+     * ┌─────────────────────────┬───────────┬───────────┬───────────┬───────────────────┐
+     * │ Topic Bytes Array Size  │  CTRL_1   │  CTRL_1   │  QueueId  │  CTRL_0(CTRL_2)   │
+     * │        (4 Bytes)        │ (1 Bytes) │ (1 Bytes) │ (4 Bytes) │     (1 Bytes)     │
+     * ├─────────────────────────┴───────────┴───────────┴───────────┴───────────────────┤
+     */
+    private static final int DELETE_CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES = 4 + 1 + 1 + 4 + 1;
 
     private final ConsumeQueueRocksDBStorage rocksDBStorage;
     private final DefaultMessageStore messageStore;
@@ -203,14 +219,14 @@ public class RocksDBConsumeQueueTable {
 
 
     private ByteBuffer buildCQKeyBB(final byte[] topicBytes, final int queueId, final long cqOffset) {
-        final ByteBuffer bb = ByteBuffer.allocate(19 + topicBytes.length);
+        final ByteBuffer bb = ByteBuffer.allocate(CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
         buildCQKeyBB0(bb, topicBytes, queueId, cqOffset);
         return bb;
     }
 
     private void buildCQKeyBB(final ByteBuffer bb, final byte[] topicBytes,
         final int queueId, final long cqOffset) {
-        bb.position(0).limit(19 + topicBytes.length);
+        bb.position(0).limit(CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
         buildCQKeyBB0(bb, topicBytes, queueId, cqOffset);
     }
 
@@ -233,7 +249,7 @@ public class RocksDBConsumeQueueTable {
     }
 
     private ByteBuffer buildDeleteCQKey(final boolean start, final byte[] topicBytes, final int queueId) {
-        final ByteBuffer bb = ByteBuffer.allocate(11 + topicBytes.length);
+        final ByteBuffer bb = ByteBuffer.allocate(DELETE_CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
 
         bb.putInt(topicBytes.length).put(CTRL_1).put(topicBytes).put(CTRL_1).putInt(queueId).put(start ? CTRL_0 : CTRL_2);
         bb.flip();
