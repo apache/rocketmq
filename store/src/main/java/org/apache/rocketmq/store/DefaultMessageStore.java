@@ -159,7 +159,7 @@ public class DefaultMessageStore implements MessageStore {
     private final BrokerConfig brokerConfig;
 
     private volatile boolean shutdown = true;
-    protected boolean isNecessary2NotifyMessageArrive = true;
+    protected boolean notifyMessageArriveInBatch = false;
 
     private StoreCheckpoint storeCheckpoint;
     private TimerMessageStore timerMessageStore;
@@ -1217,7 +1217,8 @@ public class DefaultMessageStore implements MessageStore {
         return -1;
     }
 
-    @Override public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
+    @Override
+    public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
         long consumeQueueOffset) {
         return CompletableFuture.completedFuture(getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset));
     }
@@ -2783,6 +2784,18 @@ public class DefaultMessageStore implements MessageStore {
 
     }
 
+    @Override
+    public void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest) {
+        if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
+            && DefaultMessageStore.this.messageArrivingListener != null) {
+            DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
+                dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
+                dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
+                dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
+            DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
+        }
+    }
+
     class ReputMessageService extends ServiceThread {
 
         protected volatile long reputFromOffset = 0;
@@ -2852,14 +2865,8 @@ public class DefaultMessageStore implements MessageStore {
                             if (size > 0) {
                                 DefaultMessageStore.this.doDispatch(dispatchRequest);
 
-                                if (isNecessary2NotifyMessageArrive
-                                    && DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
-                                    && DefaultMessageStore.this.messageArrivingListener != null) {
-                                    DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
-                                        dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
-                                        dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
-                                        dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
-                                    notifyMessageArrive4MultiQueue(dispatchRequest);
+                                if (!notifyMessageArriveInBatch) {
+                                    notifyMessageArriveIfNecessary(dispatchRequest);
                                 }
 
                                 this.reputFromOffset += size;
@@ -3045,14 +3052,8 @@ public class DefaultMessageStore implements MessageStore {
                     for (DispatchRequest dispatchRequest : dispatchRequests) {
                         DefaultMessageStore.this.doDispatch(dispatchRequest);
                         // wake up long-polling
-                        if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
-                            && DefaultMessageStore.this.messageArrivingListener != null) {
-                            DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
-                                dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
-                                dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
-                                dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
-                            DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
-                        }
+                        DefaultMessageStore.this.notifyMessageArriveIfNecessary(dispatchRequest);
+
                         if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
                             DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
                             DefaultMessageStore.this.storeStatsService

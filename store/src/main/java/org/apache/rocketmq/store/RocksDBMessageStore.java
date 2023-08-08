@@ -37,7 +37,7 @@ public class RocksDBMessageStore extends DefaultMessageStore {
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable) throws
         IOException {
         super(messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig, topicConfigTable);
-        isNecessary2NotifyMessageArrive = false;
+        notifyMessageArriveInBatch = true;
     }
 
     @Override

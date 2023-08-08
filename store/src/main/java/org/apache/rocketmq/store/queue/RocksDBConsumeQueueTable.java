@@ -217,27 +217,23 @@ public class RocksDBConsumeQueueTable {
         return new PhyAndCQOffset(resultPhyOffset, resultCQOffset);
     }
 
-
     private ByteBuffer buildCQKeyBB(final byte[] topicBytes, final int queueId, final long cqOffset) {
         final ByteBuffer bb = ByteBuffer.allocate(CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
         buildCQKeyBB0(bb, topicBytes, queueId, cqOffset);
         return bb;
     }
 
-    private void buildCQKeyBB(final ByteBuffer bb, final byte[] topicBytes,
-        final int queueId, final long cqOffset) {
+    private void buildCQKeyBB(final ByteBuffer bb, final byte[] topicBytes, final int queueId, final long cqOffset) {
         bb.position(0).limit(CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
         buildCQKeyBB0(bb, topicBytes, queueId, cqOffset);
     }
 
-    private void buildCQKeyBB0(final ByteBuffer bb, final byte[] topicBytes,
-        final int queueId, final long cqOffset) {
+    private void buildCQKeyBB0(final ByteBuffer bb, final byte[] topicBytes, final int queueId, final long cqOffset) {
         bb.putInt(topicBytes.length).put(CTRL_1).put(topicBytes).put(CTRL_1).putInt(queueId).put(CTRL_1).putLong(cqOffset);
         bb.flip();
     }
 
-    private void buildCQValueBB(final ByteBuffer bb, final long phyOffset, final int msgSize,
-        final long tagsCode, final long storeTimestamp) {
+    private void buildCQValueBB(final ByteBuffer bb, final long phyOffset, final int msgSize, final long tagsCode, final long storeTimestamp) {
         bb.position(0).limit(CQ_UNIT_SIZE);
         buildCQValueBB0(bb, phyOffset, msgSize, tagsCode, storeTimestamp);
     }

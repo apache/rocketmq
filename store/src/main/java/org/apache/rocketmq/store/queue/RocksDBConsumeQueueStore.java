@@ -36,6 +36,7 @@ import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -100,15 +101,15 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
 
         this.tempTopicQueueMaxOffsetMap = new HashMap<>();
-        this.scheduledExecutorService =
-            Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RocksDBConsumeQueueStoreScheduledThread", messageStore.getBrokerIdentity()));
+        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+            new ThreadFactoryImpl("RocksDBConsumeQueueStoreScheduledThread", messageStore.getBrokerIdentity()));
     }
 
     @Override
     public void start() {
         log.info("RocksDB ConsumeQueueStore start!");
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
-            rocksDBStorage.statRocksdb(ROCKSDB_LOG);
+            this.rocksDBStorage.statRocksdb(ROCKSDB_LOG);
         }, 10, this.messageStoreConfig.getStatConsumeQueueRocksDbIntervalSec(), TimeUnit.SECONDS);
 
         this.scheduledExecutorService.scheduleWithFixedDelay(() -> {
@@ -217,11 +218,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 final DispatchRequest request = bufferDRList.get(i);
                 final byte[] topicBytes = request.getTopic().getBytes(CHARSET_UTF8);
 
-                final Pair<ByteBuffer, ByteBuffer> cqBBPair = cqBBPairList.get(i);
-                final Pair<ByteBuffer, ByteBuffer> offsetBBPair = offsetBBPairList.get(i);
-
-                this.rocksDBConsumeQueueTable.buildAndPutCQByteBuffer(cqBBPair, topicBytes, request, writeBatch);
-                this.rocksDBConsumeQueueOffsetTable.updateTempTopicQueueMaxOffset(offsetBBPair, topicBytes, request,
+                this.rocksDBConsumeQueueTable.buildAndPutCQByteBuffer(cqBBPairList.get(i), topicBytes, request, writeBatch);
+                this.rocksDBConsumeQueueOffsetTable.updateTempTopicQueueMaxOffset(offsetBBPairList.get(i), topicBytes, request,
                     tempTopicQueueMaxOffsetMap);
 
                 final int msgSize = request.getMsgSize();
@@ -236,12 +234,9 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             // clear writeBatch in batchPut
             this.rocksDBStorage.batchPut(writeBatch);
 
-            // put max consumeQueueOffset info to heap, so we can get it from heap quickly
-            this.rocksDBConsumeQueueOffsetTable.putHeapMaxCqOffset(tempTopicQueueMaxOffsetMap);
-
             long storeTimeStamp = bufferDRList.get(size - 1).getStoreTimestamp();
-            if (this.messageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE ||
-                this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
+            if (this.messageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE
+                || this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
                 this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimeStamp);
             }
             this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(storeTimeStamp);
@@ -260,12 +255,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private void notifyMessageArriveAndClear() {
         final List<DispatchRequest> bufferDRList = this.bufferDRList;
         try {
-            if (this.messageStore.getBrokerConfig().isLongPollingEnable() && this.messageStore.getMessageArrivingListener() != null) {
-                for (DispatchRequest dp : bufferDRList) {
-                    this.messageStore.getMessageArrivingListener().arriving(
-                        dp.getTopic(), dp.getQueueId(), dp.getConsumeQueueOffset() + 1, dp.getTagsCode(),
-                        dp.getStoreTimestamp(), dp.getBitMap(), dp.getPropertiesMap());
-                }
+            for (DispatchRequest dp : bufferDRList) {
+                this.messageStore.notifyMessageArriveIfNecessary(dp);
             }
         } catch (Exception e) {
             ERROR_LOG.error("notifyMessageArriveAndClear Failed.", e);
@@ -284,9 +275,15 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         return this.rocksDBConsumeQueueTable.getCQInKV(topic, queueId, cqOffset);
     }
 
+    /**
+     * Ignored, we do not need to recover topicQueueTable and correct minLogicOffset. Because we will correct them
+     * when we use them, we call it lazy correction.
+     * @see RocksDBConsumeQueue#increaseQueueOffset(QueueOffsetOperator, MessageExtBrokerInner, short)
+     * @see org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable#getMinConsumeOffset(String, int)
+     */
     @Override
     public void recoverOffsetTable(long minPhyOffset) {
-        // ignored
+
     }
 
     @Override

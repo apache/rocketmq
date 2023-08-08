@@ -35,6 +35,7 @@ import org.apache.rocketmq.store.AllocateMappedFileService;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.CommitLogDispatcher;
+import org.apache.rocketmq.store.DefaultMessageStore.ReputMessageService;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.MessageFilter;
@@ -672,5 +673,10 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public long getStoreTime(CqUnit cqUnit) {
         return next.getStoreTime(cqUnit);
+    }
+
+    @Override
+    public void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest) {
+        return next.notifyMessageArriveIfNecessary();
     }
 }

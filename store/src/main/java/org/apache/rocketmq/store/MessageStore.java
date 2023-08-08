@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
+import org.apache.rocketmq.store.DefaultMessageStore.ReputMessageService;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.hook.PutMessageHook;
@@ -632,8 +633,8 @@ public interface MessageStore {
     /**
      * Only used in rocksdb mode, because we build consumeQueue in batch(default 16 dispatchRequests)
      * It will be triggered in two cases:
-     * 1.ReputMessageService.doReput
-     * 2.Commitlog.recoverAbnormally
+     * @see org.apache.rocketmq.store.DefaultMessageStore.ReputMessageService#doReput
+     * @see CommitLog#recoverAbnormally
      */
     void finishCommitLogDispatch();
 
@@ -1004,4 +1005,9 @@ public interface MessageStore {
      * @return
      */
     long getStoreTime(CqUnit cqUnit);
+
+    /**
+     * notify message arrive if necessary
+     */
+    void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest);
 }
