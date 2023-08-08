@@ -567,7 +567,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         try {
 
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (true) {
+            if (accessValidator.updateAccessConfig(accessConfig)) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setOpaque(request.getOpaque());
                 response.markResponseType();
