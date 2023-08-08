@@ -654,9 +654,9 @@ public class BrokerOuterAPI {
                     try {
                         RemotingCommand response = BrokerOuterAPI.this.remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
                         assert response != null;
-                        LOGGER.info("Register single topic %s to broker %s with response code %s", topic, brokerName, response.getCode());
+                        LOGGER.info("Register single topic {} to broker {} with response code {}", topic, brokerName, response.getCode());
                     } catch (Exception e) {
-                        LOGGER.warn(String.format("Register single topic %s to broker %s exception", topic, brokerName), e);
+                        LOGGER.warn("Register single topic {} to broker {} exception", topic, brokerName, e);
                     } finally {
                         countDownLatch.countDown();
                     }
@@ -722,10 +722,10 @@ public class BrokerOuterAPI {
                                 default:
                                     break;
                             }
-                            LOGGER.warn("Query data version from name server {} OK, changed {}, broker {},name server {}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
+                            LOGGER.warn("Query data version from name server {} OK, changed {}, broker {}, name server {}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
                         } catch (Exception e) {
                             changedList.add(Boolean.TRUE);
-                            LOGGER.error("Query data version from name server {}  Exception, {}", namesrvAddr, e);
+                            LOGGER.error("Query data version from name server {} exception", namesrvAddr, e);
                         } finally {
                             countDownLatch.countDown();
                         }
