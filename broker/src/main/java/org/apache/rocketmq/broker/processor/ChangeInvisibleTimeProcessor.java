@@ -136,7 +136,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         if (requestHeader.getOffset() < oldOffset) {
             return response;
         }
-        while (!this.brokerController.getPopMessageProcessor().getQueueLockManager().tryLock(requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueId())) {
+        while (!this.brokerController.getBrokerNettyServer().getPopMessageProcessor().getQueueLockManager().tryLock(requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueId())) {
         }
         try {
             oldOffset = this.brokerController.getConsumerOffsetManager().queryOffset(requestHeader.getConsumerGroup(),
@@ -153,7 +153,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             responseHeader.setPopTime(popTime);
             responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
         } finally {
-            this.brokerController.getPopMessageProcessor().getQueueLockManager().unLock(requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueId());
+            this.brokerController.getBrokerNettyServer().getPopMessageProcessor().getQueueLockManager().unLock(requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getQueueId());
         }
         return response;
     }
@@ -175,7 +175,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         this.brokerController.getBrokerStatsManager().incBrokerAckNums(1);
         this.brokerController.getBrokerStatsManager().incGroupAckNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(), 1);
 
-        if (brokerController.getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
+        if (brokerController.getBrokerNettyServer().getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
             return;
         }
 

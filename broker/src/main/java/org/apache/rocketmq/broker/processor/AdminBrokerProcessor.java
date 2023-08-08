@@ -1778,7 +1778,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand getAllMessageRequestMode(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        String content = this.brokerController.getQueryAssignmentProcessor().getMessageRequestModeManager().encode();
+        String content = this.brokerController.getBrokerNettyServer().getQueryAssignmentProcessor().getMessageRequestModeManager().encode();
         if (content != null && content.length() > 0) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
@@ -2416,19 +2416,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             runtimeInfo.put("commitLogDirCapacity", String.format("Total : %s, Free : %s.", MixAll.humanReadableByteCount(commitLogDir.getTotalSpace(), false), MixAll.humanReadableByteCount(commitLogDir.getFreeSpace(), false)));
         }
 
-        runtimeInfo.put("sendThreadPoolQueueSize", String.valueOf(this.brokerController.getSendThreadPoolQueue().size()));
+        runtimeInfo.put("sendThreadPoolQueueSize", String.valueOf(this.brokerController.getBrokerNettyServer().getSendThreadPoolQueue().size()));
         runtimeInfo.put("sendThreadPoolQueueCapacity",
             String.valueOf(this.brokerController.getBrokerConfig().getSendThreadPoolQueueCapacity()));
 
-        runtimeInfo.put("pullThreadPoolQueueSize", String.valueOf(this.brokerController.getPullThreadPoolQueue().size()));
+        runtimeInfo.put("pullThreadPoolQueueSize", String.valueOf(this.brokerController.getBrokerNettyServer().getPullThreadPoolQueue().size()));
         runtimeInfo.put("pullThreadPoolQueueCapacity",
             String.valueOf(this.brokerController.getBrokerConfig().getPullThreadPoolQueueCapacity()));
 
-        runtimeInfo.put("litePullThreadPoolQueueSize", String.valueOf(brokerController.getLitePullThreadPoolQueue().size()));
+        runtimeInfo.put("litePullThreadPoolQueueSize", String.valueOf(brokerController.getBrokerNettyServer().getLitePullThreadPoolQueue().size()));
         runtimeInfo.put("litePullThreadPoolQueueCapacity",
             String.valueOf(this.brokerController.getBrokerConfig().getLitePullThreadPoolQueueCapacity()));
 
-        runtimeInfo.put("queryThreadPoolQueueSize", String.valueOf(this.brokerController.getQueryThreadPoolQueue().size()));
+        runtimeInfo.put("queryThreadPoolQueueSize", String.valueOf(this.brokerController.getBrokerNettyServer().getQueryThreadPoolQueue().size()));
         runtimeInfo.put("queryThreadPoolQueueCapacity",
             String.valueOf(this.brokerController.getBrokerConfig().getQueryThreadPoolQueueCapacity()));
 
@@ -2437,7 +2437,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         runtimeInfo.put("queryThreadPoolQueueHeadWaitTimeMills", String.valueOf(this.brokerController.headSlowTimeMills4QueryThreadPoolQueue()));
         runtimeInfo.put("litePullThreadPoolQueueHeadWaitTimeMills", String.valueOf(brokerController.headSlowTimeMills4LitePullThreadPoolQueue()));
 
-        runtimeInfo.put("EndTransactionQueueSize", String.valueOf(this.brokerController.getEndTransactionThreadPoolQueue().size()));
+        runtimeInfo.put("EndTransactionQueueSize", String.valueOf(this.brokerController.getBrokerNettyServer().getEndTransactionThreadPoolQueue().size()));
         runtimeInfo.put("EndTransactionThreadPoolQueueCapacity",
             String.valueOf(this.brokerController.getBrokerConfig().getEndTransactionPoolQueueCapacity()));
 

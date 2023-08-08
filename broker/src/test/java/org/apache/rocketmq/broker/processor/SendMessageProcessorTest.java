@@ -97,7 +97,7 @@ public class SendMessageProcessorTest {
         SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
-        when(brokerController.getPutMessageFutureExecutor()).thenReturn(Executors.newSingleThreadExecutor());
+        when(brokerController.getBrokerNettyServer().getPutMessageFutureExecutor()).thenReturn(Executors.newSingleThreadExecutor());
         when(messageStore.now()).thenReturn(System.currentTimeMillis());
         when(channel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
         when(handlerContext.channel()).thenReturn(channel);

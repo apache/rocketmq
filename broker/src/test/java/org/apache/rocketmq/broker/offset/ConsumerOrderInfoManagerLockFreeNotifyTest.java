@@ -54,7 +54,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
         notified = new AtomicBoolean(false);
         brokerConfig.setEnableNotifyAfterPopOrderLockRelease(true);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
-        when(brokerController.getPopMessageProcessor()).thenReturn(popMessageProcessor);
+        when(brokerController.getBrokerNettyServer().getPopMessageProcessor()).thenReturn(popMessageProcessor);
         doAnswer((Answer<Void>) mock -> {
             notified.set(true);
             return null;

@@ -118,7 +118,7 @@ public class AckMessageProcessorTest {
         when(messageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(MIN_OFFSET_IN_QUEUE);
         when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(MAX_OFFSET_IN_QUEUE);
 
-        when(brokerController.getPopMessageProcessor()).thenReturn(popMessageProcessor);
+        when(brokerController.getBrokerNettyServer().getPopMessageProcessor()).thenReturn(popMessageProcessor);
     }
 
     @Test

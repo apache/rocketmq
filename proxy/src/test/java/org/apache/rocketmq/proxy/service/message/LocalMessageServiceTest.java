@@ -116,12 +116,12 @@ public class LocalMessageServiceTest extends InitConfigTest {
         super.before();
         ConfigurationManager.getProxyConfig().setNamesrvAddr("1.1.1.1");
         channelManager = new ChannelManager();
-        Mockito.when(brokerControllerMock.getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
-        Mockito.when(brokerControllerMock.getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
-        Mockito.when(brokerControllerMock.getChangeInvisibleTimeProcessor()).thenReturn(changeInvisibleTimeProcessorMock);
-        Mockito.when(brokerControllerMock.getAckMessageProcessor()).thenReturn(ackMessageProcessorMock);
-        Mockito.when(brokerControllerMock.getEndTransactionProcessor()).thenReturn(endTransactionProcessorMock);
-        Mockito.when(brokerControllerMock.getBrokerConfig()).thenReturn(new BrokerConfig());
+        Mockito.when(brokerControllerMock.getBrokerNettyServer().getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
+        Mockito.when(brokerControllerMock.getBrokerNettyServer().getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
+        Mockito.when(brokerControllerMock.getBrokerNettyServer().getChangeInvisibleTimeProcessor()).thenReturn(changeInvisibleTimeProcessorMock);
+        Mockito.when(brokerControllerMock.getBrokerNettyServer().getAckMessageProcessor()).thenReturn(ackMessageProcessorMock);
+        Mockito.when(brokerControllerMock.getBrokerNettyServer().getEndTransactionProcessor()).thenReturn(endTransactionProcessorMock);
+        Mockito.when(brokerControllerMock.getBrokerNettyServer().getBrokerConfig()).thenReturn(new BrokerConfig());
         localMessageService = new LocalMessageService(brokerControllerMock, channelManager, null);
         proxyContext = ProxyContext.create().withVal(ContextVariable.REMOTE_ADDRESS, "0.0.0.1")
             .withVal(ContextVariable.LOCAL_ADDRESS, "0.0.0.2");

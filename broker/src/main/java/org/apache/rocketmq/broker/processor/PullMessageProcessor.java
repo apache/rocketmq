@@ -799,7 +799,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 LOGGER.error("excuteRequestWhenWakeup run", e1);
             }
         };
-        this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, channel, request));
+        this.brokerController.getBrokerNettyServer().getPullMessageExecutor().submit(new RequestTask(run, channel, request));
     }
 
     public void registerConsumeMessageHook(List<ConsumeMessageHook> consumeMessageHookList) {

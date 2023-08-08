@@ -265,7 +265,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
         if (offset < 0) {
             offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
         }
-        long bufferOffset = this.brokerController.getPopMessageProcessor().getPopBufferMergeService()
+        long bufferOffset = this.brokerController.getBrokerNettyServer().getPopMessageProcessor().getPopBufferMergeService()
             .getLatestOffset(topic, cid, queueId);
         if (bufferOffset < 0) {
             return offset;

@@ -142,13 +142,13 @@ public class PopReviveService extends ServiceThread {
         this.brokerController.getBrokerStatsManager().incBrokerPutNums(popCheckPoint.getTopic(), 1);
         this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
         this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
-        if (brokerController.getPopMessageProcessor() != null) {
-            brokerController.getPopMessageProcessor().notifyMessageArriving(
+        if (brokerController.getBrokerNettyServer().getPopMessageProcessor() != null) {
+            brokerController.getBrokerNettyServer().getPopMessageProcessor().notifyMessageArriving(
                 KeyBuilder.parseNormalTopic(popCheckPoint.getTopic(), popCheckPoint.getCId()),
                 popCheckPoint.getCId(),
                 -1
             );
-            brokerController.getNotificationProcessor().notifyMessageArriving(
+            brokerController.getBrokerNettyServer().getNotificationProcessor().notifyMessageArriving(
                 KeyBuilder.parseNormalTopic(popCheckPoint.getTopic(), popCheckPoint.getCId()), -1);
         }
         return true;
@@ -596,7 +596,7 @@ public class PopReviveService extends ServiceThread {
         newCk.setTopic(oldCK.getTopic());
         newCk.setQueueId(oldCK.getQueueId());
         newCk.addDiff(0);
-        MessageExtBrokerInner ckMsg = brokerController.getPopMessageProcessor().buildCkMsg(newCk, queueId);
+        MessageExtBrokerInner ckMsg = brokerController.getBrokerNettyServer().getPopMessageProcessor().buildCkMsg(newCk, queueId);
         brokerController.getMessageStore().putMessage(ckMsg);
     }
 

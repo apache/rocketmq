@@ -69,7 +69,7 @@ public class ConsumerLagCalculator {
         this.consumerFilterManager = brokerController.getConsumerFilterManager();
         this.subscriptionGroupManager = brokerController.getSubscriptionGroupManager();
         this.messageStore = brokerController.getMessageStore();
-        this.popBufferMergeService = brokerController.getPopMessageProcessor().getPopBufferMergeService();
+        this.popBufferMergeService = brokerController.getBrokerNettyServer().getPopMessageProcessor().getPopBufferMergeService();
         this.popInflightMessageCounter = brokerController.getPopInflightMessageCounter();
     }
 

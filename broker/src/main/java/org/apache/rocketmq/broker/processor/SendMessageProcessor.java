@@ -323,7 +323,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     doResponse(ctx, request, responseFuture);
                 }
                 sendMessageCallback.onComplete(sendMessageContext, response);
-            }, this.brokerController.getPutMessageFutureExecutor());
+            }, this.brokerController.getBrokerNettyServer().getPutMessageFutureExecutor());
             // Returns null to release the send message thread
             return null;
         } else {
@@ -606,7 +606,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     doResponse(ctx, request, responseFuture);
                 }
                 sendMessageCallback.onComplete(sendMessageContext, response);
-            }, this.brokerController.getSendMessageExecutor());
+            }, this.brokerController.getBrokerNettyServer().getSendMessageExecutor());
             // Returns null to release the send message thread
             return null;
         } else {

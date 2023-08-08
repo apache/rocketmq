@@ -85,7 +85,7 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
         final MessageFilter messageFilter,
         RemotingCommand response,
         TopicQueueMappingContext mappingContext) {
-        PullMessageProcessor processor = brokerController.getPullMessageProcessor();
+        PullMessageProcessor processor = brokerController.getBrokerNettyServer().getPullMessageProcessor();
         final String clientAddress = RemotingHelper.parseChannelRemoteAddr(channel);
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
         processor.composeResponseHeader(requestHeader, getMessageResult, topicConfig.getTopicSysFlag(),
@@ -184,7 +184,7 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
                     int queueId = requestHeader.getQueueId();
                     PullRequest pullRequest = new PullRequest(request, channel, pollingTimeMills,
                         this.brokerController.getMessageStore().now(), offset, subscriptionData, messageFilter);
-                    this.brokerController.getPullRequestHoldService().suspendPullRequest(topic, queueId, pullRequest);
+                    this.brokerController.getBrokerNettyServer().getPullRequestHoldService().suspendPullRequest(topic, queueId, pullRequest);
                     return null;
                 }
             case ResponseCode.PULL_RETRY_IMMEDIATELY:

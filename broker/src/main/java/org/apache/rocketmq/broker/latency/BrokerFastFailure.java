@@ -31,8 +31,8 @@ import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 
 /**
- * BrokerFastFailure will cover {@link BrokerController#getSendThreadPoolQueue()} and {@link
- * BrokerController#getPullThreadPoolQueue()}
+ * BrokerFastFailure will cover {@link BrokerController#getBrokerNettyServer()} #getSendThreadPoolQueue()} and {@link
+ * BrokerController#getBrokerNettyServer()} #getPullThreadPoolQueue()}
  */
 public class BrokerFastFailure {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -76,8 +76,8 @@ public class BrokerFastFailure {
 
         while (this.brokerController.getMessageStore().isOSPageCacheBusy()) {
             try {
-                if (!this.brokerController.getSendThreadPoolQueue().isEmpty()) {
-                    final Runnable runnable = this.brokerController.getSendThreadPoolQueue().poll(0, TimeUnit.SECONDS);
+                if (!this.brokerController.getBrokerNettyServer().getSendThreadPoolQueue().isEmpty()) {
+                    final Runnable runnable = this.brokerController.getBrokerNettyServer().getSendThreadPoolQueue().poll(0, TimeUnit.SECONDS);
                     if (null == runnable) {
                         break;
                     }
@@ -88,7 +88,7 @@ public class BrokerFastFailure {
                             "[PCBUSY_CLEAN_QUEUE]broker busy, start flow control for a while, period in queue: %sms, "
                                 + "size of queue: %d",
                             System.currentTimeMillis() - rt.getCreateTimestamp(),
-                            this.brokerController.getSendThreadPoolQueue().size()));
+                            this.brokerController.getBrokerNettyServer().getSendThreadPoolQueue().size()));
                     }
                 } else {
                     break;
@@ -97,22 +97,22 @@ public class BrokerFastFailure {
             }
         }
 
-        cleanExpiredRequestInQueue(this.brokerController.getSendThreadPoolQueue(),
+        cleanExpiredRequestInQueue(this.brokerController.getBrokerNettyServer().getSendThreadPoolQueue(),
             this.brokerController.getBrokerConfig().getWaitTimeMillsInSendQueue());
 
-        cleanExpiredRequestInQueue(this.brokerController.getPullThreadPoolQueue(),
+        cleanExpiredRequestInQueue(this.brokerController.getBrokerNettyServer().getPullThreadPoolQueue(),
             this.brokerController.getBrokerConfig().getWaitTimeMillsInPullQueue());
 
-        cleanExpiredRequestInQueue(this.brokerController.getLitePullThreadPoolQueue(),
+        cleanExpiredRequestInQueue(this.brokerController.getBrokerNettyServer().getLitePullThreadPoolQueue(),
             this.brokerController.getBrokerConfig().getWaitTimeMillsInLitePullQueue());
 
-        cleanExpiredRequestInQueue(this.brokerController.getHeartbeatThreadPoolQueue(),
+        cleanExpiredRequestInQueue(this.brokerController.getBrokerNettyServer().getHeartbeatThreadPoolQueue(),
             this.brokerController.getBrokerConfig().getWaitTimeMillsInHeartbeatQueue());
 
-        cleanExpiredRequestInQueue(this.brokerController.getEndTransactionThreadPoolQueue(), this
+        cleanExpiredRequestInQueue(this.brokerController.getBrokerNettyServer().getEndTransactionThreadPoolQueue(), this
             .brokerController.getBrokerConfig().getWaitTimeMillsInTransactionQueue());
 
-        cleanExpiredRequestInQueue(this.brokerController.getAckThreadPoolQueue(),
+        cleanExpiredRequestInQueue(this.brokerController.getBrokerNettyServer().getAckThreadPoolQueue(),
             brokerController.getBrokerConfig().getWaitTimeMillsInAckQueue());
     }
 

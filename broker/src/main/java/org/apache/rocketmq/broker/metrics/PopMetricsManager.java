@@ -123,19 +123,19 @@ public class PopMetricsManager {
 
     private static void calculatePopBufferOffsetSize(BrokerController brokerController,
         ObservableLongMeasurement measurement) {
-        PopBufferMergeService popBufferMergeService = brokerController.getPopMessageProcessor().getPopBufferMergeService();
+        PopBufferMergeService popBufferMergeService = brokerController.getBrokerNettyServer().getPopMessageProcessor().getPopBufferMergeService();
         measurement.record(popBufferMergeService.getOffsetTotalSize(), newAttributesBuilder().build());
     }
 
     private static void calculatePopBufferCkSize(BrokerController brokerController,
         ObservableLongMeasurement measurement) {
-        PopBufferMergeService popBufferMergeService = brokerController.getPopMessageProcessor().getPopBufferMergeService();
+        PopBufferMergeService popBufferMergeService = brokerController.getBrokerNettyServer().getPopMessageProcessor().getPopBufferMergeService();
         measurement.record(popBufferMergeService.getBufferedCKSize(), newAttributesBuilder().build());
     }
 
     private static void calculatePopReviveLatency(BrokerController brokerController,
         ObservableLongMeasurement measurement) {
-        PopReviveService[] popReviveServices = brokerController.getAckMessageProcessor().getPopReviveServices();
+        PopReviveService[] popReviveServices = brokerController.getBrokerNettyServer().getAckMessageProcessor().getPopReviveServices();
         for (PopReviveService popReviveService : popReviveServices) {
             measurement.record(popReviveService.getReviveBehindMillis(), newAttributesBuilder()
                 .put(LABEL_QUEUE_ID, popReviveService.getQueueId())
@@ -145,7 +145,7 @@ public class PopMetricsManager {
 
     private static void calculatePopReviveLag(BrokerController brokerController,
         ObservableLongMeasurement measurement) {
-        PopReviveService[] popReviveServices = brokerController.getAckMessageProcessor().getPopReviveServices();
+        PopReviveService[] popReviveServices = brokerController.getBrokerNettyServer().getAckMessageProcessor().getPopReviveServices();
         for (PopReviveService popReviveService : popReviveServices) {
             measurement.record(popReviveService.getReviveBehindMessages(), newAttributesBuilder()
                 .put(LABEL_QUEUE_ID, popReviveService.getQueueId())

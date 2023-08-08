@@ -106,7 +106,7 @@ public class ConsumerOrderInfoLockManager {
 
     protected void notifyLockIsFree(Key key) {
         try {
-            this.brokerController.getPopMessageProcessor().notifyLongPollingRequestIfNeed(key.topic, key.group, key.queueId);
+            this.brokerController.getBrokerNettyServer().getPopMessageProcessor().notifyLongPollingRequestIfNeed(key.topic, key.group, key.queueId);
         } catch (Exception e) {
             POP_LOGGER.error("unexpect error when notifyLockIsFree. key:{}", key, e);
         }

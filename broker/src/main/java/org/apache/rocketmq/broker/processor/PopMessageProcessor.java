@@ -166,7 +166,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     }
 
     public void notifyLongPollingRequestIfNeed(String topic, String group, int queueId) {
-        long popBufferOffset = this.brokerController.getPopMessageProcessor().getPopBufferMergeService().getLatestOffset(topic, group, queueId);
+        long popBufferOffset = this.brokerController.getBrokerNettyServer().getPopMessageProcessor().getPopBufferMergeService().getLatestOffset(topic, group, queueId);
         long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, queueId);
         long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
         long offset = Math.max(popBufferOffset, consumerOffset);
@@ -176,7 +176,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 // notify pop queue
                 notifySuccess = popLongPollingService.notifyMessageArriving(topic, group, queueId);
             }
-            this.brokerController.getNotificationProcessor().notifyMessageArriving(topic, queueId);
+            this.brokerController.getBrokerNettyServer().getNotificationProcessor().notifyMessageArriving(topic, queueId);
             if (this.brokerController.getBrokerConfig().isEnablePopLog()) {
                 POP_LOGGER.info("notify long polling request. topic:{}, group:{}, queueId:{}, success:{}",
                     topic, group, queueId, notifySuccess);

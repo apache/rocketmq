@@ -192,7 +192,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 if (ackOffset < oldOffset) {
                     return;
                 }
-                while (!this.brokerController.getPopMessageProcessor().getQueueLockManager().tryLock(lockKey)) {
+                while (!this.brokerController.getBrokerNettyServer().getPopMessageProcessor().getQueueLockManager().tryLock(lockKey)) {
                 }
                 try {
                     oldOffset = this.brokerController.getConsumerOffsetManager().queryOffset(consumeGroup, topic, qId);
@@ -211,7 +211,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                         }
                         if (!this.brokerController.getConsumerOrderInfoManager().checkBlock(null, topic,
                                 consumeGroup, qId, invisibleTime)) {
-                            this.brokerController.getPopMessageProcessor().notifyMessageArriving(
+                            this.brokerController.getBrokerNettyServer().getPopMessageProcessor().notifyMessageArriving(
                                     topic, consumeGroup, qId);
                         }
                     } else if (nextOffset == -1) {
@@ -223,7 +223,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                         return;
                     }
                 } finally {
-                    this.brokerController.getPopMessageProcessor().getQueueLockManager().unLock(lockKey);
+                    this.brokerController.getBrokerNettyServer().getPopMessageProcessor().getQueueLockManager().unLock(lockKey);
                 }
                 brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(topic, consumeGroup, popTime, qId, ackCount);
                 return;
@@ -279,7 +279,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         ackMsg.setPopTime(popTime);
         ackMsg.setBrokerName(brokerName);
 
-        if (this.brokerController.getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
+        if (this.brokerController.getBrokerNettyServer().getPopMessageProcessor().getPopBufferMergeService().addAk(rqId, ackMsg)) {
             brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(topic, consumeGroup, popTime, qId, ackCount);
             return;
         }

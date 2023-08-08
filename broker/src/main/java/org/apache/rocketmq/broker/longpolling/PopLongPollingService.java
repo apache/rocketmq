@@ -204,7 +204,7 @@ public class PopLongPollingService extends ServiceThread {
                 POP_LOGGER.error("ExecuteRequestWhenWakeup run", e1);
             }
         };
-        this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, request.getChannel(), request.getRemotingCommand()));
+        this.brokerController.getBrokerNettyServer().getPullMessageExecutor().submit(new RequestTask(run, request.getChannel(), request.getRemotingCommand()));
         return true;
     }
 

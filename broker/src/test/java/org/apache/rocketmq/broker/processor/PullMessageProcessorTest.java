@@ -84,7 +84,7 @@ public class PullMessageProcessorTest {
         brokerController.setMessageStore(messageStore);
         SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);
         pullMessageProcessor = new PullMessageProcessor(brokerController);
-        when(brokerController.getPullMessageProcessor()).thenReturn(pullMessageProcessor);
+        when(brokerController.getBrokerNettyServer().getPullMessageProcessor()).thenReturn(pullMessageProcessor);
         when(handlerContext.channel()).thenReturn(embeddedChannel);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());

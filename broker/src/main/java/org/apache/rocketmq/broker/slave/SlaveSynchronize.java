@@ -198,7 +198,7 @@ public class SlaveSynchronize {
                         this.brokerController.getBrokerOuterAPI().getAllMessageRequestMode(masterAddrBak);
 
                 MessageRequestModeManager messageRequestModeManager =
-                        this.brokerController.getQueryAssignmentProcessor().getMessageRequestModeManager();
+                        this.brokerController.getBrokerNettyServer().getQueryAssignmentProcessor().getMessageRequestModeManager();
                 messageRequestModeManager.getMessageRequestModeMap().clear();
                 messageRequestModeManager.getMessageRequestModeMap().putAll(
                         messageRequestModeSerializeWrapper.getMessageRequestModeMap()
