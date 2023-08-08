@@ -17,7 +17,6 @@
 package org.apache.rocketmq.broker;
 
 import com.google.common.collect.Lists;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -46,9 +45,7 @@ import org.apache.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import org.apache.rocketmq.broker.coldctr.ColdDataCgCtrService;
 import org.apache.rocketmq.broker.coldctr.ColdDataPullRequestHoldService;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
-import org.apache.rocketmq.broker.dledger.DLedgerRoleChangeHandler;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
-import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
@@ -81,7 +78,6 @@ import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
-import org.apache.rocketmq.broker.util.HookUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
@@ -89,8 +85,6 @@ import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.stats.MomentStatsItem;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -110,22 +104,14 @@ import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
-import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
-import org.apache.rocketmq.store.hook.PutMessageHook;
-import org.apache.rocketmq.store.hook.SendMessageBackHook;
-import org.apache.rocketmq.store.plugin.MessageStoreFactory;
-import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.stats.LmqBrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
-import org.apache.rocketmq.store.timer.TimerMetrics;
 
 public class BrokerController {
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -135,11 +121,11 @@ public class BrokerController {
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
     protected final MessageStoreConfig messageStoreConfig;
-    protected final ConsumerOffsetManager consumerOffsetManager;
+    protected ConsumerOffsetManager consumerOffsetManager;
     protected final BroadcastOffsetManager broadcastOffsetManager;
     protected final ConsumerManager consumerManager;
-    protected final ConsumerFilterManager consumerFilterManager;
-    protected final ConsumerOrderInfoManager consumerOrderInfoManager;
+    protected ConsumerFilterManager consumerFilterManager;
+    protected ConsumerOrderInfoManager consumerOrderInfoManager;
     protected final PopInflightMessageCounter popInflightMessageCounter;
     protected final ProducerManager producerManager;
 
@@ -224,27 +210,17 @@ public class BrokerController {
         this.messageStoreConfig = messageStoreConfig;
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         initConfiguration();
+        initMetadata();
 
         this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat()) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
         this.broadcastOffsetManager = new BroadcastOffsetManager(this);
-        if (isEnableRocksDBStore()) {
-            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqTopicConfigManager(this) : new RocksDBTopicConfigManager(this);
-            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqSubscriptionGroupManager(this) : new RocksDBSubscriptionGroupManager(this);
-            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqConsumerOffsetManager(this) : new RocksDBConsumerOffsetManager(this);
-        } else {
-            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
-            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
-            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
-        }
-        this.topicQueueMappingManager = new TopicQueueMappingManager(this);
 
         this.brokerNettyServer = new BrokerNettyServer(brokerConfig, messageStoreConfig, nettyServerConfig, this);
         this.brokerScheduleService = new BrokerScheduleService(brokerConfig, messageStoreConfig, this);
 
         this.consumerManager = new ConsumerManager(brokerNettyServer.getConsumerIdsChangeListener(), this.brokerStatsManager, this.brokerConfig);
         this.producerManager = new ProducerManager(this.brokerStatsManager);
-        this.consumerFilterManager = new ConsumerFilterManager(this);
-        this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
+
         this.popInflightMessageCounter = new PopInflightMessageCounter(this);
 
         this.broker2Client = new Broker2Client(this);
@@ -270,11 +246,28 @@ public class BrokerController {
         }
     }
 
+    private void initMetadata() {
+        if (isEnableRocksDBStore()) {
+            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqTopicConfigManager(this) : new RocksDBTopicConfigManager(this);
+            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqSubscriptionGroupManager(this) : new RocksDBSubscriptionGroupManager(this);
+            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqConsumerOffsetManager(this) : new RocksDBConsumerOffsetManager(this);
+        } else {
+            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
+            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
+            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
+        }
+
+        this.topicQueueMappingManager = new TopicQueueMappingManager(this);
+        this.consumerFilterManager = new ConsumerFilterManager(this);
+        this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
+    }
+
+
     //************************ constructor end: depends about 100 objects ***************************************
     //************************ about 56 netty related objects which can move outside the BrokerController *******
     //************************ public methods start: 373~651, about 278 lines ***********************************
     public boolean initialize() throws CloneNotSupportedException {
-        boolean result = this.initializeMetadata();
+        boolean result = this.loadMetadata();
         if (!result) {
             return false;
         }
@@ -574,7 +567,7 @@ public class BrokerController {
 
     //**************************************** private or protected methods start ****************************************************
 
-    public boolean initializeMetadata() {
+    protected boolean loadMetadata() {
         boolean result = this.topicConfigManager.load();
         result = result && this.topicQueueMappingManager.load();
         result = result && this.consumerOffsetManager.load();
