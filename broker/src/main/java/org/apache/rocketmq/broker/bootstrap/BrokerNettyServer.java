@@ -74,7 +74,7 @@ import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class BrokerNettyServer {
-    protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final Logger LOG_WATER_MARK = LoggerFactory.getLogger(LoggerName.WATER_MARK_LOGGER_NAME);
 
     private ClientHousekeepingService clientHousekeepingService;
@@ -627,7 +627,6 @@ public class BrokerNettyServer {
         this.loadBalanceThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getLoadBalanceThreadPoolQueueCapacity());
 
     }
-
 
     private void initAcl() {
         if (!this.brokerConfig.isAclEnable()) {

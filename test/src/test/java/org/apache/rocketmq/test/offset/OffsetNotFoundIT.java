@@ -67,7 +67,7 @@ public class OffsetNotFoundIT extends BaseConf {
     @Before
     public void setUp() {
         for (BrokerController brokerController: brokerControllerList) {
-            brokerController.registerServerRPCHook(offsetRpcHook);
+            brokerController.getBrokerNettyServer().registerServerRPCHook(offsetRpcHook);
         }
 
 

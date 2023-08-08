@@ -109,7 +109,7 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
                 slaveSyncFuture.cancel(false);
             }
             this.brokerController.getSlaveSynchronize().setMasterAddr(null);
-            slaveSyncFuture = this.brokerController.getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
+            slaveSyncFuture = this.brokerController.getBrokerScheduleService().getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     try {

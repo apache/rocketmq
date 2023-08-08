@@ -352,7 +352,7 @@ public class ReplicasManager {
                 this.slaveSyncFuture.cancel(false);
             }
             this.brokerController.getSlaveSynchronize().setMasterAddr(this.masterAddress);
-            slaveSyncFuture = this.brokerController.getScheduledExecutorService().scheduleAtFixedRate(() -> {
+            slaveSyncFuture = this.brokerController.getBrokerScheduleService().getScheduledExecutorService().scheduleAtFixedRate(() -> {
                 try {
                     if (System.currentTimeMillis() - lastSyncTimeMs > 10 * 1000) {
                         brokerController.getSlaveSynchronize().syncAll();

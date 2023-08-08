@@ -67,7 +67,7 @@ public class InnerBrokerController extends BrokerController {
             this.registerBrokerAll(true, false, true);
         }
 
-        scheduledFutures.add(this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+        getBrokerScheduleService().getScheduledFutures().add(getBrokerScheduleService().getScheduledExecutorService().scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
             @Override
             public void run0() {
                 try {
@@ -89,7 +89,7 @@ public class InnerBrokerController extends BrokerController {
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
             scheduleSendHeartbeat();
 
-            scheduledFutures.add(this.syncBrokerMemberGroupExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
+            getBrokerScheduleService().getScheduledFutures().add(getBrokerScheduleService().getSyncBrokerMemberGroupExecutorService().scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
                 @Override
                 public void run0() {
                     try {
@@ -112,12 +112,7 @@ public class InnerBrokerController extends BrokerController {
 
     @Override
     public void shutdown() {
-
         shutdownBasicService();
-
-        for (ScheduledFuture<?> scheduledFuture : scheduledFutures) {
-            scheduledFuture.cancel(true);
-        }
 
         if (this.remotingServer != null) {
             this.brokerContainer.getRemotingServer().removeRemotingServer(brokerConfig.getListenPort());
