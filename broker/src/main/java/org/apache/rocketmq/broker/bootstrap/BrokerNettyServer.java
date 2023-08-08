@@ -690,6 +690,15 @@ public class BrokerNettyServer {
         return messageArrivingListener;
     }
 
+    public RemotingServer getRemotingServer() {
+        return remotingServer;
+    }
+
+    public RemotingServer getFastRemotingServer() {
+        return fastRemotingServer;
+    }
+
+
     public void registerSendMessageHook(final SendMessageHook hook) {
         this.sendMessageHookList.add(hook);
         LOG.info("register SendMessageHook Hook, {}", hook.hookName());

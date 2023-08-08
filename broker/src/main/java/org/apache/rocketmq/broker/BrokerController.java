@@ -571,7 +571,7 @@ public class BrokerController {
 
     public void registerServerRPCHook(RPCHook rpcHook) {
         getRemotingServer().registerRPCHook(rpcHook);
-        this.fastRemotingServer.registerRPCHook(rpcHook);
+        getFastRemotingServer().registerRPCHook(rpcHook);
     }
 
     public void registerClientRPCHook(RPCHook rpcHook) {
@@ -1007,8 +1007,8 @@ public class BrokerController {
                     }
 
                     private void reloadServerSslContext() {
-                        ((NettyRemotingServer) remotingServer).loadSslContext();
-                        ((NettyRemotingServer) fastRemotingServer).loadSslContext();
+                        ((NettyRemotingServer) getRemotingServer()).loadSslContext();
+                        ((NettyRemotingServer) getFastRemotingServer()).loadSslContext();
                     }
                 });
         } catch (Exception e) {
@@ -1677,7 +1677,7 @@ public class BrokerController {
     }
 
     public RemotingServer getFastRemotingServer() {
-        return fastRemotingServer;
+        return getBrokerNettyServer().getFastRemotingServer();
     }
 
     public void setSubscriptionGroupManager(SubscriptionGroupManager subscriptionGroupManager) {
@@ -1735,7 +1735,7 @@ public class BrokerController {
 
 
     public RemotingServer getRemotingServer() {
-        return remotingServer;
+        return getBrokerNettyServer().getRemotingServer();
     }
 
     public void setRemotingServer(RemotingServer remotingServer) {
