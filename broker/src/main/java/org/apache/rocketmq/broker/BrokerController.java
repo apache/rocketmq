@@ -187,7 +187,6 @@ public class BrokerController {
     protected BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
     protected TopicQueueMappingCleanService topicQueueMappingCleanService;
-    protected FileWatchService fileWatchService;
     protected TransactionalMessageCheckService transactionalMessageCheckService;
     protected TransactionalMessageService transactionalMessageService;
     protected AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
@@ -714,10 +713,7 @@ public class BrokerController {
         initializeScheduledTasks();
         initialTransaction();
 
-        initialAcl();
-        initialRpcHooks();
-
-        return initialFileWatchService();
+        return brokerNettyServer.initFileWatchService();
     }
 
 
@@ -971,53 +967,6 @@ public class BrokerController {
         }
     }
 
-    private boolean initialFileWatchService() {
-        if (TlsSystemConfig.tlsMode == TlsMode.DISABLED) {
-            return true;
-        }
-
-        // Register a listener to reload SslContext
-        try {
-            fileWatchService = new FileWatchService(
-                new String[] {
-                    TlsSystemConfig.tlsServerCertPath,
-                    TlsSystemConfig.tlsServerKeyPath,
-                    TlsSystemConfig.tlsServerTrustCertPath
-                },
-                new FileWatchService.Listener() {
-                    boolean certChanged, keyChanged = false;
-
-                    @Override
-                    public void onChanged(String path) {
-                        if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
-                            LOG.info("The trust certificate changed, reload the ssl context");
-                            reloadServerSslContext();
-                        }
-                        if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
-                            certChanged = true;
-                        }
-                        if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
-                            keyChanged = true;
-                        }
-                        if (certChanged && keyChanged) {
-                            LOG.info("The certificate and private key changed, reload the ssl context");
-                            certChanged = keyChanged = false;
-                            reloadServerSslContext();
-                        }
-                    }
-
-                    private void reloadServerSslContext() {
-                        ((NettyRemotingServer) getRemotingServer()).loadSslContext();
-                        ((NettyRemotingServer) getFastRemotingServer()).loadSslContext();
-                    }
-                });
-        } catch (Exception e) {
-            LOG.warn("FileWatchService created error, can't load the certificate dynamically");
-            return false;
-        }
-
-        return true;
-    }
 
     public void registerMessageStoreHook() {
         List<PutMessageHook> putMessageHookList = messageStore.getPutMessageHookList();
@@ -1095,47 +1044,6 @@ public class BrokerController {
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
     }
 
-    private void initialAcl() {
-        if (!this.brokerConfig.isAclEnable()) {
-            LOG.info("The broker dose not enable acl");
-            return;
-        }
-
-        List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
-        if (accessValidators.isEmpty()) {
-            LOG.info("ServiceProvider loaded no AccessValidator, using default org.apache.rocketmq.acl.plain.PlainAccessValidator");
-            accessValidators.add(new PlainAccessValidator());
-        }
-
-        for (AccessValidator accessValidator : accessValidators) {
-            final AccessValidator validator = accessValidator;
-            accessValidatorMap.put(validator.getClass(), validator);
-            this.registerServerRPCHook(new RPCHook() {
-
-                @Override
-                public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-                    //Do not catch the exception
-                    validator.validate(validator.parse(request, remoteAddr));
-                }
-
-                @Override
-                public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
-                }
-
-            });
-        }
-    }
-
-    private void initialRpcHooks() {
-
-        List<RPCHook> rpcHooks = ServiceProvider.load(RPCHook.class);
-        if (rpcHooks == null || rpcHooks.isEmpty()) {
-            return;
-        }
-        for (RPCHook rpcHook : rpcHooks) {
-            this.registerServerRPCHook(rpcHook);
-        }
-    }
 
     protected void shutdownBasicService() {
         shutdown = true;
@@ -1156,9 +1064,6 @@ public class BrokerController {
         //it is better to make sure the timerMessageStore shutdown firstly
         if (this.timerMessageStore != null) {
             this.timerMessageStore.shutdown();
-        }
-        if (this.fileWatchService != null) {
-            this.fileWatchService.shutdown();
         }
 
         if (this.broadcastOffsetManager != null) {
@@ -1286,12 +1191,10 @@ public class BrokerController {
             }
         }
 
+        this.getBrokerNettyServer().start();
+
         if (this.topicQueueMappingCleanService != null) {
             this.topicQueueMappingCleanService.start();
-        }
-
-        if (this.fileWatchService != null) {
-            this.fileWatchService.start();
         }
 
         if (this.brokerStatsManager != null) {
@@ -1786,7 +1689,7 @@ public class BrokerController {
     }
 
     public Map<Class, AccessValidator> getAccessValidatorMap() {
-        return accessValidatorMap;
+        return getBrokerNettyServer().getAccessValidatorMap();
     }
 
     public TopicQueueMappingCleanService getTopicQueueMappingCleanService() {

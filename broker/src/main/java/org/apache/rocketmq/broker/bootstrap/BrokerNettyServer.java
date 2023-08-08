@@ -17,11 +17,15 @@
 package org.apache.rocketmq.broker.bootstrap;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
@@ -52,15 +56,20 @@ import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
+import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
+import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.srvutil.FileWatchService;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
@@ -85,6 +94,7 @@ public class BrokerNettyServer {
 
     private PullRequestHoldService pullRequestHoldService;
     private MessageArrivingListener messageArrivingListener;
+    protected FileWatchService fileWatchService;
 
     private BlockingQueue<Runnable> sendThreadPoolQueue;
     private BlockingQueue<Runnable> putThreadPoolQueue;
@@ -102,6 +112,7 @@ public class BrokerNettyServer {
 
     private List<SendMessageHook> sendMessageHookList = new ArrayList<>();
     private List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
+    private Map<Class, AccessValidator> accessValidatorMap = new HashMap<>();
 
     private ExecutorService sendMessageExecutor;
     private ExecutorService pullMessageExecutor;
@@ -147,7 +158,59 @@ public class BrokerNettyServer {
         initRemotingServer();
         initResources();
         registerProcessor();
+        initAcl();
+        initRpcHooks();
     }
+
+    public boolean initFileWatchService() {
+        if (TlsSystemConfig.tlsMode == TlsMode.DISABLED) {
+            return true;
+        }
+
+        // Register a listener to reload SslContext
+        try {
+            fileWatchService = new FileWatchService(
+                new String[] {
+                    TlsSystemConfig.tlsServerCertPath,
+                    TlsSystemConfig.tlsServerKeyPath,
+                    TlsSystemConfig.tlsServerTrustCertPath
+                },
+                new FileWatchService.Listener() {
+                    boolean certChanged, keyChanged = false;
+
+                    @Override
+                    public void onChanged(String path) {
+                        if (path.equals(TlsSystemConfig.tlsServerTrustCertPath)) {
+                            LOG.info("The trust certificate changed, reload the ssl context");
+                            reloadServerSslContext();
+                        }
+                        if (path.equals(TlsSystemConfig.tlsServerCertPath)) {
+                            certChanged = true;
+                        }
+                        if (path.equals(TlsSystemConfig.tlsServerKeyPath)) {
+                            keyChanged = true;
+                        }
+                        if (certChanged && keyChanged) {
+                            LOG.info("The certificate and private key changed, reload the ssl context");
+                            certChanged = keyChanged = false;
+                            reloadServerSslContext();
+                        }
+                    }
+
+                    private void reloadServerSslContext() {
+                        ((NettyRemotingServer) getRemotingServer()).loadSslContext();
+                        ((NettyRemotingServer) getFastRemotingServer()).loadSslContext();
+                    }
+                });
+        } catch (Exception e) {
+            LOG.warn("FileWatchService created error, can't load the certificate dynamically");
+            return false;
+        }
+
+        return true;
+    }
+
+
 
     public void registerServerRPCHook(RPCHook rpcHook) {
         this.remotingServer.registerRPCHook(rpcHook);
@@ -175,6 +238,10 @@ public class BrokerNettyServer {
 
         if (this.clientHousekeepingService != null) {
             this.clientHousekeepingService.start();
+        }
+
+        if (this.fileWatchService != null) {
+            this.fileWatchService.start();
         }
 
         if (this.remotingServer != null) {
@@ -264,6 +331,10 @@ public class BrokerNettyServer {
 
         if (this.adminBrokerExecutor != null) {
             this.adminBrokerExecutor.shutdown();
+        }
+
+        if (this.fileWatchService != null) {
+            this.fileWatchService.shutdown();
         }
 
         if (this.remotingServer != null) {
@@ -394,8 +465,6 @@ public class BrokerNettyServer {
         this.remotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
         this.fastRemotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
     }
-
-
 
     private void initRemotingServer() throws CloneNotSupportedException {
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.clientHousekeepingService);
@@ -559,6 +628,48 @@ public class BrokerNettyServer {
 
     }
 
+
+    private void initAcl() {
+        if (!this.brokerConfig.isAclEnable()) {
+            LOG.info("The broker dose not enable acl");
+            return;
+        }
+
+        List<AccessValidator> accessValidators = ServiceProvider.load(AccessValidator.class);
+        if (accessValidators.isEmpty()) {
+            LOG.info("ServiceProvider loaded no AccessValidator, using default org.apache.rocketmq.acl.plain.PlainAccessValidator");
+            accessValidators.add(new PlainAccessValidator());
+        }
+
+        for (AccessValidator accessValidator : accessValidators) {
+            final AccessValidator validator = accessValidator;
+            accessValidatorMap.put(validator.getClass(), validator);
+            this.registerServerRPCHook(new RPCHook() {
+
+                @Override
+                public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+                    //Do not catch the exception
+                    validator.validate(validator.parse(request, remoteAddr));
+                }
+
+                @Override
+                public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
+                }
+
+            });
+        }
+    }
+
+    private void initRpcHooks() {
+        List<RPCHook> rpcHooks = ServiceProvider.load(RPCHook.class);
+        if (rpcHooks == null || rpcHooks.isEmpty()) {
+            return;
+        }
+        for (RPCHook rpcHook : rpcHooks) {
+            this.registerServerRPCHook(rpcHook);
+        }
+    }
+
     public BrokerConfig getBrokerConfig() {
         return brokerConfig;
     }
@@ -704,6 +815,9 @@ public class BrokerNettyServer {
         return fastRemotingServer;
     }
 
+    public Map<Class, AccessValidator> getAccessValidatorMap() {
+        return accessValidatorMap;
+    }
 
     public void registerSendMessageHook(final SendMessageHook hook) {
         this.sendMessageHookList.add(hook);
