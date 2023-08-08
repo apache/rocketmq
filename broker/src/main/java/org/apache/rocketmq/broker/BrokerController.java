@@ -167,7 +167,6 @@ public class BrokerController {
 
     protected MessageStore messageStore;
     protected RemotingServer remotingServer;
-    protected CountDownLatch remotingServerStartLatch;
     protected RemotingServer fastRemotingServer;
     protected TopicConfigManager topicConfigManager;
     protected SubscriptionGroupManager subscriptionGroupManager;
@@ -1264,12 +1263,6 @@ public class BrokerController {
             this.replicasManager.start();
         }
 
-        if (remotingServerStartLatch != null) {
-            remotingServerStartLatch.await();
-        }
-
-
-
         this.storeHost = new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort());
 
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
@@ -1732,14 +1725,6 @@ public class BrokerController {
 
     public void setRemotingServer(RemotingServer remotingServer) {
         this.remotingServer = remotingServer;
-    }
-
-    public CountDownLatch getRemotingServerStartLatch() {
-        return remotingServerStartLatch;
-    }
-
-    public void setRemotingServerStartLatch(CountDownLatch remotingServerStartLatch) {
-        this.remotingServerStartLatch = remotingServerStartLatch;
     }
 
     public BrokerOuterAPI getBrokerOuterAPI() {
