@@ -27,6 +27,7 @@ java_library(
         "@maven//:com_conversantmedia_disruptor",
         "@maven//:com_google_guava_guava",
         "@maven//:commons_collections_commons_collections",
+        "@maven//:commons_io_commons_io",
         "@maven//:io_netty_netty_all",
         "@maven//:io_openmessaging_storage_dledger",
         "@maven//:io_opentelemetry_opentelemetry_api",
