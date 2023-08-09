@@ -43,13 +43,13 @@ public class InnerBrokerController extends BrokerController {
 
     @Override
     protected void initializeRemotingServer() {
-        this.remotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort());
-        this.fastRemotingServer = this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort() - 2);
+        setRemotingServer(this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort()));
+        setFastRemotingServer(this.brokerContainer.getRemotingServer().newRemotingServer(brokerConfig.getListenPort() - 2));
     }
 
     @Override
     protected void initializeScheduledTasks() {
-        initializeBrokerScheduledTasks();
+        getBrokerScheduleService().initializeBrokerScheduledTasks();
     }
 
     @Override
@@ -114,11 +114,11 @@ public class InnerBrokerController extends BrokerController {
     public void shutdown() {
         shutdownBasicService();
 
-        if (this.remotingServer != null) {
+        if (this.getRemotingServer() != null) {
             this.brokerContainer.getRemotingServer().removeRemotingServer(brokerConfig.getListenPort());
         }
 
-        if (this.fastRemotingServer != null) {
+        if (this.getFastRemotingServer() != null) {
             this.brokerContainer.getRemotingServer().removeRemotingServer(brokerConfig.getListenPort() - 2);
         }
     }

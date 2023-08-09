@@ -134,6 +134,8 @@ public class BrokerNettyServer {
     private final NettyServerConfig nettyServerConfig;
     private final BrokerController brokerController;
 
+
+
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
 
@@ -816,6 +818,14 @@ public class BrokerNettyServer {
 
     public Map<Class, AccessValidator> getAccessValidatorMap() {
         return accessValidatorMap;
+    }
+
+    public void setRemotingServer(RemotingServer remotingServer) {
+        this.remotingServer = remotingServer;
+    }
+
+    public void setFastRemotingServer(RemotingServer fastRemotingServer) {
+        this.fastRemotingServer = fastRemotingServer;
     }
 
     public void registerSendMessageHook(final SendMessageHook hook) {

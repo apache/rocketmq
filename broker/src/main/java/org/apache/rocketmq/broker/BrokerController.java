@@ -35,6 +35,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.broker.bootstrap.BrokerMetadataManager;
 import org.apache.rocketmq.broker.bootstrap.BrokerNettyServer;
 import org.apache.rocketmq.broker.bootstrap.BrokerScheduleService;
 import org.apache.rocketmq.broker.bootstrap.BrokerMessageService;
@@ -122,13 +123,10 @@ public class BrokerController {
     private final NettyClientConfig nettyClientConfig;
     protected final MessageStoreConfig messageStoreConfig;
 
-    protected ConsumerOffsetManager consumerOffsetManager;
-    protected final BroadcastOffsetManager broadcastOffsetManager;
-    protected final ConsumerManager consumerManager;
-    protected ConsumerFilterManager consumerFilterManager;
-    protected ConsumerOrderInfoManager consumerOrderInfoManager;
     protected final PopInflightMessageCounter popInflightMessageCounter;
     protected final ProducerManager producerManager;
+    private final ConsumerManager consumerManager;
+    private final BroadcastOffsetManager broadcastOffsetManager;
 
 
     protected final Broker2Client broker2Client;
@@ -138,13 +136,6 @@ public class BrokerController {
     protected final SlaveSynchronize slaveSynchronize;
 
     protected final BrokerStatsManager brokerStatsManager;
-
-    protected RemotingServer remotingServer;
-    protected RemotingServer fastRemotingServer;
-    protected TopicConfigManager topicConfigManager;
-    protected SubscriptionGroupManager subscriptionGroupManager;
-    protected TopicQueueMappingManager topicQueueMappingManager;
-
     protected boolean updateMasterHAServerAddrPeriodically = false;
 
     private InetSocketAddress storeHost;
@@ -176,6 +167,7 @@ public class BrokerController {
 
     private final BrokerNettyServer brokerNettyServer;
     private final BrokerScheduleService brokerScheduleService;
+    private final BrokerMetadataManager brokerMetadataManager;
     private BrokerMessageService brokerMessageService;
 
     private final SystemClock systemClock = new SystemClock();
@@ -211,7 +203,6 @@ public class BrokerController {
         this.messageStoreConfig = messageStoreConfig;
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         initConfiguration();
-        initMetadata();
 
         this.brokerStatsManager = messageStoreConfig.isEnableLmq()
             ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat())
@@ -219,6 +210,7 @@ public class BrokerController {
 
         this.broadcastOffsetManager = new BroadcastOffsetManager(this);
 
+        this.brokerMetadataManager = new BrokerMetadataManager(this);
         this.brokerNettyServer = new BrokerNettyServer(brokerConfig, messageStoreConfig, nettyServerConfig, this);
         this.brokerScheduleService = new BrokerScheduleService(brokerConfig, messageStoreConfig, this);
 
@@ -254,7 +246,7 @@ public class BrokerController {
     //************************ about 56 netty related objects which can move outside the BrokerController *******
     //************************ public methods start: 373~651, about 278 lines ***********************************
     public boolean initialize() throws CloneNotSupportedException {
-        boolean result = this.loadMetadata();
+        boolean result = this.brokerMetadataManager.load();
         if (!result) {
             return false;
         }
@@ -347,7 +339,7 @@ public class BrokerController {
 
         Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = topicConfigList.stream()
             .map(TopicConfig::getTopicName)
-            .map(topicName -> Optional.ofNullable(this.topicQueueMappingManager.getTopicQueueMapping(topicName))
+            .map(topicName -> Optional.ofNullable(this.brokerMetadataManager.getTopicQueueMappingManager().getTopicQueueMapping(topicName))
                 .map(info -> new AbstractMap.SimpleImmutableEntry<>(topicName, TopicQueueMappingDetail.cloneAsMappingInfo(info)))
                 .orElse(null))
             .filter(Objects::nonNull)
@@ -549,35 +541,6 @@ public class BrokerController {
         this.getBrokerOuterAPI().registerRPCHook(rpcHook);
     }
 
-    private boolean isEnableRocksDBStore() {
-        return StoreType.DEFAULT_ROCKSDB.getStoreType().equalsIgnoreCase(this.messageStoreConfig.getStoreType());
-    }
-
-    private void initMetadata() {
-        if (isEnableRocksDBStore()) {
-            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqTopicConfigManager(this) : new RocksDBTopicConfigManager(this);
-            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqSubscriptionGroupManager(this) : new RocksDBSubscriptionGroupManager(this);
-            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqConsumerOffsetManager(this) : new RocksDBConsumerOffsetManager(this);
-        } else {
-            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
-            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
-            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
-        }
-
-        this.topicQueueMappingManager = new TopicQueueMappingManager(this);
-        this.consumerFilterManager = new ConsumerFilterManager(this);
-        this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
-    }
-
-    protected boolean loadMetadata() {
-        boolean result = this.topicConfigManager.load();
-        result = result && this.topicQueueMappingManager.load();
-        result = result && this.consumerOffsetManager.load();
-        result = result && this.subscriptionGroupManager.load();
-        result = result && this.consumerFilterManager.load();
-        result = result && this.consumerOrderInfoManager.load();
-        return result;
-    }
 
     public boolean initializeMessageStore() {
         this.brokerMessageService = new BrokerMessageService(this);
@@ -614,16 +577,10 @@ public class BrokerController {
 
     protected void initializeRemotingServer() throws CloneNotSupportedException {
         brokerNettyServer.init();
-        this.remotingServer = brokerNettyServer.getRemotingServer();
-        this.fastRemotingServer = brokerNettyServer.getFastRemotingServer();
     }
 
     protected void initializeScheduledTasks() {
         brokerScheduleService.init();
-    }
-
-    protected void initializeBrokerScheduledTasks() {
-        getBrokerScheduleService().initializeBrokerScheduledTasks();
     }
 
     public void protectBroker() {
@@ -640,7 +597,7 @@ public class BrokerController {
             final String[] split = next.getValue().getStatsKey().split("@");
             final String group = split[2];
             LOG_PROTECTION.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
-            this.subscriptionGroupManager.disableConsume(group);
+            this.brokerMetadataManager.getSubscriptionGroupManager().disableConsume(group);
         }
     }
 
@@ -730,19 +687,12 @@ public class BrokerController {
             this.replicasManager.shutdown();
         }
 
-        this.consumerOffsetManager.persist();
+        this.brokerMetadataManager.shutdown();
 
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.shutdown();
         }
 
-        if (this.consumerFilterManager != null) {
-            this.consumerFilterManager.persist();
-        }
-
-        if (this.consumerOrderInfoManager != null) {
-            this.consumerOrderInfoManager.persist();
-        }
 
         if (this.transactionalMessageCheckService != null) {
             this.transactionalMessageCheckService.shutdown(false);
@@ -762,21 +712,6 @@ public class BrokerController {
 
         if (this.coldDataCgCtrService != null) {
             this.coldDataCgCtrService.shutdown();
-        }
-
-        if (this.topicConfigManager != null) {
-            this.topicConfigManager.persist();
-            this.topicConfigManager.stop();
-        }
-
-        if (this.subscriptionGroupManager != null) {
-            this.subscriptionGroupManager.persist();
-            this.subscriptionGroupManager.stop();
-        }
-
-        if (this.consumerOffsetManager != null) {
-            this.consumerOffsetManager.persist();
-            this.consumerOffsetManager.stop();
         }
 
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
@@ -1081,11 +1016,11 @@ public class BrokerController {
     }
 
     public ConsumerFilterManager getConsumerFilterManager() {
-        return consumerFilterManager;
+        return this.brokerMetadataManager.getConsumerFilterManager();
     }
 
     public ConsumerOrderInfoManager getConsumerOrderInfoManager() {
-        return consumerOrderInfoManager;
+        return this.brokerMetadataManager.getConsumerOrderInfoManager();
     }
 
     public PopInflightMessageCounter getPopInflightMessageCounter() {
@@ -1093,7 +1028,7 @@ public class BrokerController {
     }
 
     public ConsumerOffsetManager getConsumerOffsetManager() {
-        return consumerOffsetManager;
+        return this.brokerMetadataManager.getConsumerOffsetManager();
     }
 
     public BroadcastOffsetManager getBroadcastOffsetManager() {
@@ -1108,20 +1043,16 @@ public class BrokerController {
         return producerManager;
     }
 
-    public void setFastRemotingServer(RemotingServer fastRemotingServer) {
-        this.fastRemotingServer = fastRemotingServer;
-    }
-
     public RemotingServer getFastRemotingServer() {
         return getBrokerNettyServer().getFastRemotingServer();
     }
 
     public void setSubscriptionGroupManager(SubscriptionGroupManager subscriptionGroupManager) {
-        this.subscriptionGroupManager = subscriptionGroupManager;
+        this.brokerMetadataManager.setSubscriptionGroupManager(subscriptionGroupManager);
     }
 
     public SubscriptionGroupManager getSubscriptionGroupManager() {
-        return subscriptionGroupManager;
+        return this.brokerMetadataManager.getSubscriptionGroupManager();
     }
 
     public TimerMessageStore getTimerMessageStore() {
@@ -1134,15 +1065,15 @@ public class BrokerController {
     }
 
     public TopicConfigManager getTopicConfigManager() {
-        return topicConfigManager;
+        return this.brokerMetadataManager.getTopicConfigManager();
     }
 
     public void setTopicConfigManager(TopicConfigManager topicConfigManager) {
-        this.topicConfigManager = topicConfigManager;
+        this.brokerMetadataManager.setTopicConfigManager(topicConfigManager);
     }
 
     public TopicQueueMappingManager getTopicQueueMappingManager() {
-        return topicQueueMappingManager;
+        return this.brokerMetadataManager.getTopicQueueMappingManager();
     }
 
     public String getHAServerAddr() {
@@ -1167,7 +1098,11 @@ public class BrokerController {
     }
 
     public void setRemotingServer(RemotingServer remotingServer) {
-        this.remotingServer = remotingServer;
+        getBrokerNettyServer().setRemotingServer(remotingServer);
+    }
+
+    public void setFastRemotingServer(RemotingServer fastRemotingServer) {
+        getBrokerNettyServer().setFastRemotingServer(fastRemotingServer);
     }
 
     public BrokerOuterAPI getBrokerOuterAPI() {
