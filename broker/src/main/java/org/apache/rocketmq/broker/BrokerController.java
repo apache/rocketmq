@@ -332,7 +332,6 @@ public class BrokerController {
     }
 
     public void changeSpecialServiceStatus(boolean shouldStart) {
-
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
             if (brokerAttachedPlugin != null) {
                 brokerAttachedPlugin.statusChanged(shouldStart);
@@ -452,8 +451,6 @@ public class BrokerController {
     protected void initializeScheduledTasks() {
         brokerScheduleService.init();
     }
-
-
 
     private void initProducerStateGetter() {
         this.brokerStatsManager.setProduerStateGetter(new BrokerStatsManager.StateGetter() {
