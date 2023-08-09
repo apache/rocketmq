@@ -24,6 +24,7 @@ import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.dledger.DLedgerRoleChangeHandler;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
+import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
@@ -188,7 +189,12 @@ public class BrokerMessageService {
     }
 
     /**
-     * return status of scheduled message, transaction check and message ack process running status
+     * running status of
+     *      scheduled message,
+     *      transaction check,
+     *      message ack process
+     *      and BrokerAttachedPlugins
+     *
      * @return boolean
      */
     public boolean isSpecialServiceRunning() {
@@ -198,6 +204,23 @@ public class BrokerMessageService {
 
         AckMessageProcessor ackMessageProcessor = brokerController.getBrokerNettyServer().getAckMessageProcessor();
         return ackMessageProcessor != null && ackMessageProcessor.isPopReviveServiceRunning();
+    }
+
+    public void changeSpecialServiceStatus(boolean shouldStart) {
+        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerController.getBrokerAttachedPlugins()) {
+            if (brokerAttachedPlugin != null) {
+                brokerAttachedPlugin.statusChanged(shouldStart);
+            }
+        }
+
+        changeScheduleServiceStatus(shouldStart);
+        changeTransactionCheckServiceStatus(shouldStart);
+
+        AckMessageProcessor ackMessageProcessor = brokerController.getBrokerNettyServer().getAckMessageProcessor();
+        if (ackMessageProcessor != null) {
+            LOG.info("Set PopReviveService Status to {}", shouldStart);
+            ackMessageProcessor.setPopReviveServiceStatus(shouldStart);
+        }
     }
 
     public synchronized void changeTransactionCheckServiceStatus(boolean shouldStart) {

@@ -264,7 +264,7 @@ public class ReplicasManager {
 
                 this.brokerController.getBrokerConfig().setBrokerId(MixAll.MASTER_ID);
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SYNC_MASTER);
-                this.brokerController.changeSpecialServiceStatus(true);
+                this.brokerController.getBrokerMessageService().changeSpecialServiceStatus(true);
 
                 // Change record
                 this.masterAddress = this.brokerAddress;
@@ -299,7 +299,7 @@ public class ReplicasManager {
 
                 // Change config(compatibility problem)
                 this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SLAVE);
-                this.brokerController.changeSpecialServiceStatus(false);
+                this.brokerController.getBrokerMessageService().changeSpecialServiceStatus(false);
                 // The brokerId in brokerConfig just means its role(master[0] or slave[>=1])
                 this.brokerConfig.setBrokerId(brokerControllerId);
 

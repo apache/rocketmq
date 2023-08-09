@@ -140,7 +140,7 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
         this.brokerController.getBrokerConfig().setBrokerId(brokerId == 0 ? 1 : brokerId); //TO DO check
         this.brokerController.getMessageStoreConfig().setBrokerRole(BrokerRole.SLAVE);
 
-        this.brokerController.changeSpecialServiceStatus(false);
+        this.brokerController.getBrokerMessageService().changeSpecialServiceStatus(false);
 
         //handle the slave synchronise
         handleSlaveSynchronize(BrokerRole.SLAVE);
@@ -162,7 +162,7 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
         //handle the slave synchronise
         handleSlaveSynchronize(role);
 
-        this.brokerController.changeSpecialServiceStatus(true);
+        this.brokerController.getBrokerMessageService().changeSpecialServiceStatus(true);
 
         //if the operations above are totally successful, we change to master
         this.brokerController.getBrokerConfig().setBrokerId(0); //TO DO check

@@ -62,7 +62,7 @@ public class InnerBrokerController extends BrokerController {
         startBasicService();
 
         if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
-            changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
+            this.getBrokerMessageService().changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
             this.getBrokerServiceRegistry().registerBrokerAll(true, false, true);
         }
 

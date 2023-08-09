@@ -234,7 +234,7 @@ public class BrokerController {
         startBasicService();
 
         if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
-            changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
+            this.brokerMessageService.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
             this.brokerServiceRegistry.registerBrokerAll(true, false, true);
         }
 
@@ -254,7 +254,7 @@ public class BrokerController {
         this.minBrokerIdInGroup = minBrokerId;
         this.minBrokerAddrInGroup = minBrokerAddr;
 
-        this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == minBrokerId);
+        this.brokerMessageService.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == minBrokerId);
         this.brokerServiceRegistry.registerBrokerAll(true, false, brokerConfig.isForceRegister());
 
         isIsolated = false;
@@ -263,7 +263,7 @@ public class BrokerController {
     public void startServiceWithoutCondition() {
         BrokerController.LOG.info("{} start service", this.brokerConfig.getCanonicalName());
 
-        this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
+        this.brokerMessageService.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
         this.brokerServiceRegistry.registerBrokerAll(true, false, brokerConfig.isForceRegister());
 
         isIsolated = false;
@@ -308,23 +308,6 @@ public class BrokerController {
             }
         } catch (InterruptedException e) {
             LOG.error("Update min broker error, {}", e);
-        }
-    }
-
-    public void changeSpecialServiceStatus(boolean shouldStart) {
-        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
-            if (brokerAttachedPlugin != null) {
-                brokerAttachedPlugin.statusChanged(shouldStart);
-            }
-        }
-
-        brokerMessageService.changeScheduleServiceStatus(shouldStart);
-        brokerMessageService.changeTransactionCheckServiceStatus(shouldStart);
-
-        AckMessageProcessor ackMessageProcessor = this.brokerNettyServer.getAckMessageProcessor();
-        if (ackMessageProcessor != null) {
-            LOG.info("Set PopReviveService Status to {}", shouldStart);
-            ackMessageProcessor.setPopReviveServiceStatus(shouldStart);
         }
     }
 
@@ -387,7 +370,7 @@ public class BrokerController {
     public void stopService() {
         BrokerController.LOG.info("{} stop service", this.getBrokerConfig().getCanonicalName());
         isIsolated = true;
-        this.changeSpecialServiceStatus(false);
+        this.brokerMessageService.changeSpecialServiceStatus(false);
     }
 
     public boolean initializeMessageStore() {
@@ -630,7 +613,7 @@ public class BrokerController {
         this.minBrokerIdInGroup = minBrokerId;
         this.minBrokerAddrInGroup = minBrokerAddr;
 
-        this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == this.minBrokerIdInGroup);
+        this.brokerMessageService.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == this.minBrokerIdInGroup);
 
         if (offlineBrokerAddr != null && offlineBrokerAddr.equals(this.slaveSynchronize.getMasterAddr())) {
             // master offline
