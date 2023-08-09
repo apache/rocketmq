@@ -38,33 +38,27 @@ import org.apache.rocketmq.broker.topic.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class BrokerMetadataManager {
-    private final BrokerConfig brokerConfig;
-    private final MessageStoreConfig messageStoreConfig;
+    private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
+    private final MessageStoreConfig messageStoreConfig;
     private final BrokerController brokerController;
 
-
-
     protected TopicQueueMappingManager topicQueueMappingManager;
-
-
-
     private ConsumerOffsetManager consumerOffsetManager;
     private ConsumerFilterManager consumerFilterManager;
     protected ConsumerOrderInfoManager consumerOrderInfoManager;
     protected TopicConfigManager topicConfigManager;
     protected SubscriptionGroupManager subscriptionGroupManager;
 
-
-
     public BrokerMetadataManager(BrokerController brokerController) {
         this.brokerController = brokerController;
-        this.brokerConfig = brokerController.getBrokerConfig();
         this.messageStoreConfig = brokerController.getMessageStoreConfig();
         init();
     }
@@ -130,7 +124,6 @@ public class BrokerMetadataManager {
         this.consumerOrderInfoManager = new ConsumerOrderInfoManager(brokerController);
     }
 
-
     public TopicQueueMappingManager getTopicQueueMappingManager() {
         return topicQueueMappingManager;
     }
@@ -179,6 +172,5 @@ public class BrokerMetadataManager {
         SubscriptionGroupManager subscriptionGroupManager) {
         this.subscriptionGroupManager = subscriptionGroupManager;
     }
-
 
 }
