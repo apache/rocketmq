@@ -222,7 +222,7 @@ public class TieredFlatFile {
 
         if (!Objects.equals(metadata, segmentMetadata)) {
             this.tieredMetadataStore.updateFileSegment(segmentMetadata);
-            logger.info("TieredFlatFile#UpdateSegmentMetadata, filePath: {}, content: {}",
+            logger.debug("TieredFlatFile#UpdateSegmentMetadata, filePath: {}, content: {}",
                 segmentMetadata.getPath(), JSON.toJSONString(segmentMetadata));
         }
     }
