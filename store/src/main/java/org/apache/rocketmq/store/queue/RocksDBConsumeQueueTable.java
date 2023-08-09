@@ -32,7 +32,7 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
 
-import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CHARSET_UTF8;
+import static org.apache.rocketmq.common.utils.DataConverter.CHARSET_UTF8;
 import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_0;
 import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_1;
 import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_2;

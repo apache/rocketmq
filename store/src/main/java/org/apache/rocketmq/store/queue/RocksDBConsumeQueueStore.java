@@ -18,7 +18,6 @@ package org.apache.rocketmq.store.queue;
 
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +36,7 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -51,7 +51,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private static final Logger ERROR_LOG = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final Logger ROCKSDB_LOG = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
 
-    public static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
     public static final byte CTRL_0 = '\u0000';
     public static final byte CTRL_1 = '\u0001';
     public static final byte CTRL_2 = '\u0002';
@@ -211,7 +210,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             long maxPhyOffset = 0;
             for (int i = size - 1; i >= 0; i--) {
                 final DispatchRequest request = bufferDRList.get(i);
-                final byte[] topicBytes = request.getTopic().getBytes(CHARSET_UTF8);
+                final byte[] topicBytes = request.getTopic().getBytes(DataConverter.CHARSET_UTF8);
 
                 this.rocksDBConsumeQueueTable.buildAndPutCQByteBuffer(cqBBPairList.get(i), topicBytes, request, writeBatch);
                 this.rocksDBConsumeQueueOffsetTable.updateTempTopicQueueMaxOffset(offsetBBPairList.get(i),
