@@ -101,6 +101,8 @@ public class BrokerController {
     protected final SlaveSynchronize slaveSynchronize;
     protected BrokerFastFailure brokerFastFailure;
     protected ReplicasManager replicasManager;
+    private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
+    private ColdDataCgCtrService coldDataCgCtrService;
 
     protected boolean updateMasterHAServerAddrPeriodically = false;
 
@@ -109,11 +111,8 @@ public class BrokerController {
     private Configuration configuration;
     protected TopicQueueMappingCleanService topicQueueMappingCleanService;
 
-
     protected volatile boolean shutdown = false;
     protected ShutdownHook shutdownHook;
-
-
 
     protected List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
     protected volatile long shouldStartTime;
@@ -125,8 +124,6 @@ public class BrokerController {
     protected final BrokerStatsManager brokerStatsManager;
     private BrokerPreOnlineService brokerPreOnlineService;
     private BrokerMetricsManager brokerMetricsManager;
-    private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
-    private ColdDataCgCtrService coldDataCgCtrService;
 
     private final BrokerNettyServer brokerNettyServer;
     private final BrokerScheduleService brokerScheduleService;

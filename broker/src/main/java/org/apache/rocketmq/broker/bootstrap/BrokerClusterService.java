@@ -16,5 +16,10 @@
  */
 package org.apache.rocketmq.broker.bootstrap;
 
-public class BrokerHAService {
+/**
+ * related to :
+ *      Master/Slave
+ *      code data
+ */
+public class BrokerClusterService {
 }
