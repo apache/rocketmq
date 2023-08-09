@@ -112,7 +112,7 @@ public class BrokerController {
 
     protected volatile boolean shutdown = false;
     protected ShutdownHook shutdownHook;
-    private volatile boolean isScheduleServiceStart = false;
+
 
 
     protected List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
@@ -270,7 +270,7 @@ public class BrokerController {
     }
 
     public boolean isSpecialServiceRunning() {
-        if (isScheduleServiceStart() && brokerMessageService.isTransactionCheckServiceStart()) {
+        if (brokerMessageService.isScheduleServiceStart() && brokerMessageService.isTransactionCheckServiceStart()) {
             return true;
         }
 
@@ -327,8 +327,7 @@ public class BrokerController {
             }
         }
 
-        changeScheduleServiceStatus(shouldStart);
-
+        brokerMessageService.changeScheduleServiceStatus(shouldStart);
         brokerMessageService.changeTransactionCheckServiceStatus(shouldStart);
 
         AckMessageProcessor ackMessageProcessor = this.brokerNettyServer.getAckMessageProcessor();
@@ -583,12 +582,6 @@ public class BrokerController {
 
         if (this.coldDataCgCtrService != null) {
             this.coldDataCgCtrService.start();
-        }
-    }
-
-    private synchronized void changeScheduleServiceStatus(boolean shouldStart) {
-        if (isScheduleServiceStart != shouldStart) {
-             brokerMessageService.changeScheduleServiceStatus(shouldStart);
         }
     }
 
@@ -888,10 +881,6 @@ public class BrokerController {
 
     public BrokerPreOnlineService getBrokerPreOnlineService() {
         return brokerPreOnlineService;
-    }
-
-    public boolean isScheduleServiceStart() {
-        return isScheduleServiceStart;
     }
 
     public ScheduleMessageService getScheduleMessageService() {

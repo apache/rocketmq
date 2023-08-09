@@ -60,7 +60,7 @@ public class BrokerMessageService {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private volatile boolean isTransactionCheckServiceStart = false;
-
+    private volatile boolean isScheduleServiceStart = false;
 
     private final BrokerConfig brokerConfig;
     private final MessageStoreConfig messageStoreConfig;
@@ -217,16 +217,19 @@ public class BrokerMessageService {
     }
 
     public synchronized void changeScheduleServiceStatus(boolean shouldStart) {
+        if (isScheduleServiceStart != shouldStart) {
             LOG.info("ScheduleServiceStatus changed to {}", shouldStart);
             if (shouldStart) {
                 this.scheduleMessageService.start();
             } else {
                 this.scheduleMessageService.stop();
             }
+            isScheduleServiceStart = shouldStart;
 
             if (timerMessageStore != null) {
                 timerMessageStore.setShouldRunningDequeue(shouldStart);
             }
+        }
     }
 
     private void registerMessageStoreHook() {
@@ -344,7 +347,8 @@ public class BrokerMessageService {
         return isTransactionCheckServiceStart;
     }
 
-    public void setTransactionCheckServiceStart(boolean transactionCheckServiceStart) {
-        isTransactionCheckServiceStart = transactionCheckServiceStart;
+    public boolean isScheduleServiceStart() {
+        return isScheduleServiceStart;
     }
+
 }
