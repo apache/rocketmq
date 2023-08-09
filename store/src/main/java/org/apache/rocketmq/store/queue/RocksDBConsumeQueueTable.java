@@ -43,6 +43,7 @@ import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_2;
 public class RocksDBConsumeQueueTable {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger ROCKSDB_LOG = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
+    private static final Logger ERROR_LOG = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     /**
      * Rocksdb ConsumeQueue's store unit. Format:
@@ -67,10 +68,10 @@ public class RocksDBConsumeQueueTable {
      * ConsumeQueue's store unit. Size:
      * CommitLog Physical Offset(8) + Body Size(4) + Tag HashCode(8) + Msg Store Time(8) = 28 Bytes
      */
-    public static final int PHY_OFFSET_OFFSET = 0;
-    public static final int PHY_MSG_LEN_OFFSET = 8;
-    public static final int MSG_TAG_HASHCODE_OFFSET = 12;
-    public static final int MSG_STORE_TIME_SIZE_OFFSET = 20;
+    private static final int PHY_OFFSET_OFFSET = 0;
+    private static final int PHY_MSG_LEN_OFFSET = 8;
+    private static final int MSG_TAG_HASHCODE_OFFSET = 12;
+    private static final int MSG_STORE_TIME_SIZE_OFFSET = 20;
     public static final int CQ_UNIT_SIZE = 8 + 4 + 8 + 8;
 
     /**
@@ -178,38 +179,89 @@ public class RocksDBConsumeQueueTable {
         log.info("Rocksdb consumeQueue table delete topic. {}, {}", topic, queueId);
     }
 
-    public PhyAndCQOffset binarySearchInCQ(String topic, int queueId, long high, long low,
-        long targetPhyOffset, boolean min) throws RocksDBException {
-        long resultCQOffset = -1L;
-        long resultPhyOffset = -1L;
+    public long binarySearchInCQByTime(String topic, int queueId, long high, long low, long timestamp,
+        long minPhysicOffset) throws RocksDBException {
+        long result = 0;
+        long targetOffset = -1L, leftOffset = -1L, rightOffset = -1L;
+        long leftValue = -1L, rightValue = -1L;
         while (high >= low) {
             long midOffset = low + ((high - low) >>> 1);
             ByteBuffer byteBuffer = getCQInKV(topic, queueId, midOffset);
+            if (byteBuffer == null) {
+                ERROR_LOG.warn("binarySearchInCQByTimeStamp Failed. topic: {}, queueId: {}, timestamp: {}, result: null",
+                    topic, queueId, timestamp);
+                low = midOffset + 1;
+                continue;
+            }
+
+            long phyOffset = byteBuffer.getLong(PHY_OFFSET_OFFSET);
+            if (phyOffset < minPhysicOffset) {
+                low = midOffset + 1;
+                leftOffset = midOffset;
+                continue;
+            }
+            long storeTime = byteBuffer.getLong(MSG_STORE_TIME_SIZE_OFFSET);
+            if (storeTime < 0) {
+                return 0;
+            } else if (storeTime == timestamp) {
+                targetOffset = midOffset;
+                break;
+            } else if (storeTime > timestamp) {
+                high = midOffset - 1;
+                rightOffset = midOffset;
+                rightValue = storeTime;
+            } else {
+                low = midOffset + 1;
+                leftOffset = midOffset;
+                leftValue = storeTime;
+            }
+        }
+        if (targetOffset != -1) {
+            result = targetOffset;
+        } else {
+            if (leftValue == -1) {
+                result = rightOffset;
+            } else if (rightValue == -1) {
+                result = leftOffset;
+            } else {
+                result = Math.abs(timestamp - leftValue) > Math.abs(timestamp - rightValue) ? rightOffset : leftOffset;
+            }
+        }
+        return result;
+    }
+
+    public PhyAndCQOffset binarySearchInCQ(String topic, int queueId, long high, long low, long targetPhyOffset,
+        boolean min) throws RocksDBException {
+        long resultCQOffset = -1L;
+        long resultPhyOffset = -1L;
+        while (high >= low) {
+            long midCQOffset = low + ((high - low) >>> 1);
+            ByteBuffer byteBuffer = getCQInKV(topic, queueId, midCQOffset);
             if (this.messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
-                ROCKSDB_LOG.warn("binarySearchInCQ. {}, {}, {}, {}, {}", topic, queueId, midOffset, low, high);
+                ROCKSDB_LOG.warn("binarySearchInCQ. {}, {}, {}, {}, {}", topic, queueId, midCQOffset, low, high);
             }
             if (byteBuffer == null) {
-                low = midOffset + 1;
+                low = midCQOffset + 1;
                 continue;
             }
 
             final long phyOffset = byteBuffer.getLong(PHY_OFFSET_OFFSET);
             if (phyOffset == targetPhyOffset) {
                 if (min) {
-                    resultCQOffset =  midOffset;
+                    resultCQOffset =  midCQOffset;
                     resultPhyOffset = phyOffset;
                 }
                 break;
             } else if (phyOffset > targetPhyOffset) {
-                high = midOffset - 1;
+                high = midCQOffset - 1;
                 if (min) {
-                    resultCQOffset = midOffset;
+                    resultCQOffset = midCQOffset;
                     resultPhyOffset = phyOffset;
                 }
             } else {
-                low = midOffset + 1;
+                low = midCQOffset + 1;
                 if (!min) {
-                    resultCQOffset = midOffset;
+                    resultCQOffset = midCQOffset;
                     resultPhyOffset = phyOffset;
                 }
             }

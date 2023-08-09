@@ -64,8 +64,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     /**
      * we use two tables with different ColumnFamilyHandle, called RocksDBConsumeQueueTable and RocksDBConsumeQueueOffsetTable.
-     * 1.RocksDBConsumeQueueTable uses to store CqUnit[phyOffset, msgSize, tagHashCode, msgStoreTime]
-     * 2.RocksDBConsumeQueueOffsetTable uses to store phyOffset and consumeOffset(@see PhyAndCQOffset) of topic-queueId
+     * 1.RocksDBConsumeQueueTable uses to store CqUnit[physicalOffset, msgSize, tagHashCode, msgStoreTime]
+     * 2.RocksDBConsumeQueueOffsetTable uses to store physicalOffset and consumeQueueOffset(@see PhyAndCQOffset) of topic-queueId
      */
     private final ConsumeQueueRocksDBStorage rocksDBStorage;
     private final RocksDBConsumeQueueTable rocksDBConsumeQueueTable;
@@ -110,11 +110,11 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         log.info("RocksDB ConsumeQueueStore start!");
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             this.rocksDBStorage.statRocksdb(ROCKSDB_LOG);
-        }, 10, this.messageStoreConfig.getStatConsumeQueueRocksDbIntervalSec(), TimeUnit.SECONDS);
+        }, 10, this.messageStoreConfig.getStatRocksDBCQIntervalSec(), TimeUnit.SECONDS);
 
         this.scheduledExecutorService.scheduleWithFixedDelay(() -> {
             cleanDirty(messageStore.getTopicConfigs().keySet());
-        }, 10, this.messageStoreConfig.getCleanDirtyConsumeQueueIntervalMin(), TimeUnit.MINUTES);
+        }, 10, this.messageStoreConfig.getCleanRocksDBDirtyCQIntervalMin(), TimeUnit.MINUTES);
     }
 
     private void cleanDirty(final Set<String> existTopicSet) {
@@ -219,8 +219,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 final byte[] topicBytes = request.getTopic().getBytes(CHARSET_UTF8);
 
                 this.rocksDBConsumeQueueTable.buildAndPutCQByteBuffer(cqBBPairList.get(i), topicBytes, request, writeBatch);
-                this.rocksDBConsumeQueueOffsetTable.updateTempTopicQueueMaxOffset(offsetBBPairList.get(i), topicBytes, request,
-                    tempTopicQueueMaxOffsetMap);
+                this.rocksDBConsumeQueueOffsetTable.updateTempTopicQueueMaxOffset(offsetBBPairList.get(i),
+                    topicBytes, request, tempTopicQueueMaxOffsetMap);
 
                 final int msgSize = request.getMsgSize();
                 final long phyOffset = request.getCommitLogOffset();
@@ -229,7 +229,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
                 }
             }
 
-            this.rocksDBConsumeQueueOffsetTable.putMaxOffset(tempTopicQueueMaxOffsetMap, writeBatch, maxPhyOffset);
+            this.rocksDBConsumeQueueOffsetTable.putMaxPhyAndCqOffset(tempTopicQueueMaxOffsetMap, writeBatch, maxPhyOffset);
 
             // clear writeBatch in batchPut
             this.rocksDBStorage.batchPut(writeBatch);
@@ -279,7 +279,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
      * Ignored, we do not need to recover topicQueueTable and correct minLogicOffset. Because we will correct them
      * when we use them, we call it lazy correction.
      * @see RocksDBConsumeQueue#increaseQueueOffset(QueueOffsetOperator, MessageExtBrokerInner, short)
-     * @see org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable#getMinConsumeOffset(String, int)
+     * @see org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable#getMinCqOffset(String, int)
      */
     @Override
     public void recoverOffsetTable(long minPhyOffset) {
@@ -364,70 +364,24 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) throws RocksDBException {
-        long offset = 0;
         final long minPhysicOffset = this.messageStore.getMinPhyOffset();
-        long low = getMinOffsetInQueue(topic, queueId);
-        Long high = this.rocksDBConsumeQueueOffsetTable.getMaxConsumeOffset(topic, queueId);
+        long low = this.rocksDBConsumeQueueOffsetTable.getMinCqOffset(topic, queueId);
+        Long high = this.rocksDBConsumeQueueOffsetTable.getMaxCqOffset(topic, queueId);
         if (high == null || high == -1) {
             return 0;
         }
-        long targetOffset = -1L, leftOffset = -1L, rightOffset = -1L;
-        long leftValue = -1L, rightValue = -1L;
-        while (high >= low) {
-            long midOffset = low + ((high - low) >>> 1);
-            ByteBuffer byteBuffer = get(topic, queueId, midOffset);
-            if (byteBuffer == null) {
-                ERROR_LOG.warn("getOffsetInQueueByTime Failed. topic: {}, queueId: {}, timestamp: {}, result: null",
-                    topic, queueId, timestamp);
-                low = midOffset + 1;
-                continue;
-            }
-
-            long phyOffset = byteBuffer.getLong(RocksDBConsumeQueueTable.PHY_OFFSET_OFFSET);
-            if (phyOffset < minPhysicOffset) {
-                low = midOffset + 1;
-                leftOffset = midOffset;
-                continue;
-            }
-            long storeTime = byteBuffer.getLong(RocksDBConsumeQueueTable.MSG_STORE_TIME_SIZE_OFFSET);
-            if (storeTime < 0) {
-                return 0;
-            } else if (storeTime == timestamp) {
-                targetOffset = midOffset;
-                break;
-            } else if (storeTime > timestamp) {
-                high = midOffset - 1;
-                rightOffset = midOffset;
-                rightValue = storeTime;
-            } else {
-                low = midOffset + 1;
-                leftOffset = midOffset;
-                leftValue = storeTime;
-            }
-        }
-        if (targetOffset != -1) {
-            offset = targetOffset;
-        } else {
-            if (leftValue == -1) {
-                offset = rightOffset;
-            } else if (rightValue == -1) {
-                offset = leftOffset;
-            } else {
-                offset = Math.abs(timestamp - leftValue) > Math.abs(timestamp - rightValue) ? rightOffset : leftOffset;
-            }
-        }
-        return offset;
+        return this.rocksDBConsumeQueueTable.binarySearchInCQByTime(topic, queueId, high, low, timestamp, minPhysicOffset);
     }
 
     @Override
     public long getMaxOffsetInQueue(String topic, int queueId) throws RocksDBException {
-        Long maxOffset = this.rocksDBConsumeQueueOffsetTable.getMaxConsumeOffset(topic, queueId);
+        Long maxOffset = this.rocksDBConsumeQueueOffsetTable.getMaxCqOffset(topic, queueId);
         return (maxOffset != null) ? maxOffset + 1 : 0;
     }
 
     @Override
     public long getMinOffsetInQueue(String topic, int queueId) throws RocksDBException {
-        return this.rocksDBConsumeQueueOffsetTable.getMinConsumeOffset(topic, queueId);
+        return this.rocksDBConsumeQueueOffsetTable.getMinCqOffset(topic, queueId);
     }
 
     @Override

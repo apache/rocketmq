@@ -179,7 +179,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
     /**
      * Ignored, we already implement this method
-     * @see org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable#getMinConsumeOffset(String, int)
+     * @see org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable#getMinCqOffset(String, int)
      */
     @Override
     public void correctMinOffset(long minCommitLogOffset) {

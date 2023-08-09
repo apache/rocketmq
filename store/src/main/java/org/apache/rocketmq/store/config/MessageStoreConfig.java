@@ -397,11 +397,10 @@ public class MessageStoreConfig {
     private int batchDispatchRequestThreadPoolNums = 16;
 
     // rocksdb mode
-    private boolean enableCacheForRocksDBStore = false;
+    private long cleanRocksDBDirtyCQIntervalMin = 60;
+    private long statRocksDBCQIntervalSec = 10;
+    private long memTableFlushIntervalMs = 60 * 60 * 1000L;
     private boolean realTimePersistRocksDBConfig = true;
-    private long cleanDirtyConsumeQueueIntervalMin = 60;
-    private long statConsumeQueueRocksDbIntervalSec = 10;
-    private long memTableFlushInterval = 60 * 60 * 1000L;
     private boolean enableRocksDBLog = false;
 
     public boolean isDebugLockEnable() {
@@ -1731,14 +1730,6 @@ public class MessageStoreConfig {
         this.batchDispatchRequestThreadPoolNums = batchDispatchRequestThreadPoolNums;
     }
 
-    public boolean isEnableCacheForRocksDBStore() {
-        return enableCacheForRocksDBStore;
-    }
-
-    public void setEnableCacheForRocksDBStore(boolean enableCacheForRocksDBStore) {
-        this.enableCacheForRocksDBStore = enableCacheForRocksDBStore;
-    }
-
     public boolean isRealTimePersistRocksDBConfig() {
         return realTimePersistRocksDBConfig;
     }
@@ -1747,28 +1738,28 @@ public class MessageStoreConfig {
         this.realTimePersistRocksDBConfig = realTimePersistRocksDBConfig;
     }
 
-    public long getStatConsumeQueueRocksDbIntervalSec() {
-        return statConsumeQueueRocksDbIntervalSec;
+    public long getStatRocksDBCQIntervalSec() {
+        return statRocksDBCQIntervalSec;
     }
 
-    public void setStatConsumeQueueRocksDbIntervalSec(long statConsumeQueueRocksDbIntervalSec) {
-        this.statConsumeQueueRocksDbIntervalSec = statConsumeQueueRocksDbIntervalSec;
+    public void setStatRocksDBCQIntervalSec(long statRocksDBCQIntervalSec) {
+        this.statRocksDBCQIntervalSec = statRocksDBCQIntervalSec;
     }
 
-    public long getCleanDirtyConsumeQueueIntervalMin() {
-        return cleanDirtyConsumeQueueIntervalMin;
+    public long getCleanRocksDBDirtyCQIntervalMin() {
+        return cleanRocksDBDirtyCQIntervalMin;
     }
 
-    public void setCleanDirtyConsumeQueueIntervalMin(long cleanDirtyConsumeQueueIntervalMin) {
-        this.cleanDirtyConsumeQueueIntervalMin = cleanDirtyConsumeQueueIntervalMin;
+    public void setCleanRocksDBDirtyCQIntervalMin(long cleanRocksDBDirtyCQIntervalMin) {
+        this.cleanRocksDBDirtyCQIntervalMin = cleanRocksDBDirtyCQIntervalMin;
     }
 
-    public long getMemTableFlushInterval() {
-        return memTableFlushInterval;
+    public long getMemTableFlushIntervalMs() {
+        return memTableFlushIntervalMs;
     }
 
-    public void setMemTableFlushInterval(long memTableFlushInterval) {
-        this.memTableFlushInterval = memTableFlushInterval;
+    public void setMemTableFlushIntervalMs(long memTableFlushIntervalMs) {
+        this.memTableFlushIntervalMs = memTableFlushIntervalMs;
     }
 
     public boolean isEnableRocksDBLog() {
