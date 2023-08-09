@@ -16,29 +16,21 @@
  */
 package org.apache.rocketmq.broker;
 
-import com.google.common.collect.Lists;
 import java.net.InetSocketAddress;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.broker.bootstrap.BrokerMessageService;
 import org.apache.rocketmq.broker.bootstrap.BrokerMetadataManager;
 import org.apache.rocketmq.broker.bootstrap.BrokerNettyServer;
 import org.apache.rocketmq.broker.bootstrap.BrokerScheduleService;
-import org.apache.rocketmq.broker.bootstrap.BrokerMessageService;
 import org.apache.rocketmq.broker.bootstrap.BrokerServiceRegistry;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
@@ -54,22 +46,13 @@ import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.offset.BroadcastOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
-import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
-import org.apache.rocketmq.broker.offset.RocksDBConsumerOffsetManager;
-import org.apache.rocketmq.broker.offset.RocksDBLmqConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.PopInflightMessageCounter;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
-import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
-import org.apache.rocketmq.broker.subscription.RocksDBLmqSubscriptionGroupManager;
-import org.apache.rocketmq.broker.subscription.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
-import org.apache.rocketmq.broker.topic.LmqTopicConfigManager;
-import org.apache.rocketmq.broker.topic.RocksDBLmqTopicConfigManager;
-import org.apache.rocketmq.broker.topic.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
@@ -86,7 +69,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.stats.MomentStatsItem;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -101,13 +83,7 @@ import org.apache.rocketmq.remoting.protocol.BrokerSyncInfo;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
-import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
-import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
-import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
-import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
-import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -133,13 +109,13 @@ public class BrokerController {
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
     private final TopicRouteInfoManager topicRouteInfoManager;
     protected final SlaveSynchronize slaveSynchronize;
+    protected BrokerFastFailure brokerFastFailure;
+    protected ReplicasManager replicasManager;
 
-    protected final BrokerStatsManager brokerStatsManager;
     protected boolean updateMasterHAServerAddrPeriodically = false;
 
     private InetSocketAddress storeHost;
 
-    protected BrokerFastFailure brokerFastFailure;
     private Configuration configuration;
     protected TopicQueueMappingCleanService topicQueueMappingCleanService;
     protected TransactionalMessageCheckService transactionalMessageCheckService;
@@ -154,13 +130,13 @@ public class BrokerController {
 
     protected List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
     protected volatile long shouldStartTime;
-    private BrokerPreOnlineService brokerPreOnlineService;
     protected volatile boolean isIsolated = false;
     protected volatile long minBrokerIdInGroup = 0;
     protected volatile String minBrokerAddrInGroup = null;
     private final Lock lock = new ReentrantLock();
-    protected ReplicasManager replicasManager;
 
+    protected final BrokerStatsManager brokerStatsManager;
+    private BrokerPreOnlineService brokerPreOnlineService;
     private BrokerMetricsManager brokerMetricsManager;
     private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
     private ColdDataCgCtrService coldDataCgCtrService;
@@ -168,8 +144,8 @@ public class BrokerController {
     private final BrokerNettyServer brokerNettyServer;
     private final BrokerScheduleService brokerScheduleService;
     private final BrokerMetadataManager brokerMetadataManager;
-    private final BrokerServiceRegistry brokerServiceRegistry;
 
+    private final BrokerServiceRegistry brokerServiceRegistry;
     private BrokerMessageService brokerMessageService;
 
     private final SystemClock systemClock = new SystemClock();
@@ -260,9 +236,7 @@ public class BrokerController {
 
     public void shutdown() {
         shutdownBasicService();
-
         this.brokerServiceRegistry.shutdown();
-
     }
 
     public void start() throws Exception {
@@ -278,7 +252,7 @@ public class BrokerController {
 
         if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
-            this.registerBrokerAll(true, false, true);
+            this.brokerServiceRegistry.registerBrokerAll(true, false, true);
         }
 
         this.brokerScheduleService.start();
@@ -292,22 +266,6 @@ public class BrokerController {
         return this.systemClock.now();
     }
 
-    public synchronized void registerSingleTopicAll(final TopicConfig topicConfig) {
-        this.brokerServiceRegistry.registerSingleTopicAll(topicConfig);
-    }
-
-    public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
-        this.registerIncrementBrokerData(Collections.singletonList(topicConfig), dataVersion);
-    }
-
-    public synchronized void registerIncrementBrokerData(List<TopicConfig> topicConfigList, DataVersion dataVersion) {
-        this.brokerServiceRegistry.registerIncrementBrokerData(topicConfigList, dataVersion);
-    }
-
-    public synchronized void registerBrokerAll(final boolean checkOrderConfig, boolean oneway, boolean forceRegister) {
-        this.brokerServiceRegistry.registerBrokerAll(checkOrderConfig, oneway, forceRegister);
-    }
-
     public void startService(long minBrokerId, String minBrokerAddr) {
         BrokerController.LOG.info("{} start service, min broker id is {}, min broker addr: {}",
             this.brokerConfig.getCanonicalName(), minBrokerId, minBrokerAddr);
@@ -315,7 +273,7 @@ public class BrokerController {
         this.minBrokerAddrInGroup = minBrokerAddr;
 
         this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == minBrokerId);
-        this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
+        this.brokerServiceRegistry.registerBrokerAll(true, false, brokerConfig.isForceRegister());
 
         isIsolated = false;
     }
@@ -324,7 +282,7 @@ public class BrokerController {
         BrokerController.LOG.info("{} start service", this.brokerConfig.getCanonicalName());
 
         this.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
-        this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
+        this.brokerServiceRegistry.registerBrokerAll(true, false, brokerConfig.isForceRegister());
 
         isIsolated = false;
     }
@@ -460,11 +418,6 @@ public class BrokerController {
         isIsolated = true;
         this.changeSpecialServiceStatus(false);
     }
-
-    public void registerClientRPCHook(RPCHook rpcHook) {
-        this.getBrokerOuterAPI().registerRPCHook(rpcHook);
-    }
-
 
     public boolean initializeMessageStore() {
         this.brokerMessageService = new BrokerMessageService(this);
@@ -820,6 +773,10 @@ public class BrokerController {
     //**************************************** private or protected methods end   ****************************************************
 
     //**************************************** getter and setter start ****************************************************
+
+    public BrokerServiceRegistry getBrokerServiceRegistry() {
+        return brokerServiceRegistry;
+    }
 
     public BrokerMetadataManager getBrokerMetadataManager() {
         return brokerMetadataManager;

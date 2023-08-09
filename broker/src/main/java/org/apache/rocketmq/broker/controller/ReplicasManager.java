@@ -324,7 +324,7 @@ public class ReplicasManager {
         this.executorService.submit(() -> {
             // Register broker to name-srv
             try {
-                this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
+                this.brokerController.getBrokerServiceRegistry().registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
             } catch (final Throwable e) {
                 LOGGER.error("Error happen when register broker to name-srv, Failed to change broker to {}", this.brokerController.getMessageStoreConfig().getBrokerRole(), e);
                 return;

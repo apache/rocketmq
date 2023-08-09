@@ -70,7 +70,7 @@ public class CreateAndUpdateTopicIT extends BaseConf {
         MQAdminTestUtils.deleteTopicFromBrokerOnly(NAMESRV_ADDR, BROKER1_NAME, testTopic2);
 
         // Deletion is lazy, trigger broker registration
-        brokerController1.registerBrokerAll(false, false, true);
+        brokerController1.getBrokerServiceRegistry().registerBrokerAll(false, false, true);
 
         // The route info of testTopic2 will be removed from broker1 after the registration
         route = MQAdminTestUtils.examineTopicRouteInfo(NAMESRV_ADDR, testTopic2);

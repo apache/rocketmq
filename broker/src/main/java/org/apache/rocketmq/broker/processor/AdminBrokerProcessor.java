@@ -442,9 +442,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         try {
             this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
             if (brokerController.getBrokerConfig().isEnableSingleTopicRegister()) {
-                this.brokerController.registerSingleTopicAll(topicConfig);
+                this.brokerController.getBrokerServiceRegistry().registerSingleTopicAll(topicConfig);
             } else {
-                this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
+                this.brokerController.getBrokerServiceRegistry().registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
             }
             response.setCode(ResponseCode.SUCCESS);
         } catch (Exception e) {
@@ -497,7 +497,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
             this.brokerController.getTopicQueueMappingManager().updateTopicQueueMapping(topicQueueMappingDetail, force, false, true);
 
-            this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
+            this.brokerController.getBrokerServiceRegistry().registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
             response.setCode(ResponseCode.SUCCESS);
         } catch (Exception e) {
             LOGGER.error("Update static topic failed for [{}]", request, e);
@@ -924,7 +924,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     if (properties.containsKey("brokerPermission")) {
                         long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
                         this.brokerController.getTopicConfigManager().getDataVersion().nextVersion(stateMachineVersion);
-                        this.brokerController.registerBrokerAll(false, false, true);
+                        this.brokerController.getBrokerServiceRegistry().registerBrokerAll(false, false, true);
                     }
 
                 } else {

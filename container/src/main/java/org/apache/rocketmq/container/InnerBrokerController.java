@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.container;
 
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
@@ -64,7 +63,7 @@ public class InnerBrokerController extends BrokerController {
 
         if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
             changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
-            this.registerBrokerAll(true, false, true);
+            this.getBrokerServiceRegistry().registerBrokerAll(true, false, true);
         }
 
         getBrokerScheduleService().getScheduledFutures().add(getBrokerScheduleService().getScheduledExecutorService().scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
@@ -79,7 +78,7 @@ public class InnerBrokerController extends BrokerController {
                         BrokerController.LOG.info("Skip register for broker is isolated");
                         return;
                     }
-                    InnerBrokerController.this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
+                    InnerBrokerController.this.getBrokerServiceRegistry().registerBrokerAll(true, false, brokerConfig.isForceRegister());
                 } catch (Throwable e) {
                     BrokerController.LOG.error("registerBrokerAll Exception", e);
                 }

@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.bootstrap;
 
 import com.google.common.collect.Lists;
 import java.util.AbstractMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -86,6 +87,10 @@ public class BrokerServiceRegistry {
             tmpTopic.setPerm(topicConfig.getPerm() & this.brokerConfig.getBrokerPermission());
         }
         this.brokerOuterAPI.registerSingleTopicAll(this.brokerConfig.getBrokerName(), tmpTopic, 3000);
+    }
+
+    public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
+        this.registerIncrementBrokerData(Collections.singletonList(topicConfig), dataVersion);
     }
 
     public synchronized void registerIncrementBrokerData(List<TopicConfig> topicConfigList, DataVersion dataVersion) {

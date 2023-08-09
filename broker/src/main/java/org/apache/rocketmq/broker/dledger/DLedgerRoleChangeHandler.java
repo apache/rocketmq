@@ -146,7 +146,7 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
         handleSlaveSynchronize(BrokerRole.SLAVE);
 
         try {
-            this.brokerController.registerBrokerAll(true, true, this.brokerController.getBrokerConfig().isForceRegister());
+            this.brokerController.getBrokerServiceRegistry().registerBrokerAll(true, true, this.brokerController.getBrokerConfig().isForceRegister());
         } catch (Throwable ignored) {
 
         }
@@ -169,7 +169,7 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
         this.brokerController.getMessageStoreConfig().setBrokerRole(role);
 
         try {
-            this.brokerController.registerBrokerAll(true, true, this.brokerController.getBrokerConfig().isForceRegister());
+            this.brokerController.getBrokerServiceRegistry().registerBrokerAll(true, true, this.brokerController.getBrokerConfig().isForceRegister());
         } catch (Throwable ignored) {
 
         }

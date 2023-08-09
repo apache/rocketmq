@@ -290,7 +290,7 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         if (createNew) {
-            this.brokerController.registerBrokerAll(false, true, true);
+            this.brokerController.getBrokerServiceRegistry().registerBrokerAll(false, true, true);
         }
 
         return topicConfig;
@@ -330,7 +330,7 @@ public class TopicConfigManager extends ConfigManager {
             log.error("createTopicIfAbsent ", e);
         }
         if (createNew && register) {
-            this.brokerController.registerIncrementBrokerData(topicConfig, dataVersion);
+            this.brokerController.getBrokerServiceRegistry().registerIncrementBrokerData(topicConfig, dataVersion);
         }
         return getTopicConfig(topicConfig.getTopicName());
     }
@@ -390,7 +390,7 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         if (createNew) {
-            this.brokerController.registerBrokerAll(false, true, true);
+            this.brokerController.getBrokerServiceRegistry().registerBrokerAll(false, true, true);
         }
 
         return topicConfig;
@@ -431,7 +431,7 @@ public class TopicConfigManager extends ConfigManager {
         }
 
         if (createNew) {
-            this.brokerController.registerBrokerAll(false, true, true);
+            this.brokerController.getBrokerServiceRegistry().registerBrokerAll(false, true, true);
         }
 
         return topicConfig;
@@ -457,7 +457,7 @@ public class TopicConfigManager extends ConfigManager {
             dataVersion.nextVersion(stateMachineVersion);
 
             this.persist();
-            this.brokerController.registerBrokerAll(false, true, true);
+            this.brokerController.getBrokerServiceRegistry().registerBrokerAll(false, true, true);
         }
     }
 
@@ -480,7 +480,7 @@ public class TopicConfigManager extends ConfigManager {
             dataVersion.nextVersion(stateMachineVersion);
 
             this.persist();
-            this.brokerController.registerBrokerAll(false, true, true);
+            this.brokerController.getBrokerServiceRegistry().registerBrokerAll(false, true, true);
         }
     }
 

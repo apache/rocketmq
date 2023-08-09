@@ -203,7 +203,7 @@ public class ContainerIntegrationTestBase {
         for (InnerSalveBrokerController slaveBroker : brokerContainer.getSlaveBrokers()) {
             if (slaveBroker.getBrokerConfig().getBrokerName().equals(brokerName)) {
                 slaveBroker.getSlaveSynchronize().syncAll();
-                slaveBroker.registerBrokerAll(true, false, true);
+                slaveBroker.getBrokerServiceRegistry().registerBrokerAll(true, false, true);
             }
         }
     }
@@ -540,7 +540,7 @@ public class ContainerIntegrationTestBase {
             config.getBrokerId());
 
         isolatedBrokers.remove(liteConfig);
-        brokerController.registerBrokerAll(true, false, true);
+        brokerController.getBrokerServiceRegistry().registerBrokerAll(true, false, true);
 
         await().atMost(Duration.ofMinutes(1)).until(() -> namesrvController.getRouteInfoManager()
             .getBrokerMemberGroup(liteConfig.getClusterName(), liteConfig.brokerName).getBrokerAddrs()

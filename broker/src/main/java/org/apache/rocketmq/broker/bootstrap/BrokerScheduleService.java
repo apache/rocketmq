@@ -181,7 +181,7 @@ public class BrokerScheduleService {
                         BrokerScheduleService.LOG.info("Skip register for broker is isolated");
                         return;
                     }
-                    getBrokerController().registerBrokerAll(true, false, brokerConfig.isForceRegister());
+                    getBrokerController().getBrokerServiceRegistry().registerBrokerAll(true, false, brokerConfig.isForceRegister());
                 } catch (Throwable e) {
                     LOG.error("registerBrokerAll Exception", e);
                 }

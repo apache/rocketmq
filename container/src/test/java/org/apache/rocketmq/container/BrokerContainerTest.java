@@ -131,7 +131,7 @@ public class BrokerContainerTest {
 
         brokerController.getBrokerConfig().setBrokerPermission(4);
 
-        brokerController.registerIncrementBrokerData(topicConfigList, dataVersion);
+        brokerController.getBrokerServiceRegistry().registerIncrementBrokerData(topicConfigList, dataVersion);
         // Get topicConfigSerializeWrapper created by registerIncrementBrokerData() from brokerOuterAPI.registerBrokerAll()
         ArgumentCaptor<TopicConfigSerializeWrapper> captor = ArgumentCaptor.forClass(TopicConfigSerializeWrapper.class);
         ArgumentCaptor<BrokerIdentity> brokerIdentityCaptor = ArgumentCaptor.forClass(BrokerIdentity.class);
@@ -357,7 +357,7 @@ public class BrokerContainerTest {
         List<TopicConfig> topicConfigList, DataVersion dataVersion, int perm, int times) {
         brokerController.getBrokerConfig().setBrokerPermission(perm);
 
-        brokerController.registerIncrementBrokerData(topicConfigList, dataVersion);
+        brokerController.getBrokerServiceRegistry().registerIncrementBrokerData(topicConfigList, dataVersion);
         // Get topicConfigSerializeWrapper created by registerIncrementBrokerData() from brokerOuterAPI.registerBrokerAll()
         ArgumentCaptor<TopicConfigSerializeWrapper> captor = ArgumentCaptor.forClass(TopicConfigSerializeWrapper.class);
         ArgumentCaptor<BrokerIdentity> brokerIdentityCaptor = ArgumentCaptor.forClass(BrokerIdentity.class);
