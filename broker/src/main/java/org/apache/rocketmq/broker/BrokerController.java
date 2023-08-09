@@ -19,7 +19,6 @@ package org.apache.rocketmq.broker;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -60,27 +59,19 @@ import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
-import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageCheckListener;
-import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
-import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SystemClock;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.stats.MomentStatsItem;
-import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.Configuration;
-import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.BrokerSyncInfo;
-import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.store.MessageStore;
@@ -117,14 +108,12 @@ public class BrokerController {
 
     private Configuration configuration;
     protected TopicQueueMappingCleanService topicQueueMappingCleanService;
-    protected TransactionalMessageCheckService transactionalMessageCheckService;
-    protected TransactionalMessageService transactionalMessageService;
-    protected AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
+
 
     protected volatile boolean shutdown = false;
     protected ShutdownHook shutdownHook;
     private volatile boolean isScheduleServiceStart = false;
-    private volatile boolean isTransactionCheckServiceStart = false;
+
 
     protected List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
     protected volatile long shouldStartTime;
@@ -281,7 +270,7 @@ public class BrokerController {
     }
 
     public boolean isSpecialServiceRunning() {
-        if (isScheduleServiceStart() && isTransactionCheckServiceStart()) {
+        if (isScheduleServiceStart() && brokerMessageService.isTransactionCheckServiceStart()) {
             return true;
         }
 
@@ -340,7 +329,7 @@ public class BrokerController {
 
         changeScheduleServiceStatus(shouldStart);
 
-        changeTransactionCheckServiceStatus(shouldStart);
+        brokerMessageService.changeTransactionCheckServiceStatus(shouldStart);
 
         AckMessageProcessor ackMessageProcessor = this.brokerNettyServer.getAckMessageProcessor();
         if (ackMessageProcessor != null) {
@@ -439,7 +428,6 @@ public class BrokerController {
 
         initializeRemotingServer();
         initializeScheduledTasks();
-        initialTransaction();
 
         return brokerNettyServer.initFileWatchService();
     }
@@ -493,24 +481,6 @@ public class BrokerController {
         );
     }
 
-    private void initialTransaction() {
-        this.transactionalMessageService = ServiceProvider.loadClass(TransactionalMessageService.class);
-        if (null == this.transactionalMessageService) {
-            this.transactionalMessageService = new TransactionalMessageServiceImpl(
-                new TransactionalMessageBridge(this, this.getMessageStore()));
-            LOG.warn("Load default transaction message hook service: {}",
-                TransactionalMessageServiceImpl.class.getSimpleName());
-        }
-        this.transactionalMessageCheckListener = ServiceProvider.loadClass(
-            AbstractTransactionalMessageCheckListener.class);
-        if (null == this.transactionalMessageCheckListener) {
-            this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
-            LOG.warn("Load default discard message hook service: {}",
-                DefaultTransactionalMessageCheckListener.class.getSimpleName());
-        }
-        this.transactionalMessageCheckListener.setBrokerController(this);
-        this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
-    }
 
     protected void shutdownBasicService() {
         shutdown = true;
@@ -542,11 +512,6 @@ public class BrokerController {
 
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.shutdown();
-        }
-
-
-        if (this.transactionalMessageCheckService != null) {
-            this.transactionalMessageCheckService.shutdown(false);
         }
 
         if (this.topicRouteInfoManager != null) {
@@ -618,18 +583,6 @@ public class BrokerController {
 
         if (this.coldDataCgCtrService != null) {
             this.coldDataCgCtrService.start();
-        }
-    }
-
-    private synchronized void changeTransactionCheckServiceStatus(boolean shouldStart) {
-        if (isTransactionCheckServiceStart != shouldStart) {
-            LOG.info("TransactionCheckService status changed to {}", shouldStart);
-            if (shouldStart) {
-                this.transactionalMessageCheckService.start();
-            } else {
-                this.transactionalMessageCheckService.shutdown(true);
-            }
-            isTransactionCheckServiceStart = shouldStart;
         }
     }
 
@@ -889,33 +842,6 @@ public class BrokerController {
         return this.configuration;
     }
 
-
-    public TransactionalMessageCheckService getTransactionalMessageCheckService() {
-        return transactionalMessageCheckService;
-    }
-
-    public void setTransactionalMessageCheckService(
-        TransactionalMessageCheckService transactionalMessageCheckService) {
-        this.transactionalMessageCheckService = transactionalMessageCheckService;
-    }
-
-    public TransactionalMessageService getTransactionalMessageService() {
-        return transactionalMessageService;
-    }
-
-    public void setTransactionalMessageService(TransactionalMessageService transactionalMessageService) {
-        this.transactionalMessageService = transactionalMessageService;
-    }
-
-    public AbstractTransactionalMessageCheckListener getTransactionalMessageCheckListener() {
-        return transactionalMessageCheckListener;
-    }
-
-    public void setTransactionalMessageCheckListener(
-        AbstractTransactionalMessageCheckListener transactionalMessageCheckListener) {
-        this.transactionalMessageCheckListener = transactionalMessageCheckListener;
-    }
-
     public Map<Class, AccessValidator> getAccessValidatorMap() {
         return getBrokerNettyServer().getAccessValidatorMap();
     }
@@ -966,10 +892,6 @@ public class BrokerController {
 
     public boolean isScheduleServiceStart() {
         return isScheduleServiceStart;
-    }
-
-    public boolean isTransactionCheckServiceStart() {
-        return isTransactionCheckServiceStart;
     }
 
     public ScheduleMessageService getScheduleMessageService() {

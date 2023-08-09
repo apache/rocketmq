@@ -73,8 +73,8 @@ public class EndTransactionProcessorTest {
 
     @Before
     public void init() {
-        brokerController.setMessageStore(messageStore);
-        brokerController.setTransactionalMessageService(transactionMsgService);
+        brokerController.getBrokerMessageService().setMessageStore(messageStore);
+        brokerController.getBrokerMessageService().setTransactionalMessageService(transactionMsgService);
         endTransactionProcessor = new EndTransactionProcessor(brokerController);
     }
 

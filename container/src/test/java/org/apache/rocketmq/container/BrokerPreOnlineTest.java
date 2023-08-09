@@ -78,7 +78,7 @@ public class BrokerPreOnlineTest {
             defaultMessageStore.getBrokerConfig(),
             defaultMessageStore.getMessageStoreConfig());
 
-        innerBrokerController.setTransactionalMessageCheckService(new TransactionalMessageCheckService(innerBrokerController));
+        innerBrokerController.getBrokerMessageService().setTransactionalMessageCheckService(new TransactionalMessageCheckService(innerBrokerController));
 
         Field field = BrokerController.class.getDeclaredField("isIsolated");
         field.setAccessible(true);

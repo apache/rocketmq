@@ -125,7 +125,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         }
         OperationResult result = new OperationResult();
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
-            result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
+            result = this.brokerController.getBrokerMessageService().getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 if (rejectCommitOrRollback(requestHeader, result.getPrepareMessage())) {
                     response.setCode(ResponseCode.ILLEGAL_OPERATION);
@@ -143,14 +143,14 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED);
                     RemotingCommand sendResult = sendFinalMessage(msgInner);
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
-                        this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
+                        this.brokerController.getBrokerMessageService().getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                     }
                     return sendResult;
                 }
                 return res;
             }
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
-            result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
+            result = this.brokerController.getBrokerMessageService().getTransactionalMessageService().rollbackMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
                 if (rejectCommitOrRollback(requestHeader, result.getPrepareMessage())) {
                     response.setCode(ResponseCode.ILLEGAL_OPERATION);
@@ -160,7 +160,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 }
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
-                    this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
+                    this.brokerController.getBrokerMessageService().getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
                 }
                 return res;
             }

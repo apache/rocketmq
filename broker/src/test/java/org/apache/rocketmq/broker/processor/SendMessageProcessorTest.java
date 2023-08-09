@@ -212,8 +212,8 @@ public class SendMessageProcessorTest {
 
     @Test
     public void testProcessRequest_Transaction() throws RemotingCommandException {
-        brokerController.setTransactionalMessageService(transactionMsgService);
-        when(brokerController.getTransactionalMessageService().asyncPrepareMessage(any(MessageExtBrokerInner.class)))
+        brokerController.getBrokerMessageService().setTransactionalMessageService(transactionMsgService);
+        when(brokerController.getBrokerMessageService().getTransactionalMessageService().asyncPrepareMessage(any(MessageExtBrokerInner.class)))
             .thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         RemotingCommand request = createSendTransactionMsgCommand(RequestCode.SEND_MESSAGE);
         final RemotingCommand[] response = new RemotingCommand[1];

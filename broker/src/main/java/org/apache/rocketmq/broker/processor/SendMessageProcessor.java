@@ -308,7 +308,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (brokerController.getBrokerConfig().isAsyncSendEnable()) {
             CompletableFuture<PutMessageResult> asyncPutMessageFuture;
             if (sendTransactionPrepareMessage) {
-                asyncPutMessageFuture = this.brokerController.getTransactionalMessageService().asyncPrepareMessage(msgInner);
+                asyncPutMessageFuture = this.brokerController.getBrokerMessageService().getTransactionalMessageService().asyncPrepareMessage(msgInner);
             } else {
                 asyncPutMessageFuture = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
             }
@@ -329,7 +329,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         } else {
             PutMessageResult putMessageResult = null;
             if (sendTransactionPrepareMessage) {
-                putMessageResult = this.brokerController.getTransactionalMessageService().prepareMessage(msgInner);
+                putMessageResult = this.brokerController.getBrokerMessageService().getTransactionalMessageService().prepareMessage(msgInner);
             } else {
                 putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
             }

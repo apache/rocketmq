@@ -25,12 +25,19 @@ import org.apache.rocketmq.broker.dledger.DLedgerRoleChangeHandler;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
+import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
+import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
+import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageCheckListener;
+import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageBridge;
+import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageServiceImpl;
 import org.apache.rocketmq.broker.util.HookUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -52,6 +59,9 @@ import org.apache.rocketmq.store.timer.TimerMetrics;
 public class BrokerMessageService {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
+    private volatile boolean isTransactionCheckServiceStart = false;
+
+
     private final BrokerConfig brokerConfig;
     private final MessageStoreConfig messageStoreConfig;
     private final ConcurrentMap<String, TopicConfig> topicConfigTable;
@@ -62,9 +72,11 @@ public class BrokerMessageService {
 
     private final ScheduleMessageService scheduleMessageService;
     private TimerCheckpoint timerCheckpoint;
-
     private final EscapeBridge escapeBridge;
 
+    protected TransactionalMessageCheckService transactionalMessageCheckService;
+    protected TransactionalMessageService transactionalMessageService;
+    protected AbstractTransactionalMessageCheckListener transactionalMessageCheckListener;
 
     private MessageStore messageStore;
     private TimerMessageStore timerMessageStore;
@@ -126,6 +138,8 @@ public class BrokerMessageService {
 
             //scheduleMessageService load after messageStore load success
             result = result && this.scheduleMessageService.load();
+            initTransaction();
+
         } catch (IOException e) {
             result = false;
             LOG.error("BrokerController#initialize: unexpected error occurs", e);
@@ -133,7 +147,24 @@ public class BrokerMessageService {
         return result;
     }
 
-
+    private void initTransaction() {
+        this.transactionalMessageService = ServiceProvider.loadClass(TransactionalMessageService.class);
+        if (null == this.transactionalMessageService) {
+            this.transactionalMessageService = new TransactionalMessageServiceImpl(
+                new TransactionalMessageBridge(brokerController, this.getMessageStore()));
+            LOG.warn("Load default transaction message hook service: {}",
+                TransactionalMessageServiceImpl.class.getSimpleName());
+        }
+        this.transactionalMessageCheckListener = ServiceProvider.loadClass(
+            AbstractTransactionalMessageCheckListener.class);
+        if (null == this.transactionalMessageCheckListener) {
+            this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
+            LOG.warn("Load default discard message hook service: {}",
+                DefaultTransactionalMessageCheckListener.class.getSimpleName());
+        }
+        this.transactionalMessageCheckListener.setBrokerController(brokerController);
+        this.transactionalMessageCheckService = new TransactionalMessageCheckService(brokerController);
+    }
     public void start() throws Exception {
         if (this.messageStore != null) {
             this.messageStore.start();
@@ -167,6 +198,22 @@ public class BrokerMessageService {
             escapeBridge.shutdown();
         }
 
+        if (this.transactionalMessageCheckService != null) {
+            this.transactionalMessageCheckService.shutdown(false);
+        }
+
+    }
+
+    public synchronized void changeTransactionCheckServiceStatus(boolean shouldStart) {
+        if (isTransactionCheckServiceStart != shouldStart) {
+            LOG.info("TransactionCheckService status changed to {}", shouldStart);
+            if (shouldStart) {
+                this.transactionalMessageCheckService.start();
+            } else {
+                this.transactionalMessageCheckService.shutdown(true);
+            }
+            isTransactionCheckServiceStart = shouldStart;
+        }
     }
 
     public synchronized void changeScheduleServiceStatus(boolean shouldStart) {
@@ -267,4 +314,37 @@ public class BrokerMessageService {
         return brokerStats;
     }
 
+    public TransactionalMessageCheckService getTransactionalMessageCheckService() {
+        return transactionalMessageCheckService;
+    }
+
+    public void setTransactionalMessageCheckService(
+        TransactionalMessageCheckService transactionalMessageCheckService) {
+        this.transactionalMessageCheckService = transactionalMessageCheckService;
+    }
+
+    public TransactionalMessageService getTransactionalMessageService() {
+        return transactionalMessageService;
+    }
+
+    public void setTransactionalMessageService(TransactionalMessageService transactionalMessageService) {
+        this.transactionalMessageService = transactionalMessageService;
+    }
+
+    public AbstractTransactionalMessageCheckListener getTransactionalMessageCheckListener() {
+        return transactionalMessageCheckListener;
+    }
+
+    public void setTransactionalMessageCheckListener(
+        AbstractTransactionalMessageCheckListener transactionalMessageCheckListener) {
+        this.transactionalMessageCheckListener = transactionalMessageCheckListener;
+    }
+
+    public boolean isTransactionCheckServiceStart() {
+        return isTransactionCheckServiceStart;
+    }
+
+    public void setTransactionCheckServiceStart(boolean transactionCheckServiceStart) {
+        isTransactionCheckServiceStart = transactionCheckServiceStart;
+    }
 }
