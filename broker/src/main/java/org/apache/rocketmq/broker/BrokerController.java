@@ -269,15 +269,6 @@ public class BrokerController {
         isIsolated = false;
     }
 
-    public boolean isSpecialServiceRunning() {
-        if (brokerMessageService.isScheduleServiceStart() && brokerMessageService.isTransactionCheckServiceStart()) {
-            return true;
-        }
-
-        AckMessageProcessor ackMessageProcessor = this.brokerNettyServer.getAckMessageProcessor();
-        return ackMessageProcessor != null && ackMessageProcessor.isPopReviveServiceRunning();
-    }
-
     public void updateMinBroker(long minBrokerId, String minBrokerAddr) {
         if (brokerConfig.isEnableSlaveActingMaster() && brokerConfig.getBrokerId() != MixAll.MASTER_ID) {
             if (!lock.tryLock()) {

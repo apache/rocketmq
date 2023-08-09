@@ -2371,7 +2371,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         this.brokerController.getScheduleMessageService().buildRunningStats(runtimeInfo);
-        runtimeInfo.put("brokerActive", String.valueOf(this.brokerController.isSpecialServiceRunning()));
+        runtimeInfo.put("brokerActive", String.valueOf(this.brokerController.getBrokerMessageService().isSpecialServiceRunning()));
         runtimeInfo.put("brokerVersionDesc", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
         runtimeInfo.put("brokerVersion", String.valueOf(MQVersion.CURRENT_VERSION));
 

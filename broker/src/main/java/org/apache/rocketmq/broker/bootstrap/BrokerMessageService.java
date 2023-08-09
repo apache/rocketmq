@@ -24,6 +24,7 @@ import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.dledger.DLedgerRoleChangeHandler;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.filter.CommitLogDispatcherCalcBitMap;
+import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
@@ -147,24 +148,6 @@ public class BrokerMessageService {
         return result;
     }
 
-    private void initTransaction() {
-        this.transactionalMessageService = ServiceProvider.loadClass(TransactionalMessageService.class);
-        if (null == this.transactionalMessageService) {
-            this.transactionalMessageService = new TransactionalMessageServiceImpl(
-                new TransactionalMessageBridge(brokerController, this.getMessageStore()));
-            LOG.warn("Load default transaction message hook service: {}",
-                TransactionalMessageServiceImpl.class.getSimpleName());
-        }
-        this.transactionalMessageCheckListener = ServiceProvider.loadClass(
-            AbstractTransactionalMessageCheckListener.class);
-        if (null == this.transactionalMessageCheckListener) {
-            this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
-            LOG.warn("Load default discard message hook service: {}",
-                DefaultTransactionalMessageCheckListener.class.getSimpleName());
-        }
-        this.transactionalMessageCheckListener.setBrokerController(brokerController);
-        this.transactionalMessageCheckService = new TransactionalMessageCheckService(brokerController);
-    }
     public void start() throws Exception {
         if (this.messageStore != null) {
             this.messageStore.start();
@@ -204,6 +187,19 @@ public class BrokerMessageService {
 
     }
 
+    /**
+     * return status of scheduled message, transaction check and message ack process running status
+     * @return boolean
+     */
+    public boolean isSpecialServiceRunning() {
+        if (isScheduleServiceStart() && isTransactionCheckServiceStart()) {
+            return true;
+        }
+
+        AckMessageProcessor ackMessageProcessor = brokerController.getBrokerNettyServer().getAckMessageProcessor();
+        return ackMessageProcessor != null && ackMessageProcessor.isPopReviveServiceRunning();
+    }
+
     public synchronized void changeTransactionCheckServiceStatus(boolean shouldStart) {
         if (isTransactionCheckServiceStart != shouldStart) {
             LOG.info("TransactionCheckService status changed to {}", shouldStart);
@@ -230,6 +226,26 @@ public class BrokerMessageService {
                 timerMessageStore.setShouldRunningDequeue(shouldStart);
             }
         }
+    }
+
+
+    private void initTransaction() {
+        this.transactionalMessageService = ServiceProvider.loadClass(TransactionalMessageService.class);
+        if (null == this.transactionalMessageService) {
+            this.transactionalMessageService = new TransactionalMessageServiceImpl(
+                new TransactionalMessageBridge(brokerController, this.getMessageStore()));
+            LOG.warn("Load default transaction message hook service: {}",
+                TransactionalMessageServiceImpl.class.getSimpleName());
+        }
+        this.transactionalMessageCheckListener = ServiceProvider.loadClass(
+            AbstractTransactionalMessageCheckListener.class);
+        if (null == this.transactionalMessageCheckListener) {
+            this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
+            LOG.warn("Load default discard message hook service: {}",
+                DefaultTransactionalMessageCheckListener.class.getSimpleName());
+        }
+        this.transactionalMessageCheckListener.setBrokerController(brokerController);
+        this.transactionalMessageCheckService = new TransactionalMessageCheckService(brokerController);
     }
 
     private void registerMessageStoreHook() {
