@@ -135,9 +135,6 @@ public class BrokerController {
     private final BrokerServiceRegistry brokerServiceRegistry;
     private BrokerMessageService brokerMessageService;
 
-    private final SystemClock systemClock = new SystemClock();
-
-
     public BrokerController(
         final BrokerConfig brokerConfig,
         final NettyServerConfig nettyServerConfig,
@@ -244,10 +241,6 @@ public class BrokerController {
         }
     }
 
-    public long now() {
-        return this.systemClock.now();
-    }
-
     public void startService(long minBrokerId, String minBrokerAddr) {
         BrokerController.LOG.info("{} start service, min broker id is {}, min broker addr: {}",
             this.brokerConfig.getCanonicalName(), minBrokerId, minBrokerAddr);
@@ -329,7 +322,7 @@ public class BrokerController {
         final Runnable peek = q.peek();
         if (peek != null) {
             RequestTask rt = BrokerFastFailure.castRunnable(peek);
-            slowTimeMills = rt == null ? 0 : this.now() - rt.getCreateTimestamp();
+            slowTimeMills = rt == null ? 0 : this.getBrokerMessageService().getMessageStore().now() - rt.getCreateTimestamp();
         }
 
         if (slowTimeMills < 0) {

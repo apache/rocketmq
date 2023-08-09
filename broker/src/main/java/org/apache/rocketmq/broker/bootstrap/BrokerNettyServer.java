@@ -843,7 +843,7 @@ public class BrokerNettyServer {
         final Runnable peek = q.peek();
         if (peek != null) {
             RequestTask rt = BrokerFastFailure.castRunnable(peek);
-            slowTimeMills = rt == null ? 0 : this.brokerController.now() - rt.getCreateTimestamp();
+            slowTimeMills = rt == null ? 0 : this.brokerController.getBrokerMessageService().getMessageStore().now() - rt.getCreateTimestamp();
         }
 
         if (slowTimeMills < 0) {
