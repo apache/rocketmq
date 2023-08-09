@@ -413,12 +413,6 @@ public class BrokerController {
         isIsolated = false;
     }
 
-    public void stopService() {
-        BrokerController.LOG.info("{} stop service", this.getBrokerConfig().getCanonicalName());
-        isIsolated = true;
-        this.changeSpecialServiceStatus(false);
-    }
-
     public boolean isSpecialServiceRunning() {
         if (isScheduleServiceStart() && isTransactionCheckServiceStart()) {
             return true;
@@ -508,14 +502,6 @@ public class BrokerController {
         }
     }
 
-    public void registerClientRPCHook(RPCHook rpcHook) {
-        this.getBrokerOuterAPI().registerRPCHook(rpcHook);
-    }
-
-    public boolean isEnableRocksDBStore() {
-        return StoreType.DEFAULT_ROCKSDB.getStoreType().equalsIgnoreCase(this.messageStoreConfig.getStoreType());
-    }
-
     //**************************************** debug methods start ****************************************************
     public long headSlowTimeMills(BlockingQueue<Runnable> q) {
         long slowTimeMills = 0;
@@ -553,6 +539,19 @@ public class BrokerController {
     }
 
     //**************************************** private or protected methods start ****************************************************
+    public void stopService() {
+        BrokerController.LOG.info("{} stop service", this.getBrokerConfig().getCanonicalName());
+        isIsolated = true;
+        this.changeSpecialServiceStatus(false);
+    }
+
+    public void registerClientRPCHook(RPCHook rpcHook) {
+        this.getBrokerOuterAPI().registerRPCHook(rpcHook);
+    }
+
+    private boolean isEnableRocksDBStore() {
+        return StoreType.DEFAULT_ROCKSDB.getStoreType().equalsIgnoreCase(this.messageStoreConfig.getStoreType());
+    }
 
     private void initMetadata() {
         if (isEnableRocksDBStore()) {
@@ -712,7 +711,7 @@ public class BrokerController {
         if (this.shutdownHook != null) {
             this.shutdownHook.beforeShutdown(this);
         }
-        this.getBrokerNettyServer().shutdown();
+        this.brokerNettyServer.shutdown();
         this.brokerMessageService.shutdown();
 
         if (this.brokerStatsManager != null) {
