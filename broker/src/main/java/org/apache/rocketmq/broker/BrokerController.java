@@ -311,13 +311,6 @@ public class BrokerController {
         }
     }
 
-    public MessageStore getMessageStoreByBrokerName(String brokerName) {
-        if (this.brokerConfig.getBrokerName().equals(brokerName)) {
-            return this.getMessageStore();
-        }
-        return null;
-    }
-
     public BrokerIdentity getBrokerIdentity() {
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             return new BrokerIdentity(

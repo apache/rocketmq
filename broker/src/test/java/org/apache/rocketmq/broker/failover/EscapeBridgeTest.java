@@ -164,7 +164,7 @@ public class EscapeBridgeTest {
     @Test
     public void getMessageTest() {
         when(brokerController.peekMasterBroker()).thenReturn(brokerController);
-        when(brokerController.getMessageStoreByBrokerName(any())).thenReturn(defaultMessageStore);
+        when(brokerController.getBrokerMessageService().getMessageStoreByBrokerName(any())).thenReturn(defaultMessageStore);
         Assertions.assertThatCode(() -> escapeBridge.putMessage(messageExtBrokerInner)).doesNotThrowAnyException();
 
         Assertions.assertThatCode(() -> escapeBridge.getMessage(TEST_TOPIC, 0, DEFAULT_QUEUE_ID, BROKER_NAME, false)).doesNotThrowAnyException();
@@ -173,7 +173,7 @@ public class EscapeBridgeTest {
     @Test
     public void getMessageAsyncTest() {
         when(brokerController.peekMasterBroker()).thenReturn(brokerController);
-        when(brokerController.getMessageStoreByBrokerName(any())).thenReturn(defaultMessageStore);
+        when(brokerController.getBrokerMessageService().getMessageStoreByBrokerName(any())).thenReturn(defaultMessageStore);
         Assertions.assertThatCode(() -> escapeBridge.putMessage(messageExtBrokerInner)).doesNotThrowAnyException();
 
         Assertions.assertThatCode(() -> escapeBridge.getMessageAsync(TEST_TOPIC, 0, DEFAULT_QUEUE_ID, BROKER_NAME, false)).doesNotThrowAnyException();

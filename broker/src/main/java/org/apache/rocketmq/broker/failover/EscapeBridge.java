@@ -268,7 +268,7 @@ public class EscapeBridge {
     }
 
     public CompletableFuture<Pair<GetMessageStatus, MessageExt>> getMessageAsync(String topic, long offset, int queueId, String brokerName, boolean deCompressBody) {
-        MessageStore messageStore = brokerController.getMessageStoreByBrokerName(brokerName);
+        MessageStore messageStore = brokerController.getBrokerMessageService().getMessageStoreByBrokerName(brokerName);
         if (messageStore != null) {
             return messageStore.getMessageAsync(innerConsumerGroupName, topic, queueId, offset, 1, null)
                 .thenApply(result -> {

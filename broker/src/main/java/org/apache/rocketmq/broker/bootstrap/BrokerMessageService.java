@@ -188,6 +188,13 @@ public class BrokerMessageService {
 
     }
 
+    public MessageStore getMessageStoreByBrokerName(String brokerName) {
+        if (this.brokerConfig.getBrokerName().equals(brokerName)) {
+            return this.getMessageStore();
+        }
+        return null;
+    }
+
     /**
      * running status of
      *      scheduled message,
