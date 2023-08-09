@@ -423,7 +423,7 @@ public class StaticTopicIT extends BaseConf {
         {
             for (int i = 0; i < 10; i++) {
                 for (BrokerController brokerController: brokerControllerList) {
-                    brokerController.getTopicQueueMappingCleanService().wakeup();
+                    brokerController.getBrokerServiceManager().getTopicQueueMappingCleanService().wakeup();
                 }
                 Thread.sleep(100);
             }
@@ -445,7 +445,7 @@ public class StaticTopicIT extends BaseConf {
             brokerController2.getMessageStore().cleanUnusedTopic(topics);
             for (int i = 0; i < 10; i++) {
                 for (BrokerController brokerController: brokerControllerList) {
-                    brokerController.getTopicQueueMappingCleanService().wakeup();
+                    brokerController.getBrokerServiceManager().getTopicQueueMappingCleanService().wakeup();
                 }
                 Thread.sleep(100);
             }

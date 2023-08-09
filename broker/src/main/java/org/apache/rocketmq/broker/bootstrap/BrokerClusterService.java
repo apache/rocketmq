@@ -19,7 +19,6 @@ package org.apache.rocketmq.broker.bootstrap;
 /**
  * related to :
  *      Master/Slave
- *      code data
  */
 public class BrokerClusterService {
 }
