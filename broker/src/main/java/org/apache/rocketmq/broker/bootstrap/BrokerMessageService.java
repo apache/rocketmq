@@ -49,7 +49,7 @@ import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 
-public class MessageStoreService {
+public class BrokerMessageService {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final BrokerConfig brokerConfig;
@@ -70,7 +70,7 @@ public class MessageStoreService {
     private TimerMessageStore timerMessageStore;
     private BrokerStats brokerStats;
 
-    public MessageStoreService(BrokerController brokerController) {
+    public BrokerMessageService(BrokerController brokerController) {
         this.brokerController = brokerController;
         this.brokerConfig = brokerController.getBrokerConfig();
         this.brokerStatsManager = brokerController.getBrokerStatsManager();

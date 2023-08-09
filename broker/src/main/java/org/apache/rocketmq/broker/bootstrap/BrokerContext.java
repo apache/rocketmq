@@ -16,5 +16,5 @@
  */
 package org.apache.rocketmq.broker.bootstrap;
 
-public class BrokerBootContext {
+public class BrokerContext {
 }

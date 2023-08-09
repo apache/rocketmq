@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.bootstrap.BrokerNettyServer;
 import org.apache.rocketmq.broker.bootstrap.BrokerScheduleService;
-import org.apache.rocketmq.broker.bootstrap.MessageStoreService;
+import org.apache.rocketmq.broker.bootstrap.BrokerMessageService;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
@@ -121,6 +121,7 @@ public class BrokerController {
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
     protected final MessageStoreConfig messageStoreConfig;
+
     protected ConsumerOffsetManager consumerOffsetManager;
     protected final BroadcastOffsetManager broadcastOffsetManager;
     protected final ConsumerManager consumerManager;
@@ -175,7 +176,7 @@ public class BrokerController {
 
     private final BrokerNettyServer brokerNettyServer;
     private final BrokerScheduleService brokerScheduleService;
-    private MessageStoreService messageStoreService;
+    private BrokerMessageService brokerMessageService;
 
     private final SystemClock systemClock = new SystemClock();
 
@@ -212,7 +213,10 @@ public class BrokerController {
         initConfiguration();
         initMetadata();
 
-        this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat()) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
+        this.brokerStatsManager = messageStoreConfig.isEnableLmq()
+            ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat())
+            : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
+
         this.broadcastOffsetManager = new BroadcastOffsetManager(this);
 
         this.brokerNettyServer = new BrokerNettyServer(brokerConfig, messageStoreConfig, nettyServerConfig, this);
@@ -245,23 +249,6 @@ public class BrokerController {
             this.brokerPreOnlineService = new BrokerPreOnlineService(this);
         }
     }
-
-    private void initMetadata() {
-        if (isEnableRocksDBStore()) {
-            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqTopicConfigManager(this) : new RocksDBTopicConfigManager(this);
-            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqSubscriptionGroupManager(this) : new RocksDBSubscriptionGroupManager(this);
-            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqConsumerOffsetManager(this) : new RocksDBConsumerOffsetManager(this);
-        } else {
-            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
-            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
-            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
-        }
-
-        this.topicQueueMappingManager = new TopicQueueMappingManager(this);
-        this.consumerFilterManager = new ConsumerFilterManager(this);
-        this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
-    }
-
 
     //************************ constructor end: depends about 100 objects ***************************************
     //************************ about 56 netty related objects which can move outside the BrokerController *******
@@ -567,6 +554,22 @@ public class BrokerController {
 
     //**************************************** private or protected methods start ****************************************************
 
+    private void initMetadata() {
+        if (isEnableRocksDBStore()) {
+            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqTopicConfigManager(this) : new RocksDBTopicConfigManager(this);
+            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqSubscriptionGroupManager(this) : new RocksDBSubscriptionGroupManager(this);
+            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqConsumerOffsetManager(this) : new RocksDBConsumerOffsetManager(this);
+        } else {
+            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
+            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
+            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
+        }
+
+        this.topicQueueMappingManager = new TopicQueueMappingManager(this);
+        this.consumerFilterManager = new ConsumerFilterManager(this);
+        this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
+    }
+
     protected boolean loadMetadata() {
         boolean result = this.topicConfigManager.load();
         result = result && this.topicQueueMappingManager.load();
@@ -578,8 +581,8 @@ public class BrokerController {
     }
 
     public boolean initializeMessageStore() {
-        this.messageStoreService = new MessageStoreService(this);
-        return messageStoreService.init();
+        this.brokerMessageService = new BrokerMessageService(this);
+        return brokerMessageService.init();
     }
 
     public boolean initAndLoadService() throws CloneNotSupportedException {
@@ -710,7 +713,7 @@ public class BrokerController {
             this.shutdownHook.beforeShutdown(this);
         }
         this.getBrokerNettyServer().shutdown();
-        this.messageStoreService.shutdown();
+        this.brokerMessageService.shutdown();
 
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.shutdown();
@@ -810,7 +813,7 @@ public class BrokerController {
         }
 
         this.brokerNettyServer.start();
-        this.messageStoreService.start();
+        this.brokerMessageService.start();
 
         if (this.topicQueueMappingCleanService != null) {
             this.topicQueueMappingCleanService.start();
@@ -883,7 +886,7 @@ public class BrokerController {
             BrokerController.LOG.warn("Couldn't find any broker member from namesrv in {}/{}", this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName());
             return;
         }
-        messageStoreService.getMessageStore().setAliveReplicaNumInGroup(calcAliveBrokerNumInGroup(brokerMemberGroup.getBrokerAddrs()));
+        brokerMessageService.getMessageStore().setAliveReplicaNumInGroup(calcAliveBrokerNumInGroup(brokerMemberGroup.getBrokerAddrs()));
 
 
         if (!this.isIsolated) {
@@ -905,8 +908,8 @@ public class BrokerController {
         for (RegisterBrokerResult registerBrokerResult : registerBrokerResultList) {
             if (registerBrokerResult != null) {
                 if (this.updateMasterHAServerAddrPeriodically && registerBrokerResult.getHaServerAddr() != null) {
-                    messageStoreService.getMessageStore().updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
-                    messageStoreService.getMessageStore().updateMasterAddress(registerBrokerResult.getMasterAddr());
+                    brokerMessageService.getMessageStore().updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
+                    brokerMessageService.getMessageStore().updateMasterAddress(registerBrokerResult.getMasterAddr());
                 }
 
                 this.slaveSynchronize.setMasterAddr(registerBrokerResult.getMasterAddr());
@@ -951,7 +954,7 @@ public class BrokerController {
 
     private synchronized void changeScheduleServiceStatus(boolean shouldStart) {
         if (isScheduleServiceStart != shouldStart) {
-             messageStoreService.changeScheduleServiceStatus(shouldStart);
+             brokerMessageService.changeScheduleServiceStatus(shouldStart);
         }
     }
 
@@ -964,11 +967,11 @@ public class BrokerController {
         }
         // master not available, stop sync
         this.slaveSynchronize.setMasterAddr(null);
-        messageStoreService.getMessageStore().updateHaMasterAddress(null);
+        brokerMessageService.getMessageStore().updateHaMasterAddress(null);
     }
 
     private void onMasterOnline(String masterAddr, String masterHaAddr) {
-        boolean needSyncMasterFlushOffset = messageStoreService.getMessageStore().getMasterFlushedOffset() == 0
+        boolean needSyncMasterFlushOffset = brokerMessageService.getMessageStore().getMasterFlushedOffset() == 0
             && this.messageStoreConfig.isSyncMasterFlushOffsetWhenStartup();
         if (masterHaAddr == null || needSyncMasterFlushOffset) {
             doSyncMasterFlushOffset(masterAddr, masterHaAddr, needSyncMasterFlushOffset);
@@ -976,11 +979,11 @@ public class BrokerController {
 
         // set master HA address.
         if (masterHaAddr != null) {
-            messageStoreService.getMessageStore().updateHaMasterAddress(masterHaAddr);
+            brokerMessageService.getMessageStore().updateHaMasterAddress(masterHaAddr);
         }
 
         // wakeup HAClient
-        messageStoreService.getMessageStore().wakeupHAClient();
+        brokerMessageService.getMessageStore().wakeupHAClient();
     }
 
     private void doSyncMasterFlushOffset(String masterAddr, String masterHaAddr, boolean needSyncMasterFlushOffset) {
@@ -989,12 +992,12 @@ public class BrokerController {
 
             if (needSyncMasterFlushOffset) {
                 LOG.info("Set master flush offset in slave to {}", brokerSyncInfo.getMasterFlushOffset());
-                messageStoreService.getMessageStore().setMasterFlushedOffset(brokerSyncInfo.getMasterFlushOffset());
+                brokerMessageService.getMessageStore().setMasterFlushedOffset(brokerSyncInfo.getMasterFlushOffset());
             }
 
             if (masterHaAddr == null) {
-                messageStoreService.getMessageStore().updateHaMasterAddress(brokerSyncInfo.getMasterHaAddress());
-                messageStoreService.getMessageStore().updateMasterAddress(brokerSyncInfo.getMasterAddress());
+                brokerMessageService.getMessageStore().updateHaMasterAddress(brokerSyncInfo.getMasterHaAddress());
+                brokerMessageService.getMessageStore().updateMasterAddress(brokerSyncInfo.getMasterAddress());
             }
         } catch (Exception e) {
             LOG.error("retrieve master ha info exception, {}", e);
@@ -1051,7 +1054,7 @@ public class BrokerController {
     }
 
     public BrokerStats getBrokerStats() {
-        return messageStoreService.getBrokerStats();
+        return brokerMessageService.getBrokerStats();
     }
 
     public boolean isUpdateMasterHAServerAddrPeriodically() {
@@ -1063,11 +1066,11 @@ public class BrokerController {
     }
 
     public MessageStore getMessageStore() {
-        return messageStoreService.getMessageStore();
+        return brokerMessageService.getMessageStore();
     }
 
     public void setMessageStore(MessageStore messageStore) {
-        messageStoreService.setMessageStore(messageStore);
+        brokerMessageService.setMessageStore(messageStore);
     }
 
     public Broker2Client getBroker2Client() {
@@ -1123,7 +1126,7 @@ public class BrokerController {
     }
 
     public TimerMessageStore getTimerMessageStore() {
-        return messageStoreService.getTimerMessageStore();
+        return brokerMessageService.getTimerMessageStore();
     }
 
 
@@ -1248,7 +1251,7 @@ public class BrokerController {
     }
 
     public EscapeBridge getEscapeBridge() {
-        return messageStoreService.getEscapeBridge();
+        return brokerMessageService.getEscapeBridge();
     }
 
     public long getShouldStartTime() {
@@ -1268,7 +1271,7 @@ public class BrokerController {
     }
 
     public ScheduleMessageService getScheduleMessageService() {
-        return messageStoreService.getScheduleMessageService();
+        return brokerMessageService.getScheduleMessageService();
     }
 
     public ReplicasManager getReplicasManager() {
@@ -1284,7 +1287,7 @@ public class BrokerController {
     }
 
     public TimerCheckpoint getTimerCheckpoint() {
-        return messageStoreService.getTimerCheckpoint();
+        return brokerMessageService.getTimerCheckpoint();
     }
 
     public TopicRouteInfoManager getTopicRouteInfoManager() {
@@ -1295,18 +1298,10 @@ public class BrokerController {
         return coldDataPullRequestHoldService;
     }
 
-    public void setColdDataPullRequestHoldService(
-        ColdDataPullRequestHoldService coldDataPullRequestHoldService) {
-        this.coldDataPullRequestHoldService = coldDataPullRequestHoldService;
-    }
-
     public ColdDataCgCtrService getColdDataCgCtrService() {
         return coldDataCgCtrService;
     }
 
-    public void setColdDataCgCtrService(ColdDataCgCtrService coldDataCgCtrService) {
-        this.coldDataCgCtrService = coldDataCgCtrService;
-    }
     public BrokerNettyServer getBrokerNettyServer() {
         return this.brokerNettyServer;
     }

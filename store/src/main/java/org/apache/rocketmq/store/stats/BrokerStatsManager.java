@@ -147,6 +147,7 @@ public class BrokerStatsManager {
 
     private BrokerConfig brokerConfig;
 
+    /***  only used in test cases ***/
     public BrokerStatsManager(BrokerConfig brokerConfig) {
         this.brokerConfig = brokerConfig;
         this.enableQueueStat = brokerConfig.isEnableDetailStat();
