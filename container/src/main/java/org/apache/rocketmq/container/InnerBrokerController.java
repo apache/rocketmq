@@ -38,7 +38,7 @@ public class InnerBrokerController extends BrokerController {
     ) {
         super(brokerConfig, messageStoreConfig);
         this.brokerContainer = brokerContainer;
-        this.brokerOuterAPI = this.brokerContainer.getBrokerOuterAPI();
+        setBrokerOuterAPI(this.brokerContainer.getBrokerOuterAPI());
     }
 
     @Override
