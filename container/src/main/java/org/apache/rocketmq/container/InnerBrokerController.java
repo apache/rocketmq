@@ -86,13 +86,13 @@ public class InnerBrokerController extends BrokerController {
         }, 1000 * 10, Math.max(10000, Math.min(brokerConfig.getRegisterNameServerPeriod(), 60000)), TimeUnit.MILLISECONDS));
 
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
-            scheduleSendHeartbeat();
+            getBrokerScheduleService().scheduleSendHeartbeat();
 
             getBrokerScheduleService().getScheduledFutures().add(getBrokerScheduleService().getSyncBrokerMemberGroupExecutorService().scheduleAtFixedRate(new AbstractBrokerRunnable(this.getBrokerIdentity()) {
                 @Override
                 public void run0() {
                     try {
-                        InnerBrokerController.this.syncBrokerMemberGroup();
+                        InnerBrokerController.this.getBrokerScheduleService().syncBrokerMemberGroup();
                     } catch (Throwable e) {
                         BrokerController.LOG.error("sync BrokerMemberGroup error. ", e);
                     }
@@ -101,7 +101,7 @@ public class InnerBrokerController extends BrokerController {
         }
 
         if (this.brokerConfig.isEnableControllerMode()) {
-            scheduleSendHeartbeat();
+            getBrokerScheduleService().scheduleSendHeartbeat();
         }
 
         if (brokerConfig.isSkipPreOnline()) {

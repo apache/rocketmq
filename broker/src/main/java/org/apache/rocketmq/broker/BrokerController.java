@@ -93,7 +93,6 @@ import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 public class BrokerController {
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-    private static final Logger LOG_PROTECTION = LoggerFactory.getLogger(LoggerName.PROTECTION_LOGGER_NAME);
 
     protected final BrokerConfig brokerConfig;
     private final NettyServerConfig nettyServerConfig;
@@ -126,7 +125,6 @@ public class BrokerController {
     protected ShutdownHook shutdownHook;
     private volatile boolean isScheduleServiceStart = false;
     private volatile boolean isTransactionCheckServiceStart = false;
-    protected volatile BrokerMemberGroup brokerMemberGroup;
 
     protected List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
     protected volatile long shouldStartTime;
@@ -207,9 +205,6 @@ public class BrokerController {
         initProducerStateGetter();
         initConsumerStateGetter();
 
-        this.brokerMemberGroup = new BrokerMemberGroup(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName());
-        this.brokerMemberGroup.getBrokerAddrs().put(this.brokerConfig.getBrokerId(), this.getBrokerAddr());
-
         this.topicRouteInfoManager = new TopicRouteInfoManager(this);
 
         if (this.brokerConfig.isEnableSlaveActingMaster() && !this.brokerConfig.isSkipPreOnline()) {
@@ -247,7 +242,6 @@ public class BrokerController {
         }
 
         this.brokerServiceRegistry.start();
-
         startBasicService();
 
         if (!isIsolated && !this.messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
@@ -256,7 +250,6 @@ public class BrokerController {
         }
 
         this.brokerScheduleService.start();
-
         if (brokerConfig.isSkipPreOnline()) {
             startServiceWithoutCondition();
         }
@@ -460,23 +453,7 @@ public class BrokerController {
         brokerScheduleService.init();
     }
 
-    public void protectBroker() {
-        if (!this.brokerConfig.isDisableConsumeIfConsumerReadSlowly()) {
-            return;
-        }
 
-        for (Map.Entry<String, MomentStatsItem> next : this.brokerStatsManager.getMomentStatsItemSetFallSize().getStatsItemTable().entrySet()) {
-            final long fallBehindBytes = next.getValue().getValue().get();
-            if (fallBehindBytes <= this.brokerConfig.getConsumerFallbehindThreshold()) {
-                continue;
-            }
-
-            final String[] split = next.getValue().getStatsKey().split("@");
-            final String group = split[2];
-            LOG_PROTECTION.info("[PROTECT_BROKER] the consumer[{}] consume slowly, {} bytes, disable it", group, fallBehindBytes);
-            this.brokerMetadataManager.getSubscriptionGroupManager().disableConsume(group);
-        }
-    }
 
     private void initProducerStateGetter() {
         this.brokerStatsManager.setProduerStateGetter(new BrokerStatsManager.StateGetter() {
@@ -598,10 +575,6 @@ public class BrokerController {
         }
     }
 
-    protected void scheduleSendHeartbeat() {
-        getBrokerScheduleService().scheduleSendHeartbeat();
-    }
-
     protected void startBasicService() throws Exception {
         if (this.replicasManager != null) {
             this.replicasManager.start();
@@ -648,35 +621,6 @@ public class BrokerController {
 
         if (this.coldDataCgCtrService != null) {
             this.coldDataCgCtrService.start();
-        }
-    }
-
-    public void syncBrokerMemberGroup() {
-        try {
-            brokerMemberGroup = this.getBrokerOuterAPI()
-                .syncBrokerMemberGroup(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName(), this.brokerConfig.isCompatibleWithOldNameSrv());
-        } catch (Exception e) {
-            BrokerController.LOG.error("syncBrokerMemberGroup from namesrv failed, ", e);
-            return;
-        }
-        if (brokerMemberGroup == null || brokerMemberGroup.getBrokerAddrs().size() == 0) {
-            BrokerController.LOG.warn("Couldn't find any broker member from namesrv in {}/{}", this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName());
-            return;
-        }
-        brokerMessageService.getMessageStore().setAliveReplicaNumInGroup(calcAliveBrokerNumInGroup(brokerMemberGroup.getBrokerAddrs()));
-
-
-        if (!this.isIsolated) {
-            long minBrokerId = brokerMemberGroup.minimumBrokerId();
-            this.updateMinBroker(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
-        }
-    }
-
-    private int calcAliveBrokerNumInGroup(Map<Long, String> brokerAddrTable) {
-        if (brokerAddrTable.containsKey(this.brokerConfig.getBrokerId())) {
-            return brokerAddrTable.size();
-        } else {
-            return brokerAddrTable.size() + 1;
         }
     }
 
@@ -1000,7 +944,7 @@ public class BrokerController {
     }
 
     public BrokerMemberGroup getBrokerMemberGroup() {
-        return this.brokerMemberGroup;
+        return this.getBrokerScheduleService().getBrokerMemberGroup();
     }
 
     public int getListenPort() {
