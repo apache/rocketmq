@@ -81,7 +81,7 @@ public class CompositeFlatFile implements CompositeAccess {
         this.commitLog = new TieredCommitLog(fileQueueFactory, filePath);
         this.consumeQueue = new TieredConsumeQueue(fileQueueFactory, filePath);
         this.dispatchOffset = new AtomicLong(
-            this.consumeQueue.isInitialized() ? this.getConsumeQueueCommitOffset() : 0L);
+            this.consumeQueue.isInitialized() ? this.getConsumeQueueCommitOffset() : -1L);
         this.groupOffsetCache = this.initOffsetCache();
     }
 
