@@ -15,21 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.dledger.statemachine.event.read;
+package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
-public class GetNextBrokerIdEvent implements ReadEventMessage {
+public class AlterSyncStateSetResult implements WriteEventResult {
 
-    private final String clusterName;
+    private final int newSyncStateSetEpoch;
 
-    private final String brokerName;
+    public AlterSyncStateSetResult(int newSyncStateSetEpoch) {
+        this.newSyncStateSetEpoch = newSyncStateSetEpoch;
+    }
 
-    public GetNextBrokerIdEvent(String clusterName, String brokerName) {
-        this.clusterName = clusterName;
-        this.brokerName = brokerName;
+    public int getNewSyncStateSetEpoch() {
+        return newSyncStateSetEpoch;
     }
 
     @Override
-    public ReadEventType getEventType() {
-        return ReadEventType.GET_NEXT_BROKER_ID;
+    public WriteEventType getEventType() {
+        return WriteEventType.ALTER_SYNC_STATE_SET;
     }
 }

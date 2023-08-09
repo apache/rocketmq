@@ -15,9 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.dledger.statemachine.event.directread;
+package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
-public enum DirectReadEventType {
-    GET_SYNC_STATE_SET,
-    GET_NEED_RE_ELECT_BROKER_SETS;
+import org.apache.rocketmq.controller.dledger.statemachine.event.EventResult;
+
+public interface WriteEventResult extends EventResult {
+
+    /**
+     * Returns the event type of this result
+     */
+    WriteEventType getEventType();
+
 }

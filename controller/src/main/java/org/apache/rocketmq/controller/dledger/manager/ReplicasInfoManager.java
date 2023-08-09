@@ -32,12 +32,32 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.dledger.event.ControllerResult;
+import org.apache.rocketmq.controller.dledger.statemachine.EventResponse;
+import org.apache.rocketmq.controller.dledger.statemachine.event.EventMessage;
+import org.apache.rocketmq.controller.dledger.statemachine.event.EventResult;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetNeedReElectBrokerSetsEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetNeedReElectBrokerSetsResult;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetNextBrokerIdEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetNextBrokerIdResult;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetReplicaInfoEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetReplicaInfoResult;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetSyncStateSetEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetSyncStateSetResult;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.ReadEventMessage;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.ReadEventResult;
+import org.apache.rocketmq.controller.dledger.statemachine.event.read.ReadEventType;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.AlterSyncStateSetEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.AlterSyncStateSetResult;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.ApplyBrokerIdEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.ApplyBrokerIdResult;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.CleanBrokerDataEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.CleanBrokerDataResult;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.ElectMasterEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.ElectMasterResult;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.RegisterBrokerEvent;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.RegisterBrokerResult;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventMessage;
+import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventResult;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventType;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
@@ -61,7 +81,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextB
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
-
+import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
 
 /**
  * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory
@@ -272,6 +292,15 @@ public class ReplicasInfoManager {
         return result;
     }
 
+    public Long getNextBrokerId(final String clusterName, final String brokerName) {
+        BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
+        if (brokerReplicaInfo == null) {
+            // means that none of brokers in this broker-set are registered
+            return MixAll.FIRST_BROKER_CONTROLLER_ID;
+        }
+        return brokerReplicaInfo.getNextAssignBrokerId();
+    }
+
     public ControllerResult<ApplyBrokerIdResponseHeader> applyBrokerId(final ApplyBrokerIdRequestHeader request) {
         final String clusterName = request.getClusterName();
         final String brokerName = request.getBrokerName();
@@ -338,6 +367,24 @@ public class ReplicasInfoManager {
         final String brokerName = request.getBrokerName();
         final ControllerResult<GetReplicaInfoResponseHeader> result = new ControllerResult<>(new GetReplicaInfoResponseHeader());
         final GetReplicaInfoResponseHeader response = result.getResponse();
+        if (isContainsBroker(brokerName)) {
+            // If exist broker metadata, just return metadata
+            final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
+            final BrokerReplicaInfo brokerReplicaInfo = this.replicaInfoTable.get(brokerName);
+            final Long masterBrokerId = syncStateInfo.getMasterBrokerId();
+            response.setMasterBrokerId(masterBrokerId);
+            response.setMasterAddress(brokerReplicaInfo.getBrokerAddress(masterBrokerId));
+            response.setMasterEpoch(syncStateInfo.getMasterEpoch());
+            result.setBody(new SyncStateSet(syncStateInfo.getSyncStateSet(), syncStateInfo.getSyncStateSetEpoch()).encode());
+            return result;
+        }
+        result.setCodeAndRemark(ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST, "Broker metadata is not existed");
+        return result;
+    }
+
+    public EventResponse<GetReplicaInfoResponseHeader> getReplicaInfo(final String brokerName) {
+        final EventResponse<GetReplicaInfoResponseHeader> result = new EventResponse<>(new GetReplicaInfoResponseHeader());
+        final GetReplicaInfoResponseHeader response = result.getResponseData();
         if (isContainsBroker(brokerName)) {
             // If exist broker metadata, just return metadata
             final SyncStateInfo syncStateInfo = this.syncStateSetInfoTable.get(brokerName);
@@ -457,48 +504,84 @@ public class ReplicasInfoManager {
      *
      * @param event event message
      */
-    public void applyEvent(final WriteEventMessage event) {
-        final WriteEventType type = event.getEventType();
-        switch (type) {
-            case APPLY_BROKER_ID:
-                dealApplyBrokerId((ApplyBrokerIdEvent) event);
-                break;
-            case REGISTER_BROKER:
-                dealRegisterBroker((RegisterBrokerEvent) event);
-                break;
-            case ELECT_MASTER:
-                dealElectMaster((ElectMasterEvent) event);
-                break;
-            case ALTER_SYNC_STATE_SET:
-                dealAlterSyncStateSet((AlterSyncStateSetEvent) event);
-                break;
-            case CLEAN_BROKER_DATA:
-                dealCleanBrokerData((CleanBrokerDataEvent) event);
-                break;
-            default:
-                break;
+    public EventResponse<? extends EventResult> applyEvent(final EventMessage event) {
+        if (event == null) {
+            return new EventResponse<>();
         }
+        if (event instanceof WriteEventMessage) {
+            WriteEventMessage writeEvent = (WriteEventMessage) event;
+            final WriteEventType type = writeEvent.getEventType();
+            switch (type) {
+                case APPLY_BROKER_ID:
+                    return dealApplyBrokerId((ApplyBrokerIdEvent) writeEvent);
+                case REGISTER_BROKER:
+                    return dealRegisterBroker((RegisterBrokerEvent) writeEvent);
+                case ELECT_MASTER:
+                    return dealElectMaster((ElectMasterEvent) writeEvent);
+                case ALTER_SYNC_STATE_SET:
+                    return dealAlterSyncStateSet((AlterSyncStateSetEvent) writeEvent);
+                case CLEAN_BROKER_DATA:
+                    return dealCleanBrokerData((CleanBrokerDataEvent) writeEvent);
+                default:
+                    break;
+            }
+        } else if (event instanceof ReadEventMessage) {
+            ReadEventMessage readEvent = (ReadEventMessage) event;
+            final ReadEventType type = readEvent.getEventType();
+            switch (type) {
+                case GET_NEXT_BROKER_ID:
+                    return dealGetNextBrokerId((GetNextBrokerIdEvent) readEvent);
+                case GET_REPLICA_INFO:
+                    return dealGetReplicaInfo((GetReplicaInfoEvent) readEvent);
+                case GET_SYNC_STATE_SET:
+                    return dealGetSyncStateSet((GetSyncStateSetEvent) readEvent);
+                case GET_NEED_RE_ELECT_BROKER_SETS:
+                    return dealGetNeedReElectBrokerSets((GetNeedReElectBrokerSetsEvent) readEvent);
+                default:
+                    break;
+            }
+        }
+        EventResponse result = new EventResponse<>();
+        result.setResponse(ResponseCode.CONTROLLER_INNER_ERROR, "Unknown event : " + event);
+        return result;
     }
 
-    private void dealApplyBrokerId(final ApplyBrokerIdEvent event) {
-
+    private EventResponse<ApplyBrokerIdResult> dealApplyBrokerId(final ApplyBrokerIdEvent event) {
+        return null;
     }
 
-    private void dealRegisterBroker(final RegisterBrokerEvent event) {
-
+    private EventResponse<RegisterBrokerResult> dealRegisterBroker(final RegisterBrokerEvent event) {
+        return null;
     }
 
-    private void dealElectMaster(final ElectMasterEvent event) {
-
+    private EventResponse<ElectMasterResult> dealElectMaster(final ElectMasterEvent event) {
+        return null;
     }
 
-    private void dealAlterSyncStateSet(final AlterSyncStateSetEvent event) {
-
+    private EventResponse<AlterSyncStateSetResult> dealAlterSyncStateSet(final AlterSyncStateSetEvent event) {
+        return null;
     }
 
-    private void dealCleanBrokerData(final CleanBrokerDataEvent event) {
-
+    private EventResponse<CleanBrokerDataResult> dealCleanBrokerData(final CleanBrokerDataEvent event) {
+        return null;
     }
+
+    private EventResponse<GetNextBrokerIdResult> dealGetNextBrokerId(final GetNextBrokerIdEvent event) {
+        return null;
+    }
+
+    private EventResponse<GetReplicaInfoResult> dealGetReplicaInfo(final GetReplicaInfoEvent event) {
+        return null;
+    }
+
+    private EventResponse<GetSyncStateSetResult> dealGetSyncStateSet(final GetSyncStateSetEvent event) {
+        return null;
+    }
+
+    private EventResponse<GetNeedReElectBrokerSetsResult> dealGetNeedReElectBrokerSets(final GetNeedReElectBrokerSetsEvent event) {
+        return null;
+    }
+
 
     private void handleAlterSyncStateSet(final AlterSyncStateSetEvent event) {
         final String brokerName = event.getBrokerName();

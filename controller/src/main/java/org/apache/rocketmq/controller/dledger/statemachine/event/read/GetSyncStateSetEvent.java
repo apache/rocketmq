@@ -17,19 +17,22 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
-public class GetNextBrokerIdEvent implements ReadEventMessage {
+import java.util.List;
 
-    private final String clusterName;
+public class GetSyncStateSetEvent implements ReadEventMessage {
 
-    private final String brokerName;
+    private final List<String/*broker name*/> brokerNames;
 
-    public GetNextBrokerIdEvent(String clusterName, String brokerName) {
-        this.clusterName = clusterName;
-        this.brokerName = brokerName;
+    public GetSyncStateSetEvent(List<String> brokerNames) {
+        this.brokerNames = brokerNames;
+    }
+
+    public List<String> getBrokerNames() {
+        return brokerNames;
     }
 
     @Override
     public ReadEventType getEventType() {
-        return ReadEventType.GET_NEXT_BROKER_ID;
+        return ReadEventType.GET_SYNC_STATE_SET;
     }
 }

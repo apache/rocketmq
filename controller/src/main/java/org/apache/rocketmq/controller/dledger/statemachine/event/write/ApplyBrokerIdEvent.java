@@ -18,6 +18,35 @@
 package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
 public class ApplyBrokerIdEvent implements WriteEventMessage {
+
+    private final String clusterName;
+    private final String brokerName;
+    private final Long appliedBrokerId;
+    private final String registerCheckCode;
+
+    public ApplyBrokerIdEvent(String clusterName, String brokerName, Long appliedBrokerId, String registerCheckCode) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.appliedBrokerId = appliedBrokerId;
+        this.registerCheckCode = registerCheckCode;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public Long getAppliedBrokerId() {
+        return appliedBrokerId;
+    }
+
+    public String getRegisterCheckCode() {
+        return registerCheckCode;
+    }
+
     @Override
     public WriteEventType getEventType() {
         return WriteEventType.APPLY_BROKER_ID;

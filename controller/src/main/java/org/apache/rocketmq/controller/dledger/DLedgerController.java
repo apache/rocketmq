@@ -17,7 +17,7 @@
 package org.apache.rocketmq.controller.dledger;
 
 import com.google.common.base.Stopwatch;
-import io.openmessaging.storage.dledger.common.AppendFuture;
+import io.openmessaging.storage.dledger.AppendFuture;
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerLeaderElector;
 import io.openmessaging.storage.dledger.DLedgerServer;
@@ -52,7 +52,6 @@ import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
 import org.apache.rocketmq.controller.dledger.event.ControllerResult;
 import org.apache.rocketmq.controller.dledger.event.EventMessage;
-import org.apache.rocketmq.controller.dledger.event.EventSerializer;
 import org.apache.rocketmq.controller.dledger.manager.ReplicasInfoManager;
 import org.apache.rocketmq.controller.dledger.statemachine.DLedgerControllerStateMachine;
 import org.apache.rocketmq.controller.metrics.ControllerMetricsConstant;

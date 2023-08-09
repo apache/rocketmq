@@ -21,7 +21,8 @@ import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import io.openmessaging.storage.dledger.exception.DLedgerException;
 import io.openmessaging.storage.dledger.snapshot.SnapshotReader;
 import io.openmessaging.storage.dledger.snapshot.SnapshotWriter;
-import io.openmessaging.storage.dledger.statemachine.CommittedEntryIterator;
+import io.openmessaging.storage.dledger.statemachine.ApplyEntry;
+import io.openmessaging.storage.dledger.statemachine.ApplyEntryIterator;
 import io.openmessaging.storage.dledger.statemachine.StateMachine;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.dledger.manager.ReplicasInfoManager;
@@ -47,16 +48,18 @@ public class DLedgerControllerStateMachine implements StateMachine {
     }
 
     @Override
-    public void onApply(CommittedEntryIterator iterator) {
+    public void onApply(ApplyEntryIterator iterator) {
         int applyingSize = 0;
         long firstApplyIndex = -1;
         long lastApplyIndex = -1;
         while (iterator.hasNext()) {
-            final DLedgerEntry entry = iterator.next();
+            final ApplyEntry applyEntry = iterator.next();
+            final DLedgerEntry entry = applyEntry.getEntry();
             final byte[] body = entry.getBody();
             if (body != null && body.length > 0) {
                 final WriteEventMessage event = this.eventSerializer.deserialize(body);
-                this.replicasInfoManager.applyEvent(event);
+                EventResponse<?> result = this.replicasInfoManager.applyEvent(event);
+                applyEntry.setResp(result);
             }
             firstApplyIndex = firstApplyIndex == -1 ? entry.getIndex() : firstApplyIndex;
             lastApplyIndex = entry.getIndex();
@@ -83,7 +86,12 @@ public class DLedgerControllerStateMachine implements StateMachine {
 
     @Override
     public void onError(DLedgerException e) {
-        log.error("Controller {} on error", this.dLedgerId, e);
+
+    }
+
+    @Override
+    public String generateDLedgerId(String dLedgerGroupId, String dLedgerSelfId) {
+        return StateMachine.super.generateDLedgerId(dLedgerGroupId, dLedgerSelfId);
     }
 
     @Override

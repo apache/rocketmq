@@ -17,17 +17,44 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
-public class GetReplicaInfoEvent implements ReadEventMessage {
+public class GetReplicaInfoResult implements ReadEventResult {
 
-    private final String brokerName;
+    private Long masterBrokerId;
+    private String masterAddress;
+    private Integer masterEpoch;
 
-    public GetReplicaInfoEvent(String brokerName) {
-        this.brokerName = brokerName;
+    public GetReplicaInfoResult(Long masterBrokerId, String masterAddress, Integer masterEpoch) {
+        this.masterBrokerId = masterBrokerId;
+        this.masterAddress = masterAddress;
+        this.masterEpoch = masterEpoch;
+    }
+
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
+    }
+
+    public void setMasterBrokerId(Long masterBrokerId) {
+        this.masterBrokerId = masterBrokerId;
+    }
+
+    public String getMasterAddress() {
+        return masterAddress;
+    }
+
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
+    }
+
+    public Integer getMasterEpoch() {
+        return masterEpoch;
+    }
+
+    public void setMasterEpoch(Integer masterEpoch) {
+        this.masterEpoch = masterEpoch;
     }
 
     @Override
     public ReadEventType getEventType() {
         return ReadEventType.GET_REPLICA_INFO;
     }
-
 }

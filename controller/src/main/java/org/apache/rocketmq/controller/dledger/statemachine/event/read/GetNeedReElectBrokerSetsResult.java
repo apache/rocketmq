@@ -15,15 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.dledger.statemachine.event.directread;
+package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
-import org.apache.rocketmq.controller.dledger.statemachine.event.EventMessage;
-import org.apache.rocketmq.controller.dledger.statemachine.event.directread.DirectReadEventType;
-
-public interface DirectReadEventMessage extends EventMessage {
-
-    /**
-    * Returns the event type of this message
-    */
-    DirectReadEventType getEventType();
+public class GetNeedReElectBrokerSetsResult implements ReadEventResult {
+    @Override
+    public ReadEventType getEventType() {
+        return ReadEventType.GET_NEED_RE_ELECT_BROKER_SETS;
+    }
 }

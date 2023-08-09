@@ -15,21 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.dledger.statemachine.event.read;
+package org.apache.rocketmq.controller.helper;
 
-public class GetNextBrokerIdEvent implements ReadEventMessage {
+import java.util.List;
 
-    private final String clusterName;
+public interface ValidBrokerGetter {
 
-    private final String brokerName;
+    List<Long/*broker id*/> get(String clusterName, String brokerName);
 
-    public GetNextBrokerIdEvent(String clusterName, String brokerName) {
-        this.clusterName = clusterName;
-        this.brokerName = brokerName;
-    }
-
-    @Override
-    public ReadEventType getEventType() {
-        return ReadEventType.GET_NEXT_BROKER_ID;
-    }
 }

@@ -17,7 +17,45 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
+import java.util.List;
+
 public class ElectMasterEvent implements WriteEventMessage {
+
+    private final String clusterName;
+    private final String brokerName;
+    private final Long brokerId;
+    private final boolean designateElect;
+
+    private final List<Long/*brokerId*/> aliveBrokers;
+
+    public ElectMasterEvent(String clusterName, String brokerName, Long brokerId, boolean designateElect, List<Long> aliveBrokers) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.brokerId = brokerId;
+        this.designateElect = designateElect;
+        this.aliveBrokers = aliveBrokers;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public Long getBrokerId() {
+        return brokerId;
+    }
+
+    public boolean isDesignateElect() {
+        return designateElect;
+    }
+
+    public List<Long> getAliveBrokers() {
+        return aliveBrokers;
+    }
+
     @Override
     public WriteEventType getEventType() {
         return WriteEventType.ELECT_MASTER;

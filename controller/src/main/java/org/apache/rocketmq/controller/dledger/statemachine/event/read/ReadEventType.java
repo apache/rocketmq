@@ -19,5 +19,7 @@ package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
 public enum ReadEventType {
     GET_NEXT_BROKER_ID,
-    GET_REPLICA_INFO;
+    GET_REPLICA_INFO,
+    GET_SYNC_STATE_SET,
+    GET_NEED_RE_ELECT_BROKER_SETS;
 }

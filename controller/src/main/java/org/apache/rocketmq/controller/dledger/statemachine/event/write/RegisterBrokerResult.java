@@ -17,18 +17,28 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
-public class RegisterBrokerEvent implements WriteEventMessage {
+public class RegisterBrokerResult implements WriteEventResult {
 
-    private final String clusterName;
-    private final String brokerName;
-    private final String brokerAddress;
-    private final Long brokerId;
+    private String clusterName;
 
-    public RegisterBrokerEvent(String clusterName, String brokerName, String brokerAddress, Long brokerId) {
+    private String brokerName;
+
+    private Long masterBrokerId;
+
+    private String masterAddress;
+
+    private Integer masterEpoch;
+
+    private Integer syncStateSetEpoch;
+
+    public RegisterBrokerResult(String clusterName, String brokerName, Long masterBrokerId, String masterAddress,
+        Integer masterEpoch, Integer syncStateSetEpoch) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-        this.brokerAddress = brokerAddress;
-        this.brokerId = brokerId;
+        this.masterBrokerId = masterBrokerId;
+        this.masterAddress = masterAddress;
+        this.masterEpoch = masterEpoch;
+        this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
     public String getClusterName() {
@@ -39,16 +49,25 @@ public class RegisterBrokerEvent implements WriteEventMessage {
         return brokerName;
     }
 
-    public String getBrokerAddress() {
-        return brokerAddress;
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
     }
 
-    public Long getBrokerId() {
-        return brokerId;
+    public String getMasterAddress() {
+        return masterAddress;
+    }
+
+    public Integer getMasterEpoch() {
+        return masterEpoch;
+    }
+
+    public Integer getSyncStateSetEpoch() {
+        return syncStateSetEpoch;
     }
 
     @Override
     public WriteEventType getEventType() {
         return WriteEventType.REGISTER_BROKER;
     }
+
 }

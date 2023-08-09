@@ -18,7 +18,6 @@
 package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
 import org.apache.rocketmq.controller.dledger.statemachine.event.EventMessage;
-import org.apache.rocketmq.controller.dledger.statemachine.event.read.ReadEventType;
 
 public interface ReadEventMessage extends EventMessage {
 

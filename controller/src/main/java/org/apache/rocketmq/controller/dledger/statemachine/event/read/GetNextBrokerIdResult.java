@@ -15,11 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.dledger.statemachine.event.directread;
+package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
-public class GetSyncStateSetEvent implements DirectReadEventMessage {
+public class GetNextBrokerIdResult implements ReadEventResult {
+
+    private final Long nextBrokerId;
+
+    public GetNextBrokerIdResult(Long nextBrokerId) {
+        this.nextBrokerId = nextBrokerId;
+    }
+
+    public Long getNextBrokerId() {
+        return nextBrokerId;
+    }
+
     @Override
-    public DirectReadEventType getEventType() {
-        return DirectReadEventType.GET_SYNC_STATE_SET;
+    public ReadEventType getEventType() {
+        return ReadEventType.GET_NEXT_BROKER_ID;
     }
 }

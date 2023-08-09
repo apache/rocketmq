@@ -17,19 +17,30 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
-public class GetNextBrokerIdEvent implements ReadEventMessage {
+import java.util.HashMap;
+import java.util.Map;
+import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.controller.dledger.manager.BrokerReplicaInfo;
+import org.apache.rocketmq.controller.dledger.manager.SyncStateInfo;
 
-    private final String clusterName;
+public class GetSyncStateSetResult implements ReadEventResult {
 
-    private final String brokerName;
+    private Map<String/*broker name*/, Pair<BrokerReplicaInfo, SyncStateInfo>> brokerSyncStateInfoMap = new HashMap<>();
 
-    public GetNextBrokerIdEvent(String clusterName, String brokerName) {
-        this.clusterName = clusterName;
-        this.brokerName = brokerName;
+    public GetSyncStateSetResult() {
+    }
+
+    public void addBrokerSyncStateInfo(String brokerName, BrokerReplicaInfo brokerReplicaInfo, SyncStateInfo syncStateInfo) {
+        brokerSyncStateInfoMap.put(brokerName, new Pair<>(brokerReplicaInfo, syncStateInfo));
+    }
+
+    public Map<String, Pair<BrokerReplicaInfo, SyncStateInfo>> getBrokerSyncStateInfoMap() {
+        return brokerSyncStateInfoMap;
     }
 
     @Override
     public ReadEventType getEventType() {
-        return ReadEventType.GET_NEXT_BROKER_ID;
+        return ReadEventType.GET_SYNC_STATE_SET;
     }
+
 }

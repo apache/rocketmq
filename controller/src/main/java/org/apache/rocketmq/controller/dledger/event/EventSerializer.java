@@ -46,7 +46,7 @@ public class EventSerializer {
             putShort(result, 0, eventType);
             System.arraycopy(data, 0, result, 2, data.length);
             return result;
-        }l
+        }
         return null;
     }
 

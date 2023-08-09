@@ -15,21 +15,37 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.dledger.statemachine.event.read;
+package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
-public class GetNextBrokerIdEvent implements ReadEventMessage {
+public class ApplyBrokerIdResult implements WriteEventResult {
 
     private final String clusterName;
 
     private final String brokerName;
 
-    public GetNextBrokerIdEvent(String clusterName, String brokerName) {
+    public ApplyBrokerIdResult(String clusterName, String brokerName) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
     }
 
     @Override
-    public ReadEventType getEventType() {
-        return ReadEventType.GET_NEXT_BROKER_ID;
+    public WriteEventType getEventType() {
+        return WriteEventType.APPLY_BROKER_ID;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    @Override
+    public String toString() {
+        return "ApplyBrokerIdResult{" +
+            "clusterName='" + clusterName + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            '}';
     }
 }

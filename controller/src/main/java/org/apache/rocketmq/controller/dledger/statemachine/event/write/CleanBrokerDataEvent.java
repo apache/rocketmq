@@ -17,7 +17,34 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
+import java.util.Set;
+
 public class CleanBrokerDataEvent implements WriteEventMessage {
+
+    private final String clusterName;
+
+    private final String brokerName;
+
+    private final Set<Long/*broker id*/> needCleanBrokerIdSet;
+
+    public CleanBrokerDataEvent(String clusterName, String brokerName, Set<Long> needCleanBrokerIdSet) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
+        this.needCleanBrokerIdSet = needCleanBrokerIdSet;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public Set<Long> getNeedCleanBrokerIdSet() {
+        return needCleanBrokerIdSet;
+    }
+
     @Override
     public WriteEventType getEventType() {
         return WriteEventType.CLEAN_BROKER_DATA;
