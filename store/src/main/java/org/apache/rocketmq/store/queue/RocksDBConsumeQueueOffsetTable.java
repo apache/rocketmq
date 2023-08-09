@@ -82,7 +82,7 @@ public class RocksDBConsumeQueueOffsetTable {
      * ├─────────────────────────┴───────────┴───────────┴───────────┴───────────┴─────────────┤
      */
     private static final int OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES = 4 + 1 + 1 + 3 + 1 + 4;
-    public static final int OFFSET_VALUE_LENGTH = 8 + 8;
+    private static final int OFFSET_VALUE_LENGTH = 8 + 8;
 
     /**
      * We use a new system topic='CHECKPOINT_TOPIC' to record the maxPhyOffset built by CQ dispatch thread.
@@ -548,6 +548,12 @@ public class RocksDBConsumeQueueOffsetTable {
             updateCqOffset(topic, queueId, targetPhyOffset, targetCQOffset, false);
             return true;
         }
+    }
+
+    public static Pair<ByteBuffer, ByteBuffer> getOffsetByteBufferPair() {
+        ByteBuffer offsetKey = ByteBuffer.allocateDirect(RocksDBConsumeQueueStore.MAX_KEY_LEN);
+        ByteBuffer offsetValue = ByteBuffer.allocateDirect(OFFSET_VALUE_LENGTH);
+        return new Pair<>(offsetKey, offsetValue);
     }
 
     private void buildOffsetKeyAndValueBB(final Pair<ByteBuffer, ByteBuffer> offsetBBPair,

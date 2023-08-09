@@ -57,7 +57,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     public static final byte CTRL_2 = '\u0002';
 
     private static final int BATCH_SIZE = 16;
-    private static final int MAX_KEY_LEN = 300;
+    public static final int MAX_KEY_LEN = 300;
 
     private final ScheduledExecutorService scheduledExecutorService;
     private final String storePath;
@@ -91,13 +91,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         this.cqBBPairList = new ArrayList(BATCH_SIZE);
         this.offsetBBPairList = new ArrayList(BATCH_SIZE);
         for (int i = 0; i < BATCH_SIZE; i++) {
-            ByteBuffer bbKey = ByteBuffer.allocateDirect(MAX_KEY_LEN);
-            ByteBuffer bbValue = ByteBuffer.allocateDirect(RocksDBConsumeQueueTable.CQ_UNIT_SIZE);
-            this.cqBBPairList.add(new Pair(bbKey, bbValue));
-
-            ByteBuffer offsetKey = ByteBuffer.allocateDirect(MAX_KEY_LEN);
-            ByteBuffer offsetValue = ByteBuffer.allocateDirect(RocksDBConsumeQueueOffsetTable.OFFSET_VALUE_LENGTH);
-            this.offsetBBPairList.add(new Pair(offsetKey, offsetValue));
+            this.cqBBPairList.add(RocksDBConsumeQueueTable.getCQByteBufferPair());
+            this.offsetBBPairList.add(RocksDBConsumeQueueOffsetTable.getOffsetByteBufferPair());
         }
 
         this.tempTopicQueueMaxOffsetMap = new HashMap<>();

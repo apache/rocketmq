@@ -269,6 +269,12 @@ public class RocksDBConsumeQueueTable {
         return new PhyAndCQOffset(resultPhyOffset, resultCQOffset);
     }
 
+    public static Pair<ByteBuffer, ByteBuffer> getCQByteBufferPair() {
+        ByteBuffer cqKey = ByteBuffer.allocateDirect(RocksDBConsumeQueueStore.MAX_KEY_LEN);
+        ByteBuffer cqValue = ByteBuffer.allocateDirect(CQ_UNIT_SIZE);
+        return new Pair<>(cqKey, cqValue);
+    }
+
     private ByteBuffer buildCQKeyBB(final byte[] topicBytes, final int queueId, final long cqOffset) {
         final ByteBuffer bb = ByteBuffer.allocate(CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
         buildCQKeyBB0(bb, topicBytes, queueId, cqOffset);
