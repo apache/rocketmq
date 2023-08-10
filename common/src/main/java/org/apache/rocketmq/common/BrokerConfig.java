@@ -222,6 +222,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int popCkOffsetMaxQueueSize = 20000;
     private boolean enablePopBatchAck = false;
     private boolean enableNotifyAfterPopOrderLockRelease = true;
+    private boolean initPopOffsetByCheckMsgInMem = true;
 
     private boolean realTimeNotifyConsumerChange = true;
 
@@ -1262,6 +1263,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableNotifyAfterPopOrderLockRelease(boolean enableNotifyAfterPopOrderLockRelease) {
         this.enableNotifyAfterPopOrderLockRelease = enableNotifyAfterPopOrderLockRelease;
+    }
+
+    public boolean isInitPopOffsetByCheckMsgInMem() {
+        return initPopOffsetByCheckMsgInMem;
+    }
+
+    public void setInitPopOffsetByCheckMsgInMem(boolean initPopOffsetByCheckMsgInMem) {
+        this.initPopOffsetByCheckMsgInMem = initPopOffsetByCheckMsgInMem;
     }
 
     public boolean isRealTimeNotifyConsumerChange() {

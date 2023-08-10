@@ -147,7 +147,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         int queueId, long offset, int maxMsgNums, MessageFilter messageFilter) {
 
         if (!viaTieredStorage(topic, queueId, offset, maxMsgNums)) {
-            logger.debug("GetMessageAsync from next store topic: {}, queue: {}, offset: {}", topic, queueId, offset);
+            logger.trace("GetMessageAsync from next store topic: {}, queue: {}, offset: {}", topic, queueId, offset);
             return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
         }
 
