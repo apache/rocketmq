@@ -165,7 +165,6 @@ public class BrokerController {
 
     public void start() throws Exception {
         this.shouldStartTime = System.currentTimeMillis() + messageStoreConfig.getDisappearTimeAfterStart();
-
         if (messageStoreConfig.getTotalReplicas() > 1 && this.brokerConfig.isEnableSlaveActingMaster()) {
             isIsolated = true;
         }
@@ -206,23 +205,7 @@ public class BrokerController {
     }
 
     public void updateMinBroker(long minBrokerId, String minBrokerAddr) {
-        if (brokerConfig.isEnableSlaveActingMaster() && brokerConfig.getBrokerId() != MixAll.MASTER_ID) {
-            if (!lock.tryLock()) {
-                return;
-            }
-        }
-
-        try {
-            if (minBrokerId != this.minBrokerIdInGroup) {
-                String offlineBrokerAddr = null;
-                if (minBrokerId > this.minBrokerIdInGroup) {
-                    offlineBrokerAddr = this.minBrokerAddrInGroup;
-                }
-                onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, null);
-            }
-        } finally {
-            lock.unlock();
-        }
+        updateMinBroker(minBrokerId, minBrokerAddr, null, null);
     }
 
     public void updateMinBroker(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr, String masterHaAddr) {
@@ -230,20 +213,23 @@ public class BrokerController {
             return;
         }
 
+        if (minBrokerId == this.minBrokerIdInGroup) {
+            return;
+        }
+
+        if (null == offlineBrokerAddr && minBrokerId > this.minBrokerIdInGroup) {
+            offlineBrokerAddr = this.minBrokerAddrInGroup;
+        }
+
         try {
             if (!lock.tryLock(3000, TimeUnit.MILLISECONDS)) {
                 return;
             }
-
-            try {
-                if (minBrokerId != this.minBrokerIdInGroup) {
-                    onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, masterHaAddr);
-                }
-            } finally {
-                lock.unlock();
-            }
-        } catch (InterruptedException e) {
+            onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, masterHaAddr);
+        } catch (InterruptedException e){
             LOG.error("Update min broker error, {}", e);
+        } finally {
+            lock.unlock();
         }
     }
 
