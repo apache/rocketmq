@@ -2364,7 +2364,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private HashMap<String, String> prepareRuntimeInfo() {
         HashMap<String, String> runtimeInfo = this.brokerController.getMessageStore().getRuntimeInfo();
 
-        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerController.getBrokerAttachedPlugins()) {
+        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerController.getBrokerServiceManager().getBrokerAttachedPlugins()) {
             if (brokerAttachedPlugin != null) {
                 brokerAttachedPlugin.buildRuntimeInfo(runtimeInfo);
             }

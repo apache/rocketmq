@@ -190,7 +190,7 @@ public class BrokerPreOnlineService extends ServiceThread {
                 this.brokerController.getTimerCheckpoint().flush();
             }
 
-            for (BrokerAttachedPlugin brokerAttachedPlugin : brokerController.getBrokerAttachedPlugins()) {
+            for (BrokerAttachedPlugin brokerAttachedPlugin : brokerController.getBrokerServiceManager().getBrokerAttachedPlugins()) {
                 if (brokerAttachedPlugin != null) {
                     brokerAttachedPlugin.syncMetadataReverse(brokerAddr);
                 }

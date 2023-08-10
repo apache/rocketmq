@@ -214,7 +214,7 @@ public class BrokerMessageService {
     }
 
     public void changeSpecialServiceStatus(boolean shouldStart) {
-        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerController.getBrokerAttachedPlugins()) {
+        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerController.getBrokerServiceManager().getBrokerAttachedPlugins()) {
             if (brokerAttachedPlugin != null) {
                 brokerAttachedPlugin.statusChanged(shouldStart);
             }

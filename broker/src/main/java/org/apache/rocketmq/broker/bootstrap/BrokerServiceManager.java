@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.broker.bootstrap;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPreOnlineService;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -24,7 +26,9 @@ import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.coldctr.ColdDataCgCtrService;
 import org.apache.rocketmq.broker.coldctr.ColdDataPullRequestHoldService;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.offset.BroadcastOffsetManager;
+import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.processor.PopInflightMessageCounter;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
@@ -32,62 +36,74 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.stats.LmqBrokerStatsManager;
 
+/**
+ * manager services type like
+ *      1, context style: getter and setter
+ *      2, have methods: start and shutdown
+ *      3, monitor service:
+ *      4, broker plugins
+ */
 public class BrokerServiceManager {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final BrokerController brokerController;
     private final BrokerConfig brokerConfig;
+    private final MessageStoreConfig messageStoreConfig;
 
-
+    /* ServiceWithGetterAndSetter start */
     private ProducerManager producerManager;
     private ConsumerManager consumerManager;
     private Broker2Client broker2Client;
     private PopInflightMessageCounter popInflightMessageCounter;
+    /* ServiceWithGetterAndSetter end */
 
-
+    /* ServiceWithStartAndShutdown start */
     private BroadcastOffsetManager broadcastOffsetManager;
     private TopicRouteInfoManager topicRouteInfoManager;
     private BrokerFastFailure brokerFastFailure;
     private BrokerPreOnlineService brokerPreOnlineService;
-
-
     private TopicQueueMappingCleanService topicQueueMappingCleanService;
 
     private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
     private ColdDataCgCtrService coldDataCgCtrService;
+    /* ServiceWithStartAndShutdown start */
 
+    /* monitor servie start */
+    private BrokerStatsManager brokerStatsManager;
+    private BrokerMetricsManager brokerMetricsManager;
+    /* monitor servie end */
+
+    /*  broker plugin start */
+    private List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
+    /*  broker plugin end */
 
     public BrokerServiceManager(BrokerController brokerController) {
         this.brokerController = brokerController;
         this.brokerConfig = brokerController.getBrokerConfig();
+        this.messageStoreConfig = brokerController.getMessageStoreConfig();
 
-        initContext();
-        initService();
+        initMonitorService();
+        initServiceWithGetterAndSetter();
+        initServiceWithStartAndShutdown();
+        initBrokerPlugin();
     }
 
-    private void initContext() {
-        this.consumerManager = new ConsumerManager(brokerController.getBrokerNettyServer().getConsumerIdsChangeListener(), brokerController.getBrokerStatsManager(), brokerController.getBrokerConfig());
-        this.producerManager = new ProducerManager(brokerController.getBrokerStatsManager());
+    public boolean load() {
+        this.brokerMetricsManager = new BrokerMetricsManager(brokerController);
 
-        this.broker2Client = new Broker2Client(brokerController);
-        this.popInflightMessageCounter = new PopInflightMessageCounter(brokerController);
-    }
-
-    private void initService() {
-        this.broadcastOffsetManager = new BroadcastOffsetManager(brokerController);
-
-        this.brokerFastFailure = new BrokerFastFailure(brokerController);
-        this.topicRouteInfoManager = new TopicRouteInfoManager(brokerController);
-
-        this.coldDataPullRequestHoldService = new ColdDataPullRequestHoldService(brokerController);
-        this.coldDataCgCtrService = new ColdDataCgCtrService(brokerController);
-
-        this.topicQueueMappingCleanService = new TopicQueueMappingCleanService(brokerController);
-
-        if (this.brokerConfig.isEnableSlaveActingMaster() && !this.brokerConfig.isSkipPreOnline()) {
-            this.brokerPreOnlineService = new BrokerPreOnlineService(brokerController);
+        boolean result = true;
+        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
+            if (brokerAttachedPlugin != null) {
+                result = result && brokerAttachedPlugin.load();
+            }
         }
+
+        return result;
     }
 
     public void start() {
@@ -117,6 +133,16 @@ public class BrokerServiceManager {
 
         if (this.topicQueueMappingCleanService != null) {
             this.topicQueueMappingCleanService.start();
+        }
+
+        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
+            if (brokerAttachedPlugin != null) {
+                brokerAttachedPlugin.start();
+            }
+        }
+
+        if (this.brokerStatsManager != null) {
+            this.brokerStatsManager.start();
         }
     }
 
@@ -148,8 +174,94 @@ public class BrokerServiceManager {
         if (this.topicQueueMappingCleanService != null) {
             this.topicQueueMappingCleanService.shutdown();
         }
+
+        if (this.brokerStatsManager != null) {
+            this.brokerStatsManager.shutdown();
+        }
+
+        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
+            if (brokerAttachedPlugin != null) {
+                brokerAttachedPlugin.shutdown();
+            }
+        }
     }
 
+    private void initServiceWithGetterAndSetter() {
+        this.consumerManager = new ConsumerManager(brokerController.getBrokerNettyServer().getConsumerIdsChangeListener(), brokerStatsManager, brokerController.getBrokerConfig());
+        this.producerManager = new ProducerManager(brokerStatsManager);
+
+        this.broker2Client = new Broker2Client(brokerController);
+        this.popInflightMessageCounter = new PopInflightMessageCounter(brokerController);
+    }
+
+    private void initServiceWithStartAndShutdown() {
+        this.broadcastOffsetManager = new BroadcastOffsetManager(brokerController);
+
+        this.brokerFastFailure = new BrokerFastFailure(brokerController);
+        this.topicRouteInfoManager = new TopicRouteInfoManager(brokerController);
+
+        this.coldDataPullRequestHoldService = new ColdDataPullRequestHoldService(brokerController);
+        this.coldDataCgCtrService = new ColdDataCgCtrService(brokerController);
+
+        this.topicQueueMappingCleanService = new TopicQueueMappingCleanService(brokerController);
+
+        if (this.brokerConfig.isEnableSlaveActingMaster() && !this.brokerConfig.isSkipPreOnline()) {
+            this.brokerPreOnlineService = new BrokerPreOnlineService(brokerController);
+        }
+    }
+
+    private void initMonitorService() {
+
+        this.brokerStatsManager = messageStoreConfig.isEnableLmq()
+            ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat())
+            : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
+
+        initProducerStateGetter();
+        initConsumerStateGetter();
+    }
+
+    private void initProducerStateGetter() {
+        this.brokerStatsManager.setProduerStateGetter(new BrokerStatsManager.StateGetter() {
+            @Override
+            public boolean online(String instanceId, String group, String topic) {
+                if (brokerController.getTopicConfigManager().getTopicConfigTable().containsKey(NamespaceUtil.wrapNamespace(instanceId, topic))) {
+                    return getProducerManager().groupOnline(NamespaceUtil.wrapNamespace(instanceId, group));
+                } else {
+                    return getProducerManager().groupOnline(group);
+                }
+            }
+        });
+    }
+
+    private void initConsumerStateGetter() {
+        this.brokerStatsManager.setConsumerStateGetter(new BrokerStatsManager.StateGetter() {
+            @Override
+            public boolean online(String instanceId, String group, String topic) {
+                String topicFullName = NamespaceUtil.wrapNamespace(instanceId, topic);
+                if (brokerController.getTopicConfigManager().getTopicConfigTable().containsKey(topicFullName)) {
+                    return getConsumerManager().findSubscriptionData(NamespaceUtil.wrapNamespace(instanceId, group), topicFullName) != null;
+                } else {
+                    return getConsumerManager().findSubscriptionData(group, topic) != null;
+                }
+            }
+        });
+    }
+
+    private void initBrokerPlugin() {
+
+    }
+
+    public BrokerStatsManager getBrokerStatsManager() {
+        return brokerStatsManager;
+    }
+
+    public BrokerMetricsManager getBrokerMetricsManager() {
+        return brokerMetricsManager;
+    }
+
+    public List<BrokerAttachedPlugin> getBrokerAttachedPlugins() {
+        return brokerAttachedPlugins;
+    }
 
     public ProducerManager getProducerManager() {
         return producerManager;

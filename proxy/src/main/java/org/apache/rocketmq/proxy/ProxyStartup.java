@@ -185,7 +185,7 @@ public class ProxyStartup {
             PROXY_START_AND_SHUTDOWN.appendStartAndShutdown(proxyMetricsManager);
         } else if (ProxyMode.isLocalMode(proxyModeStr)) {
             BrokerController brokerController = createBrokerController();
-            ProxyMetricsManager.initLocalMode(brokerController.getBrokerMetricsManager(), ConfigurationManager.getProxyConfig());
+            ProxyMetricsManager.initLocalMode(brokerController.getBrokerServiceManager().getBrokerMetricsManager(), ConfigurationManager.getProxyConfig());
             StartAndShutdown brokerControllerWrapper = new StartAndShutdown() {
                 @Override
                 public void start() throws Exception {

@@ -17,9 +17,7 @@
 package org.apache.rocketmq.broker;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -42,12 +40,10 @@ import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
-import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.offset.BroadcastOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
-import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.processor.PopInflightMessageCounter;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
@@ -67,13 +63,11 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.BrokerSyncInfo;
-import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.apache.rocketmq.store.stats.LmqBrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 
@@ -95,16 +89,11 @@ public class BrokerController {
 
     protected volatile boolean shutdown = false;
     protected ShutdownHook shutdownHook;
-
-    protected List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
     protected volatile long shouldStartTime;
     protected volatile boolean isIsolated = false;
     protected volatile long minBrokerIdInGroup = 0;
     protected volatile String minBrokerAddrInGroup = null;
     private final Lock lock = new ReentrantLock();
-
-    protected final BrokerStatsManager brokerStatsManager;
-    private BrokerMetricsManager brokerMetricsManager;
 
     private final BrokerNettyServer brokerNettyServer;
     private final BrokerScheduleService brokerScheduleService;
@@ -144,20 +133,15 @@ public class BrokerController {
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         initConfiguration();
 
-        this.brokerStatsManager = messageStoreConfig.isEnableLmq()
-            ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat())
-            : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
-
+        /* the instance creating order matters, do not change it. start ... */
         this.brokerMetadataManager = new BrokerMetadataManager(this);
         this.brokerNettyServer = new BrokerNettyServer(brokerConfig, messageStoreConfig, nettyServerConfig, this);
-        this.brokerScheduleService = new BrokerScheduleService(brokerConfig, messageStoreConfig, this);
         this.brokerServiceRegistry = new BrokerServiceRegistry(this);
         this.brokerServiceManager = new BrokerServiceManager(this);
+        this.brokerScheduleService = new BrokerScheduleService(brokerConfig, messageStoreConfig, this);
+        /* the instance creating order matters, do not change it. ... end */
 
         this.slaveSynchronize = new SlaveSynchronize(this);
-
-        initProducerStateGetter();
-        initConsumerStateGetter();
     }
 
     public boolean initialize() throws CloneNotSupportedException {
@@ -327,17 +311,10 @@ public class BrokerController {
             this.replicasManager.setFenced(true);
         }
 
-        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
-            if (brokerAttachedPlugin != null) {
-                result = result && brokerAttachedPlugin.load();
-            }
-        }
-
+        result = brokerMetadataManager.load();
         if (!result) {
             return false;
         }
-
-        this.brokerMetricsManager = new BrokerMetricsManager(this);
 
         initializeRemotingServer();
         initializeScheduledTasks();
@@ -350,33 +327,6 @@ public class BrokerController {
 
     protected void initializeScheduledTasks() {
         brokerScheduleService.init();
-    }
-
-    private void initProducerStateGetter() {
-        this.brokerStatsManager.setProduerStateGetter(new BrokerStatsManager.StateGetter() {
-            @Override
-            public boolean online(String instanceId, String group, String topic) {
-                if (getTopicConfigManager().getTopicConfigTable().containsKey(NamespaceUtil.wrapNamespace(instanceId, topic))) {
-                    return getProducerManager().groupOnline(NamespaceUtil.wrapNamespace(instanceId, group));
-                } else {
-                    return getProducerManager().groupOnline(group);
-                }
-            }
-        });
-    }
-
-    private void initConsumerStateGetter() {
-        this.brokerStatsManager.setConsumerStateGetter(new BrokerStatsManager.StateGetter() {
-            @Override
-            public boolean online(String instanceId, String group, String topic) {
-                String topicFullName = NamespaceUtil.wrapNamespace(instanceId, topic);
-                if (getTopicConfigManager().getTopicConfigTable().containsKey(topicFullName)) {
-                    return getConsumerManager().findSubscriptionData(NamespaceUtil.wrapNamespace(instanceId, group), topicFullName) != null;
-                } else {
-                    return getConsumerManager().findSubscriptionData(group, topic) != null;
-                }
-            }
-        });
     }
 
     private void initConfiguration() {
@@ -406,18 +356,8 @@ public class BrokerController {
         this.brokerServiceManager.shutdown();
         this.brokerMetadataManager.shutdown();
 
-        if (this.brokerStatsManager != null) {
-            this.brokerStatsManager.shutdown();
-        }
-
         if (this.replicasManager != null) {
             this.replicasManager.shutdown();
-        }
-
-        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
-            if (brokerAttachedPlugin != null) {
-                brokerAttachedPlugin.shutdown();
-            }
         }
     }
 
@@ -428,19 +368,9 @@ public class BrokerController {
 
         this.storeHost = new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort());
 
-        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
-            if (brokerAttachedPlugin != null) {
-                brokerAttachedPlugin.start();
-            }
-        }
-
         this.brokerNettyServer.start();
         this.brokerMessageService.start();
         this.brokerServiceManager.start();
-
-        if (this.brokerStatsManager != null) {
-            this.brokerStatsManager.start();
-        }
     }
 
     private void onMasterOffline() {
@@ -544,10 +474,6 @@ public class BrokerController {
 
     public NettyClientConfig getNettyClientConfig() {
         return nettyClientConfig;
-    }
-
-    public BrokerMetricsManager getBrokerMetricsManager() {
-        return brokerMetricsManager;
     }
 
     public BrokerScheduleService getBrokerScheduleService() {
@@ -655,9 +581,8 @@ public class BrokerController {
     }
 
     public BrokerStatsManager getBrokerStatsManager() {
-        return brokerStatsManager;
+        return brokerServiceManager.getBrokerStatsManager();
     }
-
 
     public RemotingServer getRemotingServer() {
         return getBrokerNettyServer().getRemotingServer();
@@ -721,10 +646,6 @@ public class BrokerController {
 
     public int getListenPort() {
         return this.nettyServerConfig.getListenPort();
-    }
-
-    public List<BrokerAttachedPlugin> getBrokerAttachedPlugins() {
-        return brokerAttachedPlugins;
     }
 
     public EscapeBridge getEscapeBridge() {

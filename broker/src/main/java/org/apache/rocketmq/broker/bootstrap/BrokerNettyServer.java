@@ -52,7 +52,6 @@ import org.apache.rocketmq.broker.processor.QueryAssignmentProcessor;
 import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
 import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
-import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -110,9 +109,9 @@ public class BrokerNettyServer {
     private BlockingQueue<Runnable> adminBrokerThreadPoolQueue;
     private BlockingQueue<Runnable> loadBalanceThreadPoolQueue;
 
-    private List<SendMessageHook> sendMessageHookList = new ArrayList<>();
-    private List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
-    private Map<Class, AccessValidator> accessValidatorMap = new HashMap<>();
+    private final List<SendMessageHook> sendMessageHookList = new ArrayList<>();
+    private final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
+    private final Map<Class, AccessValidator> accessValidatorMap = new HashMap<>();
 
     private ExecutorService sendMessageExecutor;
     private ExecutorService pullMessageExecutor;
