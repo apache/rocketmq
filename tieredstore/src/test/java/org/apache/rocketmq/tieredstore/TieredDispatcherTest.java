@@ -116,19 +116,20 @@ public class TieredDispatcherTest {
         buffer3.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 9);
         flatFile.appendCommitLog(buffer3);
         flatFile.commitCommitLog();
-        Assert.assertEquals(10, flatFile.getDispatchOffset());
+        Assert.assertEquals(9 + 1, flatFile.getDispatchOffset());
+        Assert.assertEquals(9, flatFile.getCommitLogDispatchCommitOffset());
 
         dispatcher.doRedispatchRequestToWriteMap(AppendResult.SUCCESS, flatFile, 8, 8, 0, 0, buffer1);
         dispatcher.doRedispatchRequestToWriteMap(AppendResult.SUCCESS, flatFile, 9, 9, 0, 0, buffer2);
         dispatcher.buildConsumeQueueAndIndexFile();
         Assert.assertEquals(7, flatFile.getConsumeQueueMaxOffset());
-        Assert.assertEquals(7, flatFile.getDispatchOffset());
 
         dispatcher.doRedispatchRequestToWriteMap(AppendResult.SUCCESS, flatFile, 7, 7, 0, 0, buffer1);
         dispatcher.doRedispatchRequestToWriteMap(AppendResult.SUCCESS, flatFile, 8, 8, 0, 0, buffer2);
         dispatcher.doRedispatchRequestToWriteMap(AppendResult.SUCCESS, flatFile, 9, 9, 0, 0, buffer3);
         dispatcher.buildConsumeQueueAndIndexFile();
-        Assert.assertEquals(10, flatFile.getConsumeQueueMaxOffset());
+        Assert.assertEquals(6, flatFile.getConsumeQueueMinOffset());
+        Assert.assertEquals(9 + 1, flatFile.getConsumeQueueMaxOffset());
     }
 
     @Test
@@ -142,6 +143,7 @@ public class TieredDispatcherTest {
         Mockito.when(defaultStore.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId())).thenReturn(0L);
         Mockito.when(defaultStore.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId())).thenReturn(9L);
 
+        // mock cq item, position = 7
         ByteBuffer cqItem = ByteBuffer.allocate(ConsumeQueue.CQ_STORE_UNIT_SIZE);
         cqItem.putLong(7);
         cqItem.putInt(MessageBufferUtilTest.MSG_LEN);
@@ -150,13 +152,13 @@ public class TieredDispatcherTest {
         SelectMappedBufferResult mockResult = new SelectMappedBufferResult(0, cqItem, ConsumeQueue.CQ_STORE_UNIT_SIZE, null);
         Mockito.when(((ConsumeQueue) defaultStore.getConsumeQueue(mq.getTopic(), mq.getQueueId())).getIndexBuffer(6)).thenReturn(mockResult);
 
+        // mock cq item, position = 8
         cqItem = ByteBuffer.allocate(ConsumeQueue.CQ_STORE_UNIT_SIZE);
         cqItem.putLong(8);
         cqItem.putInt(MessageBufferUtilTest.MSG_LEN);
         cqItem.putLong(1);
         cqItem.flip();
         mockResult = new SelectMappedBufferResult(0, cqItem, ConsumeQueue.CQ_STORE_UNIT_SIZE, null);
-
         Mockito.when(((ConsumeQueue) defaultStore.getConsumeQueue(mq.getTopic(), mq.getQueueId())).getIndexBuffer(7)).thenReturn(mockResult);
 
         mockResult = new SelectMappedBufferResult(0, MessageBufferUtilTest.buildMockedMessageBuffer(), MessageBufferUtilTest.MSG_LEN, null);
@@ -167,7 +169,10 @@ public class TieredDispatcherTest {
         mockResult = new SelectMappedBufferResult(0, msg, MessageBufferUtilTest.MSG_LEN, null);
         Mockito.when(defaultStore.selectOneMessageByOffset(8, MessageBufferUtilTest.MSG_LEN)).thenReturn(mockResult);
 
-        dispatcher.dispatchFlatFile(flatFileManager.getOrCreateFlatFileIfAbsent(mq));
+        CompositeQueueFlatFile flatFile = flatFileManager.getOrCreateFlatFileIfAbsent(mq);
+        Assert.assertNotNull(flatFile);
+        flatFile.initOffset(7);
+        dispatcher.dispatchFlatFile(flatFile);
         Assert.assertEquals(8, flatFileManager.getFlatFile(mq).getDispatchOffset());
     }
 }

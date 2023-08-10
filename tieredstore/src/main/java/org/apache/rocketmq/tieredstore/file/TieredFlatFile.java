@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.file;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -178,32 +180,26 @@ public class TieredFlatFile {
     private FileSegmentMetadata getOrCreateFileSegmentMetadata(TieredFileSegment fileSegment) {
 
         FileSegmentMetadata metadata = tieredMetadataStore.getFileSegment(
-            fileSegment.getPath(), fileSegment.getFileType(), fileSegment.getBaseOffset());
-
-        if (metadata != null) {
-            return metadata;
-        }
+            this.filePath, fileSegment.getFileType(), fileSegment.getBaseOffset());
 
         // Note: file segment path may not the same as file base path, use base path here.
-        metadata = new FileSegmentMetadata(
-            this.filePath, fileSegment.getBaseOffset(), fileSegment.getFileType().getType());
-
-        if (fileSegment.isClosed()) {
-            metadata.setStatus(FileSegmentMetadata.STATUS_DELETED);
+        if (metadata == null) {
+            metadata = new FileSegmentMetadata(
+                this.filePath, fileSegment.getBaseOffset(), fileSegment.getFileType().getType());
+            metadata.setCreateTimestamp(fileSegment.getMinTimestamp());
+            metadata.setBeginTimestamp(fileSegment.getMinTimestamp());
+            metadata.setEndTimestamp(fileSegment.getMaxTimestamp());
+            if (fileSegment.isClosed()) {
+                metadata.setStatus(FileSegmentMetadata.STATUS_DELETED);
+            }
+            this.tieredMetadataStore.updateFileSegment(metadata);
         }
-
-        metadata.setBeginTimestamp(fileSegment.getMinTimestamp());
-        metadata.setEndTimestamp(fileSegment.getMaxTimestamp());
-
-        // Submit to persist
-        this.tieredMetadataStore.updateFileSegment(metadata);
         return metadata;
     }
 
     /**
      * FileQueue Status: Sealed | Sealed | Sealed | Not sealed, Allow appended && Not Full
      */
-    @VisibleForTesting
     public void updateFileSegment(TieredFileSegment fileSegment) {
         FileSegmentMetadata segmentMetadata = getOrCreateFileSegmentMetadata(fileSegment);
 
@@ -219,9 +215,16 @@ public class TieredFlatFile {
         }
 
         segmentMetadata.setSize(fileSegment.getCommitPosition());
-        segmentMetadata.setBeginTimestamp(fileSegment.getMinTimestamp());
         segmentMetadata.setEndTimestamp(fileSegment.getMaxTimestamp());
-        this.tieredMetadataStore.updateFileSegment(segmentMetadata);
+
+        FileSegmentMetadata metadata = tieredMetadataStore.getFileSegment(
+            this.filePath, fileSegment.getFileType(), fileSegment.getBaseOffset());
+
+        if (!Objects.equals(metadata, segmentMetadata)) {
+            this.tieredMetadataStore.updateFileSegment(segmentMetadata);
+            logger.debug("TieredFlatFile#UpdateSegmentMetadata, filePath: {}, content: {}",
+                segmentMetadata.getPath(), JSON.toJSONString(segmentMetadata));
+        }
     }
 
     private void checkAndFixFileSize() {
@@ -257,6 +260,7 @@ public class TieredFlatFile {
                 logger.warn("TieredFlatFile#checkAndFixFileSize: fix last file {} size: origin: {}, actual: {}",
                     lastFile.getPath(), lastFile.getCommitOffset() - lastFile.getBaseOffset(), lastFileSize);
                 lastFile.initPosition(lastFileSize);
+                this.updateFileSegment(lastFile);
             }
         }
     }
