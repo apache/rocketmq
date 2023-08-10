@@ -243,7 +243,7 @@ public class RocksDBConsumeQueueOffsetTable {
                 }
 
                 /**
-                 * "Topic Bytes Array Size" + "CTRL_1" + "Topic Bytes Array" + "CTRL_1"  + "Max(min)" +
+                 * "Topic Bytes Array Size" + "CTRL_1" + "Topic Bytes Array" + "CTRL_1"  + "Max(min)" + "CTRL_1"
                  *  = 4 + 1 + topicLen + 1 + 3 + 1
                  */
                 int queueId = keyBB.getInt(4 + 1 + topicLen + 1 + 3 + 1);
