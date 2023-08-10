@@ -1085,17 +1085,18 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public SelectMappedBufferResult selectOneMessageByOffset(long commitLogOffset) {
         SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, 4);
-        if (null != sbr) {
-            try {
-                // 1 TOTALSIZE
-                int size = sbr.getByteBuffer().getInt();
-                return this.commitLog.getMessage(commitLogOffset, size);
-            } finally {
-                sbr.release();
-            }
+        if (null == sbr) {
+            return null;
+
         }
 
-        return null;
+        try {
+            // 1 TOTALSIZE
+            int size = sbr.getByteBuffer().getInt();
+            return this.commitLog.getMessage(commitLogOffset, size);
+        } finally {
+            sbr.release();
+        }
     }
 
     @Override
