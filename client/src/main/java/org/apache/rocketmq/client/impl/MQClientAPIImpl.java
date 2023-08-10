@@ -76,6 +76,7 @@ import org.apache.rocketmq.common.namesrv.NameServerUpdateCallback;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -1237,13 +1238,20 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     public long searchOffset(final String addr, final MessageQueue messageQueue, final long timestamp,
         final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException {
+        // default return lower boundary offset when there are more than one offsets.
+        return searchOffset(addr, messageQueue, timestamp, BoundaryType.LOWER, timeoutMillis);
+    }
+
+    public long searchOffset(final String addr, final MessageQueue messageQueue, final long timestamp,
+        final BoundaryType boundaryType, final long timeoutMillis)
+        throws RemotingException, MQBrokerException, InterruptedException {
         SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
         requestHeader.setTopic(messageQueue.getTopic());
         requestHeader.setQueueId(messageQueue.getQueueId());
         requestHeader.setBname(messageQueue.getBrokerName());
         requestHeader.setTimestamp(timestamp);
+        requestHeader.setBoundaryType(boundaryType);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
-
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);
         assert response != null;

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.remoting.protocol.body;
 
+import com.google.common.base.MoreObjects;
 import java.util.HashSet;
 import java.util.Set;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -58,5 +59,15 @@ public class LockBatchRequestBody extends RemotingSerializable {
 
     public void setMqSet(Set<MessageQueue> mqSet) {
         this.mqSet = mqSet;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("clientId", clientId)
+            .add("onlyThisBroker", onlyThisBroker)
+            .add("mqSet", mqSet)
+            .toString();
     }
 }

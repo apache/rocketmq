@@ -223,7 +223,7 @@ public class TieredFlatFileManager {
     public CompositeQueueFlatFile getOrCreateFlatFileIfAbsent(MessageQueue messageQueue) {
         return queueFlatFileMap.computeIfAbsent(messageQueue, mq -> {
             try {
-                logger.info("TieredFlatFileManager#getOrCreateFlatFileIfAbsent: " +
+                logger.debug("TieredFlatFileManager#getOrCreateFlatFileIfAbsent: " +
                         "try to create new flat file: topic: {}, queueId: {}",
                     messageQueue.getTopic(), messageQueue.getQueueId());
                 return new CompositeQueueFlatFile(tieredFileAllocator, mq);
@@ -265,12 +265,19 @@ public class TieredFlatFileManager {
     }
 
     public void destroyCompositeFile(MessageQueue mq) {
+        if (mq == null) {
+            return;
+        }
+
+        // delete memory reference
         CompositeQueueFlatFile flatFile = queueFlatFileMap.remove(mq);
         if (flatFile != null) {
             MessageQueue messageQueue = flatFile.getMessageQueue();
             logger.info("TieredFlatFileManager#destroyCompositeFile: " +
                     "try to destroy composite flat file: topic: {}, queueId: {}",
                 messageQueue.getTopic(), messageQueue.getQueueId());
+
+            // delete queue metadata
             flatFile.destroy();
         }
     }

@@ -222,6 +222,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int popCkOffsetMaxQueueSize = 20000;
     private boolean enablePopBatchAck = false;
     private boolean enableNotifyAfterPopOrderLockRelease = true;
+    private boolean initPopOffsetByCheckMsgInMem = true;
 
     private boolean realTimeNotifyConsumerChange = true;
 
@@ -380,6 +381,17 @@ public class BrokerConfig extends BrokerIdentity {
      * The interval to fetch namesrv addr, default value is 10 second
      */
     private long fetchNamesrvAddrInterval = 10 * 1000;
+
+    /**
+     * Pop response returns the actual retry topic rather than tampering with the original topic
+     */
+    private boolean popResponseReturnActualRetryTopic = false;
+
+    /**
+     * If both the deleteTopicWithBrokerRegistration flag in the NameServer configuration and this flag are set to true,
+     * it guarantees the ultimate consistency of data between the broker and the nameserver during topic deletion.
+     */
+    private boolean enableSingleTopicRegister = false;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1253,6 +1265,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.enableNotifyAfterPopOrderLockRelease = enableNotifyAfterPopOrderLockRelease;
     }
 
+    public boolean isInitPopOffsetByCheckMsgInMem() {
+        return initPopOffsetByCheckMsgInMem;
+    }
+
+    public void setInitPopOffsetByCheckMsgInMem(boolean initPopOffsetByCheckMsgInMem) {
+        this.initPopOffsetByCheckMsgInMem = initPopOffsetByCheckMsgInMem;
+    }
+
     public boolean isRealTimeNotifyConsumerChange() {
         return realTimeNotifyConsumerChange;
     }
@@ -1675,5 +1695,21 @@ public class BrokerConfig extends BrokerIdentity {
     
     public void setFetchNamesrvAddrInterval(final long fetchNamesrvAddrInterval) {
         this.fetchNamesrvAddrInterval = fetchNamesrvAddrInterval;
+    }
+
+    public boolean isPopResponseReturnActualRetryTopic() {
+        return popResponseReturnActualRetryTopic;
+    }
+
+    public void setPopResponseReturnActualRetryTopic(boolean popResponseReturnActualRetryTopic) {
+        this.popResponseReturnActualRetryTopic = popResponseReturnActualRetryTopic;
+    }
+
+    public boolean isEnableSingleTopicRegister() {
+        return enableSingleTopicRegister;
+    }
+
+    public void setEnableSingleTopicRegister(boolean enableSingleTopicRegister) {
+        this.enableSingleTopicRegister = enableSingleTopicRegister;
     }
 }

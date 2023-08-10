@@ -33,6 +33,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -120,6 +121,14 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         return defaultMQAdminExtImpl.searchOffset(mq, timestamp);
+    }
+
+    public long searchLowerBoundaryOffset(MessageQueue mq, long timestamp) throws MQClientException {
+        return defaultMQAdminExtImpl.searchOffset(mq, timestamp, BoundaryType.LOWER);
+    }
+
+    public long searchUpperBoundaryOffset(MessageQueue mq, long timestamp) throws MQClientException {
+        return defaultMQAdminExtImpl.searchOffset(mq, timestamp, BoundaryType.UPPER);
     }
 
     @Override

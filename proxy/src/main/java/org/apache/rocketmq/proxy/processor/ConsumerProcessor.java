@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.processor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,6 +84,7 @@ public class ConsumerProcessor extends AbstractProcessor {
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     ) {
         CompletableFuture<PopResult> future = new CompletableFuture<>();
@@ -91,7 +93,8 @@ public class ConsumerProcessor extends AbstractProcessor {
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no readable queue");
             }
-            return popMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, timeoutMillis);
+            return popMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime, initMode,
+                subscriptionData, fifo, popMessageResultFilter, attemptId, timeoutMillis);
         }  catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -110,6 +113,7 @@ public class ConsumerProcessor extends AbstractProcessor {
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     ) {
         CompletableFuture<PopResult> future = new CompletableFuture<>();
@@ -131,6 +135,7 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setExpType(subscriptionData.getExpressionType());
             requestHeader.setExp(subscriptionData.getSubString());
             requestHeader.setOrder(fifo);
+            requestHeader.setAttemptId(attemptId);
 
             future = this.serviceManager.getMessageService().popMessage(
                     ctx,
@@ -421,13 +426,15 @@ public class ConsumerProcessor extends AbstractProcessor {
     }
 
     protected Set<AddressableMessageQueue> buildAddressableSet(ProxyContext ctx, Set<MessageQueue> mqSet) {
-        return mqSet.stream().map(mq -> {
+        Set<AddressableMessageQueue> addressableMessageQueueSet = new HashSet<>(mqSet.size());
+        for (MessageQueue mq:mqSet) {
             try {
-                return serviceManager.getTopicRouteService().buildAddressableMessageQueue(ctx, mq);
+                addressableMessageQueueSet.add(serviceManager.getTopicRouteService().buildAddressableMessageQueue(ctx, mq)) ;
             } catch (Exception e) {
-                return null;
+                log.error("build addressable message queue fail, messageQueue = {}", mq, e);
             }
-        }).collect(Collectors.toSet());
+        }
+        return addressableMessageQueueSet;
     }
 
     protected HashMap<String, List<AddressableMessageQueue>> buildAddressableMapByBrokerName(

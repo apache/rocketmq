@@ -14,7 +14,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.apache.rocketmq.test.base.dledger;
+package org.apache.rocketmq.test.dledger;
 
 import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;

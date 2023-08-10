@@ -82,6 +82,7 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.common.utils.ServiceProvider;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
@@ -1015,9 +1016,13 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
+        return getOffsetInQueueByTime(topic, queueId, timestamp, BoundaryType.LOWER);
+    }
+
+    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
         ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            long resultOffset = logic.getOffsetInQueueByTime(timestamp);
+            long resultOffset = logic.getOffsetInQueueByTime(timestamp, boundaryType);
             // Make sure the result offset is in valid range.
             resultOffset = Math.max(resultOffset, logic.getMinOffsetInQueue());
             resultOffset = Math.min(resultOffset, logic.getMaxOffsetInQueue());

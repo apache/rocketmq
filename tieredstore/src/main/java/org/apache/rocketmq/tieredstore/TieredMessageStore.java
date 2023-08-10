@@ -27,6 +27,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PopAckConstants;
@@ -44,13 +46,11 @@ import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
 import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
-import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.file.CompositeFlatFile;
 import org.apache.rocketmq.tieredstore.file.TieredFlatFileManager;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
-import org.apache.rocketmq.tieredstore.metadata.TopicMetadata;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
@@ -287,6 +287,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         return getOffsetInQueueByTime(topic, queueId, timestamp, BoundaryType.LOWER);
     }
 
+    @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
         long earliestTimeInNextStore = next.getEarliestMessageTime();
         if (earliestTimeInNextStore <= 0) {
@@ -394,12 +395,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                     MixAll.isLmq(topic)) {
                     return;
                 }
-                logger.info("TieredMessageStore#cleanUnusedTopic: start deleting topic {}", topic);
-                try {
-                    destroyCompositeFlatFile(topicMetadata);
-                } catch (Exception e) {
-                    logger.error("TieredMessageStore#cleanUnusedTopic: delete topic {} failed", topic, e);
-                }
+                this.destroyCompositeFlatFile(topicMetadata.getTopic());
             });
         } catch (Exception e) {
             logger.error("TieredMessageStore#cleanUnusedTopic: iterate topic metadata failed", e);
@@ -410,38 +406,24 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     @Override
     public int deleteTopics(Set<String> deleteTopics) {
         for (String topic : deleteTopics) {
-            logger.info("TieredMessageStore#deleteTopics: start deleting topic {}", topic);
-            try {
-                TopicMetadata topicMetadata = metadataStore.getTopic(topic);
-                if (topicMetadata != null) {
-                    destroyCompositeFlatFile(topicMetadata);
-                } else {
-                    logger.error("TieredMessageStore#deleteTopics: delete topic {} failed, can not obtain metadata", topic);
-                }
-            } catch (Exception e) {
-                logger.error("TieredMessageStore#deleteTopics: delete topic {} failed", topic, e);
-            }
+            this.destroyCompositeFlatFile(topic);
         }
-
         return next.deleteTopics(deleteTopics);
     }
 
-    public void destroyCompositeFlatFile(TopicMetadata topicMetadata) {
-        String topic = topicMetadata.getTopic();
-        metadataStore.iterateQueue(topic, queueMetadata -> {
-            MessageQueue mq = queueMetadata.getQueue();
-            CompositeFlatFile flatFile = flatFileManager.getFlatFile(mq);
-            if (flatFile != null) {
-                flatFileManager.destroyCompositeFile(mq);
-                try {
-                    metadataStore.deleteQueue(mq);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-                logger.info("TieredMessageStore#destroyCompositeFlatFile: " +
-                    "destroy flatFile success: topic: {}, queueId: {}", mq.getTopic(), mq.getQueueId());
+    public void destroyCompositeFlatFile(String topic) {
+        try {
+            if (StringUtils.isBlank(topic)) {
+                return;
             }
-        });
-        metadataStore.deleteTopic(topicMetadata.getTopic());
+            metadataStore.iterateQueue(topic, queueMetadata -> {
+                flatFileManager.destroyCompositeFile(queueMetadata.getQueue());
+            });
+            // delete topic metadata
+            metadataStore.deleteTopic(topic);
+            logger.info("Destroy composite flat file in message store, topic={}", topic);
+        } catch (Exception e) {
+            logger.error("Destroy composite flat file in message store failed, topic={}", topic, e);
+        }
     }
 }
