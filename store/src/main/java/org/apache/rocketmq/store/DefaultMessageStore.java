@@ -1512,7 +1512,6 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     @Deprecated
     public boolean checkInDiskByConsumeOffset(final String topic, final int queueId, long consumeOffset) {
-
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
         ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
@@ -1532,27 +1531,28 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public boolean checkInMemByConsumeOffset(final String topic, final int queueId, long consumeOffset, int batchSize) {
         ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
-        if (consumeQueue != null) {
-            CqUnit firstCQItem = consumeQueue.get(consumeOffset);
-            if (firstCQItem == null) {
-                return false;
-            }
-            long startOffsetPy = firstCQItem.getPos();
-            if (batchSize <= 1) {
-                int size = firstCQItem.getSize();
-                return checkInMemByCommitOffset(startOffsetPy, size);
-            }
+        if (consumeQueue == null) {
+            return false;
+        }
 
-            CqUnit lastCQItem = consumeQueue.get(consumeOffset + batchSize);
-            if (lastCQItem == null) {
-                int size = firstCQItem.getSize();
-                return checkInMemByCommitOffset(startOffsetPy, size);
-            }
-            long endOffsetPy = lastCQItem.getPos();
-            int size = (int) (endOffsetPy - startOffsetPy) + lastCQItem.getSize();
+        CqUnit firstCQItem = consumeQueue.get(consumeOffset);
+        if (firstCQItem == null) {
+            return false;
+        }
+        long startOffsetPy = firstCQItem.getPos();
+        if (batchSize <= 1) {
+            int size = firstCQItem.getSize();
             return checkInMemByCommitOffset(startOffsetPy, size);
         }
-        return false;
+
+        CqUnit lastCQItem = consumeQueue.get(consumeOffset + batchSize);
+        if (lastCQItem == null) {
+            int size = firstCQItem.getSize();
+            return checkInMemByCommitOffset(startOffsetPy, size);
+        }
+        long endOffsetPy = lastCQItem.getPos();
+        int size = (int) (endOffsetPy - startOffsetPy) + lastCQItem.getSize();
+        return checkInMemByCommitOffset(startOffsetPy, size);
     }
 
     @Override
