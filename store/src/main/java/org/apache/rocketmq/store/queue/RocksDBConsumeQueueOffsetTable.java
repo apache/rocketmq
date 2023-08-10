@@ -109,7 +109,7 @@ public class RocksDBConsumeQueueOffsetTable {
     private ColumnFamilyHandle offsetCFH;
 
     /**
-     * Although we have already put max(min) consumeQueueOffset and phyicalOffset in rocksdb, we still hope to get them
+     * Although we have already put max(min) consumeQueueOffset and physicalOffset in rocksdb, we still hope to get them
      * from heap to avoid accessing rocksdb.
      * @see ConsumeQueue#getMaxPhysicOffset(), maxPhysicOffset  --> topicQueueMaxCqOffset
      * @see ConsumeQueue#getMinLogicOffset(),   minLogicOffset  --> topicQueueMinOffset
