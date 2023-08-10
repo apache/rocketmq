@@ -1010,19 +1010,21 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public long getCommitLogOffsetInQueue(String topic, int queueId, long consumeQueueOffset) {
         ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
-        if (consumeQueue != null) {
+        if (consumeQueue == null) {
+            return 0;
+        }
 
-            ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(consumeQueueOffset);
-            if (bufferConsumeQueue != null) {
-                try {
-                    if (bufferConsumeQueue.hasNext()) {
-                        long offsetPy = bufferConsumeQueue.next().getPos();
-                        return offsetPy;
-                    }
-                } finally {
-                    bufferConsumeQueue.release();
-                }
+        ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(consumeQueueOffset);
+        if (bufferConsumeQueue == null) {
+            return 0;
+        }
+
+        try {
+            if (bufferConsumeQueue.hasNext()) {
+                return bufferConsumeQueue.next().getPos();
             }
+        } finally {
+            bufferConsumeQueue.release();
         }
 
         return 0;
