@@ -1266,7 +1266,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         LockBatchRequestBody requestBody = LockBatchRequestBody.decode(request.getBody(), LockBatchRequestBody.class);
 
         Set<MessageQueue> lockOKMQSet = new HashSet<>();
-        Set<MessageQueue> selfLockOKMQSet = this.brokerController.getRebalanceLockManager().tryLockBatch(
+        Set<MessageQueue> selfLockOKMQSet = this.brokerController.getBrokerClusterService().getRebalanceLockManager().tryLockBatch(
             requestBody.getConsumerGroup(),
             requestBody.getMqSet(),
             requestBody.getClientId());
@@ -1353,7 +1353,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         UnlockBatchRequestBody requestBody = UnlockBatchRequestBody.decode(request.getBody(), UnlockBatchRequestBody.class);
 
         if (requestBody.isOnlyThisBroker() || !this.brokerController.getBrokerConfig().isLockInStrictMode()) {
-            this.brokerController.getRebalanceLockManager().unlockBatch(
+            this.brokerController.getBrokerClusterService().getRebalanceLockManager().unlockBatch(
                 requestBody.getConsumerGroup(),
                 requestBody.getMqSet(),
                 requestBody.getClientId());
@@ -2668,7 +2668,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         LOGGER.warn("min broker id changed, prev {}, new {}", this.brokerController.getMinBrokerIdInGroup(), requestHeader.getMinBrokerId());
 
-        this.brokerController.updateMinBroker(requestHeader.getMinBrokerId(), requestHeader.getMinBrokerAddr(),
+        this.brokerController.getBrokerClusterService().updateMinBroker(requestHeader.getMinBrokerId(), requestHeader.getMinBrokerAddr(),
             requestHeader.getOfflineBrokerAddr(),
             requestHeader.getHaBrokerAddr());
 
@@ -2723,7 +2723,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand getBrokerEpochCache(ChannelHandlerContext ctx, RemotingCommand request) {
-        final ReplicasManager replicasManager = this.brokerController.getReplicasManager();
+        final ReplicasManager replicasManager = this.brokerController.getBrokerClusterService().getReplicasManager();
         assert replicasManager != null;
         final BrokerConfig brokerConfig = this.brokerController.getBrokerConfig();
         final EpochEntryCache entryCache = new EpochEntryCache(brokerConfig.getBrokerClusterName(),
@@ -2763,7 +2763,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         LOGGER.info("Receive notifyBrokerRoleChanged request, try to change brokerRole, request:{}", requestHeader);
 
-        final ReplicasManager replicasManager = this.brokerController.getReplicasManager();
+        final ReplicasManager replicasManager = this.brokerController.getBrokerClusterService().getReplicasManager();
         if (replicasManager != null) {
             replicasManager.changeBrokerRole(requestHeader.getMasterBrokerId(), requestHeader.getMasterAddress(), requestHeader.getMasterEpoch(), requestHeader.getSyncStateSetEpoch(), syncStateSetInfo.getSyncStateSet());
         }

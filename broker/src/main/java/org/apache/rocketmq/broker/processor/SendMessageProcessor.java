@@ -186,7 +186,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             int reconsumeTimes = requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes();
 
             boolean sendRetryMessageToDeadLetterQueueDirectly = false;
-            if (!brokerController.getRebalanceLockManager().isLockAllExpired(groupName)) {
+            if (!brokerController.getBrokerClusterService().getRebalanceLockManager().isLockAllExpired(groupName)) {
                 LOGGER.info("Group has unexpired lock record, which show it is ordered message, send it to DLQ "
                         + "right now group={}, topic={}, reconsumeTimes={}, maxReconsumeTimes={}.", groupName,
                     newTopic, reconsumeTimes, maxReconsumeTimes);

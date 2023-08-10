@@ -221,12 +221,12 @@ public class BrokerServiceRegistry {
         boolean checkOrderConfig) {
         for (RegisterBrokerResult registerBrokerResult : registerBrokerResultList) {
             if (registerBrokerResult != null) {
-                if (brokerController.isUpdateMasterHAServerAddrPeriodically() && registerBrokerResult.getHaServerAddr() != null) {
+                if (brokerController.getBrokerClusterService().isUpdateMasterHAServerAddrPeriodically() && registerBrokerResult.getHaServerAddr() != null) {
                     brokerController.getMessageStore().updateHaMasterAddress(registerBrokerResult.getHaServerAddr());
                     brokerController.getMessageStore().updateMasterAddress(registerBrokerResult.getMasterAddr());
                 }
 
-                brokerController.getSlaveSynchronize().setMasterAddr(registerBrokerResult.getMasterAddr());
+                brokerController.getBrokerClusterService().getSlaveSynchronize().setMasterAddr(registerBrokerResult.getMasterAddr());
                 if (checkOrderConfig) {
                     brokerController.getBrokerMetadataManager().getTopicConfigManager().updateOrderTopicConfig(registerBrokerResult.getKvTable());
                 }

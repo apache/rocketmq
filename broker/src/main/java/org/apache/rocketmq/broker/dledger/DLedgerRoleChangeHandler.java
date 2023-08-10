@@ -108,17 +108,17 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
             if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);
             }
-            this.brokerController.getSlaveSynchronize().setMasterAddr(null);
+            this.brokerController.getBrokerClusterService().getSlaveSynchronize().setMasterAddr(null);
             slaveSyncFuture = this.brokerController.getBrokerScheduleService().getScheduledExecutorService().scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         if (System.currentTimeMillis() - lastSyncTimeMs > 10 * 1000) {
-                            brokerController.getSlaveSynchronize().syncAll();
+                            brokerController.getBrokerClusterService().getSlaveSynchronize().syncAll();
                             lastSyncTimeMs = System.currentTimeMillis();
                         }
                         //timer checkpoint, latency-sensitive, so sync it more frequently
-                        brokerController.getSlaveSynchronize().syncTimerCheckPoint();
+                        brokerController.getBrokerClusterService().getSlaveSynchronize().syncTimerCheckPoint();
                     } catch (Throwable e) {
                         LOGGER.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                     }
@@ -129,7 +129,7 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
             if (null != slaveSyncFuture) {
                 slaveSyncFuture.cancel(false);
             }
-            this.brokerController.getSlaveSynchronize().setMasterAddr(null);
+            this.brokerController.getBrokerClusterService().getSlaveSynchronize().setMasterAddr(null);
         }
     }
 

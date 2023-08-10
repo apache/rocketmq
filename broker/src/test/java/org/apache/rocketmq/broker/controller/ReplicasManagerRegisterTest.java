@@ -120,7 +120,7 @@ public class ReplicasManagerRegisterTest {
         when(mockedBrokerController.getTopicConfigManager()).thenReturn(mockedTopicConfigManager);
         when(mockedMessageStore.getHaService()).thenReturn(mockedAutoSwitchHAService);
         when(mockedMessageStore.getRunningFlags()).thenReturn(runningFlags);
-        when(mockedBrokerController.getSlaveSynchronize()).thenReturn(new SlaveSynchronize(mockedBrokerController));
+        when(mockedBrokerController.getBrokerClusterService().getSlaveSynchronize()).thenReturn(new SlaveSynchronize(mockedBrokerController));
         when(mockedBrokerOuterAPI.getControllerMetaData(any())).thenReturn(
                 new GetMetaDataResponseHeader("default-group", "dledger-a", CONTROLLER_ADDR, true, CONTROLLER_ADDR));
         when(mockedBrokerOuterAPI.checkAddressReachable(any())).thenReturn(true);

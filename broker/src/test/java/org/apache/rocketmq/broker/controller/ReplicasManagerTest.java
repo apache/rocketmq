@@ -156,7 +156,7 @@ public class ReplicasManagerTest {
         when(brokerController.getMessageStore().getRunningFlags()).thenReturn(runningFlags);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-        when(brokerController.getSlaveSynchronize()).thenReturn(slaveSynchronize);
+        when(brokerController.getBrokerClusterService().getSlaveSynchronize()).thenReturn(slaveSynchronize);
         when(brokerController.getBrokerOuterAPI()).thenReturn(brokerOuterAPI);
         when(brokerController.getBrokerAddr()).thenReturn(OLD_MASTER_ADDRESS);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);

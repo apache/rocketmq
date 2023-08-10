@@ -134,7 +134,7 @@ public class InnerBrokerController extends BrokerController {
 
     @Override
     public long getMinBrokerIdInGroup() {
-        return this.minBrokerIdInGroup;
+        return this.getBrokerClusterService().getMinBrokerIdInGroup();
     }
 
     @Override

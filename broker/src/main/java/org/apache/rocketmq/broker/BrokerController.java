@@ -17,13 +17,10 @@
 package org.apache.rocketmq.broker;
 
 import java.net.InetSocketAddress;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.broker.bootstrap.BrokerClusterService;
 import org.apache.rocketmq.broker.bootstrap.BrokerMessageService;
 import org.apache.rocketmq.broker.bootstrap.BrokerMetadataManager;
 import org.apache.rocketmq.broker.bootstrap.BrokerNettyServer;
@@ -33,10 +30,8 @@ import org.apache.rocketmq.broker.bootstrap.BrokerServiceRegistry;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
-import org.apache.rocketmq.broker.client.rebalance.RebalanceLockManager;
 import org.apache.rocketmq.broker.coldctr.ColdDataCgCtrService;
 import org.apache.rocketmq.broker.coldctr.ColdDataPullRequestHoldService;
-import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.latency.BrokerFastFailure;
@@ -46,7 +41,6 @@ import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.processor.PopInflightMessageCounter;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
-import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
@@ -62,7 +56,6 @@ import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
-import org.apache.rocketmq.remoting.protocol.BrokerSyncInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -80,25 +73,17 @@ public class BrokerController {
     protected final MessageStoreConfig messageStoreConfig;
     private Configuration configuration;
 
-    private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
-    protected final SlaveSynchronize slaveSynchronize;
-    protected ReplicasManager replicasManager;
-    protected boolean updateMasterHAServerAddrPeriodically = false;
-
     private InetSocketAddress storeHost;
-
     protected volatile boolean shutdown = false;
     protected volatile long shouldStartTime;
     protected volatile boolean isIsolated = false;
-    protected volatile long minBrokerIdInGroup = 0;
-    protected volatile String minBrokerAddrInGroup = null;
-    private final Lock lock = new ReentrantLock();
 
     private final BrokerNettyServer brokerNettyServer;
     private final BrokerScheduleService brokerScheduleService;
     private final BrokerMetadataManager brokerMetadataManager;
     private final BrokerServiceRegistry brokerServiceRegistry;
     private final BrokerServiceManager brokerServiceManager;
+    private final BrokerClusterService brokerClusterService;
     private BrokerMessageService brokerMessageService;
 
     public BrokerController(
@@ -138,9 +123,8 @@ public class BrokerController {
         this.brokerServiceRegistry = new BrokerServiceRegistry(this);
         this.brokerServiceManager = new BrokerServiceManager(this);
         this.brokerScheduleService = new BrokerScheduleService(brokerConfig, messageStoreConfig, this);
+        this.brokerClusterService = new BrokerClusterService(this);
         /* the instance creating order matters, do not change it. ... end */
-
-        this.slaveSynchronize = new SlaveSynchronize(this);
     }
 
     public boolean initialize() throws CloneNotSupportedException {
@@ -186,8 +170,8 @@ public class BrokerController {
     public void startService(long minBrokerId, String minBrokerAddr) {
         BrokerController.LOG.info("{} start service, min broker id is {}, min broker addr: {}",
             this.brokerConfig.getCanonicalName(), minBrokerId, minBrokerAddr);
-        this.minBrokerIdInGroup = minBrokerId;
-        this.minBrokerAddrInGroup = minBrokerAddr;
+        this.brokerClusterService.setMinBrokerIdInGroup(minBrokerId);
+        this.brokerClusterService.setMinBrokerAddrInGroup(minBrokerAddr);
 
         this.brokerMessageService.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == minBrokerId);
         this.brokerServiceRegistry.registerBrokerAll(true, false, brokerConfig.isForceRegister());
@@ -202,35 +186,6 @@ public class BrokerController {
         this.brokerServiceRegistry.registerBrokerAll(true, false, brokerConfig.isForceRegister());
 
         isIsolated = false;
-    }
-
-    public void updateMinBroker(long minBrokerId, String minBrokerAddr) {
-        updateMinBroker(minBrokerId, minBrokerAddr, null, null);
-    }
-
-    public void updateMinBroker(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr, String masterHaAddr) {
-        if (!brokerConfig.isEnableSlaveActingMaster() || brokerConfig.getBrokerId() == MixAll.MASTER_ID) {
-            return;
-        }
-
-        if (minBrokerId == this.minBrokerIdInGroup) {
-            return;
-        }
-
-        if (null == offlineBrokerAddr && minBrokerId > this.minBrokerIdInGroup) {
-            offlineBrokerAddr = this.minBrokerAddrInGroup;
-        }
-
-        try {
-            if (!lock.tryLock(3000, TimeUnit.MILLISECONDS)) {
-                return;
-            }
-            onMinBrokerChange(minBrokerId, minBrokerAddr, offlineBrokerAddr, masterHaAddr);
-        } catch (InterruptedException e){
-            LOG.error("Update min broker error, {}", e);
-        } finally {
-            lock.unlock();
-        }
     }
 
     public BrokerIdentity getBrokerIdentity() {
@@ -289,15 +244,9 @@ public class BrokerController {
     }
 
     public boolean initAndLoadService() throws CloneNotSupportedException {
-        boolean result = true;
+        brokerClusterService.load();
 
-        if (this.brokerConfig.isEnableControllerMode()) {
-            this.replicasManager = new ReplicasManager(this);
-            this.replicasManager.setFenced(true);
-        }
-
-        result = brokerMetadataManager.load();
-        if (!result) {
+        if (!brokerMetadataManager.load()) {
             return false;
         }
 
@@ -336,99 +285,25 @@ public class BrokerController {
         this.brokerMessageService.shutdown();
         this.brokerServiceManager.shutdown();
         this.brokerMetadataManager.shutdown();
-
-        if (this.replicasManager != null) {
-            this.replicasManager.shutdown();
-        }
+        this.brokerClusterService.shutdown();
     }
 
     protected void startBasicService() throws Exception {
-        if (this.replicasManager != null) {
-            this.replicasManager.start();
-        }
-
         this.storeHost = new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort());
-
+        this.brokerClusterService.start();
         this.brokerNettyServer.start();
         this.brokerMessageService.start();
         this.brokerServiceManager.start();
     }
 
-    private void onMasterOffline() {
-        // close channels with master broker
-        String masterAddr = this.slaveSynchronize.getMasterAddr();
-        if (masterAddr != null) {
-            this.getBrokerOuterAPI().getRemotingClient().closeChannels(
-                Arrays.asList(masterAddr, MixAll.brokerVIPChannel(true, masterAddr)));
-        }
-        // master not available, stop sync
-        this.slaveSynchronize.setMasterAddr(null);
-        brokerMessageService.getMessageStore().updateHaMasterAddress(null);
-    }
-
-    private void onMasterOnline(String masterAddr, String masterHaAddr) {
-        boolean needSyncMasterFlushOffset = brokerMessageService.getMessageStore().getMasterFlushedOffset() == 0
-            && this.messageStoreConfig.isSyncMasterFlushOffsetWhenStartup();
-        if (masterHaAddr == null || needSyncMasterFlushOffset) {
-            doSyncMasterFlushOffset(masterAddr, masterHaAddr, needSyncMasterFlushOffset);
-        }
-
-        // set master HA address.
-        if (masterHaAddr != null) {
-            brokerMessageService.getMessageStore().updateHaMasterAddress(masterHaAddr);
-        }
-
-        // wakeup HAClient
-        brokerMessageService.getMessageStore().wakeupHAClient();
-    }
-
-    private void doSyncMasterFlushOffset(String masterAddr, String masterHaAddr, boolean needSyncMasterFlushOffset) {
-        try {
-            BrokerSyncInfo brokerSyncInfo = this.getBrokerOuterAPI().retrieveBrokerHaInfo(masterAddr);
-
-            if (needSyncMasterFlushOffset) {
-                LOG.info("Set master flush offset in slave to {}", brokerSyncInfo.getMasterFlushOffset());
-                brokerMessageService.getMessageStore().setMasterFlushedOffset(brokerSyncInfo.getMasterFlushOffset());
-            }
-
-            if (masterHaAddr == null) {
-                brokerMessageService.getMessageStore().updateHaMasterAddress(brokerSyncInfo.getMasterHaAddress());
-                brokerMessageService.getMessageStore().updateMasterAddress(brokerSyncInfo.getMasterAddress());
-            }
-        } catch (Exception e) {
-            LOG.error("retrieve master ha info exception, {}", e);
-        }
-    }
-
-    private void onMinBrokerChange(long minBrokerId, String minBrokerAddr, String offlineBrokerAddr,
-        String masterHaAddr) {
-        LOG.info("Min broker changed, old: {}-{}, new {}-{}",
-            this.minBrokerIdInGroup, this.minBrokerAddrInGroup, minBrokerId, minBrokerAddr);
-
-        this.minBrokerIdInGroup = minBrokerId;
-        this.minBrokerAddrInGroup = minBrokerAddr;
-
-        this.brokerMessageService.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == this.minBrokerIdInGroup);
-
-        if (offlineBrokerAddr != null && offlineBrokerAddr.equals(this.slaveSynchronize.getMasterAddr())) {
-            // master offline
-            onMasterOffline();
-        }
-
-        if (minBrokerId == MixAll.MASTER_ID && minBrokerAddr != null) {
-            // master online
-            onMasterOnline(minBrokerAddr, masterHaAddr);
-        }
-
-        // notify PullRequest on hold to pull from master.
-        if (this.minBrokerIdInGroup == MixAll.MASTER_ID) {
-            this.brokerNettyServer.getPullRequestHoldService().notifyMasterOnline();
-        }
-    }
-
     //**************************************** private or protected methods end   ****************************************************
 
     //**************************************** getter and setter start ****************************************************
+
+    public BrokerClusterService getBrokerClusterService() {
+        return brokerClusterService;
+    }
+
     public BrokerServiceManager getBrokerServiceManager() {
         return brokerServiceManager;
     }
@@ -463,14 +338,6 @@ public class BrokerController {
 
     public BrokerStats getBrokerStats() {
         return brokerMessageService.getBrokerStats();
-    }
-
-    public boolean isUpdateMasterHAServerAddrPeriodically() {
-        return updateMasterHAServerAddrPeriodically;
-    }
-
-    public void setUpdateMasterHAServerAddrPeriodically(boolean updateMasterHAServerAddrPeriodically) {
-        this.updateMasterHAServerAddrPeriodically = updateMasterHAServerAddrPeriodically;
     }
 
     public MessageStore getMessageStore() {
@@ -553,14 +420,6 @@ public class BrokerController {
         return this.brokerConfig.getBrokerIP2() + ":" + this.messageStoreConfig.getHaListenPort();
     }
 
-    public RebalanceLockManager getRebalanceLockManager() {
-        return rebalanceLockManager;
-    }
-
-    public SlaveSynchronize getSlaveSynchronize() {
-        return slaveSynchronize;
-    }
-
     public BrokerStatsManager getBrokerStatsManager() {
         return brokerServiceManager.getBrokerStatsManager();
     }
@@ -631,10 +490,6 @@ public class BrokerController {
 
     public ScheduleMessageService getScheduleMessageService() {
         return brokerMessageService.getScheduleMessageService();
-    }
-
-    public ReplicasManager getReplicasManager() {
-        return replicasManager;
     }
 
     public void setIsolated(boolean isolated) {

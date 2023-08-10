@@ -139,7 +139,7 @@ public class BrokerScheduleService {
 
     public void sendHeartbeat() {
         if (this.brokerConfig.isEnableControllerMode()) {
-            getBrokerController().getReplicasManager().sendHeartbeatToController();
+            getBrokerController().getBrokerClusterService().getReplicasManager().sendHeartbeatToController();
         }
 
         if (this.brokerConfig.isEnableSlaveActingMaster()) {
@@ -233,7 +233,7 @@ public class BrokerScheduleService {
 
         if (!brokerController.isIsolated()) {
             long minBrokerId = brokerMemberGroup.minimumBrokerId();
-            brokerController.updateMinBroker(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
+            brokerController.getBrokerClusterService().updateMinBroker(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
         }
     }
 
@@ -333,9 +333,9 @@ public class BrokerScheduleService {
             if (BrokerRole.SLAVE == this.messageStoreConfig.getBrokerRole()) {
                 if (this.messageStoreConfig.getHaMasterAddress() != null && this.messageStoreConfig.getHaMasterAddress().length() >= HA_ADDRESS_MIN_LENGTH) {
                     this.getBrokerController().getMessageStore().updateHaMasterAddress(this.messageStoreConfig.getHaMasterAddress());
-                    getBrokerController().setUpdateMasterHAServerAddrPeriodically(false);
+                    getBrokerController().getBrokerClusterService().setUpdateMasterHAServerAddrPeriodically(false);
                 } else {
-                    getBrokerController().setUpdateMasterHAServerAddrPeriodically(true);
+                    getBrokerController().getBrokerClusterService().setUpdateMasterHAServerAddrPeriodically(true);
                 }
 
                 this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
@@ -344,13 +344,13 @@ public class BrokerScheduleService {
                     public void run() {
                         try {
                             if (System.currentTimeMillis() - lastSyncTimeMs > 60 * 1000) {
-                                getBrokerController().getSlaveSynchronize().syncAll();
+                                getBrokerController().getBrokerClusterService().getSlaveSynchronize().syncAll();
                                 lastSyncTimeMs = System.currentTimeMillis();
                             }
 
                             //timer checkpoint, latency-sensitive, so sync it more frequently
                             if (messageStoreConfig.isTimerWheelEnable()) {
-                                getBrokerController().getSlaveSynchronize().syncTimerCheckPoint();
+                                getBrokerController().getBrokerClusterService().getSlaveSynchronize().syncTimerCheckPoint();
                             }
                         } catch (Throwable e) {
                             LOG.error("Failed to sync all config for slave.", e);
@@ -374,7 +374,7 @@ public class BrokerScheduleService {
         }
 
         if (this.brokerConfig.isEnableControllerMode()) {
-            getBrokerController().setUpdateMasterHAServerAddrPeriodically(true);
+            getBrokerController().getBrokerClusterService().setUpdateMasterHAServerAddrPeriodically(true);
         }
     }
 

@@ -202,7 +202,7 @@ public class ContainerIntegrationTestBase {
     private static void triggerSlaveSync(String brokerName, BrokerContainer brokerContainer) {
         for (InnerSalveBrokerController slaveBroker : brokerContainer.getSlaveBrokers()) {
             if (slaveBroker.getBrokerConfig().getBrokerName().equals(brokerName)) {
-                slaveBroker.getSlaveSynchronize().syncAll();
+                slaveBroker.getBrokerClusterService().getSlaveSynchronize().syncAll();
                 slaveBroker.getBrokerServiceRegistry().registerBrokerAll(true, false, true);
             }
         }

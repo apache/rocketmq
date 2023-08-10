@@ -118,7 +118,7 @@ public class AutoSwitchRoleBase {
         assertTrue(brokerController.initialize());
         brokerController.start();
         brokerList.add(brokerController);
-        await().atMost(20, TimeUnit.SECONDS).until(() -> (expectedRole == BrokerRole.SYNC_MASTER) == brokerController.getReplicasManager().isMasterState());
+        await().atMost(20, TimeUnit.SECONDS).until(() -> (expectedRole == BrokerRole.SYNC_MASTER) == brokerController.getBrokerClusterService().getReplicasManager().isMasterState());
         return brokerController;
     }
 

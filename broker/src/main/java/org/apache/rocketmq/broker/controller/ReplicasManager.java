@@ -351,15 +351,15 @@ public class ReplicasManager {
             if (this.slaveSyncFuture != null) {
                 this.slaveSyncFuture.cancel(false);
             }
-            this.brokerController.getSlaveSynchronize().setMasterAddr(this.masterAddress);
+            this.brokerController.getBrokerClusterService().getSlaveSynchronize().setMasterAddr(this.masterAddress);
             slaveSyncFuture = this.brokerController.getBrokerScheduleService().getScheduledExecutorService().scheduleAtFixedRate(() -> {
                 try {
                     if (System.currentTimeMillis() - lastSyncTimeMs > 10 * 1000) {
-                        brokerController.getSlaveSynchronize().syncAll();
+                        brokerController.getBrokerClusterService().getSlaveSynchronize().syncAll();
                         lastSyncTimeMs = System.currentTimeMillis();
                     }
                     //timer checkpoint, latency-sensitive, so sync it more frequently
-                    brokerController.getSlaveSynchronize().syncTimerCheckPoint();
+                    brokerController.getBrokerClusterService().getSlaveSynchronize().syncTimerCheckPoint();
                 } catch (final Throwable e) {
                     LOGGER.error("ScheduledTask SlaveSynchronize syncAll error.", e);
                 }
@@ -369,7 +369,7 @@ public class ReplicasManager {
             if (this.slaveSyncFuture != null) {
                 this.slaveSyncFuture.cancel(false);
             }
-            this.brokerController.getSlaveSynchronize().setMasterAddr(null);
+            this.brokerController.getBrokerClusterService().getSlaveSynchronize().setMasterAddr(null);
         }
     }
 

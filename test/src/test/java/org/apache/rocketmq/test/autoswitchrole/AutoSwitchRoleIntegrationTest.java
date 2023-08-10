@@ -134,7 +134,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         mockData(topic);
 
         // Check SyncStateSet
-        final ReplicasManager replicasManager = brokerController1.getReplicasManager();
+        final ReplicasManager replicasManager = brokerController1.getBrokerClusterService().getReplicasManager();
         SyncStateSet syncStateSet = replicasManager.getSyncStateSet();
         assertEquals(2, syncStateSet.getSyncStateSet().size());
 
@@ -165,15 +165,15 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         Thread.sleep(6000);
 
         // The slave should change to master
-        assertTrue(brokerController2.getReplicasManager().isMasterState());
-        assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
+        assertTrue(brokerController2.getBrokerClusterService().getReplicasManager().isMasterState());
+        assertEquals(brokerController2.getBrokerClusterService().getReplicasManager().getMasterEpoch(), 2);
 
         // Restart old master, it should be slave
         brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), listenPort, nettyPort, BrokerRole.SLAVE, DEFAULT_FILE_SIZE);
         waitSlaveReady(brokerController1.getMessageStore());
 
-        assertFalse(brokerController1.getReplicasManager().isMasterState());
-        assertEquals(brokerController1.getReplicasManager().getMasterAddress(), brokerController2.getReplicasManager().getBrokerAddress());
+        assertFalse(brokerController1.getBrokerClusterService().getReplicasManager().isMasterState());
+        assertEquals(brokerController1.getBrokerClusterService().getReplicasManager().getMasterAddress(), brokerController2.getBrokerClusterService().getReplicasManager().getBrokerAddress());
 
         // Put another batch messages
         final MessageStore messageStore = brokerController2.getMessageStore();
@@ -192,8 +192,8 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         int oldPort = nextPort();
         this.brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), oldPort, oldPort, BrokerRole.SYNC_MASTER, DEFAULT_FILE_SIZE);
         Thread.sleep(1000);
-        assertTrue(brokerController1.getReplicasManager().isMasterState());
-        assertEquals(brokerController1.getReplicasManager().getMasterEpoch(), 1);
+        assertTrue(brokerController1.getBrokerClusterService().getReplicasManager().isMasterState());
+        assertEquals(brokerController1.getBrokerClusterService().getReplicasManager().getMasterEpoch(), 1);
 
         // Let master shutdown
         brokerController1.shutdown();
@@ -206,9 +206,9 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         Thread.sleep(1000);
 
         // Check broker id
-        assertEquals(1, brokerController1.getReplicasManager().getBrokerControllerId().longValue());
+        assertEquals(1, brokerController1.getBrokerClusterService().getReplicasManager().getBrokerControllerId().longValue());
         // Check role
-        assertTrue(brokerController1.getReplicasManager().isMasterState());
+        assertTrue(brokerController1.getBrokerClusterService().getReplicasManager().isMasterState());
 
         // check ip address
         RemotingCommand remotingCommand = controllerManager.getController().getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName)).get(500, TimeUnit.MILLISECONDS);
@@ -268,8 +268,8 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         brokerList.remove(brokerController1);
         Thread.sleep(5000);
 
-        assertTrue(brokerController2.getReplicasManager().isMasterState());
-        assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);
+        assertTrue(brokerController2.getBrokerClusterService().getReplicasManager().isMasterState());
+        assertEquals(brokerController2.getBrokerClusterService().getReplicasManager().getMasterEpoch(), 2);
 
         // Step3: add broker3
         BrokerController broker3 = startBroker(nameserverAddress, controllerAddress, brokerName, 3, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, 1700);
