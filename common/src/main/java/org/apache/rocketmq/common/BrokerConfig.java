@@ -393,6 +393,8 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean enableSingleTopicRegister = false;
 
+    private boolean enableMixedMessageType = false;
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }
@@ -1711,5 +1713,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableSingleTopicRegister(boolean enableSingleTopicRegister) {
         this.enableSingleTopicRegister = enableSingleTopicRegister;
+    }
+
+    public boolean isEnableMixedMessageType() {
+        return enableMixedMessageType;
+    }
+
+    public void setEnableMixedMessageType(boolean enableMixedMessageType) {
+        this.enableMixedMessageType = enableMixedMessageType;
     }
 }
