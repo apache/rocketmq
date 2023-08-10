@@ -15,27 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller;
+package org.apache.rocketmq.controller.dledger.event.write;
 
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
+public class CleanBrokerDataResult implements WriteEventResult {
 
-public class ControllerTestBase {
-
-    public final static String DEFAULT_CLUSTER_NAME = "cluster-a";
-
-    public final static String DEFAULT_BROKER_NAME = "broker-set-a";
-
-    public final static String[] DEFAULT_IP = {"127.0.0.1:9000", "127.0.0.1:9001", "127.0.0.1:9002"};
-
-    public final static Long TIMEOUT_NEVER = 1000000000000000000L;
-
-    public final static Long TIMEOUT_NOW = -1L;
-
-    private static final AtomicInteger PORT_COUNTER = new AtomicInteger(30000);
-    private static Random random = new Random();
-    public static int nextPort() {
-        return PORT_COUNTER.addAndGet(10 + random.nextInt(10));
+    @Override
+    public WriteEventType getEventType() {
+        return WriteEventType.CLEAN_BROKER_DATA;
     }
 
 }

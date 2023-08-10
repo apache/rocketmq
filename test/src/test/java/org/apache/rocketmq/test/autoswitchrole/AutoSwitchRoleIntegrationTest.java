@@ -188,6 +188,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
     @Test
     public void testRestartWithChangedAddress() throws Exception {
         String topic = "Topic-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
+        String clusterName = "Cluster-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         int oldPort = nextPort();
         this.brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), oldPort, oldPort, BrokerRole.SYNC_MASTER, DEFAULT_FILE_SIZE);
@@ -211,7 +212,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         assertTrue(brokerController1.getReplicasManager().isMasterState());
 
         // check ip address
-        RemotingCommand remotingCommand = controllerManager.getController().getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName)).get(500, TimeUnit.MILLISECONDS);
+        RemotingCommand remotingCommand = controllerManager.getController().getReplicaInfo(new GetReplicaInfoRequestHeader(clusterName, brokerName)).get(500, TimeUnit.MILLISECONDS);
         GetReplicaInfoResponseHeader resp = (GetReplicaInfoResponseHeader) remotingCommand.readCustomHeader();
         assertEquals(1, resp.getMasterBrokerId().longValue());
         assertTrue(resp.getMasterAddress().contains(String.valueOf(newPort)));

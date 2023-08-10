@@ -17,14 +17,12 @@
 package org.apache.rocketmq.controller.heartbeat;
 
 import io.netty.channel.Channel;
-import io.openmessaging.storage.dledger.utils.DLedgerUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,7 +32,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.common.ControllerConfig;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -110,7 +107,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     private void notifyBrokerInActive(String clusterName, String brokerName, Long brokerId) {
         for (BrokerLifecycleListener listener : this.brokerLifecycleListeners) {
-            listener.onBrokerInactive(clusterName, brokerName, brokerId);
+            listener.onBrokerInactive(new BrokerSetIdentity(clusterName, brokerName), brokerId);
         }
     }
 
@@ -161,7 +158,6 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void onBrokerChannelClose(Channel channel) {
-        BrokerIdentityInfo addrInfo = null;
         this.brokerLiveTable.values().stream().flatMap(map -> map.values().stream()).filter(info -> info.getChannel() == channel).forEach(info -> {
             log.info("Channel {} inactive, broker {}, addr:{}, id:{}", info.getChannel(), info.getBrokerName(), info.getBrokerAddr(), info.getBrokerId());
             BrokerSetIdentity brokerSetIdentity = new BrokerSetIdentity(info.getClusterName(), info.getBrokerName());

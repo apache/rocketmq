@@ -44,7 +44,8 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
     public ElectMasterRequestHeader() {
     }
 
-    public ElectMasterRequestHeader(String brokerName) {
+    public ElectMasterRequestHeader(String clusterName, String brokerName) {
+        this.clusterName = clusterName;
         this.brokerName = brokerName;
     }
 
@@ -66,8 +67,8 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
         return new ElectMasterRequestHeader(clusterName, brokerName, brokerId);
     }
 
-    public static ElectMasterRequestHeader ofControllerTrigger(String brokerName) {
-        return new ElectMasterRequestHeader(brokerName);
+    public static ElectMasterRequestHeader ofControllerTrigger(String clusterName, String brokerName) {
+        return new ElectMasterRequestHeader(clusterName, brokerName);
     }
 
     public static ElectMasterRequestHeader ofAdminTrigger(String clusterName, String brokerName, Long brokerId) {

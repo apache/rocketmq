@@ -25,9 +25,10 @@ import io.openmessaging.storage.dledger.statemachine.ApplyEntry;
 import io.openmessaging.storage.dledger.statemachine.ApplyEntryIterator;
 import io.openmessaging.storage.dledger.statemachine.StateMachine;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.controller.dledger.event.EventResponse;
 import org.apache.rocketmq.controller.dledger.manager.ReplicasManager;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventMessage;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventSerializer;
+import org.apache.rocketmq.controller.dledger.event.write.WriteEventMessage;
+import org.apache.rocketmq.controller.dledger.event.write.WriteEventSerializer;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 

@@ -14,42 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.header.controller;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+package org.apache.rocketmq.controller.dledger.event.read;
 
-public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
+import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 
-    private String clusterName;
-    private String brokerName;
+public class GetReplicaInfoResult implements ReadEventResult {
+
     private Long masterBrokerId;
+    private String masterAddress;
     private Integer masterEpoch;
 
-    public AlterSyncStateSetRequestHeader() {
-    }
+    private SyncStateSet syncStateSet;
 
-    public AlterSyncStateSetRequestHeader(String clusterName, String brokerName, Long masterBrokerId, Integer masterEpoch) {
-        this.clusterName = clusterName;
-        this.brokerName = brokerName;
+    public GetReplicaInfoResult(Long masterBrokerId, String masterAddress, Integer masterEpoch, SyncStateSet syncStateSet) {
         this.masterBrokerId = masterBrokerId;
+        this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
+        this.syncStateSet = syncStateSet;
     }
 
-    public void setClusterName(String clusterName) {
-        this.clusterName = clusterName;
-    }
-
-    public String getClusterName() {
-        return clusterName;
-    }
-
-    public String getBrokerName() {
-        return brokerName;
-    }
-
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
+    public SyncStateSet getSyncStateSet() {
+        return syncStateSet;
     }
 
     public Long getMasterBrokerId() {
@@ -58,6 +44,14 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
 
     public void setMasterBrokerId(Long masterBrokerId) {
         this.masterBrokerId = masterBrokerId;
+    }
+
+    public String getMasterAddress() {
+        return masterAddress;
+    }
+
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
     }
 
     public Integer getMasterEpoch() {
@@ -69,15 +63,7 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     }
 
     @Override
-    public String toString() {
-        return "AlterSyncStateSetRequestHeader{" +
-                "brokerName='" + brokerName + '\'' +
-                ", masterBrokerId=" + masterBrokerId +
-                ", masterEpoch=" + masterEpoch +
-                '}';
-    }
-
-    @Override
-    public void checkFields() throws RemotingCommandException {
+    public ReadEventType getEventType() {
+        return ReadEventType.GET_REPLICA_INFO;
     }
 }

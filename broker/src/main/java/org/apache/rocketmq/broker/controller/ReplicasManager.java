@@ -642,7 +642,8 @@ public class ReplicasManager {
     private void schedulingSyncBrokerMetadata() {
         this.scheduledService.scheduleAtFixedRate(() -> {
             try {
-                final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result = this.brokerOuterAPI.getReplicaInfo(this.controllerLeaderAddress, this.brokerConfig.getBrokerName());
+                final Pair<GetReplicaInfoResponseHeader, SyncStateSet> result =
+                    this.brokerOuterAPI.getReplicaInfo(this.controllerLeaderAddress, this.brokerConfig.getBrokerClusterName(), this.brokerConfig.getBrokerName());
                 final GetReplicaInfoResponseHeader info = result.getObject1();
                 final SyncStateSet syncStateSet = result.getObject2();
                 final String newMasterAddress = info.getMasterAddress();

@@ -29,23 +29,23 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.dledger.manager.BrokerReplicaInfo;
 import org.apache.rocketmq.controller.dledger.manager.ReplicasManager;
 import org.apache.rocketmq.controller.dledger.manager.SyncStateInfo;
-import org.apache.rocketmq.controller.dledger.statemachine.EventResponse;
-import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetNextBrokerIdEvent;
-import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetNextBrokerIdResult;
-import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetReplicaInfoEvent;
-import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetReplicaInfoResult;
-import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetSyncStateSetEvent;
-import org.apache.rocketmq.controller.dledger.statemachine.event.read.GetSyncStateSetResult;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.AlterSyncStateSetEvent;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.AlterSyncStateSetResult;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.ApplyBrokerIdEvent;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.ApplyBrokerIdResult;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.CleanBrokerDataEvent;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.CleanBrokerDataResult;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.ElectMasterEvent;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.ElectMasterResult;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.RegisterBrokerEvent;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.RegisterBrokerResult;
+import org.apache.rocketmq.controller.dledger.event.EventResponse;
+import org.apache.rocketmq.controller.dledger.event.read.GetNextBrokerIdEvent;
+import org.apache.rocketmq.controller.dledger.event.read.GetNextBrokerIdResult;
+import org.apache.rocketmq.controller.dledger.event.read.GetReplicaInfoEvent;
+import org.apache.rocketmq.controller.dledger.event.read.GetReplicaInfoResult;
+import org.apache.rocketmq.controller.dledger.event.read.GetSyncStateSetEvent;
+import org.apache.rocketmq.controller.dledger.event.read.GetSyncStateSetResult;
+import org.apache.rocketmq.controller.dledger.event.write.AlterSyncStateSetEvent;
+import org.apache.rocketmq.controller.dledger.event.write.AlterSyncStateSetResult;
+import org.apache.rocketmq.controller.dledger.event.write.ApplyBrokerIdEvent;
+import org.apache.rocketmq.controller.dledger.event.write.ApplyBrokerIdResult;
+import org.apache.rocketmq.controller.dledger.event.write.CleanBrokerDataEvent;
+import org.apache.rocketmq.controller.dledger.event.write.CleanBrokerDataResult;
+import org.apache.rocketmq.controller.dledger.event.write.ElectMasterEvent;
+import org.apache.rocketmq.controller.dledger.event.write.ElectMasterResult;
+import org.apache.rocketmq.controller.dledger.event.write.RegisterBrokerEvent;
+import org.apache.rocketmq.controller.dledger.event.write.RegisterBrokerResult;
 import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
 import org.apache.rocketmq.controller.heartbeat.DefaultBrokerHeartbeatManager;
 import org.apache.rocketmq.controller.helper.BrokerLiveInfoGetter;
@@ -259,11 +259,11 @@ public class ReplicasManagerTest {
         registerNewBroker(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[2], 3L, null);
         // all brokers alive
         this.heartbeatManager.onBrokerHeartbeat(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[0], 1L, TIMEOUT_NEVER, null,
-            1, 0L, 0L, 0);
+            1, 1L, -1L, 0);
         this.heartbeatManager.onBrokerHeartbeat(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[1], 2L, TIMEOUT_NEVER, null,
-            1, 0L, 0L, 0);
+            1, 1L, -1L, 0);
         this.heartbeatManager.onBrokerHeartbeat(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[2], 3L, TIMEOUT_NEVER, null,
-            1, 0L, 0L, 0);
+            1, 1L, -1L, 0);
         brokerElectMaster(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, DEFAULT_IP[0], true, true);
         brokerElectMaster(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 2L, DEFAULT_IP[1], false, false);
         brokerElectMaster(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 3L, DEFAULT_IP[2], false, false);
@@ -425,22 +425,24 @@ public class ReplicasManagerTest {
         this.heartbeatManager.onBrokerHeartbeat(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[0], 1L, TIMEOUT_NOW, null,
             1, 1L, -1L, 0);
 
-        final Map<Long, BrokerLiveInfo> liveInfo = getBrokersLiveInfo(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME);
+        Map<Long, BrokerLiveInfo> liveInfo = getBrokersLiveInfo(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME);
         ElectMasterEvent electMasterEvent = new ElectMasterEvent(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, null, false, liveInfo);
         EventResponse<ElectMasterResult> eventResponse = (EventResponse<ElectMasterResult>) this.replicasManager.applyEvent(electMasterEvent);
         ElectMasterResult electMasterResult = eventResponse.getResponseResult();
         Long masterBrokerId = electMasterResult.getMasterBrokerId();
+        Integer masterEpoch = electMasterResult.getMasterEpoch();
+        Integer syncStateSetEpoch = electMasterResult.getSyncStateSetEpoch();
         String masterBrokerAddress = DEFAULT_IP[(int) (masterBrokerId - 1)];
 
         assertEquals(2, electMasterResult.getMasterEpoch().intValue());
-        assertNotEquals(1L, electMasterResult.getMasterBrokerId().longValue());
-        assertNotEquals(DEFAULT_IP[0], electMasterResult.getMasterAddress());
+        assertNotEquals(1L, masterBrokerId.longValue());
+        assertNotEquals(DEFAULT_IP[0], masterBrokerAddress);
 
         final Set<Long> brokerSet = new HashSet<>();
-        brokerSet.add(1L);
         brokerSet.add(2L);
         brokerSet.add(3L);
-        alterNewInSyncSet(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, electMasterResult.getMasterBrokerId(), electMasterResult.getMasterEpoch(), brokerSet, electMasterResult.getSyncStateSetEpoch());
+        alterNewInSyncSet(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, masterBrokerId, masterEpoch, brokerSet, syncStateSetEpoch);
+        syncStateSetEpoch++;
 
         // test admin try to elect a assignedMaster, but it isn't alive
         electMasterEvent = new ElectMasterEvent(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, true, liveInfo);
@@ -457,13 +459,16 @@ public class ReplicasManagerTest {
         assertEquals(eventResponse.getResponseCode(), ResponseCode.CONTROLLER_MASTER_STILL_EXIST);
 
         // admin successful elect a assignedMaster.
-        // mock master is offline
-        this.heartbeatManager.onBrokerHeartbeat(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, masterBrokerAddress, masterBrokerId, TIMEOUT_NOW, null,
-            1, 1L, -1L, 0);
         // mock broker-1 is online
         this.heartbeatManager.onBrokerHeartbeat(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[0], 1L, TIMEOUT_NEVER, null,
             1, 1L, -1L, 0);
+        brokerSet.add(1L);
+        alterNewInSyncSet(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, masterBrokerId, masterEpoch, brokerSet, syncStateSetEpoch);
+        // mock master is offline
+        this.heartbeatManager.onBrokerHeartbeat(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, masterBrokerAddress, masterBrokerId, TIMEOUT_NOW, null,
+            1, 1L, -1L, 0);
 
+        liveInfo = getBrokersLiveInfo(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME);
         electMasterEvent = new ElectMasterEvent(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, true, liveInfo);
         eventResponse = (EventResponse<ElectMasterResult>) this.replicasManager.applyEvent(electMasterEvent);
         electMasterResult = eventResponse.getResponseResult();

@@ -14,15 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.controller.dledger.event;
 
-/**
- * The parent class of Event, the subclass needs to indicate eventType.
- */
 public interface EventMessage {
-
-    /**
-     * Returns the event type of this message
-     */
-    EventType getEventType();
 }

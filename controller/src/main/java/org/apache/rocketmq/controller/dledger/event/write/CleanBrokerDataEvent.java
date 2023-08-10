@@ -14,42 +14,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.header.controller;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+package org.apache.rocketmq.controller.dledger.event.write;
 
-public class GetReplicaInfoRequestHeader implements CommandCustomHeader {
+import java.util.Set;
 
-    private String clusterName;
-    private String brokerName;
+public class CleanBrokerDataEvent implements WriteEventMessage {
 
-    public GetReplicaInfoRequestHeader() {
-    }
+    private final String clusterName;
 
-    public GetReplicaInfoRequestHeader(String clusterName, String brokerName) {
+    private final String brokerName;
+
+    private final Set<Long/*broker id*/> needCleanBrokerIdSet;
+
+    public CleanBrokerDataEvent(String clusterName, String brokerName, Set<Long> needCleanBrokerIdSet) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-    }
-
-
-    public String getBrokerName() {
-        return brokerName;
+        this.needCleanBrokerIdSet = needCleanBrokerIdSet;
     }
 
     public String getClusterName() {
         return clusterName;
     }
 
-    @Override
-    public String toString() {
-        return "GetReplicaInfoRequestHeader{" +
-            "clusterName='" + clusterName + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            '}';
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public Set<Long> getNeedCleanBrokerIdSet() {
+        return needCleanBrokerIdSet;
     }
 
     @Override
-    public void checkFields() throws RemotingCommandException {
+    public WriteEventType getEventType() {
+        return WriteEventType.CLEAN_BROKER_DATA;
     }
 }

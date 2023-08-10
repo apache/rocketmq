@@ -15,27 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller;
+package org.apache.rocketmq.controller.dledger.event.write;
 
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 
-public class ControllerTestBase {
+public class AlterSyncStateSetResult implements WriteEventResult {
 
-    public final static String DEFAULT_CLUSTER_NAME = "cluster-a";
+    private SyncStateSet newSyncStateSet;
 
-    public final static String DEFAULT_BROKER_NAME = "broker-set-a";
-
-    public final static String[] DEFAULT_IP = {"127.0.0.1:9000", "127.0.0.1:9001", "127.0.0.1:9002"};
-
-    public final static Long TIMEOUT_NEVER = 1000000000000000000L;
-
-    public final static Long TIMEOUT_NOW = -1L;
-
-    private static final AtomicInteger PORT_COUNTER = new AtomicInteger(30000);
-    private static Random random = new Random();
-    public static int nextPort() {
-        return PORT_COUNTER.addAndGet(10 + random.nextInt(10));
+    public AlterSyncStateSetResult() {
     }
 
+    public AlterSyncStateSetResult(SyncStateSet syncStateSet) {
+        this.newSyncStateSet = syncStateSet;
+    }
+
+    public void setNewSyncStateSet(SyncStateSet newSyncStateSet) {
+        this.newSyncStateSet = newSyncStateSet;
+    }
+
+    public SyncStateSet getNewSyncStateSet() {
+        return newSyncStateSet;
+    }
+
+    @Override
+    public WriteEventType getEventType() {
+        return WriteEventType.ALTER_SYNC_STATE_SET;
+    }
 }

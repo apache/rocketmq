@@ -36,8 +36,8 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 
-import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.dledger.DLedgerController;
+import org.apache.rocketmq.controller.heartbeat.BrokerSetIdentity;
 import org.apache.rocketmq.controller.heartbeat.DefaultBrokerHeartbeatManager;
 import org.apache.rocketmq.controller.metrics.ControllerMetricsManager;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
@@ -112,9 +112,9 @@ public class ControllerManager {
         if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerSelfId())) {
             throw new IllegalArgumentException("Attribute value controllerDLegerSelfId of ControllerConfig is null or empty");
         }
-        this.controller = new DLedgerController(this.controllerConfig, this.heartbeatManager::isBrokerActive,
-            this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService,
-            new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo));
+        this.controller = new DLedgerController(this.controllerConfig,
+            this.heartbeatManager::isBrokerActive, this.heartbeatManager::getActiveBrokerIds, this.heartbeatManager::getBrokerLiveInfo,
+            this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService);
 
         // Initialize the basic resources
         this.heartbeatManager.initialize();
@@ -131,46 +131,49 @@ public class ControllerManager {
      * When the heartbeatManager detects the "Broker is not active", we call this method to elect a master and do
      * something else.
      *
-     * @param clusterName The cluster name of this inactive broker
-     * @param brokerName The inactive broker name
-     * @param brokerId The inactive broker id, null means that the election forced to be triggered
+     * @param brokerSetIdentity The broker-set identity
+     * @param brokerId    The inactive broker id, null means that the election forced to be triggered
      */
-    private void onBrokerInactive(String clusterName, String brokerName, Long brokerId) {
+    private void onBrokerInactive(BrokerSetIdentity brokerSetIdentity, Long brokerId) {
         if (controller.isLeaderState()) {
             if (brokerId == null) {
                 // Means that force triggering election for this broker-set
-                triggerElectMaster(brokerName);
+                triggerElectMaster(brokerSetIdentity);
                 return;
             }
-            final CompletableFuture<RemotingCommand> replicaInfoFuture = controller.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName));
+            final String clusterName = brokerSetIdentity.getClusterName();
+            final String brokerName = brokerSetIdentity.getBrokerName();
+            final CompletableFuture<RemotingCommand> replicaInfoFuture = controller.getReplicaInfo(new GetReplicaInfoRequestHeader(clusterName, brokerName));
             replicaInfoFuture.whenCompleteAsync((replicaInfoResponse, err) -> {
                 if (err != null || replicaInfoResponse == null) {
-                    log.error("Failed to get replica-info for broker-set: {} when OnBrokerInactive", brokerName, err);
+                    log.error("Failed to get replica-info for broker-set: {} when OnBrokerInactive", brokerSetIdentity, err);
                     return;
                 }
                 final GetReplicaInfoResponseHeader replicaInfoResponseHeader = (GetReplicaInfoResponseHeader) replicaInfoResponse.readCustomHeader();
                 // Not master broker offline
                 if (!brokerId.equals(replicaInfoResponseHeader.getMasterBrokerId())) {
-                    log.warn("The broker with brokerId: {} in broker-set: {} has been inactive", brokerId, brokerName);
+                    log.warn("The broker with brokerId: {} in broker-set: {} has been inactive", brokerId, brokerSetIdentity);
                     return;
                 }
                 // Trigger election
-                triggerElectMaster(brokerName);
+                triggerElectMaster(brokerSetIdentity);
             });
         } else {
-            log.warn("The broker with brokerId: {} in broker-set: {} has been inactive", brokerId, brokerName);
+            log.warn("The broker with brokerId: {} in broker-set: {} has been inactive", brokerId, brokerSetIdentity);
         }
     }
 
-    private void triggerElectMaster(String brokerName) {
-        final CompletableFuture<RemotingCommand> electMasterFuture = controller.electMaster(ElectMasterRequestHeader.ofControllerTrigger(brokerName));
+    private void triggerElectMaster(BrokerSetIdentity brokerSetIdentity) {
+        final String clusterName = brokerSetIdentity.getClusterName();
+        final String brokerName = brokerSetIdentity.getBrokerName();
+        final CompletableFuture<RemotingCommand> electMasterFuture = controller.electMaster(ElectMasterRequestHeader.ofControllerTrigger(clusterName, brokerName));
         electMasterFuture.whenCompleteAsync((electMasterResponse, err) -> {
             if (err != null || electMasterResponse == null) {
-                log.error("Failed to trigger elect-master in broker-set: {}", brokerName, err);
+                log.error("Failed to trigger elect-master in broker-set: {}", brokerSetIdentity, err);
                 return;
             }
             if (electMasterResponse.getCode() == ResponseCode.SUCCESS) {
-                log.info("Elect a new master in broker-set: {} done, result: {}", brokerName, electMasterResponse);
+                log.info("Elect a new master in broker-set: {} done, result: {}", brokerSetIdentity, electMasterResponse);
                 if (controllerConfig.isNotifyBrokerRoleChanged()) {
                     notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(electMasterResponse));
                 }
@@ -194,20 +197,21 @@ public class ControllerManager {
             // Inform all active brokers
             final Map<Long, String> brokerAddrs = memberGroup.getBrokerAddrs();
             brokerAddrs.entrySet().stream().filter(x -> this.heartbeatManager.isBrokerActive(clusterName, brokerName, x.getKey()))
-                    .forEach(x -> this.notifyService.notifyBroker(x.getValue(), entry));
+                .forEach(x -> this.notifyService.notifyBroker(x.getValue(), entry));
         }
     }
 
     /**
      * Notify broker that there are roles-changing in controller
+     *
      * @param brokerAddr target broker's address to notify
-     * @param entry role change entry
+     * @param entry      role change entry
      */
     public void doNotifyBrokerRoleChanged(final String brokerAddr, final RoleChangeNotifyEntry entry) {
         if (StringUtils.isNoneEmpty(brokerAddr)) {
             log.info("Try notify broker {} that role changed, RoleChangeNotifyEntry:{}", brokerAddr, entry);
             final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(entry.getMasterAddress(), entry.getMasterBrokerId(),
-                    entry.getMasterEpoch(), entry.getSyncStateSetEpoch());
+                entry.getMasterEpoch(), entry.getSyncStateSetEpoch());
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
             request.setBody(new SyncStateSet(entry.getSyncStateSet(), entry.getSyncStateSetEpoch()).encode());
             try {
@@ -341,7 +345,8 @@ public class ControllerManager {
 
             @Override
             public boolean equals(Object obj) {
-                if (this == obj) return true;
+                if (this == obj)
+                    return true;
                 if (!(obj instanceof NotifyTask)) {
                     return false;
                 }

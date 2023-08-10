@@ -14,240 +14,358 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.controller.dledger;
 
-import com.google.common.base.Stopwatch;
-import io.openmessaging.storage.dledger.AppendFuture;
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerLeaderElector;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import io.openmessaging.storage.dledger.MemberState;
-import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
-import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
-import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
-import io.opentelemetry.api.common.AttributesBuilder;
+import io.openmessaging.storage.dledger.common.ReadClosure;
+import io.openmessaging.storage.dledger.common.ReadMode;
+import io.openmessaging.storage.dledger.common.Status;
+import io.openmessaging.storage.dledger.common.WriteClosure;
+import io.openmessaging.storage.dledger.common.WriteTask;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
-import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.Controller;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventSerializer;
-import org.apache.rocketmq.controller.elect.ElectPolicy;
-import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
-import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
-import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
-import org.apache.rocketmq.controller.dledger.event.ControllerResult;
-import org.apache.rocketmq.controller.dledger.event.EventMessage;
-import org.apache.rocketmq.controller.dledger.manager.ReplicasInfoManager;
+import org.apache.rocketmq.controller.dledger.manager.BrokerReplicaInfo;
+import org.apache.rocketmq.controller.dledger.manager.ReplicasManager;
+import org.apache.rocketmq.controller.dledger.manager.SyncStateInfo;
 import org.apache.rocketmq.controller.dledger.statemachine.DLedgerControllerStateMachine;
-import org.apache.rocketmq.controller.metrics.ControllerMetricsConstant;
+import org.apache.rocketmq.controller.dledger.event.EventResponse;
+import org.apache.rocketmq.controller.dledger.event.EventResult;
+import org.apache.rocketmq.controller.dledger.event.read.GetNextBrokerIdEvent;
+import org.apache.rocketmq.controller.dledger.event.read.GetNextBrokerIdResult;
+import org.apache.rocketmq.controller.dledger.event.read.GetReplicaInfoEvent;
+import org.apache.rocketmq.controller.dledger.event.read.GetReplicaInfoResult;
+import org.apache.rocketmq.controller.dledger.event.read.GetSyncStateSetEvent;
+import org.apache.rocketmq.controller.dledger.event.read.GetSyncStateSetResult;
+import org.apache.rocketmq.controller.dledger.event.read.ReadEventMessage;
+import org.apache.rocketmq.controller.dledger.event.read.ReadEventResult;
+import org.apache.rocketmq.controller.dledger.event.write.AlterSyncStateSetEvent;
+import org.apache.rocketmq.controller.dledger.event.write.AlterSyncStateSetResult;
+import org.apache.rocketmq.controller.dledger.event.write.ApplyBrokerIdEvent;
+import org.apache.rocketmq.controller.dledger.event.write.ApplyBrokerIdResult;
+import org.apache.rocketmq.controller.dledger.event.write.CleanBrokerDataEvent;
+import org.apache.rocketmq.controller.dledger.event.write.CleanBrokerDataResult;
+import org.apache.rocketmq.controller.dledger.event.write.ElectMasterEvent;
+import org.apache.rocketmq.controller.dledger.event.write.ElectMasterResult;
+import org.apache.rocketmq.controller.dledger.event.write.RegisterBrokerEvent;
+import org.apache.rocketmq.controller.dledger.event.write.RegisterBrokerResult;
+import org.apache.rocketmq.controller.dledger.event.write.WriteEventMessage;
+import org.apache.rocketmq.controller.dledger.event.write.WriteEventResult;
+import org.apache.rocketmq.controller.dledger.event.write.WriteEventSerializer;
+import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
+import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
+import org.apache.rocketmq.controller.helper.BrokerLiveInfoGetter;
+import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
+import org.apache.rocketmq.controller.helper.ValidBrokersGetter;
 import org.apache.rocketmq.controller.metrics.ControllerMetricsManager;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_BROKER_SET;
-import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_CLUSTER_NAME;
-import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_DLEDGER_OPERATION;
-import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_DLEDGER_OPERATION_STATUS;
-import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_ELECTION_RESULT;
-
-/**
- * The implementation of controller, based on DLedger (raft).
- */
 public class DLedgerController implements Controller {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(DLedgerController.class);
+
     private final DLedgerServer dLedgerServer;
-    private final ControllerConfig controllerConfig;
+
     private final DLedgerConfig dLedgerConfig;
-    private final ReplicasInfoManager replicasInfoManager;
-    private final EventScheduler scheduler;
-    private final WriteEventSerializer eventSerializer;
-    private final RoleChangeHandler roleHandler;
-    private final DLedgerControllerStateMachine statemachine;
-    private final ScheduledExecutorService scanInactiveMasterService;
 
-    private ScheduledFuture scanInactiveMasterFuture;
+    private final ControllerConfig controllerConfig;
 
-    private List<BrokerLifecycleListener> brokerLifecycleListeners;
+    private final ReplicasManager replicasManager;
 
-    // Usr for checking whether the broker is alive
-    private BrokerValidPredicate brokerAlivePredicate;
-    // use for elect a master
-    private ElectPolicy electPolicy;
+    private final DLedgerControllerStateMachine stateMachine;
 
-    private AtomicBoolean isScheduling = new AtomicBoolean(false);
+    private final List<BrokerLifecycleListener> brokerLifecycleListeners;
 
-    public DLedgerController(final ControllerConfig config, final BrokerValidPredicate brokerAlivePredicate) {
-        this(config, brokerAlivePredicate, null, null, null, null);
-    }
+    private final RoleChangeHandler roleChangeHandler;
+
+    private final String selfId;
+
+    private final BrokerValidPredicate brokerValidPredicate;
+
+    private final ValidBrokersGetter validBrokersGetter;
+
+    private final BrokerLiveInfoGetter brokerLiveInfoGetter;
+
+    private final AtomicBoolean start = new AtomicBoolean(false);
+
+    private final WriteEventSerializer writeEventSerializer = new WriteEventSerializer();
 
     public DLedgerController(final ControllerConfig controllerConfig,
-        final BrokerValidPredicate brokerAlivePredicate, final NettyServerConfig nettyServerConfig,
-        final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener,
-        final ElectPolicy electPolicy) {
+        final BrokerValidPredicate brokerValidPredicate, final ValidBrokersGetter validBrokersGetter, final BrokerLiveInfoGetter brokerLiveInfoGetter,
+        final NettyServerConfig nettyServerConfig, final NettyClientConfig nettyClientConfig,
+        final ChannelEventListener channelEventListener) {
         this.controllerConfig = controllerConfig;
-        this.eventSerializer = new WriteEventSerializer();
-        this.scheduler = new EventScheduler();
-        this.brokerAlivePredicate = brokerAlivePredicate;
-        this.electPolicy = electPolicy == null ? new DefaultElectPolicy() : electPolicy;
-        this.dLedgerConfig = new DLedgerConfig();
-        this.dLedgerConfig.setGroup(controllerConfig.getControllerDLegerGroup());
-        this.dLedgerConfig.setPeers(controllerConfig.getControllerDLegerPeers());
-        this.dLedgerConfig.setSelfId(controllerConfig.getControllerDLegerSelfId());
-        this.dLedgerConfig.setStoreBaseDir(controllerConfig.getControllerStorePath());
-        this.dLedgerConfig.setMappedFileSizeForEntryData(controllerConfig.getMappedFileSize());
+        this.brokerValidPredicate = brokerValidPredicate;
+        this.validBrokersGetter = validBrokersGetter;
+        this.brokerLiveInfoGetter = brokerLiveInfoGetter;
+        this.dLedgerConfig = buildDLedgerConfig(controllerConfig);
+        this.selfId = this.dLedgerConfig.getSelfId();
+        this.roleChangeHandler = new RoleChangeHandler(selfId);
+        this.replicasManager = new ReplicasManager(controllerConfig);
+        this.stateMachine = new DLedgerControllerStateMachine(this.replicasManager, writeEventSerializer, this.dLedgerConfig);
 
-        this.roleHandler = new RoleChangeHandler(dLedgerConfig.getSelfId());
-        this.replicasInfoManager = new ReplicasInfoManager(controllerConfig);
-        this.statemachine = new DLedgerControllerStateMachine(replicasInfoManager, this.eventSerializer, dLedgerConfig);
+        this.dLedgerServer = new DLedgerServer(this.dLedgerConfig, nettyServerConfig, nettyClientConfig, channelEventListener, this.stateMachine);
+        this.dLedgerServer.getDLedgerLeaderElector().addRoleChangeHandler(this.roleChangeHandler);
+        this.brokerLifecycleListeners = new LinkedList<>();
+    }
 
-        // Register statemachine and role handler.
-        this.dLedgerServer = new DLedgerServer(dLedgerConfig, nettyServerConfig, nettyClientConfig, channelEventListener);
-        this.dLedgerServer.registerStateMachine(this.statemachine);
-        this.dLedgerServer.getDLedgerLeaderElector().addRoleChangeHandler(this.roleHandler);
-        this.scanInactiveMasterService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DLedgerController_scanInactiveService_"));
-        this.brokerLifecycleListeners = new ArrayList<>();
+    private DLedgerConfig buildDLedgerConfig(final ControllerConfig controllerConfig) {
+        DLedgerConfig dLedgerConfig = new DLedgerConfig();
+        dLedgerConfig.setGroup(controllerConfig.getControllerDLegerGroup());
+        dLedgerConfig.setPeers(controllerConfig.getControllerDLegerPeers());
+        dLedgerConfig.setSelfId(controllerConfig.getControllerDLegerSelfId());
+        dLedgerConfig.setStoreBaseDir(controllerConfig.getControllerStorePath());
+        dLedgerConfig.setMappedFileSizeForEntryData(controllerConfig.getMappedFileSize());
+        return dLedgerConfig;
     }
 
     @Override
     public void startup() {
-        this.dLedgerServer.startup();
+        if (this.start.compareAndSet(false, true)) {
+            this.dLedgerServer.startup();
+        }
     }
 
     @Override
     public void shutdown() {
-        this.cancelScanInactiveFuture();
-        this.dLedgerServer.shutdown();
+        if (this.start.compareAndSet(true, false)) {
+            this.dLedgerServer.shutdown();
+        }
     }
 
     @Override
     public void startScheduling() {
-        if (this.isScheduling.compareAndSet(false, true)) {
-            log.info("Start scheduling controller events");
-            this.scheduler.start();
-        }
+
     }
 
     @Override
     public void stopScheduling() {
-        if (this.isScheduling.compareAndSet(true, false)) {
-            log.info("Stop scheduling controller events");
-            this.scheduler.shutdown(true);
-        }
+
     }
 
     @Override
     public boolean isLeaderState() {
-        return this.roleHandler.isLeaderState();
-    }
-
-    public ControllerConfig getControllerConfig() {
-        return controllerConfig;
+        return this.roleChangeHandler.isLeaderState();
     }
 
     @Override
     public CompletableFuture<RemotingCommand> alterSyncStateSet(AlterSyncStateSetRequestHeader request,
-        final SyncStateSet syncStateSet) {
-        return this.scheduler.appendEvent("alterSyncStateSet",
-            () -> this.replicasInfoManager.alterSyncStateSet(request, syncStateSet, this.brokerAlivePredicate), true);
+        SyncStateSet syncStateSet) {
+        if (!this.isLeaderState()) {
+            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "Not leader"));
+        }
+        final String clusterName = request.getClusterName();
+        final String brokerName = request.getBrokerName();
+        final Long masterBrokerId = request.getMasterBrokerId();
+        final Integer masterEpoch = request.getMasterEpoch();
+        final Integer syncStateSetEpoch = syncStateSet.getSyncStateSetEpoch();
+        final Set<Long> newSyncStateSets = syncStateSet.getSyncStateSet();
+        Set<Long> brokerIds = validBrokersGetter.get(clusterName, brokerName);
+        final AlterSyncStateSetEvent event = new AlterSyncStateSetEvent(clusterName, brokerName, masterBrokerId, masterEpoch, newSyncStateSets, syncStateSetEpoch, brokerIds);
+        byte[] data = writeEventSerializer.serialize(event);
+        final WriteTask task = new WriteTask();
+        task.setBody(data);
+        final CompletableFuture<EventResponse<AlterSyncStateSetResult>> future = new CompletableFuture<>();
+        final ControllerWriteClosure writeClosure = new ControllerWriteClosure(future, event);
+        dLedgerServer.handleWrite(task, writeClosure);
+        return future.thenApply(resp -> {
+            AlterSyncStateSetResult alterSyncStateSetResult = resp.getResponseResult();
+            AlterSyncStateSetResponseHeader alterSyncStateSetResponseHeader = new AlterSyncStateSetResponseHeader();
+            if (alterSyncStateSetResult != null && alterSyncStateSetResult.getNewSyncStateSet() != null) {
+                alterSyncStateSetResponseHeader.setNewSyncStateSetEpoch(alterSyncStateSetResult.getNewSyncStateSet().getSyncStateSetEpoch());
+            }
+            RemotingCommand command = RemotingCommand.createResponseCommandWithHeader(resp.getResponseCode(), alterSyncStateSetResponseHeader);
+            if (alterSyncStateSetResult != null && alterSyncStateSetResult.getNewSyncStateSet() != null) {
+                command.setBody(alterSyncStateSetResult.getNewSyncStateSet().encode());
+            }
+            command.setRemark(resp.getResponseMsg());
+            return command;
+        });
     }
 
     @Override
-    public CompletableFuture<RemotingCommand> electMaster(final ElectMasterRequestHeader request) {
-        return this.scheduler.appendEvent("electMaster",
-            () -> {
-                ControllerResult<ElectMasterResponseHeader> electResult = this.replicasInfoManager.electMaster(request, this.electPolicy);
-                AttributesBuilder attributesBuilder = ControllerMetricsManager.newAttributesBuilder()
-                    .put(LABEL_CLUSTER_NAME, request.getClusterName())
-                    .put(LABEL_BROKER_SET, request.getBrokerName());
-                switch (electResult.getResponseCode()) {
-                    case ResponseCode.SUCCESS:
-                        ControllerMetricsManager.electionTotal.add(1,
-                            attributesBuilder.put(LABEL_ELECTION_RESULT, ControllerMetricsConstant.ElectionResult.NEW_MASTER_ELECTED.getLowerCaseName()).build());
-                        break;
-                    case ResponseCode.CONTROLLER_MASTER_STILL_EXIST:
-                        ControllerMetricsManager.electionTotal.add(1,
-                            attributesBuilder.put(LABEL_ELECTION_RESULT, ControllerMetricsConstant.ElectionResult.KEEP_CURRENT_MASTER.getLowerCaseName()).build());
-                        break;
-                    case ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE:
-                    case ResponseCode.CONTROLLER_ELECT_MASTER_FAILED:
-                        ControllerMetricsManager.electionTotal.add(1,
-                            attributesBuilder.put(LABEL_ELECTION_RESULT, ControllerMetricsConstant.ElectionResult.NO_MASTER_ELECTED.getLowerCaseName()).build());
-                        break;
-                    default:
-                        break;
-                }
-                return electResult;
-            }, true);
+    public CompletableFuture<RemotingCommand> electMaster(ElectMasterRequestHeader request) {
+        if (!this.isLeaderState()) {
+            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "Not leader"));
+        }
+        final String clusterName = request.getClusterName();
+        final String brokerName = request.getBrokerName();
+        final Long brokerId = request.getBrokerId();
+        final boolean designateElect = request.getDesignateElect();
+
+        final Map<Long, BrokerLiveInfo> aliveBrokers = this.validBrokersGetter.get(clusterName, brokerName).stream().
+            map(broker -> this.brokerLiveInfoGetter.get(clusterName, brokerName, broker)).
+            collect(Collectors.toMap(brokerLiveInfo -> brokerLiveInfo.getBrokerId(), brokerLiveInfo -> brokerLiveInfo));
+
+        final ElectMasterEvent event = new ElectMasterEvent(clusterName, brokerName, brokerId, designateElect, aliveBrokers);
+        byte[] data = writeEventSerializer.serialize(event);
+        final WriteTask task = new WriteTask();
+        task.setBody(data);
+        final CompletableFuture<EventResponse<ElectMasterResult>> future = new CompletableFuture<>();
+        final ControllerWriteClosure writeClosure = new ControllerWriteClosure(future, event);
+        dLedgerServer.handleWrite(task, writeClosure);
+        return future.thenApply(resp -> {
+            ElectMasterResult electMasterResult = resp.getResponseResult();
+            ElectMasterResponseHeader electMasterResponseHeader = new ElectMasterResponseHeader();
+            electMasterResponseHeader.setMasterBrokerId(electMasterResult.getMasterBrokerId());
+            electMasterResponseHeader.setMasterAddress(electMasterResult.getMasterAddress());
+            electMasterResponseHeader.setMasterEpoch(electMasterResult.getMasterEpoch());
+            electMasterResponseHeader.setSyncStateSetEpoch(electMasterResult.getSyncStateSetEpoch());
+            RemotingCommand command = RemotingCommand.createResponseCommandWithHeader(resp.getResponseCode(), electMasterResponseHeader);
+            command.setRemark(resp.getResponseMsg());
+            return command;
+        });
     }
 
     @Override
     public CompletableFuture<RemotingCommand> getNextBrokerId(GetNextBrokerIdRequestHeader request) {
-        return this.scheduler.appendEvent("getNextBrokerId", () -> this.replicasInfoManager.getNextBrokerId(request), false);
+        if (!this.isLeaderState()) {
+            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "Not leader"));
+        }
+        final String clusterName = request.getClusterName();
+        final String brokerName = request.getBrokerName();
+        final CompletableFuture<EventResponse<GetNextBrokerIdResult>> future = new CompletableFuture<>();
+        final GetNextBrokerIdEvent event = new GetNextBrokerIdEvent(clusterName, brokerName);
+        final ControllerReadClosure closure = new ControllerReadClosure(future, event);
+        dLedgerServer.handleRead(ReadMode.RAFT_LOG_READ, closure);
+        return future.thenApply(resp -> {
+            GetNextBrokerIdResult getNextBrokerIdResult = resp.getResponseResult();
+            GetNextBrokerIdResponseHeader getNextBrokerIdResponseHeader = new GetNextBrokerIdResponseHeader();
+            getNextBrokerIdResponseHeader.setNextBrokerId(getNextBrokerIdResult.getNextBrokerId());
+            RemotingCommand command = RemotingCommand.createResponseCommandWithHeader(resp.getResponseCode(), getNextBrokerIdResponseHeader);
+            command.setRemark(resp.getResponseMsg());
+            return command;
+        });
     }
 
     @Override
     public CompletableFuture<RemotingCommand> applyBrokerId(ApplyBrokerIdRequestHeader request) {
-        return this.scheduler.appendEvent("applyBrokerId", () -> this.replicasInfoManager.applyBrokerId(request), true);
+        if (!this.isLeaderState()) {
+            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "Not leader"));
+        }
+        final String clusterName = request.getClusterName();
+        final String brokerName = request.getBrokerName();
+        final Long appliedBrokerId = request.getAppliedBrokerId();
+        final String registerCheckCode = request.getRegisterCheckCode();
+        final ApplyBrokerIdEvent event = new ApplyBrokerIdEvent(clusterName, brokerName, appliedBrokerId, registerCheckCode);
+        byte[] data = writeEventSerializer.serialize(event);
+        final WriteTask task = new WriteTask();
+        task.setBody(data);
+        final CompletableFuture<EventResponse<ApplyBrokerIdResult>> future = new CompletableFuture<>();
+        final ControllerWriteClosure writeClosure = new ControllerWriteClosure(future, event);
+        dLedgerServer.handleWrite(task, writeClosure);
+        return future.thenApply(resp -> {
+            ApplyBrokerIdResult applyBrokerIdResult = resp.getResponseResult();
+            ApplyBrokerIdResponseHeader applyBrokerIdResponseHeader = new ApplyBrokerIdResponseHeader();
+            applyBrokerIdResponseHeader.setClusterName(applyBrokerIdResult.getClusterName());
+            applyBrokerIdResponseHeader.setBrokerName(applyBrokerIdResult.getBrokerName());
+            RemotingCommand command = RemotingCommand.createResponseCommandWithHeader(resp.getResponseCode(), applyBrokerIdResponseHeader);
+            command.setRemark(resp.getResponseMsg());
+            return command;
+        });
     }
 
     @Override
     public CompletableFuture<RemotingCommand> registerBroker(RegisterBrokerToControllerRequestHeader request) {
-        return this.scheduler.appendEvent("registerSuccess", () -> this.replicasInfoManager.registerBroker(request, brokerAlivePredicate), true);
+        if (!this.isLeaderState()) {
+            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "Not leader"));
+        }
+        final String clusterName = request.getClusterName();
+        final String brokerName = request.getBrokerName();
+        final String brokerAddress = request.getBrokerAddress();
+        final Long brokerId = request.getBrokerId();
+        final RegisterBrokerEvent event = new RegisterBrokerEvent(clusterName, brokerName, brokerAddress, brokerId);
+        byte[] data = writeEventSerializer.serialize(event);
+        final WriteTask task = new WriteTask();
+        task.setBody(data);
+        final CompletableFuture<EventResponse<RegisterBrokerResult>> future = new CompletableFuture<>();
+        final ControllerWriteClosure writeClosure = new ControllerWriteClosure(future, event);
+        dLedgerServer.handleWrite(task, writeClosure);
+        return future.thenApply(resp -> {
+            RegisterBrokerResult registerBrokerResult = resp.getResponseResult();
+            RegisterBrokerToControllerResponseHeader registerBrokerResponseHeader = new RegisterBrokerToControllerResponseHeader();
+            registerBrokerResponseHeader.setClusterName(registerBrokerResult.getClusterName());
+            registerBrokerResponseHeader.setBrokerName(registerBrokerResult.getBrokerName());
+            registerBrokerResponseHeader.setMasterBrokerId(registerBrokerResult.getMasterBrokerId());
+            registerBrokerResponseHeader.setMasterAddress(registerBrokerResult.getMasterAddress());
+            registerBrokerResponseHeader.setMasterEpoch(registerBrokerResult.getMasterEpoch());
+            registerBrokerResponseHeader.setSyncStateSetEpoch(registerBrokerResult.getSyncStateSetEpoch());
+            RemotingCommand command = RemotingCommand.createResponseCommandWithHeader(resp.getResponseCode(), registerBrokerResponseHeader);
+            command.setBody((new SyncStateSet(registerBrokerResult.getSyncStateBrokerSet(), registerBrokerResult.getSyncStateSetEpoch())).encode());
+            command.setRemark(resp.getResponseMsg());
+            return command;
+        });
     }
 
     @Override
-    public CompletableFuture<RemotingCommand> getReplicaInfo(final GetReplicaInfoRequestHeader request) {
-        return this.scheduler.appendEvent("getReplicaInfo",
-            () -> this.replicasInfoManager.getReplicaInfo(request), false);
-    }
-
-    @Override
-    public CompletableFuture<RemotingCommand> getSyncStateData(List<String> brokerNames) {
-        return this.scheduler.appendEvent("getSyncStateData",
-            () -> this.replicasInfoManager.getSyncStateData(brokerNames, brokerAlivePredicate), false);
-    }
-
-    @Override
-    public void registerBrokerLifecycleListener(BrokerLifecycleListener listener) {
-        this.brokerLifecycleListeners.add(listener);
+    public CompletableFuture<RemotingCommand> getReplicaInfo(GetReplicaInfoRequestHeader request) {
+        if (!this.isLeaderState()) {
+            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "Not leader"));
+        }
+        final String clusterName = request.getClusterName();
+        final String brokerName = request.getBrokerName();
+        final CompletableFuture<EventResponse<GetReplicaInfoResult>> future = new CompletableFuture<>();
+        final GetReplicaInfoEvent event = new GetReplicaInfoEvent(clusterName, brokerName);
+        final ControllerReadClosure closure = new ControllerReadClosure(future, event);
+        dLedgerServer.handleRead(ReadMode.RAFT_LOG_READ, closure);
+        return future.thenApply(resp -> {
+            GetReplicaInfoResult getReplicaInfoResult = resp.getResponseResult();
+            GetReplicaInfoResponseHeader getReplicaInfoResponseHeader = new GetReplicaInfoResponseHeader();
+            getReplicaInfoResponseHeader.setMasterAddress(getReplicaInfoResult.getMasterAddress());
+            getReplicaInfoResponseHeader.setMasterBrokerId(getReplicaInfoResult.getMasterBrokerId());
+            getReplicaInfoResponseHeader.setMasterEpoch(getReplicaInfoResult.getMasterEpoch());
+            RemotingCommand command = RemotingCommand.createResponseCommandWithHeader(resp.getResponseCode(), getReplicaInfoResponseHeader);
+            if (getReplicaInfoResult != null && getReplicaInfoResult.getSyncStateSet() != null) {
+                command.setBody(getReplicaInfoResult.getSyncStateSet().encode());
+            }
+            command.setRemark(resp.getResponseMsg());
+            return command;
+        });
     }
 
     @Override
     public RemotingCommand getControllerMetadata() {
-        final MemberState state = getMemberState();
+        final MemberState state = this.dLedgerServer.getMemberState();
         final Map<String, String> peers = state.getPeerMap();
         final StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : peers.entrySet()) {
@@ -259,252 +377,173 @@ public class DLedgerController implements Controller {
     }
 
     @Override
+    public CompletableFuture<RemotingCommand> getSyncStateData(List<String> brokerNames) {
+        if (!this.isLeaderState()) {
+            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "Not leader"));
+        }
+        GetSyncStateSetEvent event = new GetSyncStateSetEvent(brokerNames);
+        CompletableFuture<EventResponse<GetSyncStateSetResult>> future = new CompletableFuture<>();
+        ControllerReadClosure closure = new ControllerReadClosure(future, event);
+        dLedgerServer.handleRead(ReadMode.RAFT_LOG_READ, closure);
+        return future.thenApply(resp -> {
+            final GetSyncStateSetResult result = resp.getResponseResult();
+            final BrokerReplicasInfo replicasInfo = new BrokerReplicasInfo();
+
+            result.getBrokerSyncStateInfoMap().forEach((brokerName, pair) -> {
+                final List<BrokerReplicasInfo.ReplicaIdentity> inSyncReplicas = new ArrayList<>();
+                final List<BrokerReplicasInfo.ReplicaIdentity> outSyncReplicas = new ArrayList<>();
+                final BrokerReplicaInfo replicaInfo = pair.getObject1();
+                final SyncStateInfo syncStateInfo = pair.getObject2();
+
+                replicaInfo.getBrokerIdTable().forEach((brokerId, brokerAddress) -> {
+                    boolean isAlive = brokerValidPredicate.check(replicaInfo.getClusterName(), brokerName, brokerId);
+                    BrokerReplicasInfo.ReplicaIdentity replica = new BrokerReplicasInfo.ReplicaIdentity(brokerName, brokerId, brokerAddress, isAlive);
+                    if (syncStateInfo.getSyncStateSet().contains(brokerId)) {
+                        inSyncReplicas.add(replica);
+                    } else {
+                        outSyncReplicas.add(replica);
+                    }
+                });
+                final Long masterBrokerId = syncStateInfo.getMasterBrokerId();
+                int masterEpoch = syncStateInfo.getMasterEpoch();
+                int syncStateSetEpoch = syncStateInfo.getSyncStateSetEpoch();
+                final BrokerReplicasInfo.ReplicasInfo syncState = new BrokerReplicasInfo.ReplicasInfo(masterBrokerId, replicaInfo.getBrokerAddress(masterBrokerId), masterEpoch,
+                    syncStateSetEpoch, inSyncReplicas, outSyncReplicas);
+                replicasInfo.addReplicaInfo(brokerName, syncState);
+            });
+            RemotingCommand command = RemotingCommand.createResponseCommand(resp.getResponseCode(), resp.getResponseMsg());
+            command.setBody(replicasInfo.encode());
+            return command;
+        });
+    }
+
+    @Override
+    public CompletableFuture<RemotingCommand> cleanBrokerData(CleanControllerBrokerDataRequestHeader requestHeader) {
+        if (!this.isLeaderState()) {
+            return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "Not leader"));
+        }
+        final String clusterName = requestHeader.getClusterName();
+        final String brokerName = requestHeader.getBrokerName();
+        final String brokerIds = requestHeader.getBrokerControllerIdsToClean();
+        Set<Long> brokerIdSet = new HashSet<>();
+        if (StringUtils.isNotBlank(brokerIds)) {
+            // check if brokerId is valid
+            try {
+                brokerIdSet = Stream.of(brokerIds.split(";")).map(Long::parseLong).collect(Collectors.toSet());
+            } catch (NumberFormatException numberFormatException) {
+                String remark = String.format("Please set the option <brokerControllerIdsToClean> according to the format, exception: %s", numberFormatException);
+                return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_INVALID_CLEAN_BROKER_METADATA, remark));
+            }
+        }
+        if (!requestHeader.isCleanLivingBroker()) {
+            // check if broker is alive
+            for (Long brokerId : brokerIdSet) {
+                if (brokerValidPredicate.check(clusterName, brokerName, brokerId)) {
+                    String msg = String.format("Broker[%s][%d] is still alive", brokerName, brokerId);
+                    log.warn(msg);
+                    return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_INVALID_CLEAN_BROKER_METADATA, msg));
+                }
+            }
+        }
+        final CleanBrokerDataEvent event = new CleanBrokerDataEvent(clusterName, brokerName, brokerIdSet);
+        byte[] data = writeEventSerializer.serialize(event);
+        WriteTask task = new WriteTask();
+        task.setBody(data);
+        final CompletableFuture<EventResponse<CleanBrokerDataResult>> future = new CompletableFuture<>();
+        final ControllerWriteClosure closure = new ControllerWriteClosure(future, event);
+        dLedgerServer.handleWrite(task, closure);
+        return future.thenApply(resp -> {
+            RemotingCommand command = RemotingCommand.createResponseCommand(resp.getResponseCode(), resp.getResponseMsg());
+            return command;
+        });
+    }
+
+    @Override
+    public void registerBrokerLifecycleListener(BrokerLifecycleListener listener) {
+        this.brokerLifecycleListeners.add(listener);
+    }
+
+    @Override
     public RemotingServer getRemotingServer() {
         return this.dLedgerServer.getRemotingServer();
     }
 
-    @Override
-    public CompletableFuture<RemotingCommand> cleanBrokerData(
-        final CleanControllerBrokerDataRequestHeader requestHeader) {
-        return this.scheduler.appendEvent("cleanBrokerData",
-            () -> this.replicasInfoManager.cleanBrokerData(requestHeader, this.brokerAlivePredicate), true);
+    public String getLeaderId() {
+        return this.dLedgerServer.getMemberState().getLeaderId();
     }
 
-    /**
-     * Scan all broker-set in statemachine, find that the broker-set which
-     * its master has been timeout but still has at least one broker keep alive with controller,
-     * and we trigger an election to update its state.
-     */
-    private void scanInactiveMasterAndTriggerReelect() {
-        if (!this.roleHandler.isLeaderState()) {
-            cancelScanInactiveFuture();
-            return;
+    public String getSelfId() {
+        return this.dLedgerServer.getMemberState().getSelfId();
+    }
+
+    public ControllerConfig getControllerConfig() {
+        return controllerConfig;
+    }
+
+    class ControllerWriteClosure<T extends WriteEventResult> extends WriteClosure<EventResponse<T>> {
+
+        private final WriteEventMessage event;
+
+        private EventResponse<T> resp;
+
+        private final CompletableFuture<EventResponse<T>> future;
+
+        public ControllerWriteClosure(CompletableFuture<EventResponse<T>> future, WriteEventMessage event) {
+            this.future = future;
+            this.event = event;
         }
-        List<String> brokerSets = this.replicasInfoManager.scanNeedReelectBrokerSets(this.brokerAlivePredicate);
-        for (String brokerName : brokerSets) {
-            // Notify ControllerManager
-            this.brokerLifecycleListeners.forEach(listener -> listener.onBrokerInactive(null, brokerName, null));
+
+        @Override
+        public void setResp(EventResponse<T> resp) {
+            this.resp = resp;
+        }
+
+        @Override
+        public EventResponse<T> getResp() {
+            return resp;
+        }
+
+        @Override
+        public void done(Status status) {
+            if (!status.isOk()) {
+                String msg = String.format("Failed to write event: %s, code: %s", event, status.code);
+                log.error(msg);
+                resp.setResponse(ResponseCode.CONTROLLER_INNER_ERROR, msg);
+            }
+            future.complete(resp);
         }
     }
 
-    /**
-     * Append the request to DLedger, and wait for DLedger to commit the request.
-     */
-    private boolean appendToDLedgerAndWait(final AppendEntryRequest request) {
-        if (request != null) {
-            request.setGroup(this.dLedgerConfig.getGroup());
-            request.setRemoteId(this.dLedgerConfig.getSelfId());
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            AttributesBuilder attributesBuilder = ControllerMetricsManager.newAttributesBuilder()
-                .put(LABEL_DLEDGER_OPERATION, ControllerMetricsConstant.DLedgerOperation.APPEND.getLowerCaseName());
-            try {
-                final AppendFuture<AppendEntryResponse> dLedgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
-                if (dLedgerFuture.getPos() == -1) {
-                    ControllerMetricsManager.dLedgerOpTotal.add(1,
-                        attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.FAILED.getLowerCaseName()).build());
-                    return false;
-                }
-                dLedgerFuture.get(5, TimeUnit.SECONDS);
-                ControllerMetricsManager.dLedgerOpTotal.add(1,
-                    attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.SUCCESS.getLowerCaseName()).build());
-                ControllerMetricsManager.dLedgerOpLatency.record(stopwatch.elapsed(TimeUnit.MICROSECONDS),
-                    attributesBuilder.build());
-            } catch (Exception e) {
-                log.error("Failed to append entry to DLedger", e);
-                if (e instanceof TimeoutException) {
-                    ControllerMetricsManager.dLedgerOpTotal.add(1,
-                        attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.TIMEOUT.getLowerCaseName()).build());
+    class ControllerReadClosure<T extends ReadEventResult> extends ReadClosure {
+
+        private final ReadEventMessage event;
+
+        private final CompletableFuture<EventResponse<T>> future;
+
+        private EventResponse<T> resp;
+
+        public ControllerReadClosure(CompletableFuture<EventResponse<T>> future, ReadEventMessage event) {
+            this.future = future;
+            this.event = event;
+        }
+
+        @Override
+        public void done(Status status) {
+            if (!status.isOk()) {
+                String msg = String.format("Failed to read event: %s, code: %s", event, status.code);
+                log.error(msg);
+                resp.setResponse(ResponseCode.CONTROLLER_INNER_ERROR, msg);
+            } else {
+                EventResponse<? extends EventResult> response = replicasManager.applyEvent(event);
+                if (!(response.getResponseResult() instanceof ReadEventResult)) {
+                    String msg = String.format("Failed to read event: %s, invalid result type: %s", event, response.getResponseResult().getClass().getSimpleName());
+                    log.error(msg);
+                    resp.setResponse(ResponseCode.CONTROLLER_INNER_ERROR, msg);
                 } else {
-                    ControllerMetricsManager.dLedgerOpTotal.add(1,
-                        attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.FAILED.getLowerCaseName()).build());
-                }
-                return false;
-            }
-            return true;
-        }
-        return false;
-    }
-
-    // Only for test
-    public MemberState getMemberState() {
-        return this.dLedgerServer.getMemberState();
-    }
-
-    public void setBrokerAlivePredicate(BrokerValidPredicate brokerAlivePredicate) {
-        this.brokerAlivePredicate = brokerAlivePredicate;
-    }
-
-    public void setElectPolicy(ElectPolicy electPolicy) {
-        this.electPolicy = electPolicy;
-    }
-
-    private void cancelScanInactiveFuture() {
-        if (this.scanInactiveMasterFuture != null) {
-            this.scanInactiveMasterFuture.cancel(true);
-            this.scanInactiveMasterFuture = null;
-        }
-    }
-
-    /**
-     * Event handler that handle event
-     */
-    interface EventHandler<T> {
-        /**
-         * Run the controller event
-         */
-        void run() throws Throwable;
-
-        /**
-         * Return the completableFuture
-         */
-        CompletableFuture<RemotingCommand> future();
-
-        /**
-         * Handle Exception.
-         */
-        void handleException(final Throwable t);
-    }
-
-    /**
-     * Event scheduler, schedule event handler from event queue
-     */
-    class EventScheduler extends ServiceThread {
-        private final BlockingQueue<EventHandler> eventQueue;
-
-        public EventScheduler() {
-            this.eventQueue = new LinkedBlockingQueue<>(1024);
-        }
-
-        @Override
-        public String getServiceName() {
-            return EventScheduler.class.getName();
-        }
-
-        @Override
-        public void run() {
-            log.info("Start event scheduler.");
-            while (!isStopped()) {
-                EventHandler handler;
-                try {
-                    handler = this.eventQueue.poll(5, TimeUnit.SECONDS);
-                } catch (final InterruptedException e) {
-                    continue;
-                }
-                try {
-                    if (handler != null) {
-                        handler.run();
-                    }
-                } catch (final Throwable e) {
-                    handler.handleException(e);
+                    resp = (EventResponse<T>) response;
                 }
             }
-        }
-
-        public <T> CompletableFuture<RemotingCommand> appendEvent(final String name,
-            final Supplier<ControllerResult<T>> supplier, boolean isWriteEvent) {
-            if (isStopped() || !DLedgerController.this.roleHandler.isLeaderState()) {
-                final RemotingCommand command = RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "The controller is not in leader state");
-                final CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
-                future.complete(command);
-                return future;
-            }
-
-            final EventHandler<T> event = new ControllerEventHandler<>(name, supplier, isWriteEvent);
-            int tryTimes = 0;
-            while (true) {
-                try {
-                    if (!this.eventQueue.offer(event, 5, TimeUnit.SECONDS)) {
-                        continue;
-                    }
-                    return event.future();
-                } catch (final InterruptedException e) {
-                    log.error("Error happen in EventScheduler when append event", e);
-                    tryTimes++;
-                    if (tryTimes > 3) {
-                        return null;
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Event handler, get events from supplier, and append events to DLedger
-     */
-    class ControllerEventHandler<T> implements EventHandler<T> {
-        private final String name;
-        private final Supplier<ControllerResult<T>> supplier;
-        private final CompletableFuture<RemotingCommand> future;
-        private final boolean isWriteEvent;
-
-        ControllerEventHandler(final String name, final Supplier<ControllerResult<T>> supplier,
-            final boolean isWriteEvent) {
-            this.name = name;
-            this.supplier = supplier;
-            this.future = new CompletableFuture<>();
-            this.isWriteEvent = isWriteEvent;
-        }
-
-        @Override
-        public void run() throws Throwable {
-            final ControllerResult<T> result = this.supplier.get();
-            log.info("Event queue run event {}, get the result {}", this.name, result);
-            boolean appendSuccess = true;
-
-            if (!this.isWriteEvent || result.getEvents() == null || result.getEvents().isEmpty()) {
-                // read event, or write event with empty events in response which also equals to read event
-                if (DLedgerController.this.controllerConfig.isProcessReadEvent()) {
-                    // Now the DLedger don't have the function of Read-Index or Lease-Read,
-                    // So we still need to propose an empty request to DLedger.
-                    final AppendEntryRequest request = new AppendEntryRequest();
-                    request.setBody(new byte[0]);
-                    appendSuccess = appendToDLedgerAndWait(request);
-                }
-            } else {
-                // write event
-                final List<EventMessage> events = result.getEvents();
-                final List<byte[]> eventBytes = new ArrayList<>(events.size());
-                for (final EventMessage event : events) {
-                    if (event != null) {
-                        final byte[] data = DLedgerController.this.eventSerializer.serialize(event);
-                        if (data != null && data.length > 0) {
-                            eventBytes.add(data);
-                        }
-                    }
-                }
-                // Append events to DLedger
-                if (!eventBytes.isEmpty()) {
-                    // batch append events
-                    final BatchAppendEntryRequest request = new BatchAppendEntryRequest();
-                    request.setBatchMsgs(eventBytes);
-                    appendSuccess = appendToDLedgerAndWait(request);
-                }
-            }
-
-            if (appendSuccess) {
-                final RemotingCommand response = RemotingCommand.createResponseCommandWithHeader(result.getResponseCode(), (CommandCustomHeader) result.getResponse());
-                if (result.getBody() != null) {
-                    response.setBody(result.getBody());
-                }
-                if (result.getRemark() != null) {
-                    response.setRemark(result.getRemark());
-                }
-                this.future.complete(response);
-            } else {
-                log.error("Failed to append event to DLedger, the response is {}, try cancel the future", result.getResponse());
-                this.future.cancel(true);
-            }
-        }
-
-        @Override
-        public CompletableFuture<RemotingCommand> future() {
-            return this.future;
-        }
-
-        @Override
-        public void handleException(final Throwable t) {
-            log.error("Error happen when handle event {}", this.name, t);
-            this.future.completeExceptionally(t);
+            future.complete(resp);
         }
     }
 
@@ -528,53 +567,20 @@ public class DLedgerController implements Controller {
                     case CANDIDATE:
                         ControllerMetricsManager.recordRole(role, this.currentRole);
                         this.currentRole = MemberState.Role.CANDIDATE;
-                        log.info("Controller {} change role to candidate", this.selfId);
-                        DLedgerController.this.stopScheduling();
-                        DLedgerController.this.cancelScanInactiveFuture();
+                        log.info("Controller[{}] change role to candidate", this.selfId);
+                        stopScheduling();
                         break;
                     case FOLLOWER:
                         ControllerMetricsManager.recordRole(role, this.currentRole);
                         this.currentRole = MemberState.Role.FOLLOWER;
-                        log.info("Controller {} change role to Follower, leaderId:{}", this.selfId, getMemberState().getLeaderId());
-                        DLedgerController.this.stopScheduling();
-                        DLedgerController.this.cancelScanInactiveFuture();
+                        log.info("Controller[{}] change role to Follower, leaderId:{}", this.selfId, dLedgerServer.getMemberState().getLeaderId());
+                        stopScheduling();
                         break;
                     case LEADER: {
-                        log.info("Controller {} change role to leader, try process a initial proposal", this.selfId);
-                        // Because the role becomes to leader, but the memory statemachine of the controller is still in the old point,
-                        // some committed logs have not been applied. Therefore, we must first process an empty request to DLedger,
-                        // and after the request is committed, the controller can provide services(startScheduling).
-                        int tryTimes = 0;
-                        while (true) {
-                            final AppendEntryRequest request = new AppendEntryRequest();
-                            request.setBody(new byte[0]);
-                            try {
-                                if (appendToDLedgerAndWait(request)) {
-                                    ControllerMetricsManager.recordRole(role, this.currentRole);
-                                    this.currentRole = MemberState.Role.LEADER;
-                                    DLedgerController.this.startScheduling();
-                                    if (DLedgerController.this.scanInactiveMasterFuture == null) {
-                                        long scanInactiveMasterInterval = DLedgerController.this.controllerConfig.getScanInactiveMasterInterval();
-                                        DLedgerController.this.scanInactiveMasterFuture =
-                                                DLedgerController.this.scanInactiveMasterService.scheduleAtFixedRate(DLedgerController.this::scanInactiveMasterAndTriggerReelect,
-                                                        scanInactiveMasterInterval, scanInactiveMasterInterval, TimeUnit.MILLISECONDS);
-                                    }
-                                    break;
-                                }
-                            } catch (final Throwable e) {
-                                log.error("Error happen when controller leader append initial request to DLedger", e);
-                            }
-                            if (!DLedgerController.this.getMemberState().isLeader()) {
-                                // now is not a leader
-                                log.error("Append a initial log failed because current state is not leader");
-                                break;
-                            }
-                            tryTimes++;
-                            log.error(String.format("Controller leader append initial log failed, try %d times", tryTimes));
-                            if (tryTimes % 3 == 0) {
-                                log.warn("Controller leader append initial log failed too many times, please wait a while");
-                            }
-                        }
+                        log.info("Controller[{}] change role to leader, try process a initial proposal", this.selfId);
+                        ControllerMetricsManager.recordRole(role, this.currentRole);
+                        this.currentRole = MemberState.Role.LEADER;
+                        startScheduling();
                         break;
                     }
                 }
@@ -588,9 +594,7 @@ public class DLedgerController implements Controller {
 
         @Override
         public void shutdown() {
-            if (this.currentRole == MemberState.Role.LEADER) {
-                DLedgerController.this.stopScheduling();
-            }
+            stopScheduling();
             this.executorService.shutdown();
         }
 
@@ -598,4 +602,5 @@ public class DLedgerController implements Controller {
             return this.currentRole == MemberState.Role.LEADER;
         }
     }
+
 }

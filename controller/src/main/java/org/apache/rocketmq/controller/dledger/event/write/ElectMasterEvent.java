@@ -15,55 +15,50 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller.heartbeat;
+package org.apache.rocketmq.controller.dledger.event.write;
 
-import java.util.Objects;
+import java.util.Map;
+import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
 
-public class BrokerSetIdentity {
-    private String clusterName;
-    private String brokerName;
+public class ElectMasterEvent implements WriteEventMessage {
 
-    public BrokerSetIdentity(String clusterName, String brokerName) {
+    private final String clusterName;
+    private final String brokerName;
+    private final Long brokerId;
+    private final boolean designateElect;
+
+    private final Map<Long/*broker id*/, BrokerLiveInfo> aliveBrokers;
+
+    public ElectMasterEvent(String clusterName, String brokerName, Long brokerId, boolean designateElect, Map<Long, BrokerLiveInfo> aliveBrokers) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
+        this.brokerId = brokerId;
+        this.designateElect = designateElect;
+        this.aliveBrokers = aliveBrokers;
     }
 
     public String getClusterName() {
         return clusterName;
     }
 
-    public void setClusterName(String clusterName) {
-        this.clusterName = clusterName;
-    }
-
     public String getBrokerName() {
         return brokerName;
     }
 
-    public void setBrokerName(String brokerName) {
-        this.brokerName = brokerName;
+    public Long getBrokerId() {
+        return brokerId;
+    }
+
+    public boolean isDesignateElect() {
+        return designateElect;
+    }
+
+    public Map<Long, BrokerLiveInfo> getAliveBrokers() {
+        return aliveBrokers;
     }
 
     @Override
-    public String toString() {
-        return "BrokerSetIdentity{" +
-            "clusterName='" + clusterName + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        BrokerSetIdentity identity = (BrokerSetIdentity) o;
-        return Objects.equals(clusterName, identity.clusterName) && Objects.equals(brokerName, identity.brokerName);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(clusterName, brokerName);
+    public WriteEventType getEventType() {
+        return WriteEventType.ELECT_MASTER;
     }
 }

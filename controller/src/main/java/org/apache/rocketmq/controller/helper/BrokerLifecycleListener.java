@@ -17,9 +17,11 @@
 
 package org.apache.rocketmq.controller.helper;
 
+import org.apache.rocketmq.controller.heartbeat.BrokerSetIdentity;
+
 public interface BrokerLifecycleListener {
     /**
      * Trigger when broker inactive.
      */
-    void onBrokerInactive(final String clusterName, final String brokerName, final Long brokerId);
+    void onBrokerInactive(final BrokerSetIdentity brokerSetIdentity, final Long brokerId);
 }

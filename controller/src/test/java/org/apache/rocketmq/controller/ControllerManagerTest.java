@@ -47,9 +47,14 @@ import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRes
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_BROKER_NAME;
+import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_CLUSTER_NAME;
+import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_IP;
+import static org.apache.rocketmq.controller.ControllerTestBase.nextPort;
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -103,13 +108,13 @@ public class ControllerManagerTest {
         DLedgerController c1 = (DLedgerController) controllers.get(0).getController();
 
         ControllerManager manager = await().atMost(Duration.ofSeconds(10)).until(() -> {
-            String leaderId = c1.getMemberState().getLeaderId();
+            String leaderId = c1.getLeaderId();
             if (null == leaderId) {
                 return null;
             }
             for (ControllerManager controllerManager : controllers) {
-                final DLedgerController controller = (DLedgerController) controllerManager.getController();
-                if (controller.getMemberState().getSelfId().equals(leaderId) && controller.isLeaderState()) {
+                DLedgerController controller = (DLedgerController) controllerManager.getController();
+                if (controller.getSelfId().equals(leaderId) && controller.isLeaderState()) {
                     return controllerManager;
                 }
             }
@@ -120,7 +125,7 @@ public class ControllerManagerTest {
 
     public void mockData() {
         String group = UUID.randomUUID().toString();
-        String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", 30000, 30001, 30002);
+        String peers = String.format("n0-localhost:%d;n1-localhost:%d;n2-localhost:%d", nextPort(), nextPort(), nextPort());
         launchManager(group, peers, "n0");
         launchManager(group, peers, "n1");
         launchManager(group, peers, "n2");
@@ -186,29 +191,29 @@ public class ControllerManagerTest {
         String leaderAddr = "localhost" + ":" + leader.getController().getRemotingServer().localListenPort();
 
         // Register two broker
-        registerBroker(leaderAddr, "cluster1", "broker1", 1L, "127.0.0.1:8000", null, this.remotingClient);
+        registerBroker(leaderAddr, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, DEFAULT_IP[0], null, this.remotingClient);
 
-        registerBroker(leaderAddr, "cluster1", "broker1", 2L, "127.0.0.1:8001", null, this.remotingClient1);
+        registerBroker(leaderAddr, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 2L, DEFAULT_IP[1], null, this.remotingClient1);
 
         // Send heartbeat
-        sendHeartbeat(leaderAddr, "cluster1", "broker1", 1L, "127.0.0.1:8000", 3000L, remotingClient);
-        sendHeartbeat(leaderAddr, "cluster1", "broker1", 2L, "127.0.0.1:8001", 3000L, remotingClient1);
+        sendHeartbeat(leaderAddr, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, DEFAULT_IP[0], 3000L, remotingClient);
+        sendHeartbeat(leaderAddr, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 2L, DEFAULT_IP[1], 3000L, remotingClient1);
 
         // Two all try elect itself as master, but only the first can be the master
-        RemotingCommand tryElectCommand1 = brokerTryElect(leaderAddr, "cluster1", "broker1", 1L, this.remotingClient);
+        RemotingCommand tryElectCommand1 = brokerTryElect(leaderAddr, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, this.remotingClient);
         ElectMasterResponseHeader brokerTryElectResponseHeader1 = (ElectMasterResponseHeader) tryElectCommand1.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
-        RemotingCommand tryElectCommand2 = brokerTryElect(leaderAddr, "cluster1", "broker1", 2L, this.remotingClient1);
+        RemotingCommand tryElectCommand2 = brokerTryElect(leaderAddr, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 2L, this.remotingClient1);
         ElectMasterResponseHeader brokerTryElectResponseHeader2 = (ElectMasterResponseHeader) tryElectCommand2.decodeCommandCustomHeader(ElectMasterResponseHeader.class);
 
         assertEquals(ResponseCode.SUCCESS, tryElectCommand1.getCode());
         assertEquals(1L, brokerTryElectResponseHeader1.getMasterBrokerId().longValue());
-        assertEquals("127.0.0.1:8000", brokerTryElectResponseHeader1.getMasterAddress());
+        assertEquals(DEFAULT_IP[0], brokerTryElectResponseHeader1.getMasterAddress());
         assertEquals(1, brokerTryElectResponseHeader1.getMasterEpoch().intValue());
         assertEquals(1, brokerTryElectResponseHeader1.getSyncStateSetEpoch().intValue());
 
         assertEquals(ResponseCode.CONTROLLER_MASTER_STILL_EXIST, tryElectCommand2.getCode());
         assertEquals(1L, brokerTryElectResponseHeader2.getMasterBrokerId().longValue());
-        assertEquals("127.0.0.1:8000", brokerTryElectResponseHeader2.getMasterAddress());
+        assertEquals(DEFAULT_IP[0], brokerTryElectResponseHeader2.getMasterAddress());
         assertEquals(1, brokerTryElectResponseHeader2.getMasterEpoch().intValue());
         assertEquals(1, brokerTryElectResponseHeader2.getSyncStateSetEpoch().intValue());
 
@@ -216,24 +221,24 @@ public class ControllerManagerTest {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         executor.scheduleAtFixedRate(() -> {
             final BrokerHeartbeatRequestHeader heartbeatRequestHeader = new BrokerHeartbeatRequestHeader();
-            heartbeatRequestHeader.setClusterName("cluster1");
-            heartbeatRequestHeader.setBrokerName("broker1");
-            heartbeatRequestHeader.setBrokerAddr("127.0.0.1:8001");
+            heartbeatRequestHeader.setClusterName(DEFAULT_CLUSTER_NAME);
+            heartbeatRequestHeader.setBrokerName(DEFAULT_BROKER_NAME);
+            heartbeatRequestHeader.setBrokerAddr(DEFAULT_IP[1]);
             heartbeatRequestHeader.setBrokerId(2L);
             heartbeatRequestHeader.setHeartbeatTimeoutMills(3000L);
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.BROKER_HEARTBEAT, heartbeatRequestHeader);
             try {
-                final RemotingCommand remotingCommand = this.remotingClient1.invokeSync(leaderAddr, request, 3000);
+                this.remotingClient1.invokeSync(leaderAddr, request, 3000);
             } catch (Exception e) {
-                e.printStackTrace();
+                Assert.fail();
             }
         }, 0, 1000L, TimeUnit.MILLISECONDS);
         Boolean flag = await().atMost(Duration.ofSeconds(10)).until(() -> {
-            final GetReplicaInfoRequestHeader requestHeader = new GetReplicaInfoRequestHeader("broker1");
+            final GetReplicaInfoRequestHeader requestHeader = new GetReplicaInfoRequestHeader(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME);
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_REPLICA_INFO, requestHeader);
             final RemotingCommand response = this.remotingClient1.invokeSync(leaderAddr, request, 3000);
             final GetReplicaInfoResponseHeader responseHeader = (GetReplicaInfoResponseHeader) response.decodeCommandCustomHeader(GetReplicaInfoResponseHeader.class);
-            return responseHeader.getMasterBrokerId().equals(2L);
+            return response.getCode() == ResponseCode.SUCCESS && 2L == responseHeader.getMasterBrokerId();
         }, item -> item);
 
         // The new master should be broker2.

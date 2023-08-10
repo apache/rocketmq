@@ -20,7 +20,6 @@ import io.netty.channel.Channel;
 import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.controller.heartbeat.BrokerSetIdentity;
-import org.apache.rocketmq.controller.heartbeat.DefaultBrokerHeartbeatManager;
 import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
 import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
 

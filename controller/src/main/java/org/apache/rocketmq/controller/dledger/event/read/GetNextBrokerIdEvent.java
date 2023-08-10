@@ -15,27 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller;
+package org.apache.rocketmq.controller.dledger.event.read;
 
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
+public class GetNextBrokerIdEvent implements ReadEventMessage {
 
-public class ControllerTestBase {
+    private final String clusterName;
 
-    public final static String DEFAULT_CLUSTER_NAME = "cluster-a";
+    private final String brokerName;
 
-    public final static String DEFAULT_BROKER_NAME = "broker-set-a";
-
-    public final static String[] DEFAULT_IP = {"127.0.0.1:9000", "127.0.0.1:9001", "127.0.0.1:9002"};
-
-    public final static Long TIMEOUT_NEVER = 1000000000000000000L;
-
-    public final static Long TIMEOUT_NOW = -1L;
-
-    private static final AtomicInteger PORT_COUNTER = new AtomicInteger(30000);
-    private static Random random = new Random();
-    public static int nextPort() {
-        return PORT_COUNTER.addAndGet(10 + random.nextInt(10));
+    public GetNextBrokerIdEvent(String clusterName, String brokerName) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    @Override
+    public ReadEventType getEventType() {
+        return ReadEventType.GET_NEXT_BROKER_ID;
+    }
 }

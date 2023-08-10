@@ -14,42 +14,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.header.controller;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+package org.apache.rocketmq.controller.dledger.event.write;
 
-public class GetReplicaInfoRequestHeader implements CommandCustomHeader {
+public class RegisterBrokerEvent implements WriteEventMessage {
 
-    private String clusterName;
-    private String brokerName;
+    private final String clusterName;
+    private final String brokerName;
+    private final String brokerAddress;
+    private final Long brokerId;
 
-    public GetReplicaInfoRequestHeader() {
-    }
-
-    public GetReplicaInfoRequestHeader(String clusterName, String brokerName) {
+    public RegisterBrokerEvent(String clusterName, String brokerName, String brokerAddress, Long brokerId) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
-    }
-
-
-    public String getBrokerName() {
-        return brokerName;
+        this.brokerAddress = brokerAddress;
+        this.brokerId = brokerId;
     }
 
     public String getClusterName() {
         return clusterName;
     }
 
-    @Override
-    public String toString() {
-        return "GetReplicaInfoRequestHeader{" +
-            "clusterName='" + clusterName + '\'' +
-            ", brokerName='" + brokerName + '\'' +
-            '}';
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public String getBrokerAddress() {
+        return brokerAddress;
+    }
+
+    public Long getBrokerId() {
+        return brokerId;
     }
 
     @Override
-    public void checkFields() throws RemotingCommandException {
+    public WriteEventType getEventType() {
+        return WriteEventType.REGISTER_BROKER;
     }
 }

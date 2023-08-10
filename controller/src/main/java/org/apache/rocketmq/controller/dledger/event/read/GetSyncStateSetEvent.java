@@ -15,27 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.controller;
+package org.apache.rocketmq.controller.dledger.event.read;
 
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
 
-public class ControllerTestBase {
+public class GetSyncStateSetEvent implements ReadEventMessage {
 
-    public final static String DEFAULT_CLUSTER_NAME = "cluster-a";
+    private final List<String/*broker name*/> brokerNames;
 
-    public final static String DEFAULT_BROKER_NAME = "broker-set-a";
-
-    public final static String[] DEFAULT_IP = {"127.0.0.1:9000", "127.0.0.1:9001", "127.0.0.1:9002"};
-
-    public final static Long TIMEOUT_NEVER = 1000000000000000000L;
-
-    public final static Long TIMEOUT_NOW = -1L;
-
-    private static final AtomicInteger PORT_COUNTER = new AtomicInteger(30000);
-    private static Random random = new Random();
-    public static int nextPort() {
-        return PORT_COUNTER.addAndGet(10 + random.nextInt(10));
+    public GetSyncStateSetEvent(List<String> brokerNames) {
+        this.brokerNames = brokerNames;
     }
 
+    public List<String> getBrokerNames() {
+        return brokerNames;
+    }
+
+    @Override
+    public ReadEventType getEventType() {
+        return ReadEventType.GET_SYNC_STATE_SET;
+    }
 }
