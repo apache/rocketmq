@@ -304,22 +304,25 @@ public class DefaultMessageStore implements MessageStore {
         try {
             String[] levelArray = levelString.split(" ");
             for (int i = 0; i < levelArray.length; i++) {
-                String value = levelArray[i];
-                String ch = value.substring(value.length() - 1);
-                Long tu = timeUnitTable.get(ch);
-
-                int level = i + 1;
-                if (level > this.maxDelayLevel) {
-                    this.maxDelayLevel = level;
-                }
-                long num = Long.parseLong(value.substring(0, value.length() - 1));
-                long delayTimeMillis = tu * num;
-                this.delayLevelTable.put(level, delayTimeMillis);
+                initDelayLevelItem(levelArray, timeUnitTable, i);
             }
         } catch (Exception e) {
             LOGGER.error("parse message delay level failed. messageDelayLevel = {}", levelString, e);
         }
+    }
 
+    private void initDelayLevelItem(String[] levelArray, HashMap<String, Long> timeUnitTable, int i) {
+        String value = levelArray[i];
+        String ch = value.substring(value.length() - 1);
+        Long tu = timeUnitTable.get(ch);
+
+        int level = i + 1;
+        if (level > this.maxDelayLevel) {
+            this.maxDelayLevel = level;
+        }
+        long num = Long.parseLong(value.substring(0, value.length() - 1));
+        long delayTimeMillis = tu * num;
+        this.delayLevelTable.put(level, delayTimeMillis);
     }
 
     @Override
