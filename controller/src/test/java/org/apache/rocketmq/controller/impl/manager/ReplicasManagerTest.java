@@ -60,6 +60,8 @@ import org.junit.Test;
 import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_BROKER_NAME;
 import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_CLUSTER_NAME;
 import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_IP;
+import static org.apache.rocketmq.controller.ControllerTestBase.TIMEOUT_NEVER;
+import static org.apache.rocketmq.controller.ControllerTestBase.TIMEOUT_NOW;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -77,10 +79,6 @@ public class ReplicasManagerTest {
     private ValidBrokersGetter validBrokersGetter;
 
     private BrokerLiveInfoGetter brokerLiveInfoGetter;
-
-    private final static Long TIMEOUT_NEVER = 1000000000000000000L;
-
-    private final static Long TIMEOUT_NOW = -1L;
 
     @Before
     public void init() {

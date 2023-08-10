@@ -429,12 +429,28 @@ public class NewDLedgerController implements Controller {
 
     @Override
     public void registerBrokerLifecycleListener(BrokerLifecycleListener listener) {
-
+        this.brokerLifecycleListeners.add(listener);
     }
 
     @Override
     public RemotingServer getRemotingServer() {
-        return null;
+        return this.dLedgerServer.getRemotingServer();
+    }
+
+    public boolean isLeader() {
+        return this.roleChangeHandler.isLeaderState();
+    }
+
+    public String getLeaderId() {
+        return this.dLedgerServer.getMemberState().getLeaderId();
+    }
+
+    public String getSelfId() {
+        return this.dLedgerServer.getMemberState().getSelfId();
+    }
+
+    public ControllerConfig getControllerConfig() {
+        return controllerConfig;
     }
 
     class ControllerWriteClosure<T extends WriteEventResult> extends WriteClosure<EventResponse<T>> {
@@ -553,6 +569,10 @@ public class NewDLedgerController implements Controller {
         public void shutdown() {
             stopScheduling();
             this.executorService.shutdown();
+        }
+
+        public boolean isLeaderState() {
+            return this.currentRole == MemberState.Role.LEADER;
         }
     }
 

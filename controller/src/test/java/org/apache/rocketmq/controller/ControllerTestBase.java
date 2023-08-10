@@ -24,4 +24,8 @@ public class ControllerTestBase {
     public final static String DEFAULT_BROKER_NAME = "broker-set-a";
 
     public final static String[] DEFAULT_IP = {"127.0.0.1:9000", "127.0.0.1:9001", "127.0.0.1:9002"};
+
+    public final static Long TIMEOUT_NEVER = 1000000000000000000L;
+
+    public final static Long TIMEOUT_NOW = -1L;
 }
