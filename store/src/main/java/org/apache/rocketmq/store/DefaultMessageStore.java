@@ -1188,16 +1188,18 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     protected long getStoreTime(CqUnit result) {
-        if (result != null) {
-            try {
-                final long phyOffset = result.getPos();
-                final int size = result.getSize();
-                long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                return storeTime;
-            } catch (Exception e) {
-            }
+        if (result == null) {
+            return -1;
+
         }
-        return -1;
+
+        try {
+            final long phyOffset = result.getPos();
+            final int size = result.getSize();
+            return this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+        } catch (Exception e) {
+            return -1;
+        }
     }
 
     @Override
