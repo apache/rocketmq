@@ -190,10 +190,10 @@ public class ReplicasInfoManagerTest {
         }
     }
 
-    private boolean alterNewInSyncSet(String brokerName, Long brokerId, Integer masterEpoch,
+    private boolean alterNewInSyncSet(String clusterName, String brokerName, Long brokerId, Integer masterEpoch,
         Set<Long> newSyncStateSet, Integer syncStateSetEpoch) {
         final AlterSyncStateSetRequestHeader alterRequest =
-            new AlterSyncStateSetRequestHeader(brokerName, brokerId, masterEpoch);
+            new AlterSyncStateSetRequestHeader(clusterName, brokerName, brokerId, masterEpoch);
         final ControllerResult<AlterSyncStateSetResponseHeader> result = this.replicasInfoManager.alterSyncStateSet(alterRequest,
                 new SyncStateSet(newSyncStateSet, syncStateSetEpoch), (cluster, brokerName1, brokerId1) -> true);
         apply(result.getEvents());
@@ -224,7 +224,7 @@ public class ReplicasInfoManagerTest {
         newSyncStateSet.add(1L);
         newSyncStateSet.add(2L);
         newSyncStateSet.add(3L);
-        assertTrue(alterNewInSyncSet(DEFAULT_BROKER_NAME, 1L, 1, newSyncStateSet, 1));
+        assertTrue(alterNewInSyncSet(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, 1, newSyncStateSet, 1));
     }
 
     public void mockHeartbeatDataMasterStillAlive() {
@@ -379,7 +379,7 @@ public class ReplicasInfoManagerTest {
         brokerSet.add(1L);
         brokerSet.add(2L);
         brokerSet.add(3L);
-        assertTrue(alterNewInSyncSet(DEFAULT_BROKER_NAME, response.getMasterBrokerId(), response.getMasterEpoch(), brokerSet, response.getSyncStateSetEpoch()));
+        assertTrue(alterNewInSyncSet(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, response.getMasterBrokerId(), response.getMasterEpoch(), brokerSet, response.getSyncStateSetEpoch()));
 
         // test admin try to elect a assignedMaster, but it isn't alive
         final ElectMasterRequestHeader assignRequest = ElectMasterRequestHeader.ofAdminTrigger(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L);
@@ -411,7 +411,7 @@ public class ReplicasInfoManagerTest {
         mockMetaData();
         final HashSet<Long> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add(1L);
-        assertTrue(alterNewInSyncSet(DEFAULT_BROKER_NAME, 1L, 1, newSyncStateSet, 2));
+        assertTrue(alterNewInSyncSet(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, 1, newSyncStateSet, 2));
 
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, the syncStateSet in statemachine is {DEFAULT_IP[0]}, not more replicas can be elected as master, it will be failed.

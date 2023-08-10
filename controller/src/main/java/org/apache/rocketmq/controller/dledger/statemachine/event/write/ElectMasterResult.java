@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
+import org.apache.rocketmq.remoting.protocol.body.ElectMasterResponseBody;
+
 public class ElectMasterResult implements WriteEventResult {
 
     private Long masterBrokerId;
@@ -24,15 +26,18 @@ public class ElectMasterResult implements WriteEventResult {
     private Integer masterEpoch;
     private Integer syncStateSetEpoch;
 
+    private ElectMasterResponseBody electMasterResponseBody;
+
     public ElectMasterResult() {
     }
 
     public ElectMasterResult(Long masterBrokerId, String masterAddress, Integer masterEpoch,
-        Integer syncStateSetEpoch) {
+        Integer syncStateSetEpoch, ElectMasterResponseBody electMasterResponseBody) {
         this.masterBrokerId = masterBrokerId;
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
         this.syncStateSetEpoch = syncStateSetEpoch;
+        this.electMasterResponseBody = electMasterResponseBody;
     }
 
     public Long getMasterBrokerId() {
@@ -65,6 +70,15 @@ public class ElectMasterResult implements WriteEventResult {
 
     public void setSyncStateSetEpoch(Integer syncStateSetEpoch) {
         this.syncStateSetEpoch = syncStateSetEpoch;
+    }
+
+    public void setElectMasterResponseBody(
+        ElectMasterResponseBody electMasterResponseBody) {
+        this.electMasterResponseBody = electMasterResponseBody;
+    }
+
+    public ElectMasterResponseBody getElectMasterResponseBody() {
+        return electMasterResponseBody;
     }
 
     @Override

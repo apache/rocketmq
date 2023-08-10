@@ -21,6 +21,8 @@ import java.util.Set;
 
 public class AlterSyncStateSetEvent implements WriteEventMessage {
 
+    private final String clusterName;
+
     private final String brokerName;
 
     private final Long masterBrokerId;
@@ -31,13 +33,43 @@ public class AlterSyncStateSetEvent implements WriteEventMessage {
 
     private final Set<Long/*BrokerId*/> newSyncStateSet;
 
-    public AlterSyncStateSetEvent(String brokerName, Long masterBrokerId, Integer masterEpoch, Set<Long> newSyncStateSet, Integer newSyncStateSetEpoch) {
+    private final Set<Long/*BrokerId*/> aliveBrokerSet;
+
+    public AlterSyncStateSetEvent(String clusterName, String brokerName,
+        Long masterBrokerId, Integer masterEpoch, Set<Long> newSyncStateSet, Integer newSyncStateSetEpoch, Set<Long> aliveBrokerSet) {
+        this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.masterBrokerId = masterBrokerId;
         this.masterEpoch = masterEpoch;
         this.newSyncStateSet = newSyncStateSet;
         this.newSyncStateSetEpoch = newSyncStateSetEpoch;
+        this.aliveBrokerSet = aliveBrokerSet;
     }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
+    }
+
+    public Integer getMasterEpoch() {
+        return masterEpoch;
+    }
+
+    public Integer getNewSyncStateSetEpoch() {
+        return newSyncStateSetEpoch;
+    }
+
+    public Set<Long> getNewSyncStateSet() {
+        return newSyncStateSet;
+    }
+
+    public Set<Long> getAliveBrokerSet() {
+        return aliveBrokerSet;
+    }
+
     @Override
     public WriteEventType getEventType() {
         return WriteEventType.ALTER_SYNC_STATE_SET;

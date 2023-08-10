@@ -19,10 +19,22 @@ package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
 public class GetReplicaInfoEvent implements ReadEventMessage {
 
+
+    private final String clusterName;
+
     private final String brokerName;
 
-    public GetReplicaInfoEvent(String brokerName) {
+    public GetReplicaInfoEvent(String clusterName, String brokerName) {
+        this.clusterName = clusterName;
         this.brokerName = brokerName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public String getClusterName() {
+        return clusterName;
     }
 
     @Override

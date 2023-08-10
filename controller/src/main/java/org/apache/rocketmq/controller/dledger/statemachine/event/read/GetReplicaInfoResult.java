@@ -17,16 +17,25 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
+import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
+
 public class GetReplicaInfoResult implements ReadEventResult {
 
     private Long masterBrokerId;
     private String masterAddress;
     private Integer masterEpoch;
 
-    public GetReplicaInfoResult(Long masterBrokerId, String masterAddress, Integer masterEpoch) {
+    private SyncStateSet syncStateSet;
+
+    public GetReplicaInfoResult(Long masterBrokerId, String masterAddress, Integer masterEpoch, SyncStateSet syncStateSet) {
         this.masterBrokerId = masterBrokerId;
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
+        this.syncStateSet = syncStateSet;
+    }
+
+    public SyncStateSet getSyncStateSet() {
+        return syncStateSet;
     }
 
     public Long getMasterBrokerId() {

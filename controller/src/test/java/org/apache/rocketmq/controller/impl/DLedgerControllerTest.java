@@ -126,31 +126,29 @@ public class DLedgerControllerTest {
         assertEquals(ResponseCode.SUCCESS, remotingCommand2.getCode());
     }
 
-    public void brokerTryElectMaster(Controller leader, String clusterName, String brokerName, String brokerAddress, Long brokerId,
+    public void brokerTryElectMaster(Controller leader, String clusterName, String brokerName, Long brokerId,
         boolean exceptSuccess) throws Exception {
         final ElectMasterRequestHeader electMasterRequestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerId);
         RemotingCommand command = leader.electMaster(electMasterRequestHeader).get(2, TimeUnit.SECONDS);
-        ElectMasterResponseHeader header = (ElectMasterResponseHeader) command.readCustomHeader();
         assertEquals(exceptSuccess, ResponseCode.SUCCESS == command.getCode());
     }
 
-    private boolean alterNewInSyncSet(Controller leader, String brokerName, Long masterBrokerId, Integer masterEpoch,
+    private boolean alterNewInSyncSet(Controller leader, String clusterName, String brokerName, Long masterBrokerId, Integer masterEpoch,
         Set<Long> newSyncStateSet, Integer syncStateSetEpoch) throws Exception {
         final AlterSyncStateSetRequestHeader alterRequest =
-            new AlterSyncStateSetRequestHeader(brokerName, masterBrokerId, masterEpoch);
+            new AlterSyncStateSetRequestHeader(clusterName, brokerName, masterBrokerId, masterEpoch);
         final RemotingCommand response = leader.alterSyncStateSet(alterRequest, new SyncStateSet(newSyncStateSet, syncStateSetEpoch)).get(10, TimeUnit.SECONDS);
         if (null == response || response.getCode() != ResponseCode.SUCCESS) {
             return false;
         }
         final RemotingCommand getInfoResponse = leader.getReplicaInfo(new GetReplicaInfoRequestHeader(brokerName)).get(10, TimeUnit.SECONDS);
-        final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) getInfoResponse.readCustomHeader();
         final SyncStateSet syncStateSet = RemotingSerializable.decode(getInfoResponse.getBody(), SyncStateSet.class);
         assertArrayEquals(syncStateSet.getSyncStateSet().toArray(), newSyncStateSet.toArray());
         assertEquals(syncStateSet.getSyncStateSetEpoch(), syncStateSetEpoch + 1);
         return true;
     }
 
-    public DLedgerController waitLeader(final List<DLedgerController> controllers) throws Exception {
+    public DLedgerController waitLeader(final List<DLedgerController> controllers) {
         if (controllers.isEmpty()) {
             return null;
         }
@@ -199,7 +197,7 @@ public class DLedgerControllerTest {
         newSyncStateSet.add(1L);
         newSyncStateSet.add(2L);
         newSyncStateSet.add(3L);
-        assertTrue(alterNewInSyncSet(leader, DEFAULT_BROKER_NAME, 1L, 1, newSyncStateSet, 1));
+        assertTrue(alterNewInSyncSet(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, 1, newSyncStateSet, 1));
         return leader;
     }
 
@@ -294,7 +292,7 @@ public class DLedgerControllerTest {
         final HashSet<Long> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add(1L);
 
-        assertTrue(alterNewInSyncSet(leader, DEFAULT_BROKER_NAME, 1L, 1, newSyncStateSet, 2));
+        assertTrue(alterNewInSyncSet(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, 1, newSyncStateSet, 2));
 
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, the syncStateSet in statemachine is {1}, not more replicas can be elected as master, it will be failed.
@@ -333,7 +331,7 @@ public class DLedgerControllerTest {
         final HashSet<Long> newSyncStateSet = new HashSet<>();
         newSyncStateSet.add(1L);
 
-        assertTrue(alterNewInSyncSet(leader, DEFAULT_BROKER_NAME, 1L, 1, newSyncStateSet, 2));
+        assertTrue(alterNewInSyncSet(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L, 1, newSyncStateSet, 2));
 
         // Now we trigger electMaster api, which means the old master is shutdown and want to elect a new master.
         // However, event if the syncStateSet in statemachine is {DEFAULT_IP[0]}

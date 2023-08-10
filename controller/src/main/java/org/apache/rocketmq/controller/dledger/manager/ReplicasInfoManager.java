@@ -57,7 +57,6 @@ import org.apache.rocketmq.controller.dledger.statemachine.event.write.ElectMast
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.RegisterBrokerEvent;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.RegisterBrokerResult;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventMessage;
-import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventResult;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventType;
 import org.apache.rocketmq.controller.elect.ElectPolicy;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
@@ -81,7 +80,6 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextB
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
 
 /**
  * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory

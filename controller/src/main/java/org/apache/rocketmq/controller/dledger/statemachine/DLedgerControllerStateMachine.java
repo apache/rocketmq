@@ -25,7 +25,7 @@ import io.openmessaging.storage.dledger.statemachine.ApplyEntry;
 import io.openmessaging.storage.dledger.statemachine.ApplyEntryIterator;
 import io.openmessaging.storage.dledger.statemachine.StateMachine;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.controller.dledger.manager.ReplicasInfoManager;
+import org.apache.rocketmq.controller.dledger.manager.ReplicasManager;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventMessage;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventSerializer;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -36,13 +36,13 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
  */
 public class DLedgerControllerStateMachine implements StateMachine {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
-    private final ReplicasInfoManager replicasInfoManager;
+    private final ReplicasManager replicasManager;
     private final WriteEventSerializer eventSerializer;
     private final String dLedgerId;
 
-    public DLedgerControllerStateMachine(final ReplicasInfoManager replicasInfoManager,
+    public DLedgerControllerStateMachine(final ReplicasManager replicasManager,
         final WriteEventSerializer eventSerializer, final DLedgerConfig dLedgerConfig) {
-        this.replicasInfoManager = replicasInfoManager;
+        this.replicasManager = replicasManager;
         this.eventSerializer = eventSerializer;
         this.dLedgerId = generateDLedgerId(dLedgerConfig.getGroup(), dLedgerConfig.getSelfId());
     }
@@ -58,7 +58,7 @@ public class DLedgerControllerStateMachine implements StateMachine {
             final byte[] body = entry.getBody();
             if (body != null && body.length > 0) {
                 final WriteEventMessage event = this.eventSerializer.deserialize(body);
-                EventResponse<?> result = this.replicasInfoManager.applyEvent(event);
+                EventResponse<?> result = this.replicasManager.applyEvent(event);
                 applyEntry.setResp(result);
             }
             firstApplyIndex = firstApplyIndex == -1 ? entry.getIndex() : firstApplyIndex;

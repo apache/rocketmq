@@ -33,14 +33,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.controller.Controller;
 import org.apache.rocketmq.controller.dledger.manager.BrokerReplicaInfo;
-import org.apache.rocketmq.controller.dledger.manager.ReplicasInfoManager;
+import org.apache.rocketmq.controller.dledger.manager.ReplicasManager;
 import org.apache.rocketmq.controller.dledger.manager.SyncStateInfo;
 import org.apache.rocketmq.controller.dledger.statemachine.DLedgerControllerStateMachine;
 import org.apache.rocketmq.controller.dledger.statemachine.EventResponse;
@@ -66,10 +69,12 @@ import org.apache.rocketmq.controller.dledger.statemachine.event.write.RegisterB
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventMessage;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventResult;
 import org.apache.rocketmq.controller.dledger.statemachine.event.write.WriteEventSerializer;
-import org.apache.rocketmq.controller.elect.ElectPolicy;
+import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
 import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
+import org.apache.rocketmq.controller.helper.BrokerLiveInfoGetter;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
-import org.apache.rocketmq.controller.helper.ValidBrokerGetter;
+import org.apache.rocketmq.controller.helper.ValidBrokersGetter;
+import org.apache.rocketmq.controller.metrics.ControllerMetricsManager;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -105,7 +110,7 @@ public class NewDLedgerController implements Controller {
 
     private final ControllerConfig controllerConfig;
 
-    private final ReplicasInfoManager replicasInfoManager;
+    private final ReplicasManager replicasManager;
 
     private final DLedgerControllerStateMachine stateMachine;
 
@@ -115,28 +120,29 @@ public class NewDLedgerController implements Controller {
 
     private final String selfId;
 
-    private BrokerValidPredicate brokerValidPredicate;
+    private final BrokerValidPredicate brokerValidPredicate;
 
-    private ValidBrokerGetter validBrokerGetter;
+    private final ValidBrokersGetter validBrokersGetter;
 
-    private ElectPolicy electPolicy;
+    private final BrokerLiveInfoGetter brokerLiveInfoGetter;
 
     private final AtomicBoolean start = new AtomicBoolean(false);
 
     private final WriteEventSerializer writeEventSerializer = new WriteEventSerializer();
 
     public NewDLedgerController(final ControllerConfig controllerConfig,
-        final BrokerValidPredicate brokerValidPredicate, final ValidBrokerGetter validBrokerGetter,
+        final BrokerValidPredicate brokerValidPredicate, final ValidBrokersGetter validBrokersGetter, final BrokerLiveInfoGetter brokerLiveInfoGetter,
         final NettyServerConfig nettyServerConfig, final NettyClientConfig nettyClientConfig,
-        final ChannelEventListener channelEventListener, final ElectPolicy electPolicy) {
+        final ChannelEventListener channelEventListener) {
         this.controllerConfig = controllerConfig;
         this.brokerValidPredicate = brokerValidPredicate;
-        this.validBrokerGetter = validBrokerGetter;
+        this.validBrokersGetter = validBrokersGetter;
+        this.brokerLiveInfoGetter = brokerLiveInfoGetter;
         this.dLedgerConfig = buildDLedgerConfig(controllerConfig);
         this.selfId = this.dLedgerConfig.getSelfId();
-        this.roleChangeHandler = new RoleChangeHandler();
-        this.replicasInfoManager = new ReplicasInfoManager(controllerConfig);
-        this.stateMachine = new DLedgerControllerStateMachine(this.replicasInfoManager, writeEventSerializer, this.dLedgerConfig);
+        this.roleChangeHandler = new RoleChangeHandler(selfId);
+        this.replicasManager = new ReplicasManager(controllerConfig);
+        this.stateMachine = new DLedgerControllerStateMachine(this.replicasManager, writeEventSerializer, this.dLedgerConfig);
 
         this.dLedgerServer = new DLedgerServer(this.dLedgerConfig, nettyServerConfig, nettyClientConfig, channelEventListener, this.stateMachine);
         this.dLedgerServer.getDLedgerLeaderElector().addRoleChangeHandler(this.roleChangeHandler);
@@ -185,12 +191,14 @@ public class NewDLedgerController implements Controller {
     @Override
     public CompletableFuture<RemotingCommand> alterSyncStateSet(AlterSyncStateSetRequestHeader request,
         SyncStateSet syncStateSet) {
+        final String clusterName = request.getClusterName();
         final String brokerName = request.getBrokerName();
         final Long masterBrokerId = request.getMasterBrokerId();
         final Integer masterEpoch = request.getMasterEpoch();
         final Integer syncStateSetEpoch = syncStateSet.getSyncStateSetEpoch();
         final Set<Long> newSyncStateSets = syncStateSet.getSyncStateSet();
-        final AlterSyncStateSetEvent event = new AlterSyncStateSetEvent(brokerName, masterBrokerId, masterEpoch, newSyncStateSets, syncStateSetEpoch);
+        Set<Long> brokerIds = validBrokersGetter.get(clusterName, brokerName);
+        final AlterSyncStateSetEvent event = new AlterSyncStateSetEvent(clusterName, brokerName, masterBrokerId, masterEpoch, newSyncStateSets, syncStateSetEpoch, brokerIds);
         byte[] data = writeEventSerializer.serialize(event);
         final WriteTask task = new WriteTask();
         task.setBody(data);
@@ -200,8 +208,9 @@ public class NewDLedgerController implements Controller {
         return future.thenApply(resp -> {
             AlterSyncStateSetResult alterSyncStateSetResult = resp.getResponseResult();
             AlterSyncStateSetResponseHeader alterSyncStateSetResponseHeader = new AlterSyncStateSetResponseHeader();
-            alterSyncStateSetResponseHeader.setNewSyncStateSetEpoch(alterSyncStateSetResult.getNewSyncStateSetEpoch());
+            alterSyncStateSetResponseHeader.setNewSyncStateSetEpoch(alterSyncStateSetResult.getNewSyncStateSet().getSyncStateSetEpoch());
             RemotingCommand command = RemotingCommand.createResponseCommandWithHeader(resp.getResponseCode(), alterSyncStateSetResponseHeader);
+            command.setBody(alterSyncStateSetResult.getNewSyncStateSet().encode());
             command.setRemark(resp.getResponseMsg());
             return command;
         });
@@ -213,7 +222,11 @@ public class NewDLedgerController implements Controller {
         final String brokerName = request.getBrokerName();
         final Long brokerId = request.getBrokerId();
         final boolean designateElect = request.getDesignateElect();
-        final List<Long> aliveBrokers = validBrokerGetter.get(clusterName, brokerName);
+
+        final Map<Long, BrokerLiveInfo> aliveBrokers = this.validBrokersGetter.get(clusterName, brokerName).stream().
+            map(broker -> this.brokerLiveInfoGetter.get(clusterName, brokerName, broker)).
+            collect(Collectors.toMap(brokerLiveInfo -> brokerLiveInfo.getBrokerId(), brokerLiveInfo -> brokerLiveInfo));
+
         final ElectMasterEvent event = new ElectMasterEvent(clusterName, brokerName, brokerId, designateElect, aliveBrokers);
         byte[] data = writeEventSerializer.serialize(event);
         final WriteTask task = new WriteTask();
@@ -299,6 +312,7 @@ public class NewDLedgerController implements Controller {
             registerBrokerResponseHeader.setMasterEpoch(registerBrokerResult.getMasterEpoch());
             registerBrokerResponseHeader.setSyncStateSetEpoch(registerBrokerResult.getSyncStateSetEpoch());
             RemotingCommand command = RemotingCommand.createResponseCommandWithHeader(resp.getResponseCode(), registerBrokerResponseHeader);
+            command.setBody((new SyncStateSet(registerBrokerResult.getSyncStateBrokerSet(), registerBrokerResult.getSyncStateSetEpoch())).encode());
             command.setRemark(resp.getResponseMsg());
             return command;
         });
@@ -318,6 +332,7 @@ public class NewDLedgerController implements Controller {
             getReplicaInfoResponseHeader.setMasterBrokerId(getReplicaInfoResult.getMasterBrokerId());
             getReplicaInfoResponseHeader.setMasterEpoch(getReplicaInfoResult.getMasterEpoch());
             RemotingCommand command = RemotingCommand.createResponseCommandWithHeader(resp.getResponseCode(), getReplicaInfoResponseHeader);
+            command.setBody(getReplicaInfoResult.getSyncStateSet().encode());
             command.setRemark(resp.getResponseMsg());
             return command;
         });
@@ -389,6 +404,16 @@ public class NewDLedgerController implements Controller {
                 return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_INVALID_CLEAN_BROKER_METADATA, remark));
             }
         }
+        if (!requestHeader.isCleanLivingBroker()) {
+            // check if broker is alive
+            for (Long brokerId : brokerIdSet) {
+                if (brokerValidPredicate.check(clusterName, brokerName, brokerId)) {
+                    String msg = String.format("Broker[%s][%d] is still alive", brokerName, brokerId);
+                    log.warn(msg);
+                    return CompletableFuture.completedFuture(RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_INVALID_CLEAN_BROKER_METADATA, msg));
+                }
+            }
+        }
         final CleanBrokerDataEvent event = new CleanBrokerDataEvent(clusterName, brokerName, brokerIdSet);
         byte[] data = writeEventSerializer.serialize(event);
         WriteTask task = new WriteTask();
@@ -410,24 +435,6 @@ public class NewDLedgerController implements Controller {
     @Override
     public RemotingServer getRemotingServer() {
         return null;
-    }
-
-    class RoleChangeHandler implements DLedgerLeaderElector.RoleChangeHandler {
-
-        @Override
-        public void handle(long term, MemberState.Role role) {
-
-        }
-
-        @Override
-        public void startup() {
-
-        }
-
-        @Override
-        public void shutdown() {
-
-        }
     }
 
     class ControllerWriteClosure<T extends WriteEventResult> extends WriteClosure<EventResponse<T>> {
@@ -484,7 +491,7 @@ public class NewDLedgerController implements Controller {
                 log.error(msg);
                 resp.setResponse(ResponseCode.CONTROLLER_INNER_ERROR, msg);
             } else {
-                EventResponse<? extends EventResult> response = replicasInfoManager.applyEvent(event);
+                EventResponse<? extends EventResult> response = replicasManager.applyEvent(event);
                 if (!(response.getResponseResult() instanceof ReadEventResult)) {
                     String msg = String.format("Failed to read event: %s, invalid result type: %s", event, response.getResponseResult().getClass().getSimpleName());
                     log.error(msg);
@@ -496,4 +503,57 @@ public class NewDLedgerController implements Controller {
             future.complete(resp);
         }
     }
+
+    /**
+     * Role change handler, trigger the startScheduling() and stopScheduling() when role change.
+     */
+    class RoleChangeHandler implements DLedgerLeaderElector.RoleChangeHandler {
+
+        private final String selfId;
+        private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("DLedgerControllerRoleChangeHandler_"));
+        private volatile MemberState.Role currentRole = MemberState.Role.FOLLOWER;
+
+        public RoleChangeHandler(final String selfId) {
+            this.selfId = selfId;
+        }
+
+        @Override
+        public void handle(long term, MemberState.Role role) {
+            Runnable runnable = () -> {
+                switch (role) {
+                    case CANDIDATE:
+                        ControllerMetricsManager.recordRole(role, this.currentRole);
+                        this.currentRole = MemberState.Role.CANDIDATE;
+                        log.info("Controller[{}] change role to candidate", this.selfId);
+                        stopScheduling();
+                        break;
+                    case FOLLOWER:
+                        ControllerMetricsManager.recordRole(role, this.currentRole);
+                        this.currentRole = MemberState.Role.FOLLOWER;
+                        log.info("Controller[{}] change role to Follower, leaderId:{}", this.selfId, dLedgerServer.getMemberState().getLeaderId());
+                        stopScheduling();
+                        break;
+                    case LEADER: {
+                        log.info("Controller[{}] change role to leader, try process a initial proposal", this.selfId);
+                        ControllerMetricsManager.recordRole(role, this.currentRole);
+                        this.currentRole = MemberState.Role.LEADER;
+                        startScheduling();
+                        break;
+                    }
+                }
+            };
+            this.executorService.submit(runnable);
+        }
+
+        @Override
+        public void startup() {
+        }
+
+        @Override
+        public void shutdown() {
+            stopScheduling();
+            this.executorService.shutdown();
+        }
+    }
+
 }

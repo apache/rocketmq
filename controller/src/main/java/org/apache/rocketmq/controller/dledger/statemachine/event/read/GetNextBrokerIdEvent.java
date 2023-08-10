@@ -28,6 +28,14 @@ public class GetNextBrokerIdEvent implements ReadEventMessage {
         this.brokerName = brokerName;
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
+    }
+
     @Override
     public ReadEventType getEventType() {
         return ReadEventType.GET_NEXT_BROKER_ID;

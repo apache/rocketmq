@@ -19,14 +19,28 @@ package org.apache.rocketmq.controller.dledger.statemachine.event.read;
 
 public class GetNextBrokerIdResult implements ReadEventResult {
 
+    private final String clusterName;
+
+    private final String brokerName;
+
     private final Long nextBrokerId;
 
-    public GetNextBrokerIdResult(Long nextBrokerId) {
+    public GetNextBrokerIdResult(String clusterName, String brokerName, Long nextBrokerId) {
+        this.clusterName = clusterName;
+        this.brokerName = brokerName;
         this.nextBrokerId = nextBrokerId;
     }
 
     public Long getNextBrokerId() {
         return nextBrokerId;
+    }
+
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public String getBrokerName() {
+        return brokerName;
     }
 
     @Override

@@ -17,16 +17,17 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
+import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
+
 public class AlterSyncStateSetResult implements WriteEventResult {
 
-    private final int newSyncStateSetEpoch;
-
-    public AlterSyncStateSetResult(int newSyncStateSetEpoch) {
-        this.newSyncStateSetEpoch = newSyncStateSetEpoch;
+    private final SyncStateSet newSyncStateSet;
+    public AlterSyncStateSetResult(SyncStateSet syncStateSet) {
+        this.newSyncStateSet = syncStateSet;
     }
 
-    public int getNewSyncStateSetEpoch() {
-        return newSyncStateSetEpoch;
+    public SyncStateSet getNewSyncStateSet() {
+        return newSyncStateSet;
     }
 
     @Override

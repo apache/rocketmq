@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
-import java.util.List;
+import java.util.Map;
+import org.apache.rocketmq.controller.heartbeat.BrokerLiveInfo;
 
 public class ElectMasterEvent implements WriteEventMessage {
 
@@ -26,9 +27,9 @@ public class ElectMasterEvent implements WriteEventMessage {
     private final Long brokerId;
     private final boolean designateElect;
 
-    private final List<Long/*brokerId*/> aliveBrokers;
+    private final Map<Long/*broker id*/, BrokerLiveInfo> aliveBrokers;
 
-    public ElectMasterEvent(String clusterName, String brokerName, Long brokerId, boolean designateElect, List<Long> aliveBrokers) {
+    public ElectMasterEvent(String clusterName, String brokerName, Long brokerId, boolean designateElect, Map<Long, BrokerLiveInfo> aliveBrokers) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerId = brokerId;
@@ -52,7 +53,7 @@ public class ElectMasterEvent implements WriteEventMessage {
         return designateElect;
     }
 
-    public List<Long> getAliveBrokers() {
+    public Map<Long, BrokerLiveInfo> getAliveBrokers() {
         return aliveBrokers;
     }
 

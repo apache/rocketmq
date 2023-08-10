@@ -17,10 +17,10 @@
 
 package org.apache.rocketmq.controller.helper;
 
-import java.util.List;
+import java.util.Set;
 
-public interface ValidBrokerGetter {
+public interface ValidBrokersGetter {
 
-    List<Long/*broker id*/> get(String clusterName, String brokerName);
+    Set<Long/*broker id*/> get(String clusterName, String brokerName);
 
 }

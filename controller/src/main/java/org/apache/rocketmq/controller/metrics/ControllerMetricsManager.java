@@ -56,6 +56,7 @@ import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.metrics.NopLongUpDownCounter;
 import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.controller.ControllerManager;
+import org.apache.rocketmq.controller.heartbeat.BrokerSetIdentity;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -248,11 +249,12 @@ public class ControllerMetricsManager {
             .setDescription("now active brokers num")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                Map<String, Map<String, Integer>> activeBrokersNum = controllerManager.getHeartbeatManager().getActiveBrokersNum();
-                activeBrokersNum.forEach((cluster, brokerSetAndNum) -> {
-                    brokerSetAndNum.forEach((brokerSet, num) -> measurement.record(num,
-                        newAttributesBuilder().put(LABEL_CLUSTER_NAME, cluster).put(LABEL_BROKER_SET, brokerSet).build()));
-                });
+                Map<BrokerSetIdentity, Integer> activeBrokers = controllerManager.getHeartbeatManager().getActiveBrokersNum();
+                activeBrokers.forEach((brokerSetIdentity, num) -> measurement.record(num,
+                    newAttributesBuilder().
+                        put(LABEL_CLUSTER_NAME, brokerSetIdentity.getClusterName()).
+                        put(LABEL_BROKER_SET, brokerSetIdentity.getBrokerName()).
+                        build()));
             });
 
         requestTotal = meter.counterBuilder(COUNTER_REQUEST_TOTAL)

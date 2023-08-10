@@ -19,8 +19,8 @@ package org.apache.rocketmq.controller.heartbeat;
 import io.netty.channel.Channel;
 
 public class BrokerLiveInfo {
+    private final String clusterName;
     private final String brokerName;
-
     private String brokerAddr;
     private long heartbeatTimeoutMillis;
     private Channel channel;
@@ -31,8 +31,9 @@ public class BrokerLiveInfo {
     private long confirmOffset;
     private Integer electionPriority;
 
-    public BrokerLiveInfo(String brokerName, String brokerAddr, long brokerId, long lastUpdateTimestamp,
+    public BrokerLiveInfo(String clusterName, String brokerName, String brokerAddr, long brokerId, long lastUpdateTimestamp,
         long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority) {
+        this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddr = brokerAddr;
         this.brokerId = brokerId;
@@ -44,8 +45,9 @@ public class BrokerLiveInfo {
         this.maxOffset = maxOffset;
     }
 
-    public BrokerLiveInfo(String brokerName, String brokerAddr, long brokerId, long lastUpdateTimestamp,
+    public BrokerLiveInfo(String clusterName, String brokerName, String brokerAddr, long brokerId, long lastUpdateTimestamp,
         long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority, long confirmOffset) {
+        this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.brokerAddr = brokerAddr;
         this.brokerId = brokerId;
@@ -61,7 +63,8 @@ public class BrokerLiveInfo {
     @Override
     public String toString() {
         return "BrokerLiveInfo{" +
-            "brokerName='" + brokerName + '\'' +
+            "clusterName='" + clusterName + '\'' +
+            ", brokerName='" + brokerName + '\'' +
             ", brokerAddr='" + brokerAddr + '\'' +
             ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
             ", channel=" + channel +
@@ -70,7 +73,12 @@ public class BrokerLiveInfo {
             ", epoch=" + epoch +
             ", maxOffset=" + maxOffset +
             ", confirmOffset=" + confirmOffset +
+            ", electionPriority=" + electionPriority +
             '}';
+    }
+
+    public String getClusterName() {
+        return clusterName;
     }
 
     public String getBrokerName() {

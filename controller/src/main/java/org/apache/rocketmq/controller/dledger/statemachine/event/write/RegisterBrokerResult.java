@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.controller.dledger.statemachine.event.write;
 
+import java.util.Set;
+
 public class RegisterBrokerResult implements WriteEventResult {
 
     private String clusterName;
@@ -31,14 +33,53 @@ public class RegisterBrokerResult implements WriteEventResult {
 
     private Integer syncStateSetEpoch;
 
+    private Set<Long/*broker id*/> syncStateBrokerSet;
+
+    public RegisterBrokerResult() {
+
+    }
+
     public RegisterBrokerResult(String clusterName, String brokerName, Long masterBrokerId, String masterAddress,
-        Integer masterEpoch, Integer syncStateSetEpoch) {
+        Integer masterEpoch, Integer syncStateSetEpoch, Set<Long> syncStateBrokerSet) {
         this.clusterName = clusterName;
         this.brokerName = brokerName;
         this.masterBrokerId = masterBrokerId;
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
         this.syncStateSetEpoch = syncStateSetEpoch;
+        this.syncStateBrokerSet = syncStateBrokerSet;
+    }
+
+    public Set<Long> getSyncStateBrokerSet() {
+        return syncStateBrokerSet;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
+    public void setMasterBrokerId(Long masterBrokerId) {
+        this.masterBrokerId = masterBrokerId;
+    }
+
+    public void setMasterAddress(String masterAddress) {
+        this.masterAddress = masterAddress;
+    }
+
+    public void setMasterEpoch(Integer masterEpoch) {
+        this.masterEpoch = masterEpoch;
+    }
+
+    public void setSyncStateSetEpoch(Integer syncStateSetEpoch) {
+        this.syncStateSetEpoch = syncStateSetEpoch;
+    }
+
+    public void setSyncStateBrokerSet(Set<Long> syncStateBrokerSet) {
+        this.syncStateBrokerSet = syncStateBrokerSet;
     }
 
     public String getClusterName() {

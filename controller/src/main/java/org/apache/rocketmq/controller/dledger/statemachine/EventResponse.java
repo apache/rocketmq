@@ -21,7 +21,7 @@ import org.apache.rocketmq.controller.dledger.statemachine.event.EventResult;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 public class EventResponse<T extends EventResult> {
-    private final T responseResult;
+    private T responseResult;
 
     private int responseCode = ResponseCode.SUCCESS;
 
@@ -38,6 +38,10 @@ public class EventResponse<T extends EventResult> {
     public void setResponse(int code, String responseMsg) {
         this.responseCode = code;
         this.responseMsg = responseMsg;
+    }
+
+    public void setResponseResult(T responseResult) {
+        this.responseResult = responseResult;
     }
 
     public T getResponseResult() {

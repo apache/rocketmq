@@ -20,6 +20,8 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
+
+    private String clusterName;
     private String brokerName;
     private Long masterBrokerId;
     private Integer masterEpoch;
@@ -27,10 +29,18 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     public AlterSyncStateSetRequestHeader() {
     }
 
-    public AlterSyncStateSetRequestHeader(String brokerName, Long masterBrokerId, Integer masterEpoch) {
+    public AlterSyncStateSetRequestHeader(String clusterName, String brokerName, Long masterBrokerId, Integer masterEpoch) {
         this.brokerName = brokerName;
         this.masterBrokerId = masterBrokerId;
         this.masterEpoch = masterEpoch;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    public String getClusterName() {
+        return clusterName;
     }
 
     public String getBrokerName() {
