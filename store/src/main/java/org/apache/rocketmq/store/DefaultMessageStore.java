@@ -276,11 +276,13 @@ public class DefaultMessageStore implements MessageStore {
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
-        if (messageStoreConfig.isEnableCompaction()) {
-            this.compactionStore = new CompactionStore(this);
-            this.compactionService = new CompactionService(commitLog, this, compactionStore);
-            this.dispatcherList.addLast(new CommitLogDispatcherCompaction(compactionService));
+        if (!messageStoreConfig.isEnableCompaction()) {
+            return;
         }
+
+        this.compactionStore = new CompactionStore(this);
+        this.compactionService = new CompactionService(commitLog, this, compactionStore);
+        this.dispatcherList.addLast(new CommitLogDispatcherCompaction(compactionService));
     }
 
     private void initLockFile() throws IOException {
