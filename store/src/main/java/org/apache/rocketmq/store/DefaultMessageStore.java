@@ -336,16 +336,11 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public boolean load() {
         boolean result = true;
-
         try {
             boolean lastExitOK = !this.isTempFileExist();
-            LOGGER.info("last shutdown {}, store path root dir: {}",
-                lastExitOK ? "normally" : "abnormally", messageStoreConfig.getStorePathRootDir());
+            LOGGER.info("last shutdown {}, store path root dir: {}", lastExitOK ? "normally" : "abnormally", messageStoreConfig.getStorePathRootDir());
 
-            // load Commit Log
             result = this.commitLog.load();
-
-            // load Consume Queue
             result = result && this.consumeQueueStore.load();
 
             if (messageStoreConfig.isEnableCompaction()) {
@@ -353,17 +348,8 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             if (result) {
-                this.storeCheckpoint =
-                    new StoreCheckpoint(
-                        StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
-                this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
-                setConfirmOffset(this.storeCheckpoint.getConfirmPhyOffset());
-
-                result = this.indexService.load(lastExitOK);
-                this.recover(lastExitOK);
-                LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
+                result = loadIndexService(lastExitOK);
             }
-
 
             long maxOffset = this.getMaxPhyOffset();
             this.setBrokerInitMaxOffset(maxOffset);
@@ -376,6 +362,19 @@ public class DefaultMessageStore implements MessageStore {
         if (!result) {
             this.allocateMappedFileService.shutdown();
         }
+
+        return result;
+    }
+
+    private boolean loadIndexService(boolean lastExitOK) throws IOException {
+        this.storeCheckpoint = new StoreCheckpoint(
+                StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
+        this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
+        setConfirmOffset(this.storeCheckpoint.getConfirmPhyOffset());
+
+        boolean result = this.indexService.load(lastExitOK);
+        this.recover(lastExitOK);
+        LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
 
         return result;
     }
