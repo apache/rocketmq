@@ -50,7 +50,7 @@ public class TieredCommitLog {
         this.storeConfig = fileQueueFactory.getStoreConfig();
         this.flatFile = fileQueueFactory.createFlatFileForCommitLog(filePath);
         this.minConsumeQueueOffset = new AtomicLong(NOT_EXIST_MIN_OFFSET);
-        this.correctMinOffset();
+        this.correctMinOffsetAsync();
     }
 
     @VisibleForTesting
@@ -91,17 +91,26 @@ public class TieredCommitLog {
         return flatFile.getFileToWrite().getMaxTimestamp();
     }
 
-    public synchronized long correctMinOffset() {
+    public long correctMinOffset() {
+        try {
+            return correctMinOffsetAsync().get();
+        } catch (Exception e) {
+            log.error("Correct min offset failed in clean expired file", e);
+        }
+        return NOT_EXIST_MIN_OFFSET;
+    }
+
+    public synchronized CompletableFuture<Long> correctMinOffsetAsync() {
         if (flatFile.getFileSegmentCount() == 0) {
             this.minConsumeQueueOffset.set(NOT_EXIST_MIN_OFFSET);
-            return NOT_EXIST_MIN_OFFSET;
+            return CompletableFuture.completedFuture(NOT_EXIST_MIN_OFFSET);
         }
 
         // queue offset field length is 8
         int length = MessageBufferUtil.QUEUE_OFFSET_POSITION + 8;
         if (flatFile.getCommitOffset() - flatFile.getMinOffset() < length) {
             this.minConsumeQueueOffset.set(NOT_EXIST_MIN_OFFSET);
-            return NOT_EXIST_MIN_OFFSET;
+            return CompletableFuture.completedFuture(NOT_EXIST_MIN_OFFSET);
         }
 
         try {
@@ -109,7 +118,8 @@ public class TieredCommitLog {
                 .thenApply(buffer -> {
                     long offset = MessageBufferUtil.getQueueOffset(buffer);
                     minConsumeQueueOffset.set(offset);
-                    log.info("Correct commitlog min cq offset success, filePath={}, min cq offset={}, range={}-{}",
+                    log.debug("Correct commitlog min cq offset success, " +
+                            "filePath={}, min cq offset={}, commitlog range={}-{}",
                         flatFile.getFilePath(), offset, flatFile.getMinOffset(), flatFile.getCommitOffset());
                     return offset;
                 })
@@ -117,11 +127,11 @@ public class TieredCommitLog {
                     log.warn("Correct commitlog min cq offset error, filePath={}, range={}-{}",
                         flatFile.getFilePath(), flatFile.getMinOffset(), flatFile.getCommitOffset(), throwable);
                     return minConsumeQueueOffset.get();
-                }).get();
+                });
         } catch (Exception e) {
             log.error("Correct commitlog min cq offset error, filePath={}", flatFile.getFilePath(), e);
         }
-        return minConsumeQueueOffset.get();
+        return CompletableFuture.completedFuture(minConsumeQueueOffset.get());
     }
 
     public AppendResult append(ByteBuffer byteBuf) {

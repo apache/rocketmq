@@ -76,18 +76,13 @@ public class CompositeFlatFile implements CompositeAccess {
         this.storeConfig = fileQueueFactory.getStoreConfig();
         this.readAheadFactor = this.storeConfig.getReadAheadMinFactor();
         this.metadataStore = TieredStoreUtil.getMetadataStore(this.storeConfig);
-        this.dispatchOffset = new AtomicLong();
         this.compositeFlatFileLock = new ReentrantLock();
         this.inFlightRequestMap = new ConcurrentHashMap<>();
         this.commitLog = new TieredCommitLog(fileQueueFactory, filePath);
         this.consumeQueue = new TieredConsumeQueue(fileQueueFactory, filePath);
+        this.dispatchOffset = new AtomicLong(
+            this.consumeQueue.isInitialized() ? this.getConsumeQueueCommitOffset() : -1L);
         this.groupOffsetCache = this.initOffsetCache();
-    }
-
-    protected void recoverMetadata() {
-        if (!consumeQueue.isInitialized() && this.dispatchOffset.get() != -1) {
-            consumeQueue.setBaseOffset(this.dispatchOffset.get() * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
-        }
     }
 
     private Cache<String, Long> initOffsetCache() {
@@ -310,10 +305,12 @@ public class CompositeFlatFile implements CompositeAccess {
 
     @Override
     public void initOffset(long offset) {
-        if (!consumeQueue.isInitialized()) {
+        if (consumeQueue.isInitialized()) {
+            dispatchOffset.set(this.getConsumeQueueCommitOffset());
+        } else {
             consumeQueue.setBaseOffset(offset * TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
+            dispatchOffset.set(offset);
         }
-        dispatchOffset.set(offset);
     }
 
     @Override

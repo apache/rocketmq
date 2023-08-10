@@ -72,10 +72,15 @@ public class TieredFlatFileManagerTest {
 
         CompositeFlatFile flatFile = flatFileManager.getFlatFile(mq);
         Assert.assertNotNull(flatFile);
-        Assert.assertEquals(100, flatFile.getDispatchOffset());
+        Assert.assertEquals(-1L, flatFile.getDispatchOffset());
+        flatFile.initOffset(100L);
+        Assert.assertEquals(100L, flatFile.getDispatchOffset());
+        flatFile.initOffset(200L);
+        Assert.assertEquals(100L, flatFile.getDispatchOffset());
 
         CompositeFlatFile flatFile1 = flatFileManager.getFlatFile(mq1);
         Assert.assertNotNull(flatFile1);
+        flatFile1.initOffset(200L);
         Assert.assertEquals(200, flatFile1.getDispatchOffset());
 
         flatFileManager.destroyCompositeFile(mq);
