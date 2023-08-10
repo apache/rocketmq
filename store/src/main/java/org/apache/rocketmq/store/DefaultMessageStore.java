@@ -248,16 +248,18 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private void initHaService() {
-        if (!messageStoreConfig.isEnableDLegerCommitLog() && !this.messageStoreConfig.isDuplicationEnable()) {
-            if (brokerConfig.isEnableControllerMode()) {
-                this.haService = new AutoSwitchHAService();
-                LOGGER.warn("Load AutoSwitch HA Service: {}", AutoSwitchHAService.class.getSimpleName());
-            } else {
-                this.haService = ServiceProvider.loadClass(HAService.class);
-                if (null == this.haService) {
-                    this.haService = new DefaultHAService();
-                    LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());
-                }
+        if (messageStoreConfig.isEnableDLegerCommitLog() || this.messageStoreConfig.isDuplicationEnable()) {
+            return;
+        }
+
+        if (brokerConfig.isEnableControllerMode()) {
+            this.haService = new AutoSwitchHAService();
+            LOGGER.warn("Load AutoSwitch HA Service: {}", AutoSwitchHAService.class.getSimpleName());
+        } else {
+            this.haService = ServiceProvider.loadClass(HAService.class);
+            if (null == this.haService) {
+                this.haService = new DefaultHAService();
+                LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());
             }
         }
     }
