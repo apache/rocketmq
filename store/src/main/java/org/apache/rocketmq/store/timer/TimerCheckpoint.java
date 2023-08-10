@@ -57,30 +57,31 @@ public class TimerCheckpoint {
         this.fileChannel = this.randomAccessFile.getChannel();
         this.mappedByteBuffer = fileChannel.map(MapMode.READ_WRITE, 0, DefaultMappedFile.OS_PAGE_SIZE);
 
-        if (fileExists) {
-            log.info("timer checkpoint file exists, " + scpPath);
-            this.lastReadTimeMs = this.mappedByteBuffer.getLong(0);
-            this.lastTimerLogFlushPos = this.mappedByteBuffer.getLong(8);
-            this.lastTimerQueueOffset = this.mappedByteBuffer.getLong(16);
-            this.masterTimerQueueOffset = this.mappedByteBuffer.getLong(24);
-            // new add to record dataVersion
-            if (this.mappedByteBuffer.hasRemaining()) {
-                dataVersion.setStateVersion(this.mappedByteBuffer.getLong(32));
-                dataVersion.setTimestamp(this.mappedByteBuffer.getLong(40));
-                dataVersion.setCounter(new AtomicLong(this.mappedByteBuffer.getLong(48)));
-            }
-
-            log.info("timer checkpoint file lastReadTimeMs " + this.lastReadTimeMs + ", "
-                + UtilAll.timeMillisToHumanString(this.lastReadTimeMs));
-            log.info("timer checkpoint file lastTimerLogFlushPos " + this.lastTimerLogFlushPos);
-            log.info("timer checkpoint file lastTimerQueueOffset " + this.lastTimerQueueOffset);
-            log.info("timer checkpoint file masterTimerQueueOffset " + this.masterTimerQueueOffset);
-            log.info("timer checkpoint file data version state version " + this.dataVersion.getStateVersion());
-            log.info("timer checkpoint file data version timestamp " + this.dataVersion.getTimestamp());
-            log.info("timer checkpoint file data version counter " + this.dataVersion.getCounter());
-        } else {
+        if (!fileExists) {
             log.info("timer checkpoint file not exists, " + scpPath);
+            return;
         }
+
+        log.info("timer checkpoint file exists, " + scpPath);
+        this.lastReadTimeMs = this.mappedByteBuffer.getLong(0);
+        this.lastTimerLogFlushPos = this.mappedByteBuffer.getLong(8);
+        this.lastTimerQueueOffset = this.mappedByteBuffer.getLong(16);
+        this.masterTimerQueueOffset = this.mappedByteBuffer.getLong(24);
+        // new add to record dataVersion
+        if (this.mappedByteBuffer.hasRemaining()) {
+            dataVersion.setStateVersion(this.mappedByteBuffer.getLong(32));
+            dataVersion.setTimestamp(this.mappedByteBuffer.getLong(40));
+            dataVersion.setCounter(new AtomicLong(this.mappedByteBuffer.getLong(48)));
+        }
+
+        log.info("timer checkpoint file lastReadTimeMs " + this.lastReadTimeMs + ", "
+            + UtilAll.timeMillisToHumanString(this.lastReadTimeMs));
+        log.info("timer checkpoint file lastTimerLogFlushPos " + this.lastTimerLogFlushPos);
+        log.info("timer checkpoint file lastTimerQueueOffset " + this.lastTimerQueueOffset);
+        log.info("timer checkpoint file masterTimerQueueOffset " + this.masterTimerQueueOffset);
+        log.info("timer checkpoint file data version state version " + this.dataVersion.getStateVersion());
+        log.info("timer checkpoint file data version timestamp " + this.dataVersion.getTimestamp());
+        log.info("timer checkpoint file data version counter " + this.dataVersion.getCounter());
     }
 
     public void shutdown() {
