@@ -393,7 +393,6 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         this.allocateMappedFileService.start();
-
         this.indexService.start();
 
         lock = lockFile.getChannel().tryLock(0, 1, false);
@@ -482,54 +481,68 @@ public class DefaultMessageStore implements MessageStore {
     public void shutdown() {
         if (!this.shutdown) {
             this.shutdown = true;
-
-            this.scheduledExecutorService.shutdown();
-            this.scheduledCleanQueueExecutorService.shutdown();
-
-            try {
-                this.scheduledExecutorService.awaitTermination(3, TimeUnit.SECONDS);
-                this.scheduledCleanQueueExecutorService.awaitTermination(3, TimeUnit.SECONDS);
-                Thread.sleep(1000 * 3);
-            } catch (InterruptedException e) {
-                LOGGER.error("shutdown Exception, ", e);
-            }
-
-            if (this.haService != null) {
-                this.haService.shutdown();
-            }
-
-            this.storeStatsService.shutdown();
-            this.commitLog.shutdown();
-            this.reputMessageService.shutdown();
-            // dispatch-related services must be shut down after reputMessageService
-            this.indexService.shutdown();
-            if (this.compactionService != null) {
-                this.compactionService.shutdown();
-            }
-
-            this.flushConsumeQueueService.shutdown();
-            this.allocateMappedFileService.shutdown();
-            this.storeCheckpoint.flush();
-            this.storeCheckpoint.shutdown();
-
-            this.perfs.shutdown();
-
-            if (this.runningFlags.isWriteable() && dispatchBehindBytes() == 0) {
-                this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
-                shutDownNormal = true;
-            } else {
-                LOGGER.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
-            }
+            shutdownServices();
         }
 
         this.transientStorePool.destroy();
+        releaseLockAndLockFile();
 
-        if (lockFile != null && lock != null) {
-            try {
+    }
+
+    private void shutdownScheduleServices() {
+        this.scheduledExecutorService.shutdown();
+        this.scheduledCleanQueueExecutorService.shutdown();
+
+        try {
+            this.scheduledExecutorService.awaitTermination(3, TimeUnit.SECONDS);
+            this.scheduledCleanQueueExecutorService.awaitTermination(3, TimeUnit.SECONDS);
+            Thread.sleep(1000 * 3);
+        } catch (InterruptedException e) {
+            LOGGER.error("shutdown Exception, ", e);
+        }
+    }
+
+    private void shutdownServices() {
+        shutdownScheduleServices();
+
+        if (this.haService != null) {
+            this.haService.shutdown();
+        }
+
+        this.storeStatsService.shutdown();
+        this.commitLog.shutdown();
+        this.reputMessageService.shutdown();
+        // dispatch-related services must be shut down after reputMessageService
+        this.indexService.shutdown();
+        if (this.compactionService != null) {
+            this.compactionService.shutdown();
+        }
+
+        this.flushConsumeQueueService.shutdown();
+        this.allocateMappedFileService.shutdown();
+        this.storeCheckpoint.flush();
+        this.storeCheckpoint.shutdown();
+
+        this.perfs.shutdown();
+
+        if (this.runningFlags.isWriteable() && dispatchBehindBytes() == 0) {
+            this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
+            shutDownNormal = true;
+        } else {
+            LOGGER.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
+        }
+    }
+
+    private void releaseLockAndLockFile() {
+        try {
+            if (null != lock) {
                 lock.release();
-                lockFile.close();
-            } catch (IOException e) {
             }
+
+            if (null != lockFile) {
+                lockFile.close();
+            }
+        } catch (IOException ignored) {
         }
     }
 
