@@ -581,7 +581,6 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
-
         for (PutMessageHook putMessageHook : putMessageHookList) {
             PutMessageResult handleResult = putMessageHook.executeBeforePutMessage(msg);
             if (handleResult != null) {
@@ -1056,15 +1055,15 @@ public class DefaultMessageStore implements MessageStore {
 
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
         ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
-        if (logic != null) {
-            long resultOffset = logic.getOffsetInQueueByTime(timestamp, boundaryType);
-            // Make sure the result offset is in valid range.
-            resultOffset = Math.max(resultOffset, logic.getMinOffsetInQueue());
-            resultOffset = Math.min(resultOffset, logic.getMaxOffsetInQueue());
-            return resultOffset;
+        if (logic == null) {
+            return 0;
         }
 
-        return 0;
+        long resultOffset = logic.getOffsetInQueueByTime(timestamp, boundaryType);
+        // Make sure the result offset is in valid range.
+        resultOffset = Math.max(resultOffset, logic.getMinOffsetInQueue());
+        resultOffset = Math.min(resultOffset, logic.getMaxOffsetInQueue());
+        return resultOffset;
     }
 
     @Override
