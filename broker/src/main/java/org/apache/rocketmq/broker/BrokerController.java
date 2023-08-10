@@ -22,7 +22,7 @@ import java.util.concurrent.BlockingQueue;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.bootstrap.BrokerClusterService;
 import org.apache.rocketmq.broker.bootstrap.BrokerMessageService;
-import org.apache.rocketmq.broker.bootstrap.BrokerMetadataManager;
+import org.apache.rocketmq.broker.bootstrap.BrokerMetadataService;
 import org.apache.rocketmq.broker.bootstrap.BrokerNettyServer;
 import org.apache.rocketmq.broker.bootstrap.BrokerScheduleService;
 import org.apache.rocketmq.broker.bootstrap.BrokerServiceManager;
@@ -80,7 +80,7 @@ public class BrokerController {
 
     private final BrokerNettyServer brokerNettyServer;
     private final BrokerScheduleService brokerScheduleService;
-    private final BrokerMetadataManager brokerMetadataManager;
+    private final BrokerMetadataService brokerMetadataService;
     private final BrokerServiceRegistry brokerServiceRegistry;
     private final BrokerServiceManager brokerServiceManager;
     private final BrokerClusterService brokerClusterService;
@@ -118,7 +118,7 @@ public class BrokerController {
         initConfiguration();
 
         /* the instance creating order matters, do not change it. start ... */
-        this.brokerMetadataManager = new BrokerMetadataManager(this);
+        this.brokerMetadataService = new BrokerMetadataService(this);
         this.brokerNettyServer = new BrokerNettyServer(brokerConfig, messageStoreConfig, nettyServerConfig, this);
         this.brokerServiceRegistry = new BrokerServiceRegistry(this);
         this.brokerServiceManager = new BrokerServiceManager(this);
@@ -128,7 +128,7 @@ public class BrokerController {
     }
 
     public boolean initialize() throws CloneNotSupportedException {
-        boolean result = this.brokerMetadataManager.load();
+        boolean result = this.brokerMetadataService.load();
         if (!result) {
             return false;
         }
@@ -246,7 +246,7 @@ public class BrokerController {
     public boolean initAndLoadService() throws CloneNotSupportedException {
         brokerClusterService.load();
 
-        if (!brokerMetadataManager.load()) {
+        if (!brokerMetadataService.load()) {
             return false;
         }
 
@@ -284,7 +284,7 @@ public class BrokerController {
         this.brokerNettyServer.shutdown();
         this.brokerMessageService.shutdown();
         this.brokerServiceManager.shutdown();
-        this.brokerMetadataManager.shutdown();
+        this.brokerMetadataService.shutdown();
         this.brokerClusterService.shutdown();
     }
 
@@ -312,8 +312,8 @@ public class BrokerController {
         return brokerServiceRegistry;
     }
 
-    public BrokerMetadataManager getBrokerMetadataManager() {
-        return brokerMetadataManager;
+    public BrokerMetadataService getBrokerMetadataManager() {
+        return brokerMetadataService;
     }
 
     public BrokerMessageService getBrokerMessageService() {
@@ -357,11 +357,11 @@ public class BrokerController {
     }
 
     public ConsumerFilterManager getConsumerFilterManager() {
-        return this.brokerMetadataManager.getConsumerFilterManager();
+        return this.brokerMetadataService.getConsumerFilterManager();
     }
 
     public ConsumerOrderInfoManager getConsumerOrderInfoManager() {
-        return this.brokerMetadataManager.getConsumerOrderInfoManager();
+        return this.brokerMetadataService.getConsumerOrderInfoManager();
     }
 
     public PopInflightMessageCounter getPopInflightMessageCounter() {
@@ -369,7 +369,7 @@ public class BrokerController {
     }
 
     public ConsumerOffsetManager getConsumerOffsetManager() {
-        return this.brokerMetadataManager.getConsumerOffsetManager();
+        return this.brokerMetadataService.getConsumerOffsetManager();
     }
 
     public BroadcastOffsetManager getBroadcastOffsetManager() {
@@ -389,11 +389,11 @@ public class BrokerController {
     }
 
     public void setSubscriptionGroupManager(SubscriptionGroupManager subscriptionGroupManager) {
-        this.brokerMetadataManager.setSubscriptionGroupManager(subscriptionGroupManager);
+        this.brokerMetadataService.setSubscriptionGroupManager(subscriptionGroupManager);
     }
 
     public SubscriptionGroupManager getSubscriptionGroupManager() {
-        return this.brokerMetadataManager.getSubscriptionGroupManager();
+        return this.brokerMetadataService.getSubscriptionGroupManager();
     }
 
     public TimerMessageStore getTimerMessageStore() {
@@ -405,15 +405,15 @@ public class BrokerController {
     }
 
     public TopicConfigManager getTopicConfigManager() {
-        return this.brokerMetadataManager.getTopicConfigManager();
+        return this.brokerMetadataService.getTopicConfigManager();
     }
 
     public void setTopicConfigManager(TopicConfigManager topicConfigManager) {
-        this.brokerMetadataManager.setTopicConfigManager(topicConfigManager);
+        this.brokerMetadataService.setTopicConfigManager(topicConfigManager);
     }
 
     public TopicQueueMappingManager getTopicQueueMappingManager() {
-        return this.brokerMetadataManager.getTopicQueueMappingManager();
+        return this.brokerMetadataService.getTopicQueueMappingManager();
     }
 
     public String getHAServerAddr() {

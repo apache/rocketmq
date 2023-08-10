@@ -38,7 +38,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
-public class BrokerMetadataManager {
+public class BrokerMetadataService {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     private final MessageStoreConfig messageStoreConfig;
@@ -51,7 +51,7 @@ public class BrokerMetadataManager {
     protected TopicConfigManager topicConfigManager;
     protected SubscriptionGroupManager subscriptionGroupManager;
 
-    public BrokerMetadataManager(BrokerController brokerController) {
+    public BrokerMetadataService(BrokerController brokerController) {
         this.brokerController = brokerController;
         this.messageStoreConfig = brokerController.getMessageStoreConfig();
         init();
