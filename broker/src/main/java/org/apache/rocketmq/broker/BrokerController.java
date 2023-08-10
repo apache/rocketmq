@@ -1692,17 +1692,10 @@ public class BrokerController {
 
         ConcurrentMap<String, TopicConfig> topicConfigTable = topicConfigList.stream()
             .map(topicConfig -> {
-                TopicConfig registerTopicConfig;
-                if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
-                    || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
-                    registerTopicConfig =
-                        new TopicConfig(topicConfig.getTopicName(),
-                            topicConfig.getReadQueueNums(),
-                            topicConfig.getWriteQueueNums(),
-                                topicConfig.getPerm() & this.brokerConfig.getBrokerPermission(), topicConfig.getTopicSysFlag());
-                } else {
-                    registerTopicConfig = new TopicConfig(topicConfig);
-                }
+                TopicConfig registerTopicConfig = new TopicConfig(topicConfig);
+                // Intersection of Broker and Topic permissions
+                registerTopicConfig.setPerm(topicConfig.getPerm()
+                        & this.brokerConfig.getBrokerPermission());
                 return registerTopicConfig;
             })
             .collect(Collectors.toConcurrentMap(TopicConfig::getTopicName, Function.identity()));
