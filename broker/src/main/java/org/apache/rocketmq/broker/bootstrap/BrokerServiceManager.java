@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPreOnlineService;
+import org.apache.rocketmq.broker.ShutdownHook;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.client.ProducerManager;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
@@ -47,6 +48,7 @@ import org.apache.rocketmq.store.stats.LmqBrokerStatsManager;
  *      2, have methods: start and shutdown
  *      3, monitor service:
  *      4, broker plugins
+ *      5, shutdown hook
  */
 public class BrokerServiceManager {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -81,6 +83,8 @@ public class BrokerServiceManager {
     /*  broker plugin start */
     private List<BrokerAttachedPlugin> brokerAttachedPlugins = new ArrayList<>();
     /*  broker plugin end */
+
+    private ShutdownHook shutdownHook;
 
     public BrokerServiceManager(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -184,6 +188,10 @@ public class BrokerServiceManager {
                 brokerAttachedPlugin.shutdown();
             }
         }
+
+        if (this.shutdownHook != null) {
+            this.shutdownHook.beforeShutdown(brokerController);
+        }
     }
 
     private void initServiceWithGetterAndSetter() {
@@ -249,6 +257,14 @@ public class BrokerServiceManager {
 
     private void initBrokerPlugin() {
 
+    }
+
+    public ShutdownHook getShutdownHook() {
+        return shutdownHook;
+    }
+
+    public void setShutdownHook(ShutdownHook shutdownHook) {
+        this.shutdownHook = shutdownHook;
     }
 
     public BrokerStatsManager getBrokerStatsManager() {

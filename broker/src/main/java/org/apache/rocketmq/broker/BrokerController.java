@@ -88,7 +88,6 @@ public class BrokerController {
     private InetSocketAddress storeHost;
 
     protected volatile boolean shutdown = false;
-    protected ShutdownHook shutdownHook;
     protected volatile long shouldStartTime;
     protected volatile boolean isIsolated = false;
     protected volatile long minBrokerIdInGroup = 0;
@@ -110,7 +109,7 @@ public class BrokerController {
         final ShutdownHook shutdownHook
     ) {
         this(brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig);
-        this.shutdownHook = shutdownHook;
+        this.brokerServiceManager.setShutdownHook(shutdownHook);
     }
 
     public BrokerController(
@@ -343,14 +342,10 @@ public class BrokerController {
         );
     }
 
-
     protected void shutdownBasicService() {
         shutdown = true;
-        this.brokerServiceRegistry.unregisterBrokerAll();
 
-        if (this.shutdownHook != null) {
-            this.shutdownHook.beforeShutdown(this);
-        }
+        this.brokerServiceRegistry.unregisterBrokerAll();
         this.brokerNettyServer.shutdown();
         this.brokerMessageService.shutdown();
         this.brokerServiceManager.shutdown();
@@ -622,14 +617,6 @@ public class BrokerController {
 
     public Map<Class, AccessValidator> getAccessValidatorMap() {
         return getBrokerNettyServer().getAccessValidatorMap();
-    }
-
-    public ShutdownHook getShutdownHook() {
-        return shutdownHook;
-    }
-
-    public void setShutdownHook(ShutdownHook shutdownHook) {
-        this.shutdownHook = shutdownHook;
     }
 
     public long getMinBrokerIdInGroup() {
