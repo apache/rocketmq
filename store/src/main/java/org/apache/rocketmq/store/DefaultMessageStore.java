@@ -1737,14 +1737,15 @@ public class DefaultMessageStore implements MessageStore {
 
     private boolean checkInMemByCommitOffset(long offsetPy, int size) {
         SelectMappedBufferResult message = this.commitLog.getMessage(offsetPy, size);
-        if (message != null) {
-            try {
-                return message.isInMem();
-            } finally {
-                message.release();
-            }
+        if (message == null) {
+            return false;
         }
-        return false;
+
+        try {
+            return message.isInMem();
+        } finally {
+            message.release();
+        }
     }
 
     public boolean checkInDiskByCommitOffset(long offsetPy) {
