@@ -2175,14 +2175,6 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-
-
-
-
-
-
-
-
     @Override
     public HARuntimeInfo getHARuntimeInfo() {
         if (haService != null) {
