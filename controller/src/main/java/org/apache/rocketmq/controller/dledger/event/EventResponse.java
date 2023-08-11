@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.controller.dledger.event;
 
-import org.apache.rocketmq.controller.dledger.event.EventResult;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 public class EventResponse<T extends EventResult> {
