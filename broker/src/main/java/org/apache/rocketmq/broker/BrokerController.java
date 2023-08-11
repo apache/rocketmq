@@ -167,18 +167,6 @@ public class BrokerController {
         }
     }
 
-    public void startService(long minBrokerId, String minBrokerAddr) {
-        BrokerController.LOG.info("{} start service, min broker id is {}, min broker addr: {}",
-            this.brokerConfig.getCanonicalName(), minBrokerId, minBrokerAddr);
-        this.brokerClusterService.setMinBrokerIdInGroup(minBrokerId);
-        this.brokerClusterService.setMinBrokerAddrInGroup(minBrokerAddr);
-
-        this.brokerMessageService.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == minBrokerId);
-        this.brokerServiceRegistry.registerBrokerAll(true, false, brokerConfig.isForceRegister());
-
-        isIsolated = false;
-    }
-
     public void startServiceWithoutCondition() {
         BrokerController.LOG.info("{} start service", this.brokerConfig.getCanonicalName());
 

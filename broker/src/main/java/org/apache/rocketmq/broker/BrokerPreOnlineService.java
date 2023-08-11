@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.schedule.DelayOffsetSerializeWrapper;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -103,7 +104,7 @@ public class BrokerPreOnlineService extends ServiceThread {
         if (this.brokerController.getBrokerConfig().getBrokerId() != MixAll.MASTER_ID) {
             LOGGER.info("slave preOnline complete, start service");
             long minBrokerId = getMinBrokerId(brokerMemberGroup.getBrokerAddrs());
-            this.brokerController.startService(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
+            this.startService(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
         }
         return true;
     }
@@ -114,7 +115,7 @@ public class BrokerPreOnlineService extends ServiceThread {
         while (true) {
             if (waitBrokerIndex >= brokerIdList.size()) {
                 LOGGER.info("master preOnline complete, start service");
-                this.brokerController.startService(MixAll.MASTER_ID, this.brokerController.getBrokerAddr());
+                this.startService(MixAll.MASTER_ID, this.brokerController.getBrokerAddr());
                 return true;
             }
 
@@ -226,7 +227,7 @@ public class BrokerPreOnlineService extends ServiceThread {
         } else {
             LOGGER.info("fetch master ha address return null, start service directly");
             long minBrokerId = getMinBrokerId(brokerMemberGroup.getBrokerAddrs());
-            this.brokerController.startService(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
+            this.startService(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
             return true;
         }
 
@@ -266,14 +267,30 @@ public class BrokerPreOnlineService extends ServiceThread {
                 return prepareForSlaveOnline(brokerMemberGroup);
             } else {
                 LOGGER.info("no master online, start service directly");
-                this.brokerController.startService(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
+                this.startService(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
             }
         } else {
             LOGGER.info("no other broker online, will start service directly");
-            this.brokerController.startService(this.brokerController.getBrokerConfig().getBrokerId(), this.brokerController.getBrokerAddr());
+            this.startService(this.brokerController.getBrokerConfig().getBrokerId(), this.brokerController.getBrokerAddr());
         }
 
         return true;
+    }
+
+    /**
+     * move from BrokerController.startService()
+     * @param minBrokerId
+     * @param minBrokerAddr
+     */
+    public void startService(long minBrokerId, String minBrokerAddr) {
+        BrokerConfig brokerConfig = brokerController.getBrokerConfig();
+        LOGGER.info("{} start service, min broker id is {}, min broker addr: {}", brokerConfig.getCanonicalName(), minBrokerId, minBrokerAddr);
+        brokerController.getBrokerClusterService().setMinBrokerIdInGroup(minBrokerId);
+        brokerController.getBrokerClusterService().setMinBrokerAddrInGroup(minBrokerAddr);
+
+        brokerController.getBrokerMessageService().changeSpecialServiceStatus(brokerConfig.getBrokerId() == minBrokerId);
+        brokerController.getBrokerServiceRegistry().registerBrokerAll(true, false, brokerConfig.isForceRegister());
+        brokerController.setIsolated(false);
     }
 
     private long getMinBrokerId(Map<Long, String> brokerAddrMap) {
