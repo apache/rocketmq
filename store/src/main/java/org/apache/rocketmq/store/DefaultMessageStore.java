@@ -46,16 +46,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -112,6 +108,7 @@ import org.apache.rocketmq.store.service.CommitLogDispatcherBuildIndex;
 import org.apache.rocketmq.store.service.CorrectLogicOffsetService;
 import org.apache.rocketmq.store.service.DispatchRequestOrderlyQueue;
 import org.apache.rocketmq.store.service.FlushConsumeQueueService;
+import org.apache.rocketmq.store.service.MainBatchDispatchRequestService;
 import org.apache.rocketmq.store.service.ReputMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
@@ -162,9 +159,6 @@ public class DefaultMessageStore implements MessageStore {
     private ScheduledExecutorService scheduledExecutorService;
     private final BrokerStatsManager brokerStatsManager;
 
-    public MessageArrivingListener getMessageArrivingListener() {
-        return messageArrivingListener;
-    }
 
     private final MessageArrivingListener messageArrivingListener;
     private final BrokerConfig brokerConfig;
@@ -207,9 +201,11 @@ public class DefaultMessageStore implements MessageStore {
 
     private final AtomicInteger mappedPageHoldCount = new AtomicInteger(0);
 
+
     private final ConcurrentLinkedQueue<BatchDispatchRequest> batchDispatchRequestQueue = new ConcurrentLinkedQueue<>();
 
     private int dispatchRequestOrderlyQueueSize = 16;
+
 
     private final DispatchRequestOrderlyQueue dispatchRequestOrderlyQueue = new DispatchRequestOrderlyQueue(dispatchRequestOrderlyQueueSize);
 
@@ -2184,77 +2180,6 @@ public class DefaultMessageStore implements MessageStore {
 
 
 
-    class MainBatchDispatchRequestService extends ServiceThread {
-
-        private final ExecutorService batchDispatchRequestExecutor;
-
-        public MainBatchDispatchRequestService() {
-            batchDispatchRequestExecutor = new ThreadPoolExecutor(
-                    DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
-                    DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
-                    1000 * 60,
-                    TimeUnit.MICROSECONDS,
-                    new LinkedBlockingQueue<>(4096),
-                    new ThreadFactoryImpl("BatchDispatchRequestServiceThread_"),
-                    new ThreadPoolExecutor.AbortPolicy());
-        }
-
-        private void pollBatchDispatchRequest() {
-            try {
-                if (!batchDispatchRequestQueue.isEmpty()) {
-                    BatchDispatchRequest task = batchDispatchRequestQueue.peek();
-                    batchDispatchRequestExecutor.execute(() -> {
-                        try {
-                            ByteBuffer tmpByteBuffer = task.getByteBuffer();
-                            tmpByteBuffer.position(task.getPosition());
-                            tmpByteBuffer.limit(task.getPosition() + task.getSize());
-                            List<DispatchRequest> dispatchRequestList = new ArrayList<>();
-                            while (tmpByteBuffer.hasRemaining()) {
-                                DispatchRequest dispatchRequest = DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(tmpByteBuffer, false, false, false);
-                                if (dispatchRequest.isSuccess()) {
-                                    dispatchRequestList.add(dispatchRequest);
-                                } else {
-                                    LOGGER.error("[BUG]read total count not equals msg total size.");
-                                }
-                            }
-                            dispatchRequestOrderlyQueue.put(task.getId(), dispatchRequestList.toArray(new DispatchRequest[dispatchRequestList.size()]));
-                            mappedPageHoldCount.getAndDecrement();
-                        } catch (Exception e) {
-                            LOGGER.error("There is an exception in task execution.", e);
-                        }
-                    });
-                    batchDispatchRequestQueue.poll();
-                }
-            } catch (Exception e) {
-                DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
-            }
-        }
-
-        @Override
-        public void run() {
-            DefaultMessageStore.LOGGER.info(this.getServiceName() + " service started");
-
-            while (!this.isStopped()) {
-                try {
-                    TimeUnit.MILLISECONDS.sleep(1);
-                    pollBatchDispatchRequest();
-                } catch (Exception e) {
-                    DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
-                }
-            }
-
-            DefaultMessageStore.LOGGER.info(this.getServiceName() + " service end");
-        }
-
-        @Override
-        public String getServiceName() {
-            if (DefaultMessageStore.this.getBrokerConfig().isInBrokerContainer()) {
-                return DefaultMessageStore.this.getBrokerIdentity().getIdentifier() + MainBatchDispatchRequestService.class.getSimpleName();
-            }
-            return MainBatchDispatchRequestService.class.getSimpleName();
-        }
-
-    }
 
     class DispatchService extends ServiceThread {
 
@@ -2346,7 +2271,7 @@ public class DefaultMessageStore implements MessageStore {
 
         public ConcurrentReputMessageService() {
             super(DefaultMessageStore.this);
-            this.mainBatchDispatchRequestService = new MainBatchDispatchRequestService();
+            this.mainBatchDispatchRequestService = new MainBatchDispatchRequestService(DefaultMessageStore.this);
             this.dispatchService = new DispatchService();
         }
 
@@ -2597,4 +2522,21 @@ public class DefaultMessageStore implements MessageStore {
     public CompactionStore getCompactionStore() {
         return compactionStore;
     }
+
+    public AtomicInteger getMappedPageHoldCount() {
+        return mappedPageHoldCount;
+    }
+
+    public MessageArrivingListener getMessageArrivingListener() {
+        return messageArrivingListener;
+    }
+
+    public ConcurrentLinkedQueue<BatchDispatchRequest> getBatchDispatchRequestQueue() {
+        return batchDispatchRequestQueue;
+    }
+
+    public DispatchRequestOrderlyQueue getDispatchRequestOrderlyQueue() {
+        return dispatchRequestOrderlyQueue;
+    }
+
 }
