@@ -112,6 +112,7 @@ import org.apache.rocketmq.store.service.CleanConsumeQueueService;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildConsumeQueue;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildIndex;
 import org.apache.rocketmq.store.service.CorrectLogicOffsetService;
+import org.apache.rocketmq.store.service.FlushConsumeQueueService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
@@ -125,9 +126,6 @@ public class DefaultMessageStore implements MessageStore {
     // CommitLog
     private CommitLog commitLog;
 
-    public ConsumeQueueStore getConsumeQueueStore() {
-        return consumeQueueStore;
-    }
 
     private final ConsumeQueueStore consumeQueueStore;
 
@@ -147,6 +145,7 @@ public class DefaultMessageStore implements MessageStore {
     private ReputMessageService reputMessageService;
 
     private HAService haService;
+
 
     // CompactionLog
     private CompactionStore compactionStore;
@@ -228,7 +227,7 @@ public class DefaultMessageStore implements MessageStore {
         this.topicConfigTable = topicConfigTable;
         this.allocateMappedFileService = new AllocateMappedFileService(this);
         this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig);
-        this.flushConsumeQueueService = new FlushConsumeQueueService();
+        this.flushConsumeQueueService = new FlushConsumeQueueService(this);
         this.cleanCommitLogService = new CleanCommitLogService(this);
         this.cleanConsumeQueueService = new CleanConsumeQueueService(this);
         this.correctLogicOffsetService = new CorrectLogicOffsetService(this);
@@ -2176,82 +2175,6 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    class FlushConsumeQueueService extends ServiceThread {
-        private static final int RETRY_TIMES_OVER = 3;
-        private long lastFlushTimestamp = 0;
-
-        private void doFlush(int retryTimes) {
-            int flushConsumeQueueLeastPages = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueLeastPages();
-
-            if (retryTimes == RETRY_TIMES_OVER) {
-                flushConsumeQueueLeastPages = 0;
-            }
-
-            long logicsMsgTimestamp = 0;
-
-            int flushConsumeQueueThoroughInterval = DefaultMessageStore.this.getMessageStoreConfig().getFlushConsumeQueueThoroughInterval();
-            long currentTimeMillis = System.currentTimeMillis();
-            if (currentTimeMillis >= (this.lastFlushTimestamp + flushConsumeQueueThoroughInterval)) {
-                this.lastFlushTimestamp = currentTimeMillis;
-                flushConsumeQueueLeastPages = 0;
-                logicsMsgTimestamp = DefaultMessageStore.this.getStoreCheckpoint().getLogicsMsgTimestamp();
-            }
-
-            ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> tables = DefaultMessageStore.this.getConsumeQueueTable();
-
-            for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : tables.values()) {
-                for (ConsumeQueueInterface cq : maps.values()) {
-                    boolean result = false;
-                    for (int i = 0; i < retryTimes && !result; i++) {
-                        result = DefaultMessageStore.this.consumeQueueStore.flush(cq, flushConsumeQueueLeastPages);
-                    }
-                }
-            }
-
-            if (messageStoreConfig.isEnableCompaction()) {
-                compactionStore.flush(flushConsumeQueueLeastPages);
-            }
-
-            if (0 == flushConsumeQueueLeastPages) {
-                if (logicsMsgTimestamp > 0) {
-                    DefaultMessageStore.this.getStoreCheckpoint().setLogicsMsgTimestamp(logicsMsgTimestamp);
-                }
-                DefaultMessageStore.this.getStoreCheckpoint().flush();
-            }
-        }
-
-        @Override
-        public void run() {
-            DefaultMessageStore.LOGGER.info(this.getServiceName() + " service started");
-
-            while (!this.isStopped()) {
-                try {
-                    int interval = DefaultMessageStore.this.getMessageStoreConfig().getFlushIntervalConsumeQueue();
-                    this.waitForRunning(interval);
-                    this.doFlush(1);
-                } catch (Exception e) {
-                    DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
-                }
-            }
-
-            this.doFlush(RETRY_TIMES_OVER);
-
-            DefaultMessageStore.LOGGER.info(this.getServiceName() + " service end");
-        }
-
-        @Override
-        public String getServiceName() {
-            if (DefaultMessageStore.this.brokerConfig.isInBrokerContainer()) {
-                return DefaultMessageStore.this.getBrokerIdentity().getIdentifier() + FlushConsumeQueueService.class.getSimpleName();
-            }
-            return FlushConsumeQueueService.class.getSimpleName();
-        }
-
-        @Override
-        public long getJoinTime() {
-            return 1000 * 60;
-        }
-    }
 
     class BatchDispatchRequest {
 
@@ -2894,5 +2817,13 @@ public class DefaultMessageStore implements MessageStore {
 
     public IndexService getIndexService() {
         return indexService;
+    }
+
+    public ConsumeQueueStore getConsumeQueueStore() {
+        return consumeQueueStore;
+    }
+
+    public CompactionStore getCompactionStore() {
+        return compactionStore;
     }
 }
