@@ -18,7 +18,6 @@ package org.apache.rocketmq.broker;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.broker.bootstrap.BrokerClusterService;
 import org.apache.rocketmq.broker.bootstrap.BrokerMessageService;
@@ -34,7 +33,6 @@ import org.apache.rocketmq.broker.coldctr.ColdDataCgCtrService;
 import org.apache.rocketmq.broker.coldctr.ColdDataPullRequestHoldService;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
-import org.apache.rocketmq.broker.latency.BrokerFastFailure;
 import org.apache.rocketmq.broker.offset.BroadcastOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
@@ -55,7 +53,6 @@ import org.apache.rocketmq.remoting.Configuration;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
-import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -163,17 +160,8 @@ public class BrokerController {
 
         this.brokerScheduleService.start();
         if (brokerConfig.isSkipPreOnline()) {
-            startServiceWithoutCondition();
+            registerBroker();
         }
-    }
-
-    protected void startServiceWithoutCondition() {
-        BrokerController.LOG.info("{} start service", this.brokerConfig.getCanonicalName());
-
-        this.brokerMessageService.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
-        this.brokerServiceRegistry.registerBrokerAll(true, false, brokerConfig.isForceRegister());
-
-        isIsolated = false;
     }
 
     public BrokerIdentity getBrokerIdentity() {
@@ -189,6 +177,15 @@ public class BrokerController {
     }
 
     //**************************************** private or protected methods start ****************************************************
+    protected void registerBroker() {
+        BrokerController.LOG.info("{} start service", this.brokerConfig.getCanonicalName());
+
+        this.brokerMessageService.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
+        this.brokerServiceRegistry.registerBrokerAll(true, false, brokerConfig.isForceRegister());
+
+        isIsolated = false;
+    }
+
     public void stopService() {
         BrokerController.LOG.info("{} stop service", this.getBrokerConfig().getCanonicalName());
         isIsolated = true;

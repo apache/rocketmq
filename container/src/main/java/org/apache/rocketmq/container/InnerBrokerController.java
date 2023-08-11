@@ -105,7 +105,7 @@ public class InnerBrokerController extends BrokerController {
         }
 
         if (brokerConfig.isSkipPreOnline()) {
-            startServiceWithoutCondition();
+            registerBroker();
         }
     }
 

@@ -104,7 +104,7 @@ public class BrokerPreOnlineService extends ServiceThread {
         if (this.brokerController.getBrokerConfig().getBrokerId() != MixAll.MASTER_ID) {
             LOGGER.info("slave preOnline complete, start service");
             long minBrokerId = getMinBrokerId(brokerMemberGroup.getBrokerAddrs());
-            this.startService(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
+            this.registerBroker(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
         }
         return true;
     }
@@ -115,7 +115,7 @@ public class BrokerPreOnlineService extends ServiceThread {
         while (true) {
             if (waitBrokerIndex >= brokerIdList.size()) {
                 LOGGER.info("master preOnline complete, start service");
-                this.startService(MixAll.MASTER_ID, this.brokerController.getBrokerAddr());
+                this.registerBroker(MixAll.MASTER_ID, this.brokerController.getBrokerAddr());
                 return true;
             }
 
@@ -227,7 +227,7 @@ public class BrokerPreOnlineService extends ServiceThread {
         } else {
             LOGGER.info("fetch master ha address return null, start service directly");
             long minBrokerId = getMinBrokerId(brokerMemberGroup.getBrokerAddrs());
-            this.startService(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
+            this.registerBroker(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
             return true;
         }
 
@@ -267,11 +267,11 @@ public class BrokerPreOnlineService extends ServiceThread {
                 return prepareForSlaveOnline(brokerMemberGroup);
             } else {
                 LOGGER.info("no master online, start service directly");
-                this.startService(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
+                this.registerBroker(minBrokerId, brokerMemberGroup.getBrokerAddrs().get(minBrokerId));
             }
         } else {
             LOGGER.info("no other broker online, will start service directly");
-            this.startService(this.brokerController.getBrokerConfig().getBrokerId(), this.brokerController.getBrokerAddr());
+            this.registerBroker(this.brokerController.getBrokerConfig().getBrokerId(), this.brokerController.getBrokerAddr());
         }
 
         return true;
@@ -282,7 +282,7 @@ public class BrokerPreOnlineService extends ServiceThread {
      * @param minBrokerId
      * @param minBrokerAddr
      */
-    public void startService(long minBrokerId, String minBrokerAddr) {
+    public void registerBroker(long minBrokerId, String minBrokerAddr) {
         BrokerConfig brokerConfig = brokerController.getBrokerConfig();
         LOGGER.info("{} start service, min broker id is {}, min broker addr: {}", brokerConfig.getCanonicalName(), minBrokerId, minBrokerAddr);
         brokerController.getBrokerClusterService().setMinBrokerIdInGroup(minBrokerId);
