@@ -261,7 +261,7 @@ public class BrokerScheduleService {
             @Override
             public void run() {
                 try {
-                    getBrokerController().getBrokerStats().record();
+                    getBrokerController().getBrokerServiceManager().getBrokerStats().record();
                 } catch (Throwable e) {
                     LOG.error("BrokerController: failed to record broker stats", e);
                 }

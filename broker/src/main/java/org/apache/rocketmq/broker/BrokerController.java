@@ -125,18 +125,23 @@ public class BrokerController {
     }
 
     public boolean initialize() throws CloneNotSupportedException {
-        boolean result = this.brokerMetadataService.load();
-        if (!result) {
+        if (!this.brokerMetadataService.load()) {
             return false;
         }
 
         this.brokerMessageService = new BrokerMessageService(this);
-        result = brokerMessageService.init();
-        if (!result) {
+        if (!brokerMessageService.init()) {
             return false;
         }
 
-        return this.initAndLoadService();
+        brokerClusterService.load();
+        if (!brokerServiceManager.load()) {
+            return false;
+        }
+
+        initializeRemotingServer();
+        initializeScheduledTasks();
+        return brokerNettyServer.initFileWatchService();
     }
 
     public void shutdown() {
@@ -190,18 +195,6 @@ public class BrokerController {
         BrokerController.LOG.info("{} stop service", this.getBrokerConfig().getCanonicalName());
         isIsolated = true;
         this.brokerMessageService.changeSpecialServiceStatus(false);
-    }
-
-    private boolean initAndLoadService() throws CloneNotSupportedException {
-        brokerClusterService.load();
-
-        if (!brokerMetadataService.load()) {
-            return false;
-        }
-
-        initializeRemotingServer();
-        initializeScheduledTasks();
-        return brokerNettyServer.initFileWatchService();
     }
 
     protected void initializeRemotingServer() throws CloneNotSupportedException {
@@ -283,10 +276,6 @@ public class BrokerController {
 
     public BrokerScheduleService getBrokerScheduleService() {
         return brokerScheduleService;
-    }
-
-    public BrokerStats getBrokerStats() {
-        return brokerMessageService.getBrokerStats();
     }
 
     public MessageStore getMessageStore() {

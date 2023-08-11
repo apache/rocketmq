@@ -448,7 +448,7 @@ public class AdminBrokerProcessorTest {
     @Test
     public void testGetBrokerRuntimeInfo() throws Exception {
         brokerStats = mock(BrokerStats.class);
-        when(brokerController.getBrokerStats()).thenReturn(brokerStats);
+        when(brokerController.getBrokerServiceManager().getBrokerStats()).thenReturn(brokerStats);
         when(brokerStats.getMsgPutTotalYesterdayMorning()).thenReturn(Long.MIN_VALUE);
         when(brokerStats.getMsgPutTotalTodayMorning()).thenReturn(Long.MIN_VALUE);
         when(brokerStats.getMsgPutTotalTodayNow()).thenReturn(Long.MIN_VALUE);

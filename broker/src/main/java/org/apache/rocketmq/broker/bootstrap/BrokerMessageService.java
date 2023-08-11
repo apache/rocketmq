@@ -82,7 +82,7 @@ public class BrokerMessageService {
 
     private MessageStore messageStore;
     private TimerMessageStore timerMessageStore;
-    private BrokerStats brokerStats;
+
 
     public BrokerMessageService(BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -110,8 +110,6 @@ public class BrokerMessageService {
                     .getDLedgerLeaderElector()
                     .addRoleChangeHandler(roleChangeHandler);
             }
-
-            this.brokerStats = new BrokerStats(defaultMessageStore);
 
             // Load store plugin
             MessageStorePluginContext context = new MessageStorePluginContext(
@@ -356,10 +354,6 @@ public class BrokerMessageService {
 
     public TimerMessageStore getTimerMessageStore() {
         return timerMessageStore;
-    }
-
-    public BrokerStats getBrokerStats() {
-        return brokerStats;
     }
 
     public TransactionalMessageCheckService getTransactionalMessageCheckService() {

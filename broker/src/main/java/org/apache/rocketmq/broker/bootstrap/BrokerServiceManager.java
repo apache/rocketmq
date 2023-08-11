@@ -39,6 +39,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.stats.BrokerStats;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.stats.LmqBrokerStatsManager;
 
@@ -78,6 +79,7 @@ public class BrokerServiceManager {
     /* monitor servie start */
     private BrokerStatsManager brokerStatsManager;
     private BrokerMetricsManager brokerMetricsManager;
+    private BrokerStats brokerStats;
     /* monitor servie end */
 
     /*  broker plugin start */
@@ -99,6 +101,7 @@ public class BrokerServiceManager {
 
     public boolean load() {
         this.brokerMetricsManager = new BrokerMetricsManager(brokerController);
+        this.brokerStats = new BrokerStats(brokerController.getBrokerMessageService().getMessageStore());
 
         boolean result = true;
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
@@ -257,6 +260,10 @@ public class BrokerServiceManager {
 
     private void initBrokerPlugin() {
 
+    }
+
+    public BrokerStats getBrokerStats() {
+        return brokerStats;
     }
 
     public ShutdownHook getShutdownHook() {
