@@ -17,13 +17,9 @@
 
 package org.apache.rocketmq.broker.controller;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.bootstrap.BrokerClusterService;
+import org.apache.rocketmq.broker.bootstrap.BrokerMessageService;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
@@ -31,11 +27,11 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.RunningFlags;
@@ -49,6 +45,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -68,6 +70,12 @@ public class ReplicasManagerTest {
 
     @Mock
     private DefaultMessageStore defaultMessageStore;
+
+    @Mock
+    private BrokerClusterService brokerClusterService;
+
+    @Mock
+    private BrokerMessageService brokerMessageService;
 
     private SlaveSynchronize slaveSynchronize;
 
@@ -156,7 +164,9 @@ public class ReplicasManagerTest {
         when(brokerController.getMessageStore().getRunningFlags()).thenReturn(runningFlags);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+        when(brokerController.getBrokerClusterService()).thenReturn(brokerClusterService);
         when(brokerController.getBrokerClusterService().getSlaveSynchronize()).thenReturn(slaveSynchronize);
+        when(brokerController.getBrokerMessageService()).thenReturn(brokerMessageService);
         when(brokerController.getBrokerOuterAPI()).thenReturn(brokerOuterAPI);
         when(brokerController.getBrokerAddr()).thenReturn(OLD_MASTER_ADDRESS);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
