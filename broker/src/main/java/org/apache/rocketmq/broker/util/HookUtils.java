@@ -129,26 +129,29 @@ public class HookUtils {
     public static PutMessageResult handleScheduleMessage(BrokerController brokerController,
         final MessageExtBrokerInner msg) {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
-        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE
-            || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            if (!isRolledTimerMessage(msg)) {
-                if (checkIfTimerMessage(msg)) {
-                    if (!brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
-                        //wheel timer is not enabled, reject the message
-                        return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_NOT_ENABLE, null);
-                    }
-                    PutMessageResult transformRes = transformTimerMessage(brokerController, msg);
-                    if (null != transformRes) {
-                        return transformRes;
-                    }
-                }
-            }
-            // Delay Delivery
-            if (msg.getDelayTimeLevel() > 0) {
-                transformDelayLevelMessage(brokerController, msg);
-            }
+        if (tranType != MessageSysFlag.TRANSACTION_NOT_TYPE && tranType != MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            return null;
+
         }
-        return null;
+        // Delay Delivery
+        if (msg.getDelayTimeLevel() > 0) {
+            transformDelayLevelMessage(brokerController, msg);
+        }
+
+        if (isRolledTimerMessage(msg)) {
+            return null;
+        }
+
+        if (!checkIfTimerMessage(msg)) {
+            return null;
+        }
+
+        if (!brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
+            //wheel timer is not enabled, reject the message
+            return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_NOT_ENABLE, null);
+        }
+
+        return transformTimerMessage(brokerController, msg);
     }
 
     private static boolean isRolledTimerMessage(MessageExtBrokerInner msg) {
