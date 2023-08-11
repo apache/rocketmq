@@ -107,6 +107,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.apache.rocketmq.store.service.CommitLogDispatcherBuildConsumeQueue;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
@@ -274,7 +275,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private void initDispatchList() {
         this.dispatcherList = new LinkedList<>();
-        this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
+        this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue(this));
         this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
         if (!messageStoreConfig.isEnableCompaction()) {
             return;
@@ -2162,23 +2163,6 @@ public class DefaultMessageStore implements MessageStore {
             return new BrokerIdentity(
                 brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(),
                 brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
-        }
-    }
-
-    class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
-
-        @Override
-        public void dispatch(DispatchRequest request) {
-            final int tranType = MessageSysFlag.getTransactionValue(request.getSysFlag());
-            switch (tranType) {
-                case MessageSysFlag.TRANSACTION_NOT_TYPE:
-                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
-                    DefaultMessageStore.this.putMessagePositionInfo(request);
-                    break;
-                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
-                    break;
-            }
         }
     }
 
