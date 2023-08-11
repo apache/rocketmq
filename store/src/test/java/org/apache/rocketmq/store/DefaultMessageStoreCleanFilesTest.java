@@ -31,6 +31,7 @@ import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.service.CleanCommitLogService;
+import org.apache.rocketmq.store.service.CleanConsumeQueueService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
@@ -55,12 +56,12 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 /**
- * Test case for CleanCommitLogService and DefaultMessageStore.CleanConsumeQueueService
+ * Test case for CleanCommitLogService and CleanConsumeQueueService
  */
 public class DefaultMessageStoreCleanFilesTest {
     private DefaultMessageStore messageStore;
     private CleanCommitLogService cleanCommitLogService;
-    private DefaultMessageStore.CleanConsumeQueueService cleanConsumeQueueService;
+    private CleanConsumeQueueService cleanConsumeQueueService;
 
     private SocketAddress bornHost;
     private SocketAddress storeHost;
@@ -351,12 +352,12 @@ public class DefaultMessageStoreCleanFilesTest {
         return cleanCommitLogService;
     }
 
-    private DefaultMessageStore.CleanConsumeQueueService getCleanConsumeQueueService()
+    private CleanConsumeQueueService getCleanConsumeQueueService()
             throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanConsumeQueueService");
         serviceField.setAccessible(true);
-        DefaultMessageStore.CleanConsumeQueueService cleanConsumeQueueService =
-                (DefaultMessageStore.CleanConsumeQueueService) serviceField.get(messageStore);
+        CleanConsumeQueueService cleanConsumeQueueService =
+                (CleanConsumeQueueService) serviceField.get(messageStore);
         serviceField.setAccessible(false);
         return cleanConsumeQueueService;
     }

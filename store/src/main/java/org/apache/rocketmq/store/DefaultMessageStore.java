@@ -108,6 +108,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.service.CleanCommitLogService;
+import org.apache.rocketmq.store.service.CleanConsumeQueueService;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildConsumeQueue;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildIndex;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -122,6 +123,10 @@ public class DefaultMessageStore implements MessageStore {
     private final MessageStoreConfig messageStoreConfig;
     // CommitLog
     private CommitLog commitLog;
+
+    public ConsumeQueueStore getConsumeQueueStore() {
+        return consumeQueueStore;
+    }
 
     private final ConsumeQueueStore consumeQueueStore;
 
@@ -224,7 +229,7 @@ public class DefaultMessageStore implements MessageStore {
         this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig);
         this.flushConsumeQueueService = new FlushConsumeQueueService();
         this.cleanCommitLogService = new CleanCommitLogService(this);
-        this.cleanConsumeQueueService = new CleanConsumeQueueService();
+        this.cleanConsumeQueueService = new CleanConsumeQueueService(this);
         this.correctLogicOffsetService = new CorrectLogicOffsetService();
         this.storeStatsService = new StoreStatsService(getBrokerIdentity());
         this.indexService = new IndexService(this);
@@ -2170,46 +2175,6 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-    class CleanConsumeQueueService {
-        private long lastPhysicalMinOffset = 0;
-
-        public void run() {
-            try {
-                this.deleteExpiredFiles();
-            } catch (Throwable e) {
-                DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
-            }
-        }
-
-        private void deleteExpiredFiles() {
-            int deleteLogicsFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteConsumeQueueFilesInterval();
-
-            long minOffset = DefaultMessageStore.this.commitLog.getMinOffset();
-            if (minOffset > this.lastPhysicalMinOffset) {
-                this.lastPhysicalMinOffset = minOffset;
-
-                ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> tables = DefaultMessageStore.this.getConsumeQueueTable();
-
-                for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : tables.values()) {
-                    for (ConsumeQueueInterface logic : maps.values()) {
-                        int deleteCount = DefaultMessageStore.this.consumeQueueStore.deleteExpiredFile(logic, minOffset);
-                        if (deleteCount > 0 && deleteLogicsFilesInterval > 0) {
-                            try {
-                                Thread.sleep(deleteLogicsFilesInterval);
-                            } catch (InterruptedException ignored) {
-                            }
-                        }
-                    }
-                }
-
-                DefaultMessageStore.this.indexService.deleteExpiredFile(minOffset);
-            }
-        }
-
-        public String getServiceName() {
-            return DefaultMessageStore.this.brokerConfig.getIdentifier() + CleanConsumeQueueService.class.getSimpleName();
-        }
-    }
 
     class CorrectLogicOffsetService {
         private long lastForceCorrectTime = -1L;
