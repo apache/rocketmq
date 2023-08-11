@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.bootstrap.BrokerNettyServer;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.net.Broker2Client;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
@@ -54,8 +55,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -82,6 +81,8 @@ public class AckMessageProcessorTest {
     private DefaultMessageStore messageStore;
     @Mock
     private Channel channel;
+    @Mock
+    private BrokerNettyServer brokerNettyServer;
 
     private String topic = "FooBar";
     private String group = "FooBarGroup";
@@ -96,9 +97,6 @@ public class AckMessageProcessorTest {
     public void init() throws IllegalAccessException, NoSuchFieldException {
         clientInfo = new ClientChannelInfo(channel, "127.0.0.1", LanguageCode.JAVA, 0);
         brokerController.setMessageStore(messageStore);
-        Field field = BrokerController.class.getDeclaredField("broker2Client");
-        field.setAccessible(true);
-        field.set(brokerController, broker2Client);
         EscapeBridge escapeBridge = new EscapeBridge(brokerController);
         Mockito.when(brokerController.getEscapeBridge()).thenReturn(escapeBridge);
         Channel mockChannel = mock(Channel.class);
@@ -117,7 +115,7 @@ public class AckMessageProcessorTest {
 
         when(messageStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(MIN_OFFSET_IN_QUEUE);
         when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(MAX_OFFSET_IN_QUEUE);
-
+        when(brokerController.getBrokerNettyServer()).thenReturn(brokerNettyServer);
         when(brokerController.getBrokerNettyServer().getPopMessageProcessor()).thenReturn(popMessageProcessor);
     }
 
