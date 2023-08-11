@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.bootstrap.BrokerNettyServer;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
 import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
@@ -94,6 +95,8 @@ public class LocalMessageServiceTest extends InitConfigTest {
     private AckMessageProcessor ackMessageProcessorMock;
     @Mock
     private BrokerController brokerControllerMock;
+    @Mock
+    private BrokerNettyServer brokerNettyServer;
 
     private ProxyContext proxyContext;
 
@@ -116,12 +119,13 @@ public class LocalMessageServiceTest extends InitConfigTest {
         super.before();
         ConfigurationManager.getProxyConfig().setNamesrvAddr("1.1.1.1");
         channelManager = new ChannelManager();
+        Mockito.when(brokerControllerMock.getBrokerNettyServer()).thenReturn(brokerNettyServer);
+        Mockito.when(brokerControllerMock.getBrokerConfig()).thenReturn(new BrokerConfig());
         Mockito.when(brokerControllerMock.getBrokerNettyServer().getSendMessageProcessor()).thenReturn(sendMessageProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerNettyServer().getPopMessageProcessor()).thenReturn(popMessageProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerNettyServer().getChangeInvisibleTimeProcessor()).thenReturn(changeInvisibleTimeProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerNettyServer().getAckMessageProcessor()).thenReturn(ackMessageProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerNettyServer().getEndTransactionProcessor()).thenReturn(endTransactionProcessorMock);
-        Mockito.when(brokerControllerMock.getBrokerNettyServer().getBrokerConfig()).thenReturn(new BrokerConfig());
         localMessageService = new LocalMessageService(brokerControllerMock, channelManager, null);
         proxyContext = ProxyContext.create().withVal(ContextVariable.REMOTE_ADDRESS, "0.0.0.1")
             .withVal(ContextVariable.LOCAL_ADDRESS, "0.0.0.2");
