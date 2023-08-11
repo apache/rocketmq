@@ -39,6 +39,7 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAConnectionState;
+import org.apache.rocketmq.store.service.ReputMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Assume;
@@ -282,10 +283,10 @@ public class HATest {
         try {
             Field serviceField = store.getClass().getDeclaredField("reputMessageService");
             serviceField.setAccessible(true);
-            DefaultMessageStore.ReputMessageService reputService =
-                (DefaultMessageStore.ReputMessageService) serviceField.get(store);
+            ReputMessageService reputService =
+                (ReputMessageService) serviceField.get(store);
 
-            Method method = DefaultMessageStore.ReputMessageService.class.getDeclaredMethod("isCommitLogAvailable");
+            Method method = ReputMessageService.class.getDeclaredMethod("isCommitLogAvailable");
             method.setAccessible(true);
             return (boolean) method.invoke(reputService);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | NoSuchFieldException e) {
