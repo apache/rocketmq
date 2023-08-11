@@ -32,6 +32,7 @@ import java.util.Iterator;
 import java.util.UUID;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
+import org.apache.rocketmq.broker.bootstrap.BrokerServiceManager;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.proxy.config.Configuration;
@@ -188,8 +189,10 @@ public class ProxyStartupTest {
              MockedStatic<DefaultMessagingProcessor> messagingProcessorMocked = mockStatic(DefaultMessagingProcessor.class)) {
             ArgumentCaptor<Object> args = ArgumentCaptor.forClass(Object.class);
             BrokerController brokerControllerMocked = mock(BrokerController.class);
+            BrokerServiceManager brokerServiceManager = mock(BrokerServiceManager.class);
             BrokerMetricsManager brokerMetricsManagerMocked = mock(BrokerMetricsManager.class);
             Mockito.when(brokerMetricsManagerMocked.getBrokerMeter()).thenReturn(OpenTelemetrySdk.builder().build().getMeter("test"));
+            Mockito.when(brokerControllerMocked.getBrokerServiceManager()).thenReturn(brokerServiceManager);
             Mockito.when(brokerControllerMocked.getBrokerServiceManager().getBrokerMetricsManager()).thenReturn(brokerMetricsManagerMocked);
             brokerStartupMocked.when(() -> BrokerStartup.createBrokerController((String[]) args.capture()))
                 .thenReturn(brokerControllerMocked);
