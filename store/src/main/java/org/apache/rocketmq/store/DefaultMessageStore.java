@@ -107,6 +107,7 @@ import org.apache.rocketmq.store.service.CommitLogDispatcherBuildConsumeQueue;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildIndex;
 import org.apache.rocketmq.store.service.CorrectLogicOffsetService;
 import org.apache.rocketmq.store.service.DispatchRequestOrderlyQueue;
+import org.apache.rocketmq.store.service.DispatchService;
 import org.apache.rocketmq.store.service.FlushConsumeQueueService;
 import org.apache.rocketmq.store.service.MainBatchDispatchRequestService;
 import org.apache.rocketmq.store.service.ReputMessageService;
@@ -138,6 +139,7 @@ public class DefaultMessageStore implements MessageStore {
     private final IndexService indexService;
 
     private final AllocateMappedFileService allocateMappedFileService;
+
 
     private ReputMessageService reputMessageService;
 
@@ -2181,83 +2183,6 @@ public class DefaultMessageStore implements MessageStore {
 
 
 
-    class DispatchService extends ServiceThread {
-
-        private final List<DispatchRequest[]> dispatchRequestsList = new ArrayList<>();
-
-        // dispatchRequestsList:[
-        //      {dispatchRequests:[{dispatchRequest}, {dispatchRequest}]},
-        //      {dispatchRequests:[{dispatchRequest}, {dispatchRequest}]}]
-        private void dispatch() {
-            dispatchRequestsList.clear();
-            dispatchRequestOrderlyQueue.get(dispatchRequestsList);
-            if (dispatchRequestsList.isEmpty()) {
-                return;
-            }
-
-            for (DispatchRequest[] dispatchRequests : dispatchRequestsList) {
-                for (DispatchRequest dispatchRequest : dispatchRequests) {
-                    DefaultMessageStore.this.doDispatch(dispatchRequest);
-                    activeMessageArrivingListener(dispatchRequest);
-                    increaseTopicCounter(dispatchRequest);
-                }
-            }
-        }
-
-        private void activeMessageArrivingListener(DispatchRequest dispatchRequest) {
-            if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
-                    && DefaultMessageStore.this.messageArrivingListener != null) {
-                DefaultMessageStore.this.messageArrivingListener.arriving(
-                        dispatchRequest.getTopic(),
-                        dispatchRequest.getQueueId(),
-                        dispatchRequest.getConsumeQueueOffset() + 1,
-                        dispatchRequest.getTagsCode(),
-                        dispatchRequest.getStoreTimestamp(),
-                        dispatchRequest.getBitMap(),
-                        dispatchRequest.getPropertiesMap()
-                );
-                DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
-            }
-        }
-
-        private void increaseTopicCounter(DispatchRequest dispatchRequest) {
-            // wake up long-polling
-            if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()
-                    && DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
-
-                DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicTimesTotal(
-                                dispatchRequest.getTopic())
-                        .add(1);
-                DefaultMessageStore.this.storeStatsService.getSinglePutMessageTopicSizeTotal(
-                                dispatchRequest.getTopic())
-                        .add(dispatchRequest.getMsgSize());
-            }
-        }
-
-        @Override
-        public void run() {
-            DefaultMessageStore.LOGGER.info(this.getServiceName() + " service started");
-
-            while (!this.isStopped()) {
-                try {
-                    TimeUnit.MILLISECONDS.sleep(1);
-                    dispatch();
-                } catch (Exception e) {
-                    DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
-                }
-            }
-
-            DefaultMessageStore.LOGGER.info(this.getServiceName() + " service end");
-        }
-
-        @Override
-        public String getServiceName() {
-            if (DefaultMessageStore.this.getBrokerConfig().isInBrokerContainer()) {
-                return DefaultMessageStore.this.getBrokerIdentity().getIdentifier() + DispatchService.class.getSimpleName();
-            }
-            return DispatchService.class.getSimpleName();
-        }
-    }
 
     class ConcurrentReputMessageService extends ReputMessageService {
 
@@ -2272,7 +2197,7 @@ public class DefaultMessageStore implements MessageStore {
         public ConcurrentReputMessageService() {
             super(DefaultMessageStore.this);
             this.mainBatchDispatchRequestService = new MainBatchDispatchRequestService(DefaultMessageStore.this);
-            this.dispatchService = new DispatchService();
+            this.dispatchService = new DispatchService(DefaultMessageStore.this);
         }
 
         public void createBatchDispatchRequest(ByteBuffer byteBuffer, int position, int size) {
@@ -2537,6 +2462,10 @@ public class DefaultMessageStore implements MessageStore {
 
     public DispatchRequestOrderlyQueue getDispatchRequestOrderlyQueue() {
         return dispatchRequestOrderlyQueue;
+    }
+
+    public ReputMessageService getReputMessageService() {
+        return reputMessageService;
     }
 
 }
