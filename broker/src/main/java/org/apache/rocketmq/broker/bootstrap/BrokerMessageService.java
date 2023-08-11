@@ -96,54 +96,22 @@ public class BrokerMessageService {
     }
 
     public boolean init() {
-        boolean result = true;
         try {
             DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager,
                 this.messageArrivingListener, this.brokerConfig, topicConfigTable);
 
-            if (messageStoreConfig.isEnableDLegerCommitLog()) {
-                DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(brokerController, defaultMessageStore);
-                DLedgerCommitLog dLedgerCommitLog =   (DLedgerCommitLog) defaultMessageStore.getCommitLog();
+            initDLedgerCommitLog(defaultMessageStore);
+            initStorePlugins(defaultMessageStore);
+            initTimerMessageStore();
 
-                dLedgerCommitLog.getdLedgerServer()
-                    .getDLedgerLeaderElector()
-                    .addRoleChangeHandler(roleChangeHandler);
-            }
-
-            // Load store plugin
-            MessageStorePluginContext context = new MessageStorePluginContext(
-                messageStoreConfig, brokerStatsManager, this.messageArrivingListener, brokerConfig, brokerController.getConfiguration());
-
-            this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
-
-            this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, brokerController.getConsumerFilterManager()));
-
-            if (messageStoreConfig.isTimerWheelEnable()) {
-                this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
-                TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
-                this.timerMessageStore = new TimerMessageStore(messageStore, messageStoreConfig, timerCheckpoint, timerMetrics, brokerStatsManager);
-                this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
-                this.messageStore.setTimerMessageStore(this.timerMessageStore);
-            }
-
-            if (messageStore != null) {
-                registerMessageStoreHook();
-                result = this.messageStore.load();
-            }
-
-            if (messageStoreConfig.isTimerWheelEnable()) {
-                result = result && this.timerMessageStore.load();
-            }
-
-            //scheduleMessageService load after messageStore load success
-            result = result && this.scheduleMessageService.load();
+            boolean result = loadMessageStore();
             initTransaction();
 
+            return result;
         } catch (IOException e) {
-            result = false;
             LOG.error("BrokerController#initialize: unexpected error occurs", e);
+            return false;
         }
-        return result;
     }
 
     public void start() throws Exception {
@@ -253,6 +221,58 @@ public class BrokerMessageService {
                 timerMessageStore.setShouldRunningDequeue(shouldStart);
             }
         }
+    }
+
+    private void initDLedgerCommitLog(DefaultMessageStore defaultMessageStore) {
+        if (!messageStoreConfig.isEnableDLegerCommitLog()) {
+            return;
+        }
+
+        DLedgerRoleChangeHandler roleChangeHandler = new DLedgerRoleChangeHandler(brokerController, defaultMessageStore);
+        DLedgerCommitLog dLedgerCommitLog =   (DLedgerCommitLog) defaultMessageStore.getCommitLog();
+
+        dLedgerCommitLog.getdLedgerServer()
+            .getDLedgerLeaderElector()
+            .addRoleChangeHandler(roleChangeHandler);
+    }
+
+    private void initTimerMessageStore() throws IOException {
+        if (!messageStoreConfig.isTimerWheelEnable()) {
+            return ;
+        }
+
+        this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
+        TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
+        this.timerMessageStore = new TimerMessageStore(messageStore, messageStoreConfig, timerCheckpoint, timerMetrics, brokerStatsManager);
+        this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
+        this.messageStore.setTimerMessageStore(this.timerMessageStore);
+    }
+
+    private void initStorePlugins(DefaultMessageStore defaultMessageStore) throws IOException {
+        // Load store plugin
+        MessageStorePluginContext context = new MessageStorePluginContext(
+            messageStoreConfig, brokerStatsManager, this.messageArrivingListener, brokerConfig, brokerController.getConfiguration());
+
+        this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
+
+        this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, brokerController.getConsumerFilterManager()));
+    }
+
+    private boolean loadMessageStore() {
+        boolean result = true;
+
+        if (messageStore != null) {
+            registerMessageStoreHook();
+            result = this.messageStore.load();
+        }
+
+        if (messageStoreConfig.isTimerWheelEnable()) {
+            result = result && this.timerMessageStore.load();
+        }
+
+        //scheduleMessageService load after messageStore load success
+        result = result && this.scheduleMessageService.load();
+        return result;
     }
 
     private void initTransaction() {
