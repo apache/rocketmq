@@ -120,6 +120,7 @@ public class BrokerController {
         this.brokerServiceManager = new BrokerServiceManager(this);
         this.brokerScheduleService = new BrokerScheduleService(brokerConfig, messageStoreConfig, this);
         this.brokerClusterService = new BrokerClusterService(this);
+        this.brokerMessageService = new BrokerMessageService(this);
         /* the instance creating order matters, do not change it. ... end */
     }
 
@@ -128,7 +129,6 @@ public class BrokerController {
             return false;
         }
 
-        this.brokerMessageService = new BrokerMessageService(this);
         if (!brokerMessageService.init()) {
             return false;
         }
