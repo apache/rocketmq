@@ -210,18 +210,20 @@ public class BrokerMessageService {
     }
 
     public synchronized void changeScheduleServiceStatus(boolean shouldStart) {
-        if (isScheduleServiceStart != shouldStart) {
-            LOG.info("ScheduleServiceStatus changed to {}", shouldStart);
-            if (shouldStart) {
-                this.scheduleMessageService.start();
-            } else {
-                this.scheduleMessageService.stop();
-            }
-            isScheduleServiceStart = shouldStart;
+        if (isScheduleServiceStart == shouldStart) {
+            return;
+        }
 
-            if (timerMessageStore != null) {
-                timerMessageStore.setShouldRunningDequeue(shouldStart);
-            }
+        LOG.info("ScheduleServiceStatus changed to {}", shouldStart);
+        if (shouldStart) {
+            this.scheduleMessageService.start();
+        } else {
+            this.scheduleMessageService.stop();
+        }
+        isScheduleServiceStart = shouldStart;
+
+        if (timerMessageStore != null) {
+            timerMessageStore.setShouldRunningDequeue(shouldStart);
         }
     }
 
