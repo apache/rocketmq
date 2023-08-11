@@ -108,6 +108,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildConsumeQueue;
+import org.apache.rocketmq.store.service.CommitLogDispatcherBuildIndex;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
@@ -130,6 +131,7 @@ public class DefaultMessageStore implements MessageStore {
     private final CleanConsumeQueueService cleanConsumeQueueService;
 
     private final CorrectLogicOffsetService correctLogicOffsetService;
+
 
     private final IndexService indexService;
 
@@ -276,7 +278,7 @@ public class DefaultMessageStore implements MessageStore {
     private void initDispatchList() {
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue(this));
-        this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex());
+        this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex(this));
         if (!messageStoreConfig.isEnableCompaction()) {
             return;
         }
@@ -2166,16 +2168,6 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    class CommitLogDispatcherBuildIndex implements CommitLogDispatcher {
-
-        @Override
-        public void dispatch(DispatchRequest request) {
-            if (DefaultMessageStore.this.messageStoreConfig.isMessageIndexEnable()) {
-                DefaultMessageStore.this.indexService.buildIndex(request);
-            }
-        }
-    }
-
     class CleanCommitLogService {
 
         private final static int MAX_MANUAL_DELETE_FILE_TIMES = 20;
@@ -3335,5 +3327,9 @@ public class DefaultMessageStore implements MessageStore {
 
     public long getReputFromOffset() {
         return this.reputMessageService.getReputFromOffset();
+    }
+
+    public IndexService getIndexService() {
+        return indexService;
     }
 }
