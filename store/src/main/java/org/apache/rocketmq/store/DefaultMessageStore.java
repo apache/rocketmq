@@ -602,28 +602,11 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
-        long beginTime = this.getSystemClock().now();
-        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
-
-        putResultFuture.thenAccept(result -> {
-            long elapsedTime = this.getSystemClock().now() - beginTime;
-            if (elapsedTime > 500) {
-                LOGGER.warn("DefaultMessageStore#putMessage: CommitLog#putMessage cost {}ms, topic={}, bodyLength={}",
-                    elapsedTime, msg.getTopic(), msg.getBody().length);
-            }
-            this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
-
-            if (null == result || !result.isOk()) {
-                this.storeStatsService.getPutMessageFailedTimes().add(1);
-            }
-        });
-
-        return putResultFuture;
+        return addPutCallback(msg);
     }
 
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessages(MessageExtBatch messageExtBatch) {
-
         for (PutMessageHook putMessageHook : putMessageHookList) {
             PutMessageResult handleResult = putMessageHook.executeBeforePutMessage(messageExtBatch);
             if (handleResult != null) {
@@ -631,6 +614,10 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
+        return addPutCallback(messageExtBatch);
+    }
+
+    private CompletableFuture<PutMessageResult> addPutCallback(MessageExtBatch messageExtBatch) {
         long beginTime = this.getSystemClock().now();
         CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessages(messageExtBatch);
 
@@ -640,6 +627,25 @@ public class DefaultMessageStore implements MessageStore {
                 LOGGER.warn("not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, messageExtBatch.getBody().length);
             }
             this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
+
+            if (null == result || !result.isOk()) {
+                this.storeStatsService.getPutMessageFailedTimes().add(1);
+            }
+        });
+
+        return putResultFuture;
+    }
+
+    private CompletableFuture<PutMessageResult> addPutCallback(MessageExtBrokerInner msg) {
+        long beginTime = this.getSystemClock().now();
+        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
+        putResultFuture.thenAccept(result -> {
+            long elapsedTime = this.getSystemClock().now() - beginTime;
+            if (elapsedTime > 500) {
+                LOGGER.warn("DefaultMessageStore#putMessage: CommitLog#putMessage cost {}ms, topic={}, bodyLength={}",
+                    elapsedTime, msg.getTopic(), msg.getBody().length);
+            }
+            this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
 
             if (null == result || !result.isOk()) {
                 this.storeStatsService.getPutMessageFailedTimes().add(1);
