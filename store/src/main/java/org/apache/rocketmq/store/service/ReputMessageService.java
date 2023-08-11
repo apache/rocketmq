@@ -35,7 +35,7 @@ public class ReputMessageService extends ServiceThread {
 
     protected volatile long reputFromOffset = 0;
 
-    private final DefaultMessageStore messageStore;
+    protected DefaultMessageStore messageStore;
 
     public ReputMessageService(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;

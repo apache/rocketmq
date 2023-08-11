@@ -58,7 +58,6 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
@@ -105,11 +104,10 @@ import org.apache.rocketmq.store.service.CleanCommitLogService;
 import org.apache.rocketmq.store.service.CleanConsumeQueueService;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildConsumeQueue;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildIndex;
+import org.apache.rocketmq.store.service.ConcurrentReputMessageService;
 import org.apache.rocketmq.store.service.CorrectLogicOffsetService;
 import org.apache.rocketmq.store.service.DispatchRequestOrderlyQueue;
-import org.apache.rocketmq.store.service.DispatchService;
 import org.apache.rocketmq.store.service.FlushConsumeQueueService;
-import org.apache.rocketmq.store.service.MainBatchDispatchRequestService;
 import org.apache.rocketmq.store.service.ReputMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
@@ -280,7 +278,7 @@ public class DefaultMessageStore implements MessageStore {
         if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
             this.reputMessageService = new ReputMessageService(this);
         } else {
-            this.reputMessageService = new ConcurrentReputMessageService();
+            this.reputMessageService = new ConcurrentReputMessageService(this);
         }
     }
 
@@ -761,7 +759,7 @@ public class DefaultMessageStore implements MessageStore {
         if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
             this.reputMessageService = new ReputMessageService(this);
         } else {
-            this.reputMessageService = new ConcurrentReputMessageService();
+            this.reputMessageService = new ConcurrentReputMessageService(this);
         }
 
         long resetReputOffset = Math.min(oldReputFromOffset, offsetToTruncate);
@@ -2184,160 +2182,6 @@ public class DefaultMessageStore implements MessageStore {
 
 
 
-    class ConcurrentReputMessageService extends ReputMessageService {
-
-        private static final int BATCH_SIZE = 1024 * 1024 * 4;
-
-        private long batchId = 0;
-
-        private MainBatchDispatchRequestService mainBatchDispatchRequestService;
-
-        private DispatchService dispatchService;
-
-        public ConcurrentReputMessageService() {
-            super(DefaultMessageStore.this);
-            this.mainBatchDispatchRequestService = new MainBatchDispatchRequestService(DefaultMessageStore.this);
-            this.dispatchService = new DispatchService(DefaultMessageStore.this);
-        }
-
-        public void createBatchDispatchRequest(ByteBuffer byteBuffer, int position, int size) {
-            if (position < 0) {
-                return;
-            }
-            mappedPageHoldCount.getAndIncrement();
-            BatchDispatchRequest task = new BatchDispatchRequest(byteBuffer.duplicate(), position, size, batchId++);
-            batchDispatchRequestQueue.offer(task);
-        }
-
-        @Override
-        public void start() {
-            super.start();
-            this.mainBatchDispatchRequestService.start();
-            this.dispatchService.start();
-        }
-
-        @Override
-        public void doReput() {
-            if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
-                LOGGER.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
-                        this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
-                this.reputFromOffset = DefaultMessageStore.this.commitLog.getMinOffset();
-            }
-            for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
-
-                SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
-
-                if (result == null) {
-                    break;
-                }
-
-                int batchDispatchRequestStart = -1;
-                int batchDispatchRequestSize = -1;
-                try {
-                    this.reputFromOffset = result.getStartOffset();
-
-                    for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
-                        ByteBuffer byteBuffer = result.getByteBuffer();
-
-                        int totalSize = preCheckMessageAndReturnSize(byteBuffer);
-
-                        if (totalSize > 0) {
-                            if (batchDispatchRequestStart == -1) {
-                                batchDispatchRequestStart = byteBuffer.position();
-                                batchDispatchRequestSize = 0;
-                            }
-                            batchDispatchRequestSize += totalSize;
-                            if (batchDispatchRequestSize > BATCH_SIZE) {
-                                this.createBatchDispatchRequest(byteBuffer, batchDispatchRequestStart, batchDispatchRequestSize);
-                                batchDispatchRequestStart = -1;
-                                batchDispatchRequestSize = -1;
-                            }
-                            byteBuffer.position(byteBuffer.position() + totalSize);
-                            this.reputFromOffset += totalSize;
-                            readSize += totalSize;
-                        } else {
-                            doNext = false;
-                            if (totalSize == 0) {
-                                this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
-                            }
-                            this.createBatchDispatchRequest(byteBuffer, batchDispatchRequestStart, batchDispatchRequestSize);
-                            batchDispatchRequestStart = -1;
-                            batchDispatchRequestSize = -1;
-                        }
-                    }
-                } finally {
-                    this.createBatchDispatchRequest(result.getByteBuffer(), batchDispatchRequestStart, batchDispatchRequestSize);
-                    boolean over = mappedPageHoldCount.get() == 0;
-                    while (!over) {
-                        try {
-                            TimeUnit.MILLISECONDS.sleep(1);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        over = mappedPageHoldCount.get() == 0;
-                    }
-                    result.release();
-                }
-            }
-        }
-
-        /**
-         * pre-check the message and returns the message size
-         *
-         * @return 0 Come to the end of file // >0 Normal messages // -1 Message checksum failure
-         */
-        public int preCheckMessageAndReturnSize(ByteBuffer byteBuffer) {
-            byteBuffer.mark();
-
-            int totalSize = byteBuffer.getInt();
-            if (reputFromOffset + totalSize > DefaultMessageStore.this.getConfirmOffset()) {
-                return -1;
-            }
-
-            int magicCode = byteBuffer.getInt();
-            switch (magicCode) {
-                case MessageDecoder.MESSAGE_MAGIC_CODE:
-                case MessageDecoder.MESSAGE_MAGIC_CODE_V2:
-                    break;
-                case MessageDecoder.BLANK_MAGIC_CODE:
-                    return 0;
-                default:
-                    return -1;
-            }
-
-            byteBuffer.reset();
-
-            return totalSize;
-        }
-
-        @Override
-        public void shutdown() {
-            for (int i = 0; i < 50 && this.isCommitLogAvailable(); i++) {
-                try {
-                    TimeUnit.MILLISECONDS.sleep(100);
-                } catch (InterruptedException ignored) {
-                }
-            }
-
-            if (this.isCommitLogAvailable()) {
-                LOGGER.warn("shutdown concurrentReputMessageService, but CommitLog have not finish to be dispatched, CommitLog max" +
-                                " offset={}, reputFromOffset={}", DefaultMessageStore.this.commitLog.getMaxOffset(),
-                        this.reputFromOffset);
-            }
-
-            this.mainBatchDispatchRequestService.shutdown();
-            this.dispatchService.shutdown();
-            super.shutdown();
-        }
-
-        @Override
-        public String getServiceName() {
-            if (DefaultMessageStore.this.getBrokerConfig().isInBrokerContainer()) {
-                return DefaultMessageStore.this.getBrokerIdentity().getIdentifier() + ConcurrentReputMessageService.class.getSimpleName();
-            }
-            return ConcurrentReputMessageService.class.getSimpleName();
-        }
-    }
 
     @Override
     public HARuntimeInfo getHARuntimeInfo() {
