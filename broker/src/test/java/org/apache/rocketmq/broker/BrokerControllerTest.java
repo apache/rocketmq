@@ -92,6 +92,6 @@ public class BrokerControllerTest {
 
         long headSlowTimeMills = 100;
         TimeUnit.MILLISECONDS.sleep(headSlowTimeMills);
-        assertThat(brokerController.headSlowTimeMills(queue)).isGreaterThanOrEqualTo(headSlowTimeMills);
+        assertThat(brokerController.getBrokerNettyServer().headSlowTimeMills(queue)).isGreaterThanOrEqualTo(headSlowTimeMills);
     }
 }

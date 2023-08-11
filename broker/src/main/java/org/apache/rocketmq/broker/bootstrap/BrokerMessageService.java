@@ -258,7 +258,6 @@ public class BrokerMessageService {
         }
     }
 
-
     private void initTransaction() {
         this.transactionalMessageService = ServiceProvider.loadClass(TransactionalMessageService.class);
         if (null == this.transactionalMessageService) {

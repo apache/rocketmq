@@ -309,7 +309,7 @@ public class BrokerScheduleService {
             @Override
             public void run() {
                 try {
-                    getBrokerController().printWaterMark();
+                    getBrokerController().getBrokerNettyServer().printWaterMark();
                 } catch (Throwable e) {
                     LOG.error("BrokerController: failed to print broker watermark", e);
                 }

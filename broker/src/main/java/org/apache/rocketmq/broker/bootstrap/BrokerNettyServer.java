@@ -127,17 +127,13 @@ public class BrokerNettyServer {
     private ExecutorService loadBalanceExecutor;
     private ExecutorService endTransactionExecutor;
 
-
     private final BrokerConfig brokerConfig;
     private final MessageStoreConfig messageStoreConfig;
     private final NettyServerConfig nettyServerConfig;
     private final BrokerController brokerController;
 
-
-
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
-
 
     public BrokerNettyServer(
         final BrokerConfig brokerConfig,
@@ -210,8 +206,6 @@ public class BrokerNettyServer {
 
         return true;
     }
-
-
 
     public void registerServerRPCHook(RPCHook rpcHook) {
         this.remotingServer.registerRPCHook(rpcHook);

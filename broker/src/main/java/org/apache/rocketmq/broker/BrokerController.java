@@ -200,42 +200,6 @@ public class BrokerController {
         }
     }
 
-    //**************************************** debug methods start ****************************************************
-    public long headSlowTimeMills(BlockingQueue<Runnable> q) {
-        long slowTimeMills = 0;
-        final Runnable peek = q.peek();
-        if (peek != null) {
-            RequestTask rt = BrokerFastFailure.castRunnable(peek);
-            slowTimeMills = rt == null ? 0 : this.getBrokerMessageService().getMessageStore().now() - rt.getCreateTimestamp();
-        }
-
-        if (slowTimeMills < 0) {
-            slowTimeMills = 0;
-        }
-
-        return slowTimeMills;
-    }
-
-    public long headSlowTimeMills4SendThreadPoolQueue() {
-        return this.brokerNettyServer.headSlowTimeMills4SendThreadPoolQueue();
-    }
-
-    public long headSlowTimeMills4PullThreadPoolQueue() {
-        return this.brokerNettyServer.headSlowTimeMills4PullThreadPoolQueue();
-    }
-
-    public long headSlowTimeMills4LitePullThreadPoolQueue() {
-        return this.brokerNettyServer.headSlowTimeMills4PullThreadPoolQueue();
-    }
-
-    public long headSlowTimeMills4QueryThreadPoolQueue() {
-        return this.brokerNettyServer.headSlowTimeMills4QueryThreadPoolQueue();
-    }
-
-    public void printWaterMark() {
-        this.brokerNettyServer.printWaterMark();
-    }
-
     //**************************************** private or protected methods start ****************************************************
     public void stopService() {
         BrokerController.LOG.info("{} stop service", this.getBrokerConfig().getCanonicalName());
