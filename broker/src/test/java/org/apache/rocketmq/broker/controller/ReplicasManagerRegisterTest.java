@@ -18,6 +18,8 @@
 package org.apache.rocketmq.broker.controller;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.bootstrap.BrokerClusterService;
+import org.apache.rocketmq.broker.bootstrap.BrokerMessageService;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
@@ -98,6 +100,10 @@ public class ReplicasManagerRegisterTest {
 
     private BrokerController mockedBrokerController;
 
+    private BrokerClusterService mockedBrokerClusterService;
+
+    private BrokerMessageService mockedBrokerMessageService;
+
     private DefaultMessageStore mockedMessageStore;
 
     private BrokerOuterAPI mockedBrokerOuterAPI;
@@ -110,6 +116,8 @@ public class ReplicasManagerRegisterTest {
     public void setUp() throws Exception {
         UtilAll.deleteFile(new File(STORE_BASE_PATH));
         this.mockedBrokerController = Mockito.mock(BrokerController.class);
+        this.mockedBrokerClusterService = Mockito.mock(BrokerClusterService.class);
+        this.mockedBrokerMessageService = Mockito.mock(BrokerMessageService.class);
         this.mockedMessageStore = Mockito.mock(DefaultMessageStore.class);
         this.mockedBrokerOuterAPI = Mockito.mock(BrokerOuterAPI.class);
         this.mockedAutoSwitchHAService = Mockito.mock(AutoSwitchHAService.class);
@@ -118,6 +126,8 @@ public class ReplicasManagerRegisterTest {
         when(mockedBrokerController.getMessageStore()).thenReturn(mockedMessageStore);
         when(mockedBrokerController.getBrokerConfig()).thenReturn(BROKER_CONFIG);
         when(mockedBrokerController.getTopicConfigManager()).thenReturn(mockedTopicConfigManager);
+        when(mockedBrokerController.getBrokerClusterService()).thenReturn(mockedBrokerClusterService);
+        when(mockedBrokerController.getBrokerMessageService()).thenReturn(mockedBrokerMessageService);
         when(mockedMessageStore.getHaService()).thenReturn(mockedAutoSwitchHAService);
         when(mockedMessageStore.getRunningFlags()).thenReturn(runningFlags);
         when(mockedBrokerController.getBrokerClusterService().getSlaveSynchronize()).thenReturn(new SlaveSynchronize(mockedBrokerController));
