@@ -196,15 +196,17 @@ public class BrokerMessageService {
     }
 
     public synchronized void changeTransactionCheckServiceStatus(boolean shouldStart) {
-        if (isTransactionCheckServiceStart != shouldStart) {
-            LOG.info("TransactionCheckService status changed to {}", shouldStart);
-            if (shouldStart) {
-                this.transactionalMessageCheckService.start();
-            } else {
-                this.transactionalMessageCheckService.shutdown(true);
-            }
-            isTransactionCheckServiceStart = shouldStart;
+        if (isTransactionCheckServiceStart == shouldStart) {
+            return;
         }
+
+        LOG.info("TransactionCheckService status changed to {}", shouldStart);
+        if (shouldStart) {
+            this.transactionalMessageCheckService.start();
+        } else {
+            this.transactionalMessageCheckService.shutdown(true);
+        }
+        isTransactionCheckServiceStart = shouldStart;
     }
 
     public synchronized void changeScheduleServiceStatus(boolean shouldStart) {
