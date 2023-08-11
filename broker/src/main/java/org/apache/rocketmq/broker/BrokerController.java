@@ -167,7 +167,7 @@ public class BrokerController {
         }
     }
 
-    public void startServiceWithoutCondition() {
+    protected void startServiceWithoutCondition() {
         BrokerController.LOG.info("{} start service", this.brokerConfig.getCanonicalName());
 
         this.brokerMessageService.changeSpecialServiceStatus(this.brokerConfig.getBrokerId() == MixAll.MASTER_ID);
