@@ -26,7 +26,6 @@ import org.apache.rocketmq.common.BrokerConfig;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.stubbing.Answer;
 
 import static org.awaitility.Awaitility.await;
