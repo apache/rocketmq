@@ -35,30 +35,29 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
@@ -68,7 +67,6 @@ import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.CleanupPolicy;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -82,7 +80,6 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.common.utils.ServiceProvider;
-import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
@@ -113,6 +110,7 @@ import org.apache.rocketmq.store.service.CleanConsumeQueueService;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildConsumeQueue;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildIndex;
 import org.apache.rocketmq.store.service.CorrectLogicOffsetService;
+import org.apache.rocketmq.store.service.DispatchRequestOrderlyQueue;
 import org.apache.rocketmq.store.service.FlushConsumeQueueService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
@@ -2178,55 +2176,6 @@ public class DefaultMessageStore implements MessageStore {
 
 
 
-    class DispatchRequestOrderlyQueue {
-
-        DispatchRequest[][] buffer;
-
-        long ptr = 0;
-
-        AtomicLong maxPtr = new AtomicLong();
-
-        public DispatchRequestOrderlyQueue(int bufferNum) {
-            this.buffer = new DispatchRequest[bufferNum][];
-        }
-
-        public void put(long index, DispatchRequest[] dispatchRequests) {
-            while (ptr + this.buffer.length <= index) {
-                synchronized (this) {
-                    try {
-                        this.wait();
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-            int mod = (int) (index % this.buffer.length);
-            this.buffer[mod] = dispatchRequests;
-            maxPtr.incrementAndGet();
-        }
-
-        public DispatchRequest[] get(List<DispatchRequest[]> dispatchRequestsList) {
-            synchronized (this) {
-                for (int i = 0; i < this.buffer.length; i++) {
-                    int mod = (int) (ptr % this.buffer.length);
-                    DispatchRequest[] ret = this.buffer[mod];
-                    if (ret == null) {
-                        this.notifyAll();
-                        return null;
-                    }
-                    dispatchRequestsList.add(ret);
-                    this.buffer[mod] = null;
-                    ptr++;
-                }
-            }
-            return null;
-        }
-
-        public synchronized boolean isEmpty() {
-            return maxPtr.get() == ptr;
-        }
-
-    }
 
     class ReputMessageService extends ServiceThread {
 
