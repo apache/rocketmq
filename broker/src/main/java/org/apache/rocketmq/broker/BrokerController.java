@@ -186,7 +186,7 @@ public class BrokerController {
         isIsolated = false;
     }
 
-    public void stopService() {
+    protected void unregisterBroker() {
         BrokerController.LOG.info("{} stop service", this.getBrokerConfig().getCanonicalName());
         isIsolated = true;
         this.brokerMessageService.changeSpecialServiceStatus(false);
