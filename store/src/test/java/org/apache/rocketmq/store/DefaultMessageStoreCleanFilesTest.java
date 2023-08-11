@@ -30,6 +30,7 @@ import org.apache.rocketmq.store.index.IndexFile;
 import org.apache.rocketmq.store.index.IndexService;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
+import org.apache.rocketmq.store.service.CleanCommitLogService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.junit.After;
 import org.junit.Before;
@@ -54,11 +55,11 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 /**
- * Test case for DefaultMessageStore.CleanCommitLogService and DefaultMessageStore.CleanConsumeQueueService
+ * Test case for CleanCommitLogService and DefaultMessageStore.CleanConsumeQueueService
  */
 public class DefaultMessageStoreCleanFilesTest {
     private DefaultMessageStore messageStore;
-    private DefaultMessageStore.CleanCommitLogService cleanCommitLogService;
+    private CleanCommitLogService cleanCommitLogService;
     private DefaultMessageStore.CleanConsumeQueueService cleanConsumeQueueService;
 
     private SocketAddress bornHost;
@@ -339,12 +340,12 @@ public class DefaultMessageStoreCleanFilesTest {
         }
     }
 
-    private DefaultMessageStore.CleanCommitLogService getCleanCommitLogService()
+    private CleanCommitLogService getCleanCommitLogService()
             throws Exception {
         Field serviceField = messageStore.getClass().getDeclaredField("cleanCommitLogService");
         serviceField.setAccessible(true);
-        DefaultMessageStore.CleanCommitLogService cleanCommitLogService =
-                (DefaultMessageStore.CleanCommitLogService) serviceField.get(messageStore);
+        CleanCommitLogService cleanCommitLogService =
+                (CleanCommitLogService) serviceField.get(messageStore);
         serviceField.setAccessible(false);
 
         return cleanCommitLogService;
@@ -500,7 +501,7 @@ public class DefaultMessageStoreCleanFilesTest {
         putFiledBackToMessageStore(cleanCommitLogService);
     }
 
-    private void putFiledBackToMessageStore(DefaultMessageStore.CleanCommitLogService cleanCommitLogService) throws Exception {
+    private void putFiledBackToMessageStore(CleanCommitLogService cleanCommitLogService) throws Exception {
         Field cleanCommitLogServiceField = DefaultMessageStore.class.getDeclaredField("cleanCommitLogService");
         cleanCommitLogServiceField.setAccessible(true);
         cleanCommitLogServiceField.set(messageStore, cleanCommitLogService);

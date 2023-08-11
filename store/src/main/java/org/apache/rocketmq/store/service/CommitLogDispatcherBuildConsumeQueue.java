@@ -16,12 +16,17 @@
  */
 package org.apache.rocketmq.store.service;
 
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.CommitLogDispatcher;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 
 public class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+
     private final DefaultMessageStore messageStore;
 
     public CommitLogDispatcherBuildConsumeQueue(DefaultMessageStore messageStore) {
