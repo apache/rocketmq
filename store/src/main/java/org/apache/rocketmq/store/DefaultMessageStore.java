@@ -107,6 +107,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.apache.rocketmq.store.service.BatchDispatchRequest;
 import org.apache.rocketmq.store.service.CleanCommitLogService;
 import org.apache.rocketmq.store.service.CleanConsumeQueueService;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildConsumeQueue;
@@ -2176,23 +2177,6 @@ public class DefaultMessageStore implements MessageStore {
 
 
 
-    class BatchDispatchRequest {
-
-        private ByteBuffer byteBuffer;
-
-        private int position;
-
-        private int size;
-
-        private long id;
-
-        public BatchDispatchRequest(ByteBuffer byteBuffer, int position, int size, long id) {
-            this.byteBuffer = byteBuffer;
-            this.position = position;
-            this.size = size;
-            this.id = id;
-        }
-    }
 
     class DispatchRequestOrderlyQueue {
 
@@ -2434,9 +2418,9 @@ public class DefaultMessageStore implements MessageStore {
                     BatchDispatchRequest task = batchDispatchRequestQueue.peek();
                     batchDispatchRequestExecutor.execute(() -> {
                         try {
-                            ByteBuffer tmpByteBuffer = task.byteBuffer;
-                            tmpByteBuffer.position(task.position);
-                            tmpByteBuffer.limit(task.position + task.size);
+                            ByteBuffer tmpByteBuffer = task.getByteBuffer();
+                            tmpByteBuffer.position(task.getPosition());
+                            tmpByteBuffer.limit(task.getPosition() + task.getSize());
                             List<DispatchRequest> dispatchRequestList = new ArrayList<>();
                             while (tmpByteBuffer.hasRemaining()) {
                                 DispatchRequest dispatchRequest = DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(tmpByteBuffer, false, false, false);
@@ -2446,7 +2430,7 @@ public class DefaultMessageStore implements MessageStore {
                                     LOGGER.error("[BUG]read total count not equals msg total size.");
                                 }
                             }
-                            dispatchRequestOrderlyQueue.put(task.id, dispatchRequestList.toArray(new DispatchRequest[dispatchRequestList.size()]));
+                            dispatchRequestOrderlyQueue.put(task.getId(), dispatchRequestList.toArray(new DispatchRequest[dispatchRequestList.size()]));
                             mappedPageHoldCount.getAndDecrement();
                         } catch (Exception e) {
                             LOGGER.error("There is an exception in task execution.", e);
