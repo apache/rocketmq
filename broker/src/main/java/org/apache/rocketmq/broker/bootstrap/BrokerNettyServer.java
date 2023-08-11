@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.bootstrap;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -132,6 +133,7 @@ public class BrokerNettyServer {
     private final NettyServerConfig nettyServerConfig;
     private final BrokerController brokerController;
 
+    private InetSocketAddress storeHost;
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
 
@@ -145,6 +147,8 @@ public class BrokerNettyServer {
         this.messageStoreConfig = messageStoreConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.brokerController = brokerController;
+
+        this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), nettyServerConfig.getListenPort()));
 
         initProcessors();
         initThreadPoolQueue();
@@ -213,6 +217,8 @@ public class BrokerNettyServer {
     }
 
     public void start() {
+        this.storeHost = new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort());
+
         if (this.popMessageProcessor != null) {
             this.popMessageProcessor.getPopLongPollingService().start();
             this.popMessageProcessor.getPopBufferMergeService().start();
@@ -821,6 +827,14 @@ public class BrokerNettyServer {
         this.fastRemotingServer = fastRemotingServer;
     }
 
+    public InetSocketAddress getStoreHost() {
+        return storeHost;
+    }
+
+    public void setStoreHost(InetSocketAddress storeHost) {
+        this.storeHost = storeHost;
+    }
+
     public void registerSendMessageHook(final SendMessageHook hook) {
         this.sendMessageHookList.add(hook);
         LOG.info("register SendMessageHook Hook, {}", hook.hookName());
@@ -861,7 +875,6 @@ public class BrokerNettyServer {
     public long headSlowTimeMills4QueryThreadPoolQueue() {
         return this.headSlowTimeMills(this.queryThreadPoolQueue);
     }
-
 
     public void printWaterMark() {
         LOG_WATER_MARK.info("[WATERMARK] Send Queue Size: {} SlowTimeMills: {}", this.sendThreadPoolQueue.size(), headSlowTimeMills4SendThreadPoolQueue());

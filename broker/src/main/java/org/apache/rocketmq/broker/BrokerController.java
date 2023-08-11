@@ -69,7 +69,6 @@ public class BrokerController {
     protected final MessageStoreConfig messageStoreConfig;
     private Configuration configuration;
 
-    private InetSocketAddress storeHost;
     protected volatile boolean shutdown = false;
     protected volatile long shouldStartTime;
     protected volatile boolean isIsolated = false;
@@ -80,7 +79,7 @@ public class BrokerController {
     private final BrokerServiceRegistry brokerServiceRegistry;
     private final BrokerServiceManager brokerServiceManager;
     private final BrokerClusterService brokerClusterService;
-    private BrokerMessageService brokerMessageService;
+    private final BrokerMessageService brokerMessageService;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -110,7 +109,6 @@ public class BrokerController {
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
         this.messageStoreConfig = messageStoreConfig;
-        this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         initConfiguration();
 
         /* the instance creating order matters, do not change it. start ... */
@@ -230,7 +228,6 @@ public class BrokerController {
     }
 
     protected void startBasicService() throws Exception {
-        this.storeHost = new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort());
         this.brokerClusterService.start();
         this.brokerNettyServer.start();
         this.brokerMessageService.start();
@@ -386,11 +383,7 @@ public class BrokerController {
     }
 
     public InetSocketAddress getStoreHost() {
-        return storeHost;
-    }
-
-    public void setStoreHost(InetSocketAddress storeHost) {
-        this.storeHost = storeHost;
+        return this.brokerNettyServer.getStoreHost();
     }
 
     public Configuration getConfiguration() {
