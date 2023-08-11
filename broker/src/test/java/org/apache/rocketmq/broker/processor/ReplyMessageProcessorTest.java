@@ -81,9 +81,7 @@ public class ReplyMessageProcessorTest {
     public void init() throws IllegalAccessException, NoSuchFieldException {
         clientInfo = new ClientChannelInfo(channel, "127.0.0.1", LanguageCode.JAVA, 0);
         brokerController.setMessageStore(messageStore);
-        Field field = BrokerController.class.getDeclaredField("broker2Client");
-        field.setAccessible(true);
-        field.set(brokerController, broker2Client);
+        when(brokerController.getBroker2Client()).thenReturn(broker2Client);
         when(messageStore.now()).thenReturn(System.currentTimeMillis());
         Channel mockChannel = mock(Channel.class);
         when(mockChannel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
