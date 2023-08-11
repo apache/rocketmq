@@ -207,7 +207,7 @@ public class BrokerController {
         this.brokerMessageService.changeSpecialServiceStatus(false);
     }
 
-    public boolean initAndLoadService() throws CloneNotSupportedException {
+    private boolean initAndLoadService() throws CloneNotSupportedException {
         brokerClusterService.load();
 
         if (!brokerMetadataService.load()) {
