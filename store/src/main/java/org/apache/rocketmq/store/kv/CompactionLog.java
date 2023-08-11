@@ -711,10 +711,6 @@ public class CompactionLog {
         MappedFileQueue src = newLog.getLog();
 
         long beginTime = System.nanoTime();
-//        List<String> fileNameToReplace = mappedFileList.stream()
-//            .map(m -> m.getFile().getName())
-//            .collect(Collectors.toList());
-
         List<String> fileNameToReplace = dest.getMappedFiles().stream()
             .filter(mappedFileList::contains)
             .map(mf -> mf.getFile().getName())
@@ -793,10 +789,6 @@ public class CompactionLog {
     public SparseConsumeQueue getCQ() {
         return current.consumeQueue;
     }
-
-//    public SparseConsumeQueue getCompactionScq() {
-//        return compactionScq;
-//    }
 
     public void flush(int flushLeastPages) {
         this.flushLog(flushLeastPages);
