@@ -217,8 +217,6 @@ public class BrokerNettyServer {
     }
 
     public void start() {
-        this.storeHost = new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), this.getNettyServerConfig().getListenPort());
-
         if (this.popMessageProcessor != null) {
             this.popMessageProcessor.getPopLongPollingService().start();
             this.popMessageProcessor.getPopBufferMergeService().start();
