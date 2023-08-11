@@ -165,7 +165,7 @@ public class ProxyConfig implements ConfigFile {
     private int subscriptionGroupConfigCacheExpiredInSeconds = 20;
     private int subscriptionGroupConfigCacheMaxNum = 20000;
     private int metadataThreadPoolNums = 3;
-    private int metadataThreadPoolQueueCapacity = 1000;
+    private int metadataThreadPoolQueueCapacity = 100000;
 
     private int transactionHeartbeatThreadPoolNums = 20;
     private int transactionHeartbeatThreadPoolQueueCapacity = 200;
