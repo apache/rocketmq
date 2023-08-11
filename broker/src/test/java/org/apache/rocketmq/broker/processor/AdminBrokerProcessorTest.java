@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.LongAdder;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.bootstrap.BrokerServiceManager;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
@@ -136,6 +137,8 @@ public class AdminBrokerProcessorTest {
     private DefaultMessageStore defaultMessageStore;
     @Mock
     private ScheduleMessageService scheduleMessageService;
+    @Mock
+    private BrokerServiceManager brokerServiceManager;
 
     @Before
     public void init() throws Exception {
@@ -448,6 +451,7 @@ public class AdminBrokerProcessorTest {
     @Test
     public void testGetBrokerRuntimeInfo() throws Exception {
         brokerStats = mock(BrokerStats.class);
+        when(brokerController.getBrokerServiceManager()).thenReturn(brokerServiceManager);
         when(brokerController.getBrokerServiceManager().getBrokerStats()).thenReturn(brokerStats);
         when(brokerStats.getMsgPutTotalYesterdayMorning()).thenReturn(Long.MIN_VALUE);
         when(brokerStats.getMsgPutTotalTodayMorning()).thenReturn(Long.MIN_VALUE);
