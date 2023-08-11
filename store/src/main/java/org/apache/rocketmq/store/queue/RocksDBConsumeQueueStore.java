@@ -352,8 +352,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public void cleanExpired(final long phyOffset) {
-        this.rocksDBStorage.manualCompaction(phyOffset);
+    public void cleanExpired(final long minPhyOffset) {
+        this.rocksDBStorage.manualCompaction(minPhyOffset);
     }
 
     @Override
