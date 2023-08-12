@@ -389,6 +389,16 @@ public class DefaultMessageStore implements MessageStore {
         return result;
     }
 
+    private void prepareLock() throws IOException {
+        lock = lockFile.getChannel().tryLock(0, 1, false);
+        if (lock == null || lock.isShared() || !lock.isValid()) {
+            throw new RuntimeException("Lock failed,MQ already started");
+        }
+
+        lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes(StandardCharsets.UTF_8)));
+        lockFile.getChannel().force(true);
+    }
+
     /**
      * @throws Exception
      */
@@ -405,13 +415,7 @@ public class DefaultMessageStore implements MessageStore {
         this.allocateMappedFileService.start();
         this.indexService.start();
 
-        lock = lockFile.getChannel().tryLock(0, 1, false);
-        if (lock == null || lock.isShared() || !lock.isValid()) {
-            throw new RuntimeException("Lock failed,MQ already started");
-        }
-
-        lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes(StandardCharsets.UTF_8)));
-        lockFile.getChannel().force(true);
+       this.prepareLock();
 
         this.reputMessageService.setReputFromOffset(this.commitLog.getConfirmOffset());
         this.reputMessageService.start();
