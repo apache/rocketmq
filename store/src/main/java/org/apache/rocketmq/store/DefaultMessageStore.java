@@ -97,6 +97,7 @@ import org.apache.rocketmq.store.service.CommitLogDispatcherBuildConsumeQueue;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildIndex;
 import org.apache.rocketmq.store.service.ConcurrentReputMessageService;
 import org.apache.rocketmq.store.service.CorrectLogicOffsetService;
+import org.apache.rocketmq.store.service.DelayLevelService;
 import org.apache.rocketmq.store.service.DispatchRequestOrderlyQueue;
 import org.apache.rocketmq.store.service.FlushConsumeQueueService;
 import org.apache.rocketmq.store.service.GetMessageService;
@@ -185,10 +186,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private SendMessageBackHook sendMessageBackHook;
 
-    private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
-        new ConcurrentHashMap<>(32);
 
-    private int maxDelayLevel;
 
     private final AtomicInteger mappedPageHoldCount = new AtomicInteger(0);
 
@@ -211,6 +209,7 @@ public class DefaultMessageStore implements MessageStore {
     private PutMessageService putMessageService;
     private QueryMessageService queryMessageService;
     private GetMessageService getMessageService;
+    private DelayLevelService delayLevelService;
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
@@ -229,12 +228,12 @@ public class DefaultMessageStore implements MessageStore {
         initDispatchList();
         initScheduledExecutorService();
         initLockFile();
-        initDelayLevel();
 
         initProcessService();
     }
 
     private void initProcessService() {
+        this.delayLevelService = new DelayLevelService(this);
         this.putMessageService = new PutMessageService(this);
         this.queryMessageService = new QueryMessageService(this);
         this.getMessageService = new GetMessageService(this);
@@ -310,37 +309,8 @@ public class DefaultMessageStore implements MessageStore {
         lockFile = new RandomAccessFile(file, "rw");
     }
 
-    private void initDelayLevel() {
-        HashMap<String, Long> timeUnitTable = new HashMap<>();
-        timeUnitTable.put("s", 1000L);
-        timeUnitTable.put("m", 1000L * 60);
-        timeUnitTable.put("h", 1000L * 60 * 60);
-        timeUnitTable.put("d", 1000L * 60 * 60 * 24);
 
-        String levelString = messageStoreConfig.getMessageDelayLevel();
-        try {
-            String[] levelArray = levelString.split(" ");
-            for (int i = 0; i < levelArray.length; i++) {
-                initDelayLevelItem(levelArray, timeUnitTable, i);
-            }
-        } catch (Exception e) {
-            LOGGER.error("parse message delay level failed. messageDelayLevel = {}", levelString, e);
-        }
-    }
 
-    private void initDelayLevelItem(String[] levelArray, HashMap<String, Long> timeUnitTable, int i) {
-        String value = levelArray[i];
-        String ch = value.substring(value.length() - 1);
-        Long tu = timeUnitTable.get(ch);
-
-        int level = i + 1;
-        if (level > this.maxDelayLevel) {
-            this.maxDelayLevel = level;
-        }
-        long num = Long.parseLong(value.substring(0, value.length() - 1));
-        long delayTimeMillis = tu * num;
-        this.delayLevelTable.put(level, delayTimeMillis);
-    }
 
     @Override
     public void truncateDirtyLogicFiles(long phyOffset) {
@@ -1654,9 +1624,10 @@ public class DefaultMessageStore implements MessageStore {
     }
 
 
-
     //**************************************** getter and setter start ****************************************************
-
+    public DelayLevelService getDelayLevelService() {
+        return delayLevelService;
+    }
 
     @Override
     public TimerMessageStore getTimerMessageStore() {
@@ -1717,7 +1688,6 @@ public class DefaultMessageStore implements MessageStore {
     public void setConfirmOffset(long phyOffset) {
         this.commitLog.setConfirmOffset(phyOffset);
     }
-
 
     @Override
     public void setPhysicalOffset(long phyOffset) {
@@ -1897,14 +1867,6 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    public long computeDeliverTimestamp(final int delayLevel, final long storeTimestamp) {
-        Long time = this.delayLevelTable.get(delayLevel);
-        if (time != null) {
-            return time + storeTimestamp;
-        }
-
-        return storeTimestamp + 1000;
-    }
 
     @Override
     public HARuntimeInfo getHARuntimeInfo() {
@@ -1914,12 +1876,6 @@ public class DefaultMessageStore implements MessageStore {
             return null;
         }
     }
-
-    public int getMaxDelayLevel() {
-        return maxDelayLevel;
-    }
-
-
 
     public List<PutMessageHook> getPutMessageHookList() {
         return putMessageService.getPutMessageHookList();

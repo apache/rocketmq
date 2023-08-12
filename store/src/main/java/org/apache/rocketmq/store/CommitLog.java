@@ -515,12 +515,12 @@ public class CommitLog implements Swappable {
                     if (TopicValidator.RMQ_SYS_SCHEDULE_TOPIC.equals(topic) && t != null) {
                         int delayLevel = Integer.parseInt(t);
 
-                        if (delayLevel > this.defaultMessageStore.getMaxDelayLevel()) {
-                            delayLevel = this.defaultMessageStore.getMaxDelayLevel();
+                        if (delayLevel > this.defaultMessageStore.getDelayLevelService().getMaxDelayLevel()) {
+                            delayLevel = this.defaultMessageStore.getDelayLevelService().getMaxDelayLevel();
                         }
 
                         if (delayLevel > 0) {
-                            tagsCode = this.defaultMessageStore.computeDeliverTimestamp(delayLevel,
+                            tagsCode = this.defaultMessageStore.getDelayLevelService().computeDeliverTimestamp(delayLevel,
                                 storeTimestamp);
                         }
                     }
