@@ -18,7 +18,6 @@ package org.apache.rocketmq.store;
 
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
-import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
@@ -26,8 +25,6 @@ import io.opentelemetry.sdk.metrics.View;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.net.Inet6Address;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileLock;
@@ -88,14 +85,13 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
-import org.apache.rocketmq.store.queue.CqUnit;
-import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.service.BatchDispatchRequest;
 import org.apache.rocketmq.store.service.CleanCommitLogService;
 import org.apache.rocketmq.store.service.CleanConsumeQueueService;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildConsumeQueue;
 import org.apache.rocketmq.store.service.CommitLogDispatcherBuildIndex;
 import org.apache.rocketmq.store.service.ConcurrentReputMessageService;
+import org.apache.rocketmq.store.service.ConsumeQueueService;
 import org.apache.rocketmq.store.service.CorrectLogicOffsetService;
 import org.apache.rocketmq.store.service.DelayLevelService;
 import org.apache.rocketmq.store.service.DispatchRequestOrderlyQueue;
@@ -178,30 +174,21 @@ public class DefaultMessageStore implements MessageStore {
     // If current broker is slave, this reference point to the store of master broker, and the two stores belong to
     // different broker groups.
     private MessageStore masterStoreInProcess = null;
-
     private volatile long masterFlushedOffset = -1L;
-
     private volatile long brokerInitMaxOffset = -1L;
-
 
     private SendMessageBackHook sendMessageBackHook;
 
 
-
     private final AtomicInteger mappedPageHoldCount = new AtomicInteger(0);
-
-
     private final ConcurrentLinkedQueue<BatchDispatchRequest> batchDispatchRequestQueue = new ConcurrentLinkedQueue<>();
-
-    private int dispatchRequestOrderlyQueueSize = 16;
-
-
+    private final int dispatchRequestOrderlyQueueSize = 16;
     private final DispatchRequestOrderlyQueue dispatchRequestOrderlyQueue = new DispatchRequestOrderlyQueue(dispatchRequestOrderlyQueueSize);
 
     private long stateMachineVersion = 0L;
 
     // this is a unmodifiableMap
-    private ConcurrentMap<String, TopicConfig> topicConfigTable;
+    private final ConcurrentMap<String, TopicConfig> topicConfigTable;
 
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
@@ -210,6 +197,7 @@ public class DefaultMessageStore implements MessageStore {
     private QueryMessageService queryMessageService;
     private GetMessageService getMessageService;
     private DelayLevelService delayLevelService;
+    private ConsumeQueueService consumeQueueService;
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
@@ -231,85 +219,6 @@ public class DefaultMessageStore implements MessageStore {
 
         initProcessService();
     }
-
-    private void initProcessService() {
-        this.delayLevelService = new DelayLevelService(this);
-        this.putMessageService = new PutMessageService(this);
-        this.queryMessageService = new QueryMessageService(this);
-        this.getMessageService = new GetMessageService(this);
-    }
-
-    private void initStoreService() {
-        this.allocateMappedFileService = new AllocateMappedFileService(this);
-        this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig);
-        this.flushConsumeQueueService = new FlushConsumeQueueService(this);
-        this.cleanCommitLogService = new CleanCommitLogService(this);
-        this.cleanConsumeQueueService = new CleanConsumeQueueService(this);
-        this.correctLogicOffsetService = new CorrectLogicOffsetService(this);
-        this.storeStatsService = new StoreStatsService(getBrokerIdentity());
-        this.indexService = new IndexService(this);
-        this.transientStorePool = new TransientStorePool(this);
-    }
-
-    private void initScheduledExecutorService() {
-        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
-    }
-
-    private void initCommitLog() {
-        if (messageStoreConfig.isEnableDLegerCommitLog()) {
-            this.commitLog = new DLedgerCommitLog(this);
-        } else {
-            this.commitLog = new CommitLog(this);
-        }
-    }
-
-    private void initHaService() {
-        if (messageStoreConfig.isEnableDLegerCommitLog() || this.messageStoreConfig.isDuplicationEnable()) {
-            return;
-        }
-
-        if (brokerConfig.isEnableControllerMode()) {
-            this.haService = new AutoSwitchHAService();
-            LOGGER.warn("Load AutoSwitch HA Service: {}", AutoSwitchHAService.class.getSimpleName());
-        } else {
-            this.haService = ServiceProvider.loadClass(HAService.class);
-            if (null == this.haService) {
-                this.haService = new DefaultHAService();
-                LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());
-            }
-        }
-    }
-
-    private void initReputMessageService() {
-        if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
-            this.reputMessageService = new ReputMessageService(this);
-        } else {
-            this.reputMessageService = new ConcurrentReputMessageService(this);
-        }
-    }
-
-    private void initDispatchList() {
-        this.dispatcherList = new LinkedList<>();
-        this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue(this));
-        this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex(this));
-        if (!messageStoreConfig.isEnableCompaction()) {
-            return;
-        }
-
-        this.compactionStore = new CompactionStore(this);
-        this.compactionService = new CompactionService(commitLog, this, compactionStore);
-        this.dispatcherList.addLast(new CommitLogDispatcherCompaction(compactionService));
-    }
-
-    private void initLockFile() throws IOException {
-        File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
-        UtilAll.ensureDirOK(file.getParent());
-        UtilAll.ensureDirOK(getStorePathPhysic());
-        UtilAll.ensureDirOK(getStorePathLogic());
-        lockFile = new RandomAccessFile(file, "rw");
-    }
-
-
 
 
     @Override
@@ -353,29 +262,6 @@ public class DefaultMessageStore implements MessageStore {
         return result;
     }
 
-    private boolean loadIndexService(boolean lastExitOK) throws IOException {
-        this.storeCheckpoint = new StoreCheckpoint(
-                StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
-        this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
-        setConfirmOffset(this.storeCheckpoint.getConfirmPhyOffset());
-
-        boolean result = this.indexService.load(lastExitOK);
-        this.recover(lastExitOK);
-        LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
-
-        return result;
-    }
-
-    private void prepareLock() throws IOException {
-        lock = lockFile.getChannel().tryLock(0, 1, false);
-        if (lock == null || lock.isShared() || !lock.isValid()) {
-            throw new RuntimeException("Lock failed,MQ already started");
-        }
-
-        lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes(StandardCharsets.UTF_8)));
-        lockFile.getChannel().force(true);
-    }
-
     /**
      * @throws Exception
      */
@@ -415,59 +301,6 @@ public class DefaultMessageStore implements MessageStore {
         this.shutdown = false;
     }
 
-    private void doRecheckReputOffsetFromCq() throws InterruptedException {
-        if (!messageStoreConfig.isRecheckReputOffsetFromCq()) {
-            return;
-        }
-
-        /**
-         * 1. Make sure the fast-forward messages to be truncated during the recovering according to the max physical offset of the commitlog;
-         * 2. DLedger committedPos may be missing, so the maxPhysicalPosInLogicQueue maybe bigger that maxOffset returned by DLedgerCommitLog, just let it go;
-         * 3. Calculate the reput offset according to the consume queue;
-         * 4. Make sure the fall-behind messages to be dispatched before starting the commitlog, especially when the broker role are automatically changed.
-         */
-        long maxPhysicalPosInLogicQueue = commitLog.getMinOffset();
-        for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.getConsumeQueueTable().values()) {
-            for (ConsumeQueueInterface logic : maps.values()) {
-                if (logic.getMaxPhysicOffset() > maxPhysicalPosInLogicQueue) {
-                    maxPhysicalPosInLogicQueue = logic.getMaxPhysicOffset();
-                }
-            }
-        }
-        // If maxPhyPos(CQs) < minPhyPos(CommitLog), some newly deleted topics may be re-dispatched into cqs mistakenly.
-        if (maxPhysicalPosInLogicQueue < 0) {
-            maxPhysicalPosInLogicQueue = 0;
-        }
-        if (maxPhysicalPosInLogicQueue < this.commitLog.getMinOffset()) {
-            maxPhysicalPosInLogicQueue = this.commitLog.getMinOffset();
-            /**
-             * This happens in following conditions:
-             * 1. If someone removes all the consumequeue files or the disk get damaged.
-             * 2. Launch a new broker, and copy the commitlog from other brokers.
-             *
-             * All the conditions has the same in common that the maxPhysicalPosInLogicQueue should be 0.
-             * If the maxPhysicalPosInLogicQueue is gt 0, there maybe something wrong.
-             */
-            LOGGER.warn("[TooSmallCqOffset] maxPhysicalPosInLogicQueue={} clMinOffset={}", maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset());
-        }
-        LOGGER.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMinOffset={} clMaxOffset={} clConfirmedOffset={}",
-            maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset(), this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
-        this.reputMessageService.setReputFromOffset(maxPhysicalPosInLogicQueue);
-
-        /**
-         *  1. Finish dispatching the messages fall behind, then to start other services.
-         *  2. DLedger committedPos may be missing, so here just require dispatchBehindBytes <= 0
-         */
-        while (true) {
-            if (dispatchBehindBytes() <= 0) {
-                break;
-            }
-            Thread.sleep(1000);
-            LOGGER.info("Try to finish doing reput the messages fall behind during the starting, reputOffset={} maxOffset={} behind={}", this.reputMessageService.getReputFromOffset(), this.getMaxPhyOffset(), this.dispatchBehindBytes());
-        }
-        this.recoverTopicQueueTable();
-    }
-
     @Override
     public void shutdown() {
         if (!this.shutdown) {
@@ -477,64 +310,6 @@ public class DefaultMessageStore implements MessageStore {
 
         this.transientStorePool.destroy();
         releaseLockAndLockFile();
-
-    }
-
-    private void shutdownScheduleServices() {
-        this.scheduledExecutorService.shutdown();
-        this.scheduledCleanQueueExecutorService.shutdown();
-
-        try {
-            this.scheduledExecutorService.awaitTermination(3, TimeUnit.SECONDS);
-            this.scheduledCleanQueueExecutorService.awaitTermination(3, TimeUnit.SECONDS);
-            Thread.sleep(1000 * 3);
-        } catch (InterruptedException e) {
-            LOGGER.error("shutdown Exception, ", e);
-        }
-    }
-
-    private void shutdownServices() {
-        shutdownScheduleServices();
-
-        if (this.haService != null) {
-            this.haService.shutdown();
-        }
-
-        this.storeStatsService.shutdown();
-        this.commitLog.shutdown();
-        this.reputMessageService.shutdown();
-        // dispatch-related services must be shut down after reputMessageService
-        this.indexService.shutdown();
-        if (this.compactionService != null) {
-            this.compactionService.shutdown();
-        }
-
-        this.flushConsumeQueueService.shutdown();
-        this.allocateMappedFileService.shutdown();
-        this.storeCheckpoint.flush();
-        this.storeCheckpoint.shutdown();
-
-        this.perfs.shutdown();
-
-        if (this.runningFlags.isWriteable() && dispatchBehindBytes() == 0) {
-            this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
-            shutDownNormal = true;
-        } else {
-            LOGGER.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
-        }
-    }
-
-    private void releaseLockAndLockFile() {
-        try {
-            if (null != lock) {
-                lock.release();
-            }
-
-            if (null != lockFile) {
-                lockFile.close();
-            }
-        } catch (IOException ignored) {
-        }
     }
 
     @Override
@@ -693,76 +468,31 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getMaxOffsetInQueue(String topic, int queueId) {
-        return getMaxOffsetInQueue(topic, queueId, true);
+        return consumeQueueService.getMaxOffsetInQueue(topic, queueId);
     }
 
     @Override
     public long getMaxOffsetInQueue(String topic, int queueId, boolean committed) {
-        if (committed) {
-            ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
-            if (logic != null) {
-                return logic.getMaxOffsetInQueue();
-            }
-        } else {
-            Long offset = this.consumeQueueStore.getMaxOffset(topic, queueId);
-            if (offset != null) {
-                return offset;
-            }
-        }
-
-        return 0;
+        return consumeQueueService.getMaxOffsetInQueue(topic, queueId, committed);
     }
 
     @Override
     public long getMinOffsetInQueue(String topic, int queueId) {
-        ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
-        if (logic != null) {
-            return logic.getMinOffsetInQueue();
-        }
-
-        return -1;
+        return consumeQueueService.getMinOffsetInQueue(topic, queueId);
     }
-
 
     @Override
     public long getCommitLogOffsetInQueue(String topic, int queueId, long consumeQueueOffset) {
-        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
-        if (consumeQueue == null) {
-            return 0;
-        }
-
-        ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(consumeQueueOffset);
-        if (bufferConsumeQueue == null) {
-            return 0;
-        }
-
-        try {
-            if (bufferConsumeQueue.hasNext()) {
-                return bufferConsumeQueue.next().getPos();
-            }
-        } finally {
-            bufferConsumeQueue.release();
-        }
-
-        return 0;
+        return consumeQueueService.getCommitLogOffsetInQueue(topic, queueId, consumeQueueOffset);
     }
 
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
-        return getOffsetInQueueByTime(topic, queueId, timestamp, BoundaryType.LOWER);
+        return consumeQueueService.getOffsetInQueueByTime(topic, queueId, timestamp);
     }
 
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
-        ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
-        if (logic == null) {
-            return 0;
-        }
-
-        long resultOffset = logic.getOffsetInQueueByTime(timestamp, boundaryType);
-        // Make sure the result offset is in valid range.
-        resultOffset = Math.max(resultOffset, logic.getMinOffsetInQueue());
-        resultOffset = Math.min(resultOffset, logic.getMaxOffsetInQueue());
-        return resultOffset;
+        return consumeQueueService.getOffsetInQueueByTime(topic, queueId, timestamp, boundaryType);
     }
 
     @Override
@@ -840,67 +570,32 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getEarliestMessageTime(String topic, int queueId) {
-        ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
-        if (logicQueue != null) {
-            return getStoreTime(logicQueue.getEarliestUnit());
-        }
-
-        return -1;
+        return consumeQueueService.getEarliestMessageTime(topic, queueId);
     }
 
     @Override
     public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
-        return CompletableFuture.completedFuture(getEarliestMessageTime(topic, queueId));
-    }
-
-    protected long getStoreTime(CqUnit result) {
-        if (result == null) {
-            return -1;
-
-        }
-
-        try {
-            final long phyOffset = result.getPos();
-            final int size = result.getSize();
-            return this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-        } catch (Exception e) {
-            return -1;
-        }
+        return consumeQueueService.getEarliestMessageTimeAsync(topic, queueId);
     }
 
     @Override
     public long getEarliestMessageTime() {
-        long minPhyOffset = this.getMinPhyOffset();
-        if (this.getCommitLog() instanceof DLedgerCommitLog) {
-            minPhyOffset += DLedgerEntry.BODY_OFFSET;
-        }
-        final int size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 8;
-        return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
+        return consumeQueueService.getEarliestMessageTime();
     }
 
     @Override
     public long getMessageStoreTimeStamp(String topic, int queueId, long consumeQueueOffset) {
-        ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
-        if (logicQueue != null) {
-            return getStoreTime(logicQueue.get(consumeQueueOffset));
-        }
-
-        return -1;
+        return consumeQueueService.getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset);
     }
 
     @Override public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
         long consumeQueueOffset) {
-        return CompletableFuture.completedFuture(getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset));
+        return consumeQueueService.getMessageStoreTimeStampAsync(topic, queueId, consumeQueueOffset);
     }
 
     @Override
     public long getMessageTotalInQueue(String topic, int queueId) {
-        ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
-        if (logicQueue != null) {
-            return logicQueue.getMessageTotalInQueue();
-        }
-
-        return -1;
+        return consumeQueueService.getMessageTotalInQueue(topic, queueId);
     }
 
     @Override
@@ -999,7 +694,6 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             return this.commitLog.getMaxOffset() - this.haService.getPush2SlaveMaxOffset().get();
         }
-
     }
 
     @Override
@@ -1007,127 +701,25 @@ public class DefaultMessageStore implements MessageStore {
         return this.systemClock.now();
     }
 
-    /**
-     * Lazy clean queue offset table.
-     * If offset table is cleaned, and old messages are dispatching after the old consume queue is cleaned,
-     * consume queue will be created with old offset, then later message with new offset table can not be
-     * dispatched to consume queue.
-     */
+
     @Override
     public int deleteTopics(final Set<String> deleteTopics) {
-        if (deleteTopics == null || deleteTopics.isEmpty()) {
-            return 0;
-        }
-
-        int deleteCount = 0;
-        for (String topic : deleteTopics) {
-            ConcurrentMap<Integer, ConsumeQueueInterface> queueTable =
-                this.consumeQueueStore.getConsumeQueueTable().get(topic);
-
-            if (queueTable == null || queueTable.isEmpty()) {
-                continue;
-            }
-
-            for (ConsumeQueueInterface cq : queueTable.values()) {
-                this.consumeQueueStore.destroy(cq);
-                LOGGER.info("DeleteTopic: ConsumeQueue has been cleaned, topic={}, queueId={}",
-                    cq.getTopic(), cq.getQueueId());
-                this.consumeQueueStore.removeTopicQueueTable(cq.getTopic(), cq.getQueueId());
-            }
-
-            // remove topic from cq table
-            this.consumeQueueStore.getConsumeQueueTable().remove(topic);
-
-            if (this.brokerConfig.isAutoDeleteUnusedStats()) {
-                this.brokerStatsManager.onTopicDeleted(topic);
-            }
-
-            // destroy consume queue dir
-            String consumeQueueDir = StorePathConfigHelper.getStorePathConsumeQueue(
-                this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
-            String consumeQueueExtDir = StorePathConfigHelper.getStorePathConsumeQueueExt(
-                this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
-            String batchConsumeQueueDir = StorePathConfigHelper.getStorePathBatchConsumeQueue(
-                this.messageStoreConfig.getStorePathRootDir()) + File.separator + topic;
-
-            UtilAll.deleteEmptyDirectory(new File(consumeQueueDir));
-            UtilAll.deleteEmptyDirectory(new File(consumeQueueExtDir));
-            UtilAll.deleteEmptyDirectory(new File(batchConsumeQueueDir));
-
-            LOGGER.info("DeleteTopic: Topic has been destroyed, topic={}", topic);
-            deleteCount++;
-        }
-        return deleteCount;
+        return consumeQueueService.deleteTopics(deleteTopics);
     }
 
     @Override
     public int cleanUnusedTopic(final Set<String> retainTopics) {
-        Set<String> consumeQueueTopicSet = this.getConsumeQueueTable().keySet();
-        int deleteCount = 0;
-        for (String topicName : Sets.difference(consumeQueueTopicSet, retainTopics)) {
-            if (retainTopics.contains(topicName) ||
-                TopicValidator.isSystemTopic(topicName) ||
-                MixAll.isLmq(topicName)) {
-                continue;
-            }
-            deleteCount += this.deleteTopics(Sets.newHashSet(topicName));
-        }
-        return deleteCount;
+        return consumeQueueService.cleanUnusedTopic(retainTopics);
     }
 
     @Override
     public void cleanExpiredConsumerQueue() {
-        long minCommitLogOffset = this.commitLog.getMinOffset();
-
-        this.consumeQueueStore.cleanExpired(minCommitLogOffset);
+        consumeQueueService.cleanExpiredConsumerQueue();
     }
 
     public Map<String, Long> getMessageIds(final String topic, final int queueId, long minOffset, long maxOffset,
         SocketAddress storeHost) {
-        Map<String, Long> messageIds = new HashMap<>();
-        if (this.shutdown) {
-            return messageIds;
-        }
-
-        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
-        if (consumeQueue != null) {
-            minOffset = Math.max(minOffset, consumeQueue.getMinOffsetInQueue());
-            maxOffset = Math.min(maxOffset, consumeQueue.getMaxOffsetInQueue());
-
-            if (maxOffset == 0) {
-                return messageIds;
-            }
-
-            long nextOffset = minOffset;
-            while (nextOffset < maxOffset) {
-                ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(nextOffset);
-                try {
-                    if (bufferConsumeQueue != null && bufferConsumeQueue.hasNext()) {
-                        while (bufferConsumeQueue.hasNext()) {
-                            CqUnit cqUnit = bufferConsumeQueue.next();
-                            long offsetPy = cqUnit.getPos();
-                            InetSocketAddress inetSocketAddress = (InetSocketAddress) storeHost;
-                            int msgIdLength = (inetSocketAddress.getAddress() instanceof Inet6Address) ? 16 + 4 + 8 : 4 + 4 + 8;
-                            final ByteBuffer msgIdMemory = ByteBuffer.allocate(msgIdLength);
-                            String msgId =
-                                MessageDecoder.createMessageId(msgIdMemory, MessageExt.socketAddress2ByteBuffer(storeHost), offsetPy);
-                            messageIds.put(msgId, cqUnit.getQueueOffset());
-                            nextOffset = cqUnit.getQueueOffset() + cqUnit.getBatchNum();
-                            if (nextOffset >= maxOffset) {
-                                return messageIds;
-                            }
-                        }
-                    } else {
-                        return messageIds;
-                    }
-                } finally {
-                    if (bufferConsumeQueue != null) {
-                        bufferConsumeQueue.release();
-                    }
-                }
-            }
-        }
-        return messageIds;
+        return consumeQueueService.getMessageIds(topic, queueId, minOffset, maxOffset, storeHost);
     }
 
     @Override
@@ -1138,35 +730,12 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public boolean checkInMemByConsumeOffset(final String topic, final int queueId, long consumeOffset, int batchSize) {
-        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
-        if (consumeQueue == null) {
-            return false;
-        }
-
-        CqUnit firstCQItem = consumeQueue.get(consumeOffset);
-        if (firstCQItem == null) {
-            return false;
-        }
-        long startOffsetPy = firstCQItem.getPos();
-        if (batchSize <= 1) {
-            int size = firstCQItem.getSize();
-            return checkInMemByCommitOffset(startOffsetPy, size);
-        }
-
-        CqUnit lastCQItem = consumeQueue.get(consumeOffset + batchSize);
-        if (lastCQItem == null) {
-            int size = firstCQItem.getSize();
-            return checkInMemByCommitOffset(startOffsetPy, size);
-        }
-        long endOffsetPy = lastCQItem.getPos();
-        int size = (int) (endOffsetPy - startOffsetPy) + lastCQItem.getSize();
-        return checkInMemByCommitOffset(startOffsetPy, size);
+        return consumeQueueService.checkInMemByConsumeOffset(topic, queueId, consumeOffset, batchSize);
     }
 
     @Override
     public boolean checkInStoreByConsumeOffset(String topic, int queueId, long consumeOffset) {
-        long commitLogOffset = getCommitLogOffsetInQueue(topic, queueId, consumeOffset);
-        return checkInDiskByCommitOffset(commitLogOffset);
+        return consumeQueueService.checkInStoreByConsumeOffset(topic, queueId, consumeOffset);
     }
 
     @Override
@@ -1183,60 +752,9 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.flush();
     }
 
-
     @Override
     public boolean resetWriteOffset(long phyOffset) {
-        //copy a new map
-        ConcurrentHashMap<String, Long> newMap = new ConcurrentHashMap<>(consumeQueueStore.getTopicQueueTable());
-        SelectMappedBufferResult lastBuffer = null;
-        long startReadOffset = phyOffset == -1 ? 0 : phyOffset;
-        while ((lastBuffer = selectOneMessageByOffset(startReadOffset)) != null) {
-            try {
-                if (lastBuffer.getStartOffset() > startReadOffset) {
-                    startReadOffset = lastBuffer.getStartOffset();
-                    continue;
-                }
-
-                ByteBuffer bb = lastBuffer.getByteBuffer();
-                int magicCode = bb.getInt(bb.position() + 4);
-                if (magicCode == CommitLog.BLANK_MAGIC_CODE) {
-                    startReadOffset += bb.getInt(bb.position());
-                    continue;
-                } else if (magicCode != MessageDecoder.MESSAGE_MAGIC_CODE) {
-                    throw new RuntimeException("Unknown magicCode: " + magicCode);
-                }
-
-                lastBuffer.getByteBuffer().mark();
-
-                DispatchRequest dispatchRequest = checkMessageAndReturnSize(lastBuffer.getByteBuffer(), true, messageStoreConfig.isDuplicationEnable(), true);
-                if (!dispatchRequest.isSuccess())
-                    break;
-
-                lastBuffer.getByteBuffer().reset();
-
-                MessageExt msg = MessageDecoder.decode(lastBuffer.getByteBuffer(), true, false, false, false, true);
-                if (msg == null) {
-                    break;
-                }
-                String key = msg.getTopic() + "-" + msg.getQueueId();
-                Long cur = newMap.get(key);
-                if (cur != null && cur > msg.getQueueOffset()) {
-                    newMap.put(key, msg.getQueueOffset());
-                }
-                startReadOffset += msg.getStoreSize();
-            } catch (Throwable e) {
-                LOGGER.error("resetWriteOffset error.", e);
-            } finally {
-                if (lastBuffer != null)
-                    lastBuffer.release();
-            }
-        }
-        if (this.commitLog.resetOffset(phyOffset)) {
-            this.consumeQueueStore.setTopicQueueTable(newMap);
-            return true;
-        } else {
-            return false;
-        }
+        return consumeQueueService.resetWriteOffset(phyOffset);
     }
 
     @Override
@@ -1283,11 +801,9 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.isMappedFilesEmpty();
     }
 
-
-
     @Override
     public ConsumeQueueInterface findConsumeQueue(String topic, int queueId) {
-        return this.consumeQueueStore.findOrCreateConsumeQueue(topic, queueId);
+        return consumeQueueService.findConsumeQueue(topic, queueId);
     }
     /**
      * The ratio val is estimated by the experiment and experience
@@ -1313,11 +829,6 @@ public class DefaultMessageStore implements MessageStore {
         this.consumeQueueStore.recoverOffsetTable(minPhyOffset);
     }
 
-    public boolean checkInDiskByCommitOffset(long offsetPy) {
-        return offsetPy >= commitLog.getMinOffset();
-    }
-
-
     public void doDispatch(DispatchRequest req) {
         for (CommitLogDispatcher dispatcher : this.dispatcherList) {
             dispatcher.dispatch(req);
@@ -1341,11 +852,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public ConsumeQueueInterface getConsumeQueue(String topic, int queueId) {
-        ConcurrentMap<Integer, ConsumeQueueInterface> map = this.getConsumeQueueTable().get(topic);
-        if (map == null) {
-            return null;
-        }
-        return map.get(queueId);
+        return consumeQueueService.getConsumeQueue(topic, queueId);
     }
 
     @Override
@@ -1380,45 +887,14 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-
     @Override
     public void increaseOffset(MessageExtBrokerInner msg, short messageNum) {
-        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
-
-        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            this.consumeQueueStore.increaseQueueOffset(msg, messageNum);
-        }
+        consumeQueueService.increaseOffset(msg, messageNum);
     }
 
     @Override
     public long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter) {
-        if (from < 0) {
-            from = 0;
-        }
-
-        if (from >= to) {
-            return 0;
-        }
-
-        if (null == filter) {
-            return to - from;
-        }
-
-        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
-        if (null == consumeQueue) {
-            return 0;
-        }
-
-        // correct the "from" argument to min offset in queue if it is too small
-        long minOffset = consumeQueue.getMinOffsetInQueue();
-        if (from < minOffset) {
-            long diff = to - from;
-            from = minOffset;
-            to = from + diff;
-        }
-
-        long msgCount = consumeQueue.estimateMessageCount(from, to, filter);
-        return msgCount == -1 ? to - from : msgCount;
+        return consumeQueueService.estimateMessageCount(topic, queueId, from, to, filter);
     }
 
     @Override
@@ -1442,22 +918,217 @@ public class DefaultMessageStore implements MessageStore {
         return DefaultStoreMetricsManager.getMetricsView();
     }
 
-
     //**************************************** private or protected methods start ****************************************************
+    private void initProcessService() {
+        this.delayLevelService = new DelayLevelService(this);
+        this.putMessageService = new PutMessageService(this);
+        this.queryMessageService = new QueryMessageService(this);
+        this.getMessageService = new GetMessageService(this);
+        this.consumeQueueService = new ConsumeQueueService(this);
+    }
 
-    private boolean checkInMemByCommitOffset(long offsetPy, int size) {
-        SelectMappedBufferResult message = this.commitLog.getMessage(offsetPy, size);
-        if (message == null) {
-            return false;
-        }
+    private void initScheduledExecutorService() {
+        this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
+    }
 
-        try {
-            return message.isInMem();
-        } finally {
-            message.release();
+    private void initCommitLog() {
+        if (messageStoreConfig.isEnableDLegerCommitLog()) {
+            this.commitLog = new DLedgerCommitLog(this);
+        } else {
+            this.commitLog = new CommitLog(this);
         }
     }
 
+    private void initHaService() {
+        if (messageStoreConfig.isEnableDLegerCommitLog() || this.messageStoreConfig.isDuplicationEnable()) {
+            return;
+        }
+
+        if (brokerConfig.isEnableControllerMode()) {
+            this.haService = new AutoSwitchHAService();
+            LOGGER.warn("Load AutoSwitch HA Service: {}", AutoSwitchHAService.class.getSimpleName());
+        } else {
+            this.haService = ServiceProvider.loadClass(HAService.class);
+            if (null == this.haService) {
+                this.haService = new DefaultHAService();
+                LOGGER.warn("Load default HA Service: {}", DefaultHAService.class.getSimpleName());
+            }
+        }
+    }
+
+    private void initReputMessageService() {
+        if (!messageStoreConfig.isEnableBuildConsumeQueueConcurrently()) {
+            this.reputMessageService = new ReputMessageService(this);
+        } else {
+            this.reputMessageService = new ConcurrentReputMessageService(this);
+        }
+    }
+
+    private void initDispatchList() {
+        this.dispatcherList = new LinkedList<>();
+        this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue(this));
+        this.dispatcherList.addLast(new CommitLogDispatcherBuildIndex(this));
+        if (!messageStoreConfig.isEnableCompaction()) {
+            return;
+        }
+
+        this.compactionStore = new CompactionStore(this);
+        this.compactionService = new CompactionService(commitLog, this, compactionStore);
+        this.dispatcherList.addLast(new CommitLogDispatcherCompaction(compactionService));
+    }
+
+    private void initLockFile() throws IOException {
+        File file = new File(StorePathConfigHelper.getLockFile(messageStoreConfig.getStorePathRootDir()));
+        UtilAll.ensureDirOK(file.getParent());
+        UtilAll.ensureDirOK(getStorePathPhysic());
+        UtilAll.ensureDirOK(getStorePathLogic());
+        lockFile = new RandomAccessFile(file, "rw");
+    }
+
+    private void initStoreService() {
+        this.allocateMappedFileService = new AllocateMappedFileService(this);
+        this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig);
+        this.flushConsumeQueueService = new FlushConsumeQueueService(this);
+        this.cleanCommitLogService = new CleanCommitLogService(this);
+        this.cleanConsumeQueueService = new CleanConsumeQueueService(this);
+        this.correctLogicOffsetService = new CorrectLogicOffsetService(this);
+        this.storeStatsService = new StoreStatsService(getBrokerIdentity());
+        this.indexService = new IndexService(this);
+        this.transientStorePool = new TransientStorePool(this);
+    }
+
+    private void doRecheckReputOffsetFromCq() throws InterruptedException {
+        if (!messageStoreConfig.isRecheckReputOffsetFromCq()) {
+            return;
+        }
+
+        /**
+         * 1. Make sure the fast-forward messages to be truncated during the recovering according to the max physical offset of the commitlog;
+         * 2. DLedger committedPos may be missing, so the maxPhysicalPosInLogicQueue maybe bigger that maxOffset returned by DLedgerCommitLog, just let it go;
+         * 3. Calculate the reput offset according to the consume queue;
+         * 4. Make sure the fall-behind messages to be dispatched before starting the commitlog, especially when the broker role are automatically changed.
+         */
+        long maxPhysicalPosInLogicQueue = commitLog.getMinOffset();
+        for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.getConsumeQueueTable().values()) {
+            for (ConsumeQueueInterface logic : maps.values()) {
+                if (logic.getMaxPhysicOffset() > maxPhysicalPosInLogicQueue) {
+                    maxPhysicalPosInLogicQueue = logic.getMaxPhysicOffset();
+                }
+            }
+        }
+        // If maxPhyPos(CQs) < minPhyPos(CommitLog), some newly deleted topics may be re-dispatched into cqs mistakenly.
+        if (maxPhysicalPosInLogicQueue < 0) {
+            maxPhysicalPosInLogicQueue = 0;
+        }
+        if (maxPhysicalPosInLogicQueue < this.commitLog.getMinOffset()) {
+            maxPhysicalPosInLogicQueue = this.commitLog.getMinOffset();
+            /**
+             * This happens in following conditions:
+             * 1. If someone removes all the consumequeue files or the disk get damaged.
+             * 2. Launch a new broker, and copy the commitlog from other brokers.
+             *
+             * All the conditions has the same in common that the maxPhysicalPosInLogicQueue should be 0.
+             * If the maxPhysicalPosInLogicQueue is gt 0, there maybe something wrong.
+             */
+            LOGGER.warn("[TooSmallCqOffset] maxPhysicalPosInLogicQueue={} clMinOffset={}", maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset());
+        }
+        LOGGER.info("[SetReputOffset] maxPhysicalPosInLogicQueue={} clMinOffset={} clMaxOffset={} clConfirmedOffset={}",
+            maxPhysicalPosInLogicQueue, this.commitLog.getMinOffset(), this.commitLog.getMaxOffset(), this.commitLog.getConfirmOffset());
+        this.reputMessageService.setReputFromOffset(maxPhysicalPosInLogicQueue);
+
+        /**
+         *  1. Finish dispatching the messages fall behind, then to start other services.
+         *  2. DLedger committedPos may be missing, so here just require dispatchBehindBytes <= 0
+         */
+        while (true) {
+            if (dispatchBehindBytes() <= 0) {
+                break;
+            }
+            Thread.sleep(1000);
+            LOGGER.info("Try to finish doing reput the messages fall behind during the starting, reputOffset={} maxOffset={} behind={}", this.reputMessageService.getReputFromOffset(), this.getMaxPhyOffset(), this.dispatchBehindBytes());
+        }
+        this.recoverTopicQueueTable();
+    }
+
+    private void shutdownScheduleServices() {
+        this.scheduledExecutorService.shutdown();
+        this.scheduledCleanQueueExecutorService.shutdown();
+
+        try {
+            this.scheduledExecutorService.awaitTermination(3, TimeUnit.SECONDS);
+            this.scheduledCleanQueueExecutorService.awaitTermination(3, TimeUnit.SECONDS);
+            Thread.sleep(1000 * 3);
+        } catch (InterruptedException e) {
+            LOGGER.error("shutdown Exception, ", e);
+        }
+    }
+
+    private void shutdownServices() {
+        shutdownScheduleServices();
+
+        if (this.haService != null) {
+            this.haService.shutdown();
+        }
+
+        this.storeStatsService.shutdown();
+        this.commitLog.shutdown();
+        this.reputMessageService.shutdown();
+        // dispatch-related services must be shut down after reputMessageService
+        this.indexService.shutdown();
+        if (this.compactionService != null) {
+            this.compactionService.shutdown();
+        }
+
+        this.flushConsumeQueueService.shutdown();
+        this.allocateMappedFileService.shutdown();
+        this.storeCheckpoint.flush();
+        this.storeCheckpoint.shutdown();
+
+        this.perfs.shutdown();
+
+        if (this.runningFlags.isWriteable() && dispatchBehindBytes() == 0) {
+            this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
+            shutDownNormal = true;
+        } else {
+            LOGGER.warn("the store may be wrong, so shutdown abnormally, and keep abort file.");
+        }
+    }
+
+    private void releaseLockAndLockFile() {
+        try {
+            if (null != lock) {
+                lock.release();
+            }
+
+            if (null != lockFile) {
+                lockFile.close();
+            }
+        } catch (IOException ignored) {
+        }
+    }
+
+    private boolean loadIndexService(boolean lastExitOK) throws IOException {
+        this.storeCheckpoint = new StoreCheckpoint(
+            StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
+        this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
+        setConfirmOffset(this.storeCheckpoint.getConfirmPhyOffset());
+
+        boolean result = this.indexService.load(lastExitOK);
+        this.recover(lastExitOK);
+        LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
+
+        return result;
+    }
+
+    private void prepareLock() throws IOException {
+        lock = lockFile.getChannel().tryLock(0, 1, false);
+        if (lock == null || lock.isShared() || !lock.isValid()) {
+            throw new RuntimeException("Lock failed,MQ already started");
+        }
+
+        lockFile.getChannel().write(ByteBuffer.wrap("lock".getBytes(StandardCharsets.UTF_8)));
+        lockFile.getChannel().force(true);
+    }
 
     private void deleteFile(final String fileName) {
         File file = new File(fileName);
@@ -1592,7 +1263,6 @@ public class DefaultMessageStore implements MessageStore {
             this.consumeQueueStore.recoverConcurrently();
         }
     }
-
 
     //**************************************** getter and setter start ****************************************************
     public DelayLevelService getDelayLevelService() {
@@ -1888,5 +1558,4 @@ public class DefaultMessageStore implements MessageStore {
     public ReputMessageService getReputMessageService() {
         return reputMessageService;
     }
-
 }
