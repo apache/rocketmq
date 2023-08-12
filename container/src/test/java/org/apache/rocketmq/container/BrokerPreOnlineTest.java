@@ -17,11 +17,9 @@
 
 package org.apache.rocketmq.container;
 
-import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPreOnlineService;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
