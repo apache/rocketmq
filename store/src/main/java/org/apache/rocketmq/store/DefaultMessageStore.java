@@ -767,40 +767,22 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public MessageExt lookMessageByOffset(long commitLogOffset) {
-        SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, 4);
-        if (null == sbr) {
-            return null;
-        }
+        return queryMessageService.lookMessageByOffset(commitLogOffset);
+    }
 
-        try {
-            // 1 TOTALSIZE
-            int size = sbr.getByteBuffer().getInt();
-            return lookMessageByOffset(commitLogOffset, size);
-        } finally {
-            sbr.release();
-        }
+    @Override
+    public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
+        return queryMessageService.lookMessageByOffset(commitLogOffset, size);
     }
 
     @Override
     public SelectMappedBufferResult selectOneMessageByOffset(long commitLogOffset) {
-        SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, 4);
-        if (null == sbr) {
-            return null;
-
-        }
-
-        try {
-            // 1 TOTALSIZE
-            int size = sbr.getByteBuffer().getInt();
-            return this.commitLog.getMessage(commitLogOffset, size);
-        } finally {
-            sbr.release();
-        }
+        return queryMessageService.selectOneMessageByOffset(commitLogOffset);
     }
 
     @Override
     public SelectMappedBufferResult selectOneMessageByOffset(long commitLogOffset, int msgSize) {
-        return this.commitLog.getMessage(commitLogOffset, msgSize);
+        return queryMessageService.selectOneMessageByOffset(commitLogOffset, msgSize);
     }
 
     @Override
@@ -1301,19 +1283,7 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.isMappedFilesEmpty();
     }
 
-    @Override
-    public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
-        SelectMappedBufferResult sbr = this.commitLog.getMessage(commitLogOffset, size);
-        if (null == sbr) {
-            return null;
-        }
 
-        try {
-            return MessageDecoder.decode(sbr.getByteBuffer(), true, false);
-        } finally {
-            sbr.release();
-        }
-    }
 
     @Override
     public ConsumeQueueInterface findConsumeQueue(String topic, int queueId) {
@@ -1644,7 +1614,6 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.getMaxOffset();
     }
 
-
     @Override
     public long getMinPhyOffset() {
         return this.commitLog.getMinOffset();
@@ -1664,7 +1633,6 @@ public class DefaultMessageStore implements MessageStore {
     public TransientStorePool getTransientStorePool() {
         return transientStorePool;
     }
-
 
     @Override
     public long getFlushedWhere() {
@@ -1728,7 +1696,6 @@ public class DefaultMessageStore implements MessageStore {
         return this.consumeQueueStore.getMaxOffsetInConsumeQueue();
     }
 
-
     @Override
     public AllocateMappedFileService getAllocateMappedFileService() {
         return allocateMappedFileService;
@@ -1737,10 +1704,6 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public StoreStatsService getStoreStatsService() {
         return storeStatsService;
-    }
-
-    public RunningFlags getAccessRights() {
-        return runningFlags;
     }
 
     public ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> getConsumeQueueTable() {
@@ -1818,7 +1781,6 @@ public class DefaultMessageStore implements MessageStore {
         return this.masterStoreInProcess;
     }
 
-
     @Override
     public PerfCounter.Ticks getPerfCounter() {
         return perfs;
@@ -1829,8 +1791,6 @@ public class DefaultMessageStore implements MessageStore {
         return consumeQueueStore;
     }
 
-
-
     @Override
     public boolean isSyncDiskFlush() {
         return FlushDiskType.SYNC_FLUSH == this.getMessageStoreConfig().getFlushDiskType();
@@ -1840,8 +1800,6 @@ public class DefaultMessageStore implements MessageStore {
     public boolean isSyncMaster() {
         return BrokerRole.SYNC_MASTER == this.getMessageStoreConfig().getBrokerRole();
     }
-
-
 
     public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
         return this.topicConfigTable;
@@ -1866,7 +1824,6 @@ public class DefaultMessageStore implements MessageStore {
                 brokerConfig.getBrokerId(), brokerConfig.isInBrokerContainer());
         }
     }
-
 
     @Override
     public HARuntimeInfo getHARuntimeInfo() {
@@ -1895,9 +1852,6 @@ public class DefaultMessageStore implements MessageStore {
     public boolean isShutdown() {
         return shutdown;
     }
-
-
-
 
     public long getReputFromOffset() {
         return this.reputMessageService.getReputFromOffset();

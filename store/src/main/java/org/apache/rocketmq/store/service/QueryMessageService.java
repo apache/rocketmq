@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.service;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -89,5 +90,54 @@ public class QueryMessageService {
         int maxNum, long begin, long end) {
         return CompletableFuture.completedFuture(queryMessage(topic, key, maxNum, begin, end));
     }
+
+    public MessageExt lookMessageByOffset(long commitLogOffset, int size) {
+        SelectMappedBufferResult sbr = messageStore.getCommitLog().getMessage(commitLogOffset, size);
+        if (null == sbr) {
+            return null;
+        }
+
+        try {
+            return MessageDecoder.decode(sbr.getByteBuffer(), true, false);
+        } finally {
+            sbr.release();
+        }
+    }
+
+    public MessageExt lookMessageByOffset(long commitLogOffset) {
+        SelectMappedBufferResult sbr = messageStore.getCommitLog().getMessage(commitLogOffset, 4);
+        if (null == sbr) {
+            return null;
+        }
+
+        try {
+            // 1 TOTALSIZE
+            int size = sbr.getByteBuffer().getInt();
+            return lookMessageByOffset(commitLogOffset, size);
+        } finally {
+            sbr.release();
+        }
+    }
+
+    public SelectMappedBufferResult selectOneMessageByOffset(long commitLogOffset) {
+        SelectMappedBufferResult sbr = messageStore.getCommitLog().getMessage(commitLogOffset, 4);
+        if (null == sbr) {
+            return null;
+
+        }
+
+        try {
+            // 1 TOTALSIZE
+            int size = sbr.getByteBuffer().getInt();
+            return messageStore.getCommitLog().getMessage(commitLogOffset, size);
+        } finally {
+            sbr.release();
+        }
+    }
+
+    public SelectMappedBufferResult selectOneMessageByOffset(long commitLogOffset, int msgSize) {
+        return messageStore.getCommitLog().getMessage(commitLogOffset, msgSize);
+    }
+
 
 }
