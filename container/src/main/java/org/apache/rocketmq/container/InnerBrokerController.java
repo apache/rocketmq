@@ -37,7 +37,7 @@ public class InnerBrokerController extends BrokerController {
     ) {
         super(brokerConfig, messageStoreConfig);
         this.brokerContainer = brokerContainer;
-        setBrokerOuterAPI(this.brokerContainer.getBrokerOuterAPI());
+        super.setBrokerOuterAPI(this.brokerContainer.getBrokerOuterAPI());
     }
 
     @Override
@@ -155,7 +155,7 @@ public class InnerBrokerController extends BrokerController {
     }
 
     public NettyClientConfig getNettyClientConfig() {
-        return brokerContainer==null ? super.getNettyClientConfig() : brokerContainer.getNettyClientConfig();
+        return brokerContainer == null ? super.getNettyClientConfig() : brokerContainer.getNettyClientConfig();
     }
 
     public MessageStore getMessageStoreByBrokerName(String brokerName) {
