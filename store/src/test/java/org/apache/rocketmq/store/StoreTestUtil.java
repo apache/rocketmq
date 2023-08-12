@@ -30,7 +30,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-
+import org.apache.rocketmq.store.service.FlushConsumeQueueService;
+import org.apache.rocketmq.store.service.ReputMessageService;
 
 public class StoreTestUtil {
 
@@ -41,10 +42,10 @@ public class StoreTestUtil {
 
             Field serviceField = store.getClass().getDeclaredField("reputMessageService");
             serviceField.setAccessible(true);
-            DefaultMessageStore.ReputMessageService reputService =
-                    (DefaultMessageStore.ReputMessageService) serviceField.get(store);
+            ReputMessageService reputService =
+                    (ReputMessageService) serviceField.get(store);
 
-            Method method = DefaultMessageStore.ReputMessageService.class.getDeclaredMethod("isCommitLogAvailable");
+            Method method = ReputMessageService.class.getDeclaredMethod("isCommitLogAvailable");
             method.setAccessible(true);
             return (boolean) method.invoke(reputService);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | NoSuchFieldException e) {
@@ -55,10 +56,10 @@ public class StoreTestUtil {
     public static void flushConsumeQueue(DefaultMessageStore store) throws Exception {
         Field field = store.getClass().getDeclaredField("flushConsumeQueueService");
         field.setAccessible(true);
-        DefaultMessageStore.FlushConsumeQueueService flushService = (DefaultMessageStore.FlushConsumeQueueService) field.get(store);
+        FlushConsumeQueueService flushService = (FlushConsumeQueueService) field.get(store);
 
         final int retryTimesOver = 3;
-        Method method = DefaultMessageStore.FlushConsumeQueueService.class.getDeclaredMethod("doFlush", int.class);
+        Method method = FlushConsumeQueueService.class.getDeclaredMethod("doFlush", int.class);
         method.setAccessible(true);
         method.invoke(flushService, retryTimesOver);
     }
