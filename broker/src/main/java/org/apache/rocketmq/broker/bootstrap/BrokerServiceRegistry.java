@@ -60,7 +60,8 @@ public class BrokerServiceRegistry {
         NettyClientConfig nettyClientConfig = brokerController.getNettyClientConfig();
 
         if (null == nettyClientConfig) {
-            throw new IllegalArgumentException("nettyClientConfig can't be null for BrokerServiceRegistry");
+            LOG.info("nettyClientConfig is null,brokerOuterAPI does not need to be started");
+            return;
         }
 
         this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
