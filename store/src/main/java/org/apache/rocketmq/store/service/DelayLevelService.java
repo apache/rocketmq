@@ -28,15 +28,14 @@ public class DelayLevelService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private final DefaultMessageStore messageStore;
+    private int maxDelayLevel;
 
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
         new ConcurrentHashMap<>(32);
 
-    private int maxDelayLevel;
-
-
     public DelayLevelService(DefaultMessageStore messageStore) {
         this.messageStore = messageStore;
+        initDelayLevel();
     }
 
     public long computeDeliverTimestamp(final int delayLevel, final long storeTimestamp) {
