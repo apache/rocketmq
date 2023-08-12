@@ -92,10 +92,8 @@ public class BrokerServiceManager {
         this.brokerController = brokerController;
         this.brokerConfig = brokerController.getBrokerConfig();
         this.messageStoreConfig = brokerController.getMessageStoreConfig();
-
         initMonitorService();
         initServiceWithGetterAndSetter();
-        initServiceWithStartAndShutdown();
         initBrokerPlugin();
     }
 
@@ -109,8 +107,11 @@ public class BrokerServiceManager {
                 result = result && brokerAttachedPlugin.load();
             }
         }
-
         return result;
+    }
+
+    public void initialize() {
+        initServiceWithStartAndShutdown();
     }
 
     public void start() {

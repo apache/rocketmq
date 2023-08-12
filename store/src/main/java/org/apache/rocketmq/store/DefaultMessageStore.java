@@ -275,7 +275,7 @@ public class DefaultMessageStore implements MessageStore {
         this.allocateMappedFileService.start();
         this.indexService.start();
 
-       this.prepareLock();
+        this.prepareLock();
 
         this.reputMessageService.setReputFromOffset(this.commitLog.getConfirmOffset());
         this.reputMessageService.start();

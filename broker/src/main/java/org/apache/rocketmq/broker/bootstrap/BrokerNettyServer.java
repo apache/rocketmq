@@ -148,7 +148,7 @@ public class BrokerNettyServer {
         this.nettyServerConfig = nettyServerConfig;
         this.brokerController = brokerController;
 
-        this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), nettyServerConfig.getListenPort()));
+        this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), brokerController.getListenPort()));
 
         initProcessors();
         initThreadPoolQueue();

@@ -84,10 +84,11 @@ public class PullMessageProcessorTest {
     private String topic = "FooBar";
 
     @Before
-    public void init() {
+    public void init() throws CloneNotSupportedException {
         brokerController.setMessageStore(messageStore);
         SubscriptionGroupManager subscriptionGroupManager = new SubscriptionGroupManager(brokerController);
         pullMessageProcessor = new PullMessageProcessor(brokerController);
+        when(brokerController.getMessageStore()).thenReturn(messageStore);
         when(brokerController.getBrokerNettyServer()).thenReturn(brokerNettyServer);
         when(brokerController.getBrokerNettyServer().getPullMessageProcessor()).thenReturn(pullMessageProcessor);
         when(handlerContext.channel()).thenReturn(embeddedChannel);
@@ -103,6 +104,7 @@ public class PullMessageProcessorTest {
             consumerData.getConsumeFromWhere(),
             consumerData.getSubscriptionDataSet(),
             false);
+        brokerController.initialize();
     }
 
     @Test

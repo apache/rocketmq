@@ -17,11 +17,9 @@
 
 package org.apache.rocketmq.container;
 
-import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPreOnlineService;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
@@ -59,34 +57,17 @@ public class BrokerPreOnlineTest {
         BrokerMemberGroup brokerMemberGroup2 = new BrokerMemberGroup();
         brokerMemberGroup2.setBrokerAddrs(new HashMap<>());
 
-//        when(brokerOuterAPI.syncBrokerMemberGroup(anyString(), anyString()))
-//            .thenReturn(brokerMemberGroup1)
-//            .thenReturn(brokerMemberGroup2);
-//        doNothing().when(brokerOuterAPI).sendBrokerHaInfo(anyString(), anyString(), anyLong(), anyString());
-
         DefaultMessageStore defaultMessageStore = mock(DefaultMessageStore.class);
         when(defaultMessageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         when(defaultMessageStore.getBrokerConfig()).thenReturn(new BrokerConfig());
-
-//        HAService haService = new DefaultHAService();
-//        haService.init(defaultMessageStore);
-//        haService.start();
-//
-//        when(defaultMessageStore.getHaService()).thenReturn(haService);
 
         innerBrokerController = new InnerBrokerController(brokerContainer,
             defaultMessageStore.getBrokerConfig(),
             defaultMessageStore.getMessageStoreConfig());
 
         innerBrokerController.getBrokerMessageService().setTransactionalMessageCheckService(new TransactionalMessageCheckService(innerBrokerController));
-
-        Field field = BrokerController.class.getDeclaredField("isIsolated");
-        field.setAccessible(true);
-        field.set(innerBrokerController, true);
-
-        field = BrokerController.class.getDeclaredField("messageStore");
-        field.setAccessible(true);
-        field.set(innerBrokerController, defaultMessageStore);
+        innerBrokerController.setIsolated(true);
+        innerBrokerController.setMessageStore(defaultMessageStore);
     }
 
     @Test

@@ -135,7 +135,7 @@ public class BrokerController {
         if (!brokerServiceManager.load()) {
             return false;
         }
-
+        brokerServiceManager.initialize();
         initializeRemotingServer();
         initializeScheduledTasks();
         return brokerNettyServer.initFileWatchService();
