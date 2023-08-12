@@ -123,20 +123,20 @@ public class DefaultMessageStore implements MessageStore {
     private CommitLog commitLog;
 
 
-    private final ConsumeQueueStore consumeQueueStore;
+    private ConsumeQueueStore consumeQueueStore;
 
-    private final FlushConsumeQueueService flushConsumeQueueService;
+    private FlushConsumeQueueService flushConsumeQueueService;
 
-    private final CleanCommitLogService cleanCommitLogService;
+    private CleanCommitLogService cleanCommitLogService;
 
-    private final CleanConsumeQueueService cleanConsumeQueueService;
+    private CleanConsumeQueueService cleanConsumeQueueService;
 
-    private final CorrectLogicOffsetService correctLogicOffsetService;
+    private CorrectLogicOffsetService correctLogicOffsetService;
 
 
-    private final IndexService indexService;
+    private IndexService indexService;
 
-    private final AllocateMappedFileService allocateMappedFileService;
+    private AllocateMappedFileService allocateMappedFileService;
 
 
     private ReputMessageService reputMessageService;
@@ -149,9 +149,9 @@ public class DefaultMessageStore implements MessageStore {
 
     private CompactionService compactionService;
 
-    private final StoreStatsService storeStatsService;
+    private StoreStatsService storeStatsService;
 
-    private final TransientStorePool transientStorePool;
+    private TransientStorePool transientStorePool;
 
     private final RunningFlags runningFlags = new RunningFlags();
     private final SystemClock systemClock = new SystemClock();
@@ -226,6 +226,18 @@ public class DefaultMessageStore implements MessageStore {
         this.aliveReplicasNum = messageStoreConfig.getTotalReplicas();
         this.brokerStatsManager = brokerStatsManager;
         this.topicConfigTable = topicConfigTable;
+
+        initStoreServices();
+        initCommitLog();
+        initHaService();
+        initReputMessageService();
+        initDispatchList();
+        initScheduledExecutorService();
+        initLockFile();
+        initDelayLevel();
+    }
+
+    private void initStoreServices() {
         this.allocateMappedFileService = new AllocateMappedFileService(this);
         this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig);
         this.flushConsumeQueueService = new FlushConsumeQueueService(this);
@@ -235,14 +247,6 @@ public class DefaultMessageStore implements MessageStore {
         this.storeStatsService = new StoreStatsService(getBrokerIdentity());
         this.indexService = new IndexService(this);
         this.transientStorePool = new TransientStorePool(this);
-
-        initCommitLog();
-        initHaService();
-        initReputMessageService();
-        initDispatchList();
-        initScheduledExecutorService();
-        initLockFile();
-        initDelayLevel();
     }
 
     private void initScheduledExecutorService() {
