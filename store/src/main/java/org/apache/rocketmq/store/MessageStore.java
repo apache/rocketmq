@@ -720,7 +720,7 @@ public interface MessageStore {
      *
      * @return the queue store
      */
-    ConsumeQueueStore getQueueStore();
+    ConsumeQueueStore getConsumeQueueStore();
 
     /**
      * If 'sync disk flush' is configured in this message store

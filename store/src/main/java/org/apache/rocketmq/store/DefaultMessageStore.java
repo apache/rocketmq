@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.store;
 
-import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
@@ -37,7 +36,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
@@ -62,7 +60,6 @@ import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.running.RunningStats;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -1457,7 +1454,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public ConsumeQueueStore getQueueStore() {
+    public ConsumeQueueStore getConsumeQueueStore() {
         return consumeQueueStore;
     }
 
@@ -1529,10 +1526,6 @@ public class DefaultMessageStore implements MessageStore {
 
     public IndexService getIndexService() {
         return indexService;
-    }
-
-    public ConsumeQueueStore getConsumeQueueStore() {
-        return consumeQueueStore;
     }
 
     public CompactionStore getCompactionStore() {

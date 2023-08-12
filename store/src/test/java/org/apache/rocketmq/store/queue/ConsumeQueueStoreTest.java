@@ -78,7 +78,7 @@ public class ConsumeQueueStoreTest extends QueueTestBase {
         topicConfigTable = createTopicConfigTable(normalTopic, CQType.BatchCQ);
         this.topicConfigTableMap.putAll(topicConfigTable);
 
-        RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> messageStore.getQueueStore().load());
+        RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> messageStore.getConsumeQueueStore().load());
         Assert.assertTrue(runtimeException.getMessage().endsWith("should be SimpleCQ, but is BatchCQ"));
     }
 
@@ -102,7 +102,7 @@ public class ConsumeQueueStoreTest extends QueueTestBase {
         this.topicConfigTableMap.putAll(topicConfigTable);
         messageStore.shutdown();
 
-        RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> messageStore.getQueueStore().load());
+        RuntimeException runtimeException = Assert.assertThrows(RuntimeException.class, () -> messageStore.getConsumeQueueStore().load());
         Assert.assertTrue(runtimeException.getMessage().endsWith("should be BatchCQ, but is SimpleCQ"));
     }
 

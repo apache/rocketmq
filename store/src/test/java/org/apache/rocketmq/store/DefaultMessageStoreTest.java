@@ -378,10 +378,10 @@ public class DefaultMessageStoreTest {
         String topicName = "messagePropertyIsTooLongTest";
         MessageExtBrokerInner illegalMessage = buildSpecifyLengthPropertyMessage("123".getBytes(StandardCharsets.UTF_8), topicName, Short.MAX_VALUE + 1);
         assertEquals(messageStore.putMessage(illegalMessage).getPutMessageStatus(), PutMessageStatus.PROPERTIES_SIZE_EXCEEDED);
-        assertEquals(0L, messageStore.getQueueStore().getMaxOffset(topicName, 0).longValue());
+        assertEquals(0L, messageStore.getConsumeQueueStore().getMaxOffset(topicName, 0).longValue());
         MessageExtBrokerInner normalMessage = buildSpecifyLengthPropertyMessage("123".getBytes(StandardCharsets.UTF_8), topicName, 100);
         assertEquals(messageStore.putMessage(normalMessage).getPutMessageStatus(), PutMessageStatus.PUT_OK);
-        assertEquals(1L, messageStore.getQueueStore().getMaxOffset(topicName, 0).longValue());
+        assertEquals(1L, messageStore.getConsumeQueueStore().getMaxOffset(topicName, 0).longValue());
     }
 
     private DefaultMessageStore getDefaultMessageStore() {

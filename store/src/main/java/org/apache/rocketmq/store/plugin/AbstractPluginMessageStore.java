@@ -573,8 +573,8 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public ConsumeQueueStore getQueueStore() {
-        return next.getQueueStore();
+    public ConsumeQueueStore getConsumeQueueStore() {
+        return next.getConsumeQueueStore();
     }
 
     @Override
