@@ -109,6 +109,7 @@ import org.apache.rocketmq.store.service.CorrectLogicOffsetService;
 import org.apache.rocketmq.store.service.DispatchRequestOrderlyQueue;
 import org.apache.rocketmq.store.service.FlushConsumeQueueService;
 import org.apache.rocketmq.store.service.PutMessageService;
+import org.apache.rocketmq.store.service.QueryMessageService;
 import org.apache.rocketmq.store.service.ReputMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
@@ -218,6 +219,7 @@ public class DefaultMessageStore implements MessageStore {
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
     private PutMessageService putMessageService;
+    private QueryMessageService queryMessageService;
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
@@ -243,6 +245,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private void initProcessService() {
         this.putMessageService = new PutMessageService(this);
+        this.queryMessageService = new QueryMessageService(this);
     }
 
     private void initStoreService() {
@@ -1180,57 +1183,12 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end) {
-        QueryMessageResult queryMessageResult = new QueryMessageResult();
-
-        long lastQueryMsgTime = end;
-
-        for (int i = 0; i < 3; i++) {
-            QueryOffsetResult queryOffsetResult = this.indexService.queryOffset(topic, key, maxNum, begin, lastQueryMsgTime);
-            if (queryOffsetResult.getPhyOffsets().isEmpty()) {
-                break;
-            }
-
-            Collections.sort(queryOffsetResult.getPhyOffsets());
-
-            queryMessageResult.setIndexLastUpdatePhyoffset(queryOffsetResult.getIndexLastUpdatePhyoffset());
-            queryMessageResult.setIndexLastUpdateTimestamp(queryOffsetResult.getIndexLastUpdateTimestamp());
-
-            for (int m = 0; m < queryOffsetResult.getPhyOffsets().size(); m++) {
-                long offset = queryOffsetResult.getPhyOffsets().get(m);
-
-                try {
-                    MessageExt msg = this.lookMessageByOffset(offset);
-                    if (0 == m) {
-                        lastQueryMsgTime = msg.getStoreTimestamp();
-                    }
-
-                    SelectMappedBufferResult result = this.commitLog.getData(offset, false);
-                    if (result != null) {
-                        int size = result.getByteBuffer().getInt(0);
-                        result.getByteBuffer().limit(size);
-                        result.setSize(size);
-                        queryMessageResult.addMessage(result);
-                    }
-                } catch (Exception e) {
-                    LOGGER.error("queryMessage exception", e);
-                }
-            }
-
-            if (queryMessageResult.getBufferTotalSize() > 0) {
-                break;
-            }
-
-            if (lastQueryMsgTime < begin) {
-                break;
-            }
-        }
-
-        return queryMessageResult;
+        return queryMessageService.queryMessage(topic, key, maxNum, begin, end);
     }
 
     @Override public CompletableFuture<QueryMessageResult> queryMessageAsync(String topic, String key,
         int maxNum, long begin, long end) {
-        return CompletableFuture.completedFuture(queryMessage(topic, key, maxNum, begin, end));
+        return queryMessageService.queryMessageAsync(topic, key, maxNum, begin, end);
     }
 
     @Override
