@@ -108,6 +108,7 @@ import org.apache.rocketmq.store.service.ConcurrentReputMessageService;
 import org.apache.rocketmq.store.service.CorrectLogicOffsetService;
 import org.apache.rocketmq.store.service.DispatchRequestOrderlyQueue;
 import org.apache.rocketmq.store.service.FlushConsumeQueueService;
+import org.apache.rocketmq.store.service.PutMessageService;
 import org.apache.rocketmq.store.service.ReputMessageService;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
@@ -190,7 +191,6 @@ public class DefaultMessageStore implements MessageStore {
 
     private volatile long brokerInitMaxOffset = -1L;
 
-    protected List<PutMessageHook> putMessageHookList = new ArrayList<>();
 
     private SendMessageBackHook sendMessageBackHook;
 
@@ -217,6 +217,8 @@ public class DefaultMessageStore implements MessageStore {
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
         Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
+    private PutMessageService putMessageService;
+
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
         final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
@@ -227,7 +229,7 @@ public class DefaultMessageStore implements MessageStore {
         this.brokerStatsManager = brokerStatsManager;
         this.topicConfigTable = topicConfigTable;
 
-        initStoreServices();
+        initStoreService();
         initCommitLog();
         initHaService();
         initReputMessageService();
@@ -235,9 +237,15 @@ public class DefaultMessageStore implements MessageStore {
         initScheduledExecutorService();
         initLockFile();
         initDelayLevel();
+
+        initProcessService();
     }
 
-    private void initStoreServices() {
+    private void initProcessService() {
+        this.putMessageService = new PutMessageService(this);
+    }
+
+    private void initStoreService() {
         this.allocateMappedFileService = new AllocateMappedFileService(this);
         this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig);
         this.flushConsumeQueueService = new FlushConsumeQueueService(this);
@@ -599,104 +607,22 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
-        for (PutMessageHook putMessageHook : putMessageHookList) {
-            PutMessageResult handleResult = putMessageHook.executeBeforePutMessage(msg);
-            if (handleResult != null) {
-                return CompletableFuture.completedFuture(handleResult);
-            }
-        }
-
-        if (msg.getProperties().containsKey(MessageConst.PROPERTY_INNER_NUM)
-            && !MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
-            LOGGER.warn("[BUG]The message had property {} but is not an inner batch", MessageConst.PROPERTY_INNER_NUM);
-            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
-        }
-
-        if (MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
-            Optional<TopicConfig> topicConfig = this.getTopicConfig(msg.getTopic());
-            if (!QueueTypeUtils.isBatchCq(topicConfig)) {
-                LOGGER.error("[BUG]The message is an inner batch but cq type is not batch cq");
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null));
-            }
-        }
-
-        return addPutCallback(msg);
+        return putMessageService.asyncPutMessage(msg);
     }
 
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessages(MessageExtBatch messageExtBatch) {
-        for (PutMessageHook putMessageHook : putMessageHookList) {
-            PutMessageResult handleResult = putMessageHook.executeBeforePutMessage(messageExtBatch);
-            if (handleResult != null) {
-                return CompletableFuture.completedFuture(handleResult);
-            }
-        }
-
-        return addPutCallback(messageExtBatch);
-    }
-
-    private CompletableFuture<PutMessageResult> addPutCallback(MessageExtBatch messageExtBatch) {
-        long beginTime = this.getSystemClock().now();
-        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessages(messageExtBatch);
-
-        putResultFuture.thenAccept(result -> {
-            long eclipseTime = this.getSystemClock().now() - beginTime;
-            if (eclipseTime > 500) {
-                LOGGER.warn("not in lock eclipse time(ms)={}, bodyLength={}", eclipseTime, messageExtBatch.getBody().length);
-            }
-            this.storeStatsService.setPutMessageEntireTimeMax(eclipseTime);
-
-            if (null == result || !result.isOk()) {
-                this.storeStatsService.getPutMessageFailedTimes().add(1);
-            }
-        });
-
-        return putResultFuture;
-    }
-
-    private CompletableFuture<PutMessageResult> addPutCallback(MessageExtBrokerInner msg) {
-        long beginTime = this.getSystemClock().now();
-        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
-        putResultFuture.thenAccept(result -> {
-            long elapsedTime = this.getSystemClock().now() - beginTime;
-            if (elapsedTime > 500) {
-                LOGGER.warn("DefaultMessageStore#putMessage: CommitLog#putMessage cost {}ms, topic={}, bodyLength={}",
-                    elapsedTime, msg.getTopic(), msg.getBody().length);
-            }
-            this.storeStatsService.setPutMessageEntireTimeMax(elapsedTime);
-
-            if (null == result || !result.isOk()) {
-                this.storeStatsService.getPutMessageFailedTimes().add(1);
-            }
-        });
-
-        return putResultFuture;
+        return putMessageService.asyncPutMessages(messageExtBatch);
     }
 
     @Override
     public PutMessageResult putMessage(MessageExtBrokerInner msg) {
-        return waitForPutResult(asyncPutMessage(msg));
+        return putMessageService.putMessage(msg);
     }
 
     @Override
     public PutMessageResult putMessages(MessageExtBatch messageExtBatch) {
-        return waitForPutResult(asyncPutMessages(messageExtBatch));
-    }
-
-    private PutMessageResult waitForPutResult(CompletableFuture<PutMessageResult> putMessageResultFuture) {
-        try {
-            int putMessageTimeout =
-                Math.max(this.messageStoreConfig.getSyncFlushTimeout(),
-                    this.messageStoreConfig.getSlaveTimeout()) + 5000;
-            return putMessageResultFuture.get(putMessageTimeout, TimeUnit.MILLISECONDS);
-        } catch (ExecutionException | InterruptedException e) {
-            return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null);
-        } catch (TimeoutException e) {
-            LOGGER.error("usually it will never timeout, putMessageTimeout is much bigger than slaveTimeout and "
-                + "flushTimeout so the result can be got anyway, but in some situations timeout will happen like full gc "
-                + "process hangs or other unexpected situations.");
-            return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null);
-        }
+        return putMessageService.putMessages(messageExtBatch);
     }
 
     @Override
@@ -2280,7 +2206,7 @@ public class DefaultMessageStore implements MessageStore {
 
 
     public List<PutMessageHook> getPutMessageHookList() {
-        return putMessageHookList;
+        return putMessageService.getPutMessageHookList();
     }
 
     @Override
