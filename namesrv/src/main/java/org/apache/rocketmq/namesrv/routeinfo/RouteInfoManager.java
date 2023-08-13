@@ -522,7 +522,7 @@ public class RouteInfoManager {
                 this.lock.writeLock().unlock();
             }
         } catch (Exception e) {
-            log.error("wipeWritePermOfBrokerByLock Exception", e);
+            log.error("addWritePermOfBrokerByLock Exception", e);
         }
         return 0;
     }
