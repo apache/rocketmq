@@ -181,7 +181,7 @@ public class UpdateTopicSubCommand implements SubCommand {
                         System.err.printf("create topic to %s fail.%n", addr);
                     }
                 }
-                if (successCount == 0) {
+                if (successCount == 0 && lastException != null) {
                     throw lastException;
                 }
 
