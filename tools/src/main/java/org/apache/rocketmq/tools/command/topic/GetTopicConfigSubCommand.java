@@ -16,11 +16,12 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -62,26 +63,21 @@ public class GetTopicConfigSubCommand implements SubCommand {
         try {
             defaultMQAdminExt.start();
 
-            System.out.printf("%-64s  %-20s  %-20s  %-10s %-20s %-10s%n",
-                "#Topic Name",
-                "#Read Queue Nums",
-                "#Write Queue Nums",
-                "#Perm",
-                "#Topic Filter Type",
-                "#order"
-            );
-
             TopicConfigSerializeWrapper wrapper = defaultMQAdminExt.getAllTopicConfig(addr, 10000L);
             TopicConfig topicConfig = wrapper.getTopicConfigTable().get(topic);
             if (topicConfig != null) {
-                System.out.printf("%-64s  %-20s  %-20s  %-10s %-20s %-10s%n",
-                    UtilAll.frontStringAtLeast(topicConfig.getTopicName(), 64),
-                    UtilAll.frontStringAtLeast(String.valueOf(topicConfig.getReadQueueNums()), 10),
-                    UtilAll.frontStringAtLeast(String.valueOf(topicConfig.getWriteQueueNums()), 10),
-                    UtilAll.frontStringAtLeast(String.valueOf(topicConfig.getPerm()), 10),
-                    UtilAll.frontStringAtLeast(topicConfig.getTopicFilterType().name(), 20),
-                    UtilAll.frontStringAtLeast(String.valueOf(topicConfig.isOrder()), 10)
-                );
+                Field[] fields = topicConfig.getClass().getDeclaredFields();
+                for (Field field : fields) {
+                    if (Modifier.isStatic(field.getModifiers())) {
+                        continue;
+                    }
+                    field.setAccessible(true);
+                    if (field.get(topicConfig) != null) {
+                        System.out.printf("%s%-64s=  %s\n", "", field.getName(), field.get(topicConfig).toString());
+                    } else {
+                        System.out.printf("%s%-64s=  %s\n", "", field.getName(), "");
+                    }
+                }
             }
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
