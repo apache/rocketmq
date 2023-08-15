@@ -1174,7 +1174,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                     Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET)));
                 continue;
             }
-            key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
+            // Value of POP_CK is used to determine whether it is a pop retry,
+            // cause topic could be rewritten by broker.
+            key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(),
+                messageExt.getProperty(MessageConst.PROPERTY_POP_CK), messageExt.getQueueId());
             if (!sortMap.containsKey(key)) {
                 sortMap.put(key, new ArrayList<>(4));
             }
