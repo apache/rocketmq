@@ -37,7 +37,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "RocksDBConfigToJson";
+        return "rocksDBConfigToJson";
     }
 
     @Override
@@ -52,7 +52,8 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
         pathOption.setRequired(true);
         options.addOption(pathOption);
 
-        Option configTypeOption = new Option("t", "configType", true, "Name of kv config, e.g. topics/subscriptionGroups");
+        Option configTypeOption = new Option("t", "configType", true, "Name of kv config, e.g. " +
+                "topics/subscriptionGroups");
         configTypeOption.setRequired(true);
         options.addOption(configTypeOption);
 
@@ -82,13 +83,13 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                     final JSONObject jsonObject = JSONObject.parseObject(topicConfig);
                     topicConfigTable.put(topic, jsonObject);
                 });
-                if (!isLoad) {
+
+                if (isLoad) {
+                    topicsJsonConfig.put("topicConfigTable", (JSONObject) JSONObject.toJSON(topicConfigTable));
+                    final String topicsJsonStr = JSONObject.toJSONString(topicsJsonConfig, true);
+                    System.out.print(topicsJsonStr + "\n");
                     return;
                 }
-                topicsJsonConfig.put("topicConfigTable", (JSONObject) JSONObject.toJSON(topicConfigTable));
-                final String topicsJsonStr = JSONObject.toJSONString(topicsJsonConfig, true);
-                System.out.print(topicsJsonStr + "\n");
-                return;
             }
             if (SUBSCRIPTION_GROUP_JSON_CONFIG.toLowerCase().equals(configType)) {
                 // for subscriptionGroup.json
@@ -100,14 +101,14 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                     final JSONObject jsonObject = JSONObject.parseObject(subscriptionGroupConfig);
                     subscriptionGroupTable.put(subscriptionGroup, jsonObject);
                 });
-                if (!isLoad) {
+
+                if (isLoad) {
+                    subscriptionGroupJsonConfig.put("subscriptionGroupTable",
+                            (JSONObject) JSONObject.toJSON(subscriptionGroupTable));
+                    final String subscriptionGroupJsonStr = JSONObject.toJSONString(subscriptionGroupJsonConfig, true);
+                    System.out.print(subscriptionGroupJsonStr + "\n");
                     return;
                 }
-                subscriptionGroupJsonConfig.put("subscriptionGroupTable",
-                        (JSONObject) JSONObject.toJSON(subscriptionGroupTable));
-                final String subscriptionGroupJsonStr = JSONObject.toJSONString(subscriptionGroupJsonConfig, true);
-                System.out.print(subscriptionGroupJsonStr + "\n");
-                return;
             }
             System.out.print("Config type was not recognized, configType=" + configType + "\n");
         } finally {

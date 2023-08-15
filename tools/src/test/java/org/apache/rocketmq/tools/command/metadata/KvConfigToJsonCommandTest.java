@@ -33,11 +33,11 @@ public class KvConfigToJsonCommandTest {
     @Test
     public void testExecute() throws SubCommandException {
         {
-            String[] cases = new String[] { "topics", "subscriptionGroups" };
+            String[] cases = new String[]{"topics", "subscriptionGroups"};
             for (String c : cases) {
                 RocksDBConfigToJsonCommand cmd = new RocksDBConfigToJsonCommand();
                 Options options = ServerUtil.buildCommandlineOptions(new Options());
-                String[] subargs = new String[] { "-p " + BASE_PATH + c, "-t " + c };
+                String[] subargs = new String[]{"-p " + BASE_PATH + c, "-t " + c};
                 final CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
                         cmd.buildCommandlineOptions(options), new DefaultParser());
                 cmd.execute(commandLine, options, null);
@@ -47,10 +47,10 @@ public class KvConfigToJsonCommandTest {
         }
         // invalid cases
         {
-            String[][] cases = new String[][] {
-                    { "-p " + BASE_PATH + "tmpPath", "-t topics" },
-                    { "-p  ", "-t topics" },
-                    { "-p " + BASE_PATH + "topics", "-t invalid_type" }
+            String[][] cases = new String[][]{
+                    {"-p " + BASE_PATH + "tmpPath", "-t topics"},
+                    {"-p  ", "-t topics"},
+                    {"-p " + BASE_PATH + "topics", "-t invalid_type"}
             };
 
             for (String[] c : cases) {
