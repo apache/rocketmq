@@ -1053,7 +1053,7 @@ public class RocksDBMessageStoreTest {
     }
 
     private boolean notExecuted() {
-        return !MixAll.isMac();
+        return MixAll.isMac();
     }
 }
 
