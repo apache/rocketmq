@@ -91,6 +91,14 @@ public interface MessageService {
         long timeoutMillis
     );
 
+    CompletableFuture<AckResult> batchAckMessage(
+        ProxyContext ctx,
+        List<ReceiptHandleMessage> handleList,
+        String consumerGroup,
+        String topic,
+        long timeoutMillis
+    );
+
     CompletableFuture<PullResult> pullMessage(
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,

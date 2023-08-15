@@ -66,14 +66,6 @@ public class BaseProcessorTest extends InitConfigTest {
     protected ProxyRelayService proxyRelayService;
     @Mock
     protected MetadataService metadataService;
-    @Mock
-    protected ProducerProcessor producerProcessor;
-    @Mock
-    protected ConsumerProcessor consumerProcessor;
-    @Mock
-    protected TransactionProcessor transactionProcessor;
-    @Mock
-    protected ClientProcessor clientProcessor;
 
     public void before() throws Throwable {
         super.before();
@@ -92,6 +84,13 @@ public class BaseProcessorTest extends InitConfigTest {
     }
 
     protected static MessageExt createMessageExt(String topic, String tags, int reconsumeTimes, long invisibleTime) {
+        return createMessageExt(topic, tags, reconsumeTimes, invisibleTime, System.currentTimeMillis(),
+            RANDOM.nextInt(Integer.MAX_VALUE), RANDOM.nextInt(Integer.MAX_VALUE), RANDOM.nextInt(Integer.MAX_VALUE),
+            RANDOM.nextInt(Integer.MAX_VALUE), "mockBroker");
+    }
+
+    protected static MessageExt createMessageExt(String topic, String tags, int reconsumeTimes, long invisibleTime, long popTime,
+        long startOffset, int reviveQid, int queueId, long queueOffset, String brokerName) {
         MessageExt messageExt = new MessageExt();
         messageExt.setTopic(topic);
         messageExt.setTags(tags);
@@ -100,8 +99,7 @@ public class BaseProcessorTest extends InitConfigTest {
         messageExt.setMsgId(MessageClientIDSetter.createUniqID());
         messageExt.setCommitLogOffset(RANDOM.nextInt(Integer.MAX_VALUE));
         MessageAccessor.putProperty(messageExt, MessageConst.PROPERTY_POP_CK,
-            ExtraInfoUtil.buildExtraInfo(RANDOM.nextInt(Integer.MAX_VALUE), System.currentTimeMillis(), invisibleTime,
-                RANDOM.nextInt(Integer.MAX_VALUE), topic, "mockBroker", RANDOM.nextInt(Integer.MAX_VALUE), RANDOM.nextInt(Integer.MAX_VALUE)));
+            ExtraInfoUtil.buildExtraInfo(startOffset, popTime, invisibleTime, reviveQid, topic, brokerName, queueId, queueOffset));
         return messageExt;
     }
 
