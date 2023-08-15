@@ -71,6 +71,11 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
+    public boolean loadAfterDestroy() {
+        return true;
+    }
+
+    @Override
     public void recover() {
         for (ConcurrentMap<Integer, ConsumeQueueInterface> maps : this.consumeQueueTable.values()) {
             for (ConsumeQueueInterface logic : maps.values()) {

@@ -488,9 +488,10 @@ public class RocksDBMessageStoreTest {
 
     private long getStoreTime(CqUnit cqUnit) {
         try {
-            Method getStoreTime = getDefaultMessageStore().getClass().getSuperclass().getDeclaredMethod("getStoreTime", CqUnit.class);
+            Class abstractConsumeQueueStore = getDefaultMessageStore().getQueueStore().getClass().getSuperclass();
+            Method getStoreTime = abstractConsumeQueueStore.getDeclaredMethod("getStoreTime", CqUnit.class);
             getStoreTime.setAccessible(true);
-            return (long) getStoreTime.invoke(getDefaultMessageStore(), cqUnit);
+            return (long) getStoreTime.invoke(getDefaultMessageStore().getQueueStore(), cqUnit);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }
@@ -1052,7 +1053,7 @@ public class RocksDBMessageStoreTest {
     }
 
     private boolean notExecuted() {
-        return MixAll.isMac();
+        return !MixAll.isMac();
     }
 }
 

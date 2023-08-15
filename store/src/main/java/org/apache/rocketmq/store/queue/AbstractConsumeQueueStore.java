@@ -88,4 +88,18 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
     public ConcurrentMap<Integer, ConsumeQueueInterface> findConsumeQueueMap(String topic) {
         return this.consumeQueueTable.get(topic);
     }
+
+    @Override
+    public long getStoreTime(CqUnit cqUnit) {
+        if (cqUnit != null) {
+            try {
+                final long phyOffset = cqUnit.getPos();
+                final int size = cqUnit.getSize();
+                long storeTime = this.messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
+                return storeTime;
+            } catch (Exception e) {
+            }
+        }
+        return -1;
+    }
 }

@@ -137,6 +137,11 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
+    public boolean loadAfterDestroy() {
+        return this.load();
+    }
+
+    @Override
     public void recover() {
         // ignored
     }
@@ -343,8 +348,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
      */
     @Override
     public void truncateDirty(long offsetToTruncate) throws RocksDBException {
-        long cqMaxPhyOffset = getMaxPhyOffsetInConsumeQueue();
-        if (offsetToTruncate >= cqMaxPhyOffset) {
+        long maxPhyOffsetInRocksdb = getMaxPhyOffsetInConsumeQueue();
+        if (offsetToTruncate >= maxPhyOffsetInRocksdb) {
             return;
         }
 

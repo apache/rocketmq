@@ -386,8 +386,8 @@ public class CommitLog implements Swappable {
             log.warn("The commitlog files are deleted, and delete the consume queue files");
             this.mappedFileQueue.setFlushedWhere(0);
             this.mappedFileQueue.setCommittedWhere(0);
-            this.defaultMessageStore.destroyLogics();
-            this.defaultMessageStore.loadLogics();
+            this.defaultMessageStore.getQueueStore().destroy();
+            this.defaultMessageStore.getQueueStore().loadAfterDestroy();
         }
     }
 
@@ -742,8 +742,8 @@ public class CommitLog implements Swappable {
             log.warn("The commitlog files are deleted, and delete the consume queue files");
             this.mappedFileQueue.setFlushedWhere(0);
             this.mappedFileQueue.setCommittedWhere(0);
-            this.defaultMessageStore.destroyLogics();
-            this.defaultMessageStore.loadLogics();
+            this.defaultMessageStore.getQueueStore().destroy();
+            this.defaultMessageStore.getQueueStore().loadAfterDestroy();
         }
     }
 

@@ -72,11 +72,6 @@ public class RocksDBMessageStore extends DefaultMessageStore {
     }
 
     @Override
-    public boolean loadLogics() {
-        return this.consumeQueueStore.load();
-    }
-
-    @Override
     public void finishCommitLogDispatch() {
         try {
             putMessagePositionInfo(null);

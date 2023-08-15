@@ -537,7 +537,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void destroy() {
-        this.destroyLogics();
+        this.consumeQueueStore.destroy();
         this.commitLog.destroy();
         this.indexService.destroy();
         this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
@@ -561,16 +561,6 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return commitLogSize + consumeQueueSize + indexFileSize;
-    }
-
-    @Override
-    public void destroyLogics() {
-        this.consumeQueueStore.destroy();
-    }
-
-    @Override
-    public boolean loadLogics() {
-        return true;
     }
 
     @Override
@@ -1179,20 +1169,6 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
         return CompletableFuture.completedFuture(getEarliestMessageTime(topic, queueId));
-    }
-
-    @Override
-    public long getStoreTime(CqUnit cqUnit) {
-        if (cqUnit != null) {
-            try {
-                final long phyOffset = cqUnit.getPos();
-                final int size = cqUnit.getSize();
-                long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                return storeTime;
-            } catch (Exception e) {
-            }
-        }
-        return -1;
     }
 
     @Override

@@ -53,7 +53,6 @@ import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
-import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
@@ -560,11 +559,6 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public void destroyLogics() {
-        next.destroyLogics();
-    }
-
-    @Override
     public void unlockMappedFile(MappedFile unlockMappedFile) {
         next.unlockMappedFile(unlockMappedFile);
     }
@@ -662,16 +656,6 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public void recoverTopicQueueTable() {
         next.recoverTopicQueueTable();
-    }
-
-    @Override
-    public boolean loadLogics() {
-        return next.loadLogics();
-    }
-
-    @Override
-    public long getStoreTime(CqUnit cqUnit) {
-        return next.getStoreTime(cqUnit);
     }
 
     @Override

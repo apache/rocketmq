@@ -107,17 +107,17 @@ public class RocksDBConsumeQueueTable {
     public void buildAndPutCQByteBuffer(final Pair<ByteBuffer, ByteBuffer> cqBBPair,
         final byte[] topicBytes, final DispatchRequest request, final WriteBatch writeBatch) throws RocksDBException {
         final ByteBuffer cqKey = cqBBPair.getObject1();
-        buildCQKeyBB(cqKey, topicBytes, request.getQueueId(), request.getConsumeQueueOffset());
+        buildCQKeyByteBuffer(cqKey, topicBytes, request.getQueueId(), request.getConsumeQueueOffset());
 
         final ByteBuffer cqValue = cqBBPair.getObject2();
-        buildCQValueBB(cqValue, request.getCommitLogOffset(), request.getMsgSize(), request.getTagsCode(), request.getStoreTimestamp());
+        buildCQValueByteBuffer(cqValue, request.getCommitLogOffset(), request.getMsgSize(), request.getTagsCode(), request.getStoreTimestamp());
 
         writeBatch.put(defaultCFH, cqKey, cqValue);
     }
 
     public ByteBuffer getCQInKV(final String topic, final int queueId, final long cqOffset) throws RocksDBException {
         final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
-        final ByteBuffer keyBB = buildCQKeyBB(topicBytes, queueId, cqOffset);
+        final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, cqOffset);
         byte[] value = this.rocksDBStorage.getCQ(keyBB.array());
         return (value != null) ? ByteBuffer.wrap(value) : null;
     }
@@ -129,7 +129,7 @@ public class RocksDBConsumeQueueTable {
         final List<Integer> kvIndexList = new ArrayList(num);
         final List<byte[]> kvKeyList = new ArrayList(num);
         for (int i = 0; i < num; i++) {
-            final ByteBuffer keyBB = buildCQKeyBB(topicBytes, queueId, startIndex + i);
+            final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, startIndex + i);
             kvIndexList.add(i);
             kvKeyList.add(keyBB.array());
             defaultCFHList.add(defaultCFH);
@@ -275,38 +275,38 @@ public class RocksDBConsumeQueueTable {
         return new Pair<>(cqKey, cqValue);
     }
 
-    private ByteBuffer buildCQKeyBB(final byte[] topicBytes, final int queueId, final long cqOffset) {
-        final ByteBuffer bb = ByteBuffer.allocate(CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
-        buildCQKeyBB0(bb, topicBytes, queueId, cqOffset);
-        return bb;
+    private ByteBuffer buildCQKeyByteBuffer(final byte[] topicBytes, final int queueId, final long cqOffset) {
+        final ByteBuffer byteBuffer = ByteBuffer.allocate(CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
+        buildCQKeyByteBuffer0(byteBuffer, topicBytes, queueId, cqOffset);
+        return byteBuffer;
     }
 
-    private void buildCQKeyBB(final ByteBuffer bb, final byte[] topicBytes, final int queueId, final long cqOffset) {
-        bb.position(0).limit(CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
-        buildCQKeyBB0(bb, topicBytes, queueId, cqOffset);
+    private void buildCQKeyByteBuffer(final ByteBuffer byteBuffer, final byte[] topicBytes, final int queueId, final long cqOffset) {
+        byteBuffer.position(0).limit(CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
+        buildCQKeyByteBuffer0(byteBuffer, topicBytes, queueId, cqOffset);
     }
 
-    private void buildCQKeyBB0(final ByteBuffer bb, final byte[] topicBytes, final int queueId, final long cqOffset) {
-        bb.putInt(topicBytes.length).put(CTRL_1).put(topicBytes).put(CTRL_1).putInt(queueId).put(CTRL_1).putLong(cqOffset);
-        bb.flip();
+    private void buildCQKeyByteBuffer0(final ByteBuffer byteBuffer, final byte[] topicBytes, final int queueId, final long cqOffset) {
+        byteBuffer.putInt(topicBytes.length).put(CTRL_1).put(topicBytes).put(CTRL_1).putInt(queueId).put(CTRL_1).putLong(cqOffset);
+        byteBuffer.flip();
     }
 
-    private void buildCQValueBB(final ByteBuffer bb, final long phyOffset, final int msgSize, final long tagsCode, final long storeTimestamp) {
-        bb.position(0).limit(CQ_UNIT_SIZE);
-        buildCQValueBB0(bb, phyOffset, msgSize, tagsCode, storeTimestamp);
+    private void buildCQValueByteBuffer(final ByteBuffer byteBuffer, final long phyOffset, final int msgSize, final long tagsCode, final long storeTimestamp) {
+        byteBuffer.position(0).limit(CQ_UNIT_SIZE);
+        buildCQValueByteBuffer0(byteBuffer, phyOffset, msgSize, tagsCode, storeTimestamp);
     }
 
-    private void buildCQValueBB0(final ByteBuffer bb, final long phyOffset, final int msgSize,
+    private void buildCQValueByteBuffer0(final ByteBuffer byteBuffer, final long phyOffset, final int msgSize,
         final long tagsCode, final long storeTimestamp) {
-        bb.putLong(phyOffset).putInt(msgSize).putLong(tagsCode).putLong(storeTimestamp);
-        bb.flip();
+        byteBuffer.putLong(phyOffset).putInt(msgSize).putLong(tagsCode).putLong(storeTimestamp);
+        byteBuffer.flip();
     }
 
     private ByteBuffer buildDeleteCQKey(final boolean start, final byte[] topicBytes, final int queueId) {
-        final ByteBuffer bb = ByteBuffer.allocate(DELETE_CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
+        final ByteBuffer byteBuffer = ByteBuffer.allocate(DELETE_CQ_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
 
-        bb.putInt(topicBytes.length).put(CTRL_1).put(topicBytes).put(CTRL_1).putInt(queueId).put(start ? CTRL_0 : CTRL_2);
-        bb.flip();
-        return bb;
+        byteBuffer.putInt(topicBytes.length).put(CTRL_1).put(topicBytes).put(CTRL_1).putInt(queueId).put(start ? CTRL_0 : CTRL_2);
+        byteBuffer.flip();
+        return byteBuffer;
     }
 }

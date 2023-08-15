@@ -329,14 +329,14 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     @Override
     public Pair<CqUnit, Long> getCqUnitAndStoreTime(long index) {
         CqUnit cqUnit = get(index);
-        Long messageStoreTime = this.messageStore.getStoreTime(cqUnit);
+        Long messageStoreTime = this.messageStore.getQueueStore().getStoreTime(cqUnit);
         return new Pair<>(cqUnit, messageStoreTime);
     }
 
     @Override
     public Pair<CqUnit, Long> getEarliestUnitAndStoreTime() {
         CqUnit cqUnit = getEarliestUnit();
-        Long messageStoreTime = this.messageStore.getStoreTime(cqUnit);
+        Long messageStoreTime = this.messageStore.getQueueStore().getStoreTime(cqUnit);
         return new Pair<>(cqUnit, messageStoreTime);
     }
 

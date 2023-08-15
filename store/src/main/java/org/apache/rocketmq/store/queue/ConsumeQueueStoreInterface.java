@@ -38,6 +38,11 @@ public interface ConsumeQueueStoreInterface {
     boolean load();
 
     /**
+     * load after destroy
+     */
+    boolean loadAfterDestroy();
+
+    /**
      * Recover from file.
      */
     void recover();
@@ -274,4 +279,11 @@ public interface ConsumeQueueStoreInterface {
      * @return the total size of all consumeQueue
      */
     long getTotalSize();
+
+    /**
+     * Get store time from commitlog by cqUnit
+     * @param cqUnit
+     * @return
+     */
+    long getStoreTime(CqUnit cqUnit);
 }

@@ -37,7 +37,6 @@ import org.apache.rocketmq.store.hook.SendMessageBackHook;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
-import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
@@ -709,16 +708,6 @@ public interface MessageStore {
     void truncateDirtyLogicFiles(long phyOffset) throws RocksDBException;
 
     /**
-     * Destroy logics files
-     */
-    void destroyLogics();
-
-    /**
-     * Load logics files
-     */
-    boolean loadLogics();
-
-    /**
      * Unlock mappedFile
      *
      * @param unlockMappedFile the file that needs to be unlocked
@@ -997,13 +986,6 @@ public interface MessageStore {
      * Recover topic queue table
      */
     void recoverTopicQueueTable();
-
-    /**
-     * Get store time from commitlog by cqUnit
-     * @param cqUnit
-     * @return
-     */
-    long getStoreTime(CqUnit cqUnit);
 
     /**
      * notify message arrive if necessary
