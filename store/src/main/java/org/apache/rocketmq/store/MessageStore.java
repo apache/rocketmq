@@ -19,8 +19,7 @@ package org.apache.rocketmq.store;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
-
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -28,7 +27,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.SystemClock;
@@ -964,7 +962,7 @@ public interface MessageStore {
      *
      * @return List of metrics selector and view pair
      */
-    List<Pair<InstrumentSelector, View>> getMetricsView();
+    List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView();
 
     /**
      * Init store metrics
