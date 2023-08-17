@@ -51,6 +51,7 @@ import org.apache.rocketmq.proxy.service.channel.InvocationContext;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -194,6 +195,7 @@ public class LocalMessageService implements MessageService {
         PopMessageRequestHeader requestHeader, long timeoutMillis) {
         requestHeader.setBornTime(System.currentTimeMillis());
         RemotingCommand request = LocalRemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
+        request.setLanguage(LanguageCode.getCode(ctx.getLanguage()));
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         SimpleChannel channel = channelManager.createInvocationChannel(ctx);
         InvocationContext invocationContext = new InvocationContext(future);
