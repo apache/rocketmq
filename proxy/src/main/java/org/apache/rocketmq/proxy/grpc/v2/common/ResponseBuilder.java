@@ -92,7 +92,7 @@ public class ResponseBuilder {
     public Status buildStatus(Code code, String message) {
         return Status.newBuilder()
             .setCode(code)
-            .setMessage(message)
+            .setMessage(message != null ? message : code.name())
             .build();
     }
 

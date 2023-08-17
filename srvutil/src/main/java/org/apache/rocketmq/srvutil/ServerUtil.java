@@ -52,6 +52,7 @@ public class ServerUtil {
                 System.exit(0);
             }
         } catch (ParseException e) {
+            System.err.println(e.getMessage());
             hf.printHelp(appName, options, true);
             System.exit(1);
         }

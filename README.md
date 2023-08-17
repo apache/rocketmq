@@ -63,7 +63,7 @@ $ unzip rocketmq-all-5.1.3-bin-release.zip
 
 Prepare a terminal and change to the extracted `bin` directory:
 ```shell
-$ cd rocketmq-all-5.1.3/bin
+$ cd rocketmq-all-5.1.3-bin-release/bin
 ```
 
 **1) Start NameServer**

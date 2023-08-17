@@ -14,38 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.common;
+package org.apache.rocketmq.store;
 
-/**
- *  This enumeration represents the boundary types.
- *  It has two constants, lower and upper, which represent the lower and upper boundaries respectively.
- */
-public enum BoundaryType {
+public enum StoreType {
+    DEFAULT("default"),
+    DEFAULT_ROCKSDB("defaultRocksDB");
 
-    /**
-     * Represents the lower boundary.
-     */
-    LOWER("lower"),
+    private String storeType;
 
-    /**
-     * Represents the upper boundary.
-     */
-    UPPER("upper");
-
-    private final String name;
-
-    BoundaryType(String name) {
-        this.name = name;
+    StoreType(String storeType) {
+        this.storeType = storeType;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public static BoundaryType getType(String name) {
-        if (BoundaryType.UPPER.getName().equalsIgnoreCase(name)) {
-            return UPPER;
-        }
-        return LOWER;
+    public String getStoreType() {
+        return storeType;
     }
 }

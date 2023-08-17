@@ -21,13 +21,14 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PopAckConstants;
@@ -45,7 +46,6 @@ import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
 import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
-import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.file.CompositeFlatFile;
@@ -147,7 +147,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         int queueId, long offset, int maxMsgNums, MessageFilter messageFilter) {
 
         if (!viaTieredStorage(topic, queueId, offset, maxMsgNums)) {
-            logger.debug("GetMessageAsync from next store topic: {}, queue: {}, offset: {}", topic, queueId, offset);
+            logger.trace("GetMessageAsync from next store topic: {}, queue: {}, offset: {}", topic, queueId, offset);
             return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
         }
 
@@ -287,6 +287,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         return getOffsetInQueueByTime(topic, queueId, timestamp, BoundaryType.LOWER);
     }
 
+    @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
         long earliestTimeInNextStore = next.getEarliestMessageTime();
         if (earliestTimeInNextStore <= 0) {
@@ -351,8 +352,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public List<Pair<InstrumentSelector, View>> getMetricsView() {
-        List<Pair<InstrumentSelector, View>> res = super.getMetricsView();
+    public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
+        List<Pair<InstrumentSelector, ViewBuilder>> res = super.getMetricsView();
         res.addAll(TieredStoreMetricsManager.getMetricsView());
         return res;
     }
