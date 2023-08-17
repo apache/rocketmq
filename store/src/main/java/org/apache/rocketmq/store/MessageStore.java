@@ -44,7 +44,7 @@ import org.rocksdb.RocksDBException;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 
 /**
  * This class defines contracting interfaces to implement, allowing third-party vendor to use customized message store.
@@ -972,7 +972,7 @@ public interface MessageStore {
      *
      * @return List of metrics selector and view pair
      */
-    List<Pair<InstrumentSelector, View>> getMetricsView();
+    List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView();
 
     /**
      * Init store metrics

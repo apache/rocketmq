@@ -203,7 +203,7 @@ public class ControllerMetricsManager {
             10 * s
         );
 
-        View latecyView = View.builder()
+        View latencyView = View.builder()
             .setAggregation(Aggregation.explicitBucketHistogram(latencyBuckets))
             .build();
 
@@ -217,8 +217,8 @@ public class ControllerMetricsManager {
             .setName(HISTOGRAM_DLEDGER_OP_LATENCY)
             .build();
 
-        providerBuilder.registerView(requestLatencySelector, latecyView);
-        providerBuilder.registerView(dLedgerOpLatencySelector, latecyView);
+        providerBuilder.registerView(requestLatencySelector, latencyView);
+        providerBuilder.registerView(dLedgerOpLatencySelector, latencyView);
     }
 
     private void initMetric(Meter meter) {

@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UnlockCallback;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.AttributeParser;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.FIleReadaheadMode;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -438,6 +439,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         topicConfig.setOrder(requestHeader.getOrder());
         String attributesModification = requestHeader.getAttributes();
         topicConfig.setAttributes(AttributeParser.parseToMap(attributesModification));
+
+        if (topicConfig.getTopicMessageType() == TopicMessageType.MIXED
+            && !brokerController.getBrokerConfig().isEnableMixedMessageType()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("MIXED message type is not supported.");
+            return response;
+        }
 
         try {
             this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);

@@ -350,6 +350,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
+    private int metricsOtelCardinalityLimit = 50 * 1000;
     private String metricsGrpcExporterTarget = "";
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
@@ -392,6 +393,8 @@ public class BrokerConfig extends BrokerIdentity {
      * it guarantees the ultimate consistency of data between the broker and the nameserver during topic deletion.
      */
     private boolean enableSingleTopicRegister = false;
+
+    private boolean enableMixedMessageType = false;
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1529,6 +1532,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
     }
 
+    public int getMetricsOtelCardinalityLimit() {
+        return metricsOtelCardinalityLimit;
+    }
+
+    public void setMetricsOtelCardinalityLimit(int metricsOtelCardinalityLimit) {
+        this.metricsOtelCardinalityLimit = metricsOtelCardinalityLimit;
+    }
+
     public String getMetricsGrpcExporterTarget() {
         return metricsGrpcExporterTarget;
     }
@@ -1711,5 +1722,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableSingleTopicRegister(boolean enableSingleTopicRegister) {
         this.enableSingleTopicRegister = enableSingleTopicRegister;
+    }
+
+    public boolean isEnableMixedMessageType() {
+        return enableMixedMessageType;
+    }
+
+    public void setEnableMixedMessageType(boolean enableMixedMessageType) {
+        this.enableMixedMessageType = enableMixedMessageType;
     }
 }

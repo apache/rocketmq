@@ -249,7 +249,10 @@ public class LocalMessageService implements MessageService {
                 // <topicMark@queueId, msg queueOffset>
                 Map<String, List<Long>> sortMap = new HashMap<>(16);
                 for (MessageExt messageExt : messageExtList) {
-                    String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(), messageExt.getQueueId());
+                    // Value of POP_CK is used to determine whether it is a pop retry,
+                    // cause topic could be rewritten by broker.
+                    String key = ExtraInfoUtil.getStartOffsetInfoMapKey(messageExt.getTopic(),
+                        messageExt.getProperty(MessageConst.PROPERTY_POP_CK), messageExt.getQueueId());
                     if (!sortMap.containsKey(key)) {
                         sortMap.put(key, new ArrayList<>(4));
                     }

@@ -21,7 +21,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
 import com.google.common.base.Stopwatch;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
@@ -55,7 +57,7 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 
 public class TieredMessageStore extends AbstractPluginMessageStore {
 
@@ -354,8 +356,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public List<Pair<InstrumentSelector, View>> getMetricsView() {
-        List<Pair<InstrumentSelector, View>> res = super.getMetricsView();
+    public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
+        List<Pair<InstrumentSelector, ViewBuilder>> res = super.getMetricsView();
         res.addAll(TieredStoreMetricsManager.getMetricsView());
         return res;
     }
