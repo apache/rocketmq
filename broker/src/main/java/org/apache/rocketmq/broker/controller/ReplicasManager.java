@@ -17,22 +17,6 @@
 
 package org.apache.rocketmq.broker.controller;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
@@ -56,6 +40,9 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.ha.autoswitch.BrokerMetadata;
 import org.apache.rocketmq.store.ha.autoswitch.TempBrokerMetadata;
+
+import java.util.*;
+import java.util.concurrent.*;
 
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_BROKER_METADATA_NOT_EXIST;
 
@@ -801,10 +788,7 @@ public class ReplicasManager {
 
     private void updateControllerAddr() {
         if (brokerConfig.isFetchControllerAddrByDnsLookup()) {
-            List<String> addrs = brokerOuterAPI.dnsLookupAddressByDomain(this.brokerConfig.getControllerAddr());
-            if (CollectionUtils.isNotEmpty(addrs)) {
-                this.controllerAddresses = addrs;
-            }
+            this.controllerAddresses = brokerOuterAPI.dnsLookupAddressByDomain(this.brokerConfig.getControllerAddr());
         } else {
             final String controllerPaths = this.brokerConfig.getControllerAddr();
             final String[] controllers = controllerPaths.split(";");
