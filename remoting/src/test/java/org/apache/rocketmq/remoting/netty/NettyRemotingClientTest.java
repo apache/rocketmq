@@ -74,13 +74,11 @@ public class NettyRemotingClientTest {
 
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
-        doAnswer(invocation -> {
-            InvokeCallback callback = invocation.getArgument(3);
-            ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
-            responseFuture.setResponseCommand(response);
-            callback.operationSucceed(responseFuture.getResponseCommand());
-            return null;
-        }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+        ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
+        responseFuture.setResponseCommand(response);
+        CompletableFuture<RemotingCommand> future0 = new CompletableFuture<>();
+        future0.complete(responseFuture.getResponseCommand());
+        doReturn(future0).when(remotingClient).invoke(anyString(), any(RemotingCommand.class), anyLong());
 
         CompletableFuture<RemotingCommand> future = remotingClient.invoke("0.0.0.0", request, 1000);
         RemotingCommand actual = future.get();
@@ -93,11 +91,9 @@ public class NettyRemotingClientTest {
 
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
-        doAnswer(invocation -> {
-            InvokeCallback callback = invocation.getArgument(3);
-            callback.operationFail(new RemotingSendRequestException(null));
-            return null;
-        }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+        CompletableFuture<RemotingCommand> future0 = new CompletableFuture<>();
+        future0.completeExceptionally(new RemotingSendRequestException(null));
+        doReturn(future0).when(remotingClient).invoke(anyString(), any(RemotingCommand.class), anyLong());
 
         CompletableFuture<RemotingCommand> future = remotingClient.invoke("0.0.0.0", request, 1000);
         Throwable thrown = catchThrowable(future::get);
@@ -110,11 +106,9 @@ public class NettyRemotingClientTest {
 
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
-        doAnswer(invocation -> {
-            InvokeCallback callback = invocation.getArgument(3);
-            callback.operationFail(new RemotingTimeoutException(""));
-            return null;
-        }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+        CompletableFuture<RemotingCommand> future0 = new CompletableFuture<>();
+        future0.completeExceptionally(new RemotingTimeoutException(""));
+        doReturn(future0).when(remotingClient).invoke(anyString(), any(RemotingCommand.class), anyLong());
 
         CompletableFuture<RemotingCommand> future = remotingClient.invoke("0.0.0.0", request, 1000);
         Throwable thrown = catchThrowable(future::get);

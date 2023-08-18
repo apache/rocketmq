@@ -53,6 +53,8 @@ public class NettyClientConfig {
     private boolean disableCallbackExecutor = false;
     private boolean disableNettyWorkerGroup = false;
 
+    private long maxReconnectIntervalTimeSeconds = 60;
+
     public boolean isClientCloseSocketIfTimeout() {
         return clientCloseSocketIfTimeout;
     }
@@ -179,6 +181,14 @@ public class NettyClientConfig {
 
     public void setDisableNettyWorkerGroup(boolean disableNettyWorkerGroup) {
         this.disableNettyWorkerGroup = disableNettyWorkerGroup;
+    }
+
+    public long getMaxReconnectIntervalTimeSeconds() {
+        return maxReconnectIntervalTimeSeconds;
+    }
+
+    public void setMaxReconnectIntervalTimeSeconds(long maxReconnectIntervalTimeSeconds) {
+        this.maxReconnectIntervalTimeSeconds = maxReconnectIntervalTimeSeconds;
     }
 
     public String getSocksProxyConfig() {
