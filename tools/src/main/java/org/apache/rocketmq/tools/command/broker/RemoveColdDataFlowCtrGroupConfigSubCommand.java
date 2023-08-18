@@ -36,7 +36,7 @@ public class RemoveColdDataFlowCtrGroupConfigSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "remove consumer from cold ctr config";
+        return "Remove consumer from cold ctr config.";
     }
 
     @Override

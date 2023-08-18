@@ -47,7 +47,7 @@ public class ConsumerStatusSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Query consumer's internal data structure";
+        return "Query consumer's internal data structure.";
     }
 
     @Override

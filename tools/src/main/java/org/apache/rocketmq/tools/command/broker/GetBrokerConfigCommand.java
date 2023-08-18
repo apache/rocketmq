@@ -45,7 +45,7 @@ public class GetBrokerConfigCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Get broker config by cluster or special broker";
+        return "Get broker config by cluster or special broker.";
     }
 
     @Override
