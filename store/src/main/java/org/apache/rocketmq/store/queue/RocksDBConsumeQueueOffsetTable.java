@@ -153,7 +153,7 @@ public class RocksDBConsumeQueueOffsetTable {
     public void putMaxPhyAndCqOffset(final Map<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> tempTopicQueueMaxOffsetMap,
         final WriteBatch writeBatch, final long maxPhyOffset) throws RocksDBException {
         for (Map.Entry<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> entry : tempTopicQueueMaxOffsetMap.entrySet()) {
-            writeBatch.put(offsetCFH, entry.getKey(), entry.getValue().getObject1());
+            writeBatch.put(this.offsetCFH, entry.getKey(), entry.getValue().getObject1());
 
             DispatchRequest request = entry.getValue().getObject2();
             putHeapMaxCqOffset(request.getTopic(), request.getQueueId(), request.getConsumeQueueOffset());
@@ -178,8 +178,8 @@ public class RocksDBConsumeQueueOffsetTable {
         byte[] maxOffsetBytes = this.rocksDBStorage.getOffset(maxOffsetKey.array());
         Long endCQOffset = (maxOffsetBytes != null) ? ByteBuffer.wrap(maxOffsetBytes).getLong(OFFSET_CQ_OFFSET) : null;
 
-        writeBatch.delete(offsetCFH, minOffsetKey.array());
-        writeBatch.delete(offsetCFH, maxOffsetKey.array());
+        writeBatch.delete(this.offsetCFH, minOffsetKey.array());
+        writeBatch.delete(this.offsetCFH, maxOffsetKey.array());
 
         String topicQueueId = buildTopicQueueId(topic, queueId);
         removeHeapMinCqOffset(topicQueueId);
@@ -196,7 +196,7 @@ public class RocksDBConsumeQueueOffsetTable {
         maxPhyOffsetBB.flip();
 
         INNER_CHECKPOINT_TOPIC.position(0).limit(INNER_CHECKPOINT_TOPIC_LEN);
-        writeBatch.put(offsetCFH, INNER_CHECKPOINT_TOPIC, maxPhyOffsetBB);
+        writeBatch.put(this.offsetCFH, INNER_CHECKPOINT_TOPIC, maxPhyOffsetBB);
     }
 
     public long getMaxPhyOffset() throws RocksDBException {
@@ -464,7 +464,7 @@ public class RocksDBConsumeQueueOffsetTable {
             final ByteBuffer offsetKey = buildOffsetKeyByteBuffer(topicBytes, queueId, max);
 
             final ByteBuffer offsetValue = buildOffsetValueByteBuffer(phyOffset, cqOffset);
-            writeBatch.put(offsetCFH, offsetKey.array(), offsetValue.array());
+            writeBatch.put(this.offsetCFH, offsetKey.array(), offsetValue.array());
             this.rocksDBStorage.batchPut(writeBatch);
 
             putHeapMinCqOffset(topic, queueId, phyOffset, cqOffset);

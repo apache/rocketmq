@@ -28,14 +28,12 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
-import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.rocksdb.RocksDBException;
 
 public class RocksDBConsumeQueue implements ConsumeQueueInterface {
@@ -140,11 +138,24 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
         return -1;
     }
 
+    /**
+     * We already implement it in RocksDBConsumeQueueStore.
+     * @see RocksDBConsumeQueueStore#getOffsetInQueueByTime
+     * @param timestamp timestamp
+     * @return
+     */
     @Override
     public long getOffsetInQueueByTime(long timestamp) {
         return 0;
     }
 
+    /**
+     * We already implement it in RocksDBConsumeQueueStore.
+     * @see RocksDBConsumeQueueStore#getOffsetInQueueByTime
+     * @param timestamp    timestamp
+     * @param boundaryType Lower or Upper
+     * @return
+     */
     @Override
     public long getOffsetInQueueByTime(long timestamp, BoundaryType boundaryType) {
         return 0;
@@ -168,6 +179,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public long getTotalSize() {
+        // ignored
         return 0;
     }
 
@@ -200,8 +212,8 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
         String topicQueueKey = getTopic() + "-" + getQueueId();
         Long queueOffset = queueOffsetOperator.getTopicQueueNextOffset(topicQueueKey);
         if (queueOffset == null) {
-            // we will recover topic queue table from rocksdb when we use it
-            queueOffset = getTopicQueueNextOffset(getTopic(), getQueueId());
+            // we will recover topic queue table from rocksdb when we use it.
+            queueOffset = this.messageStore.getQueueStore().getMaxOffsetInQueue(topic, queueId);
             queueOffsetOperator.updateQueueOffset(topicQueueKey, queueOffset);
         }
         msg.setQueueOffset(queueOffset);
@@ -209,7 +221,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
         // Handling the multi dispatch message. In the context of a light message queue (as defined in RIP-28),
         // light message queues are constructed based on message properties, which requires special handling of queue offset of the light message queue.
-        if (!isNeedHandleMultiDispatch(msg)) {
+        if (!MultiDispatch.isNeedHandleMultiDispatch(this.messageStore.getMessageStoreConfig(), msg.getTopic())) {
             return;
         }
         String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
@@ -219,42 +231,14 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
         String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
         Long[] queueOffsets = new Long[queues.length];
         for (int i = 0; i < queues.length; i++) {
-            String key = queueKey(queues[i], msg);
-            if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
+            if (this.messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queues[i])) {
+                String key = MultiDispatch.lmqQueueKey(queues[i]);
                 queueOffsets[i] = queueOffsetOperator.getLmqTopicQueueNextOffset(key);
             }
         }
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
             StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
         msg.removeWaitStorePropertyString();
-    }
-
-    private long getTopicQueueNextOffset(String topic, int queueId) throws RocksDBException {
-        try {
-            return this.messageStore.getQueueStore().getMaxOffsetInQueue(topic, queueId);
-        } catch (RocksDBException e) {
-            ERROR_LOG.error("getTopicQueueNextOffset Failed. topic: {}, queueId: {}", topic, queueId, e);
-            throw e;
-        }
-    }
-
-    public boolean isNeedHandleMultiDispatch(MessageExtBrokerInner msg) {
-        return messageStore.getMessageStoreConfig().isEnableMultiDispatch()
-            && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
-            && !msg.getTopic().equals(TimerMessageStore.TIMER_TOPIC)
-            && !msg.getTopic().equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
-    }
-
-    private String queueKey(String queueName, MessageExtBrokerInner msgInner) {
-        StringBuilder keyBuilder = new StringBuilder();
-        keyBuilder.append(queueName);
-        keyBuilder.append('-');
-        int queueId = msgInner.getQueueId();
-        if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
-            queueId = 0;
-        }
-        keyBuilder.append(queueId);
-        return keyBuilder.toString();
     }
 
     @Override
@@ -264,7 +248,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
         // Handling the multi dispatch message. In the context of a light message queue (as defined in RIP-28),
         // light message queues are constructed based on message properties, which requires special handling of queue offset of the light message queue.
-        if (!isNeedHandleMultiDispatch(msg)) {
+        if (!MultiDispatch.isNeedHandleMultiDispatch(this.messageStore.getMessageStoreConfig(), msg.getTopic())) {
             return;
         }
         String multiDispatchQueue = msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
@@ -273,8 +257,8 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
         }
         String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
         for (int i = 0; i < queues.length; i++) {
-            String key = queueKey(queues[i], msg);
-            if (messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(key)) {
+            if (this.messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queues[i])) {
+                String key = MultiDispatch.lmqQueueKey(queues[i]);
                 queueOffsetOperator.increaseLmqOffset(key, (short) 1);
             }
         }

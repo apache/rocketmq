@@ -492,6 +492,7 @@ public class MixAll {
     public static int compareLong(long x, long y) {
         return Long.compare(x, y);
     }
+
     public static boolean isLmq(String lmqMetaData) {
         return lmqMetaData != null && lmqMetaData.startsWith(LMQ_PREFIX);
     }

@@ -112,7 +112,7 @@ public class RocksDBConsumeQueueTable {
         final ByteBuffer cqValue = cqBBPair.getObject2();
         buildCQValueByteBuffer(cqValue, request.getCommitLogOffset(), request.getMsgSize(), request.getTagsCode(), request.getStoreTimestamp());
 
-        writeBatch.put(defaultCFH, cqKey, cqValue);
+        writeBatch.put(this.defaultCFH, cqKey, cqValue);
     }
 
     public ByteBuffer getCQInKV(final String topic, final int queueId, final long cqOffset) throws RocksDBException {
@@ -132,7 +132,7 @@ public class RocksDBConsumeQueueTable {
             final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, startIndex + i);
             kvIndexList.add(i);
             kvKeyList.add(keyBB.array());
-            defaultCFHList.add(defaultCFH);
+            defaultCFHList.add(this.defaultCFH);
         }
         int keyNum = kvIndexList.size();
         if (keyNum > 0) {
@@ -174,7 +174,7 @@ public class RocksDBConsumeQueueTable {
         final ByteBuffer cqStartKey = buildDeleteCQKey(true, topicBytes, queueId);
         final ByteBuffer cqEndKey = buildDeleteCQKey(false, topicBytes, queueId);
 
-        writeBatch.deleteRange(defaultCFH, cqStartKey.array(), cqEndKey.array());
+        writeBatch.deleteRange(this.defaultCFH, cqStartKey.array(), cqEndKey.array());
 
         log.info("Rocksdb consumeQueue table delete topic. {}, {}", topic, queueId);
     }

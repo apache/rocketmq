@@ -133,23 +133,25 @@ public class RocksDBMessageStore extends DefaultMessageStore {
     }
 
     class RocksDBFlushConsumeQueueService extends FlushConsumeQueueService {
+        /**
+         * There is no need to flush consume queue,
+         * we put all consume queues in RocksDBConsumeQueueStore,
+         * it depends on rocksdb to flush consume queue to disk(sorted string table),
+         * we even don't flush WAL of consume store, since we think it can recover consume queue from commitlog.
+         */
         @Override
         public void run() {
-            /**
-             * There is no need to flush consume queue,
-             * we put all consume queues in RocksDBConsumeQueueStore,
-             * it depends on rocksdb to flush consume queue to disk(sorted string table),
-             * we even don't flush WAL of consume store, since we think it can recover consume queue from commitlog
-             */
+
         }
     }
 
     class RocksDBCorrectLogicOffsetService extends CorrectLogicOffsetService {
+        /**
+         * There is no need to correct min offset of consume queue, we already fix this problem.
+         *  @see org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable#getMinCqOffset
+         */
         public void run() {
-            /**
-             * There is no need to correct min offset of consume queue, we already fix this problem
-             *  @see RocksDBConsumeQueueOffsetTable#getMinConsumeOffset()
-             */
+
         }
     }
 
