@@ -17,15 +17,18 @@
 package org.apache.rocketmq.proxy.service.message;
 
 import java.util.HashMap;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class LocalRemotingCommand extends RemotingCommand {
 
-    public static LocalRemotingCommand createRequestCommand(int code, CommandCustomHeader customHeader) {
+    public static LocalRemotingCommand createRequestCommand(int code, CommandCustomHeader customHeader, ProxyContext ctx) {
         LocalRemotingCommand cmd = new LocalRemotingCommand();
         cmd.setCode(code);
+        cmd.setLanguage(LanguageCode.getCode(ctx.getLanguage()));
         cmd.writeCustomHeader(customHeader);
         cmd.setExtFields(new HashMap<>());
         setCmdVersion(cmd);
@@ -37,4 +40,5 @@ public class LocalRemotingCommand extends RemotingCommand {
         Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
         return classHeader.cast(readCustomHeader());
     }
+    
 }
