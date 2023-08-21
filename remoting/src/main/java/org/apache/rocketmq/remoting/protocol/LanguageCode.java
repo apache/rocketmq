@@ -56,8 +56,8 @@ public enum LanguageCode {
         return code;
     }
     
-    
     private static final Map<String, LanguageCode> MAP = Arrays.stream(LanguageCode.values()).collect(Collectors.toMap(LanguageCode::name, Function.identity()));
+
     public static LanguageCode getCode(String language) {
         return MAP.get(language);
     }
