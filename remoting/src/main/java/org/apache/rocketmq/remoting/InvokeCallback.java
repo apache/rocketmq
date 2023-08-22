@@ -17,7 +17,15 @@
 package org.apache.rocketmq.remoting;
 
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface InvokeCallback {
-    void operationComplete(final ResponseFuture responseFuture);
+    @Deprecated
+    default void operationComplete(final ResponseFuture responseFuture) {
+
+    }
+
+    void operationSuccess(final RemotingCommand response);
+
+    void operationException(final Throwable throwable);
 }

@@ -39,8 +39,13 @@ public class NettyRemotingAbstractTest {
         final Semaphore semaphore = new Semaphore(0);
         ResponseFuture responseFuture = new ResponseFuture(null, 1, 3000, new InvokeCallback() {
             @Override
-            public void operationComplete(final ResponseFuture responseFuture) {
+            public void operationSuccess(RemotingCommand response) {
                 assertThat(semaphore.availablePermits()).isEqualTo(0);
+            }
+
+            @Override
+            public void operationException(Throwable throwable) {
+
             }
         }, new SemaphoreReleaseOnlyOnce(semaphore));
 
@@ -75,8 +80,13 @@ public class NettyRemotingAbstractTest {
         final Semaphore semaphore = new Semaphore(0);
         ResponseFuture responseFuture = new ResponseFuture(null, 1, 3000, new InvokeCallback() {
             @Override
-            public void operationComplete(final ResponseFuture responseFuture) {
+            public void operationSuccess(RemotingCommand response) {
                 assertThat(semaphore.availablePermits()).isEqualTo(0);
+            }
+
+            @Override
+            public void operationException(Throwable throwable) {
+
             }
         }, new SemaphoreReleaseOnlyOnce(semaphore));
 
@@ -98,7 +108,13 @@ public class NettyRemotingAbstractTest {
         // mock timeout
         ResponseFuture responseFuture = new ResponseFuture(null, dummyId, -1000, new InvokeCallback() {
             @Override
-            public void operationComplete(final ResponseFuture responseFuture) {
+            public void operationSuccess(RemotingCommand response) {
+
+            }
+
+            @Override
+            public void operationException(Throwable throwable) {
+
             }
         }, null);
         remotingAbstract.responseTable.putIfAbsent(dummyId, responseFuture);
@@ -111,7 +127,17 @@ public class NettyRemotingAbstractTest {
         final Semaphore semaphore = new Semaphore(0);
         RemotingCommand request = RemotingCommand.createRequestCommand(1, null);
         ResponseFuture responseFuture = new ResponseFuture(null, 1, request, 3000,
-            responseFuture1 -> assertThat(semaphore.availablePermits()).isEqualTo(0), new SemaphoreReleaseOnlyOnce(semaphore));
+            new InvokeCallback() {
+                @Override
+                public void operationSuccess(RemotingCommand response) {
+                    assertThat(semaphore.availablePermits()).isEqualTo(0);
+                }
+
+                @Override
+                public void operationException(Throwable throwable) {
+
+                }
+            }, new SemaphoreReleaseOnlyOnce(semaphore));
 
         remotingAbstract.responseTable.putIfAbsent(1, responseFuture);
         RemotingCommand response = RemotingCommand.createResponseCommand(0, "Foo");

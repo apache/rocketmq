@@ -26,12 +26,11 @@ import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
-import org.apache.rocketmq.remoting.netty.ResponseFuture;
-import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
-import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.AfterClass;
@@ -40,7 +39,6 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class RemotingServerTest {
     private static RemotingServer remotingServer;
@@ -121,11 +119,15 @@ public class RemotingServerTest {
         request.setRemark("messi");
         remotingClient.invokeAsync("localhost:" + remotingServer.localListenPort(), request, 1000 * 3, new InvokeCallback() {
             @Override
-            public void operationComplete(ResponseFuture responseFuture) {
+            public void operationSuccess(RemotingCommand response) {
                 latch.countDown();
-                assertTrue(responseFuture != null);
-                assertThat(responseFuture.getResponseCommand().getLanguage()).isEqualTo(LanguageCode.JAVA);
-                assertThat(responseFuture.getResponseCommand().getExtFields()).hasSize(2);
+                assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
+                assertThat(response.getExtFields()).hasSize(2);
+            }
+
+            @Override
+            public void operationException(Throwable throwable) {
+
             }
         });
         latch.await();
