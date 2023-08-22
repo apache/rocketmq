@@ -119,7 +119,7 @@ public class CompositeQueueFlatFileTest {
         Assert.assertEquals(AppendResult.SUCCESS, result);
 
         file.commit(true);
-        file.persistMetadata();
+        file.flushMetadata();
 
         QueueMetadata queueMetadata = metadataStore.getQueue(mq);
         Assert.assertEquals(53, queueMetadata.getMaxOffset());

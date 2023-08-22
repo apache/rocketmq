@@ -222,6 +222,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int popCkOffsetMaxQueueSize = 20000;
     private boolean enablePopBatchAck = false;
     private boolean enableNotifyAfterPopOrderLockRelease = true;
+    private boolean initPopOffsetByCheckMsgInMem = true;
 
     private boolean realTimeNotifyConsumerChange = true;
 
@@ -349,6 +350,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
+    private int metricsOtelCardinalityLimit = 50 * 1000;
     private String metricsGrpcExporterTarget = "";
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
@@ -1266,6 +1268,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.enableNotifyAfterPopOrderLockRelease = enableNotifyAfterPopOrderLockRelease;
     }
 
+    public boolean isInitPopOffsetByCheckMsgInMem() {
+        return initPopOffsetByCheckMsgInMem;
+    }
+
+    public void setInitPopOffsetByCheckMsgInMem(boolean initPopOffsetByCheckMsgInMem) {
+        this.initPopOffsetByCheckMsgInMem = initPopOffsetByCheckMsgInMem;
+    }
+
     public boolean isRealTimeNotifyConsumerChange() {
         return realTimeNotifyConsumerChange;
     }
@@ -1520,6 +1530,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setMetricsExporterType(String metricsExporterType) {
         this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
+    }
+
+    public int getMetricsOtelCardinalityLimit() {
+        return metricsOtelCardinalityLimit;
+    }
+
+    public void setMetricsOtelCardinalityLimit(int metricsOtelCardinalityLimit) {
+        this.metricsOtelCardinalityLimit = metricsOtelCardinalityLimit;
     }
 
     public String getMetricsGrpcExporterTarget() {

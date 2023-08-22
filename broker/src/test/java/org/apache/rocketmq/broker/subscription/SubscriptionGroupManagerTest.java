@@ -20,9 +20,12 @@ package org.apache.rocketmq.broker.subscription;
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SubscriptionGroupAttributes;
 import org.apache.rocketmq.common.attribute.BooleanAttribute;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -52,6 +55,28 @@ public class SubscriptionGroupManagerTest {
         subscriptionGroupManager = spy(new SubscriptionGroupManager(brokerControllerMock));
         when(brokerControllerMock.getMessageStore()).thenReturn(null);
         doNothing().when(subscriptionGroupManager).persist();
+    }
+
+    @After
+    public void destroy() {
+        if (MixAll.isMac()) {
+            return;
+        }
+        if (subscriptionGroupManager != null) {
+            subscriptionGroupManager.stop();
+        }
+    }
+
+    @Test
+    public void testUpdateAndCreateSubscriptionGroupInRocksdb() {
+        if (MixAll.isMac()) {
+            return;
+        }
+        when(brokerControllerMock.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
+        subscriptionGroupManager = spy(new RocksDBSubscriptionGroupManager(brokerControllerMock));
+        subscriptionGroupManager.load();
+        group += System.currentTimeMillis();
+        updateSubscriptionGroupConfig();
     }
 
     @Test

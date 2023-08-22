@@ -282,6 +282,10 @@ public class ExtraInfoUtil {
         return (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) ? RETRY_TOPIC : NORMAL_TOPIC) + "@" + key;
     }
 
+    public static String getStartOffsetInfoMapKey(String topic, String popCk, long key) {
+        return ((topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) || popCk != null) ? RETRY_TOPIC : NORMAL_TOPIC) + "@" + key;
+    }
+
     public static String getQueueOffsetKeyValueKey(long queueId, long queueOffset) {
         return QUEUE_OFFSET + queueId + "%" + queueOffset;
     }
