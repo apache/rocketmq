@@ -447,20 +447,6 @@ public class TieredIndexFile {
                             + indexPosition * INDEX_FILE_HASH_ORIGIN_INDEX_SIZE;
                         int rePutIndexOffset = rePutSlotValue + indexTotalSize;
 
-                        // Fix bug in old version
-                        if (indexTotalSize > (maxIndexNum - 1) * INDEX_FILE_HASH_COMPACT_INDEX_SIZE) {
-                            logger.error("IndexFile compaction error, byteBuffer remaining not enough");
-                            compactMappedByteBuffer.putInt(slotOffset, -1);
-                            compactMappedByteBuffer.putInt(slotOffset + 4, 0);
-                            rePutSlotValue += indexTotalSize;
-
-                            // Seal this file
-                            compactMappedByteBuffer.putInt(INDEX_FILE_HEADER_MAGIC_CODE_POSITION, INDEX_FILE_END_MAGIC_CODE);
-                            compactMappedByteBuffer.putInt(rePutSlotValue, INDEX_FILE_BEGIN_MAGIC_CODE);
-                            compactMappedByteBuffer.limit(rePutSlotValue + 4);
-                            return;
-                        }
-
                         compactMappedByteBuffer.putInt(rePutIndexOffset, originMappedByteBuffer.getInt(indexOffset));
                         compactMappedByteBuffer.putInt(rePutIndexOffset + 4, originMappedByteBuffer.getInt(indexOffset + 4));
                         compactMappedByteBuffer.putInt(rePutIndexOffset + 4 + 4, originMappedByteBuffer.getInt(indexOffset + 4 + 4));
