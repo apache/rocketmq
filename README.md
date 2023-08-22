@@ -72,11 +72,9 @@ NameServer will be listening at `0.0.0.0:9876`, make sure that the port is not u
 
 For macOS and Linux users:
 ```shell
-### start Name Server
-$ nohup sh mqnamesrv &
+### start Name Server and check whether Name Server is successfully started 
+$ sh mqnamesrv -d
 
-### check whether Name Server is successfully started
-$ tail -f ~/logs/rocketmqlogs/namesrv.log
 The Name Server boot success...
 ```
 
@@ -97,11 +95,9 @@ The Name Server boot success...
 
 For macOS and Linux users:
 ```shell
-### start Broker
-$ nohup sh bin/mqbroker -n localhost:9876 &
+### start Broker and check whether Broker is successfully started, eg: Broker's IP is 192.168.1.2, Broker's name is broker-a
+$ sh bin/mqbroker -d -n localhost:9876
 
-### check whether Broker is successfully started, eg: Broker's IP is 192.168.1.2, Broker's name is broker-a
-$ tail -f ~/logs/rocketmqlogs/broker.log
 The broker[broker-a, 192.169.1.2:10911] boot success...
 ```
 

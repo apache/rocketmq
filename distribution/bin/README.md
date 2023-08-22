@@ -9,7 +9,7 @@ Before deploying broker servers, it's highly recommended to run **os.sh**, which
 ### Start broker
 * Unix platform
 
-  `nohup sh mqbroker &`
+  `sh mqbroker -d` or `sh mqbroker --daemon`
 
 ### Shutdown broker
   sh mqshutdown broker

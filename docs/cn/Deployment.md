@@ -9,28 +9,24 @@
 **1）启动NameServer**
 
 ```shell
-### 第一步启动namesrv
-$ nohup sh mqnamesrv &
+### 第一步启动namesrv，并且验证namesrv是否启动成功
+$ sh bin/mqnamesrv -d
  
-### 验证namesrv是否启动成功
-$ tail -f ~/logs/rocketmqlogs/namesrv.log
 The Name Server boot success...
 ```
 
-我们可以在namesrv.log 中看到'The Name Server boot success..'，表示NameServer 已成功启动。
+我们可以在控制台输出中看到'The Name Server boot success..'，表示NameServer 已成功启动。
 
 **2）启动Broker**
 
 ```shell
-### 第一步先启动broker
-$ nohup sh bin/mqbroker -n localhost:9876 &
-
-### 验证broker是否启动成功，比如，broker的ip是192.168.1.2 然后名字是broker-a
-$ tail -f ~/logs/rocketmqlogs/Broker.log 
+### 第一步先启动broker，验证broker是否启动成功，比如，broker的ip是192.168.1.2 然后名字是broker-a
+$ sh bin/mqbroker -d -n localhost:9876
+ 
 The broker[broker-a,192.169.1.2:10911] boot success...
 ```
 
-我们可以在 Broker.log 中看到“The broker[brokerName,ip:port] boot success..”，这表明 broker 已成功启动。
+我们可以在控制台输出中看到“The broker[brokerName,ip:port] boot success..”，这表明 broker 已成功启动。
 
 ### 2 多Master模式
 
@@ -49,11 +45,9 @@ The broker[broker-a,192.169.1.2:10911] boot success...
 **1）启动 NameServer**
 
 ```shell
-### 第一步先启动namesrv
-$ nohup sh mqnamesrv &
- 
-### 验证namesrv是否启动成功
-$ tail -f ~/logs/rocketmqlogs/namesrv.log
+### 第一步先启动namesrv，并且验证namesrv是否启动成功
+$ sh mqnamesrv -d
+
 The Name Server boot success...
 ```
 
@@ -61,11 +55,10 @@ The Name Server boot success...
 
 ```shell
 ### 比如在A机器上启动第一个Master，假设配置的NameServer IP为：192.168.1.1
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-a.properties &
+$ sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-a.properties -d
  
 ### 然后在机器B上启动第二个Master，假设配置的NameServer IP是：192.168.1.1
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-b.properties &
-
+$ sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker-b.properties -d
 ...
 ```
 
@@ -87,11 +80,9 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker
 **1）启动 NameServer**
 
 ```shell
-### 第一步先启动namesrv
-$ nohup sh mqnamesrv &
- 
-### 验证namesrv是否启动成功
-$ tail -f ~/logs/rocketmqlogs/namesrv.log
+### 第一步先启动namesrv，并且验证namesrv是否启动成功
+$ sh mqnamesrv -d
+
 The Name Server boot success...
 ```
 
@@ -99,16 +90,16 @@ The Name Server boot success...
 
 ```shell
 ### 例如在A机器上启动第一个Master，假设配置的NameServer IP为：192.168.1.1，端口为9876。
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a.properties &
+$ sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a.properties -d
  
 ### 然后在机器B上启动第二个Master，假设配置的NameServer IP为：192.168.1.1，端口为9876。
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b.properties &
+$ sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b.properties -d
  
 ### 然后在C机器上启动第一个Slave，假设配置的NameServer IP为：192.168.1.1，端口为9876。
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a-s.properties &
+$ sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-a-s.properties -d
  
 ### 最后在D机启动第二个Slave，假设配置的NameServer IP为：192.168.1.1，端口为9876。
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b-s.properties &
+$ sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broker-b-s.properties -d
 ```
 
 上图显示了 2M-2S-Async 模式的启动命令，类似于其他 nM-nS-Async 模式。
@@ -132,11 +123,9 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-async/broke
 **1）启动NameServer**
 
 ```shell
-### 第一步启动namesrv
-$ nohup sh mqnamesrv &
+### 第一步启动namesrv，并且验证namesrv是否启动成功
+$ sh mqnamesrv -d
  
-### 验证namesrv是否启动成功
-$ tail -f ~/logs/rocketmqlogs/namesrv.log
 The Name Server boot success...
 ```
 
@@ -144,16 +133,16 @@ The Name Server boot success...
 
 ```shell
 ### 例如在A机器上启动第一个Master，假设配置的NameServer IP为：192.168.1.1，端口为9876。
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a.properties &
+$ sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a.properties -d
  
 ### 然后在B机器上启动第二个Master，假设配置的NameServer IP为：192.168.1.1，端口为9876。
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b.properties &
+$ sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b.properties -d
  
 ### 然后在C机器上启动第一个Slave，假设配置的NameServer IP为：192.168.1.1，端口为9876。
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a-s.properties &
+$ sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-a-s.properties -d
  
 ### 最后在D机启动第二个Slave，假设配置的NameServer IP为：192.168.1.1，端口为9876。
-$ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b-s.properties &
+$ sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker-b-s.properties -d
 ```
 
 上述Master和Slave是通过指定相同的config命名为“brokerName”来配对的，master节点的brokerId必须为0，slave节点的brokerId必须大于0。

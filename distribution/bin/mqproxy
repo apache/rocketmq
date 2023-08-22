@@ -42,4 +42,25 @@ fi
 
 export ROCKETMQ_HOME
 
-sh ${ROCKETMQ_HOME}/bin/runserver.sh -Drmq.logback.configurationFile=$ROCKETMQ_HOME/conf/rmq.proxy.logback.xml org.apache.rocketmq.proxy.ProxyStartup $@
+while [[ $# > 0 ]]; do
+  case $1 in
+    -d|--daemon)
+      daemon_mode=true
+      # remove daemon_mode params avoid pass it to next program.
+      shift
+      ;;
+    *)
+      ;;
+  esac
+done
+
+start_args="sh ${ROCKETMQ_HOME}/bin/runserver.sh -Drmq.logback.configurationFile=$ROCKETMQ_HOME/conf/rmq.proxy.logback.xml org.apache.rocketmq.proxy.ProxyStartup $@"
+if [ "$daemon_mode" = false ]; then
+  exec ${start_args}
+else
+  nohup ${start_args} > /dev/null 2>&1 &
+  echo 'mqproxy run in daemon mode...'
+  # check proxy whether boot success in daemon mode.
+  sleep 2
+  tail -n 20 ~/logs/rocketmqlogs/proxy.log | grep 'boot success'
+fi
