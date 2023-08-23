@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.tieredstore.provider.inputstream;
+package org.apache.rocketmq.tieredstore.provider.stream;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 
-public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
+public class CommitLogInputStream extends FileSegmentInputStream {
 
     /**
      * commitLogOffset is the real physical offset of the commitLog buffer which is being read
@@ -34,7 +34,7 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
 
     private long markCommitLogOffset = -1;
 
-    public TieredCommitLogInputStream(FileSegmentType fileType, long startOffset,
+    public CommitLogInputStream(FileSegmentType fileType, long startOffset,
         List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
         super(fileType, uploadBufferList, contentLength);
         this.commitLogOffset = startOffset;
@@ -93,6 +93,14 @@ public class TieredCommitLogInputStream extends TieredFileSegmentInputStream {
             return -1;
         }
         return codaBuffer.get(readPosInCurBuffer++) & 0xff;
+    }
+
+    @Override
+    public void rewind() {
+        super.rewind();
+        if (codaBuffer != null) {
+            codaBuffer.rewind();
+        }
     }
 
     @Override

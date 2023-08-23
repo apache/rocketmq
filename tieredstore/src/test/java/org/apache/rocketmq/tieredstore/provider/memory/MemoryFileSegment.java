@@ -23,7 +23,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
-import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.tieredstore.provider.stream.FileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.Assert;
 
@@ -56,6 +56,18 @@ public class MemoryFileSegment extends TieredFileSegment {
         memStore.position((int) getSize());
     }
 
+    public boolean isCheckSize() {
+        return checkSize;
+    }
+
+    public void setCheckSize(boolean checkSize) {
+        this.checkSize = checkSize;
+    }
+
+    public ByteBuffer getMemStore() {
+        return memStore;
+    }
+
     @Override
     public String getPath() {
         return filePath;
@@ -85,7 +97,7 @@ public class MemoryFileSegment extends TieredFileSegment {
 
     @Override
     public CompletableFuture<Boolean> commit0(
-        TieredFileSegmentInputStream inputStream, long position, int length, boolean append) {
+        FileSegmentInputStream inputStream, long position, int length, boolean append) {
 
         try {
             if (blocker != null && !blocker.get()) {
@@ -98,7 +110,6 @@ public class MemoryFileSegment extends TieredFileSegment {
         Assert.assertTrue(!checkSize || position >= getSize());
 
         byte[] buffer = new byte[1024];
-
         int startPos = memStore.position();
         try {
             int len;

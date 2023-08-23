@@ -318,8 +318,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                         continue;
                     case FILE_CLOSED:
                         tieredFlatFileManager.destroyCompositeFile(flatFile.getMessageQueue());
-                        logger.info("TieredDispatcher#dispatchFlatFile: file has been close and destroy, " +
-                            "topic: {}, queueId: {}", topic, queueId);
+                        logger.info("File has been closed and destroy, topic: {}, queueId: {}", topic, queueId);
                         return;
                     default:
                         dispatchOffset--;

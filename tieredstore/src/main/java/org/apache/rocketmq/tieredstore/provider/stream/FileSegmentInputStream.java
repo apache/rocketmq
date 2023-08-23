@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.tieredstore.provider.inputstream;
+package org.apache.rocketmq.tieredstore.provider.stream;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,7 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 
-public class TieredFileSegmentInputStream extends InputStream {
+public class FileSegmentInputStream extends InputStream {
 
     /**
      * file type, can be commitlog, consume queue or indexfile now
@@ -65,8 +65,8 @@ public class TieredFileSegmentInputStream extends InputStream {
 
     private int markReadPosInCurBuffer = -1;
 
-    public TieredFileSegmentInputStream(FileSegmentType fileType, List<ByteBuffer> uploadBufferList,
-        int contentLength) {
+    public FileSegmentInputStream(
+        FileSegmentType fileType, List<ByteBuffer> uploadBufferList, int contentLength) {
         this.fileType = fileType;
         this.contentLength = contentLength;
         this.uploadBufferList = uploadBufferList;
@@ -100,9 +100,21 @@ public class TieredFileSegmentInputStream extends InputStream {
         }
     }
 
+    public int getContentLength() {
+        return contentLength;
+    }
+
     @Override
     public int available() {
         return contentLength - readPosition;
+    }
+
+    public void rewind() {
+        if (uploadBufferList != null) {
+            for (ByteBuffer buffer : uploadBufferList) {
+                buffer.rewind();
+            }
+        }
     }
 
     public List<ByteBuffer> getUploadBufferList() {
