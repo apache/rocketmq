@@ -42,7 +42,7 @@ public class UpdateTopicSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Update or create topic";
+        return "Update or create topic.";
     }
 
     @Override
