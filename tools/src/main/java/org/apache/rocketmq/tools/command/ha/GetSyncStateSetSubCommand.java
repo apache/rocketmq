@@ -40,7 +40,7 @@ public class GetSyncStateSetSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch syncStateSet for target brokers";
+        return "Fetch syncStateSet for target brokers.";
     }
 
     @Override

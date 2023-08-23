@@ -44,7 +44,7 @@ public class CommitLogSetReadAheadSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "set read ahead mode for all commitlog files";
+        return "Set read ahead mode for all commitlog files.";
     }
 
     @Override

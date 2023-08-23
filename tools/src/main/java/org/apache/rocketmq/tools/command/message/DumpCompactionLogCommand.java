@@ -38,7 +38,7 @@ import java.nio.file.Paths;
 public class DumpCompactionLogCommand implements SubCommand {
     @Override
     public String commandDesc() {
-        return "parse compaction log to message";
+        return "Parse compaction log to message.";
     }
 
     @Override

@@ -108,7 +108,7 @@ public class PrintMessageByQueueCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Print Message Detail";
+        return "Print Message Detail by queueId.";
     }
 
     @Override
