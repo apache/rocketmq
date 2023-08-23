@@ -218,7 +218,6 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
         }
         msg.setQueueOffset(queueOffset);
 
-
         // Handling the multi dispatch message. In the context of a light message queue (as defined in RIP-28),
         // light message queues are constructed based on message properties, which requires special handling of queue offset of the light message queue.
         if (!MultiDispatch.isNeedHandleMultiDispatch(this.messageStore.getMessageStoreConfig(), msg.getTopic())) {
