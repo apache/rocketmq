@@ -306,6 +306,32 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         return future;
     }
 
+    public CompletableFuture<AckResult> batchAckMessageAsync(
+        String brokerAddr,
+        String topic,
+        String consumerGroup,
+        List<String> extraInfoList,
+        long timeoutMillis
+    ) {
+        CompletableFuture<AckResult> future = new CompletableFuture<>();
+        try {
+            this.batchAckMessageAsync(brokerAddr, timeoutMillis, new AckCallback() {
+                @Override
+                public void onSuccess(AckResult ackResult) {
+                    future.complete(ackResult);
+                }
+
+                @Override
+                public void onException(Throwable t) {
+                    future.completeExceptionally(t);
+                }
+            }, topic, consumerGroup, extraInfoList);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
     public CompletableFuture<AckResult> changeInvisibleTimeAsync(
         String brokerAddr,
         String brokerName,
