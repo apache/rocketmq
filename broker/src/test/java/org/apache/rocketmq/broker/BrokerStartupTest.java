@@ -40,6 +40,12 @@ public class BrokerStartupTest {
 
     @Test
     public void testBuildBrokerController() throws Exception {
+        ListAppender<ILoggingEvent> listAppender = new ListAppender<>();
+        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        // using ListAppender to catch BrokerConsoleLogger's output.
+        context.getLogger(LoggerName.BROKER_CONSOLE_NAME).addAppender(listAppender);
+        listAppender.start();
+
         String invalidBrokerConf = "/tmp/invalid-broker.conf";
         Properties properties = new Properties();
         properties.put("namesrvAddr", "127.0.0.1:9876");
@@ -67,10 +73,8 @@ public class BrokerStartupTest {
         assertThat(nettyServerConfig.getServerWorkerThreads()).isEqualTo(20);
         assertThat(nettyServerConfig.getServerWorkerThreads()).isEqualTo(20);
 
-        // assert logger has warning log print.
-        LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-        ListAppender<ILoggingEvent> appender = (ListAppender<ILoggingEvent>) context.getLogger(LoggerName.BROKER_CONSOLE_NAME).getAppender("LIST");
-        List<ILoggingEvent> list = appender.list;
+        // assert BrokerConsoleLogger has warning log output.
+        List<ILoggingEvent> list = listAppender.list;
         list.forEach(log -> {
             assertTrue(log.toString().contains("brokerIp1"));
             assertTrue(log.toString().contains("autoCreateTopicEnabled"));

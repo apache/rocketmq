@@ -29,12 +29,6 @@
         <appender-ref ref="CONSOLE"/>
     </logger>
 
-    <!-- for test logger output -->
-    <appender name="LIST" class="org.apache.rocketmq.logging.ch.qos.logback.core.read.ListAppender"/>
-    <logger name="RocketmqConsole" level="warn" additivity="false">
-        <appender-ref ref="LIST"/>
-    </logger>
-
     <root level="error">
         <appender-ref ref="CONSOLE"/>
     </root>
