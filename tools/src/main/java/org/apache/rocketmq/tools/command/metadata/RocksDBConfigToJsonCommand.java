@@ -78,8 +78,8 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                 final Map<String, JSONObject> topicsJsonConfig = new HashMap<>();
                 final Map<String, JSONObject> topicConfigTable = new HashMap<>();
                 boolean isLoad = kvConfigManager.load(path, (key, value) -> {
-                    final String topic = new String(key, DataConverter.charset);
-                    final String topicConfig = new String(value, DataConverter.charset);
+                    final String topic = new String(key, DataConverter.CHARSET_UTF8);
+                    final String topicConfig = new String(value, DataConverter.CHARSET_UTF8);
                     final JSONObject jsonObject = JSONObject.parseObject(topicConfig);
                     topicConfigTable.put(topic, jsonObject);
                 });
@@ -96,8 +96,8 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                 final Map<String, JSONObject> subscriptionGroupJsonConfig = new HashMap<>();
                 final Map<String, JSONObject> subscriptionGroupTable = new HashMap<>();
                 boolean isLoad = kvConfigManager.load(path, (key, value) -> {
-                    final String subscriptionGroup = new String(key, DataConverter.charset);
-                    final String subscriptionGroupConfig = new String(value, DataConverter.charset);
+                    final String subscriptionGroup = new String(key, DataConverter.CHARSET_UTF8);
+                    final String subscriptionGroupConfig = new String(value, DataConverter.CHARSET_UTF8);
                     final JSONObject jsonObject = JSONObject.parseObject(subscriptionGroupConfig);
                     subscriptionGroupTable.put(subscriptionGroup, jsonObject);
                 });

@@ -1089,6 +1089,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         return maxPhysicOffset;
     }
 
+    public void setMaxPhysicOffset(long maxPhysicOffset) {
+        this.maxPhysicOffset = maxPhysicOffset;
+    }
+
     @Override
     public void destroy() {
         this.setMaxPhysicOffset(-1);
