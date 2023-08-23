@@ -41,7 +41,7 @@ public class AllocateMQSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Allocate MQ";
+        return "Allocate MQ.";
     }
 
     @Override

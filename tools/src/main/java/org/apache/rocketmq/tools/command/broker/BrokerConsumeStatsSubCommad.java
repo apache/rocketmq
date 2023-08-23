@@ -61,7 +61,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch broker consume stats data";
+        return "Fetch broker consume stats data.";
     }
 
     @Override

@@ -144,7 +144,7 @@ public class StatsAllSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Topic and Consumer tps stats";
+        return "Topic and Consumer tps stats.";
     }
 
     @Override

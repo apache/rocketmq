@@ -36,7 +36,7 @@ public class QueryMsgByKeySubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Query Message by Key";
+        return "Query Message by Key.";
     }
 
     @Override
