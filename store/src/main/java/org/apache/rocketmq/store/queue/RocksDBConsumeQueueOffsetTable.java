@@ -209,7 +209,7 @@ public class RocksDBConsumeQueueOffsetTable {
     }
 
     /**
-     * Traverse the Offset table to find dirty topic
+     * Traverse the offset table to find dirty topic
      * @param existTopicSet
      * @return
      */
