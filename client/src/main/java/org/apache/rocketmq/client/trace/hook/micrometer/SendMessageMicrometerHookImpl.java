@@ -23,6 +23,9 @@ import io.micrometer.observation.ObservationRegistry;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.hook.SendMessageHook;
 
+/**
+ * A {@link SendMessageHook} for Micrometer Observation.
+ */
 public class SendMessageMicrometerHookImpl implements SendMessageHook {
 
     private final ObservationRegistry observationRegistry;

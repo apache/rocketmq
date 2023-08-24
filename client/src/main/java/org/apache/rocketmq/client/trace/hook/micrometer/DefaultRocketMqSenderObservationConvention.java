@@ -20,6 +20,9 @@ import io.micrometer.common.KeyValues;
 import org.apache.rocketmq.client.trace.hook.micrometer.RocketMqObservationDocumentation.HighCardinalityTags;
 import org.apache.rocketmq.client.trace.hook.micrometer.RocketMqObservationDocumentation.LowCardinalityTags;
 
+/**
+ * Default implementation of {@link RocketMqSenderObservationConvention}.
+ */
 public class DefaultRocketMqSenderObservationConvention extends AbstractRocketMqObservationConvention implements RocketMqSenderObservationConvention {
 
     /**

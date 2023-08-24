@@ -38,7 +38,7 @@ abstract class AbstractRocketMqObservationConvention {
 
     KeyValues getHighCardinalityKeyValues(Message message, String producerGroup, String brokerAddr, String namespace) {
         // TODO: Is this the same as message group?
-        KeyValues keyValues = KeyValues.of(HighCardinalityTags.MESSAGING_ROCKETMQ_MESSAGE_GROUP.withValue(producerGroup), HighCardinalityTags.MESSAGING_DESTINATION_NAME.withValue(NamespaceUtil.withoutNamespace(message.getTopic())),
+        KeyValues keyValues = KeyValues.of(HighCardinalityTags.MESSAGING_ROCKETMQ_MESSAGE_GROUP.withValue(producerGroup != null ? producerGroup : ""), HighCardinalityTags.MESSAGING_DESTINATION_NAME.withValue(NamespaceUtil.withoutNamespace(message.getTopic())),
                 HighCardinalityTags.MESSAGING_MESSAGE_PAYLOAD_SIZE_BYTES.withValue(
                         String.valueOf(message.getBody().length)),
                 // TODO: Is this the correct one?

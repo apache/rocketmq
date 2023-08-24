@@ -21,6 +21,9 @@ import io.micrometer.observation.transport.ReceiverContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.common.message.MessageExt;
 
+/**
+ * A {@link ReceiverContext} for RocketMQ messages.
+ */
 public class RocketMqReceiverContext extends ReceiverContext<MessageExt> {
 
     private final ConsumeMessageContext consumeMessageContext;

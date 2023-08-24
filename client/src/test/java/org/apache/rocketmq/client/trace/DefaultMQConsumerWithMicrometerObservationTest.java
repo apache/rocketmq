@@ -23,19 +23,24 @@ import java.util.Map;
 import brave.handler.MutableSpan;
 import io.micrometer.common.KeyValues;
 import io.micrometer.core.tck.MeterRegistryAssert;
-import org.apache.rocketmq.client.hook.SendMessageHook;
-import org.apache.rocketmq.client.trace.hook.micrometer.SendMessageMicrometerHookImpl;
+import org.apache.rocketmq.client.hook.ConsumeMessageHook;
+import org.apache.rocketmq.client.trace.hook.micrometer.ConsumeMessageMicrometerHookImpl;
 import org.junit.After;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class DefaultMQProducerWithMicrometerObservationTest extends AbstractDefaultMQProducerTest implements MicrometerObservationAware {
+public class DefaultMQConsumerWithMicrometerObservationTest extends AbstractDefaultMQConsumerTest implements MicrometerObservationAware {
 
     ObservationSetup observationSetup = new ObservationSetup();
 
     @Override
-    SendMessageHook hook() {
-        return new SendMessageMicrometerHookImpl(getObservationRegistry(observationSetup), null);
+    ConsumeMessageHook consumeMessageHook() {
+        return new ConsumeMessageMicrometerHookImpl(getObservationRegistry(observationSetup), null);
+    }
+
+    @Override
+    boolean waitCondition() {
+        return getFinishedSpans(observationSetup).size() == 1;
     }
 
     @Override
@@ -54,10 +59,10 @@ public class DefaultMQProducerWithMicrometerObservationTest extends AbstractDefa
 
     private void assertMetrics() {
         MeterRegistryAssert.assertThat(getMeterRegistry(observationSetup))
-                .hasTimerWithNameAndTags("rocketmq.publish",
-                        KeyValues.of("error", "none", "messaging.operation", "publish", "messaging.rocketmq.message.type", "Normal", "messaging.system", "rocketmq", "net.protocol.name", "remoting", "net.protocol.version", "???")
+                .hasTimerWithNameAndTags("rocketmq.receive",
+                        KeyValues.of("error", "none", "messaging.operation", "receive", "messaging.system", "rocketmq", "net.protocol.name", "remoting", "net.protocol.version", "???")
                 )
-                .hasMeterWithName("rocketmq.publish.active");
+                .hasMeterWithName("rocketmq.receive.active");
     }
 
     @After

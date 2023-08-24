@@ -19,6 +19,9 @@ package org.apache.rocketmq.client.trace.hook.micrometer;
 import io.micrometer.observation.Observation.Context;
 import io.micrometer.observation.ObservationConvention;
 
+/**
+ * An {@link ObservationConvention} for {@link RocketMqReceiverContext}.
+ */
 public interface RocketMqReceiverObservationConvention extends ObservationConvention<RocketMqReceiverContext> {
 
     @Override

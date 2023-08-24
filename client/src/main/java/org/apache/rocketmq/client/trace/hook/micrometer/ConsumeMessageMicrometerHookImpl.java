@@ -26,7 +26,9 @@ import org.apache.rocketmq.client.hook.ConsumeMessageContext;
 import org.apache.rocketmq.client.hook.ConsumeMessageHook;
 import org.apache.rocketmq.common.message.MessageExt;
 
-
+/**
+ * A {@link ConsumeMessageHook} for Micrometer Observation.
+ */
 public class ConsumeMessageMicrometerHookImpl implements ConsumeMessageHook {
 
     private final ObservationRegistry observationRegistry;

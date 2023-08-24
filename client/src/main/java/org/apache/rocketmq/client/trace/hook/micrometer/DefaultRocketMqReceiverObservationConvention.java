@@ -19,6 +19,9 @@ package org.apache.rocketmq.client.trace.hook.micrometer;
 import io.micrometer.common.KeyValues;
 import org.apache.rocketmq.client.trace.hook.micrometer.RocketMqObservationDocumentation.HighCardinalityTags;
 
+/**
+ * Default implementation of {@link RocketMqReceiverObservationConvention}.
+ */
 public class DefaultRocketMqReceiverObservationConvention extends AbstractRocketMqObservationConvention implements RocketMqReceiverObservationConvention {
 
     /**

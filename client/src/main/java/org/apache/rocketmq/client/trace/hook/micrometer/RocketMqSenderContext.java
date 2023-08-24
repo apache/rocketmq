@@ -23,6 +23,9 @@ import io.micrometer.observation.transport.SenderContext;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.trace.TraceConstants;
 
+/**
+ * A {@link SenderContext} for RocketMQ messages.
+ */
 public class RocketMqSenderContext extends SenderContext<SendMessageContext> {
 
     private final SendMessageContext sendMessageContext;
