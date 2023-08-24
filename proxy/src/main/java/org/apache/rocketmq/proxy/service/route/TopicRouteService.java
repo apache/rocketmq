@@ -68,10 +68,13 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         );
         this.mqClientAPIFactory = mqClientAPIFactory;
 
-        this.topicCache = Caffeine.newBuilder().maximumSize(config.getTopicRouteServiceCacheMaxNum()).
-            refreshAfterWrite(config.getTopicRouteServiceCacheExpiredInSeconds(), TimeUnit.SECONDS).
-            executor(cacheRefreshExecutor).build(new CacheLoader<String, MessageQueueView>() {
-                @Override public @Nullable MessageQueueView load(String topic) throws Exception {
+        this.topicCache = Caffeine.newBuilder().maximumSize(config.getTopicRouteServiceCacheMaxNum())
+            .expireAfterAccess(config.getTopicRouteServiceCacheExpiredSeconds(), TimeUnit.SECONDS)
+            .refreshAfterWrite(config.getTopicRouteServiceCacheRefreshSeconds(), TimeUnit.SECONDS)
+            .executor(cacheRefreshExecutor)
+            .build(new CacheLoader<String, MessageQueueView>() {
+                @Override
+                public @Nullable MessageQueueView load(String topic) throws Exception {
                     try {
                         TopicRouteData topicRouteData = mqClientAPIFactory.getClient().getTopicRouteInfoFromNameServer(topic, Duration.ofSeconds(3).toMillis());
                         return buildMessageQueueView(topic, topicRouteData);
@@ -83,7 +86,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                     }
                 }
 
-                @Override public @Nullable MessageQueueView reload(@NonNull String key,
+                @Override
+                public @Nullable MessageQueueView reload(@NonNull String key,
                     @NonNull MessageQueueView oldValue) throws Exception {
                     try {
                         return load(key);
