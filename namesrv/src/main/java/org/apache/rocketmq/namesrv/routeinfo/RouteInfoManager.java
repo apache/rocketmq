@@ -260,8 +260,6 @@ public class RouteInfoManager {
                 prevMinBrokerId = Collections.min(brokerAddrsMap.keySet());
             }
 
-            boolean isMinBrokerIdChanged = brokerId < prevMinBrokerId;
-
             //Switch slave to master: first remove <1, IP:PORT> in namesrv, then add <0, IP:PORT>
             //The same IP:PORT must only have one record in brokerAddrTable
             if (brokerAddr != null) {
@@ -288,7 +286,9 @@ public class RouteInfoManager {
                         }
                     }
                 }
-            } else if (topicConfigWrapper.getTopicConfigTable().size() == 1) {
+            }
+
+            if (null == oldBrokerAddr && topicConfigWrapper.getTopicConfigTable().size() == 1) {
                 log.warn("Can't register topicConfigWrapper={} because broker[{}]={} has not registered.",
                         topicConfigWrapper.getTopicConfigTable(), brokerId, brokerAddr);
                 return null;
@@ -297,10 +297,11 @@ public class RouteInfoManager {
             String oldAddr = brokerAddrsMap.put(brokerId, brokerAddr);
             registerFirst = registerFirst || (StringUtils.isEmpty(oldAddr));
 
+            boolean isMaster = MixAll.MASTER_ID == brokerId;
+
             ConcurrentMap<String, TopicConfig> tcTable;
             if (null != topicConfigWrapper && (tcTable = topicConfigWrapper.getTopicConfigTable()) != null) {
 
-                boolean isMaster = MixAll.MASTER_ID == brokerId;
                 boolean isPrimeSlave = false;
 
                 if (isMaster || (isPrimeSlave = !isOldVersionBroker && brokerId == Collections.min(brokerAddrsMap.keySet()))) {
@@ -389,7 +390,7 @@ public class RouteInfoManager {
                 }
             }
 
-            if (MixAll.MASTER_ID != brokerId) {
+            if (!isMaster) {
                 String masterAddr = brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
                 if (masterAddr != null) {
                     BrokerAddrInfo masterAddrInfo = new BrokerAddrInfo(clusterName, masterAddr);
@@ -401,6 +402,7 @@ public class RouteInfoManager {
                 }
             }
 
+            boolean isMinBrokerIdChanged = brokerId < prevMinBrokerId;
             if (isMinBrokerIdChanged && namesrvConfig.isNotifyMinBrokerIdChanged()) {
                 notifyMinBrokerIdChanged(brokerAddrsMap, null,
                     this.brokerLiveTable.get(brokerAddrInfo).getHaServerAddr());
@@ -1014,7 +1016,7 @@ public class RouteInfoManager {
             try {
                 this.lock.readLock().lockInterruptibly();
                 Set<String> brokerNameSet = this.clusterAddrTable.get(cluster);
-                if (brokerNameSet.size() > 0) {
+                if (brokerNameSet != null) {
                     Map<String, List<String>> brokerTopicTable = new HashMap<>(this.brokerAddrTable.size());
                     for (Entry<String, Map<String, QueueData>> brokerTopicEntry : this.topicQueueTable.entrySet()) {
                         String topic = brokerTopicEntry.getKey();
