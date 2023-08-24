@@ -260,7 +260,7 @@ public class RocksDBConsumeQueueOffsetTable {
                     } else {
                         topicQueueIdSet.add(queueId);
                     }
-                    ERROR_LOG.info("RocksDBConsumeQueueStore has dirty cqOffset. topic: {}, queueId: {}, cqOffset: {}",
+                    ERROR_LOG.info("RocksDBConsumeQueueOffsetTable has dirty cqOffset. topic: {}, queueId: {}, cqOffset: {}",
                         topic, queueId, cqOffset);
                 }
             }
