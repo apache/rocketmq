@@ -16,18 +16,13 @@
  */
 package org.apache.rocketmq.client.trace.hook.micrometer;
 
-import java.util.Objects;
-
-import io.micrometer.common.lang.NonNull;
 import io.micrometer.observation.Observation.Context;
 import io.micrometer.observation.ObservationConvention;
-import io.micrometer.observation.transport.SenderContext;
-import org.apache.rocketmq.client.hook.SendMessageContext;
 
 public interface RocketMqSenderObservationConvention extends ObservationConvention<RocketMqSenderContext> {
 
-	@Override
-	default boolean supportsContext(Context context) {
-		return context instanceof RocketMqSenderContext;
-	}
+    @Override
+    default boolean supportsContext(Context context) {
+        return context instanceof RocketMqSenderContext;
+    }
 }

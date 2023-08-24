@@ -17,29 +17,38 @@
 package org.apache.rocketmq.client.trace.hook.micrometer;
 
 import io.micrometer.common.KeyValues;
-import org.apache.rocketmq.client.trace.hook.micrometer.RocketMqObservationDocumentation.LowCardinalityTags;
+import org.apache.rocketmq.client.trace.hook.micrometer.RocketMqObservationDocumentation.HighCardinalityTags;
 
 public class DefaultRocketMqReceiverObservationConvention extends AbstractRocketMqObservationConvention implements RocketMqReceiverObservationConvention {
 
-	@Override
-	public KeyValues getLowCardinalityKeyValues(RocketMqReceiverContext context) {
-		return getLowCardinalityKeyValues("receive");
-	}
+    /**
+     * Singleton instance of this convention.
+     */
+    public static final DefaultRocketMqReceiverObservationConvention INSTANCE = new DefaultRocketMqReceiverObservationConvention();
 
-	@Override
-	public KeyValues getHighCardinalityKeyValues(RocketMqReceiverContext context) {
-		// TODO: How do we set the producer group for consuming? Does it make any sense?
-		// TODO: How do we get the host properly?
-		return getHighCardinalityKeyValues(context.getCarrier(), null, context.getCarrier().getBornHost().toString());
-	}
+    @Override
+    public KeyValues getLowCardinalityKeyValues(RocketMqReceiverContext context) {
+        return getLowCardinalityKeyValues("receive");
+    }
 
-	@Override
-	public String getName() {
-		return "rocketmq.receive";
-	}
+    @Override
+    public KeyValues getHighCardinalityKeyValues(RocketMqReceiverContext context) {
+        // TODO: Is this the proper way to get the client group?
+        return KeyValues.of(HighCardinalityTags.MESSAGING_ROCKETMQ_CLIENT_GROUP.withValue(context.getConsumeMessageContext().getConsumerGroup()),
+                        // TODO: What is this consumption model?
+                        HighCardinalityTags.MESSAGING_ROCKETMQ_CONSUMPTION_MODEL.withValue(""))
+                // TODO: How do we set the producer group for consuming? Does it make any sense?
+                // TODO: How do we get the host properly?
+                .and(getHighCardinalityKeyValues(context.getCarrier(), null, context.getCarrier().getBornHost().toString(), context.getConsumeMessageContext().getNamespace()));
+    }
 
-	@Override
-	public String getContextualName(RocketMqReceiverContext context) {
-		return "receive " + context.getConsumeMessageContext().getMq().getTopic();
-	}
+    @Override
+    public String getName() {
+        return "rocketmq.receive";
+    }
+
+    @Override
+    public String getContextualName(RocketMqReceiverContext context) {
+        return "receive " + context.getConsumeMessageContext().getMq().getTopic();
+    }
 }

@@ -16,25 +16,22 @@
  */
 package org.apache.rocketmq.client.trace.hook.micrometer;
 
+import io.micrometer.common.lang.Nullable;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.Observation.Scope;
 import io.micrometer.observation.ObservationRegistry;
-import io.opentracing.Span;
-import io.opentracing.SpanContext;
-import io.opentracing.Tracer;
-import io.opentracing.propagation.Format;
-import io.opentracing.propagation.TextMapAdapter;
-import io.opentracing.tag.Tags;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.hook.SendMessageHook;
-import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.client.trace.TraceConstants;
-import org.apache.rocketmq.common.message.Message;
 
 public class SendMessageMicrometerHookImpl implements SendMessageHook {
 
-    private ObservationRegistry observationRegistry;
+    private final ObservationRegistry observationRegistry;
 
-    public SendMessageMicrometerHookImpl(ObservationRegistry observationRegistry) {
+    private final RocketMqSenderObservationConvention convention;
+
+    public SendMessageMicrometerHookImpl(ObservationRegistry observationRegistry, @Nullable RocketMqSenderObservationConvention convention) {
         this.observationRegistry = observationRegistry;
+        this.convention = convention;
     }
 
     @Override
@@ -47,14 +44,9 @@ public class SendMessageMicrometerHookImpl implements SendMessageHook {
         if (context == null) {
             return;
         }
-
-        Span span = spanBuilder.start();
-        tracer.inject(span.context(), Format.Builtin.TEXT_MAP, new TextMapAdapter(msg.getProperties()));
-        span.setTag(TraceConstants.ROCKETMQ_TAGS, msg.getTags());
-        span.setTag(TraceConstants.ROCKETMQ_KEYS, msg.getKeys());
-        span.setTag(TraceConstants.ROCKETMQ_SOTRE_HOST, context.getBrokerAddr());
-        span.setTag(TraceConstants.ROCKETMQ_MSG_TYPE, context.getMsgType().name());
-        context.setMqTraceContext(span);
+        RocketMqSenderContext senderContext = new RocketMqSenderContext(context);
+        Observation observation = RocketMqObservationDocumentation.MESSAGE_OUT.start(this.convention, DefaultRocketMqSenderObservationConvention.INSTANCE, () -> senderContext, observationRegistry);
+        context.setMqTraceContext(observation.openScope());
     }
 
     @Override
@@ -69,11 +61,9 @@ public class SendMessageMicrometerHookImpl implements SendMessageHook {
         if (context.getSendResult().getRegionId() == null) {
             return;
         }
-
-        Span span = (Span) context.getMqTraceContext();
-        span.setTag(TraceConstants.ROCKETMQ_SUCCESS, context.getSendResult().getSendStatus().equals(SendStatus.SEND_OK));
-        span.setTag(TraceConstants.ROCKETMQ_MSG_ID, context.getSendResult().getMsgId());
-        span.setTag(TraceConstants.ROCKETMQ_REGION_ID, context.getSendResult().getRegionId());
-        span.finish();
+        Observation.Scope scope = (Scope) context.getMqTraceContext();
+        Observation observation = scope.getCurrentObservation();
+        scope.close();
+        observation.stop();
     }
 }

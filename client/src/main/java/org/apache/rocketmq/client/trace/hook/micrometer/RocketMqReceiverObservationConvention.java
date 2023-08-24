@@ -21,8 +21,8 @@ import io.micrometer.observation.ObservationConvention;
 
 public interface RocketMqReceiverObservationConvention extends ObservationConvention<RocketMqReceiverContext> {
 
-	@Override
-	default boolean supportsContext(Context context) {
-		return context instanceof RocketMqReceiverContext;
-	}
+    @Override
+    default boolean supportsContext(Context context) {
+        return context instanceof RocketMqReceiverContext;
+    }
 }

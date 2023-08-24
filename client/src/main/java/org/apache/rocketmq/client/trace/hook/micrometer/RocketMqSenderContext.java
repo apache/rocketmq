@@ -25,16 +25,16 @@ import org.apache.rocketmq.client.trace.TraceConstants;
 
 public class RocketMqSenderContext extends SenderContext<SendMessageContext> {
 
-	private final SendMessageContext sendMessageContext;
+    private final SendMessageContext sendMessageContext;
 
-	public RocketMqSenderContext(@NonNull SendMessageContext sendMessageContext) {
-		super((ctx, key, value) -> Objects.requireNonNull(ctx).getMessage().getProperties().put(key, value));
-		this.sendMessageContext = sendMessageContext;
-		setRemoteServiceName(TraceConstants.ROCKETMQ_SERVICE);
-		setCarrier(sendMessageContext);
-	}
+    public RocketMqSenderContext(@NonNull SendMessageContext sendMessageContext) {
+        super((ctx, key, value) -> Objects.requireNonNull(ctx).getMessage().getProperties().put(key, value));
+        this.sendMessageContext = sendMessageContext;
+        setRemoteServiceName(TraceConstants.ROCKETMQ_SERVICE);
+        setCarrier(sendMessageContext);
+    }
 
-	public SendMessageContext getSendMessageContext() {
-		return sendMessageContext;
-	}
+    public SendMessageContext getSendMessageContext() {
+        return sendMessageContext;
+    }
 }

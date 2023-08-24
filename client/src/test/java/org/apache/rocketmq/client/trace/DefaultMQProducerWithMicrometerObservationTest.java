@@ -17,153 +17,120 @@
 
 package org.apache.rocketmq.client.trace;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import io.opentracing.mock.MockSpan;
-import io.opentracing.mock.MockTracer;
-import io.opentracing.tag.Tags;
-import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.hook.SendMessageContext;
-import org.apache.rocketmq.client.impl.CommunicationMode;
-import org.apache.rocketmq.client.impl.MQClientAPIImpl;
-import org.apache.rocketmq.client.impl.MQClientManager;
-import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
-import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.client.trace.hook.SendMessageOpenTracingHookImpl;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageType;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.remoting.protocol.route.BrokerData;
-import org.apache.rocketmq.remoting.protocol.route.QueueData;
-import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import brave.Tracing;
+import brave.baggage.BaggagePropagation;
+import brave.context.slf4j.MDCScopeDecorator;
+import brave.handler.MutableSpan;
+import brave.propagation.B3Propagation;
+import brave.propagation.ThreadLocalCurrentTraceContext;
+import brave.sampler.Sampler;
+import brave.test.TestSpanHandler;
+import io.micrometer.common.KeyValues;
+import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.core.tck.MeterRegistryAssert;
+import io.micrometer.observation.ObservationHandler.FirstMatchingCompositeObservationHandler;
+import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.tracing.CurrentTraceContext;
+import io.micrometer.tracing.Tracer;
+import io.micrometer.tracing.brave.bridge.BraveBaggageManager;
+import io.micrometer.tracing.brave.bridge.BraveCurrentTraceContext;
+import io.micrometer.tracing.brave.bridge.BravePropagator;
+import io.micrometer.tracing.brave.bridge.BraveTracer;
+import io.micrometer.tracing.handler.DefaultTracingObservationHandler;
+import io.micrometer.tracing.handler.PropagatingReceiverTracingObservationHandler;
+import io.micrometer.tracing.handler.PropagatingSenderTracingObservationHandler;
+import org.apache.rocketmq.client.hook.SendMessageHook;
+import org.apache.rocketmq.client.trace.hook.micrometer.SendMessageMicrometerHookImpl;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.junit.MockitoJUnitRunner;
+import zipkin2.reporter.AsyncReporter;
+import zipkin2.reporter.brave.ZipkinSpanHandler;
+import zipkin2.reporter.urlconnection.URLConnectionSender;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.nullable;
-import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
-public class DefaultMQProducerWithMicrometerObservationTest {
+public class DefaultMQProducerWithMicrometerObservationTest extends AbstractDefaultMQProducerTest {
 
-    @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
-    @Mock
-    private MQClientAPIImpl mQClientAPIImpl;
+    ObservationRegistry observationRegistry = ObservationRegistry.create();
 
-    private DefaultMQProducer producer;
+    SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
 
-    private Message message;
-    private String topic = "FooBar";
-    private String producerGroupPrefix = "FooBar_PID";
-    private String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
-    private String producerGroupTraceTemp = TopicValidator.RMQ_SYS_TRACE_TOPIC + System.currentTimeMillis();
+    AsyncReporter reporter = AsyncReporter.create(URLConnectionSender.create("http://localhost:9411/api/v2/spans"));
+
+    ZipkinSpanHandler spanHandler = (ZipkinSpanHandler) ZipkinSpanHandler
+            .create(reporter);
+
+    TestSpanHandler testSpanHandler = new TestSpanHandler();
+
+    ThreadLocalCurrentTraceContext braveCurrentTraceContext = ThreadLocalCurrentTraceContext.newBuilder()
+            .addScopeDecorator(MDCScopeDecorator.get()) // Example of Brave's
+            // automatic MDC setup
+            .build();
+
+    CurrentTraceContext bridgeContext = new BraveCurrentTraceContext(this.braveCurrentTraceContext);
+
+    Tracing tracing = Tracing.newBuilder()
+            .currentTraceContext(this.braveCurrentTraceContext)
+            .supportsJoin(false)
+            .traceId128Bit(true)
+            .propagationFactory(BaggagePropagation.newFactoryBuilder(B3Propagation.FACTORY)
+                    .build())
+            .sampler(Sampler.ALWAYS_SAMPLE)
+            .addSpanHandler(this.spanHandler)
+            .addSpanHandler(this.testSpanHandler)
+            .localServiceName("rocketmq-client")
+            .build();
+
+    brave.Tracer braveTracer = this.tracing.tracer();
+
+    Tracer tracer = new BraveTracer(this.braveTracer, this.bridgeContext, new BraveBaggageManager());
+
+    BravePropagator propagator = new BravePropagator(this.tracing);
 
     @Before
-    public void init() throws Exception {
-
-        producer = new DefaultMQProducer(producerGroupTemp);
-        producer.getDefaultMQProducerImpl().registerSendMessageHook(
-                new SendMessageOpenTracingHookImpl(tracer));
-        producer.setNamesrvAddr("127.0.0.1:9876");
-        message = new Message(topic, new byte[] {'a', 'b', 'c'});
-
-        producer.start();
-
-        Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
-        field.setAccessible(true);
-        field.set(producer.getDefaultMQProducerImpl(), mQClientFactory);
-
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
-        field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
-
-        producer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
-
-        when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
-            nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
-        when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
-            nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
-            .thenReturn(createSendResult(SendStatus.SEND_OK));
-
+    public void setupObservationRegistry() {
+        // metrics
+        this.observationRegistry.observationConfig().observationHandler(new DefaultMeterObservationHandler(this.meterRegistry));
+        // tracing
+        this.observationRegistry.observationConfig().observationHandler(new FirstMatchingCompositeObservationHandler(new PropagatingSenderTracingObservationHandler<>(this.tracer, this.propagator), new PropagatingReceiverTracingObservationHandler<>(this.tracer, this.propagator), new DefaultTracingObservationHandler(this.tracer)));
     }
 
-    @Test
-    public void testSendMessageSync_WithTrace_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
-        producer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, producer.getDefaultMQProducerImpl());
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        producer.send(message);
-        assertThat(tracer.finishedSpans().size()).isEqualTo(1);
-        MockSpan span = tracer.finishedSpans().get(0);
-        assertThat(span.tags().get(Tags.MESSAGE_BUS_DESTINATION.getKey())).isEqualTo(topic);
-        assertThat(span.tags().get(Tags.SPAN_KIND.getKey())).isEqualTo(Tags.SPAN_KIND_PRODUCER);
-        assertThat(span.tags().get(TraceConstants.ROCKETMQ_MSG_ID)).isEqualTo("123");
-        assertThat(span.tags().get(TraceConstants.ROCKETMQ_BODY_LENGTH)).isEqualTo(3);
-        assertThat(span.tags().get(TraceConstants.ROCKETMQ_REGION_ID)).isEqualTo("HZ");
-        assertThat(span.tags().get(TraceConstants.ROCKETMQ_MSG_TYPE)).isEqualTo(MessageType.Normal_Msg.name());
-        assertThat(span.tags().get(TraceConstants.ROCKETMQ_SOTRE_HOST)).isEqualTo("127.0.0.1:10911");
+    @Override
+    SendMessageHook hook() {
+        return new SendMessageMicrometerHookImpl(this.observationRegistry, null);
+    }
+
+    @Override
+    void assertResults() {
+        assertTracing();
+        assertMetrics();
+    }
+
+    private void assertTracing() {
+        List<MutableSpan> spans = testSpanHandler.spans();
+        assertThat(spans).hasSize(1);
+        MutableSpan span = spans.get(0);
+        Map<String, String> tags = span.tags();
+        assertThat(tags).isNotEmpty();
+    }
+
+    private void assertMetrics() {
+        MeterRegistryAssert.assertThat(meterRegistry)
+                .hasTimerWithNameAndTags("rocketmq.publish",
+                        KeyValues.of("error", "none", "messaging.operation", "publish", "messaging.rocketmq.message.type", "Normal", "messaging.system", "rocketmq", "net.protocol.name", "remoting", "net.protocol.version", "???")
+                )
+                .hasMeterWithName("rocketmq.publish.active");
     }
 
     @After
-    public void terminate() {
-        producer.shutdown();
+    public void clear() throws InterruptedException {
+        reporter.flush();
+        reporter.close();
+        spanHandler.close();
+        tracing.close();
     }
-
-    public static TopicRouteData createTopicRoute() {
-        TopicRouteData topicRouteData = new TopicRouteData();
-
-        topicRouteData.setFilterServerTable(new HashMap<>());
-        List<BrokerData> brokerDataList = new ArrayList<>();
-        BrokerData brokerData = new BrokerData();
-        brokerData.setBrokerName("BrokerA");
-        brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(0L, "127.0.0.1:10911");
-        brokerData.setBrokerAddrs(brokerAddrs);
-        brokerDataList.add(brokerData);
-        topicRouteData.setBrokerDatas(brokerDataList);
-
-        List<QueueData> queueDataList = new ArrayList<>();
-        QueueData queueData = new QueueData();
-        queueData.setBrokerName("BrokerA");
-        queueData.setPerm(6);
-        queueData.setReadQueueNums(3);
-        queueData.setWriteQueueNums(4);
-        queueData.setTopicSysFlag(0);
-        queueDataList.add(queueData);
-        topicRouteData.setQueueDatas(queueDataList);
-        return topicRouteData;
-    }
-
-    private SendResult createSendResult(SendStatus sendStatus) {
-        SendResult sendResult = new SendResult();
-        sendResult.setMsgId("123");
-        sendResult.setOffsetMsgId("123");
-        sendResult.setQueueOffset(456);
-        sendResult.setSendStatus(sendStatus);
-        sendResult.setRegionId("HZ");
-        return sendResult;
-    }
-
 }
