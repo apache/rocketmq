@@ -502,7 +502,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     case DISABLED:
                         ctx.close();
                         log.warn("Clients intend to establish an SSL connection while this server is running in SSL disabled mode");
-                        break;
+                        throw new UnsupportedOperationException("The NettyRemotingServer in SSL disabled mode doesn't support ssl client");
                     case PERMISSIVE:
                     case ENFORCING:
                         if (null != sslContext) {

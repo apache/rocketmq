@@ -70,7 +70,7 @@ public class ConsumeMessageCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Consume message";
+        return "Consume message.";
     }
 
     @Override

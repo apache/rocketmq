@@ -144,8 +144,13 @@ public class TlsTest {
             tlsClientKeyPath = "";
             tlsClientCertPath = "";
             clientConfig.setUseTLS(false);
-        } else if ("serverRejectsSSLClient".equals(name.getMethodName())) {
+        } else if ("disabledServerRejectsSSLClient".equals(name.getMethodName())) {
             tlsMode = TlsMode.DISABLED;
+        } else if ("disabledServerAcceptUnAuthClient".equals(name.getMethodName())) {
+            tlsMode = TlsMode.DISABLED;
+            tlsClientKeyPath = "";
+            tlsClientCertPath = "";
+            clientConfig.setUseTLS(false);
         } else if ("reloadSslContextForServer".equals(name.getMethodName())) {
             tlsClientAuthServer = false;
             tlsServerNeedClientAuth = "none";
@@ -211,12 +216,17 @@ public class TlsTest {
     }
 
     @Test
-    public void serverRejectsSSLClient() throws Exception {
+    public void disabledServerRejectsSSLClient() throws Exception {
         try {
             RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 5);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
         } catch (RemotingSendRequestException ignore) {
         }
+    }
+
+    @Test
+    public void disabledServerAcceptUnAuthClient() throws Exception {
+        requestThenAssertResponse();
     }
 
     /**

@@ -21,7 +21,7 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -352,8 +352,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public List<Pair<InstrumentSelector, View>> getMetricsView() {
-        List<Pair<InstrumentSelector, View>> res = super.getMetricsView();
+    public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
+        List<Pair<InstrumentSelector, ViewBuilder>> res = super.getMetricsView();
         res.addAll(TieredStoreMetricsManager.getMetricsView());
         return res;
     }

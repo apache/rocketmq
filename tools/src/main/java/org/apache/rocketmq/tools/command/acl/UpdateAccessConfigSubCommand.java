@@ -40,7 +40,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Update acl config yaml file in broker";
+        return "Update acl config yaml file in broker.";
     }
 
     @Override

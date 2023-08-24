@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -172,7 +173,7 @@ public class ConsumerGroupInfo {
      */
     public boolean updateSubscription(final Set<SubscriptionData> subList) {
         boolean updated = false;
-
+        Set<String> topicSet = new HashSet<>();
         for (SubscriptionData sub : subList) {
             SubscriptionData old = this.subscriptionTable.get(sub.getTopic());
             if (old == null) {
@@ -194,22 +195,16 @@ public class ConsumerGroupInfo {
 
                 this.subscriptionTable.put(sub.getTopic(), sub);
             }
+            // Add all new topics to the HashSet
+            topicSet.add(sub.getTopic());
         }
 
         Iterator<Entry<String, SubscriptionData>> it = this.subscriptionTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, SubscriptionData> next = it.next();
             String oldTopic = next.getKey();
-
-            boolean exist = false;
-            for (SubscriptionData sub : subList) {
-                if (sub.getTopic().equals(oldTopic)) {
-                    exist = true;
-                    break;
-                }
-            }
-
-            if (!exist) {
+            // Check HashSet with O(1) time complexity
+            if (!topicSet.contains(oldTopic)) {
                 log.warn("subscription changed, group: {} remove topic {} {}",
                     this.groupName,
                     oldTopic,

@@ -65,7 +65,7 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Query a message trace";
+        return "Query a message trace.";
     }
 
     @Override

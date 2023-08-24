@@ -34,8 +34,10 @@ import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.SdkMeterProviderBuilder;
 import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
+import io.opentelemetry.sdk.metrics.internal.SdkMeterProviderUtil;
 import io.opentelemetry.sdk.resources.Resource;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -361,22 +363,45 @@ public class BrokerMetricsManager {
             .setType(InstrumentType.HISTOGRAM)
             .setName(HISTOGRAM_MESSAGE_SIZE)
             .build();
-        View messageSizeView = View.builder()
-            .setAggregation(Aggregation.explicitBucketHistogram(messageSizeBuckets))
+        ViewBuilder messageSizeViewBuilder = View.builder()
+            .setAggregation(Aggregation.explicitBucketHistogram(messageSizeBuckets));
+        // To config the cardinalityLimit for openTelemetry metrics exporting.
+        SdkMeterProviderUtil.setCardinalityLimit(messageSizeViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+        providerBuilder.registerView(messageSizeSelector, messageSizeViewBuilder.build());
+
+        for (Pair<InstrumentSelector, ViewBuilder> selectorViewPair : RemotingMetricsManager.getMetricsView()) {
+            ViewBuilder viewBuilder = selectorViewPair.getObject2();
+            SdkMeterProviderUtil.setCardinalityLimit(viewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+            providerBuilder.registerView(selectorViewPair.getObject1(), viewBuilder.build());
+        }
+
+        for (Pair<InstrumentSelector, ViewBuilder> selectorViewPair : messageStore.getMetricsView()) {
+            ViewBuilder viewBuilder = selectorViewPair.getObject2();
+            SdkMeterProviderUtil.setCardinalityLimit(viewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+            providerBuilder.registerView(selectorViewPair.getObject1(), viewBuilder.build());
+        }
+
+        for (Pair<InstrumentSelector, ViewBuilder> selectorViewPair : PopMetricsManager.getMetricsView()) {
+            ViewBuilder viewBuilder = selectorViewPair.getObject2();
+            SdkMeterProviderUtil.setCardinalityLimit(viewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+            providerBuilder.registerView(selectorViewPair.getObject1(), viewBuilder.build());
+        }
+
+        // default view builder for all counter.
+        InstrumentSelector defaultCounterSelector = InstrumentSelector.builder()
+            .setType(InstrumentType.COUNTER)
             .build();
-        providerBuilder.registerView(messageSizeSelector, messageSizeView);
+        ViewBuilder defaultCounterViewBuilder = View.builder().setDescription("default view for counter.");
+        SdkMeterProviderUtil.setCardinalityLimit(defaultCounterViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+        providerBuilder.registerView(defaultCounterSelector, defaultCounterViewBuilder.build());
 
-        for (Pair<InstrumentSelector, View> selectorViewPair : RemotingMetricsManager.getMetricsView()) {
-            providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
-        }
-
-        for (Pair<InstrumentSelector, View> selectorViewPair : messageStore.getMetricsView()) {
-            providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
-        }
-
-        for (Pair<InstrumentSelector, View> selectorViewPair : PopMetricsManager.getMetricsView()) {
-            providerBuilder.registerView(selectorViewPair.getObject1(), selectorViewPair.getObject2());
-        }
+        //default view builder for all observable gauge.
+        InstrumentSelector defaultGaugeSelector = InstrumentSelector.builder()
+            .setType(InstrumentType.OBSERVABLE_GAUGE)
+            .build();
+        ViewBuilder defaultGaugeViewBuilder = View.builder().setDescription("default view for gauge.");
+        SdkMeterProviderUtil.setCardinalityLimit(defaultGaugeViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+        providerBuilder.registerView(defaultGaugeSelector, defaultGaugeViewBuilder.build());
     }
 
     private void initStatsMetrics() {

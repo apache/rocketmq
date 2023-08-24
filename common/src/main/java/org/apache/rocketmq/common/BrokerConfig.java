@@ -350,6 +350,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
+    private int metricsOtelCardinalityLimit = 50 * 1000;
     private String metricsGrpcExporterTarget = "";
     private String metricsGrpcExporterHeader = "";
     private long metricGrpcExporterTimeOutInMills = 3 * 1000;
@@ -1529,6 +1530,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setMetricsExporterType(String metricsExporterType) {
         this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
+    }
+
+    public int getMetricsOtelCardinalityLimit() {
+        return metricsOtelCardinalityLimit;
+    }
+
+    public void setMetricsOtelCardinalityLimit(int metricsOtelCardinalityLimit) {
+        this.metricsOtelCardinalityLimit = metricsOtelCardinalityLimit;
     }
 
     public String getMetricsGrpcExporterTarget() {

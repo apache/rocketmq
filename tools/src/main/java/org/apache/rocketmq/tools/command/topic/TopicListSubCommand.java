@@ -45,7 +45,7 @@ public class TopicListSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch all topic list from name server";
+        return "Fetch all topic list from name server.";
     }
 
     @Override

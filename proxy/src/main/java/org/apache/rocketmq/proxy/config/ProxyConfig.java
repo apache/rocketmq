@@ -165,7 +165,7 @@ public class ProxyConfig implements ConfigFile {
     private int subscriptionGroupConfigCacheExpiredInSeconds = 20;
     private int subscriptionGroupConfigCacheMaxNum = 20000;
     private int metadataThreadPoolNums = 3;
-    private int metadataThreadPoolQueueCapacity = 1000;
+    private int metadataThreadPoolQueueCapacity = 100000;
 
     private int transactionHeartbeatThreadPoolNums = 20;
     private int transactionHeartbeatThreadPoolQueueCapacity = 200;
@@ -249,6 +249,8 @@ public class ProxyConfig implements ConfigFile {
     private long remotingWaitTimeMillsInUpdateOffsetQueue = 3 * 1000;
     private long remotingWaitTimeMillsInTopicRouteQueue = 3 * 1000;
     private long remotingWaitTimeMillsInDefaultQueue = 3 * 1000;
+
+    private boolean enableBatchAck = false;
 
     @Override
     public void initData() {
@@ -1378,5 +1380,13 @@ public class ProxyConfig implements ConfigFile {
 
     public void setRemotingWaitTimeMillsInDefaultQueue(long remotingWaitTimeMillsInDefaultQueue) {
         this.remotingWaitTimeMillsInDefaultQueue = remotingWaitTimeMillsInDefaultQueue;
+    }
+
+    public boolean isEnableBatchAck() {
+        return enableBatchAck;
+    }
+
+    public void setEnableBatchAck(boolean enableBatchAck) {
+        this.enableBatchAck = enableBatchAck;
     }
 }
