@@ -47,7 +47,7 @@ public class ClusterAclConfigVersionListSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "List all of acl config version information in cluster";
+        return "List all of acl config version information in cluster.";
     }
 
     @Override

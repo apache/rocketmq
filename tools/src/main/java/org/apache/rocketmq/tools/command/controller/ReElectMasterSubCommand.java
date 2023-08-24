@@ -37,7 +37,7 @@ public class ReElectMasterSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Re-elect the specified broker as master";
+        return "Re-elect the specified broker as master.";
     }
 
     @Override
