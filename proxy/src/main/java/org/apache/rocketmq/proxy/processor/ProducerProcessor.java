@@ -111,14 +111,15 @@ public class ProducerProcessor extends AbstractProcessor {
                             fillTransactionData(ctx, producerGroup, finalMessageQueue, sendResult, messageList);
                         }
                     }
-                    endTimestamp.set(System.currentTimeMillis());
-                    this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(),endTimestamp.get() - beginTimestampFirst, false, true);
                     return sendResultList;
                 }, this.executor)
-                    .exceptionally(t -> {
+                    .whenComplete((result, exception) -> {
                         endTimestamp.set(System.currentTimeMillis());
-                        this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(),endTimestamp.get() - beginTimestampFirst, true, false);
-                        return null;
+                        if (exception != null) {
+                            this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp.get() - beginTimestampFirst, true, false);
+                        } else {
+                            this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(),endTimestamp.get() - beginTimestampFirst, false, true);
+                        }
                     });
         } catch (Throwable t) {
             future.completeExceptionally(t);
