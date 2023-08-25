@@ -27,7 +27,7 @@ public class MessageBatch extends Message implements Iterable<Message> {
     private static final long serialVersionUID = 621335151046335557L;
     private final List<Message> messages;
 
-    private MessageBatch(List<Message> messages) {
+    public MessageBatch(List<Message> messages) {
         this.messages = messages;
     }
 

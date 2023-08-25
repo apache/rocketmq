@@ -47,7 +47,7 @@ public class GetColdDataFlowCtrInfoSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "get cold data flow ctr info";
+        return "Get cold data flow ctr info.";
     }
 
     @Override

@@ -41,7 +41,7 @@ public class SkipAccumulationSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Skip all messages that are accumulated (not consumed) currently";
+        return "Skip all messages that are accumulated (not consumed) currently.";
     }
 
     @Override

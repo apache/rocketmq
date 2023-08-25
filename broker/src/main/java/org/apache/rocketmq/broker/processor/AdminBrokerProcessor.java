@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UnlockCallback;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.attribute.AttributeParser;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.constant.FIleReadaheadMode;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -439,15 +440,27 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         String attributesModification = requestHeader.getAttributes();
         topicConfig.setAttributes(AttributeParser.parseToMap(attributesModification));
 
+        if (topicConfig.getTopicMessageType() == TopicMessageType.MIXED
+            && !brokerController.getBrokerConfig().isEnableMixedMessageType()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("MIXED message type is not supported.");
+            return response;
+        }
+
         try {
             this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
-            this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
+            if (brokerController.getBrokerConfig().isEnableSingleTopicRegister()) {
+                this.brokerController.registerSingleTopicAll(topicConfig);
+            } else {
+                this.brokerController.registerIncrementBrokerData(topicConfig, this.brokerController.getTopicConfigManager().getDataVersion());
+            }
             response.setCode(ResponseCode.SUCCESS);
         } catch (Exception e) {
             LOGGER.error("Update / create topic failed for [{}]", request, e);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(e.getMessage());
         }
+
         return response;
     }
 
@@ -769,7 +782,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private synchronized RemotingCommand updateColdDataFlowCtrGroupConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+    private synchronized RemotingCommand updateColdDataFlowCtrGroupConfig(ChannelHandlerContext ctx,
+        RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         LOGGER.info("updateColdDataFlowCtrGroupConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
@@ -876,7 +890,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
             MessageStore messageStore = this.brokerController.getMessageStore();
             if (messageStore instanceof DefaultMessageStore) {
-                DefaultMessageStore defaultMessageStore = (DefaultMessageStore)messageStore;
+                DefaultMessageStore defaultMessageStore = (DefaultMessageStore) messageStore;
                 if (mode == LibC.MADV_NORMAL) {
                     defaultMessageStore.getMessageStoreConfig().setDataReadAheadEnable(true);
                 } else {
@@ -988,7 +1002,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     continue;
                 }
                 if (mappingDetail.getBname().equals(item.getBname())) {
-                    offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(mappingContext.getTopic(), item.getQueueId(), timestamp);
+                    offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(mappingContext.getTopic(), item.getQueueId(), timestamp, requestHeader.getBoundaryType());
                     if (offset > 0) {
                         offset = item.computeStaticQueueOffsetStrictly(offset);
                         break;
@@ -1039,7 +1053,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         long offset = this.brokerController.getMessageStore().getOffsetInQueueByTime(requestHeader.getTopic(), requestHeader.getQueueId(),
-            requestHeader.getTimestamp());
+            requestHeader.getTimestamp(), requestHeader.getBoundaryType());
 
         responseHeader.setOffset(offset);
 
@@ -1835,13 +1849,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     /**
      * Reset consumer offset.
      *
-     * @param topic     Required, not null.
-     * @param group     Required, not null.
-     * @param queueId   if target queue ID is negative, all message queues will be reset;
-     *                  otherwise, only the target queue would get reset.
-     * @param timestamp if timestamp is negative, offset would be reset to broker offset at the time being;
-     *                  otherwise, binary search is performed to locate target offset.
-     * @param offset    Target offset to reset to if target queue ID is properly provided.
+     * @param topic Required, not null.
+     * @param group Required, not null.
+     * @param queueId if target queue ID is negative, all message queues will be reset; otherwise, only the target queue
+     * would get reset.
+     * @param timestamp if timestamp is negative, offset would be reset to broker offset at the time being; otherwise,
+     * binary search is performed to locate target offset.
+     * @param offset Target offset to reset to if target queue ID is properly provided.
      * @return Affected queues and their new offset
      */
     private RemotingCommand resetOffsetInner(String topic, String group, int queueId, long timestamp, Long offset) {

@@ -41,6 +41,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -73,7 +74,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
 
-    private Long brokerControllerId = null;
+    private Long localBrokerId = null;
 
     public AutoSwitchHAService() {
     }
@@ -287,9 +288,11 @@ public class AutoSwitchHAService extends DefaultHAService {
 
         // If the slaveBrokerId is in syncStateSet but not in connectionCaughtUpTimeTable,
         // it means that the broker has not connected.
-        for (Long slaveBrokerId : newSyncStateSet) {
-            if (!this.connectionCaughtUpTimeTable.containsKey(slaveBrokerId)) {
-                newSyncStateSet.remove(slaveBrokerId);
+        Iterator<Long> iterator = newSyncStateSet.iterator();
+        while (iterator.hasNext()) {
+            Long slaveBrokerId = iterator.next();
+            if (!Objects.equals(slaveBrokerId, this.localBrokerId) && !this.connectionCaughtUpTimeTable.containsKey(slaveBrokerId)) {
+                iterator.remove();
                 isSyncStateSetChanged = true;
             }
         }
@@ -419,7 +422,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         // To avoid the syncStateSet is not consistent with connectionList.
         // Fix issue: https://github.com/apache/rocketmq/issues/6662
         for (Long syncId : currentSyncStateSet) {
-            if (!idList.contains(syncId) && this.brokerControllerId != null && !Objects.equals(syncId, this.brokerControllerId)) {
+            if (!idList.contains(syncId) && this.localBrokerId != null && !Objects.equals(syncId, this.localBrokerId)) {
                 LOGGER.warn("Slave {} is still in syncStateSet, but has lost its connection. So new offset can't be compute.", syncId);
                 // Without check and re-compute, return the confirmOffset's value directly.
                 return this.defaultMessageStore.getConfirmOffsetDirectly();
@@ -545,12 +548,12 @@ public class AutoSwitchHAService extends DefaultHAService {
         return this.epochCache.getAllEntries();
     }
 
-    public Long getBrokerControllerId() {
-        return brokerControllerId;
+    public Long getLocalBrokerId() {
+        return localBrokerId;
     }
 
-    public void setBrokerControllerId(Long brokerControllerId) {
-        this.brokerControllerId = brokerControllerId;
+    public void setLocalBrokerId(Long localBrokerId) {
+        this.localBrokerId = localBrokerId;
     }
 
     class AutoSwitchAcceptSocketService extends AcceptSocketService {

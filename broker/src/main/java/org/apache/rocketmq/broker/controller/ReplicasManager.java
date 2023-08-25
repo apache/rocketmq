@@ -542,7 +542,7 @@ public class ReplicasManager {
             this.brokerMetadata.updateAndPersist(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), tempBrokerMetadata.getBrokerId());
             this.tempBrokerMetadata.clear();
             this.brokerControllerId = this.brokerMetadata.getBrokerId();
-            this.haService.setBrokerControllerId(this.brokerControllerId);
+            this.haService.setLocalBrokerId(this.brokerControllerId);
             return true;
         } catch (Exception e) {
             LOGGER.error("fail to create metadata file", e);
@@ -594,7 +594,7 @@ public class ReplicasManager {
         if (this.brokerMetadata.isLoaded()) {
             this.registerState = RegisterState.CREATE_METADATA_FILE_DONE;
             this.brokerControllerId = brokerMetadata.getBrokerId();
-            this.haService.setBrokerControllerId(this.brokerControllerId);
+            this.haService.setLocalBrokerId(this.brokerControllerId);
             return;
         }
         // 2. check if temp metadata exist
@@ -735,23 +735,26 @@ public class ReplicasManager {
         if (this.checkSyncStateSetTaskFuture != null) {
             this.checkSyncStateSetTaskFuture.cancel(false);
         }
-        this.checkSyncStateSetTaskFuture = this.scheduledService.scheduleAtFixedRate(() -> {
-            checkSyncStateSetAndDoReport();
-        }, 3 * 1000, this.brokerConfig.getCheckSyncStateSetPeriod(), TimeUnit.MILLISECONDS);
+        this.checkSyncStateSetTaskFuture = this.scheduledService.scheduleAtFixedRate(this::checkSyncStateSetAndDoReport, 3 * 1000,
+            this.brokerConfig.getCheckSyncStateSetPeriod(), TimeUnit.MILLISECONDS);
     }
 
     private void checkSyncStateSetAndDoReport() {
-        final Set<Long> newSyncStateSet = this.haService.maybeShrinkSyncStateSet();
-        newSyncStateSet.add(this.brokerControllerId);
-        synchronized (this) {
-            if (this.syncStateSet != null) {
-                // Check if syncStateSet changed
-                if (this.syncStateSet.size() == newSyncStateSet.size() && this.syncStateSet.containsAll(newSyncStateSet)) {
-                    return;
+        try {
+            final Set<Long> newSyncStateSet = this.haService.maybeShrinkSyncStateSet();
+            newSyncStateSet.add(this.brokerControllerId);
+            synchronized (this) {
+                if (this.syncStateSet != null) {
+                    // Check if syncStateSet changed
+                    if (this.syncStateSet.size() == newSyncStateSet.size() && this.syncStateSet.containsAll(newSyncStateSet)) {
+                        return;
+                    }
                 }
             }
+            doReportSyncStateSetChanged(newSyncStateSet);
+        } catch (Exception e) {
+            LOGGER.error("Check syncStateSet error", e);
         }
-        doReportSyncStateSetChanged(newSyncStateSet);
     }
 
     private void doReportSyncStateSetChanged(Set<Long> newSyncStateSet) {

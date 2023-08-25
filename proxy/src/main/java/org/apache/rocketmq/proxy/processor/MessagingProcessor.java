@@ -37,6 +37,7 @@ import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
@@ -150,6 +151,23 @@ public interface MessagingProcessor extends StartAndShutdown {
         ProxyContext ctx,
         ReceiptHandle handle,
         String messageId,
+        String consumerGroup,
+        String topic,
+        long timeoutMillis
+    );
+
+    default CompletableFuture<List<BatchAckResult>> batchAckMessage(
+        ProxyContext ctx,
+        List<ReceiptHandleMessage> handleMessageList,
+        String consumerGroup,
+        String topic
+    ) {
+        return batchAckMessage(ctx, handleMessageList, consumerGroup, topic, DEFAULT_TIMEOUT_MILLS);
+    }
+
+    CompletableFuture<List<BatchAckResult>> batchAckMessage(
+        ProxyContext ctx,
+        List<ReceiptHandleMessage> handleMessageList,
         String consumerGroup,
         String topic,
         long timeoutMillis

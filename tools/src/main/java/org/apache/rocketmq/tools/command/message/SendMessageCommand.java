@@ -41,7 +41,7 @@ public class SendMessageCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Send a message";
+        return "Send a message.";
     }
 
     @Override

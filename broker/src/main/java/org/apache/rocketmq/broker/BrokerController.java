@@ -45,6 +45,8 @@ import org.apache.rocketmq.broker.offset.BroadcastOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
+import org.apache.rocketmq.broker.offset.RocksDBConsumerOffsetManager;
+import org.apache.rocketmq.broker.offset.RocksDBLmqConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
@@ -66,8 +68,12 @@ import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
+import org.apache.rocketmq.broker.subscription.RocksDBLmqSubscriptionGroupManager;
+import org.apache.rocketmq.broker.subscription.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.LmqTopicConfigManager;
+import org.apache.rocketmq.broker.topic.RocksDBLmqTopicConfigManager;
+import org.apache.rocketmq.broker.topic.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
@@ -120,6 +126,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
@@ -301,9 +308,16 @@ public class BrokerController {
         this.messageStoreConfig = messageStoreConfig;
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat()) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
-        this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
         this.broadcastOffsetManager = new BroadcastOffsetManager(this);
-        this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
+        if (isEnableRocksDBStore()) {
+            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqTopicConfigManager(this) : new RocksDBTopicConfigManager(this);
+            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqSubscriptionGroupManager(this) : new RocksDBSubscriptionGroupManager(this);
+            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqConsumerOffsetManager(this) : new RocksDBConsumerOffsetManager(this);
+        } else {
+            this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
+            this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
+            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
+        }
         this.topicQueueMappingManager = new TopicQueueMappingManager(this);
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.peekMessageProcessor = new PeekMessageProcessor(this);
@@ -324,7 +338,6 @@ public class BrokerController {
         this.popInflightMessageCounter = new PopInflightMessageCounter(this);
         this.clientHousekeepingService = new ClientHousekeepingService(this);
         this.broker2Client = new Broker2Client(this);
-        this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
         this.scheduleMessageService = new ScheduleMessageService(this);
         this.coldDataPullRequestHoldService = new ColdDataPullRequestHoldService(this);
         this.coldDataCgCtrService = new ColdDataCgCtrService(this);
@@ -650,7 +663,7 @@ public class BrokerController {
                                 BrokerController.this.getSlaveSynchronize().syncAll();
                                 lastSyncTimeMs = System.currentTimeMillis();
                             }
-                            
+
                             //timer checkpoint, latency-sensitive, so sync it more frequently
                             if (messageStoreConfig.isTimerWheelEnable()) {
                                 BrokerController.this.getSlaveSynchronize().syncTimerCheckPoint();
@@ -684,17 +697,6 @@ public class BrokerController {
     protected void initializeScheduledTasks() {
 
         initializeBrokerScheduledTasks();
-
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    BrokerController.this.brokerOuterAPI.refreshMetadata();
-                } catch (Exception e) {
-                    LOG.error("ScheduledTask refresh metadata exception", e);
-                }
-            }
-        }, 10, 5, TimeUnit.SECONDS);
 
         if (this.brokerConfig.getNamesrvAddr() != null) {
             this.updateNamesrvAddr();
@@ -1383,8 +1385,6 @@ public class BrokerController {
             this.adminBrokerExecutor.shutdown();
         }
 
-        this.consumerOffsetManager.persist();
-
         if (this.brokerFastFailure != null) {
             this.brokerFastFailure.shutdown();
         }
@@ -1449,8 +1449,20 @@ public class BrokerController {
         shutdownScheduledExecutorService(this.syncBrokerMemberGroupExecutorService);
         shutdownScheduledExecutorService(this.brokerHeartbeatExecutorService);
 
-        this.topicConfigManager.persist();
-        this.subscriptionGroupManager.persist();
+        if (this.topicConfigManager != null) {
+            this.topicConfigManager.persist();
+            this.topicConfigManager.stop();
+        }
+
+        if (this.subscriptionGroupManager != null) {
+            this.subscriptionGroupManager.persist();
+            this.subscriptionGroupManager.stop();
+        }
+
+        if (this.consumerOffsetManager != null) {
+            this.consumerOffsetManager.persist();
+            this.consumerOffsetManager.stop();
+        }
 
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
             if (brokerAttachedPlugin != null) {
@@ -1659,6 +1671,17 @@ public class BrokerController {
         if (brokerConfig.isSkipPreOnline()) {
             startServiceWithoutCondition();
         }
+
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    BrokerController.this.brokerOuterAPI.refreshMetadata();
+                } catch (Exception e) {
+                    LOG.error("ScheduledTask refresh metadata exception", e);
+                }
+            }
+        }, 10, 5, TimeUnit.SECONDS);
     }
 
     protected void scheduleSendHeartbeat() {
@@ -1676,6 +1699,17 @@ public class BrokerController {
 
             }
         }, 1000, brokerConfig.getBrokerHeartbeatInterval(), TimeUnit.MILLISECONDS));
+    }
+
+    public synchronized void registerSingleTopicAll(final TopicConfig topicConfig) {
+        TopicConfig tmpTopic = topicConfig;
+        if (!PermName.isWriteable(this.getBrokerConfig().getBrokerPermission())
+            || !PermName.isReadable(this.getBrokerConfig().getBrokerPermission())) {
+            // Copy the topic config and modify the perm
+            tmpTopic = new TopicConfig(topicConfig);
+            tmpTopic.setPerm(topicConfig.getPerm() & this.brokerConfig.getBrokerPermission());
+        }
+        this.brokerOuterAPI.registerSingleTopicAll(this.brokerConfig.getBrokerName(), tmpTopic, 3000);
     }
 
     public synchronized void registerIncrementBrokerData(TopicConfig topicConfig, DataVersion dataVersion) {
@@ -1699,7 +1733,8 @@ public class BrokerController {
                         new TopicConfig(topicConfig.getTopicName(),
                             topicConfig.getReadQueueNums(),
                             topicConfig.getWriteQueueNums(),
-                            this.brokerConfig.getBrokerPermission(), topicConfig.getTopicSysFlag());
+                                topicConfig.getPerm()
+                                        & this.brokerConfig.getBrokerPermission(), topicConfig.getTopicSysFlag());
                 } else {
                     registerTopicConfig = new TopicConfig(topicConfig);
                 }
@@ -2363,5 +2398,9 @@ public class BrokerController {
 
     public void setColdDataCgCtrService(ColdDataCgCtrService coldDataCgCtrService) {
         this.coldDataCgCtrService = coldDataCgCtrService;
+    }
+
+    public boolean isEnableRocksDBStore() {
+        return StoreType.DEFAULT_ROCKSDB.getStoreType().equalsIgnoreCase(this.messageStoreConfig.getStoreType());
     }
 }
