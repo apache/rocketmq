@@ -147,7 +147,7 @@ public class MQClientInstance {
         this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig);
 
         if (this.clientConfig.getNamesrvAddr() != null) {
-            this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
+            this.mQClientAPIImpl.updateNameServerAddr(null);
             log.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
         }
 
@@ -288,6 +288,14 @@ public class MQClientInstance {
                     log.error("ScheduledTask fetchNameServerAddr exception", e);
                 }
             }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
+        } else if (this.clientConfig.isFetchNameSrvAddrByDnsLookup()) {
+            this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+                try {
+                    MQClientInstance.this.mQClientAPIImpl.updateNameServerAddrByFetchDNSSchedule();
+                } catch (Exception e) {
+                    log.error("ScheduledTask updateNameServerAddressListByDnsLookup exception", e);
+                }
+            }, 1000 * 10, this.clientConfig.getFetchNamesrvAddrInterval(), TimeUnit.MILLISECONDS);
         }
 
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {

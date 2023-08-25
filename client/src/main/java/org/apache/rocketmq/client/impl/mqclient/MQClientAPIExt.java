@@ -99,7 +99,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
 
     public boolean updateNameServerAddressList() {
         if (this.clientConfig.getNamesrvAddr() != null) {
-            this.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
+            this.updateNameServerAddr(null);
             log.info("user specified name server address: {}", this.clientConfig.getNamesrvAddr());
             return true;
         }

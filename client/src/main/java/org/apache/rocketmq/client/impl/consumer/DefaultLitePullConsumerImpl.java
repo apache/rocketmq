@@ -208,7 +208,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public void updateNameServerAddr(String newAddresses) {
-        this.mQClientFactory.getMQClientAPIImpl().updateNameServerAddressList(newAddresses);
+        this.mQClientFactory.getMQClientAPIImpl().updateNameServerAddr(newAddresses);
     }
 
     private synchronized void setSubscriptionType(SubscriptionType type) {

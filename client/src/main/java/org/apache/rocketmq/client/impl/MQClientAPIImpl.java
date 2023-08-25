@@ -78,6 +78,7 @@ import org.apache.rocketmq.common.namesrv.NameServerUpdateCallback;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
@@ -288,7 +289,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             if (!UtilAll.isBlank(addrs)) {
                 if (!addrs.equals(this.nameSrvAddr)) {
                     log.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + addrs);
-                    this.updateNameServerAddressList(addrs);
+                    this.updateNameServerAddr(addrs);
                     this.nameSrvAddr = addrs;
                     return nameSrvAddr;
                 }
@@ -304,7 +305,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         if (namesrvAddress != null) {
             if (!namesrvAddress.equals(this.nameSrvAddr)) {
                 log.info("name server address changed, old=" + this.nameSrvAddr + ", new=" + namesrvAddress);
-                this.updateNameServerAddressList(namesrvAddress);
+                this.updateNameServerAddr(namesrvAddress);
                 this.nameSrvAddr = namesrvAddress;
                 return nameSrvAddr;
             }
@@ -312,7 +313,29 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         return nameSrvAddr;
     }
 
-    public void updateNameServerAddressList(final String addrs) {
+    public void updateNameServerAddrByFetchDNSSchedule() {
+        // To prevent dynamic modifications to nameSrvAddr, the input parameter is set as nameSrvAddr.
+        updateNameServerAddr(nameSrvAddr);
+    }
+
+
+    public void updateNameServerAddr(final String address) {
+        String updateAdders = StringUtils.isNotEmpty(address) ? address : this.clientConfig.getNamesrvAddr() ;
+        // If this.clientConfig.getNamesrvAddr() is null ,means TopAddressing is used, DNS will not be effective.
+        if (this.clientConfig.isFetchNameSrvAddrByDnsLookup()
+                && this.clientConfig.getNamesrvAddr() != null) {
+            this.updateNameServerAddressListByDnsLookup(updateAdders);
+        } else {
+            this.updateNameServerAddressList(updateAdders);
+        }
+    }
+
+    private void updateNameServerAddressListByDnsLookup(final String domain) {
+        List<String> lst = NetworkUtil.dnsLookupAddressByDomain(domain);
+        this.remotingClient.updateNameServerAddressList(lst);
+    }
+
+    private void updateNameServerAddressList(final String addrs) {
         String[] addrArray = addrs.split(";");
         List<String> list = Arrays.asList(addrArray);
         this.remotingClient.updateNameServerAddressList(list);

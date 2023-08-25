@@ -28,6 +28,8 @@ import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
+
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -178,4 +180,25 @@ public class NetworkUtil {
         }
         return false;
     }
+
+    public static List<String> dnsLookupAddressByDomain(String domain) {
+        List<String> addressList = new ArrayList<>();
+        try {
+            java.security.Security.setProperty("networkaddress.cache.ttl", "10");
+            int index = domain.indexOf(":");
+            String portStr = domain.substring(index);
+            String domainStr = domain.substring(0, index);
+            InetAddress[] addresses = InetAddress.getAllByName(domainStr);
+            for (InetAddress address : addresses) {
+                addressList.add(address.getHostAddress() + portStr);
+            }
+            log.info("dns lookup address by domain success, domain={}, result={}", domain, addressList);
+        } catch (Exception e) {
+            log.error("dns lookup address by domain error, domain={}", domain, e);
+        }
+        return addressList;
+    }
+
+
+
 }
