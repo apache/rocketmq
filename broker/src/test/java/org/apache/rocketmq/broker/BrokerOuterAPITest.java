@@ -32,6 +32,7 @@ import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
@@ -235,14 +236,11 @@ public class BrokerOuterAPITest {
     }
 
     @Test
-    public void testLookupAddressByDomain() throws Exception {
-        init();
-        brokerOuterAPI.start();
-        Class<BrokerOuterAPI> clazz = BrokerOuterAPI.class;
-        Method method = clazz.getDeclaredMethod("dnsLookupAddressByDomain", String.class);
-        method.setAccessible(true);
-        List<String> addressList = (List<String>) method.invoke(brokerOuterAPI, "localhost:6789");
+    public void testLookupAddressByDomain()  {
+
+        List<String> addressList = NetworkUtil.dnsLookupAddressByDomain("localhost:6789");
         AtomicBoolean result = new AtomicBoolean(false);
+
         addressList.forEach(s -> {
             if (s.contains("127.0.0.1:6789")) {
                 result.set(true);

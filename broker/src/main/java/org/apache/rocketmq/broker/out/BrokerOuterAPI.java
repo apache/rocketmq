@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.namesrv.DefaultTopAddressing;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
@@ -192,23 +193,6 @@ public class BrokerOuterAPI {
         return nameSrvAddr;
     }
 
-    public List<String> dnsLookupAddressByDomain(String domain) {
-        List<String> addressList = new ArrayList<>();
-        try {
-            java.security.Security.setProperty("networkaddress.cache.ttl", "10");
-            int index = domain.indexOf(":");
-            String portStr = domain.substring(index);
-            String domainStr = domain.substring(0, index);
-            InetAddress[] addresses = InetAddress.getAllByName(domainStr);
-            for (InetAddress address : addresses) {
-                addressList.add(address.getHostAddress() + portStr);
-            }
-            LOGGER.info("dns lookup address by domain success, domain={}, result={}", domain, addressList);
-        } catch (Exception e) {
-            LOGGER.error("dns lookup address by domain error, domain={}", domain, e);
-        }
-        return addressList;
-    }
 
     public boolean checkAddressReachable(String address) {
         return this.remotingClient.isAddressReachable(address);
@@ -221,7 +205,7 @@ public class BrokerOuterAPI {
     }
 
     public void updateNameServerAddressListByDnsLookup(final String domain) {
-        List<String> lst = this.dnsLookupAddressByDomain(domain);
+        List<String> lst = NetworkUtil.dnsLookupAddressByDomain(domain);
         this.remotingClient.updateNameServerAddressList(lst);
     }
 
