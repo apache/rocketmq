@@ -233,8 +233,8 @@ public class ProxyConfig implements ConfigFile {
     private int remotingListenPort = 8080;
 
     // related to proxy's send strategy in cluster mode.
-    private boolean sendLatencyEnable = true;
-    private boolean startDetectorEnable = true;
+    private boolean sendLatencyEnable = false;
+    private boolean startDetectorEnable = false;
     private int detectTimeout = 200;
     private int detectInterval = 2 * 1000;
 
