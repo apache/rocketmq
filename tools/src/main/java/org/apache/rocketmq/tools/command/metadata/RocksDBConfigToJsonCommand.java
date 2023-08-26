@@ -21,13 +21,13 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.RocksDBConfigManager;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,7 +48,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
     @Override
     public Options buildCommandlineOptions(Options options) {
         Option pathOption = new Option("p", "path", true,
-                "Absolute path to the metadata directory");
+                "Absolute path for the metadata directory");
         pathOption.setRequired(true);
         options.addOption(pathOption);
 
@@ -63,15 +63,14 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
         String path = commandLine.getOptionValue("path").trim();
-        if (StringUtils.isEmpty(path) || !new File(path).exists()) {
+        if (StringUtils.isEmpty(path) || !UtilAll.isPathExists(path)) {
             System.out.print("Rocksdb path is invalid.\n");
             return;
         }
 
         String configType = commandLine.getOptionValue("configType").trim().toLowerCase();
 
-        final long memTableFlushInterval = 60 * 60 * 1000L;
-        RocksDBConfigManager kvConfigManager = new RocksDBConfigManager(memTableFlushInterval);
+        RocksDBConfigManager kvConfigManager = new RocksDBConfigManager(60 * 60 * 1000L);
         try {
             if (TOPICS_JSON_CONFIG.toLowerCase().equals(configType)) {
                 // for topics.json
@@ -84,13 +83,16 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                     topicConfigTable.put(topic, jsonObject);
                 });
 
-                if (isLoad) {
-                    topicsJsonConfig.put("topicConfigTable", (JSONObject) JSONObject.toJSON(topicConfigTable));
-                    final String topicsJsonStr = JSONObject.toJSONString(topicsJsonConfig, true);
-                    System.out.print(topicsJsonStr + "\n");
+                if (!isLoad) {
+                    System.out.print("RocksDB load error, path=" + path);
                     return;
                 }
+                topicsJsonConfig.put("topicConfigTable", (JSONObject) JSONObject.toJSON(topicConfigTable));
+                final String topicsJsonStr = JSONObject.toJSONString(topicsJsonConfig, true);
+                System.out.print(topicsJsonStr + "\n");
+                return;
             }
+
             if (SUBSCRIPTION_GROUP_JSON_CONFIG.toLowerCase().equals(configType)) {
                 // for subscriptionGroup.json
                 final Map<String, JSONObject> subscriptionGroupJsonConfig = new HashMap<>();
@@ -102,13 +104,15 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                     subscriptionGroupTable.put(subscriptionGroup, jsonObject);
                 });
 
-                if (isLoad) {
-                    subscriptionGroupJsonConfig.put("subscriptionGroupTable",
-                            (JSONObject) JSONObject.toJSON(subscriptionGroupTable));
-                    final String subscriptionGroupJsonStr = JSONObject.toJSONString(subscriptionGroupJsonConfig, true);
-                    System.out.print(subscriptionGroupJsonStr + "\n");
+                if (!isLoad) {
+                    System.out.print("RocksDB load error, path=" + path);
                     return;
                 }
+                subscriptionGroupJsonConfig.put("subscriptionGroupTable",
+                        (JSONObject) JSONObject.toJSON(subscriptionGroupTable));
+                final String subscriptionGroupJsonStr = JSONObject.toJSONString(subscriptionGroupJsonConfig, true);
+                System.out.print(subscriptionGroupJsonStr + "\n");
+                return;
             }
             System.out.print("Config type was not recognized, configType=" + configType + "\n");
         } finally {
