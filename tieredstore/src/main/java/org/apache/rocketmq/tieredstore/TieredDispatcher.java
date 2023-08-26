@@ -82,7 +82,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() ->
             tieredFlatFileManager.deepCopyFlatFileToList().forEach(flatFile -> {
                 if (!flatFile.getCompositeFlatFileLock().isLocked()) {
-                    dispatchFlatFile(flatFile);
+                    dispatchFlatFileAsync(flatFile);
                 }
             }), 30, 10, TimeUnit.SECONDS);
     }
@@ -180,10 +180,6 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 message.release();
                 flatFile.getCompositeFlatFileLock().unlock();
             }
-        } else {
-            if (!flatFile.getCompositeFlatFileLock().isLocked()) {
-                this.dispatchFlatFileAsync(flatFile);
-            }
         }
     }
 
@@ -199,6 +195,11 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
     }
 
     public void dispatchFlatFileAsync(CompositeQueueFlatFile flatFile, Consumer<Long> consumer) {
+        // Avoid dispatch tasks too much
+        if (TieredStoreExecutor.dispatchThreadPoolQueue.size() >
+            TieredStoreExecutor.QUEUE_CAPACITY * 0.75) {
+            return;
+        }
         TieredStoreExecutor.dispatchExecutor.execute(() -> {
             try {
                 dispatchFlatFile(flatFile);
@@ -260,8 +261,16 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 logger.warn("TieredDispatcher#dispatchFlatFile: dispatch offset is too small, " +
                         "topic: {}, queueId: {}, dispatch offset: {}, local cq offset range {}-{}",
                     topic, queueId, dispatchOffset, minOffsetInQueue, maxOffsetInQueue);
-                flatFile.initOffset(minOffsetInQueue);
-                dispatchOffset = minOffsetInQueue;
+
+                // when dispatch offset is smaller than min offset in local cq
+                // some earliest messages may be lost at this time
+                tieredFlatFileManager.destroyCompositeFile(flatFile.getMessageQueue());
+                CompositeQueueFlatFile newFlatFile =
+                    tieredFlatFileManager.getOrCreateFlatFileIfAbsent(new MessageQueue(topic, brokerName, queueId));
+                if (newFlatFile != null) {
+                    newFlatFile.initOffset(maxOffsetInQueue);
+                }
+                return;
             }
             beforeOffset = dispatchOffset;
 
@@ -269,6 +278,9 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             long maxCount = storeConfig.getTieredStoreGroupCommitCount();
             long upperBound = Math.min(dispatchOffset + maxCount, maxOffsetInQueue);
             ConsumeQueue consumeQueue = (ConsumeQueue) defaultStore.getConsumeQueue(topic, queueId);
+
+            logger.debug("DispatchFlatFile race, topic={}, queueId={}, cq range={}-{}, dispatch offset={}-{}",
+                topic, queueId, minOffsetInQueue, maxOffsetInQueue, dispatchOffset, upperBound - 1);
 
             for (; dispatchOffset < upperBound; dispatchOffset++) {
                 // get consume queue
@@ -290,7 +302,8 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                     logger.error("TieredDispatcher#dispatchFlatFile: get message from next store failed, " +
                             "topic: {}, queueId: {}, commitLog offset: {}, size: {}",
                         topic, queueId, commitLogOffset, size);
-                    break;
+                    // not dispatch immediately
+                    return;
                 }
 
                 // append commitlog will increase dispatch offset here
@@ -299,9 +312,18 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 doRedispatchRequestToWriteMap(
                     result, flatFile, dispatchOffset, newCommitLogOffset, size, tagCode, message.getByteBuffer());
                 message.release();
-                if (result != AppendResult.SUCCESS) {
-                    dispatchOffset--;
-                    break;
+
+                switch (result) {
+                    case SUCCESS:
+                        continue;
+                    case FILE_CLOSED:
+                        tieredFlatFileManager.destroyCompositeFile(flatFile.getMessageQueue());
+                        logger.info("TieredDispatcher#dispatchFlatFile: file has been close and destroy, " +
+                            "topic: {}, queueId: {}", topic, queueId);
+                        return;
+                    default:
+                        dispatchOffset--;
+                        break;
                 }
             }
 
@@ -332,15 +354,13 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
 
         switch (result) {
             case SUCCESS:
-                break;
-            case OFFSET_INCORRECT:
                 long offset = MessageBufferUtil.getQueueOffset(message);
                 if (queueOffset != offset) {
-                    logger.error("[Bug] Commitlog offset incorrect, " +
-                            "result={}, topic={}, queueId={}, offset={}, msg offset={}",
-                        result, topic, queueId, queueOffset, offset);
+                    logger.warn("Message cq offset in commitlog does not meet expectations, " +
+                            "result={}, topic={}, queueId={}, cq offset={}, msg offset={}",
+                        AppendResult.OFFSET_INCORRECT, topic, queueId, queueOffset, offset);
                 }
-                return;
+                break;
             case BUFFER_FULL:
                 logger.debug("Commitlog buffer full, result={}, topic={}, queueId={}, offset={}",
                     result, topic, queueId, queueOffset);

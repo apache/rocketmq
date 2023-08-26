@@ -125,7 +125,7 @@
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
-        <rocketmq-proto.version>2.0.2</rocketmq-proto.version>
+        <rocketmq-proto.version>2.0.3</rocketmq-proto.version>
         <grpc.version>1.50.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
@@ -133,10 +133,11 @@
         <caffeine.version>2.9.3</caffeine.version>
         <spring.version>5.3.27</spring.version>
         <okio-jvm.version>3.0.0</okio-jvm.version>
-        <opentelemetry.version>1.26.0</opentelemetry.version>
-        <opentelemetry-exporter-prometheus.version>1.26.0-alpha</opentelemetry-exporter-prometheus.version>
+        <opentelemetry.version>1.29.0</opentelemetry.version>
+        <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
         <s3.version>2.20.29</s3.version>
+        <rocksdb.version>1.0.3</rocksdb.version>
         <jackson-databind.version>2.13.4.2</jackson-databind.version>
 
         <!-- Test dependencies -->
@@ -147,6 +148,7 @@
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
         <s3mock-junit4.version>2.11.0</s3mock-junit4.version>
+        <rocketmq-client-java.version>5.0.5</rocketmq-client-java.version>
 
         <!-- Build plugin dependencies -->
         <versions-maven-plugin.version>2.2</versions-maven-plugin.version>
@@ -712,6 +714,11 @@
             </dependency>
             <dependency>
                 <groupId>io.github.aliyunmq</groupId>
+                <artifactId>rocketmq-rocksdb</artifactId>
+                <version>${rocksdb.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.aliyunmq</groupId>
                 <artifactId>rocketmq-shaded-slf4j-api-bridge</artifactId>
                 <version>${rocketmq-shaded-slf4j-api-bridge.version}</version>
             </dependency>
@@ -887,6 +894,11 @@
                         <artifactId>gson</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.github.aliyunmq</groupId>
+                <artifactId>rocketmq-grpc-netty-codec-haproxy</artifactId>
+                <version>1.0.0</version>
             </dependency>
             <dependency>
                 <groupId>com.conversantmedia</groupId>

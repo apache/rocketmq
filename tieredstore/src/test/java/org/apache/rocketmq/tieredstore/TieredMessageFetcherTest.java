@@ -19,9 +19,11 @@ package org.apache.rocketmq.tieredstore;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.GetMessageResult;
@@ -29,7 +31,6 @@ import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.SelectMappedBufferResultWrapper;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
@@ -141,9 +142,9 @@ public class TieredMessageFetcherTest {
         Assert.assertNotNull(flatFile);
 
         fetcher.recordCacheAccess(flatFile, "prevent-invalid-cache", 0, new ArrayList<>());
-        Assert.assertEquals(0, fetcher.readAheadCache.estimatedSize());
+        Assert.assertEquals(0, fetcher.getMessageCache().estimatedSize());
         fetcher.putMessageToCache(flatFile, 0, new SelectMappedBufferResult(0, msg1, msg1.remaining(), null), 0, 0, 1);
-        Assert.assertEquals(1, fetcher.readAheadCache.estimatedSize());
+        Assert.assertEquals(1, fetcher.getMessageCache().estimatedSize());
 
         GetMessageResult getMessageResult = fetcher.getMessageFromCacheAsync(flatFile, "group", 0, 32).join();
         Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
@@ -151,21 +152,22 @@ public class TieredMessageFetcherTest {
         Assert.assertEquals(msg1, getMessageResult.getMessageBufferList().get(0));
 
         Awaitility.waitAtMost(3, TimeUnit.SECONDS)
-            .until(() -> fetcher.readAheadCache.estimatedSize() == 2);
+            .until(() -> fetcher.getMessageCache().estimatedSize() == 2);
         ArrayList<SelectMappedBufferResultWrapper> wrapperList = new ArrayList<>();
         wrapperList.add(fetcher.getMessageFromCache(flatFile, 0));
         fetcher.recordCacheAccess(flatFile, "prevent-invalid-cache", 0, wrapperList);
-        Assert.assertEquals(1, fetcher.readAheadCache.estimatedSize());
+        Assert.assertEquals(1, fetcher.getMessageCache().estimatedSize());
         wrapperList.clear();
         wrapperList.add(fetcher.getMessageFromCache(flatFile, 1));
         fetcher.recordCacheAccess(flatFile, "prevent-invalid-cache", 0, wrapperList);
-        Assert.assertEquals(1, fetcher.readAheadCache.estimatedSize());
+        Assert.assertEquals(1, fetcher.getMessageCache().estimatedSize());
 
-        SelectMappedBufferResult messageFromCache = fetcher.getMessageFromCache(flatFile, 1).getDuplicateResult();
+        SelectMappedBufferResult messageFromCache =
+            Objects.requireNonNull(fetcher.getMessageFromCache(flatFile, 1)).getDuplicateResult();
         fetcher.recordCacheAccess(flatFile, "group", 0, wrapperList);
         Assert.assertNotNull(messageFromCache);
         Assert.assertEquals(msg2, messageFromCache.getByteBuffer());
-        Assert.assertEquals(0, fetcher.readAheadCache.estimatedSize());
+        Assert.assertEquals(0, fetcher.getMessageCache().estimatedSize());
     }
 
     @Test

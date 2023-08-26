@@ -26,19 +26,18 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.proxy.common.AbstractCacheLoader;
-import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.Address;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -52,8 +51,6 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     protected final LoadingCache<String /* topicName */, MessageQueueView> topicCache;
     protected final ScheduledExecutorService scheduledExecutorService;
     protected final ThreadPoolExecutor cacheRefreshExecutor;
-    private final TopicRouteCacheLoader topicRouteCacheLoader = new TopicRouteCacheLoader();
-
 
     public TopicRouteService(MQClientAPIFactory mqClientAPIFactory) {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
@@ -71,18 +68,16 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
         );
         this.mqClientAPIFactory = mqClientAPIFactory;
 
-        this.topicCache = Caffeine.newBuilder().maximumSize(config.getTopicRouteServiceCacheMaxNum()).
-            refreshAfterWrite(config.getTopicRouteServiceCacheExpiredInSeconds(), TimeUnit.SECONDS).
-            executor(cacheRefreshExecutor).build(new CacheLoader<String, MessageQueueView>() {
-                @Override public @Nullable MessageQueueView load(String topic) throws Exception {
+        this.topicCache = Caffeine.newBuilder().maximumSize(config.getTopicRouteServiceCacheMaxNum())
+            .expireAfterAccess(config.getTopicRouteServiceCacheExpiredSeconds(), TimeUnit.SECONDS)
+            .refreshAfterWrite(config.getTopicRouteServiceCacheRefreshSeconds(), TimeUnit.SECONDS)
+            .executor(cacheRefreshExecutor)
+            .build(new CacheLoader<String, MessageQueueView>() {
+                @Override
+                public @Nullable MessageQueueView load(String topic) throws Exception {
                     try {
-                        TopicRouteData topicRouteData = topicRouteCacheLoader.loadTopicRouteData(topic);
-                        if (isTopicRouteValid(topicRouteData)) {
-                            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData);
-                            log.info("load topic route from namesrv. topic: {}, queue: {}", topic, tmp);
-                            return tmp;
-                        }
-                        return MessageQueueView.WRAPPED_EMPTY_QUEUE;
+                        TopicRouteData topicRouteData = mqClientAPIFactory.getClient().getTopicRouteInfoFromNameServer(topic, Duration.ofSeconds(3).toMillis());
+                        return buildMessageQueueView(topic, topicRouteData);
                     } catch (Exception e) {
                         if (TopicRouteHelper.isTopicNotExistError(e)) {
                             return MessageQueueView.WRAPPED_EMPTY_QUEUE;
@@ -91,7 +86,8 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
                     }
                 }
 
-                @Override public @Nullable MessageQueueView reload(@NonNull String key,
+                @Override
+                public @Nullable MessageQueueView reload(@NonNull String key,
                     @NonNull MessageQueueView oldValue) throws Exception {
                     try {
                         return load(key);
@@ -138,44 +134,12 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             && routeData.getBrokerDatas() != null && !routeData.getBrokerDatas().isEmpty();
     }
 
-    protected abstract class AbstractTopicRouteCacheLoader extends AbstractCacheLoader<String, MessageQueueView> {
-
-        public AbstractTopicRouteCacheLoader() {
-            super(cacheRefreshExecutor);
+    protected MessageQueueView buildMessageQueueView(String topic, TopicRouteData topicRouteData) {
+        if (isTopicRouteValid(topicRouteData)) {
+            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData);
+            log.debug("load topic route from namesrv. topic: {}, queue: {}", topic, tmp);
+            return tmp;
         }
-
-        protected abstract TopicRouteData loadTopicRouteData(String topic) throws Exception;
-
-        @Override
-        public MessageQueueView getDirectly(String topic) throws Exception {
-            try {
-                TopicRouteData topicRouteData = loadTopicRouteData(topic);
-
-                if (isTopicRouteValid(topicRouteData)) {
-                    MessageQueueView tmp = new MessageQueueView(topic, topicRouteData);
-                    log.info("load topic route from namesrv. topic: {}, queue: {}", topic, tmp);
-                    return tmp;
-                }
-                return MessageQueueView.WRAPPED_EMPTY_QUEUE;
-            } catch (Exception e) {
-                if (TopicRouteHelper.isTopicNotExistError(e)) {
-                    return MessageQueueView.WRAPPED_EMPTY_QUEUE;
-                }
-                throw e;
-            }
-        }
-
-        @Override
-        protected void onErr(String key, Exception e) {
-            log.error("load topic route from namesrv failed. topic:{}", key, e);
-        }
-    }
-
-    protected class TopicRouteCacheLoader extends AbstractTopicRouteCacheLoader {
-
-        @Override
-        protected TopicRouteData loadTopicRouteData(String topic) throws Exception {
-            return mqClientAPIFactory.getClient().getTopicRouteInfoFromNameServer(topic, Duration.ofSeconds(3).toMillis());
-        }
+        return MessageQueueView.WRAPPED_EMPTY_QUEUE;
     }
 }

@@ -19,13 +19,20 @@ package org.apache.rocketmq.proxy.remoting.activity;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import java.util.Set;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupEvent;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ProducerChangeListener;
 import org.apache.rocketmq.broker.client.ProducerGroupEvent;
+import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.remoting.channel.RemotingChannel;
+import org.apache.rocketmq.proxy.remoting.channel.RemotingChannelManager;
+import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.AttributeKeys;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
@@ -33,13 +40,8 @@ import org.apache.rocketmq.remoting.protocol.header.UnregisterClientResponseHead
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
-import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.remoting.channel.RemotingChannel;
-import org.apache.rocketmq.proxy.remoting.channel.RemotingChannelManager;
-import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+
+import java.util.Set;
 
 public class ClientManagerActivity extends AbstractRemotingActivity {
 
@@ -80,7 +82,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
 
         for (ProducerData data : heartbeatData.getProducerDataSet()) {
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-                this.remotingChannelManager.createProducerChannel(ctx.channel(), data.getGroupName(), clientId),
+                this.remotingChannelManager.createProducerChannel(context, ctx.channel(), data.getGroupName(), clientId),
                 clientId, request.getLanguage(),
                 request.getVersion());
             setClientPropertiesToChannelAttr(clientChannelInfo);
@@ -89,7 +91,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
 
         for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-                this.remotingChannelManager.createConsumerChannel(ctx.channel(), data.getGroupName(), clientId, data.getSubscriptionDataSet()),
+                this.remotingChannelManager.createConsumerChannel(context, ctx.channel(), data.getGroupName(), clientId, data.getSubscriptionDataSet()),
                 clientId, request.getLanguage(),
                 request.getVersion());
             setClientPropertiesToChannelAttr(clientChannelInfo);
@@ -108,9 +110,9 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
         if (channel instanceof RemotingChannel) {
             RemotingChannel remotingChannel = (RemotingChannel) channel;
             Channel parent = remotingChannel.parent();
-            RemotingHelper.setPropertyToAttr(parent, RemotingHelper.CLIENT_ID_KEY, clientChannelInfo.getClientId());
-            RemotingHelper.setPropertyToAttr(parent, RemotingHelper.LANGUAGE_CODE_KEY, clientChannelInfo.getLanguage());
-            RemotingHelper.setPropertyToAttr(parent, RemotingHelper.VERSION_KEY, clientChannelInfo.getVersion());
+            RemotingHelper.setPropertyToAttr(parent, AttributeKeys.CLIENT_ID_KEY, clientChannelInfo.getClientId());
+            RemotingHelper.setPropertyToAttr(parent, AttributeKeys.LANGUAGE_CODE_KEY, clientChannelInfo.getLanguage());
+            RemotingHelper.setPropertyToAttr(parent, AttributeKeys.VERSION_KEY, clientChannelInfo.getVersion());
         }
 
     }
@@ -122,7 +124,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
             (UnregisterClientRequestHeader) request.decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
         final String producerGroup = requestHeader.getProducerGroup();
         if (producerGroup != null) {
-            RemotingChannel channel = this.remotingChannelManager.removeProducerChannel(producerGroup, ctx.channel());
+            RemotingChannel channel = this.remotingChannelManager.removeProducerChannel(context, producerGroup, ctx.channel());
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
                 channel,
                 requestHeader.getClientID(),
@@ -132,7 +134,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
         }
         final String consumerGroup = requestHeader.getConsumerGroup();
         if (consumerGroup != null) {
-            RemotingChannel channel = this.remotingChannelManager.removeConsumerChannel(consumerGroup, ctx.channel());
+            RemotingChannel channel = this.remotingChannelManager.removeConsumerChannel(context, consumerGroup, ctx.channel());
             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
                 channel,
                 requestHeader.getClientID(),
@@ -170,7 +172,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
                 }
                 if (args[0] instanceof ClientChannelInfo) {
                     ClientChannelInfo clientChannelInfo = (ClientChannelInfo) args[0];
-                    remotingChannelManager.removeConsumerChannel(group, clientChannelInfo.getChannel());
+                    remotingChannelManager.removeConsumerChannel(ProxyContext.createForInner(this.getClass()), group, clientChannelInfo.getChannel());
                     log.info("remove remoting channel when client unregister. clientChannelInfo:{}", clientChannelInfo);
                 }
             }
@@ -187,7 +189,7 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
         @Override
         public void handle(ProducerGroupEvent event, String group, ClientChannelInfo clientChannelInfo) {
             if (event == ProducerGroupEvent.CLIENT_UNREGISTER) {
-                remotingChannelManager.removeProducerChannel(group, clientChannelInfo.getChannel());
+                remotingChannelManager.removeProducerChannel(ProxyContext.createForInner(this.getClass()), group, clientChannelInfo.getChannel());
             }
         }
     }

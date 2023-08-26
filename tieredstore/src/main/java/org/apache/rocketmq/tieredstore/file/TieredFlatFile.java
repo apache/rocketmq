@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.file;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -24,6 +25,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -33,7 +35,6 @@ import javax.annotation.Nullable;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
@@ -42,6 +43,7 @@ import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.provider.FileSegmentAllocator;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+import org.apache.rocketmq.common.BoundaryType;
 
 public class TieredFlatFile {
 
@@ -133,6 +135,14 @@ public class TieredFlatFile {
         }
     }
 
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public FileSegmentType getFileType() {
+        return fileType;
+    }
+
     @VisibleForTesting
     public List<TieredFileSegment> getFileSegmentList() {
         return fileSegmentList;
@@ -170,32 +180,26 @@ public class TieredFlatFile {
     private FileSegmentMetadata getOrCreateFileSegmentMetadata(TieredFileSegment fileSegment) {
 
         FileSegmentMetadata metadata = tieredMetadataStore.getFileSegment(
-            fileSegment.getPath(), fileSegment.getFileType(), fileSegment.getBaseOffset());
-
-        if (metadata != null) {
-            return metadata;
-        }
+            this.filePath, fileSegment.getFileType(), fileSegment.getBaseOffset());
 
         // Note: file segment path may not the same as file base path, use base path here.
-        metadata = new FileSegmentMetadata(
-            this.filePath, fileSegment.getBaseOffset(), fileSegment.getFileType().getType());
-
-        if (fileSegment.isClosed()) {
-            metadata.setStatus(FileSegmentMetadata.STATUS_DELETED);
+        if (metadata == null) {
+            metadata = new FileSegmentMetadata(
+                this.filePath, fileSegment.getBaseOffset(), fileSegment.getFileType().getType());
+            metadata.setCreateTimestamp(fileSegment.getMinTimestamp());
+            metadata.setBeginTimestamp(fileSegment.getMinTimestamp());
+            metadata.setEndTimestamp(fileSegment.getMaxTimestamp());
+            if (fileSegment.isClosed()) {
+                metadata.setStatus(FileSegmentMetadata.STATUS_DELETED);
+            }
+            this.tieredMetadataStore.updateFileSegment(metadata);
         }
-
-        metadata.setBeginTimestamp(fileSegment.getMinTimestamp());
-        metadata.setEndTimestamp(fileSegment.getMaxTimestamp());
-
-        // Submit to persist
-        this.tieredMetadataStore.updateFileSegment(metadata);
         return metadata;
     }
 
     /**
      * FileQueue Status: Sealed | Sealed | Sealed | Not sealed, Allow appended && Not Full
      */
-    @VisibleForTesting
     public void updateFileSegment(TieredFileSegment fileSegment) {
         FileSegmentMetadata segmentMetadata = getOrCreateFileSegmentMetadata(fileSegment);
 
@@ -211,9 +215,16 @@ public class TieredFlatFile {
         }
 
         segmentMetadata.setSize(fileSegment.getCommitPosition());
-        segmentMetadata.setBeginTimestamp(fileSegment.getMinTimestamp());
         segmentMetadata.setEndTimestamp(fileSegment.getMaxTimestamp());
-        this.tieredMetadataStore.updateFileSegment(segmentMetadata);
+
+        FileSegmentMetadata metadata = tieredMetadataStore.getFileSegment(
+            this.filePath, fileSegment.getFileType(), fileSegment.getBaseOffset());
+
+        if (!Objects.equals(metadata, segmentMetadata)) {
+            this.tieredMetadataStore.updateFileSegment(segmentMetadata);
+            logger.debug("TieredFlatFile#UpdateSegmentMetadata, filePath: {}, content: {}",
+                segmentMetadata.getPath(), JSON.toJSONString(segmentMetadata));
+        }
     }
 
     private void checkAndFixFileSize() {
@@ -249,6 +260,7 @@ public class TieredFlatFile {
                 logger.warn("TieredFlatFile#checkAndFixFileSize: fix last file {} size: origin: {}, actual: {}",
                     lastFile.getPath(), lastFile.getCommitOffset() - lastFile.getBaseOffset(), lastFileSize);
                 lastFile.initPosition(lastFileSize);
+                this.updateFileSegment(lastFile);
             }
         }
     }
@@ -333,10 +345,9 @@ public class TieredFlatFile {
             TieredFileSegment fileSegment = this.newSegment(fileType, offset, true);
             fileSegmentList.add(fileSegment);
             needCommitFileSegmentList.add(fileSegment);
-
             Collections.sort(fileSegmentList);
-
-            logger.debug("Create a new file segment: baseOffset: {}, file: {}, file type: {}", baseOffset, fileSegment.getPath(), fileType);
+            logger.debug("Create a new file segment: baseOffset: {}, file: {}, file type: {}",
+                offset, fileSegment.getPath(), fileType);
             return fileSegment;
         } finally {
             fileSegmentLock.writeLock().unlock();
@@ -429,7 +440,7 @@ public class TieredFlatFile {
         return result;
     }
 
-    public void cleanExpiredFile(long expireTimestamp) {
+    public int cleanExpiredFile(long expireTimestamp) {
         Set<Long> needToDeleteSet = new HashSet<>();
         try {
             tieredMetadataStore.iterateFileSegment(filePath, fileType, metadata -> {
@@ -438,32 +449,32 @@ public class TieredFlatFile {
                 }
             });
         } catch (Exception e) {
-            logger.error("clean expired failed: filePath: {}, file type: {}, expire timestamp: {}",
+            logger.error("Clean expired file, filePath: {}, file type: {}, expire timestamp: {}",
                 filePath, fileType, expireTimestamp);
         }
 
         if (needToDeleteSet.isEmpty()) {
-            return;
+            return 0;
         }
 
         fileSegmentLock.writeLock().lock();
         try {
             for (int i = 0; i < fileSegmentList.size(); i++) {
+                TieredFileSegment fileSegment = fileSegmentList.get(i);
                 try {
-                    TieredFileSegment fileSegment = fileSegmentList.get(i);
                     if (needToDeleteSet.contains(fileSegment.getBaseOffset())) {
                         fileSegment.close();
                         fileSegmentList.remove(fileSegment);
                         needCommitFileSegmentList.remove(fileSegment);
                         i--;
                         this.updateFileSegment(fileSegment);
-                        logger.info("expired file {} is been cleaned", fileSegment.getPath());
+                        logger.debug("Clean expired file, filePath: {}", fileSegment.getPath());
                     } else {
                         break;
                     }
                 } catch (Exception e) {
-                    logger.error("clean expired file failed: filePath: {}, file type: {}, expire timestamp: {}",
-                        filePath, fileType, expireTimestamp, e);
+                    logger.error("Clean expired file failed: filePath: {}, file type: {}, expire timestamp: {}",
+                        fileSegment.getPath(), fileSegment.getFileType(), expireTimestamp, e);
                 }
             }
             if (fileSegmentList.size() > 0) {
@@ -476,6 +487,7 @@ public class TieredFlatFile {
         } finally {
             fileSegmentLock.writeLock().unlock();
         }
+        return needToDeleteSet.size();
     }
 
     @VisibleForTesting
@@ -493,16 +505,15 @@ public class TieredFlatFile {
                         fileSegment.destroyFile();
                         if (!fileSegment.exists()) {
                             tieredMetadataStore.deleteFileSegment(filePath, fileType, metadata.getBaseOffset());
-                            logger.info("expired file {} is been destroyed", fileSegment.getPath());
                         }
                     } catch (Exception e) {
-                        logger.error("destroy expired failed: file path: {}, file type: {}",
+                        logger.error("Destroyed expired file failed, file path: {}, file type: {}",
                             filePath, fileType, e);
                     }
                 }
             });
         } catch (Exception e) {
-            logger.error("destroy expired file failed: file path: {}, file type: {}", filePath, fileType);
+            logger.error("Destroyed expired file, file path: {}, file type: {}", filePath, fileType);
         }
     }
 
@@ -520,7 +531,7 @@ public class TieredFlatFile {
                             this.updateFileSegment(segment);
                         } catch (Exception e) {
                             // TODO handle update segment metadata failed exception
-                            logger.error("update file segment metadata failed: " +
+                            logger.error("Update file segment metadata failed: " +
                                     "file path: {}, file type: {}, base offset: {}",
                                 filePath, fileType, segment.getBaseOffset(), e);
                         }
@@ -531,7 +542,7 @@ public class TieredFlatFile {
                 );
             }
         } catch (Exception e) {
-            logger.error("commit file segment failed: topic: {}, queue: {}, file type: {}", filePath, fileType, e);
+            logger.error("Commit file segment failed: topic: {}, queue: {}, file type: {}", filePath, fileType, e);
         }
         if (sync) {
             CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();

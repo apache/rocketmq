@@ -39,7 +39,7 @@ public class UpdateColdDataFlowCtrGroupConfigSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "addOrUpdate cold data flow ctr group config";
+        return "Add or update cold data flow ctr group config.";
     }
 
     @Override

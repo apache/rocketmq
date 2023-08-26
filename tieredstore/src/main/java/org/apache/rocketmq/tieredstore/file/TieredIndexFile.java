@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.file;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -44,18 +45,21 @@ public class TieredIndexFile {
 
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
-    public static final int INDEX_FILE_BEGIN_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 4;
-    public static final int INDEX_FILE_END_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 8;
-    public static final int INDEX_FILE_HEADER_SIZE = 28;
-    public static final int INDEX_FILE_HASH_SLOT_SIZE = 8;
-    public static final int INDEX_FILE_HASH_ORIGIN_INDEX_SIZE = 32;
-    public static final int INDEX_FILE_HASH_COMPACT_INDEX_SIZE = 28;
-
+    // header format:
+    // magic code(4) + begin timestamp(8) + end timestamp(8) + slot num(4) + index num(4)
     public static final int INDEX_FILE_HEADER_MAGIC_CODE_POSITION = 0;
     public static final int INDEX_FILE_HEADER_BEGIN_TIME_STAMP_POSITION = 4;
     public static final int INDEX_FILE_HEADER_END_TIME_STAMP_POSITION = 12;
     public static final int INDEX_FILE_HEADER_SLOT_NUM_POSITION = 20;
     public static final int INDEX_FILE_HEADER_INDEX_NUM_POSITION = 24;
+    public static final int INDEX_FILE_HEADER_SIZE = 28;
+
+    // index item
+    public static final int INDEX_FILE_BEGIN_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 4;
+    public static final int INDEX_FILE_END_MAGIC_CODE = 0xCCDDEEFF ^ 1880681586 + 8;
+    public static final int INDEX_FILE_HASH_SLOT_SIZE = 8;
+    public static final int INDEX_FILE_HASH_ORIGIN_INDEX_SIZE = 32;
+    public static final int INDEX_FILE_HASH_COMPACT_INDEX_SIZE = 28;
 
     private static final String INDEX_FILE_DIR_NAME = "tiered_index_file";
     private static final String CUR_INDEX_FILE_NAME = "0000";
@@ -96,7 +100,7 @@ public class TieredIndexFile {
             this::doScheduleTask, 10, 10, TimeUnit.SECONDS);
     }
 
-    private void doScheduleTask() {
+    protected void doScheduleTask() {
         try {
             curFileLock.lock();
             try {
@@ -142,6 +146,11 @@ public class TieredIndexFile {
         }
     }
 
+    @VisibleForTesting
+    public MappedFile getPreMappedFile() {
+        return preMappedFile;
+    }
+
     private void initFile() throws IOException {
         curMappedFile = new DefaultMappedFile(curFilePath, fileMaxSize);
         initIndexFileHeader(curMappedFile);
@@ -153,19 +162,26 @@ public class TieredIndexFile {
 
         if (isFileSealed(curMappedFile)) {
             if (preFileExists) {
-                preFile.delete();
+                if (preFile.delete()) {
+                    logger.info("Pre IndexFile deleted success", preFilepath);
+                } else {
+                    logger.error("Pre IndexFile deleted failed", preFilepath);
+                }
             }
             boolean rename = curMappedFile.renameTo(preFilepath);
             if (rename) {
                 preMappedFile = curMappedFile;
                 curMappedFile = new DefaultMappedFile(curFilePath, fileMaxSize);
+                initIndexFileHeader(curMappedFile);
                 preFileExists = true;
             }
         }
+
         if (preFileExists) {
             synchronized (TieredIndexFile.class) {
                 if (inflightCompactFuture.isDone()) {
-                    inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(new CompactTask(storeConfig, preMappedFile, flatFile), null);
+                    inflightCompactFuture = TieredStoreExecutor.compactIndexFileExecutor.submit(
+                        new CompactTask(storeConfig, preMappedFile, flatFile), null);
                 }
             }
         }
@@ -258,7 +274,8 @@ public class TieredIndexFile {
         }
     }
 
-    public CompletableFuture<List<Pair<Long, ByteBuffer>>> queryAsync(String topic, String key, long beginTime, long endTime) {
+    public CompletableFuture<List<Pair<Long, ByteBuffer>>> queryAsync(String topic, String key, long beginTime,
+        long endTime) {
         int hashCode = indexKeyHashMethod(buildKey(topic, key));
         int slotPosition = hashCode % maxHashSlotNum;
         List<TieredFileSegment> fileSegmentList = flatFile.getFileListByTime(beginTime, endTime);
@@ -352,7 +369,7 @@ public class TieredIndexFile {
         private final int fileMaxSize;
         private MappedFile originFile;
         private TieredFlatFile fileQueue;
-        private final MappedFile compactFile;
+        private MappedFile compactFile;
 
         public CompactTask(TieredMessageStoreConfig storeConfig, MappedFile originFile,
             TieredFlatFile fileQueue) throws IOException {
@@ -378,6 +395,17 @@ public class TieredIndexFile {
             } catch (Throwable throwable) {
                 logger.error("TieredIndexFile#compactTask: compact index file failed:", throwable);
             }
+
+            try {
+                if (originFile != null) {
+                    originFile.destroy(-1);
+                }
+                if (compactFile != null) {
+                    compactFile.destroy(-1);
+                }
+            } catch (Throwable throwable) {
+                logger.error("TieredIndexFile#compactTask: destroy index file failed:", throwable);
+            }
         }
 
         public void compact() {
@@ -393,6 +421,8 @@ public class TieredIndexFile {
             fileQueue.commit(true);
             compactFile.destroy(-1);
             originFile.destroy(-1);
+            compactFile = null;
+            originFile = null;
         }
 
         private void buildCompactFile() {
@@ -411,6 +441,7 @@ public class TieredIndexFile {
                 if (slotValue != -1) {
                     int indexTotalSize = 0;
                     int indexPosition = slotValue;
+
                     while (indexPosition >= 0 && indexPosition < maxIndexNum) {
                         int indexOffset = INDEX_FILE_HEADER_SIZE + maxHashSlotNum * INDEX_FILE_HASH_SLOT_SIZE
                             + indexPosition * INDEX_FILE_HASH_ORIGIN_INDEX_SIZE;

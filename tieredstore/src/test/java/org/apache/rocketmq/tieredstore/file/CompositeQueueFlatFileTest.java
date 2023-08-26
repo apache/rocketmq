@@ -23,7 +23,6 @@ import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
@@ -33,6 +32,7 @@ import org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+import org.apache.rocketmq.common.BoundaryType;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -73,8 +73,8 @@ public class CompositeQueueFlatFileTest {
         CompositeQueueFlatFile flatFile = new CompositeQueueFlatFile(tieredFileAllocator, mq);
         ByteBuffer message = MessageBufferUtilTest.buildMockedMessageBuffer();
         AppendResult result = flatFile.appendCommitLog(message);
-        Assert.assertEquals(AppendResult.OFFSET_INCORRECT, result);
-        Assert.assertEquals(0L, flatFile.commitLog.getFlatFile().getFileToWrite().getAppendPosition());
+        Assert.assertEquals(AppendResult.SUCCESS, result);
+        Assert.assertEquals(122L, flatFile.commitLog.getFlatFile().getFileToWrite().getAppendPosition());
         Assert.assertEquals(0L, flatFile.commitLog.getFlatFile().getFileToWrite().getCommitPosition());
 
         flatFile = new CompositeQueueFlatFile(tieredFileAllocator, mq);
@@ -119,7 +119,7 @@ public class CompositeQueueFlatFileTest {
         Assert.assertEquals(AppendResult.SUCCESS, result);
 
         file.commit(true);
-        file.persistMetadata();
+        file.flushMetadata();
 
         QueueMetadata queueMetadata = metadataStore.getQueue(mq);
         Assert.assertEquals(53, queueMetadata.getMaxOffset());

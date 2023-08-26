@@ -21,14 +21,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.util.HashMap;
-import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -37,24 +30,26 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.netty.AttributeKeys;
 import org.apache.rocketmq.remoting.netty.NettySystemConfig;
-import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
+import java.util.HashMap;
+import java.util.Map;
 
 public class RemotingHelper {
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final String DEFAULT_CIDR_ALL = "0.0.0.0/0";
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
-    private static final AttributeKey<String> REMOTE_ADDR_KEY = AttributeKey.valueOf("RemoteAddr");
-
-    public static final AttributeKey<String> CLIENT_ID_KEY = AttributeKey.valueOf("ClientId");
-
-    public static final AttributeKey<Integer> VERSION_KEY = AttributeKey.valueOf("Version");
-
-    public static final AttributeKey<LanguageCode> LANGUAGE_CODE_KEY = AttributeKey.valueOf("LanguageCode");
 
     public static final Map<Integer, String> REQUEST_CODE_MAP = new HashMap<Integer, String>() {
         {
@@ -203,17 +198,33 @@ public class RemotingHelper {
         if (null == channel) {
             return "";
         }
-        Attribute<String> att = channel.attr(REMOTE_ADDR_KEY);
+        String addr = getProxyProtocolAddress(channel);
+        if (StringUtils.isNotBlank(addr)) {
+            return addr;
+        }
+        Attribute<String> att = channel.attr(AttributeKeys.REMOTE_ADDR_KEY);
         if (att == null) {
             // mocked in unit test
             return parseChannelRemoteAddr0(channel);
         }
-        String addr = att.get();
+        addr = att.get();
         if (addr == null) {
             addr = parseChannelRemoteAddr0(channel);
             att.set(addr);
         }
         return addr;
+    }
+
+    private static String getProxyProtocolAddress(Channel channel) {
+        if (!channel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
+            return null;
+        }
+        String proxyProtocolAddr = getAttributeValue(AttributeKeys.PROXY_PROTOCOL_ADDR, channel);
+        String proxyProtocolPort = getAttributeValue(AttributeKeys.PROXY_PROTOCOL_PORT, channel);
+        if (StringUtils.isBlank(proxyProtocolAddr) || proxyProtocolPort == null) {
+            return null;
+        }
+        return proxyProtocolAddr + ":" + proxyProtocolPort;
     }
 
     private static String parseChannelRemoteAddr0(final Channel channel) {
@@ -255,7 +266,7 @@ public class RemotingHelper {
         return "";
     }
 
-    public static int parseSocketAddressPort(SocketAddress socketAddress) {
+    public static Integer parseSocketAddressPort(SocketAddress socketAddress) {
         if (socketAddress instanceof InetSocketAddress) {
             return ((InetSocketAddress) socketAddress).getPort();
         }

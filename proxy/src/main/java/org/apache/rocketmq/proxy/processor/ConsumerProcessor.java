@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.processor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +48,7 @@ import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.service.ServiceManager;
+import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
@@ -83,6 +85,7 @@ public class ConsumerProcessor extends AbstractProcessor {
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     ) {
         CompletableFuture<PopResult> future = new CompletableFuture<>();
@@ -91,7 +94,8 @@ public class ConsumerProcessor extends AbstractProcessor {
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no readable queue");
             }
-            return popMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime, initMode, subscriptionData, fifo, popMessageResultFilter, timeoutMillis);
+            return popMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime, initMode,
+                subscriptionData, fifo, popMessageResultFilter, attemptId, timeoutMillis);
         }  catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -110,6 +114,7 @@ public class ConsumerProcessor extends AbstractProcessor {
         SubscriptionData subscriptionData,
         boolean fifo,
         PopMessageResultFilter popMessageResultFilter,
+        String attemptId,
         long timeoutMillis
     ) {
         CompletableFuture<PopResult> future = new CompletableFuture<>();
@@ -131,6 +136,7 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setExpType(subscriptionData.getExpressionType());
             requestHeader.setExp(subscriptionData.getSubString());
             requestHeader.setOrder(fifo);
+            requestHeader.setAttemptId(attemptId);
 
             future = this.serviceManager.getMessageService().popMessage(
                     ctx,
@@ -234,6 +240,69 @@ public class ConsumerProcessor extends AbstractProcessor {
             future.completeExceptionally(t);
         }
         return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<List<BatchAckResult>> batchAckMessage(
+        ProxyContext ctx,
+        List<ReceiptHandleMessage> handleMessageList,
+        String consumerGroup,
+        String topic,
+        long timeoutMillis
+    ) {
+        CompletableFuture<List<BatchAckResult>> future = new CompletableFuture<>();
+        try {
+            List<BatchAckResult> batchAckResultList = new ArrayList<>(handleMessageList.size());
+            Map<String, List<ReceiptHandleMessage>> brokerHandleListMap = new HashMap<>();
+
+            for (ReceiptHandleMessage handleMessage : handleMessageList) {
+                if (handleMessage.getReceiptHandle().isExpired()) {
+                    batchAckResultList.add(new BatchAckResult(handleMessage, EXPIRED_HANDLE_PROXY_EXCEPTION));
+                    continue;
+                }
+                List<ReceiptHandleMessage> brokerHandleList = brokerHandleListMap.computeIfAbsent(handleMessage.getReceiptHandle().getBrokerName(), key -> new ArrayList<>());
+                brokerHandleList.add(handleMessage);
+            }
+
+            if (brokerHandleListMap.isEmpty()) {
+                return FutureUtils.addExecutor(CompletableFuture.completedFuture(batchAckResultList), this.executor);
+            }
+            Set<Map.Entry<String, List<ReceiptHandleMessage>>> brokerHandleListMapEntrySet = brokerHandleListMap.entrySet();
+            CompletableFuture<List<BatchAckResult>>[] futures = new CompletableFuture[brokerHandleListMapEntrySet.size()];
+            int futureIndex = 0;
+            for (Map.Entry<String, List<ReceiptHandleMessage>> entry : brokerHandleListMapEntrySet) {
+                futures[futureIndex++] = processBrokerHandle(ctx, consumerGroup, topic, entry.getValue(), timeoutMillis);
+            }
+            CompletableFuture.allOf(futures).whenComplete((val, throwable) -> {
+                if (throwable != null) {
+                    future.completeExceptionally(throwable);
+                }
+                for (CompletableFuture<List<BatchAckResult>> resultFuture : futures) {
+                    batchAckResultList.addAll(resultFuture.join());
+                }
+                future.complete(batchAckResultList);
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    protected CompletableFuture<List<BatchAckResult>> processBrokerHandle(ProxyContext ctx, String consumerGroup, String topic, List<ReceiptHandleMessage> handleMessageList, long timeoutMillis) {
+        return this.serviceManager.getMessageService().batchAckMessage(ctx, handleMessageList, consumerGroup, topic, timeoutMillis)
+            .thenApply(result -> {
+                List<BatchAckResult> results = new ArrayList<>();
+                for (ReceiptHandleMessage handleMessage : handleMessageList) {
+                    results.add(new BatchAckResult(handleMessage, result));
+                }
+                return results;
+            })
+            .exceptionally(throwable -> {
+                List<BatchAckResult> results = new ArrayList<>();
+                for (ReceiptHandleMessage handleMessage : handleMessageList) {
+                    results.add(new BatchAckResult(handleMessage, new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, throwable.getMessage(), throwable)));
+                }
+                return results;
+            });
     }
 
     public CompletableFuture<AckResult> changeInvisibleTime(ProxyContext ctx, ReceiptHandle handle,
@@ -421,13 +490,15 @@ public class ConsumerProcessor extends AbstractProcessor {
     }
 
     protected Set<AddressableMessageQueue> buildAddressableSet(ProxyContext ctx, Set<MessageQueue> mqSet) {
-        return mqSet.stream().map(mq -> {
+        Set<AddressableMessageQueue> addressableMessageQueueSet = new HashSet<>(mqSet.size());
+        for (MessageQueue mq:mqSet) {
             try {
-                return serviceManager.getTopicRouteService().buildAddressableMessageQueue(ctx, mq);
+                addressableMessageQueueSet.add(serviceManager.getTopicRouteService().buildAddressableMessageQueue(ctx, mq)) ;
             } catch (Exception e) {
-                return null;
+                log.error("build addressable message queue fail, messageQueue = {}", mq, e);
             }
-        }).collect(Collectors.toSet());
+        }
+        return addressableMessageQueueSet;
     }
 
     protected HashMap<String, List<AddressableMessageQueue>> buildAddressableMapByBrokerName(

@@ -27,7 +27,7 @@ import org.apache.rocketmq.common.ThreadFactoryImpl;
 
 public class TieredStoreExecutor {
 
-    private static final int QUEUE_CAPACITY = 10000;
+    public static final int QUEUE_CAPACITY = 10000;
 
     // Visible for monitor
     public static BlockingQueue<Runnable> dispatchThreadPoolQueue;
@@ -43,18 +43,9 @@ public class TieredStoreExecutor {
     public static ExecutorService compactIndexFileExecutor;
 
     public static void init() {
-        dispatchThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        dispatchExecutor = new ThreadPoolExecutor(
-            Math.max(2, Runtime.getRuntime().availableProcessors()),
-            Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
-            1000 * 60,
-            TimeUnit.MILLISECONDS,
-            dispatchThreadPoolQueue,
-            new ThreadFactoryImpl("TieredCommonExecutor_"));
-
         commonScheduledExecutor = new ScheduledThreadPoolExecutor(
             Math.max(4, Runtime.getRuntime().availableProcessors()),
-            new ThreadFactoryImpl("TieredCommonScheduledExecutor_"));
+            new ThreadFactoryImpl("TieredCommonExecutor_"));
 
         commitExecutor = new ScheduledThreadPoolExecutor(
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
@@ -62,7 +53,17 @@ public class TieredStoreExecutor {
 
         cleanExpiredFileExecutor = new ScheduledThreadPoolExecutor(
             Math.max(4, Runtime.getRuntime().availableProcessors()),
-            new ThreadFactoryImpl("TieredCleanExpiredFileExecutor_"));
+            new ThreadFactoryImpl("TieredCleanFileExecutor_"));
+
+        dispatchThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+        dispatchExecutor = new ThreadPoolExecutor(
+            Math.max(2, Runtime.getRuntime().availableProcessors()),
+            Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            dispatchThreadPoolQueue,
+            new ThreadFactoryImpl("TieredDispatchExecutor_"),
+            new ThreadPoolExecutor.DiscardOldestPolicy());
 
         fetchDataThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
         fetchDataExecutor = new ThreadPoolExecutor(
@@ -71,7 +72,7 @@ public class TieredStoreExecutor {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             fetchDataThreadPoolQueue,
-            new ThreadFactoryImpl("TieredFetchDataExecutor_"));
+            new ThreadFactoryImpl("TieredFetchExecutor_"));
 
         compactIndexFileThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
         compactIndexFileExecutor = new ThreadPoolExecutor(
