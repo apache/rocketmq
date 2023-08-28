@@ -79,6 +79,9 @@ public class SlaveSynchronize {
                 if (!this.brokerController.getTopicConfigManager().getDataVersion()
                         .equals(topicWrapper.getDataVersion())) {
 
+                    this.brokerController.getMessageStore()
+                            .cleanUnusedTopic(topicWrapper.getTopicConfigTable().keySet());
+
                     this.brokerController.getTopicConfigManager().getDataVersion()
                             .assignNewOne(topicWrapper.getDataVersion());
 
