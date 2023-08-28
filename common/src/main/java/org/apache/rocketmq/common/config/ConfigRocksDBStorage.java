@@ -60,6 +60,12 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
         this.readOnly = false;
     }
 
+    public ConfigRocksDBStorage(final String dbPath, boolean readOnly) {
+        super();
+        this.dbPath = dbPath;
+        this.readOnly = readOnly;
+    }
+
     private void initOptions() {
         this.options = createConfigDBOptions();
 
