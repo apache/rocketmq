@@ -16,17 +16,6 @@
  */
 package org.apache.rocketmq.container;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
@@ -49,6 +38,18 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class BrokerContainer implements IBrokerContainer {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -177,7 +178,7 @@ public class BrokerContainer implements IBrokerContainer {
                         LOG.error("ScheduledTask fetchNameServerAddr exception", e);
                     }
                 }
-            }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
+            }, 1000 * 10, this.brokerContainerConfig.getFetchNamesrvAddrInterval(), TimeUnit.MILLISECONDS);
         }
 
         this.scheduledExecutorService.scheduleAtFixedRate(new AbstractBrokerRunnable(BrokerIdentity.BROKER_CONTAINER_IDENTITY) {
@@ -300,19 +301,19 @@ public class BrokerContainer implements IBrokerContainer {
                 BrokerLogbackConfigurator.doConfigure(brokerIdentity);
                 final boolean initResult = brokerController.initialize();
                 if (!initResult) {
-                    brokerController.shutdown();
                     dLedgerBrokerControllers.remove(brokerIdentity);
+                    brokerController.shutdown();
                     throw new Exception("Failed to init dLedger broker " + brokerIdentity.getCanonicalName());
                 }
             } catch (Exception e) {
                 // Remove the failed dLedger broker and throw the exception
-                brokerController.shutdown();
                 dLedgerBrokerControllers.remove(brokerIdentity);
+                brokerController.shutdown();
                 throw new Exception("Failed to initialize dLedger broker " + brokerIdentity.getCanonicalName(), e);
             }
             return brokerController;
         }
-        throw new Exception(brokerIdentity.getCanonicalName() + " has already been added to current broker");
+        throw new Exception(brokerIdentity.getCanonicalName() + " has already been added to current broker container");
     }
 
     public InnerBrokerController addMasterBroker(final BrokerConfig masterBrokerConfig,
@@ -332,8 +333,8 @@ public class BrokerContainer implements IBrokerContainer {
                 BrokerLogbackConfigurator.doConfigure(masterBrokerConfig);
                 final boolean initResult = masterBroker.initialize();
                 if (!initResult) {
-                    masterBroker.shutdown();
                     masterBrokerControllers.remove(brokerIdentity);
+                    masterBroker.shutdown();
                     throw new Exception("Failed to init master broker " + masterBrokerConfig.getCanonicalName());
                 }
 
@@ -344,13 +345,13 @@ public class BrokerContainer implements IBrokerContainer {
                 }
             } catch (Exception e) {
                 // Remove the failed master broker and throw the exception
-                masterBroker.shutdown();
                 masterBrokerControllers.remove(brokerIdentity);
+                masterBroker.shutdown();
                 throw new Exception("Failed to initialize master broker " + masterBrokerConfig.getCanonicalName(), e);
             }
             return masterBroker;
         }
-        throw new Exception(masterBrokerConfig.getCanonicalName() + " has already been added to current broker");
+        throw new Exception(masterBrokerConfig.getCanonicalName() + " has already been added to current broker container");
     }
 
     /**
@@ -379,8 +380,8 @@ public class BrokerContainer implements IBrokerContainer {
                 BrokerLogbackConfigurator.doConfigure(slaveBrokerConfig);
                 final boolean initResult = slaveBroker.initialize();
                 if (!initResult) {
-                    slaveBroker.shutdown();
                     slaveBrokerControllers.remove(brokerIdentity);
+                    slaveBroker.shutdown();
                     throw new Exception("Failed to init slave broker " + slaveBrokerConfig.getCanonicalName());
                 }
                 BrokerController masterBroker = this.peekMasterBroker();
@@ -389,13 +390,13 @@ public class BrokerContainer implements IBrokerContainer {
                 }
             } catch (Exception e) {
                 // Remove the failed slave broker and throw the exception
-                slaveBroker.shutdown();
                 slaveBrokerControllers.remove(brokerIdentity);
+                slaveBroker.shutdown();
                 throw new Exception("Failed to initialize slave broker " + slaveBrokerConfig.getCanonicalName(), e);
             }
             return slaveBroker;
         }
-        throw new Exception(slaveBrokerConfig.getCanonicalName() + " has already been added to current broker");
+        throw new Exception(slaveBrokerConfig.getCanonicalName() + " has already been added to current broker container");
     }
 
     @Override

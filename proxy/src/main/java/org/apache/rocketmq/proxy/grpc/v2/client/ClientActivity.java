@@ -52,6 +52,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.ContextStreamObserver;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -174,11 +175,10 @@ public class ClientActivity extends AbstractMessingActivity {
         return future;
     }
 
-    public StreamObserver<TelemetryCommand> telemetry(ProxyContext ctx,
-        StreamObserver<TelemetryCommand> responseObserver) {
-        return new StreamObserver<TelemetryCommand>() {
+    public ContextStreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
+        return new ContextStreamObserver<TelemetryCommand>() {
             @Override
-            public void onNext(TelemetryCommand request) {
+            public void onNext(ProxyContext ctx, TelemetryCommand request) {
                 try {
                     switch (request.getCommandCase()) {
                         case SETTINGS: {
@@ -271,7 +271,7 @@ public class ClientActivity extends AbstractMessingActivity {
 
     protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request) {
         String clientId = ctx.getClientID();
-        grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
+        grpcClientSettingsManager.updateClientSettings(ctx, clientId, request.getSettings());
         Settings settings = grpcClientSettingsManager.getClientSettings(ctx);
         return TelemetryCommand.newBuilder()
             .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
@@ -287,7 +287,7 @@ public class ClientActivity extends AbstractMessingActivity {
         // use topic name as producer group
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, parseClientVersion(ctx.getClientVersion()));
         this.messagingProcessor.registerProducer(ctx, topicName, clientChannelInfo);
-        TopicMessageType topicMessageType = this.messagingProcessor.getMetadataService().getTopicMessageType(topicName);
+        TopicMessageType topicMessageType = this.messagingProcessor.getMetadataService().getTopicMessageType(ctx, topicName);
         if (TopicMessageType.TRANSACTION.equals(topicMessageType)) {
             this.messagingProcessor.addTransactionSubscription(ctx, topicName, topicName);
         }
@@ -458,7 +458,11 @@ public class ClientActivity extends AbstractMessingActivity {
                     if (settings == null) {
                         return;
                     }
-                    grpcClientSettingsManager.updateClientSettings(clientChannelInfo.getClientId(), settings);
+                    grpcClientSettingsManager.updateClientSettings(
+                        ProxyContext.createForInner(this.getClass()),
+                        clientChannelInfo.getClientId(),
+                        settings
+                    );
                 }
             }
         }
@@ -475,7 +479,7 @@ public class ClientActivity extends AbstractMessingActivity {
         public void handle(ProducerGroupEvent event, String group, ClientChannelInfo clientChannelInfo) {
             if (event == ProducerGroupEvent.CLIENT_UNREGISTER) {
                 grpcChannelManager.removeChannel(clientChannelInfo.getClientId());
-                grpcClientSettingsManager.removeClientSettings(clientChannelInfo.getClientId());
+                grpcClientSettingsManager.removeAndGetRawClientSettings(clientChannelInfo.getClientId());
             }
         }
     }

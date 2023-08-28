@@ -36,6 +36,7 @@ public class TransactionProcessor extends AbstractProcessor {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
             EndTransactionRequestData headerData = serviceManager.getTransactionService().genEndTransactionRequestHeader(
+                ctx,
                 producerGroup,
                 buildCommitOrRollback(transactionStatus),
                 fromTransactionCheck,
@@ -70,6 +71,6 @@ public class TransactionProcessor extends AbstractProcessor {
     }
 
     public void addTransactionSubscription(ProxyContext ctx, String producerGroup, String topic) {
-        this.serviceManager.getTransactionService().addTransactionSubscription(producerGroup, topic);
+        this.serviceManager.getTransactionService().addTransactionSubscription(ctx, producerGroup, topic);
     }
 }

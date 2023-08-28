@@ -28,6 +28,7 @@ import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.NumberFormat;
@@ -40,6 +41,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
@@ -83,15 +85,18 @@ public class UtilAll {
     }
 
     public static void sleep(long sleepMs) {
-        if (sleepMs < 0) {
+        sleep(sleepMs, TimeUnit.MILLISECONDS);
+    }
+
+    public static void sleep(long timeOut, TimeUnit timeUnit) {
+        if (null == timeUnit) {
             return;
         }
         try {
-            Thread.sleep(sleepMs);
+            timeUnit.sleep(timeOut);
         } catch (Throwable ignored) {
 
         }
-
     }
 
     public static String currentStackTrace() {
@@ -517,8 +522,10 @@ public class UtilAll {
         //10.0.0.0~10.255.255.255
         //172.16.0.0~172.31.255.255
         //192.168.0.0~192.168.255.255
+        //127.0.0.0~127.255.255.255
         if (ip[0] == (byte) 10) {
-
+            return true;
+        } else if (ip[0] == (byte) 127) {
             return true;
         } else if (ip[0] == (byte) 172) {
             if (ip[1] >= (byte) 16 && ip[1] <= (byte) 31) {
@@ -604,7 +611,7 @@ public class UtilAll {
                             if (ipCheck(ipByte)) {
                                 if (!isInternalIP(ipByte)) {
                                     return ipByte;
-                                } else if (internalIP == null) {
+                                } else if (internalIP == null || internalIP[0] == (byte) 127) {
                                     internalIP = ipByte;
                                 }
                             }
@@ -758,5 +765,31 @@ public class UtilAll {
             boolean result = f.mkdirs();
             STORE_LOG.info(dirName + " mkdir " + (result ? "OK" : "Failed"));
         }
+    }
+
+    public static long calculateFileSizeInPath(File path) {
+        long size = 0;
+        try {
+            if (!path.exists() || Files.isSymbolicLink(path.toPath())) {
+                return 0;
+            }
+            if (path.isFile()) {
+                return path.length();
+            }
+            if (path.isDirectory()) {
+                File[] files = path.listFiles();
+                if (files != null && files.length > 0) {
+                    for (File file : files) {
+                        long fileSize = calculateFileSizeInPath(file);
+                        if (fileSize == -1) return -1;
+                        size += fileSize;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("calculate all file size in: {} error", path.getAbsolutePath(), e);
+            return -1;
+        }
+        return size;
     }
 }

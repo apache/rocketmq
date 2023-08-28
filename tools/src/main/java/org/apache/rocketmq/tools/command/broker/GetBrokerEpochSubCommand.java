@@ -38,7 +38,7 @@ public class GetBrokerEpochSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch broker epoch entries";
+        return "Fetch broker epoch entries.";
     }
 
     @Override
@@ -116,8 +116,9 @@ public class GetBrokerEpochSubCommand implements SubCommand {
                 if (i == epochList.size() - 1) {
                     epochEntry.setEndOffset(epochCache.getMaxOffset());
                 }
-                System.out.printf("\n#Epoch: %s\n", epochEntry.toString());
+                System.out.printf("\n#Epoch: %s", epochEntry.toString());
             }
+            System.out.print("\n");
         }
     }
 }

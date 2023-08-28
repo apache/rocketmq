@@ -36,12 +36,12 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.service.mqclient.MQClientAPIFactory;
+import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
-import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ProducerData;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
@@ -53,6 +53,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
 
     private final MQClientAPIFactory mqClientAPIFactory;
     private final TopicRouteService topicRouteService;
+    private final ProducerManager producerManager;
 
     private ThreadPoolExecutor heartbeatExecutors;
     private final Map<String /* group */, Set<ClusterData>/* cluster list */> groupClusterData = new ConcurrentHashMap<>();
@@ -60,27 +61,27 @@ public class ClusterTransactionService extends AbstractTransactionService {
     private TxHeartbeatServiceThread txHeartbeatServiceThread;
 
     public ClusterTransactionService(TopicRouteService topicRouteService, ProducerManager producerManager,
-        RPCHook rpcHook,
         MQClientAPIFactory mqClientAPIFactory) {
         this.topicRouteService = topicRouteService;
+        this.producerManager = producerManager;
         this.mqClientAPIFactory = mqClientAPIFactory;
     }
 
     @Override
-    public void addTransactionSubscription(String group, List<String> topicList) {
+    public void addTransactionSubscription(ProxyContext ctx, String group, List<String> topicList) {
         for (String topic : topicList) {
-            addTransactionSubscription(group, topic);
+            addTransactionSubscription(ctx, group, topic);
         }
     }
 
     @Override
-    public void addTransactionSubscription(String group, String topic) {
+    public void addTransactionSubscription(ProxyContext ctx, String group, String topic) {
         try {
             groupClusterData.compute(group, (groupName, clusterDataSet) -> {
                 if (clusterDataSet == null) {
                     clusterDataSet = Sets.newHashSet();
                 }
-                clusterDataSet.addAll(getClusterDataFromTopic(topic));
+                clusterDataSet.addAll(getClusterDataFromTopic(ctx, topic));
                 return clusterDataSet;
             });
         } catch (Exception e) {
@@ -89,17 +90,17 @@ public class ClusterTransactionService extends AbstractTransactionService {
     }
 
     @Override
-    public void replaceTransactionSubscription(String group, List<String> topicList) {
+    public void replaceTransactionSubscription(ProxyContext ctx, String group, List<String> topicList) {
         Set<ClusterData> clusterDataSet = new HashSet<>();
         for (String topic : topicList) {
-            clusterDataSet.addAll(getClusterDataFromTopic(topic));
+            clusterDataSet.addAll(getClusterDataFromTopic(ctx, topic));
         }
         groupClusterData.put(group, clusterDataSet);
     }
 
-    private Set<ClusterData> getClusterDataFromTopic(String topic) {
+    private Set<ClusterData> getClusterDataFromTopic(ProxyContext ctx, String topic) {
         try {
-            MessageQueueView messageQueue = this.topicRouteService.getAllMessageQueueView(topic);
+            MessageQueueView messageQueue = this.topicRouteService.getAllMessageQueueView(ctx, topic);
             List<BrokerData> brokerDataList = messageQueue.getTopicRouteData().getBrokerDatas();
 
             if (brokerDataList == null) {
@@ -117,7 +118,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
     }
 
     @Override
-    public void unSubscribeAllTransactionTopic(String group) {
+    public void unSubscribeAllTransactionTopic(ProxyContext ctx, String group) {
         groupClusterData.remove(group);
     }
 
@@ -128,6 +129,9 @@ public class ClusterTransactionService extends AbstractTransactionService {
         for (String group : groupSet) {
             groupClusterData.computeIfPresent(group, (groupName, clusterDataSet) -> {
                 if (clusterDataSet.isEmpty()) {
+                    return null;
+                }
+                if (!this.producerManager.groupOnline(groupName)) {
                     return null;
                 }
 
@@ -192,7 +196,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
 
     protected void sendHeartBeatToCluster(String clusterName, HeartbeatData heartbeatData, Map<String, String> brokerAddrNameMap) {
         try {
-            MessageQueueView messageQueue = this.topicRouteService.getAllMessageQueueView(clusterName);
+            MessageQueueView messageQueue = this.topicRouteService.getAllMessageQueueView(ProxyContext.createForInner(this.getClass()), clusterName);
             List<BrokerData> brokerDataList = messageQueue.getTopicRouteData().getBrokerDatas();
             if (brokerDataList == null) {
                 return;

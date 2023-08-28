@@ -33,7 +33,7 @@ public class ResetMasterFlushOffsetSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Reset master flush offset in slave";
+        return "Reset master flush offset in slave.";
     }
 
     @Override

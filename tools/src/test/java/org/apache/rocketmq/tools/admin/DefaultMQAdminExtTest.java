@@ -513,6 +513,36 @@ public class DefaultMQAdminExtTest {
     }
 
     @Test
+    public void testSearchOffsetWithSpecificBoundaryType() throws Exception {
+        // do mock
+        DefaultMQAdminExt mockDefaultMQAdminExt = mock(DefaultMQAdminExt.class);
+        when(mockDefaultMQAdminExt.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mockDefaultMQAdminExt.maxOffset(any(MessageQueue.class))).thenReturn(101L);
+        when(mockDefaultMQAdminExt.searchLowerBoundaryOffset(any(MessageQueue.class), anyLong())).thenReturn(0L);
+        when(mockDefaultMQAdminExt.searchUpperBoundaryOffset(any(MessageQueue.class), anyLong())).thenReturn(100L);
+        when(mockDefaultMQAdminExt.queryConsumeTimeSpan(anyString(), anyString())).thenReturn(mockQueryConsumeTimeSpan());
+
+        for (QueueTimeSpan timeSpan: mockDefaultMQAdminExt.queryConsumeTimeSpan(TOPIC1, "group_one")) {
+            MessageQueue mq = timeSpan.getMessageQueue();
+            long maxOffset = mockDefaultMQAdminExt.maxOffset(mq);
+            long minOffset = mockDefaultMQAdminExt.minOffset(mq);
+            // if there is at least one message in queue, the maxOffset returns the queue's latest offset + 1
+            assertThat((maxOffset == 0 ? 0 : maxOffset - 1) == mockDefaultMQAdminExt.searchUpperBoundaryOffset(mq, timeSpan.getMaxTimeStamp())).isTrue();
+            assertThat(minOffset == mockDefaultMQAdminExt.searchLowerBoundaryOffset(mq, timeSpan.getMinTimeStamp())).isTrue();
+        }
+    }
+
+    private List<QueueTimeSpan> mockQueryConsumeTimeSpan() {
+        List<QueueTimeSpan> spanSet = new ArrayList<>();
+        QueueTimeSpan timeSpan = new QueueTimeSpan();
+        timeSpan.setMessageQueue(new MessageQueue(TOPIC1, BROKER1_NAME, 0));
+        timeSpan.setMinTimeStamp(1690421253000L);
+        timeSpan.setMaxTimeStamp(1690507653000L);
+        spanSet.add(timeSpan);
+        return spanSet;
+    }
+
+    @Test
     public void testExamineTopicConfig() throws MQBrokerException, RemotingException, InterruptedException {
         TopicConfig topicConfig = defaultMQAdminExt.examineTopicConfig("127.0.0.1:10911", "topic_test_examine_topicConfig");
         assertThat(topicConfig.getTopicName().equals("topic_test_examine_topicConfig")).isTrue();

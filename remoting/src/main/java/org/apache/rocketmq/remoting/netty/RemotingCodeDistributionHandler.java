@@ -75,8 +75,8 @@ public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
     }
 
     private String snapshotToString(Map<Integer, Long> distribution) {
-        StringBuilder sb = new StringBuilder("{");
         if (null != distribution && !distribution.isEmpty()) {
+            StringBuilder sb = new StringBuilder("{");
             boolean first = true;
             for (Map.Entry<Integer, Long> entry : distribution.entrySet()) {
                 if (0L == entry.getValue()) {
@@ -85,9 +85,13 @@ public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
                 sb.append(first ? "" : ", ").append(entry.getKey()).append(":").append(entry.getValue());
                 first = false;
             }
+            if (first) {
+                return null;
+            }
+            sb.append("}");
+            return sb.toString();
         }
-        sb.append("}");
-        return sb.toString();
+        return null;
     }
 
     public String getInBoundSnapshotString() {

@@ -28,6 +28,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageId;
@@ -72,18 +73,21 @@ public class ProducerProcessor extends AbstractProcessor {
                 if (topicMessageTypeValidator != null) {
                     // Do not check retry or dlq topic
                     if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
-                        TopicMessageType topicMessageType = serviceManager.getMetadataService().getTopicMessageType(topic);
+                        TopicMessageType topicMessageType = serviceManager.getMetadataService().getTopicMessageType(ctx, topic);
                         TopicMessageType messageType = TopicMessageType.parseFromMessageProperty(message.getProperties());
                         topicMessageTypeValidator.validate(topicMessageType, messageType);
                     }
                 }
             }
             AddressableMessageQueue messageQueue = queueSelector.select(ctx,
-                this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(topic));
+                this.serviceManager.getTopicRouteService().getCurrentMessageQueueView(ctx, topic));
             if (messageQueue == null) {
                 throw new ProxyException(ProxyExceptionCode.FORBIDDEN, "no writable queue");
             }
 
+            for (Message msg : messageList) {
+                MessageClientIDSetter.setUniqID(msg);
+            }
             SendMessageRequestHeader requestHeader = buildSendMessageRequestHeader(messageList, producerGroup, sysFlag, messageQueue.getQueueId());
 
             future = this.serviceManager.getMessageService().sendMessage(
@@ -98,7 +102,7 @@ public class ProducerProcessor extends AbstractProcessor {
                         if (SendStatus.SEND_OK.equals(sendResult.getSendStatus()) &&
                             tranType == MessageSysFlag.TRANSACTION_PREPARED_TYPE &&
                             StringUtils.isNotBlank(sendResult.getTransactionId())) {
-                            fillTransactionData(producerGroup, messageQueue, sendResult, messageList);
+                            fillTransactionData(ctx, producerGroup, messageQueue, sendResult, messageList);
                         }
                     }
                     return sendResultList;
@@ -109,7 +113,7 @@ public class ProducerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
-    protected void fillTransactionData(String producerGroup, AddressableMessageQueue messageQueue, SendResult sendResult, List<Message> messageList) {
+    protected void fillTransactionData(ProxyContext ctx, String producerGroup, AddressableMessageQueue messageQueue, SendResult sendResult, List<Message> messageList) {
         try {
             MessageId id;
             if (sendResult.getOffsetMsgId() != null) {
@@ -118,6 +122,7 @@ public class ProducerProcessor extends AbstractProcessor {
                 id = MessageDecoder.decodeMessageId(sendResult.getMsgId());
             }
             this.serviceManager.getTransactionService().addTransactionDataByBrokerName(
+                ctx,
                 messageQueue.getBrokerName(),
                 producerGroup,
                 sendResult.getQueueOffset(),

@@ -42,7 +42,7 @@ public class TopicRouteSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Examine topic route info";
+        return "Examine topic route info.";
     }
 
     @Override

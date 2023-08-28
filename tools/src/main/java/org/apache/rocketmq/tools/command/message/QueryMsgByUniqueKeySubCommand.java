@@ -141,7 +141,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Query Message by Unique key";
+        return "Query Message by Unique key.";
     }
 
     @Override

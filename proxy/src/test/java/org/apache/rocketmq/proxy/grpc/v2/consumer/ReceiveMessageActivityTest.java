@@ -25,6 +25,7 @@ import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.Settings;
+import com.google.protobuf.Duration;
 import com.google.protobuf.util.Durations;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
@@ -56,6 +57,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -73,7 +75,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     public void before() throws Throwable {
         super.before();
         ConfigurationManager.getProxyConfig().setGrpcClientConsumerMinLongPollingTimeoutMillis(0);
-        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor,
+        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor,
             grpcClientSettingsManager, grpcChannelManager);
     }
 
@@ -88,7 +90,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             .setRequestTimeout(Durations.fromSeconds(3))
             .build());
         when(this.messagingProcessor.popMessage(any(), any(), anyString(), anyString(), anyInt(), anyLong(),
-            pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), anyLong()))
+            pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), isNull(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
 
 
@@ -110,6 +112,47 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
 
         assertEquals(Code.MESSAGE_NOT_FOUND, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
         assertEquals(0L, pollTimeCaptor.getValue().longValue());
+    }
+
+    @Test
+    public void testReceiveMessageWithIllegalPollingTime() {
+        StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor0 = ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor0.capture());
+
+        when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
+
+        final ProxyContext context = createContext();
+        context.setClientVersion("5.0.2");
+        context.setRemainingMs(-1L);
+        final ReceiveMessageRequest request = ReceiveMessageRequest.newBuilder()
+            .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
+            .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
+            .setAutoRenew(false)
+            .setLongPollingTimeout(Duration.newBuilder().setSeconds(20).build())
+            .setFilterExpression(FilterExpression.newBuilder()
+                .setType(FilterType.TAG)
+                .setExpression("*")
+                .build())
+            .build();
+        this.receiveMessageActivity.receiveMessage(
+            context,
+            request,
+            receiveStreamObserver
+        );
+        assertEquals(Code.BAD_REQUEST, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor0.getAllValues()));
+
+        ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor1 =
+            ArgumentCaptor.forClass(ReceiveMessageResponse.class);
+        doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor1.capture());
+        context.setClientVersion("5.0.3");
+        this.receiveMessageActivity.receiveMessage(
+            context,
+            request,
+            receiveStreamObserver
+        );
+        assertEquals(Code.ILLEGAL_POLLING_TIME,
+            getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor1.getAllValues()));
     }
 
     @Test
@@ -181,7 +224,6 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         assertEquals(Code.ILLEGAL_INVISIBLE_TIME, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
     }
 
-
     @Test
     public void testReceiveMessage() {
         StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
@@ -203,6 +245,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             any(),
             anyBoolean(),
             any(),
+            isNull(),
             anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
 
         this.receiveMessageActivity.receiveMessage(

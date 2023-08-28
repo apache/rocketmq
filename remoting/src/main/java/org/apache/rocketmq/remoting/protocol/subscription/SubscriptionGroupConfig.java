@@ -17,6 +17,10 @@
 
 package org.apache.rocketmq.remoting.protocol.subscription;
 
+import com.google.common.base.MoreObjects;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.rocketmq.common.MixAll;
 
@@ -44,6 +48,10 @@ public class SubscriptionGroupConfig {
 
     // Only valid for push consumer
     private int consumeTimeoutMinute = 15;
+
+    private Set<SimpleSubscriptionData> subscriptionDataSet;
+
+    private Map<String, String> attributes = new HashMap<>();
 
     public String getGroupName() {
         return groupName;
@@ -149,6 +157,22 @@ public class SubscriptionGroupConfig {
         this.consumeTimeoutMinute = consumeTimeoutMinute;
     }
 
+    public Set<SimpleSubscriptionData> getSubscriptionDataSet() {
+        return subscriptionDataSet;
+    }
+
+    public void setSubscriptionDataSet(Set<SimpleSubscriptionData> subscriptionDataSet) {
+        this.subscriptionDataSet = subscriptionDataSet;
+    }
+
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, String> attributes) {
+        this.attributes = attributes;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -163,6 +187,10 @@ public class SubscriptionGroupConfig {
         result = prime * result + retryQueueNums;
         result =
             prime * result + (int) (whichBrokerWhenConsumeSlowly ^ (whichBrokerWhenConsumeSlowly >>> 32));
+        result = prime * result + groupSysFlag;
+        result = prime * result + consumeTimeoutMinute;
+        result = prime * result + subscriptionDataSet.hashCode();
+        result = prime * result + attributes.hashCode();
         return result;
     }
 
@@ -182,28 +210,33 @@ public class SubscriptionGroupConfig {
             .append(consumeBroadcastEnable, other.consumeBroadcastEnable)
             .append(retryQueueNums, other.retryQueueNums)
             .append(retryMaxTimes, other.retryMaxTimes)
-            .append(brokerId, other.brokerId)
             .append(whichBrokerWhenConsumeSlowly, other.whichBrokerWhenConsumeSlowly)
             .append(notifyConsumerIdsChangedEnable, other.notifyConsumerIdsChangedEnable)
             .append(groupSysFlag, other.groupSysFlag)
+            .append(consumeTimeoutMinute, other.consumeTimeoutMinute)
+            .append(subscriptionDataSet, other.subscriptionDataSet)
+            .append(attributes, other.attributes)
             .isEquals();
     }
 
     @Override
     public String toString() {
-        return "SubscriptionGroupConfig{" +
-            "groupName='" + groupName + '\'' +
-            ", consumeEnable=" + consumeEnable +
-            ", consumeFromMinEnable=" + consumeFromMinEnable +
-            ", consumeBroadcastEnable=" + consumeBroadcastEnable +
-            ", consumeMessageOrderly=" + consumeMessageOrderly +
-            ", retryQueueNums=" + retryQueueNums +
-            ", retryMaxTimes=" + retryMaxTimes +
-            ", groupRetryPolicy=" + groupRetryPolicy +
-            ", brokerId=" + brokerId +
-            ", whichBrokerWhenConsumeSlowly=" + whichBrokerWhenConsumeSlowly +
-            ", notifyConsumerIdsChangedEnable=" + notifyConsumerIdsChangedEnable +
-            ", groupSysFlag=" + groupSysFlag +
-            '}';
+        return MoreObjects.toStringHelper(this)
+            .add("groupName", groupName)
+            .add("consumeEnable", consumeEnable)
+            .add("consumeFromMinEnable", consumeFromMinEnable)
+            .add("consumeBroadcastEnable", consumeBroadcastEnable)
+            .add("consumeMessageOrderly", consumeMessageOrderly)
+            .add("retryQueueNums", retryQueueNums)
+            .add("retryMaxTimes", retryMaxTimes)
+            .add("groupRetryPolicy", groupRetryPolicy)
+            .add("brokerId", brokerId)
+            .add("whichBrokerWhenConsumeSlowly", whichBrokerWhenConsumeSlowly)
+            .add("notifyConsumerIdsChangedEnable", notifyConsumerIdsChangedEnable)
+            .add("groupSysFlag", groupSysFlag)
+            .add("consumeTimeoutMinute", consumeTimeoutMinute)
+            .add("subscriptionDataSet", subscriptionDataSet)
+            .add("attributes", attributes)
+            .toString();
     }
 }

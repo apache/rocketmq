@@ -234,7 +234,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         } else {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
-            //set to zore to avoid client decoding exception
+            //set to zero to avoid client decoding exception
             responseHeader.setMsgId("0");
             responseHeader.setQueueId(queueIdInt);
             responseHeader.setQueueOffset(0L);
@@ -295,7 +295,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
             this.brokerController.getBrokerStatsManager().incTopicPutNums(msg.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
             this.brokerController.getBrokerStatsManager().incTopicPutSize(msg.getTopic(),
                 putMessageResult.getAppendMessageResult().getWroteBytes());
-            this.brokerController.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
+            this.brokerController.getBrokerStatsManager().incBrokerPutNums(msg.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum());
 
             if (!BrokerMetricsManager.isRetryOrDlqTopic(msg.getTopic())) {
                 Attributes attributes = BrokerMetricsManager.newAttributesBuilder()

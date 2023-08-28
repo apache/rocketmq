@@ -45,11 +45,11 @@ public class ExpressionForRetryMessageFilter extends ExpressionMessageFilter {
             return true;
         }
 
-        boolean isRetryTopic = subscriptionData.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
-
-        if (!isRetryTopic && ExpressionType.isTagType(subscriptionData.getExpressionType())) {
+        if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
             return true;
         }
+
+        boolean isRetryTopic = subscriptionData.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
 
         ConsumerFilterData realFilterData = this.consumerFilterData;
         Map<String, String> tempProperties = properties;

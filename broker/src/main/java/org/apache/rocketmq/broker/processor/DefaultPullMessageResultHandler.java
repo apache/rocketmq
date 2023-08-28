@@ -83,7 +83,8 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
         final SubscriptionGroupConfig subscriptionGroupConfig,
         final boolean brokerAllowSuspend,
         final MessageFilter messageFilter,
-        RemotingCommand response) {
+        RemotingCommand response,
+        TopicQueueMappingContext mappingContext) {
         PullMessageProcessor processor = brokerController.getPullMessageProcessor();
         final String clientAddress = RemotingHelper.parseChannelRemoteAddr(channel);
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
@@ -98,7 +99,6 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
         }
 
         //rewrite the response for the static topic
-        TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader, false);
         final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
         RemotingCommand rewriteResult = processor.rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext, response.getCode());
         if (rewriteResult != null) {
@@ -118,7 +118,7 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
                 this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
                     getMessageResult.getBufferTotalSize());
 
-                this.brokerController.getBrokerStatsManager().incBrokerGetNums(getMessageResult.getMessageCount());
+                this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), getMessageResult.getMessageCount());
 
                 if (!BrokerMetricsManager.isRetryOrDlqTopic(requestHeader.getTopic())) {
                     Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
@@ -154,8 +154,8 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
                             .addListener((ChannelFutureListener) future -> {
                                 getMessageResult.release();
                                 Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
-                                    .put(LABEL_REQUEST_CODE, RemotingMetricsManager.getRequestCodeDesc(request.getCode()))
-                                    .put(LABEL_RESPONSE_CODE, RemotingMetricsManager.getResponseCodeDesc(finalResponse.getCode()))
+                                    .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
+                                    .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(finalResponse.getCode()))
                                     .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
                                     .build();
                                 RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);

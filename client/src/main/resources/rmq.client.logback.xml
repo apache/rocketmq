@@ -14,7 +14,7 @@
   limitations under the License.
   -->
 
-<configuration debug="true">
+<configuration>
     <conversionRule conversionWord="pid" converterClass="io.github.aliyunmq.logback.extensions.ProcessIdConverter"/>
     <appender name="CustomConsoleAppender" class="io.github.aliyunmq.logback.extensions.CustomConsoleAppender">
         <encoder>
@@ -23,7 +23,7 @@
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
-    <appender name="DefaultAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="DefaultAppenderInner" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <append>true</append>
         <File>
             ${rocketmq.log.root:-${user.home}${file.separator}logs${file.separator}rocketmqlogs}${file.separator}rocketmq_client.log
@@ -42,6 +42,9 @@
             <pattern>%d{yyy-MM-dd HH:mm:ss.SSS,GMT+8} %-5p [%pid] [%t] [%logger{12}#%M:%L] - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
+    </appender>
+    <appender name="DefaultAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="DefaultAppenderInner"/>
     </appender>
     <root level="${rocketmq.log.level:-info}">
         <appender-ref ref="CustomConsoleAppender"/>

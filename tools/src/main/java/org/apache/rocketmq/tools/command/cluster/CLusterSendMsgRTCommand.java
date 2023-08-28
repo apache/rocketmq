@@ -48,7 +48,7 @@ public class CLusterSendMsgRTCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "List All clusters Message Send RT";
+        return "List All clusters Message Send RT.";
     }
 
     @Override

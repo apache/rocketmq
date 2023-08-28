@@ -17,17 +17,25 @@
 
 package org.apache.rocketmq.proxy.remoting.activity;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.Connection;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
+import org.apache.rocketmq.remoting.protocol.header.GetConsumerConnectionListRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseHeader;
@@ -62,6 +70,9 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
             case RequestCode.GET_EARLIEST_MSG_STORETIME: {
                 return request(ctx, request, context, Duration.ofSeconds(3).toMillis());
             }
+            case RequestCode.GET_CONSUMER_CONNECTION_LIST: {
+                return getConsumerConnectionList(ctx, request, context);
+            }
             default:
                 break;
         }
@@ -72,12 +83,49 @@ public class ConsumerManagerActivity extends AbstractRemotingActivity {
         ProxyContext context) throws Exception {
         RemotingCommand response = RemotingCommand.createResponseCommand(GetConsumerListByGroupResponseHeader.class);
         GetConsumerListByGroupRequestHeader header = (GetConsumerListByGroupRequestHeader) request.decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
-        ConsumerGroupInfo consumerGroupInfo = messagingProcessor.getConsumerGroupInfo(header.getConsumerGroup());
+        ConsumerGroupInfo consumerGroupInfo = messagingProcessor.getConsumerGroupInfo(context, header.getConsumerGroup());
         List<String> clientIds = consumerGroupInfo.getAllClientId();
         GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
         body.setConsumerIdList(clientIds);
         response.setBody(body.encode());
         response.setCode(ResponseCode.SUCCESS);
+        return response;
+    }
+
+    protected RemotingCommand getConsumerConnectionList(ChannelHandlerContext ctx, RemotingCommand request,
+        ProxyContext context) throws Exception {
+        RemotingCommand response = RemotingCommand.createResponseCommand(GetConsumerConnectionListRequestHeader.class);
+        GetConsumerConnectionListRequestHeader header = (GetConsumerConnectionListRequestHeader) request.decodeCommandCustomHeader(GetConsumerConnectionListRequestHeader.class);
+        ConsumerGroupInfo consumerGroupInfo = messagingProcessor.getConsumerGroupInfo(context, header.getConsumerGroup());
+        if (consumerGroupInfo != null) {
+            ConsumerConnection bodydata = new ConsumerConnection();
+            bodydata.setConsumeFromWhere(consumerGroupInfo.getConsumeFromWhere());
+            bodydata.setConsumeType(consumerGroupInfo.getConsumeType());
+            bodydata.setMessageModel(consumerGroupInfo.getMessageModel());
+            bodydata.getSubscriptionTable().putAll(consumerGroupInfo.getSubscriptionTable());
+
+            Iterator<Map.Entry<Channel, ClientChannelInfo>> it = consumerGroupInfo.getChannelInfoTable().entrySet().iterator();
+            while (it.hasNext()) {
+                ClientChannelInfo info = it.next().getValue();
+                Connection connection = new Connection();
+                connection.setClientId(info.getClientId());
+                connection.setLanguage(info.getLanguage());
+                connection.setVersion(info.getVersion());
+                connection.setClientAddr(RemotingHelper.parseChannelRemoteAddr(info.getChannel()));
+
+                bodydata.getConnectionSet().add(connection);
+            }
+
+            byte[] body = bodydata.encode();
+            response.setBody(body);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+
+            return response;
+        }
+
+        response.setCode(ResponseCode.CONSUMER_NOT_ONLINE);
+        response.setRemark("the consumer group[" + header.getConsumerGroup() + "] not online");
         return response;
     }
 

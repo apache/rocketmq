@@ -17,7 +17,6 @@
 package org.apache.rocketmq.broker.processor;
 
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 import org.junit.Test;
 
@@ -42,29 +41,25 @@ public class PopInflightMessageCounterTest {
         counter.incrementInFlightMessageNum(topic, group, 0, 3);
         assertEquals(3, counter.getGroupPopInFlightMessageNum(topic, group, 0));
 
-        counter.decrementInFlightMessageNum(topic, group, ExtraInfoUtil.buildExtraInfo(0, System.currentTimeMillis(),
-            0, 0, topic, "broker", 0));
+        counter.decrementInFlightMessageNum(topic, group, System.currentTimeMillis(), 0, 1);
         assertEquals(2, counter.getGroupPopInFlightMessageNum(topic, group, 0));
 
-        counter.decrementInFlightMessageNum(topic, group, ExtraInfoUtil.buildExtraInfo(0, System.currentTimeMillis() - 1000,
-            0, 0, topic, "broker", 0));
+        counter.decrementInFlightMessageNum(topic, group, System.currentTimeMillis() - 1000, 0, 1);
         assertEquals(2, counter.getGroupPopInFlightMessageNum(topic, group, 0));
 
         PopCheckPoint popCheckPoint = new PopCheckPoint();
         popCheckPoint.setTopic(topic);
         popCheckPoint.setCId(group);
-        popCheckPoint.setQueueId((byte) 0);
+        popCheckPoint.setQueueId(0);
         popCheckPoint.setPopTime(System.currentTimeMillis());
 
         counter.decrementInFlightMessageNum(popCheckPoint);
         assertEquals(1, counter.getGroupPopInFlightMessageNum(topic, group, 0));
 
-        counter.decrementInFlightMessageNum(topic, group, ExtraInfoUtil.buildExtraInfo(0, System.currentTimeMillis(),
-            0, 0, topic, "broker", 0));
+        counter.decrementInFlightMessageNum(topic, group, System.currentTimeMillis(), 0 ,1);
         assertEquals(0, counter.getGroupPopInFlightMessageNum(topic, group, 0));
 
-        counter.decrementInFlightMessageNum(topic, group, ExtraInfoUtil.buildExtraInfo(0, System.currentTimeMillis(),
-            0, 0, topic, "broker", 0));
+        counter.decrementInFlightMessageNum(topic, group, System.currentTimeMillis(), 0, 1);
         assertEquals(0, counter.getGroupPopInFlightMessageNum(topic, group, 0));
     }
 

@@ -38,7 +38,7 @@ import java.nio.file.Paths;
 public class DumpCompactionLogCommand implements SubCommand {
     @Override
     public String commandDesc() {
-        return "parse compaction log to message";
+        return "Parse compaction log to message.";
     }
 
     @Override
@@ -86,12 +86,16 @@ public class DumpCompactionLogCommand implements SubCommand {
                         bb.rewind();
                     }
 
-                    MessageExt messageExt = MessageDecoder.decode(bb, false, false);
-                    if (messageExt == null) {
-                        break;
-                    } else {
-                        current += size;
-                        System.out.printf(messageExt + "\n");
+                    try {
+                        MessageExt messageExt = MessageDecoder.decode(bb, false, false);
+                        if (messageExt == null) {
+                            break;
+                        } else {
+                            current += size;
+                            System.out.printf(messageExt + "\n");
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                 }
 

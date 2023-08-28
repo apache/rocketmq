@@ -17,7 +17,7 @@
 package org.apache.rocketmq.proxy.processor;
 
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
-import org.apache.rocketmq.proxy.common.AbstractStartAndShutdown;
+import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.service.ServiceManager;
@@ -27,6 +27,8 @@ public abstract class AbstractProcessor extends AbstractStartAndShutdown {
     protected MessagingProcessor messagingProcessor;
     protected ServiceManager serviceManager;
 
+    protected static final ProxyException EXPIRED_HANDLE_PROXY_EXCEPTION = new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "receipt handle is expired");
+
     public AbstractProcessor(MessagingProcessor messagingProcessor,
         ServiceManager serviceManager) {
         this.messagingProcessor = messagingProcessor;
@@ -35,7 +37,7 @@ public abstract class AbstractProcessor extends AbstractStartAndShutdown {
 
     protected void validateReceiptHandle(ReceiptHandle handle) {
         if (handle.isExpired()) {
-            throw new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "receipt handle is expired");
+            throw EXPIRED_HANDLE_PROXY_EXCEPTION;
         }
     }
 }

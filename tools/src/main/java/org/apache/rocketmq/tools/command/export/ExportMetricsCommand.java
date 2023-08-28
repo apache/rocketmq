@@ -56,7 +56,7 @@ public class ExportMetricsCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Export metrics";
+        return "Export metrics.";
     }
 
     @Override

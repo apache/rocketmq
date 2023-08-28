@@ -39,7 +39,7 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Query Message by offset";
+        return "Query Message by offset.";
     }
 
     @Override

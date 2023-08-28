@@ -43,6 +43,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.help.FAQUrl;
@@ -74,11 +76,15 @@ public class MixAll {
     public static final String CID_ONSAPI_OWNER_GROUP = "CID_ONSAPI_OWNER";
     public static final String CID_ONSAPI_PULL_GROUP = "CID_ONSAPI_PULL";
     public static final String CID_RMQ_SYS_PREFIX = "CID_RMQ_SYS_";
+    public static final String IS_SUPPORT_HEART_BEAT_V2 = "IS_SUPPORT_HEART_BEAT_V2";
+    public static final String IS_SUB_CHANGE = "IS_SUB_CHANGE";
     public static final List<String> LOCAL_INET_ADDRESS = getLocalInetAddress();
     public static final String LOCALHOST = localhost();
     public static final String DEFAULT_CHARSET = "UTF-8";
     public static final long MASTER_ID = 0L;
     public static final long FIRST_SLAVE_ID = 1L;
+
+    public static final long FIRST_BROKER_CONTROLLER_ID = 1L;
     public static final long CURRENT_JVM_PID = getPID();
     public final static int UNIT_PRE_SIZE_FOR_MSG = 28;
     public final static int ALL_ACK_IN_SYNC_STATE_SET = -1;
@@ -93,6 +99,7 @@ public class MixAll {
     public static final String ACL_CONF_TOOLS_FILE = "/conf/tools.yml";
     public static final String REPLY_MESSAGE_FLAG = "reply";
     public static final String LMQ_PREFIX = "%LMQ%";
+    public static final long LMQ_QUEUE_ID = 0;
     public static final String MULTI_DISPATCH_QUEUE_SPLITTER = ",";
     public static final String REQ_T = "ReqT";
     public static final String ROCKETMQ_ZONE_ENV = "ROCKETMQ_ZONE";
@@ -168,7 +175,7 @@ public class MixAll {
 
     public static long getPID() {
         String processName = java.lang.management.ManagementFactory.getRuntimeMXBean().getName();
-        if (processName != null && processName.length() > 0) {
+        if (StringUtils.isNotEmpty(processName)) {
             try {
                 return Long.parseLong(processName.split("@")[0]);
             } catch (Exception e) {
@@ -179,10 +186,7 @@ public class MixAll {
         return 0;
     }
 
-    public static void string2File(final String str, final String fileName) throws IOException {
-
-        String tmpFile = fileName + ".tmp";
-        string2FileNotSafe(str, tmpFile);
+    public static synchronized void string2File(final String str, final String fileName) throws IOException {
 
         String bakFile = fileName + ".bak";
         String prevContent = file2String(fileName);
@@ -190,11 +194,7 @@ public class MixAll {
             string2FileNotSafe(prevContent, bakFile);
         }
 
-        File file = new File(fileName);
-        file.delete();
-
-        file = new File(tmpFile);
-        file.renameTo(new File(fileName));
+        string2FileNotSafe(str, fileName);
     }
 
     public static void string2FileNotSafe(final String str, final String fileName) throws IOException {
@@ -501,4 +501,21 @@ public class MixAll {
         return path.normalize().toString();
     }
 
+    public static boolean isSysConsumerGroupForNoColdReadLimit(String consumerGroup) {
+        if (DEFAULT_CONSUMER_GROUP.equals(consumerGroup)
+            || TOOLS_CONSUMER_GROUP.equals(consumerGroup)
+            || SCHEDULE_CONSUMER_GROUP.equals(consumerGroup)
+            || FILTERSRV_CONSUMER_GROUP.equals(consumerGroup)
+            || MONITOR_CONSUMER_GROUP.equals(consumerGroup)
+            || SELF_TEST_CONSUMER_GROUP.equals(consumerGroup)
+            || ONS_HTTP_PROXY_GROUP.equals(consumerGroup)
+            || CID_ONSAPI_PERMISSION_GROUP.equals(consumerGroup)
+            || CID_ONSAPI_OWNER_GROUP.equals(consumerGroup)
+            || CID_ONSAPI_PULL_GROUP.equals(consumerGroup)
+            || CID_SYS_RMQ_TRANS.equals(consumerGroup)
+            || consumerGroup.startsWith(CID_RMQ_SYS_PREFIX)) {
+            return true;
+        }
+        return false;
+    }
 }

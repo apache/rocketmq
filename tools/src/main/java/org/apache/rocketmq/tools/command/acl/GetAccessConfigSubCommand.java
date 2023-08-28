@@ -49,7 +49,7 @@ public class GetAccessConfigSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "List all of acl config information in cluster";
+        return "List all of acl config information in cluster.";
     }
 
     @Override

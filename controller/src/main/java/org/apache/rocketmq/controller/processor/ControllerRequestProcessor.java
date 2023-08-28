@@ -16,16 +16,22 @@
  */
 package org.apache.rocketmq.controller.processor;
 
+import com.google.common.base.Stopwatch;
 import io.netty.channel.ChannelHandlerContext;
+import io.opentelemetry.api.common.Attributes;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
+import java.util.concurrent.TimeoutException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.ControllerManager;
+import org.apache.rocketmq.controller.metrics.ControllerMetricsConstant;
+import org.apache.rocketmq.controller.metrics.ControllerMetricsManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -33,16 +39,20 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.RoleChangeNotifyEntry;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.CleanControllerBrokerDataRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.RegisterBrokerToControllerResponseHeader;
 
+import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_REQUEST_HANDLE_STATUS;
+import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_REQUEST_TYPE;
+import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_APPLY_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.BROKER_HEARTBEAT;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CLEAN_BROKER_DATA;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET;
@@ -52,6 +62,7 @@ import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_R
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_SYNC_STATE_DATA;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_REGISTER_BROKER;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.GET_CONTROLLER_CONFIG;
+import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_NEXT_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.UPDATE_CONTROLLER_CONFIG;
 
 /**
@@ -76,101 +87,174 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                 request);
         }
-        switch (request.getCode()) {
-            case CONTROLLER_ALTER_SYNC_STATE_SET: {
-                final AlterSyncStateSetRequestHeader controllerRequest = (AlterSyncStateSetRequestHeader) request.decodeCommandCustomHeader(AlterSyncStateSetRequestHeader.class);
-                final SyncStateSet syncStateSet = RemotingSerializable.decode(request.getBody(), SyncStateSet.class);
-                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().alterSyncStateSet(controllerRequest, syncStateSet);
-                if (future != null) {
-                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                }
-                break;
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        try {
+            RemotingCommand resp = handleRequest(ctx, request);
+            Attributes attributes = ControllerMetricsManager.newAttributesBuilder()
+                .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.SUCCESS.getLowerCaseName())
+                .build();
+            ControllerMetricsManager.requestTotal.add(1, attributes);
+            attributes = ControllerMetricsManager.newAttributesBuilder()
+                .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                .build();
+            ControllerMetricsManager.requestLatency.record(stopwatch.elapsed(TimeUnit.MICROSECONDS), attributes);
+            return resp;
+        } catch (Exception e) {
+            log.error("process request: {} error, ", request, e);
+            Attributes attributes;
+            if (e instanceof TimeoutException) {
+                attributes = ControllerMetricsManager.newAttributesBuilder()
+                    .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                    .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.TIMEOUT.getLowerCaseName())
+                    .build();
+            } else {
+                attributes = ControllerMetricsManager.newAttributesBuilder()
+                    .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                    .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.FAILED.getLowerCaseName())
+                    .build();
             }
-            case CONTROLLER_ELECT_MASTER: {
-                final ElectMasterRequestHeader electMasterRequest = (ElectMasterRequestHeader) request.decodeCommandCustomHeader(ElectMasterRequestHeader.class);
-                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().electMaster(electMasterRequest);
-                if (future != null) {
-                    final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                    final ElectMasterResponseHeader responseHeader = (ElectMasterResponseHeader) response.readCustomHeader();
+            ControllerMetricsManager.requestTotal.add(1, attributes);
+            throw e;
+        }
+    }
 
-                    if (null != responseHeader) {
-                        if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
-                            this.controllerManager.notifyBrokerRoleChanged(responseHeader, electMasterRequest.getClusterName());
-                        }
-                    }
-                    return response;
-                }
-                break;
-            }
-            case CONTROLLER_REGISTER_BROKER: {
-                final RegisterBrokerToControllerRequestHeader controllerRequest = (RegisterBrokerToControllerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerToControllerRequestHeader.class);
-                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().registerBroker(controllerRequest);
-                if (future != null) {
-                    final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                    final RegisterBrokerToControllerResponseHeader responseHeader = (RegisterBrokerToControllerResponseHeader) response.readCustomHeader();
-                    if (responseHeader != null && responseHeader.getBrokerId() >= 0) {
-                        this.heartbeatManager.onBrokerHeartbeat(controllerRequest.getClusterName(), controllerRequest.getBrokerName(), controllerRequest.getBrokerAddress(),
-                            responseHeader.getBrokerId(), controllerRequest.getHeartbeatTimeoutMillis(), ctx.channel(),
-                            controllerRequest.getEpoch(), controllerRequest.getMaxOffset(), controllerRequest.getConfirmOffset(), controllerRequest.getElectionPriority());
-                    }
-                    return response;
-                }
-                break;
-            }
-            case CONTROLLER_GET_REPLICA_INFO: {
-                final GetReplicaInfoRequestHeader controllerRequest = (GetReplicaInfoRequestHeader) request.decodeCommandCustomHeader(GetReplicaInfoRequestHeader.class);
-                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().getReplicaInfo(controllerRequest);
-                if (future != null) {
-                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                }
-                break;
-            }
-            case CONTROLLER_GET_METADATA_INFO: {
-                return this.controllerManager.getController().getControllerMetadata();
-            }
-            case BROKER_HEARTBEAT: {
-                final BrokerHeartbeatRequestHeader requestHeader = (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
-                this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerName(), requestHeader.getBrokerAddr(), requestHeader.getBrokerId(),
-                    requestHeader.getHeartbeatTimeoutMills(), ctx.channel(), requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset(), requestHeader.getElectionPriority());
-                return RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "Heart beat success");
-            }
-            case CONTROLLER_GET_SYNC_STATE_DATA: {
-                if (request.getBody() != null) {
-                    final List<String> brokerNames = RemotingSerializable.decode(request.getBody(), List.class);
-                    if (brokerNames != null && brokerNames.size() > 0) {
-                        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().getSyncStateData(brokerNames);
-                        if (future != null) {
-                            return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                        }
-                    }
-                }
-                break;
-            }
+    private RemotingCommand handleRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        switch (request.getCode()) {
+            case CONTROLLER_ALTER_SYNC_STATE_SET:
+                return this.handleAlterSyncStateSet(ctx, request);
+            case CONTROLLER_ELECT_MASTER:
+                return this.handleControllerElectMaster(ctx, request);
+            case CONTROLLER_GET_REPLICA_INFO:
+                return this.handleControllerGetReplicaInfo(ctx, request);
+            case CONTROLLER_GET_METADATA_INFO:
+                return this.handleControllerGetMetadataInfo(ctx, request);
+            case BROKER_HEARTBEAT:
+                return this.handleBrokerHeartbeat(ctx, request);
+            case CONTROLLER_GET_SYNC_STATE_DATA:
+                return this.handleControllerGetSyncStateData(ctx, request);
             case UPDATE_CONTROLLER_CONFIG:
-                return this.updateControllerConfig(ctx, request);
+                return this.handleUpdateControllerConfig(ctx, request);
             case GET_CONTROLLER_CONFIG:
-                return this.getControllerConfig(ctx, request);
+                return this.handleGetControllerConfig(ctx, request);
             case CLEAN_BROKER_DATA:
-                final CleanControllerBrokerDataRequestHeader requestHeader = (CleanControllerBrokerDataRequestHeader) request.decodeCommandCustomHeader(CleanControllerBrokerDataRequestHeader.class);
-                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().cleanBrokerData(requestHeader);
-                if (null != future) {
-                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
-                }
-                break;
+                return this.handleCleanBrokerData(ctx, request);
+            case CONTROLLER_GET_NEXT_BROKER_ID:
+                return this.handleGetNextBrokerId(ctx, request);
+            case CONTROLLER_APPLY_BROKER_ID:
+                return this.handleApplyBrokerId(ctx, request);
+            case CONTROLLER_REGISTER_BROKER:
+                return this.handleRegisterBroker(ctx, request);
             default: {
                 final String error = " request type " + request.getCode() + " not supported";
                 return RemotingCommand.createResponseCommand(ResponseCode.REQUEST_CODE_NOT_SUPPORTED, error);
             }
         }
+    }
+
+    private RemotingCommand handleAlterSyncStateSet(ChannelHandlerContext ctx,
+        RemotingCommand request) throws Exception {
+        final AlterSyncStateSetRequestHeader controllerRequest = (AlterSyncStateSetRequestHeader) request.decodeCommandCustomHeader(AlterSyncStateSetRequestHeader.class);
+        final SyncStateSet syncStateSet = RemotingSerializable.decode(request.getBody(), SyncStateSet.class);
+        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().alterSyncStateSet(controllerRequest, syncStateSet);
+        if (future != null) {
+            return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+        }
         return RemotingCommand.createResponseCommand(null);
     }
 
-    @Override
-    public boolean rejectRequest() {
-        return false;
+    private RemotingCommand handleControllerElectMaster(ChannelHandlerContext ctx,
+        RemotingCommand request) throws Exception {
+        final ElectMasterRequestHeader electMasterRequest = (ElectMasterRequestHeader) request.decodeCommandCustomHeader(ElectMasterRequestHeader.class);
+        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().electMaster(electMasterRequest);
+        if (future != null) {
+            final RemotingCommand response = future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+
+            if (response.getCode() == ResponseCode.SUCCESS) {
+                if (this.controllerManager.getControllerConfig().isNotifyBrokerRoleChanged()) {
+                    this.controllerManager.notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(response));
+                }
+            }
+            return response;
+        }
+        return RemotingCommand.createResponseCommand(null);
     }
 
-    private RemotingCommand updateControllerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand handleControllerGetReplicaInfo(ChannelHandlerContext ctx,
+                                                           RemotingCommand request) throws Exception {
+        final GetReplicaInfoRequestHeader controllerRequest = (GetReplicaInfoRequestHeader) request.decodeCommandCustomHeader(GetReplicaInfoRequestHeader.class);
+        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().getReplicaInfo(controllerRequest);
+        if (future != null) {
+            return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+        }
+        return RemotingCommand.createResponseCommand(null);
+    }
+
+    private RemotingCommand handleControllerGetMetadataInfo(ChannelHandlerContext ctx, RemotingCommand request) {
+        return this.controllerManager.getController().getControllerMetadata();
+    }
+
+    private RemotingCommand handleBrokerHeartbeat(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        final BrokerHeartbeatRequestHeader requestHeader = (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
+        if (requestHeader.getBrokerId() == null) {
+            return RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_INVALID_REQUEST, "Heart beat with empty brokerId");
+        }
+        this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerName(), requestHeader.getBrokerAddr(), requestHeader.getBrokerId(),
+                requestHeader.getHeartbeatTimeoutMills(), ctx.channel(), requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset(), requestHeader.getElectionPriority());
+        return RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "Heart beat success");
+    }
+
+    private RemotingCommand handleControllerGetSyncStateData(ChannelHandlerContext ctx,
+                                                             RemotingCommand request) throws Exception {
+        if (request.getBody() != null) {
+            final List<String> brokerNames = RemotingSerializable.decode(request.getBody(), List.class);
+            if (brokerNames != null && brokerNames.size() > 0) {
+                final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().getSyncStateData(brokerNames);
+                if (future != null) {
+                    return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+                }
+            }
+        }
+        return RemotingCommand.createResponseCommand(null);
+    }
+
+    private RemotingCommand handleCleanBrokerData(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        final CleanControllerBrokerDataRequestHeader requestHeader = (CleanControllerBrokerDataRequestHeader) request.decodeCommandCustomHeader(CleanControllerBrokerDataRequestHeader.class);
+        final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().cleanBrokerData(requestHeader);
+        if (null != future) {
+            return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+        }
+        return RemotingCommand.createResponseCommand(null);
+    }
+
+    private RemotingCommand handleGetNextBrokerId(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        final GetNextBrokerIdRequestHeader requestHeader = (GetNextBrokerIdRequestHeader) request.decodeCommandCustomHeader(GetNextBrokerIdRequestHeader.class);
+        CompletableFuture<RemotingCommand> future = this.controllerManager.getController().getNextBrokerId(requestHeader);
+        if (future != null) {
+            return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+        }
+        return RemotingCommand.createResponseCommand(null);
+    }
+
+    private RemotingCommand handleApplyBrokerId(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        final ApplyBrokerIdRequestHeader requestHeader = (ApplyBrokerIdRequestHeader) request.decodeCommandCustomHeader(ApplyBrokerIdRequestHeader.class);
+        CompletableFuture<RemotingCommand> future = this.controllerManager.getController().applyBrokerId(requestHeader);
+        if (future != null) {
+            return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+        }
+        return RemotingCommand.createResponseCommand(null);
+    }
+
+    private RemotingCommand handleRegisterBroker(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        RegisterBrokerToControllerRequestHeader requestHeader = (RegisterBrokerToControllerRequestHeader) request.decodeCommandCustomHeader(RegisterBrokerToControllerRequestHeader.class);
+        CompletableFuture<RemotingCommand> future = this.controllerManager.getController().registerBroker(requestHeader);
+        if (future != null) {
+            return future.get(WAIT_TIMEOUT_OUT, TimeUnit.SECONDS);
+        }
+        return RemotingCommand.createResponseCommand(null);
+    }
+
+    private RemotingCommand handleUpdateControllerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         if (ctx != null) {
             log.info("updateConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         }
@@ -197,6 +281,12 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 return response;
             }
 
+            if (properties.containsKey("configStorePath")) {
+                response.setCode(ResponseCode.NO_PERMISSION);
+                response.setRemark("Can not update config path");
+                return response;
+            }
+
             this.controllerManager.getConfiguration().update(properties);
         }
 
@@ -205,7 +295,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getControllerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand handleGetControllerConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         String content = this.controllerManager.getConfiguration().getAllConfigsFormatString();
@@ -223,6 +313,11 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
+    }
+
+    @Override
+    public boolean rejectRequest() {
+        return false;
     }
 
 }

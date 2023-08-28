@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -99,7 +100,7 @@ public class TimerMessageStoreTest {
         storeConfig.setTimerInterceptDelayLevel(true);
         storeConfig.setTimerPrecisionMs(precisionMs);
 
-        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig());
+        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
@@ -305,7 +306,7 @@ public class TimerMessageStoreTest {
 
         MessageExtBrokerInner delMsg = buildMessage(delayMs, topic, false);
         transformTimerMessage(timerMessageStore,delMsg);
-        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQKEY, uniqKey);
+        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, uniqKey);
         delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
 
@@ -338,7 +339,7 @@ public class TimerMessageStoreTest {
 
         MessageExtBrokerInner delMsg = buildMessage(delayMs, topic, false);
         transformTimerMessage(timerMessageStore,delMsg);
-        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQKEY, "XXX");
+        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, "XXX");
         delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
 
@@ -361,7 +362,7 @@ public class TimerMessageStoreTest {
 
         // Test put expired delete msg.
         MessageExtBrokerInner expiredInner = buildMessage(System.currentTimeMillis() - 100, topic, false);
-        MessageAccessor.putProperty(expiredInner, TimerMessageStore.TIMER_DELETE_UNIQKEY, "XXX");
+        MessageAccessor.putProperty(expiredInner, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, "XXX");
         PutMessageResult putMessageResult = transformTimerMessage(timerMessageStore,expiredInner);
         assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, putMessageResult.getPutMessageStatus());
     }

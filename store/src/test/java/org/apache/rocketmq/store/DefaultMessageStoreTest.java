@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store;
 
+import com.google.common.collect.Sets;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.lang.reflect.InvocationTargetException;
@@ -28,12 +29,17 @@ import java.net.UnknownHostException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -43,6 +49,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -52,12 +59,14 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.assertj.core.util.Strings;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -94,7 +103,7 @@ public class DefaultMessageStoreTest {
         messageStoreConfig.setMaxIndexNum(100 * 10);
         messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "store");
         messageStoreConfig.setHaListenPort(0);
-        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig());
+        MessageStore master = new DefaultMessageStore(messageStoreConfig, null, new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
 
         boolean load = master.load();
         assertTrue(load);
@@ -139,7 +148,7 @@ public class DefaultMessageStoreTest {
         return new DefaultMessageStore(messageStoreConfig,
             new BrokerStatsManager("simpleTest", true),
             new MyMessageArrivingListener(),
-            new BrokerConfig());
+            new BrokerConfig(), new ConcurrentHashMap<>());
     }
 
     @Test
@@ -240,14 +249,10 @@ public class DefaultMessageStoreTest {
 
         ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
-            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
-            long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
+            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
             CqUnit cqUnit = consumeQueue.get(offset);
-            CqUnit cqUnit2 = consumeQueue.get(offset2);
             assertThat(cqUnit.getPos()).isEqualTo(appendMessageResult.getWroteOffset());
             assertThat(cqUnit.getSize()).isEqualTo(appendMessageResult.getWroteBytes());
-            assertThat(cqUnit2.getPos()).isEqualTo(appendMessageResult.getWroteOffset());
-            assertThat(cqUnit2.getSize()).isEqualTo(appendMessageResult.getWroteBytes());
         }
     }
 
@@ -263,14 +268,10 @@ public class DefaultMessageStoreTest {
 
         ConsumeQueueInterface consumeQueue = getDefaultMessageStore().findConsumeQueue(topic, queueId);
         for (AppendMessageResult appendMessageResult : appendMessageResults) {
-            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() + skewing);
-            long offset2 = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
+            long offset = messageStore.getOffsetInQueueByTime(topic, queueId, appendMessageResult.getStoreTimestamp() - skewing);
             CqUnit cqUnit = consumeQueue.get(offset);
-            CqUnit cqUnit2 = consumeQueue.get(offset2);
-            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResults[totalCount - 1].getWroteOffset());
-            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResults[totalCount - 1].getWroteBytes());
-            assertThat(cqUnit2.getPos()).isEqualTo(appendMessageResults[0].getWroteOffset());
-            assertThat(cqUnit2.getSize()).isEqualTo(appendMessageResults[0].getWroteBytes());
+            assertThat(cqUnit.getPos()).isEqualTo(appendMessageResults[0].getWroteOffset());
+            assertThat(cqUnit.getSize()).isEqualTo(appendMessageResults[0].getWroteBytes());
         }
     }
 
@@ -372,6 +373,17 @@ public class DefaultMessageStoreTest {
         assertThat(storeTime).isEqualTo(-1);
     }
 
+    @Test
+    public void testPutMessage_whenMessagePropertyIsTooLong() {
+        String topicName = "messagePropertyIsTooLongTest";
+        MessageExtBrokerInner illegalMessage = buildSpecifyLengthPropertyMessage("123".getBytes(StandardCharsets.UTF_8), topicName, Short.MAX_VALUE + 1);
+        assertEquals(messageStore.putMessage(illegalMessage).getPutMessageStatus(), PutMessageStatus.PROPERTIES_SIZE_EXCEEDED);
+        assertEquals(0L, messageStore.getQueueStore().getMaxOffset(topicName, 0).longValue());
+        MessageExtBrokerInner normalMessage = buildSpecifyLengthPropertyMessage("123".getBytes(StandardCharsets.UTF_8), topicName, 100);
+        assertEquals(messageStore.putMessage(normalMessage).getPutMessageStatus(), PutMessageStatus.PUT_OK);
+        assertEquals(1L, messageStore.getQueueStore().getMaxOffset(topicName, 0).longValue());
+    }
+
     private DefaultMessageStore getDefaultMessageStore() {
         return (DefaultMessageStore) this.messageStore;
     }
@@ -433,6 +445,26 @@ public class DefaultMessageStoreTest {
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
         msg.setQueueId(Math.abs(queueId.getAndIncrement()) % queueTotal);
         msg.setSysFlag(0);
+        msg.setBornTimestamp(System.currentTimeMillis());
+        msg.setStoreHost(storeHost);
+        msg.setBornHost(bornHost);
+        msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+        return msg;
+    }
+
+    private MessageExtBrokerInner buildSpecifyLengthPropertyMessage(byte[] messageBody, String topic, int length) {
+        StringBuilder stringBuilder = new StringBuilder();
+        Random random = new Random();
+        for (int i = 0; i < length; i++) {
+            stringBuilder.append(random.nextInt(10));
+        }
+        MessageExtBrokerInner msg = new MessageExtBrokerInner();
+        msg.putUserProperty("test", stringBuilder.toString());
+        msg.setTopic(topic);
+        msg.setTags("TAG1");
+        msg.setKeys("Hello");
+        msg.setBody(messageBody);
+        msg.setQueueId(0);
         msg.setBornTimestamp(System.currentTimeMillis());
         msg.setStoreHost(storeHost);
         msg.setBornHost(bornHost);
@@ -865,6 +897,59 @@ public class DefaultMessageStoreTest {
         assertTrue(putMessageResult.getPutMessageStatus() == PutMessageStatus.MESSAGE_ILLEGAL);
 
         messageStoreConfig.setMaxMessageSize(originMaxMessageSize);
+    }
+
+    @Test
+    public void testDeleteTopics() {
+        MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
+            ((DefaultMessageStore) messageStore).getConsumeQueueTable();
+        for (int i = 0; i < 10; i++) {
+            ConcurrentMap<Integer, ConsumeQueueInterface> cqTable = new ConcurrentHashMap<>();
+            String topicName = "topic-" + i;
+            for (int j = 0; j < 4; j++) {
+                ConsumeQueue consumeQueue = new ConsumeQueue(topicName, j, messageStoreConfig.getStorePathRootDir(),
+                    messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
+                cqTable.put(j, consumeQueue);
+            }
+            consumeQueueTable.put(topicName, cqTable);
+        }
+        Assert.assertEquals(consumeQueueTable.size(), 10);
+        HashSet<String> resultSet = Sets.newHashSet("topic-3", "topic-5");
+        messageStore.deleteTopics(Sets.difference(consumeQueueTable.keySet(), resultSet));
+        Assert.assertEquals(consumeQueueTable.size(), 2);
+        Assert.assertEquals(resultSet, consumeQueueTable.keySet());
+    }
+
+    @Test
+    public void testCleanUnusedTopic() {
+        MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
+            ((DefaultMessageStore) messageStore).getConsumeQueueTable();
+        for (int i = 0; i < 10; i++) {
+            ConcurrentMap<Integer, ConsumeQueueInterface> cqTable = new ConcurrentHashMap<>();
+            String topicName = "topic-" + i;
+            for (int j = 0; j < 4; j++) {
+                ConsumeQueue consumeQueue = new ConsumeQueue(topicName, j, messageStoreConfig.getStorePathRootDir(),
+                    messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
+                cqTable.put(j, consumeQueue);
+            }
+            consumeQueueTable.put(topicName, cqTable);
+        }
+        Assert.assertEquals(consumeQueueTable.size(), 10);
+        HashSet<String> resultSet = Sets.newHashSet("topic-3", "topic-5");
+        messageStore.cleanUnusedTopic(resultSet);
+        Assert.assertEquals(consumeQueueTable.size(), 2);
+        Assert.assertEquals(resultSet, consumeQueueTable.keySet());
+    }
+
+    @Test
+    public void testChangeStoreConfig() {
+        Properties properties = new Properties();
+        properties.setProperty("enableBatchPush", "true");
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        MixAll.properties2Object(properties, messageStoreConfig);
+        assertThat(messageStoreConfig.isEnableBatchPush()).isTrue();
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {
