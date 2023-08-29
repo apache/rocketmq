@@ -385,8 +385,10 @@ public abstract class AbstractRocksDBStorage {
                 this.options.close();
             }
             //4. close db.
-            if (db != null) {
+            if (db != null && !this.readOnly) {
                 this.db.syncWal();
+            }
+            if (db != null) {
                 this.db.closeE();
             }
             //5. help gc.
