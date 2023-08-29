@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.queue.RocksDBConsumeQueue;
 import org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore;
@@ -78,6 +79,11 @@ public class RocksDBMessageStore extends DefaultMessageStore {
         } catch (RocksDBException e) {
             ERROR_LOG.info("try to finish commitlog dispatch error.", e);
         }
+    }
+
+    @Override
+    public ConsumeQueueInterface getConsumeQueue(String topic, int queueId) {
+        return findConsumeQueue(topic, queueId);
     }
 
     class RocksDBCleanConsumeQueueService extends CleanConsumeQueueService {
