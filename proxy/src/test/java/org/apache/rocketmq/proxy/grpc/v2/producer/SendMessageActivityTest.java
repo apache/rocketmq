@@ -388,8 +388,9 @@ public class SendMessageActivityTest extends BaseActivityTest {
         mqFaultStrategy.updateFaultItem(BROKER_NAME, 1000, true, false);
 
         TopicRouteService topicRouteService = mock(TopicRouteService.class);
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService.getMqFaultStrategy());
         when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService.getMqFaultStrategy());
+
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
         assertEquals(firstSelect.getBrokerName(), BROKER_NAME2);
