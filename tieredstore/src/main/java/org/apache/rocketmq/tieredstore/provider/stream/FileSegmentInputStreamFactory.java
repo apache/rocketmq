@@ -42,7 +42,7 @@ public class FileSegmentInputStreamFactory {
                 }
                 return new FileSegmentInputStream(fileType, bufferList, length);
             default:
-                throw new IllegalArgumentException("fileType is not supported");
+                throw new IllegalArgumentException("file type is not supported");
         }
     }
 }

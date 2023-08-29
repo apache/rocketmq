@@ -336,6 +336,13 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         }
     }
 
+    private void updateDispatchCommitOffset(List<ByteBuffer> bufferList) {
+        if (fileType == FileSegmentType.COMMIT_LOG && bufferList.size() > 0) {
+            dispatchCommitOffset =
+                MessageBufferUtil.getQueueOffset(bufferList.get(bufferList.size() - 1));
+        }
+    }
+
     /**
      * @return false: commit, true: no commit operation
      */
@@ -353,31 +360,36 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             return CompletableFuture.completedFuture(false);
         }
 
-        if (fileSegmentInputStream != null) {
-            this.correctPosition(this.getSize(), null);
-            this.releaseCommitLock();
-            return CompletableFuture.completedFuture(false);
-        }
-
         try {
-            List<ByteBuffer> bufferList = borrowBuffer();
-            int bufferSize = bufferList.stream().mapToInt(ByteBuffer::remaining).sum()
-                + (codaBuffer != null ? codaBuffer.remaining() : 0);
-            if (bufferSize == 0) {
-                return CompletableFuture.completedFuture(true);
+            if (fileSegmentInputStream != null) {
+                if (correctPosition(this.getSize(), null)) {
+                    updateDispatchCommitOffset(fileSegmentInputStream.getBufferList());
+                    fileSegmentInputStream = null;
+                } else {
+                    fileSegmentInputStream.rewind();
+                }
             }
 
-            this.fileSegmentInputStream = FileSegmentInputStreamFactory.build(
-                fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
+            int bufferSize;
+            if (fileSegmentInputStream != null) {
+                bufferSize = fileSegmentInputStream.available();
+            } else {
+                List<ByteBuffer> bufferList = borrowBuffer();
+                bufferSize = bufferList.stream().mapToInt(ByteBuffer::remaining).sum()
+                    + (codaBuffer != null ? codaBuffer.remaining() : 0);
+                if (bufferSize == 0) {
+                    releaseCommitLock();
+                    return CompletableFuture.completedFuture(true);
+                }
+                fileSegmentInputStream = FileSegmentInputStreamFactory.build(
+                    fileType, baseOffset + commitPosition, bufferList, codaBuffer, bufferSize);
+            }
 
             return flightCommitRequest = this
                 .commit0(fileSegmentInputStream, commitPosition, bufferSize, fileType != FileSegmentType.INDEX)
                 .thenApply(result -> {
                     if (result) {
-                        if (fileType == FileSegmentType.COMMIT_LOG && bufferList.size() > 0) {
-                            dispatchCommitOffset =
-                                MessageBufferUtil.getQueueOffset(bufferList.get(bufferList.size() - 1));
-                        }
+                        updateDispatchCommitOffset(fileSegmentInputStream.getBufferList());
                         commitPosition += bufferSize;
                         fileSegmentInputStream = null;
                         return true;
@@ -413,43 +425,41 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         return this.correctPosition(fileSize, cause);
     }
 
+    /**
+     * return true to clear buffer
+     */
     private boolean correctPosition(long fileSize, Throwable throwable) {
 
         // Current we have three offsets here: commit offset, expect offset, file size.
         // We guarantee that the commit offset is less than or equal to the expect offset.
         // Max offset will increase because we can continuously put in new buffers
+        String handleInfo = throwable == null ? "before commit" : "after commit";
         long expectPosition = commitPosition + fileSegmentInputStream.getContentLength();
-        String offsetInfo = String.format("Commit: %d, Expect: %d, Current Max: %d, FileSize: %d, file: %s",
-            commitPosition, expectPosition, appendPosition, fileSize, this.getPath());
+        String offsetInfo = String.format("Correct Commit Position, %s, result=[{}], " +
+                "Commit: %d, Expect: %d, Current Max: %d, FileSize: %d, FileName: %s",
+            handleInfo, commitPosition, expectPosition, appendPosition, fileSize, this.getPath());
 
         if (fileSize == -1L) {
-            logger.error("Handle CommitException, unable to get file size, {}", offsetInfo, throwable);
-            fileSegmentInputStream.rewind();
+            logger.error(offsetInfo, "UnknownError", throwable);
             return false;
         }
 
-        if (fileSize < commitPosition || fileSize > expectPosition) {
-            logger.error("Handle CommitException, file size incorrect, {}", offsetInfo, throwable);
+        // We are believing that the file size returned by the server is correct,
+        // can reset the commit offset to the file size reported by the storage system.
+        if (fileSize == expectPosition) {
+            logger.info(offsetInfo, "Success", throwable);
             commitPosition = fileSize;
-            return false;
-        }
-
-        if (fileSize == commitPosition) {
-            logger.warn("Handle CommitException, file commit failed, {}", offsetInfo, throwable);
-            fileSegmentInputStream.rewind();
             return true;
         }
 
-        if (fileSize > commitPosition && fileSize < expectPosition) {
-            logger.warn("Handle CommitException, file commit partial success, {}", offsetInfo, throwable);
-            return false;
+        if (fileSize < commitPosition) {
+            logger.error(offsetInfo, "FileSizeIncorrect", throwable);
+        } else if (fileSize == commitPosition) {
+            logger.warn(offsetInfo, "CommitFailed", throwable);
+        } else if (fileSize > commitPosition) {
+            logger.warn(offsetInfo, "PartialSuccess", throwable);
         }
-
-        if (fileSize == expectPosition) {
-            logger.info("Handle CommitException, file commit success, {}", offsetInfo);
-            commitPosition = fileSize;
-            fileSegmentInputStream = null;
-        }
-        return true;
+        commitPosition = fileSize;
+        return false;
     }
 }

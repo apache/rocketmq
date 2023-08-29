@@ -273,8 +273,8 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
             TieredStoreMetricsManager.cacheHit.add(resultWrapperList.size(), attributes);
         }
 
-        // if no cached message found and there is currently an inflight request,
-        // wait for the request to end before continuing
+        // If there are no messages in the cache and there are currently requests being pulled.
+        // We need to wait for the request to return before continuing.
         if (resultWrapperList.isEmpty() && waitInflightRequest) {
             CompletableFuture<Long> future =
                 flatFile.getInflightRequest(group, queueOffset, maxCount).getFuture(queueOffset);

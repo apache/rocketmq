@@ -28,6 +28,8 @@ public class CommitLogInputStream extends FileSegmentInputStream {
     /**
      * commitLogOffset is the real physical offset of the commitLog buffer which is being read
      */
+    private final long startCommitLogOffset;
+
     private long commitLogOffset;
 
     private final ByteBuffer codaBuffer;
@@ -37,6 +39,7 @@ public class CommitLogInputStream extends FileSegmentInputStream {
     public CommitLogInputStream(FileSegmentType fileType, long startOffset,
         List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
         super(fileType, uploadBufferList, contentLength);
+        this.startCommitLogOffset = startOffset;
         this.commitLogOffset = startOffset;
         this.codaBuffer = codaBuffer;
     }
@@ -54,6 +57,15 @@ public class CommitLogInputStream extends FileSegmentInputStream {
     }
 
     @Override
+    public synchronized void rewind() {
+        super.rewind();
+        this.commitLogOffset = this.startCommitLogOffset;
+        if (this.codaBuffer != null) {
+            this.codaBuffer.rewind();
+        }
+    }
+
+    @Override
     public ByteBuffer getCodaBuffer() {
         return this.codaBuffer;
     }
@@ -64,17 +76,17 @@ public class CommitLogInputStream extends FileSegmentInputStream {
             return -1;
         }
         readPosition++;
-        if (curReadBufferIndex >= uploadBufferList.size()) {
+        if (curReadBufferIndex >= bufferList.size()) {
             return readCoda();
         }
         int res;
         if (readPosInCurBuffer >= curBuffer.remaining()) {
             curReadBufferIndex++;
-            if (curReadBufferIndex >= uploadBufferList.size()) {
+            if (curReadBufferIndex >= bufferList.size()) {
                 readPosInCurBuffer = 0;
                 return readCoda();
             }
-            curBuffer = uploadBufferList.get(curReadBufferIndex);
+            curBuffer = bufferList.get(curReadBufferIndex);
             commitLogOffset += readPosInCurBuffer;
             readPosInCurBuffer = 0;
         }
@@ -93,14 +105,6 @@ public class CommitLogInputStream extends FileSegmentInputStream {
             return -1;
         }
         return codaBuffer.get(readPosInCurBuffer++) & 0xff;
-    }
-
-    @Override
-    public void rewind() {
-        super.rewind();
-        if (codaBuffer != null) {
-            codaBuffer.rewind();
-        }
     }
 
     @Override
@@ -127,9 +131,9 @@ public class CommitLogInputStream extends FileSegmentInputStream {
         int posInCurBuffer = readPosInCurBuffer;
         long curCommitLogOffset = commitLogOffset;
         ByteBuffer curBuf = curBuffer;
-        while (needRead > 0 && bufIndex <= uploadBufferList.size()) {
+        while (needRead > 0 && bufIndex <= bufferList.size()) {
             int readLen, remaining, realReadLen = 0;
-            if (bufIndex == uploadBufferList.size()) {
+            if (bufIndex == bufferList.size()) {
                 // read from coda buffer
                 remaining = codaBuffer.remaining() - posInCurBuffer;
                 readLen = Math.min(remaining, needRead);
@@ -145,7 +149,7 @@ public class CommitLogInputStream extends FileSegmentInputStream {
             }
             remaining = curBuf.remaining() - posInCurBuffer;
             readLen = Math.min(remaining, needRead);
-            curBuf = uploadBufferList.get(bufIndex);
+            curBuf = bufferList.get(bufIndex);
             if (posInCurBuffer < MessageBufferUtil.PHYSICAL_OFFSET_POSITION) {
                 realReadLen = Math.min(MessageBufferUtil.PHYSICAL_OFFSET_POSITION - posInCurBuffer, readLen);
                 // read from commitLog buffer

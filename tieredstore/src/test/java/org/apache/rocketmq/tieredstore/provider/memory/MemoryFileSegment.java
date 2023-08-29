@@ -33,6 +33,8 @@ public class MemoryFileSegment extends TieredFileSegment {
 
     public CompletableFuture<Boolean> blocker;
 
+    protected int size = 0;
+
     protected boolean checkSize = true;
 
     public MemoryFileSegment(FileSegmentType fileType, MessageQueue messageQueue, long baseOffset,
@@ -78,7 +80,11 @@ public class MemoryFileSegment extends TieredFileSegment {
         if (checkSize) {
             return 1000;
         }
-        return 0;
+        return size;
+    }
+
+    public void setSize(int size) {
+        this.size = size;
     }
 
     @Override
@@ -101,7 +107,7 @@ public class MemoryFileSegment extends TieredFileSegment {
 
         try {
             if (blocker != null && !blocker.get()) {
-                throw new IllegalStateException();
+                throw new IllegalStateException("Commit Exception for Memory Test");
             }
         } catch (InterruptedException | ExecutionException e) {
             Assert.fail(e.getMessage());

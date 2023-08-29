@@ -43,7 +43,7 @@ public class MockFileSegmentInputStream extends FileSegmentInputStream {
     }
 
     @Override
-    public List<ByteBuffer> getUploadBufferList() {
+    public List<ByteBuffer> getBufferList() {
         return null;
     }
 
