@@ -212,7 +212,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     protected MessageQueueView buildMessageQueueView(String topic, TopicRouteData topicRouteData) {
         if (isTopicRouteValid(topicRouteData)) {
-            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData, TopicRouteService.this);
+            MessageQueueView tmp = new MessageQueueView(topic, topicRouteData, TopicRouteService.this.getMqFaultStrategy());
             log.debug("load topic route from namesrv. topic: {}, queue: {}", topic, tmp);
             return tmp;
         }

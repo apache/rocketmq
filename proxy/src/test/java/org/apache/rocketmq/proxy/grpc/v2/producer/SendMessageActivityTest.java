@@ -351,7 +351,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         MQFaultStrategy mqFaultStrategy = mock(MQFaultStrategy.class);
         when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
         when(mqFaultStrategy.isSendLatencyFaultEnable()).thenReturn(false);
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService.getMqFaultStrategy());
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);
         AddressableMessageQueue secondSelect = selector.select(ProxyContext.create(), messageQueueView);
@@ -388,7 +388,7 @@ public class SendMessageActivityTest extends BaseActivityTest {
         mqFaultStrategy.updateFaultItem(BROKER_NAME, 1000, true, false);
 
         TopicRouteService topicRouteService = mock(TopicRouteService.class);
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, topicRouteService.getMqFaultStrategy());
         when(topicRouteService.getMqFaultStrategy()).thenReturn(mqFaultStrategy);
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);

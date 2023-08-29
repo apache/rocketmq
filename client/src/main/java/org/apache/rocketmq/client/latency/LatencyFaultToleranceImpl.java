@@ -148,7 +148,6 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
 
         if (!tmpList.isEmpty()) {
             Collections.shuffle(tmpList);
-            //Collections.sort(tmpList);
             for (FaultItem faultItem : tmpList) {
                 if (faultItem.reachableFlag) {
                     return faultItem.name;

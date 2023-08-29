@@ -17,6 +17,7 @@
 package org.apache.rocketmq.proxy.service.route;
 
 import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 public class MessageQueueView {
@@ -25,14 +26,13 @@ public class MessageQueueView {
     private final MessageQueueSelector readSelector;
     private final MessageQueueSelector writeSelector;
     private final TopicRouteWrapper topicRouteWrapper;
-    private  TopicRouteService topicRouteService;
+    private MQFaultStrategy mqFaultStrategy;
 
-    public MessageQueueView(String topic, TopicRouteData topicRouteData, TopicRouteService topicRouteService) {
+    public MessageQueueView(String topic, TopicRouteData topicRouteData, MQFaultStrategy mqFaultStrategy) {
         this.topicRouteWrapper = new TopicRouteWrapper(topicRouteData, topic);
 
-        this.readSelector = new MessageQueueSelector(topicRouteWrapper, topicRouteService, true);
-        this.writeSelector = new MessageQueueSelector(topicRouteWrapper, topicRouteService, false);
-        this.topicRouteService = topicRouteService;
+        this.readSelector = new MessageQueueSelector(topicRouteWrapper, mqFaultStrategy, true);
+        this.writeSelector = new MessageQueueSelector(topicRouteWrapper, mqFaultStrategy, false);
     }
 
     public TopicRouteData getTopicRouteData() {
@@ -68,11 +68,11 @@ public class MessageQueueView {
             .toString();
     }
 
-    public TopicRouteService getTopicRouteService() {
-        return topicRouteService;
+    public MQFaultStrategy getMQFaultStrategy() {
+        return mqFaultStrategy;
     }
 
-    public void setTopicRouteService(TopicRouteService topicRouteService) {
-        this.topicRouteService = topicRouteService;
+    public void setMQFaultStrategy(MQFaultStrategy mqFaultStrategy) {
+        this.mqFaultStrategy = mqFaultStrategy;
     }
 }

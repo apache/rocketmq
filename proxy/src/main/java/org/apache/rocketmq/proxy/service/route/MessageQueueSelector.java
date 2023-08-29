@@ -47,9 +47,9 @@ public class MessageQueueSelector {
     private final Map<String, AddressableMessageQueue> brokerNameQueueMap = new ConcurrentHashMap<>();
     private final AtomicInteger queueIndex;
     private final AtomicInteger brokerIndex;
-    private TopicRouteService topicRouteService;
+    private MQFaultStrategy mqFaultStrategy;
 
-    public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, TopicRouteService topicRouteService, boolean read) {
+    public MessageQueueSelector(TopicRouteWrapper topicRouteWrapper, MQFaultStrategy mqFaultStrategy, boolean read) {
         if (read) {
             this.queues.addAll(buildRead(topicRouteWrapper));
         } else {
@@ -59,7 +59,7 @@ public class MessageQueueSelector {
         Random random = new Random();
         this.queueIndex = new AtomicInteger(random.nextInt());
         this.brokerIndex = new AtomicInteger(random.nextInt());
-        this.topicRouteService = topicRouteService;
+        this.mqFaultStrategy = mqFaultStrategy;
     }
 
     private static List<AddressableMessageQueue> buildRead(TopicRouteWrapper topicRoute) {
@@ -160,7 +160,7 @@ public class MessageQueueSelector {
     }
 
     public AddressableMessageQueue selectOneByPipeline(boolean onlyBroker) {
-        if (topicRouteService != null && topicRouteService.getMqFaultStrategy().isSendLatencyFaultEnable()) {
+        if (mqFaultStrategy != null && mqFaultStrategy.isSendLatencyFaultEnable()) {
             List<MessageQueue> messageQueueList = null;
             MessageQueue messageQueue = null;
             if (onlyBroker) {
@@ -169,7 +169,6 @@ public class MessageQueueSelector {
                 messageQueueList = transferAddressableQueues(queues);
             }
             AddressableMessageQueue addressableMessageQueue = null;
-            MQFaultStrategy mqFaultStrategy = topicRouteService.getMqFaultStrategy();
 
             // use both available filter.
             messageQueue = selectOneMessageQueue(messageQueueList, onlyBroker ? brokerIndex : queueIndex,
@@ -276,12 +275,12 @@ public class MessageQueueSelector {
         return brokerActingQueues;
     }
 
-    public TopicRouteService getTopicRouteService() {
-        return topicRouteService;
+    public MQFaultStrategy getMQFaultStrategy() {
+        return mqFaultStrategy;
     }
 
-    public void setTopicRouteService(TopicRouteService topicRouteService) {
-        this.topicRouteService = topicRouteService;
+    public void setMQFaultStrategy(MQFaultStrategy mqFaultStrategy) {
+        this.mqFaultStrategy = mqFaultStrategy;
     }
 
     @Override

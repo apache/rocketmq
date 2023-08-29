@@ -69,7 +69,6 @@ public class ProducerProcessor extends AbstractProcessor {
         String producerGroup, int sysFlag, List<Message> messageList, long timeoutMillis) {
         CompletableFuture<List<SendResult>> future = new CompletableFuture<>();
         long beginTimestampFirst = System.currentTimeMillis();
-        AtomicLong endTimestamp = new AtomicLong(beginTimestampFirst);
         AddressableMessageQueue messageQueue = null;
         try {
             Message message = messageList.get(0);
@@ -114,11 +113,11 @@ public class ProducerProcessor extends AbstractProcessor {
                     return sendResultList;
                 }, this.executor)
                     .whenComplete((result, exception) -> {
-                        endTimestamp.set(System.currentTimeMillis());
+                        long endTimestamp = System.currentTimeMillis();
                         if (exception != null) {
-                            this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp.get() - beginTimestampFirst, true, false);
+                            this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(), endTimestamp - beginTimestampFirst, true, false);
                         } else {
-                            this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(),endTimestamp.get() - beginTimestampFirst, false, true);
+                            this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(),endTimestamp - beginTimestampFirst, false, true);
                         }
                     });
         } catch (Throwable t) {
