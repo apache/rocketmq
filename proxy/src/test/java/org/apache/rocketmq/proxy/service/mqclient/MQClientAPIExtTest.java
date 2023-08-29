@@ -221,6 +221,18 @@ public class MQClientAPIExtTest {
     }
 
     @Test
+    public void testBatchAckMessageAsync() throws Exception {
+        AckResult ackResult = new AckResult();
+        doAnswer((Answer<Void>) mock -> {
+            AckCallback ackCallback = mock.getArgument(2);
+            ackCallback.onSuccess(ackResult);
+            return null;
+        }).when(mqClientAPI).batchAckMessageAsync(anyString(), anyLong(), any(AckCallback.class), any());
+
+        assertSame(ackResult, mqClientAPI.batchAckMessageAsync(BROKER_ADDR, TOPIC, CONSUMER_GROUP, new ArrayList<>(), TIMEOUT).get());
+    }
+
+    @Test
     public void testChangeInvisibleTimeAsync() throws Exception {
         AckResult ackResult = new AckResult();
         doAnswer((Answer<Void>) mock -> {
