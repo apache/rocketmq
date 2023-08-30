@@ -362,11 +362,17 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
 
         try {
             if (fileSegmentInputStream != null) {
-                if (correctPosition(this.getSize(), null)) {
-                    updateDispatchCommitOffset(fileSegmentInputStream.getBufferList());
-                    fileSegmentInputStream = null;
+                long fileSize = this.getSize();
+                if (fileSize == -1L) {
+                    logger.error("Get commit position error before commit, Commit: %d, Expect: %d, Current Max: %d, FileName: %s",
+                        commitPosition, commitPosition + fileSegmentInputStream.getContentLength(), appendPosition, getPath());
+                    releaseCommitLock();
+                    return CompletableFuture.completedFuture(false);
                 } else {
-                    fileSegmentInputStream.rewind();
+                    if (correctPosition(fileSize, null)) {
+                        updateDispatchCommitOffset(fileSegmentInputStream.getBufferList());
+                        fileSegmentInputStream = null;
+                    }
                 }
             }
 
@@ -422,7 +428,22 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         // Get root cause here
         Throwable cause = e.getCause() != null ? e.getCause() : e;
         long fileSize = this.getCorrectFileSize(cause);
-        return this.correctPosition(fileSize, cause);
+
+        if (fileSize == -1L) {
+            logger.error("Get commit position error, Commit: %d, Expect: %d, Current Max: %d, FileName: %s",
+                commitPosition, commitPosition + fileSegmentInputStream.getContentLength(), appendPosition, getPath());
+            fileSegmentInputStream.rewind();
+            return false;
+        }
+
+        if (correctPosition(fileSize, cause)) {
+            updateDispatchCommitOffset(fileSegmentInputStream.getBufferList());
+            fileSegmentInputStream = null;
+            return true;
+        } else {
+            fileSegmentInputStream.rewind();
+            return false;
+        }
     }
 
     /**
@@ -435,14 +456,10 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
         // Max offset will increase because we can continuously put in new buffers
         String handleInfo = throwable == null ? "before commit" : "after commit";
         long expectPosition = commitPosition + fileSegmentInputStream.getContentLength();
+
         String offsetInfo = String.format("Correct Commit Position, %s, result=[{}], " +
                 "Commit: %d, Expect: %d, Current Max: %d, FileSize: %d, FileName: %s",
             handleInfo, commitPosition, expectPosition, appendPosition, fileSize, this.getPath());
-
-        if (fileSize == -1L) {
-            logger.error(offsetInfo, "UnknownError", throwable);
-            return false;
-        }
 
         // We are believing that the file size returned by the server is correct,
         // can reset the commit offset to the file size reported by the storage system.
