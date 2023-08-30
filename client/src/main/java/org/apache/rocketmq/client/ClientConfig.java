@@ -38,6 +38,8 @@ public class ClientConfig {
     public static final String SOCKS_PROXY_CONFIG = "com.rocketmq.socks.proxy.config";
     public static final String DECODE_READ_BODY = "com.rocketmq.read.body";
     public static final String DECODE_DECOMPRESS_BODY = "com.rocketmq.decompress.body";
+    public static final String SEND_LATENCY_ENABLE = "com.rocketmq.sendLatencyEnable";
+    public static final String START_DETECTOR_ENABLE = "com.rocketmq.startDetectorEnable";
     public static final String HEART_BEAT_V2 = "com.rocketmq.heartbeat.v2";
     public static final String FETCH_NAMESRV_DNS_LOOKUP = "com.rocketmq.nameserver.fetchByDns.enable";
     private String namesrvAddr = NameServerAddressUtils.getNameServerAddresses();
@@ -73,6 +75,8 @@ public class ClientConfig {
     private String socksProxyConfig = System.getProperty(SOCKS_PROXY_CONFIG, "{}");
 
     private int mqClientApiTimeout = 3 * 1000;
+    private int detectTimeout = 200;
+    private int detectInterval = 2 * 1000;
 
     private LanguageCode language = LanguageCode.JAVA;
 
@@ -87,6 +91,15 @@ public class ClientConfig {
     private int fetchNamesrvAddrInterval = 10 * 1000;
 
 
+
+    /**
+     * Enable the fault tolerance mechanism of the client sending process.
+     * DO NOT OPEN when ORDER messages are required.
+     * Turning on will interfere with the queue selection functionality,
+     * possibly conflicting with the order message.
+     */
+    private boolean sendLatencyEnable = Boolean.parseBoolean(System.getProperty(SEND_LATENCY_ENABLE, "false"));
+    private boolean startDetectorEnable = Boolean.parseBoolean(System.getProperty(START_DETECTOR_ENABLE, "false"));
 
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
@@ -193,6 +206,10 @@ public class ClientConfig {
         this.decodeDecompressBody = cc.decodeDecompressBody;
         this.enableStreamRequestType = cc.enableStreamRequestType;
         this.useHeartbeatV2 = cc.useHeartbeatV2;
+        this.startDetectorEnable = cc.startDetectorEnable;
+        this.sendLatencyEnable = cc.sendLatencyEnable;
+        this.detectInterval = cc.detectInterval;
+        this.detectTimeout = cc.detectTimeout;
         this.isFetchNameSrvAddrByDnsLookup = cc.isFetchNameSrvAddrByDnsLookup;
         this.fetchNamesrvAddrInterval = cc.fetchNamesrvAddrInterval;
     }
@@ -221,12 +238,17 @@ public class ClientConfig {
         cc.useHeartbeatV2 = useHeartbeatV2;
         cc.isFetchNameSrvAddrByDnsLookup = isFetchNameSrvAddrByDnsLookup;
         cc.fetchNamesrvAddrInterval = fetchNamesrvAddrInterval;
+        cc.startDetectorEnable = startDetectorEnable;
+        cc.sendLatencyEnable = sendLatencyEnable;
+        cc.detectInterval = detectInterval;
+        cc.detectTimeout = detectTimeout;
         return cc;
     }
 
     public String getNamesrvAddr() {
-        if (StringUtils.isNotEmpty(namesrvAddr) && NameServerAddressUtils.NAMESRV_ENDPOINT_PATTERN.matcher(namesrvAddr.trim()).matches()) {
-            return NameServerAddressUtils.getNameSrvAddrFromNamesrvEndpoint(namesrvAddr.trim());
+        String trimmedNamesrvAddr = namesrvAddr.trim();
+        if (StringUtils.isNotEmpty(namesrvAddr) && NameServerAddressUtils.NAMESRV_ENDPOINT_PATTERN.matcher(trimmedNamesrvAddr).matches()) {
+            return NameServerAddressUtils.getNameSrvAddrFromNamesrvEndpoint(trimmedNamesrvAddr);
         }
         return namesrvAddr;
     }
@@ -392,6 +414,38 @@ public class ClientConfig {
         this.enableStreamRequestType = enableStreamRequestType;
     }
 
+    public boolean isSendLatencyEnable() {
+        return sendLatencyEnable;
+    }
+
+    public void setSendLatencyEnable(boolean sendLatencyEnable) {
+        this.sendLatencyEnable = sendLatencyEnable;
+    }
+
+    public boolean isStartDetectorEnable() {
+        return startDetectorEnable;
+    }
+
+    public void setStartDetectorEnable(boolean startDetectorEnable) {
+        this.startDetectorEnable = startDetectorEnable;
+    }
+
+    public int getDetectTimeout() {
+        return this.detectTimeout;
+    }
+
+    public void setDetectTimeout(int detectTimeout) {
+        this.detectTimeout = detectTimeout;
+    }
+
+    public int getDetectInterval() {
+        return this.detectInterval;
+    }
+
+    public void setDetectInterval(int detectInterval) {
+        this.detectInterval = detectInterval;
+    }
+
     public boolean isUseHeartbeatV2() {
         return useHeartbeatV2;
     }
@@ -431,6 +485,7 @@ public class ClientConfig {
                 + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout
                 + ", decodeReadBody=" + decodeReadBody + ", decodeDecompressBody=" + decodeDecompressBody
                 + ", isFetchNameSrvAddrByDnsLookup=" + isFetchNameSrvAddrByDnsLookup + ", fetchNamesrvAddrInterval=" + fetchNamesrvAddrInterval
+                + ", sendLatencyEnable=" + sendLatencyEnable + ", startDetectorEnable=" + startDetectorEnable
                 + ", enableStreamRequestType=" + enableStreamRequestType + ", useHeartbeatV2=" + useHeartbeatV2 + "]";
     }
 }

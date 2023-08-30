@@ -566,7 +566,8 @@ public class ScheduleMessageService extends ConfigManager {
                             pendingQueue.remove();
                             break;
                         case RUNNING:
-                            break;
+                            scheduleNextTask();
+                            return;
                         case EXCEPTION:
                             if (!isStarted()) {
                                 log.warn("HandlePutResultTask shutdown, info={}", putResultProcess.toString());
@@ -586,6 +587,10 @@ public class ScheduleMessageService extends ConfigManager {
                 }
             }
 
+            scheduleNextTask();
+        }
+
+        private void scheduleNextTask() {
             if (isStarted()) {
                 ScheduleMessageService.this.handleExecutorService
                     .schedule(new HandlePutResultTask(this.delayLevel), DELAY_FOR_A_SLEEP, TimeUnit.MILLISECONDS);

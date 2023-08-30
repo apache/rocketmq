@@ -222,7 +222,7 @@ public class TimerMessageStore {
             dequeueGetMessageServices[i] = new TimerDequeueGetMessageService();
         }
 
-        int putThreadNum = Math.max(storeConfig.getTimerGetMessageThreadNum(), 1);
+        int putThreadNum = Math.max(storeConfig.getTimerPutMessageThreadNum(), 1);
         dequeuePutMessageServices = new TimerDequeuePutMessageService[putThreadNum];
         for (int i = 0; i < dequeuePutMessageServices.length; i++) {
             dequeuePutMessageServices[i] = new TimerDequeuePutMessageService();
