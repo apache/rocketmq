@@ -17,7 +17,6 @@
 package org.apache.rocketmq.broker.out;
 
 import java.io.UnsupportedEncodingException;
-import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
