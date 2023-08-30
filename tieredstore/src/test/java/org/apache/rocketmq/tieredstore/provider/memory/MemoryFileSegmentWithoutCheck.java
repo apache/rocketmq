@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutionException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.tieredstore.provider.stream.FileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.Assert;
 
@@ -46,7 +46,7 @@ public class MemoryFileSegmentWithoutCheck extends MemoryFileSegment {
     }
 
     @Override
-    public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length,
+    public CompletableFuture<Boolean> commit0(FileSegmentInputStream inputStream, long position, int length,
         boolean append) {
         try {
             if (blocker != null && !blocker.get()) {
