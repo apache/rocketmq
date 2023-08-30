@@ -93,7 +93,6 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), isNull(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
 
-
         ProxyContext context = createContext();
         context.setRemainingMs(1L);
         this.receiveMessageActivity.receiveMessage(
@@ -274,7 +273,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
-    public void testReceiveMessageQueueSelector() {
+    public void testReceiveMessageQueueSelector() throws Exception {
         TopicRouteData topicRouteData = new TopicRouteData();
         List<QueueData> queueDatas = new ArrayList<>();
         for (int i = 0; i < 2; i++) {
@@ -298,7 +297,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         }
         topicRouteData.setBrokerDatas(brokerDatas);
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, null);
         ReceiveMessageActivity.ReceiveMessageQueueSelector selector = new ReceiveMessageActivity.ReceiveMessageQueueSelector("");
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);

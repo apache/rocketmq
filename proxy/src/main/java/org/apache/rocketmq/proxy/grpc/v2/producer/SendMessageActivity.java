@@ -382,7 +382,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
                     int bucket = Hashing.consistentHash(shardingKey.hashCode(), writeQueues.size());
                     targetMessageQueue = writeQueues.get(bucket);
                 } else {
-                    targetMessageQueue = messageQueueView.getWriteSelector().selectOne(false);
+                    targetMessageQueue = messageQueueView.getWriteSelector().selectOneByPipeline(false);
                 }
                 return targetMessageQueue;
             } catch (Exception e) {
