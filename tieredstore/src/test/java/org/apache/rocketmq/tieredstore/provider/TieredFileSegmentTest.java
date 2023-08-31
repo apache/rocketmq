@@ -116,13 +116,22 @@ public class TieredFileSegmentTest {
     }
 
     @Test
-    public void testCommitFailed() {
+    public void testCommitFailedThenSuccess() {
         long startTime = System.currentTimeMillis();
         MemoryFileSegment segment = (MemoryFileSegment) createFileSegment(FileSegmentType.COMMIT_LOG);
         long lastSize = segment.getSize();
-        segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
-        segment.append(MessageBufferUtilTest.buildMockedMessageBuffer(), 0);
+        segment.setCheckSize(false);
+        segment.initPosition(lastSize);
+        segment.setSize((int) lastSize);
 
+        ByteBuffer buffer1 = MessageBufferUtilTest.buildMockedMessageBuffer().putLong(
+            MessageBufferUtil.PHYSICAL_OFFSET_POSITION, baseOffset + lastSize);
+        ByteBuffer buffer2 = MessageBufferUtilTest.buildMockedMessageBuffer().putLong(
+            MessageBufferUtil.PHYSICAL_OFFSET_POSITION, baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN);
+        segment.append(buffer1, 0);
+        segment.append(buffer2, 0);
+
+        // Mock new message arrive
         segment.blocker = new CompletableFuture<>();
         new Thread(() -> {
             try {
@@ -131,20 +140,88 @@ public class TieredFileSegmentTest {
                 Assert.fail(e.getMessage());
             }
             ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
+            buffer.putLong(MessageBufferUtil.PHYSICAL_OFFSET_POSITION, MessageBufferUtilTest.MSG_LEN * 2);
             buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, startTime);
             segment.append(buffer, 0);
             segment.blocker.complete(false);
         }).start();
 
+        // Commit failed
         segment.commit();
         segment.blocker.join();
+        segment.blocker = null;
 
-        segment.blocker = new CompletableFuture<>();
-        segment.blocker.complete(true);
+        // Copy data and assume commit success
+        segment.getMemStore().put(buffer1);
+        segment.getMemStore().put(buffer2);
+        segment.setSize((int) (lastSize + MessageBufferUtilTest.MSG_LEN * 2));
+
         segment.commit();
-
-        Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getMaxOffset());
+        Assert.assertEquals(lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getCommitPosition());
         Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getCommitOffset());
+        Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getMaxOffset());
+
+        ByteBuffer msg1 = segment.read(lastSize, MessageBufferUtilTest.MSG_LEN);
+        Assert.assertEquals(baseOffset + lastSize, MessageBufferUtil.getCommitLogOffset(msg1));
+
+        ByteBuffer msg2 = segment.read(lastSize + MessageBufferUtilTest.MSG_LEN, MessageBufferUtilTest.MSG_LEN);
+        Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN, MessageBufferUtil.getCommitLogOffset(msg2));
+
+        ByteBuffer msg3 = segment.read(lastSize + MessageBufferUtilTest.MSG_LEN * 2, MessageBufferUtilTest.MSG_LEN);
+        Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 2, MessageBufferUtil.getCommitLogOffset(msg3));
+    }
+
+    @Test
+    public void testCommitFailed3Times() {
+        long startTime = System.currentTimeMillis();
+        MemoryFileSegment segment = (MemoryFileSegment) createFileSegment(FileSegmentType.COMMIT_LOG);
+        long lastSize = segment.getSize();
+        segment.setCheckSize(false);
+        segment.initPosition(lastSize);
+        segment.setSize((int) lastSize);
+
+        ByteBuffer buffer1 = MessageBufferUtilTest.buildMockedMessageBuffer().putLong(
+            MessageBufferUtil.PHYSICAL_OFFSET_POSITION, baseOffset + lastSize);
+        ByteBuffer buffer2 = MessageBufferUtilTest.buildMockedMessageBuffer().putLong(
+            MessageBufferUtil.PHYSICAL_OFFSET_POSITION, baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN);
+        segment.append(buffer1, 0);
+        segment.append(buffer2, 0);
+
+        // Mock new message arrive
+        segment.blocker = new CompletableFuture<>();
+        new Thread(() -> {
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Assert.fail(e.getMessage());
+            }
+            ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
+            buffer.putLong(MessageBufferUtil.PHYSICAL_OFFSET_POSITION, MessageBufferUtilTest.MSG_LEN * 2);
+            buffer.putLong(MessageBufferUtil.STORE_TIMESTAMP_POSITION, startTime);
+            segment.append(buffer, 0);
+            segment.blocker.complete(false);
+        }).start();
+
+        for (int i = 0; i < 3; i++) {
+            segment.commit();
+        }
+
+        Assert.assertEquals(lastSize, segment.getCommitPosition());
+        Assert.assertEquals(baseOffset + lastSize, segment.getCommitOffset());
+        Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getMaxOffset());
+
+        segment.blocker.join();
+        segment.blocker = null;
+
+        segment.commit();
+        Assert.assertEquals(lastSize + MessageBufferUtilTest.MSG_LEN * 2, segment.getCommitPosition());
+        Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 2, segment.getCommitOffset());
+        Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getMaxOffset());
+
+        segment.commit();
+        Assert.assertEquals(lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getCommitPosition());
+        Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getCommitOffset());
+        Assert.assertEquals(baseOffset + lastSize + MessageBufferUtilTest.MSG_LEN * 3, segment.getMaxOffset());
 
         ByteBuffer msg1 = segment.read(lastSize, MessageBufferUtilTest.MSG_LEN);
         Assert.assertEquals(baseOffset + lastSize, MessageBufferUtil.getCommitLogOffset(msg1));

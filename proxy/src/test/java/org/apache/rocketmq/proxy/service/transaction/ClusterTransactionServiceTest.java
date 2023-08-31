@@ -64,7 +64,7 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         this.clusterTransactionService = new ClusterTransactionService(this.topicRouteService, this.producerManager,
             this.mqClientAPIFactory);
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, null);
         when(this.topicRouteService.getAllMessageQueueView(any(), anyString()))
             .thenReturn(messageQueueView);
 
@@ -127,7 +127,7 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         brokerData.setBrokerAddrs(brokerAddrs);
         topicRouteData.getQueueDatas().add(queueData);
         topicRouteData.getBrokerDatas().add(brokerData);
-        when(this.topicRouteService.getAllMessageQueueView(any(), eq(TOPIC))).thenReturn(new MessageQueueView(TOPIC, topicRouteData));
+        when(this.topicRouteService.getAllMessageQueueView(any(), eq(TOPIC))).thenReturn(new MessageQueueView(TOPIC, topicRouteData, null));
 
         TopicRouteData clusterTopicRouteData = new TopicRouteData();
         QueueData clusterQueueData = new QueueData();
@@ -141,7 +141,7 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         brokerAddrs.put(MixAll.MASTER_ID, BROKER_ADDR);
         clusterBrokerData.setBrokerAddrs(brokerAddrs);
         clusterTopicRouteData.setBrokerDatas(Lists.newArrayList(clusterBrokerData));
-        when(this.topicRouteService.getAllMessageQueueView(any(), eq(CLUSTER_NAME))).thenReturn(new MessageQueueView(CLUSTER_NAME, clusterTopicRouteData));
+        when(this.topicRouteService.getAllMessageQueueView(any(), eq(CLUSTER_NAME))).thenReturn(new MessageQueueView(CLUSTER_NAME, clusterTopicRouteData, null));
 
         TopicRouteData clusterTopicRouteData2 = new TopicRouteData();
         QueueData clusterQueueData2 = new QueueData();
@@ -155,7 +155,7 @@ public class ClusterTransactionServiceTest extends BaseServiceTest {
         brokerAddrs.put(MixAll.MASTER_ID, brokerAddr2);
         clusterBrokerData2.setBrokerAddrs(brokerAddrs);
         clusterTopicRouteData2.setBrokerDatas(Lists.newArrayList(clusterBrokerData2));
-        when(this.topicRouteService.getAllMessageQueueView(any(), eq(clusterName2))).thenReturn(new MessageQueueView(clusterName2, clusterTopicRouteData2));
+        when(this.topicRouteService.getAllMessageQueueView(any(), eq(clusterName2))).thenReturn(new MessageQueueView(clusterName2, clusterTopicRouteData2, null));
 
         ConfigurationManager.getProxyConfig().setTransactionHeartbeatBatchNum(2);
         this.clusterTransactionService.start();
