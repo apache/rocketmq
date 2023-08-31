@@ -162,7 +162,12 @@ public class DLedgerCommitLog extends CommitLog {
         if (!mappedFileQueue.getMappedFiles().isEmpty()) {
             return mappedFileQueue.getMinOffset();
         }
-        return dLedgerFileList.getMinOffset();
+        for (MmapFile file : dLedgerFileList.getMappedFiles()) {
+            if (file.isAvailable()) {
+                return file.getFileFromOffset() + file.getStartPosition();
+            }
+        }
+        return 0;
     }
 
     @Override
