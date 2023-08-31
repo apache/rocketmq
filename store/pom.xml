@@ -41,6 +41,7 @@
                     <artifactId>rocketmq-remoting</artifactId>
                 </exclusion>
             </exclusions>
+            <version>${dledger-store.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

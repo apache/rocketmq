@@ -47,6 +47,12 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-broker</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.openmessaging.storage</groupId>
+                    <artifactId>dledger</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
