@@ -28,7 +28,7 @@ java_library(
         "@maven//:com_google_guava_guava",
         "@maven//:commons_collections_commons_collections",
         "@maven//:io_netty_netty_all",
-        "@maven//:io_openmessaging_storage_dledger",
+        "@maven//:io_openmessaging_storage_dledger:0.3.1.2",
         "@maven//:io_opentelemetry_opentelemetry_api",
         "@maven//:io_opentelemetry_opentelemetry_context",
         "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
