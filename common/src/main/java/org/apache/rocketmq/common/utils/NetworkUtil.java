@@ -28,6 +28,8 @@ import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -170,7 +172,14 @@ public class NetworkUtil {
         if (validator.isValidInet6Address(ipAddress)) {
             return true;
         }
-        return ipAddress.equals("localhost");
+
+        return containsDigitOrLetter(ipAddress);
+    }
+
+    public static boolean containsDigitOrLetter(String input) {
+        Pattern pattern = Pattern.compile("^[a-zA-Z0-9]+$");
+        Matcher matcher = pattern.matcher(input);
+        return matcher.find();
     }
 
     public static String socketAddress2String(final SocketAddress addr) {
