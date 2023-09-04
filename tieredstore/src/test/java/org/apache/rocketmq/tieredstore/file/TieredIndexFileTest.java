@@ -87,5 +87,7 @@ public class TieredIndexFileTest {
 
         indexList = indexFile.queryAsync(mq.getTopic(), "key1", 1000, 1200).join();
         Assert.assertEquals(1, indexList.size());
+
+        indexFile.destroy();
     }
 }

@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.LongAdder;
 import org.apache.rocketmq.broker.BrokerController;
@@ -41,6 +42,7 @@ import org.apache.rocketmq.broker.topic.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
@@ -90,8 +92,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -319,6 +324,37 @@ public class AdminBrokerProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
         assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
             "please execute it from master broker.");
+    }
+
+    @Test
+    public void testDeleteWithPopRetryTopic() throws Exception {
+        String topic = "topicA";
+        String anotherTopic = "another_topicA";
+
+        topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        final ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        topicConfigTable.put(topic, new TopicConfig());
+        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(topic, "cid1"), new TopicConfig());
+
+        topicConfigTable.put(anotherTopic, new TopicConfig());
+        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(anotherTopic, "cid2"), new TopicConfig());
+        when(topicConfigManager.getTopicConfigTable()).thenReturn(topicConfigTable);
+        when(topicConfigManager.selectTopicConfig(anyString())).thenAnswer(invocation -> {
+            final String selectTopic = invocation.getArgument(0);
+            return topicConfigManager.getTopicConfigTable().get(selectTopic);
+        });
+
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(consumerOffsetManager.whichGroupByTopic(topic)).thenReturn(Sets.newHashSet("cid1"));
+
+        RemotingCommand request = buildDeleteTopicRequest(topic);
+        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        verify(topicConfigManager).deleteTopicConfig(topic);
+        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1"));
+        verify(messageStore, times(2)).deleteTopics(anySet());
     }
 
     @Test

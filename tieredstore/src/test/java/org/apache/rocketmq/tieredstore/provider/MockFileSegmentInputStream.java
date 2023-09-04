@@ -20,13 +20,13 @@ package org.apache.rocketmq.tieredstore.provider;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
-import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.tieredstore.provider.stream.FileSegmentInputStream;
 
-public class MockTieredFileSegmentInputStream extends TieredFileSegmentInputStream {
+public class MockFileSegmentInputStream extends FileSegmentInputStream {
 
     private final InputStream inputStream;
 
-    public MockTieredFileSegmentInputStream(InputStream inputStream) {
+    public MockFileSegmentInputStream(InputStream inputStream) {
         super(null, null, Integer.MAX_VALUE);
         this.inputStream = inputStream;
     }
@@ -43,7 +43,7 @@ public class MockTieredFileSegmentInputStream extends TieredFileSegmentInputStre
     }
 
     @Override
-    public List<ByteBuffer> getUploadBufferList() {
+    public List<ByteBuffer> getBufferList() {
         return null;
     }
 

@@ -24,6 +24,7 @@ import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiator;
 import io.grpc.netty.shaded.io.grpc.netty.InternalProtocolNegotiators;
 import io.grpc.netty.shaded.io.grpc.netty.ProtocolNegotiationEvent;
 import io.grpc.netty.shaded.io.netty.buffer.ByteBuf;
+import io.grpc.netty.shaded.io.netty.buffer.ByteBufUtil;
 import io.grpc.netty.shaded.io.netty.channel.ChannelHandler;
 import io.grpc.netty.shaded.io.netty.channel.ChannelHandlerContext;
 import io.grpc.netty.shaded.io.netty.channel.ChannelInboundHandlerAdapter;
@@ -44,6 +45,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.BinaryUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -191,9 +193,13 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                 }
                 if (CollectionUtils.isNotEmpty(msg.tlvs())) {
                     msg.tlvs().forEach(tlv -> {
+                        byte[] valueBytes = ByteBufUtil.getBytes(tlv.content());
+                        if (!BinaryUtil.isAscii(valueBytes)) {
+                            return;
+                        }
                         Attributes.Key<String> key = AttributeKeys.valueOf(
                                 HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
-                        String value = StringUtils.trim(tlv.content().toString(CharsetUtil.UTF_8));
+                        String value = StringUtils.trim(new String(valueBytes, CharsetUtil.UTF_8));
                         builder.set(key, value);
                     });
                 }

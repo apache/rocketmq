@@ -15,30 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.tieredstore.provider.inputstream;
+package org.apache.rocketmq.tieredstore.provider.stream;
 
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 
-public class TieredFileSegmentInputStreamFactory {
+public class FileSegmentInputStreamFactory {
 
-    public static TieredFileSegmentInputStream build(FileSegmentType fileType,
-        long startOffset, List<ByteBuffer> uploadBufferList, ByteBuffer codaBuffer, int contentLength) {
+    public static FileSegmentInputStream build(
+        FileSegmentType fileType, long offset, List<ByteBuffer> bufferList, ByteBuffer byteBuffer, int length) {
+
+        if (bufferList == null) {
+            throw new IllegalArgumentException("bufferList is null");
+        }
 
         switch (fileType) {
             case COMMIT_LOG:
-                return new TieredCommitLogInputStream(
-                    fileType, startOffset, uploadBufferList, codaBuffer, contentLength);
+                return new CommitLogInputStream(
+                    fileType, offset, bufferList, byteBuffer, length);
             case CONSUME_QUEUE:
-                return new TieredFileSegmentInputStream(fileType, uploadBufferList, contentLength);
+                return new FileSegmentInputStream(fileType, bufferList, length);
             case INDEX:
-                if (uploadBufferList.size() != 1) {
-                    throw new IllegalArgumentException("uploadBufferList size in INDEX type input stream must be 1");
+                if (bufferList.size() != 1) {
+                    throw new IllegalArgumentException("buffer block size must be 1 when file type is IndexFile");
                 }
-                return new TieredFileSegmentInputStream(fileType, uploadBufferList, contentLength);
+                return new FileSegmentInputStream(fileType, bufferList, length);
             default:
-                throw new IllegalArgumentException("fileType is not supported");
+                throw new IllegalArgumentException("file type is not supported");
         }
     }
 }

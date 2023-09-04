@@ -103,11 +103,11 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         return storeConfig;
     }
 
-    public boolean viaTieredStorage(String topic, int queueId, long offset) {
-        return viaTieredStorage(topic, queueId, offset, 1);
+    public boolean fetchFromCurrentStore(String topic, int queueId, long offset) {
+        return fetchFromCurrentStore(topic, queueId, offset, 1);
     }
 
-    public boolean viaTieredStorage(String topic, int queueId, long offset, int batchSize) {
+    public boolean fetchFromCurrentStore(String topic, int queueId, long offset, int batchSize) {
         TieredMessageStoreConfig.TieredStorageLevel deepStorageLevel = storeConfig.getTieredStorageLevel();
 
         if (deepStorageLevel.check(TieredMessageStoreConfig.TieredStorageLevel.FORCE)) {
@@ -150,8 +150,10 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     public CompletableFuture<GetMessageResult> getMessageAsync(String group, String topic,
         int queueId, long offset, int maxMsgNums, MessageFilter messageFilter) {
 
-        if (!viaTieredStorage(topic, queueId, offset, maxMsgNums)) {
-            logger.trace("GetMessageAsync from next store topic: {}, queue: {}, offset: {}", topic, queueId, offset);
+        if (fetchFromCurrentStore(topic, queueId, offset, maxMsgNums)) {
+            logger.trace("GetMessageAsync from current store, topic: {}, queue: {}, offset: {}", topic, queueId, offset);
+        } else {
+            logger.trace("GetMessageAsync from next store, topic: {}, queue: {}, offset: {}", topic, queueId, offset);
             return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
         }
 
@@ -172,14 +174,14 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
                     if (next.checkInStoreByConsumeOffset(topic, queueId, offset)) {
                         TieredStoreMetricsManager.fallbackTotal.add(1, latencyAttributes);
-                        logger.debug("GetMessageAsync not found then try back to next store, result: {}, " +
+                        logger.debug("GetMessageAsync not found, then back to next store, result: {}, " +
                                 "topic: {}, queue: {}, queue offset: {}, offset range: {}-{}",
                             result.getStatus(), topic, queueId, offset, result.getMinOffset(), result.getMaxOffset());
                         return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
                     }
                 }
 
-                // system topic
+                // Fetch system topic data from the broker when using the force level.
                 if (result.getStatus() == GetMessageStatus.NO_MATCHED_LOGIC_QUEUE) {
                     if (TieredStoreUtil.isSystemTopic(topic) || PopAckConstants.isStartWithRevivePrefix(topic)) {
                         return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
@@ -202,7 +204,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                     TieredStoreMetricsManager.messagesOutTotal.add(result.getMessageCount(), messagesOutAttributes);
                 }
 
-                // fix min or max offset according next store
+                // Fix min or max offset according next store at last
                 long minOffsetInQueue = next.getMinOffsetInQueue(topic, queueId);
                 if (minOffsetInQueue >= 0 && minOffsetInQueue < result.getMinOffset()) {
                     result.setMinOffset(minOffsetInQueue);
@@ -213,7 +215,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 }
                 return result;
             }).exceptionally(e -> {
-                logger.error("GetMessageAsync from tiered store failed: ", e);
+                logger.error("GetMessageAsync from tiered store failed", e);
                 return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
             });
     }
@@ -255,7 +257,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                     .build();
                 TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
                 if (time < 0) {
-                    logger.debug("TieredMessageStore#getEarliestMessageTimeAsync: get earliest message time failed, try to get earliest message time from next store: topic: {}, queue: {}",
+                    logger.debug("GetEarliestMessageTimeAsync failed, try to get earliest message time from next store: topic: {}, queue: {}",
                         topic, queueId);
                     return finalNextEarliestMessageTime != Long.MAX_VALUE ? finalNextEarliestMessageTime : -1;
                 }
@@ -266,7 +268,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     @Override
     public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
         long consumeQueueOffset) {
-        if (viaTieredStorage(topic, queueId, consumeQueueOffset)) {
+        if (fetchFromCurrentStore(topic, queueId, consumeQueueOffset)) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             return fetcher.getMessageStoreTimeStampAsync(topic, queueId, consumeQueueOffset)
                 .thenApply(time -> {
@@ -276,7 +278,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                         .build();
                     TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
                     if (time == -1) {
-                        logger.debug("TieredMessageStore#getMessageStoreTimeStampAsync: get message time failed, try to get message time from next store: topic: {}, queue: {}, queue offset: {}",
+                        logger.debug("GetEarliestMessageTimeAsync failed, try to get message time from next store, topic: {}, queue: {}, queue offset: {}",
                             topic, queueId, consumeQueueOffset);
                         return next.getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset);
                     }
