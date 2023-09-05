@@ -21,13 +21,14 @@ import io.openmessaging.storage.dledger.snapshot.SnapshotReader;
 import io.openmessaging.storage.dledger.snapshot.SnapshotWriter;
 import io.openmessaging.storage.dledger.statemachine.CommittedEntryIterator;
 import io.openmessaging.storage.dledger.statemachine.StateMachine;
-import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.impl.event.EventMessage;
 import org.apache.rocketmq.controller.impl.event.EventSerializer;
 import org.apache.rocketmq.controller.impl.manager.ReplicasInfoManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The state machine implementation of the dledger controller
@@ -39,7 +40,7 @@ public class DLedgerControllerStateMachine implements StateMachine {
     private final String dLedgerId;
 
     public DLedgerControllerStateMachine(final ReplicasInfoManager replicasInfoManager,
-        final EventSerializer eventSerializer, final String dLedgerGroupId, final String dLedgerSelfId) {
+                                         final EventSerializer eventSerializer, final String dLedgerGroupId, final String dLedgerSelfId) {
         this.replicasInfoManager = replicasInfoManager;
         this.eventSerializer = eventSerializer;
         this.dLedgerId = generateDLedgerId(dLedgerGroupId, dLedgerSelfId);

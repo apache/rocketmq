@@ -24,7 +24,9 @@ public class ControllerConfig {
 
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     private String configStorePath = System.getProperty("user.home") + File.separator + "controller" + File.separator + "controller.properties";
-
+    public static final String DLEDGER_CONTROLLER = "DLedger";
+    public static final String JRAFT_CONTROLLER = "jRaft";
+    private String controllerType = DLEDGER_CONTROLLER;
     /**
      * Interval of periodic scanning for non-active broker;
      * Unit: millisecond
@@ -45,7 +47,7 @@ public class ControllerConfig {
     private String controllerDLegerPeers;
     private String controllerDLegerSelfId;
     private int mappedFileSize = 1024 * 1024 * 1024;
-    private String controllerStorePath = System.getProperty("user.home") + File.separator + "DledgerController";
+    private String controllerStorePath = "";
 
     /**
      * Whether the controller can elect a master which is not in the syncStateSet.
@@ -66,6 +68,13 @@ public class ControllerConfig {
      * Unit: millisecond
      */
     private long scanInactiveMasterInterval = 5 * 1000;
+
+    private int jRaftElectionTimeoutMs = 1000;
+    private int jRaftSnapshotIntervalSecs = 3600;
+    private String jRaftGroupId = "jRaft-Controller";
+    private String jRaftServerId = "localhost:9880";
+    private String jRaftInitConf = "localhost:9880,localhost:9881,localhost:9882";
+    private String jRaftControllerRPCAddr = "localhost:9770,localhost:9771,localhost:9772";
 
     private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
@@ -156,6 +165,9 @@ public class ControllerConfig {
     }
 
     public String getControllerStorePath() {
+        if (controllerStorePath.isEmpty()) {
+            return System.getProperty("user.home") + File.separator + controllerType + "Controller";
+        }
         return controllerStorePath;
     }
 
@@ -199,6 +211,10 @@ public class ControllerConfig {
         return Arrays.stream(this.controllerDLegerPeers.split(";"))
             .filter(x -> this.controllerDLegerSelfId.equals(x.split("-")[0]))
             .map(x -> x.split("-")[1]).findFirst().get();
+    }
+
+    public String getJRaftAddress() {
+        return jRaftServerId;
     }
 
     public MetricsExporterType getMetricsExporterType() {
@@ -279,5 +295,61 @@ public class ControllerConfig {
 
     public void setMetricsInDelta(boolean metricsInDelta) {
         this.metricsInDelta = metricsInDelta;
+    }
+
+    public String getControllerType() {
+        return controllerType;
+    }
+
+    public void setControllerType(String controllerType) {
+        this.controllerType = controllerType;
+    }
+
+    public int getjRaftElectionTimeoutMs() {
+        return jRaftElectionTimeoutMs;
+    }
+
+    public void setjRaftElectionTimeoutMs(int jRaftElectionTimeoutMs) {
+        this.jRaftElectionTimeoutMs = jRaftElectionTimeoutMs;
+    }
+
+    public int getjRaftSnapshotIntervalSecs() {
+        return jRaftSnapshotIntervalSecs;
+    }
+
+    public void setjRaftSnapshotIntervalSecs(int jRaftSnapshotIntervalSecs) {
+        this.jRaftSnapshotIntervalSecs = jRaftSnapshotIntervalSecs;
+    }
+
+    public String getjRaftGroupId() {
+        return jRaftGroupId;
+    }
+
+    public void setjRaftGroupId(String jRaftGroupId) {
+        this.jRaftGroupId = jRaftGroupId;
+    }
+
+    public String getjRaftServerId() {
+        return jRaftServerId;
+    }
+
+    public void setjRaftServerId(String jRaftServerId) {
+        this.jRaftServerId = jRaftServerId;
+    }
+
+    public String getjRaftInitConf() {
+        return jRaftInitConf;
+    }
+
+    public void setjRaftInitConf(String jRaftInitConf) {
+        this.jRaftInitConf = jRaftInitConf;
+    }
+
+    public String getjRaftControllerRPCAddr() {
+        return jRaftControllerRPCAddr;
+    }
+
+    public void setjRaftControllerRPCAddr(String jRaftControllerRPCAddr) {
+        this.jRaftControllerRPCAddr = jRaftControllerRPCAddr;
     }
 }

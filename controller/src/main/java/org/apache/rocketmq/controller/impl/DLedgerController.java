@@ -26,20 +26,6 @@ import io.openmessaging.storage.dledger.protocol.AppendEntryRequest;
 import io.openmessaging.storage.dledger.protocol.AppendEntryResponse;
 import io.openmessaging.storage.dledger.protocol.BatchAppendEntryRequest;
 import io.opentelemetry.api.common.AttributesBuilder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -66,14 +52,29 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_BROKER_SET;
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_CLUSTER_NAME;
@@ -113,9 +114,9 @@ public class DLedgerController implements Controller {
     }
 
     public DLedgerController(final ControllerConfig controllerConfig,
-        final BrokerValidPredicate brokerAlivePredicate, final NettyServerConfig nettyServerConfig,
-        final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener,
-        final ElectPolicy electPolicy) {
+                             final BrokerValidPredicate brokerAlivePredicate, final NettyServerConfig nettyServerConfig,
+                             final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener,
+                             final ElectPolicy electPolicy) {
         this.controllerConfig = controllerConfig;
         this.eventSerializer = new EventSerializer();
         this.scheduler = new EventScheduler();
@@ -178,38 +179,38 @@ public class DLedgerController implements Controller {
 
     @Override
     public CompletableFuture<RemotingCommand> alterSyncStateSet(AlterSyncStateSetRequestHeader request,
-        final SyncStateSet syncStateSet) {
+                                                                final SyncStateSet syncStateSet) {
         return this.scheduler.appendEvent("alterSyncStateSet",
-            () -> this.replicasInfoManager.alterSyncStateSet(request, syncStateSet, this.brokerAlivePredicate), true);
+                () -> this.replicasInfoManager.alterSyncStateSet(request, syncStateSet, this.brokerAlivePredicate), true);
     }
 
     @Override
     public CompletableFuture<RemotingCommand> electMaster(final ElectMasterRequestHeader request) {
         return this.scheduler.appendEvent("electMaster",
-            () -> {
-                ControllerResult<ElectMasterResponseHeader> electResult = this.replicasInfoManager.electMaster(request, this.electPolicy);
-                AttributesBuilder attributesBuilder = ControllerMetricsManager.newAttributesBuilder()
-                    .put(LABEL_CLUSTER_NAME, request.getClusterName())
-                    .put(LABEL_BROKER_SET, request.getBrokerName());
-                switch (electResult.getResponseCode()) {
-                    case ResponseCode.SUCCESS:
-                        ControllerMetricsManager.electionTotal.add(1,
-                            attributesBuilder.put(LABEL_ELECTION_RESULT, ControllerMetricsConstant.ElectionResult.NEW_MASTER_ELECTED.getLowerCaseName()).build());
-                        break;
-                    case ResponseCode.CONTROLLER_MASTER_STILL_EXIST:
-                        ControllerMetricsManager.electionTotal.add(1,
-                            attributesBuilder.put(LABEL_ELECTION_RESULT, ControllerMetricsConstant.ElectionResult.KEEP_CURRENT_MASTER.getLowerCaseName()).build());
-                        break;
-                    case ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE:
-                    case ResponseCode.CONTROLLER_ELECT_MASTER_FAILED:
-                        ControllerMetricsManager.electionTotal.add(1,
-                            attributesBuilder.put(LABEL_ELECTION_RESULT, ControllerMetricsConstant.ElectionResult.NO_MASTER_ELECTED.getLowerCaseName()).build());
-                        break;
-                    default:
-                        break;
-                }
-                return electResult;
-            }, true);
+                () -> {
+                    ControllerResult<ElectMasterResponseHeader> electResult = this.replicasInfoManager.electMaster(request, this.electPolicy);
+                    AttributesBuilder attributesBuilder = ControllerMetricsManager.newAttributesBuilder()
+                            .put(LABEL_CLUSTER_NAME, request.getClusterName())
+                            .put(LABEL_BROKER_SET, request.getBrokerName());
+                    switch (electResult.getResponseCode()) {
+                        case ResponseCode.SUCCESS:
+                            ControllerMetricsManager.electionTotal.add(1,
+                                    attributesBuilder.put(LABEL_ELECTION_RESULT, ControllerMetricsConstant.ElectionResult.NEW_MASTER_ELECTED.getLowerCaseName()).build());
+                            break;
+                        case ResponseCode.CONTROLLER_MASTER_STILL_EXIST:
+                            ControllerMetricsManager.electionTotal.add(1,
+                                    attributesBuilder.put(LABEL_ELECTION_RESULT, ControllerMetricsConstant.ElectionResult.KEEP_CURRENT_MASTER.getLowerCaseName()).build());
+                            break;
+                        case ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE:
+                        case ResponseCode.CONTROLLER_ELECT_MASTER_FAILED:
+                            ControllerMetricsManager.electionTotal.add(1,
+                                    attributesBuilder.put(LABEL_ELECTION_RESULT, ControllerMetricsConstant.ElectionResult.NO_MASTER_ELECTED.getLowerCaseName()).build());
+                            break;
+                        default:
+                            break;
+                    }
+                    return electResult;
+                }, true);
     }
 
     @Override
@@ -230,13 +231,13 @@ public class DLedgerController implements Controller {
     @Override
     public CompletableFuture<RemotingCommand> getReplicaInfo(final GetReplicaInfoRequestHeader request) {
         return this.scheduler.appendEvent("getReplicaInfo",
-            () -> this.replicasInfoManager.getReplicaInfo(request), false);
+                () -> this.replicasInfoManager.getReplicaInfo(request), false);
     }
 
     @Override
     public CompletableFuture<RemotingCommand> getSyncStateData(List<String> brokerNames) {
         return this.scheduler.appendEvent("getSyncStateData",
-            () -> this.replicasInfoManager.getSyncStateData(brokerNames, brokerAlivePredicate), false);
+                () -> this.replicasInfoManager.getSyncStateData(brokerNames, brokerAlivePredicate), false);
     }
 
     @Override
@@ -254,7 +255,7 @@ public class DLedgerController implements Controller {
             sb.append(peer).append(";");
         }
         return RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, new GetMetaDataResponseHeader(
-            state.getGroup(), state.getLeaderId(), state.getLeaderAddr(), state.isLeader(), sb.toString()));
+                state.getGroup(), state.getLeaderId(), state.getLeaderAddr(), state.isLeader(), sb.toString()));
     }
 
     @Override
@@ -264,9 +265,9 @@ public class DLedgerController implements Controller {
 
     @Override
     public CompletableFuture<RemotingCommand> cleanBrokerData(
-        final CleanControllerBrokerDataRequestHeader requestHeader) {
+            final CleanControllerBrokerDataRequestHeader requestHeader) {
         return this.scheduler.appendEvent("cleanBrokerData",
-            () -> this.replicasInfoManager.cleanBrokerData(requestHeader, this.brokerAlivePredicate), true);
+                () -> this.replicasInfoManager.cleanBrokerData(requestHeader, this.brokerAlivePredicate), true);
     }
 
     /**
@@ -295,27 +296,27 @@ public class DLedgerController implements Controller {
             request.setRemoteId(this.dLedgerConfig.getSelfId());
             Stopwatch stopwatch = Stopwatch.createStarted();
             AttributesBuilder attributesBuilder = ControllerMetricsManager.newAttributesBuilder()
-                .put(LABEL_DLEDGER_OPERATION, ControllerMetricsConstant.DLedgerOperation.APPEND.getLowerCaseName());
+                    .put(LABEL_DLEDGER_OPERATION, ControllerMetricsConstant.DLedgerOperation.APPEND.getLowerCaseName());
             try {
                 final AppendFuture<AppendEntryResponse> dLedgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
                 if (dLedgerFuture.getPos() == -1) {
                     ControllerMetricsManager.dLedgerOpTotal.add(1,
-                        attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.FAILED.getLowerCaseName()).build());
+                            attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.FAILED.getLowerCaseName()).build());
                     return false;
                 }
-                dLedgerFuture.get(5, TimeUnit.SECONDS);
+                dLedgerFuture.get(50, TimeUnit.SECONDS);
                 ControllerMetricsManager.dLedgerOpTotal.add(1,
-                    attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.SUCCESS.getLowerCaseName()).build());
+                        attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.SUCCESS.getLowerCaseName()).build());
                 ControllerMetricsManager.dLedgerOpLatency.record(stopwatch.elapsed(TimeUnit.MICROSECONDS),
-                    attributesBuilder.build());
+                        attributesBuilder.build());
             } catch (Exception e) {
                 log.error("Failed to append entry to DLedger", e);
                 if (e instanceof TimeoutException) {
                     ControllerMetricsManager.dLedgerOpTotal.add(1,
-                        attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.TIMEOUT.getLowerCaseName()).build());
+                            attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.TIMEOUT.getLowerCaseName()).build());
                 } else {
                     ControllerMetricsManager.dLedgerOpTotal.add(1,
-                        attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.FAILED.getLowerCaseName()).build());
+                            attributesBuilder.put(LABEL_DLEDGER_OPERATION_STATUS, ControllerMetricsConstant.DLedgerOperationStatus.FAILED.getLowerCaseName()).build());
                 }
                 return false;
             }
@@ -400,7 +401,7 @@ public class DLedgerController implements Controller {
         }
 
         public <T> CompletableFuture<RemotingCommand> appendEvent(final String name,
-            final Supplier<ControllerResult<T>> supplier, boolean isWriteEvent) {
+                                                                  final Supplier<ControllerResult<T>> supplier, boolean isWriteEvent) {
             if (isStopped() || !DLedgerController.this.roleHandler.isLeaderState()) {
                 final RemotingCommand command = RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_NOT_LEADER, "The controller is not in leader state");
                 final CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
@@ -437,7 +438,7 @@ public class DLedgerController implements Controller {
         private final boolean isWriteEvent;
 
         ControllerEventHandler(final String name, final Supplier<ControllerResult<T>> supplier,
-            final boolean isWriteEvent) {
+                               final boolean isWriteEvent) {
             this.name = name;
             this.supplier = supplier;
             this.future = new CompletableFuture<>();

@@ -32,7 +32,7 @@ public class BrokerLiveInfo {
     private Integer electionPriority;
 
     public BrokerLiveInfo(String brokerName, String brokerAddr, long brokerId, long lastUpdateTimestamp,
-        long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority) {
+                          long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority) {
         this.brokerName = brokerName;
         this.brokerAddr = brokerAddr;
         this.brokerId = brokerId;
@@ -45,7 +45,7 @@ public class BrokerLiveInfo {
     }
 
     public BrokerLiveInfo(String brokerName, String brokerAddr, long brokerId, long lastUpdateTimestamp,
-        long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority, long confirmOffset) {
+                          long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority, long confirmOffset) {
         this.brokerName = brokerName;
         this.brokerAddr = brokerAddr;
         this.brokerId = brokerId;
@@ -61,16 +61,16 @@ public class BrokerLiveInfo {
     @Override
     public String toString() {
         return "BrokerLiveInfo{" +
-            "brokerName='" + brokerName + '\'' +
-            ", brokerAddr='" + brokerAddr + '\'' +
-            ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
-            ", channel=" + channel +
-            ", brokerId=" + brokerId +
-            ", lastUpdateTimestamp=" + lastUpdateTimestamp +
-            ", epoch=" + epoch +
-            ", maxOffset=" + maxOffset +
-            ", confirmOffset=" + confirmOffset +
-            '}';
+                "brokerName='" + brokerName + '\'' +
+                ", brokerAddr='" + brokerAddr + '\'' +
+                ", heartbeatTimeoutMillis=" + heartbeatTimeoutMillis +
+                ", channel=" + channel +
+                ", brokerId=" + brokerId +
+                ", lastUpdateTimestamp=" + lastUpdateTimestamp +
+                ", epoch=" + epoch +
+                ", maxOffset=" + maxOffset +
+                ", confirmOffset=" + confirmOffset +
+                '}';
     }
 
     public String getBrokerName() {

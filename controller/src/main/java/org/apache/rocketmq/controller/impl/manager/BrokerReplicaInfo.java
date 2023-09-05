@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.controller.impl.manager;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.Pair;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,8 +24,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.common.Pair;
 
 /**
  * Broker replicas info, mapping from brokerAddress to {brokerId, brokerHaAddress}.

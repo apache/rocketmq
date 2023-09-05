@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.controller.impl.heartbeat;
 
+import org.apache.rocketmq.common.UtilAll;
+
 import java.util.Objects;
 
 public class BrokerIdentityInfo {
@@ -44,7 +46,7 @@ public class BrokerIdentityInfo {
     }
 
     public boolean isEmpty() {
-        return clusterName.isEmpty() && brokerName.isEmpty() && brokerId == null;
+        return UtilAll.isBlank(clusterName) && UtilAll.isBlank(brokerName) && brokerId == null;
     }
 
     @Override

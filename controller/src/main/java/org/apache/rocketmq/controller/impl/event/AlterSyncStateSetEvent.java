@@ -49,8 +49,8 @@ public class AlterSyncStateSetEvent implements EventMessage {
     @Override
     public String toString() {
         return "AlterSyncStateSetEvent{" +
-            "brokerName='" + brokerName + '\'' +
-            ", newSyncStateSet=" + newSyncStateSet +
-            '}';
+                "brokerName='" + brokerName + '\'' +
+                ", newSyncStateSet=" + newSyncStateSet +
+                '}';
     }
 }

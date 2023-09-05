@@ -23,10 +23,10 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 public class ElectMasterRequestHeader implements CommandCustomHeader {
 
     @CFNotNull
-    private String clusterName;
+    private String clusterName = "";
 
     @CFNotNull
-    private String brokerName;
+    private String brokerName = "";
 
     /**
      * brokerId
@@ -36,10 +36,12 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
      * it as a new master when this broker is valid.
      */
     @CFNotNull
-    private Long brokerId;
+    private Long brokerId = -1L;
 
     @CFNotNull
     private Boolean designateElect = false;
+
+    private Long invokeTime = System.currentTimeMillis();
 
     public ElectMasterRequestHeader() {
     }
@@ -100,6 +102,14 @@ public class ElectMasterRequestHeader implements CommandCustomHeader {
 
     public boolean getDesignateElect() {
         return this.designateElect;
+    }
+
+    public Long getInvokeTime() {
+        return invokeTime;
+    }
+
+    public void setInvokeTime(Long invokeTime) {
+        this.invokeTime = invokeTime;
     }
 
     @Override

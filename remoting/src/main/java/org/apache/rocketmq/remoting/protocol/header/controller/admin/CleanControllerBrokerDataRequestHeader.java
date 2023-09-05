@@ -34,6 +34,7 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
     private String brokerControllerIdsToClean;
 
     private boolean isCleanLivingBroker = false;
+    private long invokeTime = System.currentTimeMillis();
 
     public CleanControllerBrokerDataRequestHeader() {
     }
@@ -53,6 +54,14 @@ public class CleanControllerBrokerDataRequestHeader implements CommandCustomHead
     @Override
     public void checkFields() throws RemotingCommandException {
 
+    }
+
+    public long getInvokeTime() {
+        return invokeTime;
+    }
+
+    public void setInvokeTime(long invokeTime) {
+        this.invokeTime = invokeTime;
     }
 
     public String getClusterName() {

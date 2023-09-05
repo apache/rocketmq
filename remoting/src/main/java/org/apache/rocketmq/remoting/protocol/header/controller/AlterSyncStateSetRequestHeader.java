@@ -23,6 +23,7 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     private String brokerName;
     private Long masterBrokerId;
     private Integer masterEpoch;
+    private long invokeTime = System.currentTimeMillis();
 
     public AlterSyncStateSetRequestHeader() {
     }
@@ -31,6 +32,14 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
         this.masterBrokerId = masterBrokerId;
         this.masterEpoch = masterEpoch;
+    }
+
+    public long getInvokeTime() {
+        return invokeTime;
+    }
+
+    public void setInvokeTime(long invokeTime) {
+        this.invokeTime = invokeTime;
     }
 
     public String getBrokerName() {

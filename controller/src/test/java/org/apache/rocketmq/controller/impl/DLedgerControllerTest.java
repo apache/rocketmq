@@ -16,18 +16,6 @@
  */
 package org.apache.rocketmq.controller.impl;
 
-import java.io.File;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.controller.Controller;
@@ -48,6 +36,18 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.Register
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.File;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_BROKER_NAME;
 import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_CLUSTER_NAME;
@@ -99,7 +99,7 @@ public class DLedgerControllerTest {
     }
 
     public void registerNewBroker(Controller leader, String clusterName, String brokerName, String brokerAddress,
-        Long expectBrokerId) throws Exception {
+                                  Long expectBrokerId) throws Exception {
         // Get next brokerId
         final GetNextBrokerIdRequestHeader getNextBrokerIdRequest = new GetNextBrokerIdRequestHeader(clusterName, brokerName);
         RemotingCommand remotingCommand = leader.getNextBrokerId(getNextBrokerIdRequest).get(2, TimeUnit.SECONDS);
@@ -126,7 +126,7 @@ public class DLedgerControllerTest {
     }
 
     public void brokerTryElectMaster(Controller leader, String clusterName, String brokerName, String brokerAddress, Long brokerId,
-        boolean exceptSuccess) throws Exception {
+                                     boolean exceptSuccess) throws Exception {
         final ElectMasterRequestHeader electMasterRequestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerId);
         RemotingCommand command = leader.electMaster(electMasterRequestHeader).get(2, TimeUnit.SECONDS);
         ElectMasterResponseHeader header = (ElectMasterResponseHeader) command.readCustomHeader();
@@ -134,9 +134,9 @@ public class DLedgerControllerTest {
     }
 
     private boolean alterNewInSyncSet(Controller leader, String brokerName, Long masterBrokerId, Integer masterEpoch,
-        Set<Long> newSyncStateSet, Integer syncStateSetEpoch) throws Exception {
+                                      Set<Long> newSyncStateSet, Integer syncStateSetEpoch) throws Exception {
         final AlterSyncStateSetRequestHeader alterRequest =
-            new AlterSyncStateSetRequestHeader(brokerName, masterBrokerId, masterEpoch);
+                new AlterSyncStateSetRequestHeader(brokerName, masterBrokerId, masterEpoch);
         final RemotingCommand response = leader.alterSyncStateSet(alterRequest, new SyncStateSet(newSyncStateSet, syncStateSetEpoch)).get(10, TimeUnit.SECONDS);
         if (null == response || response.getCode() != ResponseCode.SUCCESS) {
             return false;
@@ -186,9 +186,9 @@ public class DLedgerControllerTest {
         registerNewBroker(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[1], 2L);
         registerNewBroker(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[2], 3L);
         // try elect
-        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[0], 1L,true);
-        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[1], 2L,  false);
-        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[2], 3L,false);
+        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[0], 1L, true);
+        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[1], 2L, false);
+        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[2], 3L, false);
         final RemotingCommand getInfoResponse = leader.getReplicaInfo(new GetReplicaInfoRequestHeader(DEFAULT_BROKER_NAME)).get(10, TimeUnit.SECONDS);
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) getInfoResponse.readCustomHeader();
         assertEquals(1, replicaInfo.getMasterEpoch().intValue());
@@ -302,7 +302,7 @@ public class DLedgerControllerTest {
         leader.electMaster(electRequest).get(10, TimeUnit.SECONDS);
 
         final RemotingCommand resp = leader.getReplicaInfo(new GetReplicaInfoRequestHeader(DEFAULT_BROKER_NAME)).
-            get(10, TimeUnit.SECONDS);
+                get(10, TimeUnit.SECONDS);
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) resp.readCustomHeader();
         final SyncStateSet syncStateSet = RemotingSerializable.decode(resp.getBody(), SyncStateSet.class);
         assertEquals(syncStateSet.getSyncStateSet(), newSyncStateSet);
@@ -311,7 +311,7 @@ public class DLedgerControllerTest {
 
         // Now, we start broker - id[2]address[127.0.0.1:9001] to try elect, but it was not in syncStateSet, so it will not be elected as master.
         final ElectMasterRequestHeader request1 =
-            ElectMasterRequestHeader.ofBrokerTrigger(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 2L);
+                ElectMasterRequestHeader.ofBrokerTrigger(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 2L);
         final ElectMasterResponseHeader r1 = (ElectMasterResponseHeader) leader.electMaster(request1).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(null, r1.getMasterBrokerId());
         assertEquals(null, r1.getMasterAddress());
@@ -319,7 +319,7 @@ public class DLedgerControllerTest {
         // Now, we start broker - id[1]address[127.0.0.1:9000] to try elect, it will be elected as master
         setBrokerElectPolicy(leader);
         final ElectMasterRequestHeader request2 =
-            ElectMasterRequestHeader.ofBrokerTrigger(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L);
+                ElectMasterRequestHeader.ofBrokerTrigger(DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, 1L);
         final ElectMasterResponseHeader r2 = (ElectMasterResponseHeader) leader.electMaster(request2).get(10, TimeUnit.SECONDS).readCustomHeader();
         assertEquals(1L, r2.getMasterBrokerId().longValue());
         assertEquals(DEFAULT_IP[0], r2.getMasterAddress());
