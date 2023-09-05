@@ -538,7 +538,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 RemotingCommand finalResponse = response;
                 messageStore.getMessageAsync(group, topic, queueId, requestHeader.getQueueOffset(),
                         requestHeader.getMaxMsgNums(), messageFilter)
-                    .thenApply(result -> {
+                    .thenApplyAsync(result -> {
                         if (null == result) {
                             finalResponse.setCode(ResponseCode.SYSTEM_ERROR);
                             finalResponse.setRemark("store getMessage return null");
@@ -557,8 +557,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             finalResponse,
                             mappingContext
                         );
-                    })
-                    .thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result));
+                    }, brokerController.getGetMessageFutureExecutor())
+                    .thenAcceptAsync(result -> NettyRemotingAbstract.writeResponse(channel, request, result), brokerController.getGetMessageFutureExecutor());
             }
         }
 

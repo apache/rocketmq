@@ -139,11 +139,11 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
     public static String genBatchAckUniqueId(BatchAckMsg batchAckMsg) {
         return batchAckMsg.getTopic()
-                + PopAckConstants.SPLIT + batchAckMsg.getQueueId()
-                + PopAckConstants.SPLIT + batchAckMsg.getAckOffsetList().toString()
-                + PopAckConstants.SPLIT + batchAckMsg.getConsumerGroup()
-                + PopAckConstants.SPLIT + batchAckMsg.getPopTime()
-                + PopAckConstants.SPLIT + PopAckConstants.BATCH_ACK_TAG;
+            + PopAckConstants.SPLIT + batchAckMsg.getQueueId()
+            + PopAckConstants.SPLIT + batchAckMsg.getAckOffsetList().toString()
+            + PopAckConstants.SPLIT + batchAckMsg.getConsumerGroup()
+            + PopAckConstants.SPLIT + batchAckMsg.getPopTime()
+            + PopAckConstants.SPLIT + PopAckConstants.BATCH_ACK_TAG;
     }
 
     public static String genCkUniqueId(PopCheckPoint ck) {
@@ -392,7 +392,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
 
         final RemotingCommand finalResponse = response;
-        getMessageFuture.thenApply(restNum -> {
+
+        getMessageFuture.thenApplyAsync(restNum -> {
             if (!getMessageResult.getMessageBufferList().isEmpty()) {
                 finalResponse.setCode(ResponseCode.SUCCESS);
                 getMessageResult.setStatus(GetMessageStatus.FOUND);
@@ -464,11 +465,12 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     return finalResponse;
             }
             return finalResponse;
-        }).thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result));
+        }, brokerController.getGetMessageFutureExecutor()).thenAcceptAsync(result -> NettyRemotingAbstract.writeResponse(channel, request, result), brokerController.getGetMessageFutureExecutor());
         return null;
     }
 
-    private CompletableFuture<Long> popMsgFromQueue(String attemptId, boolean isRetry, GetMessageResult getMessageResult,
+    private CompletableFuture<Long> popMsgFromQueue(String attemptId, boolean isRetry,
+        GetMessageResult getMessageResult,
         PopMessageRequestHeader requestHeader, int queueId, long restNum, int reviveQid,
         Channel channel, long popTime, ExpressionMessageFilter messageFilter, StringBuilder startOffsetInfo,
         StringBuilder msgOffsetInfo, StringBuilder orderCountInfo) {

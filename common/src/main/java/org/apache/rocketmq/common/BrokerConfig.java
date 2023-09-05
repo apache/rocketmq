@@ -68,6 +68,7 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private int sendMessageThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
     private int putMessageFutureThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
+    private int getMessageFutureThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
     private int pullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int litePullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int ackMessageThreadPoolNums = 3;
@@ -102,6 +103,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private int sendThreadPoolQueueCapacity = 10000;
     private int putThreadPoolQueueCapacity = 10000;
+
+    private int getThreadPoolQueueCapacity = 10000;
     private int pullThreadPoolQueueCapacity = 100000;
     private int litePullThreadPoolQueueCapacity = 100000;
     private int ackThreadPoolQueueCapacity = 100000;
@@ -684,6 +687,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.putMessageFutureThreadPoolNums = putMessageFutureThreadPoolNums;
     }
 
+    public int getGetMessageFutureThreadPoolNums() {
+        return getMessageFutureThreadPoolNums;
+    }
+
+    public void setGetMessageFutureThreadPoolNums(int getMessageFutureThreadPoolNums) {
+        this.getMessageFutureThreadPoolNums = getMessageFutureThreadPoolNums;
+    }
+
     public int getPullMessageThreadPoolNums() {
         return pullMessageThreadPoolNums;
     }
@@ -882,6 +893,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setPutThreadPoolQueueCapacity(int putThreadPoolQueueCapacity) {
         this.putThreadPoolQueueCapacity = putThreadPoolQueueCapacity;
+    }
+
+    public int getGetThreadPoolQueueCapacity() {
+        return getThreadPoolQueueCapacity;
+    }
+
+    public void setGetThreadPoolQueueCapacity(int getThreadPoolQueueCapacity) {
+        this.getThreadPoolQueueCapacity = getThreadPoolQueueCapacity;
     }
 
     public int getPullThreadPoolQueueCapacity() {

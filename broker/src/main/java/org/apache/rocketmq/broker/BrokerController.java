@@ -211,6 +211,8 @@ public class BrokerController {
     protected final SlaveSynchronize slaveSynchronize;
     protected final BlockingQueue<Runnable> sendThreadPoolQueue;
     protected final BlockingQueue<Runnable> putThreadPoolQueue;
+
+    protected final BlockingQueue<Runnable> getThreadPoolQueue;
     protected final BlockingQueue<Runnable> ackThreadPoolQueue;
     protected final BlockingQueue<Runnable> pullThreadPoolQueue;
     protected final BlockingQueue<Runnable> litePullThreadPoolQueue;
@@ -236,6 +238,8 @@ public class BrokerController {
     protected ExecutorService pullMessageExecutor;
     protected ExecutorService litePullMessageExecutor;
     protected ExecutorService putMessageFutureExecutor;
+
+    protected ExecutorService getMessageFutureExecutor;
     protected ExecutorService ackMessageExecutor;
     protected ExecutorService replyMessageExecutor;
     protected ExecutorService queryMessageExecutor;
@@ -353,6 +357,7 @@ public class BrokerController {
 
         this.sendThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getSendThreadPoolQueueCapacity());
         this.putThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getPutThreadPoolQueueCapacity());
+        this.getThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getGetThreadPoolQueueCapacity());
         this.pullThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getPullThreadPoolQueueCapacity());
         this.litePullThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getLitePullThreadPoolQueueCapacity());
 
@@ -488,7 +493,15 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.putThreadPoolQueue,
-            new ThreadFactoryImpl("SendMessageThread_", getBrokerIdentity()));
+            new ThreadFactoryImpl("PutMessageThread_", getBrokerIdentity()));
+
+        this.getMessageFutureExecutor = new BrokerFixedThreadPoolExecutor(
+            this.brokerConfig.getGetMessageFutureThreadPoolNums(),
+            this.brokerConfig.getGetMessageFutureThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            this.getThreadPoolQueue,
+            new ThreadFactoryImpl("GetMessageThread_", getBrokerIdentity()));
 
         this.ackMessageExecutor = new BrokerFixedThreadPoolExecutor(
             this.brokerConfig.getAckMessageThreadPoolNums(),
@@ -1375,6 +1388,10 @@ public class BrokerController {
 
         if (this.putMessageFutureExecutor != null) {
             this.putMessageFutureExecutor.shutdown();
+        }
+
+        if (this.getMessageFutureExecutor != null) {
+            this.getMessageFutureExecutor.shutdown();
         }
 
         if (this.ackMessageExecutor != null) {
@@ -2269,6 +2286,10 @@ public class BrokerController {
 
     public SendMessageProcessor getSendMessageProcessor() {
         return sendMessageProcessor;
+    }
+
+    public ExecutorService getGetMessageFutureExecutor() {
+        return getMessageFutureExecutor;
     }
 
     public QueryAssignmentProcessor getQueryAssignmentProcessor() {
