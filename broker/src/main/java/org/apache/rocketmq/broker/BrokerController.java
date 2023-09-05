@@ -2292,6 +2292,10 @@ public class BrokerController {
         return getMessageFutureExecutor;
     }
 
+    public void setGetMessageFutureExecutor(ExecutorService getMessageFutureExecutor) {
+        this.getMessageFutureExecutor = getMessageFutureExecutor;
+    }
+
     public QueryAssignmentProcessor getQueryAssignmentProcessor() {
         return queryAssignmentProcessor;
     }

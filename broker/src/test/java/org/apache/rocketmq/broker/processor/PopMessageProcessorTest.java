@@ -20,9 +20,15 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -49,6 +55,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.apache.rocketmq.broker.processor.PullMessageProcessorTest.createConsumerData;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -87,10 +94,16 @@ public class PopMessageProcessorTest {
             consumerData.getConsumeFromWhere(),
             consumerData.getSubscriptionDataSet(),
             false);
+        ExecutorService executorService = new BrokerFixedThreadPoolExecutor(
+            16,
+            16,
+            1000 * 60,
+            TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+        brokerController.setGetMessageFutureExecutor(executorService);
     }
 
     @Test
-    public void testProcessRequest_TopicNotExist() throws RemotingCommandException {
+    public void testProcessRequest_TopicNotExist() throws RemotingCommandException, InterruptedException {
         when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         brokerController.getTopicConfigManager().getTopicConfigTable().remove(topic);
         final RemotingCommand request = createPopMsgCommand();
@@ -108,13 +121,14 @@ public class PopMessageProcessorTest {
 
         final RemotingCommand request = createPopMsgCommand();
         popMessageProcessor.processRequest(handlerContext, request);
-        RemotingCommand response = embeddedChannel.readOutbound();
-        assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        await().atMost(3, TimeUnit.SECONDS).until(() -> {
+            RemotingCommand response = embeddedChannel.readOutbound();
+            return response != null && response.getCode() == ResponseCode.SUCCESS;
+        });
     }
 
     @Test
-    public void testProcessRequest_MsgWasRemoving() throws RemotingCommandException {
+    public void testProcessRequest_MsgWasRemoving() throws Exception {
         GetMessageResult getMessageResult = createGetMessageResult(1);
         getMessageResult.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
         when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
@@ -122,9 +136,10 @@ public class PopMessageProcessorTest {
 
         final RemotingCommand request = createPopMsgCommand();
         popMessageProcessor.processRequest(handlerContext, request);
-        RemotingCommand response = embeddedChannel.readOutbound();
-        assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        await().atMost(3, TimeUnit.SECONDS).until(() -> {
+            RemotingCommand response = embeddedChannel.readOutbound();
+            return response != null && response.getCode() == ResponseCode.SUCCESS;
+        });
     }
 
     @Test

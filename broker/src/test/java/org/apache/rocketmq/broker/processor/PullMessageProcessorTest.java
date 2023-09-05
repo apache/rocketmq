@@ -24,10 +24,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
+import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -58,6 +62,7 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -98,6 +103,12 @@ public class PullMessageProcessorTest {
             consumerData.getConsumeFromWhere(),
             consumerData.getSubscriptionDataSet(),
             false);
+        ExecutorService executorService = new BrokerFixedThreadPoolExecutor(
+            16,
+            16,
+            1000 * 60,
+            TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+        brokerController.setGetMessageFutureExecutor(executorService);
     }
 
     @Test
@@ -137,9 +148,10 @@ public class PullMessageProcessorTest {
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         pullMessageProcessor.processRequest(handlerContext, request);
-        RemotingCommand response = embeddedChannel.readOutbound();
-        assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        await().atMost(3, TimeUnit.SECONDS).until(() -> {
+            RemotingCommand response = embeddedChannel.readOutbound();
+            return response != null && response.getCode() == ResponseCode.SUCCESS;
+        });
     }
 
     @Test
@@ -167,9 +179,10 @@ public class PullMessageProcessorTest {
         pullMessageProcessor.registerConsumeMessageHook(consumeMessageHookList);
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         pullMessageProcessor.processRequest(handlerContext, request);
-        RemotingCommand response = embeddedChannel.readOutbound();
-        assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        await().atMost(3, TimeUnit.SECONDS).until(() -> {
+            RemotingCommand response = embeddedChannel.readOutbound();
+            return response != null && response.getCode() == ResponseCode.SUCCESS;
+        });
         assertThat(messageContext[0]).isNotNull();
         assertThat(messageContext[0].getConsumerGroup()).isEqualTo(group);
         assertThat(messageContext[0].getTopic()).isEqualTo(topic);
@@ -184,9 +197,10 @@ public class PullMessageProcessorTest {
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         pullMessageProcessor.processRequest(handlerContext, request);
-        RemotingCommand response = embeddedChannel.readOutbound();
-        assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_RETRY_IMMEDIATELY);
+        await().atMost(3, TimeUnit.SECONDS).until(() -> {
+            RemotingCommand response = embeddedChannel.readOutbound();
+            return response != null && response.getCode() == ResponseCode.PULL_RETRY_IMMEDIATELY;
+        });
     }
 
     @Test
@@ -197,9 +211,10 @@ public class PullMessageProcessorTest {
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         pullMessageProcessor.processRequest(handlerContext, request);
-        RemotingCommand response = embeddedChannel.readOutbound();
-        assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.PULL_OFFSET_MOVED);
+        await().atMost(3, TimeUnit.SECONDS).until(() -> {
+            RemotingCommand response = embeddedChannel.readOutbound();
+            return response != null && response.getCode() == ResponseCode.PULL_OFFSET_MOVED;
+        });
     }
 
     @Test
@@ -237,9 +252,10 @@ public class PullMessageProcessorTest {
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         pullMessageProcessor.processRequest(handlerContext, request);
-        RemotingCommand response = embeddedChannel.readOutbound();
-        assertThat(response).isNotNull();
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+        await().atMost(3, TimeUnit.SECONDS).until(() -> {
+            RemotingCommand response = embeddedChannel.readOutbound();
+            return response != null && response.getCode() == ResponseCode.SUCCESS;
+        });
         assertThat(this.brokerController.getConsumerOffsetManager().queryPullOffset(group, topic, 1))
             .isEqualTo(getMessageResult.getNextBeginOffset());
     }
