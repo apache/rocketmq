@@ -850,7 +850,7 @@ public class DefaultMessageStore implements MessageStore {
                         if (bufferConsumeQueue == null) {
                             status = GetMessageStatus.OFFSET_FOUND_NULL;
                             nextBeginOffset = nextOffsetCorrection(nextBeginOffset, this.consumeQueueStore.rollNextFile(consumeQueue, nextBeginOffset));
-                            LOGGER.warn("consumer request topic: " + topic + "offset: " + offset + " minOffset: " + minOffset + " maxOffset: "
+                            LOGGER.warn("consumer request topic: " + topic + ", offset: " + offset + ", minOffset: " + minOffset + ", maxOffset: "
                                 + maxOffset + ", but access logic queue failed. Correct nextBeginOffset to " + nextBeginOffset);
                             break;
                         }

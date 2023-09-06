@@ -154,12 +154,16 @@ public class RocksDBConsumeQueueOffsetTable {
         final WriteBatch writeBatch, final long maxPhyOffset) throws RocksDBException {
         for (Map.Entry<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> entry : tempTopicQueueMaxOffsetMap.entrySet()) {
             writeBatch.put(this.offsetCFH, entry.getKey(), entry.getValue().getObject1());
-
-            DispatchRequest request = entry.getValue().getObject2();
-            putHeapMaxCqOffset(request.getTopic(), request.getQueueId(), request.getConsumeQueueOffset());
         }
 
         appendMaxPhyOffset(writeBatch, maxPhyOffset);
+    }
+
+    public void putHeapMaxCqOffset(final Map<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> tempTopicQueueMaxOffsetMap) {
+        for (Map.Entry<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> entry : tempTopicQueueMaxOffsetMap.entrySet()) {
+            DispatchRequest request = entry.getValue().getObject2();
+            putHeapMaxCqOffset(request.getTopic(), request.getQueueId(), request.getConsumeQueueOffset());
+        }
     }
 
     /**

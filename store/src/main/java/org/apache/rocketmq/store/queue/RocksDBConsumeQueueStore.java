@@ -233,6 +233,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             // clear writeBatch in batchPut
             this.rocksDBStorage.batchPut(writeBatch);
 
+            this.rocksDBConsumeQueueOffsetTable.putHeapMaxCqOffset(tempTopicQueueMaxOffsetMap);
+
             long storeTimeStamp = bufferDRList.get(size - 1).getStoreTimestamp();
             if (this.messageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE
                 || this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {

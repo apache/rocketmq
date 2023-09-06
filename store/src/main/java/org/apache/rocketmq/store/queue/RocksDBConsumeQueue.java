@@ -368,6 +368,9 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
     private ReferredIterator<CqUnit> iterateFrom0(final long startIndex, final int count) throws RocksDBException {
         List<ByteBuffer> byteBufferList = this.messageStore.getQueueStore().rangeQuery(topic, queueId, startIndex, count);
         if (byteBufferList == null || byteBufferList.isEmpty()) {
+            if (this.messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
+                log.warn("iterateFrom0 - find nothing, startIndex:{}, count:{}", startIndex, count);
+            }
             return null;
         }
         return new RocksDBConsumeQueueIterator(byteBufferList, startIndex);
