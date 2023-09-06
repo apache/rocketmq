@@ -80,13 +80,15 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         this.grpcMessingActivity = grpcMessingActivity;
 
         ProxyConfig config = ConfigurationManager.getProxyConfig();
+        GrpcTaskRejectedExecutionHandler rejectedExecutionHandler = new GrpcTaskRejectedExecutionHandler();
         this.routeThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
             config.getGrpcRouteThreadPoolNums(),
             config.getGrpcRouteThreadPoolNums(),
             1,
             TimeUnit.MINUTES,
             "GrpcRouteThreadPool",
-            config.getGrpcRouteThreadQueueCapacity()
+            config.getGrpcRouteThreadQueueCapacity(),
+            rejectedExecutionHandler
         );
         this.producerThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
             config.getGrpcProducerThreadPoolNums(),
@@ -94,7 +96,8 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             1,
             TimeUnit.MINUTES,
             "GrpcProducerThreadPool",
-            config.getGrpcProducerThreadQueueCapacity()
+            config.getGrpcProducerThreadQueueCapacity(),
+            rejectedExecutionHandler
         );
         this.consumerThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
             config.getGrpcConsumerThreadPoolNums(),
@@ -102,7 +105,8 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             1,
             TimeUnit.MINUTES,
             "GrpcConsumerThreadPool",
-            config.getGrpcConsumerThreadQueueCapacity()
+            config.getGrpcConsumerThreadQueueCapacity(),
+            rejectedExecutionHandler
         );
         this.clientManagerThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
             config.getGrpcClientManagerThreadPoolNums(),
@@ -110,7 +114,8 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             1,
             TimeUnit.MINUTES,
             "GrpcClientManagerThreadPool",
-            config.getGrpcClientManagerThreadQueueCapacity()
+            config.getGrpcClientManagerThreadQueueCapacity(),
+            rejectedExecutionHandler
         );
         this.transactionThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
             config.getGrpcTransactionThreadPoolNums(),
@@ -118,20 +123,9 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             1,
             TimeUnit.MINUTES,
             "GrpcTransactionThreadPool",
-            config.getGrpcTransactionThreadQueueCapacity()
+            config.getGrpcTransactionThreadQueueCapacity(),
+            rejectedExecutionHandler
         );
-
-        this.init();
-    }
-
-    protected void init() {
-        GrpcTaskRejectedExecutionHandler rejectedExecutionHandler = new GrpcTaskRejectedExecutionHandler();
-        this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
-        this.routeThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
-        this.producerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
-        this.consumerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
-        this.clientManagerThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
-        this.transactionThreadPoolExecutor.setRejectedExecutionHandler(rejectedExecutionHandler);
     }
 
     public static GrpcMessagingApplication create(MessagingProcessor messagingProcessor) {

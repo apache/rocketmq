@@ -81,7 +81,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             proxyConfig.getRenewMaxThreadPoolNums(),
             1, TimeUnit.MINUTES,
             "RenewalWorkerThread",
-            proxyConfig.getRenewThreadPoolQueueCapacity()
+            proxyConfig.getRenewThreadPoolQueueCapacity(),
+            (r, executor) -> log.warn("add renew task failed. queueSize:{}", executor.getQueue().size())
         );
         consumerManager.appendConsumerIdsChangeListener(new ConsumerIdsChangeListener() {
             @Override
@@ -108,7 +109,6 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             }
         });
         this.receiptHandleGroupMap = new ConcurrentHashMap<>();
-        this.renewalWorkerService.setRejectedExecutionHandler((r, executor) -> log.warn("add renew task failed. queueSize:{}", executor.getQueue().size()));
         this.appendStartAndShutdown(new StartAndShutdown() {
             @Override
             public void start() throws Exception {
