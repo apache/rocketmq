@@ -16,9 +16,12 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
-import io.fury.Fury;
-import io.fury.Language;
-import io.fury.ThreadSafeFury;
+import com.caucho.hessian.io.Hessian2Input;
+import com.caucho.hessian.io.Hessian2Output;
+import com.caucho.hessian.io.SerializerFactory;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -74,13 +77,28 @@ import java.util.stream.Stream;
 public class ReplicasInfoManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
 
-    protected static final ThreadSafeFury FURY = Fury.builder().withLanguage(Language.JAVA)
-        .requireClassRegistration(false)
-        .buildThreadSafeFury();
-
+    protected static final SerializerFactory serializerFactory = new SerializerFactory();
     protected final ControllerConfig controllerConfig;
     private final Map<String/* brokerName */, BrokerReplicaInfo> replicaInfoTable;
     private final Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
+
+    protected static byte[] hessianSerialize(Object object) throws IOException {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        Hessian2Output hessianOut = new Hessian2Output(bout);
+        hessianOut.setSerializerFactory(serializerFactory);
+        hessianOut.writeObject(object);
+        hessianOut.close();
+        return bout.toByteArray();
+    }
+
+    protected static Object hessianDeserialize(byte[] data) throws IOException {
+        ByteArrayInputStream bin = new ByteArrayInputStream(data, 0, data.length);
+        Hessian2Input hin = new Hessian2Input(bin);
+        hin.setSerializerFactory(new SerializerFactory());
+        Object o =  hin.readObject();
+        hin.close();
+        return o;
+    }
 
     public ReplicasInfoManager(final ControllerConfig config) {
         this.controllerConfig = config;
@@ -605,7 +623,7 @@ public class ReplicasInfoManager {
             putInt(outputStream, this.replicaInfoTable.size());
             for (Map.Entry<String, BrokerReplicaInfo> entry : replicaInfoTable.entrySet()) {
                 final byte[] brokerName = entry.getKey().getBytes(StandardCharsets.UTF_8);
-                byte[] brokerReplicaInfo = FURY.serialize(entry.getValue());
+                byte[] brokerReplicaInfo = hessianSerialize(entry.getValue());
                 putInt(outputStream, brokerName.length);
                 outputStream.write(brokerName);
                 putInt(outputStream, brokerReplicaInfo.length);
@@ -614,7 +632,7 @@ public class ReplicasInfoManager {
             putInt(outputStream, this.syncStateSetInfoTable.size());
             for (Map.Entry<String, SyncStateInfo> entry : syncStateSetInfoTable.entrySet()) {
                 final byte[] brokerName = entry.getKey().getBytes(StandardCharsets.UTF_8);
-                byte[] syncStateInfo = FURY.serialize(entry.getValue());
+                byte[] syncStateInfo = hessianSerialize(entry.getValue());
                 putInt(outputStream, brokerName.length);
                 outputStream.write(brokerName);
                 putInt(outputStream, syncStateInfo.length);
@@ -644,7 +662,7 @@ public class ReplicasInfoManager {
                 index += 4;
                 byte[] brokerReplicaInfoArray = new byte[brokerReplicaInfoLength];
                 System.arraycopy(data, index, brokerReplicaInfoArray, 0, brokerReplicaInfoLength);
-                BrokerReplicaInfo brokerReplicaInfo = (BrokerReplicaInfo) FURY.deserialize(brokerReplicaInfoArray);
+                BrokerReplicaInfo brokerReplicaInfo = (BrokerReplicaInfo) hessianDeserialize(brokerReplicaInfoArray);
                 index += brokerReplicaInfoLength;
                 this.replicaInfoTable.put(brokerName, brokerReplicaInfo);
             }
@@ -659,7 +677,7 @@ public class ReplicasInfoManager {
                 index += 4;
                 byte[] syncStateInfoArray = new byte[syncStateInfoLength];
                 System.arraycopy(data, index, syncStateInfoArray, 0, syncStateInfoLength);
-                SyncStateInfo syncStateInfo = (SyncStateInfo) FURY.deserialize(syncStateInfoArray);
+                SyncStateInfo syncStateInfo = (SyncStateInfo) hessianDeserialize(syncStateInfoArray);
                 index += syncStateInfoLength;
                 this.syncStateSetInfoTable.put(brokerName, syncStateInfo);
             }

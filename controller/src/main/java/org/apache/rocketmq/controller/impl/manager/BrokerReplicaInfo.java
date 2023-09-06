@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
+import java.io.Serializable;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 
@@ -29,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Broker replicas info, mapping from brokerAddress to {brokerId, brokerHaAddress}.
  */
-public class BrokerReplicaInfo {
+public class BrokerReplicaInfo implements Serializable {
     private final String clusterName;
 
     private final String brokerName;

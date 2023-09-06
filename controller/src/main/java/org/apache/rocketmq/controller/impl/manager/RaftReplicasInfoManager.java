@@ -171,8 +171,8 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
             outputStream.write(superSerialize);
             putInt(outputStream, this.brokerLiveTable.size());
             for (Map.Entry<BrokerIdentityInfo, BrokerLiveInfo> entry : brokerLiveTable.entrySet()) {
-                final byte[] brokerIdentityInfo = FURY.serialize(entry.getKey());
-                final byte[] brokerLiveInfo = FURY.serialize(entry.getValue());
+                final byte[] brokerIdentityInfo = hessianSerialize(entry.getKey());
+                final byte[] brokerLiveInfo = hessianSerialize(entry.getValue());
                 putInt(outputStream, brokerIdentityInfo.length);
                 outputStream.write(brokerIdentityInfo);
                 putInt(outputStream, brokerLiveInfo.length);
@@ -204,13 +204,13 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
                 index += 4;
                 byte[] brokerIdentityInfoArray = new byte[brokerIdentityInfoLength];
                 System.arraycopy(data, index, brokerIdentityInfoArray, 0, brokerIdentityInfoLength);
-                BrokerIdentityInfo brokerIdentityInfo = (BrokerIdentityInfo) FURY.deserialize(brokerIdentityInfoArray);
+                BrokerIdentityInfo brokerIdentityInfo = (BrokerIdentityInfo) hessianDeserialize(brokerIdentityInfoArray);
                 index += brokerIdentityInfoLength;
                 int brokerLiveInfoLength = getInt(data, index);
                 index += 4;
                 byte[] brokerLiveInfoArray = new byte[brokerLiveInfoLength];
                 System.arraycopy(data, index, brokerLiveInfoArray, 0, brokerLiveInfoLength);
-                BrokerLiveInfo brokerLiveInfo = (BrokerLiveInfo) FURY.deserialize(brokerLiveInfoArray);
+                BrokerLiveInfo brokerLiveInfo = (BrokerLiveInfo) hessianDeserialize(brokerLiveInfoArray);
                 index += brokerLiveInfoLength;
                 this.brokerLiveTable.put(brokerIdentityInfo, brokerLiveInfo);
             }
