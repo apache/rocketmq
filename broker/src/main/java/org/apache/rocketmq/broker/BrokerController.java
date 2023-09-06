@@ -1302,6 +1302,10 @@ public class BrokerController {
             this.fastRemotingServer.shutdown();
         }
 
+        if (this.brokerMetricsManager != null) {
+            this.brokerMetricsManager.shutdown();
+        }
+
         if (this.brokerStatsManager != null) {
             this.brokerStatsManager.shutdown();
         }
@@ -1322,6 +1326,10 @@ public class BrokerController {
         {
             this.popMessageProcessor.getPopBufferMergeService().shutdown();
             this.ackMessageProcessor.shutdownPopReviveService();
+        }
+
+        if (this.transactionalMessageService != null) {
+            this.transactionalMessageService.close();
         }
 
         if (this.notificationProcessor != null) {
