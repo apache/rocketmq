@@ -28,9 +28,9 @@ public class TieredStoreTopicBlackListFilterTest {
         Assert.assertTrue(topicFilter.filterTopic(""));
         Assert.assertTrue(topicFilter.filterTopic(TopicValidator.SYSTEM_TOPIC_PREFIX + "_Topic"));
 
-        String topicName = "WhiteTopic";
+        String topicName = "BlackTopic";
         Assert.assertFalse(topicFilter.filterTopic(topicName));
-        topicFilter.addTopicToWhiteList(topicName);
+        topicFilter.addTopicToBlackList(topicName);
         Assert.assertTrue(topicFilter.filterTopic(topicName));
     }
 }
