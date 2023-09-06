@@ -93,8 +93,8 @@ public class RaftBrokerHeartBeatEventRequest implements CommandCustomHeader {
     @Override
     public String toString() {
         return "RaftBrokerHeartBeatEventRequest{" +
-                "brokerIdentityInfo=" + getBrokerIdentityInfo() +
-                ", brokerLiveInfo=" + getBrokerLiveInfo() +
-                "}";
+            "brokerIdentityInfo=" + getBrokerIdentityInfo() +
+            ", brokerLiveInfo=" + getBrokerLiveInfo() +
+            "}";
     }
 }

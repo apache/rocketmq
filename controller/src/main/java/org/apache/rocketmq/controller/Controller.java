@@ -69,7 +69,7 @@ public interface Controller {
      * @return RemotingCommand(AlterSyncStateSetResponseHeader)
      */
     CompletableFuture<RemotingCommand> alterSyncStateSet(
-            final AlterSyncStateSetRequestHeader request, final SyncStateSet syncStateSet);
+        final AlterSyncStateSetRequestHeader request, final SyncStateSet syncStateSet);
 
     /**
      * Elect new master for a broker.

@@ -78,7 +78,7 @@ public class ControllerManager {
     private ControllerMetricsManager controllerMetricsManager;
 
     public ControllerManager(ControllerConfig controllerConfig, NettyServerConfig nettyServerConfig,
-                             NettyClientConfig nettyClientConfig) {
+        NettyClientConfig nettyClientConfig) {
         this.controllerConfig = controllerConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
@@ -93,12 +93,12 @@ public class ControllerManager {
     public boolean initialize() {
         this.controllerRequestThreadPoolQueue = new LinkedBlockingQueue<>(this.controllerConfig.getControllerRequestThreadPoolQueueCapacity());
         this.controllerRequestExecutor = new ThreadPoolExecutor(
-                this.controllerConfig.getControllerThreadPoolNums(),
-                this.controllerConfig.getControllerThreadPoolNums(),
-                1000 * 60,
-                TimeUnit.MILLISECONDS,
-                this.controllerRequestThreadPoolQueue,
-                new ThreadFactoryImpl("ControllerRequestExecutorThread_")) {
+            this.controllerConfig.getControllerThreadPoolNums(),
+            this.controllerConfig.getControllerThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            this.controllerRequestThreadPoolQueue,
+            new ThreadFactoryImpl("ControllerRequestExecutorThread_")) {
             @Override
             protected <T> RunnableFuture<T> newTaskFor(final Runnable runnable, final T value) {
                 return new FutureTaskExt<T>(runnable, value);
@@ -127,8 +127,8 @@ public class ControllerManager {
                 throw new IllegalArgumentException("Attribute value controllerDLegerSelfId of ControllerConfig is null or empty");
             }
             this.controller = new DLedgerController(this.controllerConfig, this.heartbeatManager::isBrokerActive,
-                    this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService,
-                    new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo));
+                this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService,
+                new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo));
         }
 
         // Initialize the basic resources
@@ -152,7 +152,7 @@ public class ControllerManager {
      */
     private void onBrokerInactive(String clusterName, String brokerName, Long brokerId) {
         log.info("Controller Manager received broker inactive event, clusterName: {}, brokerName: {}, brokerId: {}",
-                clusterName, brokerName, brokerId);
+            clusterName, brokerName, brokerId);
         if (controller.isLeaderState()) {
             if (brokerId == null) {
                 // Means that force triggering election for this broker-set
@@ -211,7 +211,7 @@ public class ControllerManager {
             // Inform all active brokers
             final Map<Long, String> brokerAddrs = memberGroup.getBrokerAddrs();
             brokerAddrs.entrySet().stream().filter(x -> this.heartbeatManager.isBrokerActive(clusterName, brokerName, x.getKey()))
-                    .forEach(x -> this.notifyService.notifyBroker(x.getValue(), entry));
+                .forEach(x -> this.notifyService.notifyBroker(x.getValue(), entry));
         }
     }
 
@@ -225,7 +225,7 @@ public class ControllerManager {
         if (StringUtils.isNoneEmpty(brokerAddr)) {
             log.info("Try notify broker {} that role changed, RoleChangeNotifyEntry:{}", brokerAddr, entry);
             final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(entry.getMasterAddress(), entry.getMasterBrokerId(),
-                    entry.getMasterEpoch(), entry.getSyncStateSetEpoch());
+                entry.getMasterEpoch(), entry.getSyncStateSetEpoch());
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
             request.setBody(new SyncStateSet(entry.getSyncStateSet(), entry.getSyncStateSetEpoch()).encode());
             try {
@@ -359,7 +359,8 @@ public class ControllerManager {
 
             @Override
             public boolean equals(Object obj) {
-                if (this == obj) return true;
+                if (this == obj)
+                    return true;
                 if (!(obj instanceof NotifyTask)) {
                     return false;
                 }

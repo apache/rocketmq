@@ -73,9 +73,9 @@ public class BrokerIdentityInfo {
     @Override
     public String toString() {
         return "BrokerIdentityInfo{" +
-                "clusterName='" + clusterName + '\'' +
-                ", brokerName='" + brokerName + '\'' +
-                ", brokerId=" + brokerId +
-                '}';
+            "clusterName='" + clusterName + '\'' +
+            ", brokerName='" + brokerName + '\'' +
+            ", brokerId=" + brokerId +
+            '}';
     }
 }

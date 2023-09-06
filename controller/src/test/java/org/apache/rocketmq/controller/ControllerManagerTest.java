@@ -130,8 +130,9 @@ public class ControllerManagerTest {
      * Register broker to controller
      */
     public void registerBroker(
-            final String controllerAddress, final String clusterName,
-            final String brokerName, final Long brokerId, final String brokerAddress, final Long expectMasterBrokerId, final RemotingClient client) throws Exception {
+        final String controllerAddress, final String clusterName,
+        final String brokerName, final Long brokerId, final String brokerAddress, final Long expectMasterBrokerId,
+        final RemotingClient client) throws Exception {
         // Get next brokerId;
         final GetNextBrokerIdRequestHeader getNextBrokerIdRequestHeader = new GetNextBrokerIdRequestHeader(clusterName, brokerName);
         final RemotingCommand getNextBrokerIdRequest = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_NEXT_BROKER_ID, getNextBrokerIdRequestHeader);
@@ -158,7 +159,7 @@ public class ControllerManagerTest {
     }
 
     public RemotingCommand brokerTryElect(final String controllerAddress, final String clusterName,
-                                          final String brokerName, final Long brokerId, final RemotingClient client) throws Exception {
+        final String brokerName, final Long brokerId, final RemotingClient client) throws Exception {
         final ElectMasterRequestHeader requestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerId);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_ELECT_MASTER, requestHeader);
         RemotingCommand response = client.invokeSync(controllerAddress, request, 10000);
@@ -166,8 +167,9 @@ public class ControllerManagerTest {
         return response;
     }
 
-    public void sendHeartbeat(final String controllerAddress, final String clusterName, final String brokerName, final Long brokerId,
-                              final String brokerAddress, final Long timeout, final RemotingClient client) throws Exception {
+    public void sendHeartbeat(final String controllerAddress, final String clusterName, final String brokerName,
+        final Long brokerId,
+        final String brokerAddress, final Long timeout, final RemotingClient client) throws Exception {
         final BrokerHeartbeatRequestHeader heartbeatRequestHeader0 = new BrokerHeartbeatRequestHeader();
         heartbeatRequestHeader0.setBrokerId(brokerId);
         heartbeatRequestHeader0.setClusterName(clusterName);

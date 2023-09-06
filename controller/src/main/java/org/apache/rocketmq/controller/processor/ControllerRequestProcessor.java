@@ -83,21 +83,21 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
         if (ctx != null) {
             log.debug("Receive request, {} {} {}",
-                    request.getCode(),
-                    RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
-                    request);
+                request.getCode(),
+                RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
+                request);
         }
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
             RemotingCommand resp = handleRequest(ctx, request);
             Attributes attributes = ControllerMetricsManager.newAttributesBuilder()
-                    .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
-                    .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.SUCCESS.getLowerCaseName())
-                    .build();
+                .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.SUCCESS.getLowerCaseName())
+                .build();
             ControllerMetricsManager.requestTotal.add(1, attributes);
             attributes = ControllerMetricsManager.newAttributesBuilder()
-                    .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
-                    .build();
+                .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                .build();
             ControllerMetricsManager.requestLatency.record(stopwatch.elapsed(TimeUnit.MICROSECONDS), attributes);
             return resp;
         } catch (Exception e) {
@@ -105,14 +105,14 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             Attributes attributes;
             if (e instanceof TimeoutException) {
                 attributes = ControllerMetricsManager.newAttributesBuilder()
-                        .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
-                        .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.TIMEOUT.getLowerCaseName())
-                        .build();
+                    .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                    .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.TIMEOUT.getLowerCaseName())
+                    .build();
             } else {
                 attributes = ControllerMetricsManager.newAttributesBuilder()
-                        .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
-                        .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.FAILED.getLowerCaseName())
-                        .build();
+                    .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                    .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.FAILED.getLowerCaseName())
+                    .build();
             }
             ControllerMetricsManager.requestTotal.add(1, attributes);
             throw e;
@@ -153,7 +153,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand handleAlterSyncStateSet(ChannelHandlerContext ctx,
-                                                    RemotingCommand request) throws Exception {
+        RemotingCommand request) throws Exception {
         final AlterSyncStateSetRequestHeader controllerRequest = (AlterSyncStateSetRequestHeader) request.decodeCommandCustomHeader(AlterSyncStateSetRequestHeader.class);
         final SyncStateSet syncStateSet = RemotingSerializable.decode(request.getBody(), SyncStateSet.class);
         final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().alterSyncStateSet(controllerRequest, syncStateSet);
@@ -164,7 +164,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand handleControllerElectMaster(ChannelHandlerContext ctx,
-                                                        RemotingCommand request) throws Exception {
+        RemotingCommand request) throws Exception {
         final ElectMasterRequestHeader electMasterRequest = (ElectMasterRequestHeader) request.decodeCommandCustomHeader(ElectMasterRequestHeader.class);
         final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().electMaster(electMasterRequest);
         if (future != null) {
@@ -181,7 +181,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand handleControllerGetReplicaInfo(ChannelHandlerContext ctx,
-                                                           RemotingCommand request) throws Exception {
+        RemotingCommand request) throws Exception {
         final GetReplicaInfoRequestHeader controllerRequest = (GetReplicaInfoRequestHeader) request.decodeCommandCustomHeader(GetReplicaInfoRequestHeader.class);
         final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().getReplicaInfo(controllerRequest);
         if (future != null) {
@@ -200,12 +200,12 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             return RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_INVALID_REQUEST, "Heart beat with empty brokerId");
         }
         this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerName(), requestHeader.getBrokerAddr(), requestHeader.getBrokerId(),
-                requestHeader.getHeartbeatTimeoutMills(), ctx.channel(), requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset(), requestHeader.getElectionPriority());
+            requestHeader.getHeartbeatTimeoutMills(), ctx.channel(), requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset(), requestHeader.getElectionPriority());
         return RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "Heart beat success");
     }
 
     private RemotingCommand handleControllerGetSyncStateData(ChannelHandlerContext ctx,
-                                                             RemotingCommand request) throws Exception {
+        RemotingCommand request) throws Exception {
         if (request.getBody() != null) {
             final List<String> brokerNames = RemotingSerializable.decode(request.getBody(), List.class);
             if (brokerNames != null && brokerNames.size() > 0) {

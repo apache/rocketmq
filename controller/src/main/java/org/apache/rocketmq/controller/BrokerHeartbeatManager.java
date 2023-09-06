@@ -47,8 +47,8 @@ public interface BrokerHeartbeatManager {
      * Broker new heartbeat.
      */
     void onBrokerHeartbeat(final String clusterName, final String brokerName, final String brokerAddr,
-                           final Long brokerId, final Long timeoutMillis, final Channel channel, final Integer epoch,
-                           final Long maxOffset, final Long confirmOffset, final Integer electionPriority);
+        final Long brokerId, final Long timeoutMillis, final Channel channel, final Integer epoch,
+        final Long maxOffset, final Long confirmOffset, final Integer electionPriority);
 
     /**
      * Start heartbeat manager.

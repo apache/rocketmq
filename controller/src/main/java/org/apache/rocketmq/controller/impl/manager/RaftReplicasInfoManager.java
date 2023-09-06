@@ -77,7 +77,8 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<RaftBrokerHeartBeatEventResponse> onBrokerHeartBeat(RaftBrokerHeartBeatEventRequest request) {
+    public ControllerResult<RaftBrokerHeartBeatEventResponse> onBrokerHeartBeat(
+        RaftBrokerHeartBeatEventRequest request) {
         BrokerIdentityInfo brokerIdentityInfo = request.getBrokerIdentityInfo();
         BrokerLiveInfo brokerLiveInfo = request.getBrokerLiveInfo();
         ControllerResult<RaftBrokerHeartBeatEventResponse> result = new ControllerResult<>(new RaftBrokerHeartBeatEventResponse());
@@ -131,12 +132,12 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
             }
         });
         Set<String> alreadyReportedBrokerName = notActiveBrokerIdentityInfoList.stream()
-                .map(BrokerIdentityInfo::getBrokerName)
-                .collect(Collectors.toSet());
+            .map(BrokerIdentityInfo::getBrokerName)
+            .collect(Collectors.toSet());
         notActiveBrokerIdentityInfoList.addAll(needReElectBrokerNames.stream()
-                .filter(brokerName -> !alreadyReportedBrokerName.contains(brokerName))
-                .map(brokerName -> new BrokerIdentityInfo(null, brokerName, null))
-                .collect(Collectors.toList()));
+            .filter(brokerName -> !alreadyReportedBrokerName.contains(brokerName))
+            .map(brokerName -> new BrokerIdentityInfo(null, brokerName, null))
+            .collect(Collectors.toList()));
         ControllerResult<CheckNotActiveBrokerResponse> result = new ControllerResult<>(new CheckNotActiveBrokerResponse());
         try {
             result.setBody(JSON.toJSONBytes(notActiveBrokerIdentityInfoList));

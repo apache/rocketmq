@@ -92,7 +92,9 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
     }
 
     @Override
-    public void onBrokerHeartbeat(String clusterName, String brokerName, String brokerAddr, Long brokerId, Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset, Integer electionPriority) {
+    public void onBrokerHeartbeat(String clusterName, String brokerName, String brokerAddr, Long brokerId,
+        Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset,
+        Integer electionPriority) {
         BrokerIdentityInfo brokerIdentityInfo = new BrokerIdentityInfo(clusterName, brokerName, brokerId);
         int realEpoch = Optional.ofNullable(epoch).orElse(-1);
         long realBrokerId = Optional.ofNullable(brokerId).orElse(-1L);
@@ -101,15 +103,15 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         long realTimeoutMillis = Optional.ofNullable(timeoutMillis).orElse(DEFAULT_BROKER_CHANNEL_EXPIRED_TIME);
         int realElectionPriority = Optional.ofNullable(electionPriority).orElse(Integer.MAX_VALUE);
         BrokerLiveInfo liveInfo = new BrokerLiveInfo(brokerName,
-                brokerAddr,
-                realBrokerId,
-                System.currentTimeMillis(),
-                realTimeoutMillis,
-                null,
-                realEpoch,
-                realMaxOffset,
-                realElectionPriority,
-                realConfirmOffset);
+            brokerAddr,
+            realBrokerId,
+            System.currentTimeMillis(),
+            realTimeoutMillis,
+            null,
+            realEpoch,
+            realMaxOffset,
+            realElectionPriority,
+            realConfirmOffset);
         log.info("broker {} heart beat", brokerIdentityInfo);
         RaftBrokerHeartBeatEventRequest requestHeader = new RaftBrokerHeartBeatEventRequest(brokerIdentityInfo, liveInfo);
         CompletableFuture<RemotingCommand> future = controller.onBrokerHeartBeat(requestHeader);
@@ -240,13 +242,13 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         Map<String, Map<String, Integer>> map = new HashMap<>();
         Map<BrokerIdentityInfo, BrokerLiveInfo> brokerLiveInfoMap = getBrokerLiveInfo(null);
         brokerLiveInfoMap.keySet().stream()
-                .filter(brokerIdentity -> this.isBrokerActive(brokerIdentity.getClusterName(), brokerIdentity.getBrokerName(), brokerIdentity.getBrokerId()))
-                .forEach(id -> {
-                    map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
-                    map.get(id.getClusterName()).compute(id.getBrokerName(), (broker, num) ->
-                            num == null ? 0 : num + 1
-                    );
-                });
+            .filter(brokerIdentity -> this.isBrokerActive(brokerIdentity.getClusterName(), brokerIdentity.getBrokerName(), brokerIdentity.getBrokerId()))
+            .forEach(id -> {
+                map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
+                map.get(id.getClusterName()).compute(id.getBrokerName(), (broker, num) ->
+                    num == null ? 0 : num + 1
+                );
+            });
         return map;
     }
 

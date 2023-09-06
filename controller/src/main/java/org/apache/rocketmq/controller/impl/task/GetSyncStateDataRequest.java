@@ -38,7 +38,7 @@ public class GetSyncStateDataRequest implements CommandCustomHeader {
     @Override
     public String toString() {
         return "GetSyncStateDataRequest{" +
-                "invokeTime=" + invokeTime +
-                '}';
+            "invokeTime=" + invokeTime +
+            '}';
     }
 }

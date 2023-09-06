@@ -75,8 +75,8 @@ public class ReplicasInfoManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
 
     protected static final ThreadSafeFury FURY = Fury.builder().withLanguage(Language.JAVA)
-            .requireClassRegistration(false)
-            .buildThreadSafeFury();
+        .requireClassRegistration(false)
+        .buildThreadSafeFury();
 
     protected final ControllerConfig controllerConfig;
     private final Map<String/* brokerName */, BrokerReplicaInfo> replicaInfoTable;
@@ -89,8 +89,8 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<AlterSyncStateSetResponseHeader> alterSyncStateSet(
-            final AlterSyncStateSetRequestHeader request, final SyncStateSet syncStateSet,
-            final BrokerValidPredicate brokerAlivePredicate) {
+        final AlterSyncStateSetRequestHeader request, final SyncStateSet syncStateSet,
+        final BrokerValidPredicate brokerAlivePredicate) {
         final String brokerName = request.getBrokerName();
         final ControllerResult<AlterSyncStateSetResponseHeader> result = new ControllerResult<>(new AlterSyncStateSetResponseHeader());
         final AlterSyncStateSetResponseHeader response = result.getResponse();
@@ -115,7 +115,7 @@ public class ReplicasInfoManager {
         // Check master
         if (!syncStateInfo.getMasterBrokerId().equals(request.getMasterBrokerId())) {
             String err = String.format("Rejecting alter syncStateSet request because the current leader is:{%s}, not {%s}",
-                    syncStateInfo.getMasterBrokerId(), request.getMasterBrokerId());
+                syncStateInfo.getMasterBrokerId(), request.getMasterBrokerId());
             LOGGER.error("{}", err);
             result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_MASTER, err);
             return result;
@@ -124,7 +124,7 @@ public class ReplicasInfoManager {
         // Check master epoch
         if (request.getMasterEpoch() != syncStateInfo.getMasterEpoch()) {
             String err = String.format("Rejecting alter syncStateSet request because the current master epoch is:{%d}, not {%d}",
-                    syncStateInfo.getMasterEpoch(), request.getMasterEpoch());
+                syncStateInfo.getMasterEpoch(), request.getMasterEpoch());
             LOGGER.error("{}", err);
             result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_MASTER_EPOCH, err);
             return result;
@@ -133,7 +133,7 @@ public class ReplicasInfoManager {
         // Check syncStateSet epoch
         if (syncStateSet.getSyncStateSetEpoch() != syncStateInfo.getSyncStateSetEpoch()) {
             String err = String.format("Rejecting alter syncStateSet request because the current syncStateSet epoch is:{%d}, not {%d}",
-                    syncStateInfo.getSyncStateSetEpoch(), syncStateSet.getSyncStateSetEpoch());
+                syncStateInfo.getSyncStateSetEpoch(), syncStateSet.getSyncStateSetEpoch());
             LOGGER.error("{}", err);
             result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_SYNC_STATE_SET_EPOCH, err);
             return result;
@@ -172,7 +172,7 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<ElectMasterResponseHeader> electMaster(final ElectMasterRequestHeader request,
-                                                                   final ElectPolicy electPolicy) {
+        final ElectPolicy electPolicy) {
         final String brokerName = request.getBrokerName();
         final Long brokerId = request.getBrokerId();
         final ControllerResult<ElectMasterResponseHeader> result = new ControllerResult<>(new ElectMasterResponseHeader());
@@ -312,7 +312,8 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(final RegisterBrokerToControllerRequestHeader request, final BrokerValidPredicate alivePredicate) {
+    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(
+        final RegisterBrokerToControllerRequestHeader request, final BrokerValidPredicate alivePredicate) {
         final String brokerAddress = request.getBrokerAddress();
         final String brokerName = request.getBrokerName();
         final String clusterName = request.getClusterName();
@@ -364,7 +365,8 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<Void> getSyncStateData(final List<String> brokerNames, final BrokerValidPredicate brokerAlivePredicate) {
+    public ControllerResult<Void> getSyncStateData(final List<String> brokerNames,
+        final BrokerValidPredicate brokerAlivePredicate) {
         final ControllerResult<Void> result = new ControllerResult<>();
         final BrokerReplicasInfo brokerReplicasInfo = new BrokerReplicasInfo();
         for (String brokerName : brokerNames) {
@@ -393,7 +395,7 @@ public class ReplicasInfoManager {
                 });
 
                 final BrokerReplicasInfo.ReplicasInfo inSyncState = new BrokerReplicasInfo.ReplicasInfo(masterBrokerId, brokerReplicaInfo.getBrokerAddress(masterBrokerId), syncStateInfo.getMasterEpoch(), syncStateInfo.getSyncStateSetEpoch(),
-                        inSyncReplicas, notInSyncReplicas);
+                    inSyncReplicas, notInSyncReplicas);
                 brokerReplicasInfo.addReplicaInfo(brokerName, inSyncState);
             }
         }
@@ -402,7 +404,7 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<Void> cleanBrokerData(final CleanControllerBrokerDataRequestHeader requestHeader,
-                                                  final BrokerValidPredicate validPredicate) {
+        final BrokerValidPredicate validPredicate) {
         final ControllerResult<Void> result = new ControllerResult<>();
 
         final String clusterName = requestHeader.getClusterName();
@@ -461,7 +463,6 @@ public class ReplicasInfoManager {
         });
         return needReelectBrokerSets;
     }
-
 
     /**
      * Apply events to memory statemachine.

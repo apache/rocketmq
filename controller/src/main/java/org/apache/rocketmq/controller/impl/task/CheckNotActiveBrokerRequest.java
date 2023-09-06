@@ -37,7 +37,7 @@ public class CheckNotActiveBrokerRequest implements CommandCustomHeader {
     @Override
     public String toString() {
         return "CheckNotActiveBrokerRequest{" +
-                "checkTimeMillis=" + checkTimeMillis +
-                '}';
+            "checkTimeMillis=" + checkTimeMillis +
+            '}';
     }
 }

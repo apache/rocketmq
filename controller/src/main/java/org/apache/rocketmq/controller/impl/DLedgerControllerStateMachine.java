@@ -40,7 +40,7 @@ public class DLedgerControllerStateMachine implements StateMachine {
     private final String dLedgerId;
 
     public DLedgerControllerStateMachine(final ReplicasInfoManager replicasInfoManager,
-                                         final EventSerializer eventSerializer, final String dLedgerGroupId, final String dLedgerSelfId) {
+        final EventSerializer eventSerializer, final String dLedgerGroupId, final String dLedgerSelfId) {
         this.replicasInfoManager = replicasInfoManager;
         this.eventSerializer = eventSerializer;
         this.dLedgerId = generateDLedgerId(dLedgerGroupId, dLedgerSelfId);

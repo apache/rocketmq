@@ -82,8 +82,8 @@ public class ControllerResult<T> {
     @Override
     public String toString() {
         return "ControllerResult{" +
-                "events=" + events +
-                ", response=" + response +
-                '}';
+            "events=" + events +
+            ", response=" + response +
+            '}';
     }
 }

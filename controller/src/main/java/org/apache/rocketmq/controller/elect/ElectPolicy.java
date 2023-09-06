@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.controller.elect;
 
-
 import java.util.Set;
 
 public interface ElectPolicy {
@@ -32,6 +31,7 @@ public interface ElectPolicy {
      * @param brokerId          broker id(can be used as prefer or assigned in some elect policy)
      * @return new master's broker id
      */
-    Long elect(String clusterName, String brokerName, Set<Long> syncStateBrokers, Set<Long> allReplicaBrokers, Long oldMaster, Long brokerId);
+    Long elect(String clusterName, String brokerName, Set<Long> syncStateBrokers, Set<Long> allReplicaBrokers,
+        Long oldMaster, Long brokerId);
 
 }

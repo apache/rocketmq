@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.controller.impl.manager;
+
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 
@@ -83,7 +84,8 @@ public class BrokerReplicaInfo {
     }
 
     public String getBrokerAddress(final Long brokerId) {
-        if (brokerId == null) return null;
+        if (brokerId == null)
+            return null;
         Pair<String, String> pair = this.brokerIdInfo.get(brokerId);
         if (pair != null) {
             return pair.getObject1();
@@ -92,7 +94,8 @@ public class BrokerReplicaInfo {
     }
 
     public String getBrokerRegisterCheckCode(final Long brokerId) {
-        if (brokerId == null) return null;
+        if (brokerId == null)
+            return null;
         Pair<String, String> pair = this.brokerIdInfo.get(brokerId);
         if (pair != null) {
             return pair.getObject2();
@@ -101,7 +104,8 @@ public class BrokerReplicaInfo {
     }
 
     public void updateBrokerAddress(final Long brokerId, final String brokerAddress) {
-        if (brokerId == null) return;
+        if (brokerId == null)
+            return;
         Pair<String, String> oldPair = this.brokerIdInfo.get(brokerId);
         if (oldPair != null) {
             this.brokerIdInfo.put(brokerId, new Pair<>(brokerAddress, oldPair.getObject2()));

@@ -60,7 +60,7 @@ public class GetBrokerLiveInfoRequest implements CommandCustomHeader {
     @Override
     public String toString() {
         return "GetBrokerLiveInfoRequest{" +
-                "brokerIdentity=" + getBrokerIdentity() +
-                '}';
+            "brokerIdentity=" + getBrokerIdentity() +
+            '}';
     }
 }
