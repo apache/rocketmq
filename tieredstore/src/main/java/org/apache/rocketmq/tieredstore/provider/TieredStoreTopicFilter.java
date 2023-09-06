@@ -21,5 +21,5 @@ public interface TieredStoreTopicFilter {
 
     boolean filterTopic(String topicName);
 
-    void addTopicToWhiteList(String topicName);
+    void addTopicToBlackList(String topicName);
 }
