@@ -61,7 +61,7 @@ public class NettyRemotingClientTest {
             InvokeCallback callback = invocation.getArgument(3);
             ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
             responseFuture.setResponseCommand(response);
-            callback.operationComplete(responseFuture);
+            callback.operationSuccess(responseFuture.getResponseCommand());
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
 
@@ -78,9 +78,7 @@ public class NettyRemotingClientTest {
         response.setCode(ResponseCode.SUCCESS);
         doAnswer(invocation -> {
             InvokeCallback callback = invocation.getArgument(3);
-            ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
-            responseFuture.setSendRequestOK(false);
-            callback.operationComplete(responseFuture);
+            callback.operationException(new RemotingSendRequestException(null));
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
 
@@ -97,8 +95,7 @@ public class NettyRemotingClientTest {
         response.setCode(ResponseCode.SUCCESS);
         doAnswer(invocation -> {
             InvokeCallback callback = invocation.getArgument(3);
-            ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), -1L, null, null);
-            callback.operationComplete(responseFuture);
+            callback.operationException(new RemotingTimeoutException(""));
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
 
@@ -116,7 +113,7 @@ public class NettyRemotingClientTest {
         doAnswer(invocation -> {
             InvokeCallback callback = invocation.getArgument(3);
             ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
-            callback.operationComplete(responseFuture);
+            callback.operationException(new RemotingException(null));
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
 
