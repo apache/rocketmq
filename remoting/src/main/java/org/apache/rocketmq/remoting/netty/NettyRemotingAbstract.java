@@ -44,6 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.apache.rocketmq.common.AbortProcessException;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
@@ -269,11 +270,13 @@ public abstract class NettyRemotingAbstract {
         Runnable run = buildProcessRequestHandler(ctx, cmd, pair, opaque);
 
         if (isShuttingDown.get()) {
-            final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.GO_AWAY,
-                "please go away");
-            response.setOpaque(opaque);
-            writeResponse(ctx.channel(), cmd, response);
-            return;
+            if (cmd.getVersion() > MQVersion.Version.V5_1_3.ordinal()) {
+                final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.GO_AWAY,
+                    "please go away");
+                response.setOpaque(opaque);
+                writeResponse(ctx.channel(), cmd, response);
+                return;
+            }
         }
 
         if (pair.getObject1().rejectRequest()) {
