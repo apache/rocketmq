@@ -64,11 +64,11 @@ public class MQFaultStrategy {
 
 
     public MQFaultStrategy(ClientConfig cc, Resolver fetcher, ServiceDetector serviceDetector) {
-        this.setStartDetectorEnable(cc.isStartDetectorEnable());
-        this.setSendLatencyFaultEnable(cc.isSendLatencyEnable());
         this.latencyFaultTolerance = new LatencyFaultToleranceImpl(fetcher, serviceDetector);
         this.latencyFaultTolerance.setDetectInterval(cc.getDetectInterval());
         this.latencyFaultTolerance.setDetectTimeout(cc.getDetectTimeout());
+        this.setStartDetectorEnable(cc.isStartDetectorEnable());
+        this.setSendLatencyFaultEnable(cc.isSendLatencyEnable());
     }
 
     // For unit test.
