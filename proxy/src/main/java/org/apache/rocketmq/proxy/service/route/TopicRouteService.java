@@ -181,19 +181,9 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     public void checkSendFaultToleranceEnable() {
         boolean hotLatencySwitch = ConfigurationManager.getProxyConfig().isSendLatencyEnable();
+        boolean hotDetectorSwitch = ConfigurationManager.getProxyConfig().isStartDetectorEnable();
         this.mqFaultStrategy.setSendLatencyFaultEnable(hotLatencySwitch);
-
-        // original switch is false, but now true.
-        if (!mqFaultStrategy.isStartDetectorEnable() && ConfigurationManager.getProxyConfig().getStartDetectorEnable()) {
-            mqFaultStrategy.setStartDetectorEnable(true);
-            mqFaultStrategy.startDetector();
-        }
-        // original switch is true, but now false.
-        else if (mqFaultStrategy.isStartDetectorEnable() && !ConfigurationManager.getProxyConfig().getStartDetectorEnable()) {
-            // first shutdown the detector, then set the switch to false.
-            mqFaultStrategy.shutdown();
-            mqFaultStrategy.setStartDetectorEnable(false);
-        }
+        this.mqFaultStrategy.setStartDetectorEnable(hotDetectorSwitch);
     }
 
     public MQFaultStrategy getMqFaultStrategy() {

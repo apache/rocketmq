@@ -123,21 +123,15 @@ public class MQFaultStrategy {
 
     public void setStartDetectorEnable(boolean startDetectorEnable) {
         this.startDetectorEnable = startDetectorEnable;
+        this.latencyFaultTolerance.setStartDetectorEnable(startDetectorEnable);
     }
 
     public void startDetector() {
-        // user should start the detector
-        // and the thread should not be in running state.
-        if (this.sendLatencyFaultEnable && this.startDetectorEnable) {
-            // start the detector.
-            this.latencyFaultTolerance.startDetector();
-        }
+        this.latencyFaultTolerance.startDetector();
     }
 
     public void shutdown() {
-        if (this.sendLatencyFaultEnable && this.startDetectorEnable) {
-            this.latencyFaultTolerance.shutdown();
-        }
+        this.latencyFaultTolerance.shutdown();
     }
 
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName, final boolean resetIndex) {
