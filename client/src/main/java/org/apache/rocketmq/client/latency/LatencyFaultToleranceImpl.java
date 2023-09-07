@@ -38,7 +38,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     private int detectInterval = 2000;
     private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
 
-    private boolean startDetectorEnable = false;
+    private volatile boolean startDetectorEnable = false;
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
         @Override
         public Thread newThread(Runnable r) {
