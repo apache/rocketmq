@@ -73,6 +73,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.BrokerSyncInfo;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -910,7 +911,12 @@ public class BrokerOuterAPI {
         request.setBody(requestBody.encode());
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
             @Override
-            public void operationSuccess(RemotingCommand response) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 if (callback == null) {
                     return;
                 }
@@ -925,7 +931,7 @@ public class BrokerOuterAPI {
             }
 
             @Override
-            public void operationException(Throwable throwable) {
+            public void operationFail(Throwable throwable) {
                 if (callback == null) {
                     return;
                 }
@@ -945,7 +951,12 @@ public class BrokerOuterAPI {
 
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
             @Override
-            public void operationSuccess(RemotingCommand response) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 if (callback == null) {
                     return;
                 }
@@ -957,7 +968,7 @@ public class BrokerOuterAPI {
             }
 
             @Override
-            public void operationException(Throwable throwable) {
+            public void operationFail(Throwable throwable) {
                 if (callback == null) {
                     return;
                 }
@@ -989,7 +1000,12 @@ public class BrokerOuterAPI {
         try {
             this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
                 @Override
-                public void operationSuccess(RemotingCommand response) {
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     try {
                         SendResult sendResult = processSendResponse(brokerName, msg, response);
                         cf.complete(sendResult);
@@ -1000,7 +1016,7 @@ public class BrokerOuterAPI {
                 }
 
                 @Override
-                public void operationException(Throwable throwable) {
+                public void operationFail(Throwable throwable) {
                     cf.completeExceptionally(throwable);
                 }
             });
@@ -1367,7 +1383,12 @@ public class BrokerOuterAPI {
         CompletableFuture<PullResult> pullResultFuture = new CompletableFuture<>();
         this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
             @Override
-            public void operationSuccess(RemotingCommand response) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 try {
                     PullResultExt pullResultExt = processPullResponse(response, brokerAddr);
                     processPullResult(pullResultExt, brokerName, queueId);
@@ -1378,7 +1399,7 @@ public class BrokerOuterAPI {
             }
 
             @Override
-            public void operationException(Throwable throwable) {
+            public void operationFail(Throwable throwable) {
                 pullResultFuture.complete(new PullResult(PullStatus.NO_MATCHED_MSG, -1, -1, -1, new ArrayList<>()));
             }
         });

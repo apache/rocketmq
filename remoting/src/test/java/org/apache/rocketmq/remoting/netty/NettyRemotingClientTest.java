@@ -61,7 +61,7 @@ public class NettyRemotingClientTest {
             InvokeCallback callback = invocation.getArgument(3);
             ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
             responseFuture.setResponseCommand(response);
-            callback.operationSuccess(responseFuture.getResponseCommand());
+            callback.operationSucceed(responseFuture.getResponseCommand());
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
 
@@ -78,7 +78,7 @@ public class NettyRemotingClientTest {
         response.setCode(ResponseCode.SUCCESS);
         doAnswer(invocation -> {
             InvokeCallback callback = invocation.getArgument(3);
-            callback.operationException(new RemotingSendRequestException(null));
+            callback.operationFail(new RemotingSendRequestException(null));
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
 
@@ -95,7 +95,7 @@ public class NettyRemotingClientTest {
         response.setCode(ResponseCode.SUCCESS);
         doAnswer(invocation -> {
             InvokeCallback callback = invocation.getArgument(3);
-            callback.operationException(new RemotingTimeoutException(""));
+            callback.operationFail(new RemotingTimeoutException(""));
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
 
@@ -113,7 +113,7 @@ public class NettyRemotingClientTest {
         doAnswer(invocation -> {
             InvokeCallback callback = invocation.getArgument(3);
             ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
-            callback.operationException(new RemotingException(null));
+            callback.operationFail(new RemotingException(null));
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
 

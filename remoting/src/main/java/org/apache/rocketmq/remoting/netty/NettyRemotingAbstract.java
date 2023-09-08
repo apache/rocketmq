@@ -39,6 +39,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.apache.rocketmq.common.AbortProcessException;
@@ -469,7 +470,8 @@ public abstract class NettyRemotingAbstract {
         final long timeoutMillis)
         throws InterruptedException, RemotingSendRequestException, RemotingTimeoutException {
         try {
-            return invokeImplV2(channel, request, timeoutMillis).get(timeoutMillis, TimeUnit.MILLISECONDS);
+            return invokeImpl(channel, request, timeoutMillis).thenApply(ResponseFuture::getResponseCommand)
+                .get(timeoutMillis, TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
             throw new RemotingSendRequestException(channel.remoteAddress().toString(), e.getCause());
         } catch (TimeoutException e) {
@@ -477,20 +479,20 @@ public abstract class NettyRemotingAbstract {
         }
     }
 
-    public CompletableFuture<RemotingCommand> invokeImplV2(final Channel channel, final RemotingCommand request,
+    public CompletableFuture<ResponseFuture> invokeImpl(final Channel channel, final RemotingCommand request,
         final long timeoutMillis) {
         String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
         doBeforeRpcHooks(channelRemoteAddr, request);
         return invoke0(channel, request, timeoutMillis).whenComplete((v, t) -> {
             if (t == null) {
-                doAfterRpcHooks(channelRemoteAddr, request, v);
+                doAfterRpcHooks(channelRemoteAddr, request, v.getResponseCommand());
             }
         });
     }
 
-    public CompletableFuture<RemotingCommand> invoke0(final Channel channel, final RemotingCommand request,
+    public CompletableFuture<ResponseFuture> invoke0(final Channel channel, final RemotingCommand request,
         final long timeoutMillis) {
-        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        CompletableFuture<ResponseFuture> future = new CompletableFuture<>();
         long beginStartTime = System.currentTimeMillis();
         final int opaque = request.getOpaque();
 
@@ -510,18 +512,25 @@ public abstract class NettyRemotingAbstract {
                 return future;
             }
 
+            AtomicReference<ResponseFuture> responseFutureReference = new AtomicReference<>();
             final ResponseFuture responseFuture = new ResponseFuture(channel, opaque, request, timeoutMillis - costTime,
                 new InvokeCallback() {
                     @Override
-                    public void operationSuccess(RemotingCommand response) {
-                        future.complete(response);
+                    public void operationComplete(ResponseFuture responseFuture) {
+
                     }
 
                     @Override
-                    public void operationException(Throwable throwable) {
+                    public void operationSucceed(RemotingCommand response) {
+                        future.complete(responseFutureReference.get());
+                    }
+
+                    @Override
+                    public void operationFail(Throwable throwable) {
                         future.completeExceptionally(throwable);
                     }
                 }, once);
+            responseFutureReference.set(responseFuture);
             this.responseTable.put(opaque, responseFuture);
             try {
                 channel.writeAndFlush(request).addListener((ChannelFutureListener) f -> {
@@ -558,11 +567,11 @@ public abstract class NettyRemotingAbstract {
     }
 
     public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
-        final InvokeCallback invokeCallback)
-        throws RemotingSendRequestException {
-        invokeImplV2(channel, request, timeoutMillis).thenAccept(invokeCallback::operationSuccess)
+        final InvokeCallback invokeCallback) {
+        invokeImpl(channel, request, timeoutMillis).whenComplete((v, t) -> invokeCallback.operationComplete(v))
+            .thenAccept(responseFuture -> invokeCallback.operationSucceed(responseFuture.getResponseCommand()))
             .exceptionally(t -> {
-                invokeCallback.operationException(t);
+                invokeCallback.operationFail(t);
                 return null;
             });
     }

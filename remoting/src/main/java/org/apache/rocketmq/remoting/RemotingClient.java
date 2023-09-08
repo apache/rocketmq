@@ -24,6 +24,7 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface RemotingClient extends RemotingService {
@@ -53,12 +54,17 @@ public interface RemotingClient extends RemotingService {
             invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
 
                 @Override
-                public void operationSuccess(RemotingCommand response) {
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     future.complete(response);
                 }
 
                 @Override
-                public void operationException(Throwable throwable) {
+                public void operationFail(Throwable throwable) {
                     future.completeExceptionally(throwable);
                 }
             });

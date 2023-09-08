@@ -50,6 +50,7 @@ import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -407,7 +408,12 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         try {
             this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
                 @Override
-                public void operationSuccess(RemotingCommand response) {
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     switch (response.getCode()) {
                         case ResponseCode.SUCCESS: {
                             if (response.getBody() != null) {
@@ -432,7 +438,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 }
 
                 @Override
-                public void operationException(Throwable throwable) {
+                public void operationFail(Throwable throwable) {
                     future.completeExceptionally(throwable);
                 }
             });
@@ -450,7 +456,12 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         try {
             this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
                 @Override
-                public void operationSuccess(RemotingCommand response) {
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     if (ResponseCode.SUCCESS == response.getCode()) {
                         try {
                             GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
@@ -463,7 +474,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 }
 
                 @Override
-                public void operationException(Throwable throwable) {
+                public void operationFail(Throwable throwable) {
                     future.completeExceptionally(throwable);
                 }
             });
@@ -481,7 +492,12 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         try {
             this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
                 @Override
-                public void operationSuccess(RemotingCommand response) {
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     if (ResponseCode.SUCCESS == response.getCode()) {
                         try {
                             GetMinOffsetResponseHeader responseHeader = (GetMinOffsetResponseHeader) response.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
@@ -494,7 +510,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 }
 
                 @Override
-                public void operationException(Throwable throwable) {
+                public void operationFail(Throwable throwable) {
                     future.completeExceptionally(throwable);
                 }
             });

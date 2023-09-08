@@ -20,12 +20,19 @@ import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface InvokeCallback {
-    @Deprecated
-    default void operationComplete(final ResponseFuture responseFuture) {
+    /**
+     * This method is expected to be invoked after {@link #operationSucceed(RemotingCommand)}
+     * or {@link #operationFail(Throwable)}
+     *
+     * @param responseFuture the returned object contains response or exception
+     */
+    void operationComplete(final ResponseFuture responseFuture);
+
+    default void operationSucceed(final RemotingCommand response) {
 
     }
 
-    void operationSuccess(final RemotingCommand response);
+    default void operationFail(final Throwable throwable) {
 
-    void operationException(final Throwable throwable);
+    }
 }

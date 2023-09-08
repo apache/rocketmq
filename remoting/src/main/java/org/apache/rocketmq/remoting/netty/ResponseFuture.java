@@ -64,16 +64,17 @@ public class ResponseFuture {
             if (this.executeCallbackOnlyOnce.compareAndSet(false, true)) {
                 RemotingCommand response = getResponseCommand();
                 if (response != null) {
-                    invokeCallback.operationSuccess(response);
+                    invokeCallback.operationSucceed(response);
                 } else {
                     if (!isSendRequestOK()) {
-                        invokeCallback.operationException(new RemotingSendRequestException(channel.remoteAddress().toString(), getCause()));
+                        invokeCallback.operationFail(new RemotingSendRequestException(channel.remoteAddress().toString(), getCause()));
                     } else if (isTimeout()) {
-                        invokeCallback.operationException(new RemotingTimeoutException(channel.remoteAddress().toString(), getTimeoutMillis(), getCause()));
+                        invokeCallback.operationFail(new RemotingTimeoutException(channel.remoteAddress().toString(), getTimeoutMillis(), getCause()));
                     } else {
-                        invokeCallback.operationException(new RemotingException(getRequestCommand().toString(), getCause()));
+                        invokeCallback.operationFail(new RemotingException(getRequestCommand().toString(), getCause()));
                     }
                 }
+                invokeCallback.operationComplete(this);
             }
         }
     }

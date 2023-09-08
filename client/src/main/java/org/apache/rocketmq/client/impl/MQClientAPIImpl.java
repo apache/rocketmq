@@ -651,7 +651,12 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         try {
             this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
                 @Override
-                public void operationSuccess(RemotingCommand response) {
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     long cost = System.currentTimeMillis() - beginStartTime;
                     if (null == sendCallback) {
                         try {
@@ -689,7 +694,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                 }
 
                 @Override
-                public void operationException(Throwable throwable) {
+                public void operationFail(Throwable throwable) {
                     producer.updateFaultItem(brokerName, System.currentTimeMillis() - beginStartTime, true, true);
                     long cost = System.currentTimeMillis() - beginStartTime;
                     if (throwable instanceof RemotingSendRequestException) {
@@ -857,7 +862,12 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader);
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
             @Override
-            public void operationSuccess(RemotingCommand response) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 try {
                     PopResult popResult = MQClientAPIImpl.this.processPopResponse(brokerName, response, requestHeader.getTopic(), requestHeader);
                     popCallback.onSuccess(popResult);
@@ -866,7 +876,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                 }
             }
             @Override
-            public void operationException(Throwable throwable) {
+            public void operationFail(Throwable throwable) {
                 popCallback.onException(throwable);
             }
         });
@@ -949,7 +959,12 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         }
         this.remotingClient.invokeAsync(addr, request, timeOut, new InvokeCallback() {
             @Override
-            public void operationSuccess(RemotingCommand response) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 AckResult ackResult = new AckResult();
                 if (ResponseCode.SUCCESS == response.getCode()) {
                     ackResult.setStatus(AckStatus.OK);
@@ -960,7 +975,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             }
 
             @Override
-            public void operationException(Throwable throwable) {
+            public void operationFail(Throwable throwable) {
                 ackCallback.onException(throwable);
             }
         });
@@ -976,7 +991,12 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader);
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
             @Override
-            public void operationSuccess(RemotingCommand response) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 try {
                     ChangeInvisibleTimeResponseHeader responseHeader = (ChangeInvisibleTimeResponseHeader) response.decodeCommandCustomHeader(ChangeInvisibleTimeResponseHeader.class);
                     AckResult ackResult = new AckResult();
@@ -997,7 +1017,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             }
 
             @Override
-            public void operationException(Throwable throwable) {
+            public void operationFail(Throwable throwable) {
                 ackCallback.onException(throwable);
             }
         });
@@ -1011,7 +1031,12 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
     ) throws RemotingException, InterruptedException {
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
             @Override
-            public void operationSuccess(RemotingCommand response) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 try {
                     PullResult pullResult = MQClientAPIImpl.this.processPullResponse(response, addr);
                     pullCallback.onSuccess(pullResult);
@@ -1021,7 +1046,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             }
 
             @Override
-            public void operationException(Throwable throwable) {
+            public void operationFail(Throwable throwable) {
                 pullCallback.onException(throwable);
             }
         });

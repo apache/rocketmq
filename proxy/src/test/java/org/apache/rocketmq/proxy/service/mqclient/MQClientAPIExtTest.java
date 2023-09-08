@@ -271,7 +271,7 @@ public class MQClientAPIExtTest {
             body.setConsumerIdList(clientIds);
             response.setBody(body.encode());
             responseFuture.putResponse(response);
-            invokeCallback.operationSuccess(responseFuture.getResponseCommand());
+            invokeCallback.operationSucceed(responseFuture.getResponseCommand());
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any());
 
@@ -288,7 +288,7 @@ public class MQClientAPIExtTest {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.makeCustomHeaderToNet();
             responseFuture.putResponse(response);
-            invokeCallback.operationSuccess(responseFuture.getResponseCommand());
+            invokeCallback.operationSucceed(responseFuture.getResponseCommand());
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any());
 
@@ -308,7 +308,7 @@ public class MQClientAPIExtTest {
             response.setCode(ResponseCode.SUCCESS);
             response.makeCustomHeaderToNet();
             responseFuture.putResponse(response);
-            invokeCallback.operationSuccess(responseFuture.getResponseCommand());
+            invokeCallback.operationSucceed(responseFuture.getResponseCommand());
             return null;
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any());
 

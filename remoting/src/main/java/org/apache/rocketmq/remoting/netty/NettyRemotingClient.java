@@ -725,17 +725,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         final Channel channel = this.getAndCreateChannel(addr);
         String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
         if (channel != null && channel.isActive()) {
-            try {
-                long costTime = System.currentTimeMillis() - beginStartTime;
-                if (timeoutMillis < costTime) {
-                    throw new RemotingTooMuchRequestException("invokeAsync call the addr[" + channelRemoteAddr + "] timeout");
-                }
-                this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, new InvokeCallbackWrapper(invokeCallback, addr));
-            } catch (RemotingSendRequestException e) {
-                LOGGER.warn("invokeAsync: send request exception, so close the channel[{}]", channelRemoteAddr);
-                this.closeChannel(addr, channel);
-                throw e;
+            long costTime = System.currentTimeMillis() - beginStartTime;
+            if (timeoutMillis < costTime) {
+                throw new RemotingTooMuchRequestException("invokeAsync call the addr[" + channelRemoteAddr + "] timeout");
             }
+            this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, new InvokeCallbackWrapper(invokeCallback, addr));
         } else {
             this.closeChannel(addr, channel);
             throw new RemotingConnectException(addr);
@@ -927,14 +921,19 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         @Override
-        public void operationSuccess(RemotingCommand response) {
-            updateChannelLastResponseTime(addr);
-            this.invokeCallback.operationSuccess(response);
+        public void operationComplete(ResponseFuture responseFuture) {
+            this.invokeCallback.operationComplete(responseFuture);
         }
 
         @Override
-        public void operationException(final Throwable throwable) {
-            this.invokeCallback.operationException(throwable);
+        public void operationSucceed(RemotingCommand response) {
+            updateChannelLastResponseTime(addr);
+            this.invokeCallback.operationSucceed(response);
+        }
+
+        @Override
+        public void operationFail(final Throwable throwable) {
+            this.invokeCallback.operationFail(throwable);
         }
     }
 

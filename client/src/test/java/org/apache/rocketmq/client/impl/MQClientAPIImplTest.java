@@ -212,7 +212,7 @@ public class MQClientAPIImplTest {
                 RemotingCommand request = mock.getArgument(1);
                 ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
                 responseFuture.setResponseCommand(createSendMessageSuccessResponse(request));
-                callback.operationSuccess(responseFuture.getResponseCommand());
+                callback.operationSucceed(responseFuture.getResponseCommand());
                 return null;
             }
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
@@ -386,7 +386,7 @@ public class MQClientAPIImplTest {
                 RemotingCommand request = mock.getArgument(1);
                 ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
                 responseFuture.setResponseCommand(createSendMessageSuccessResponse(request));
-                callback.operationSuccess(responseFuture.getResponseCommand());
+                callback.operationSucceed(responseFuture.getResponseCommand());
                 return null;
             }
         }).when(remotingClient).invokeAsync(Matchers.anyString(), Matchers.any(RemotingCommand.class), Matchers.anyLong(), Matchers.any(InvokeCallback.class));
@@ -472,7 +472,7 @@ public class MQClientAPIImplTest {
                 message.putUserProperty("key", "value");
                 response.setBody(MessageDecoder.encode(message, false));
                 responseFuture.setResponseCommand(response);
-                callback.operationSuccess(responseFuture.getResponseCommand());
+                callback.operationSucceed(responseFuture.getResponseCommand());
                 return null;
             }
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
@@ -543,7 +543,7 @@ public class MQClientAPIImplTest {
                 message.getProperties().put(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, String.valueOf(0));
                 response.setBody(MessageDecoder.encode(message, false));
                 responseFuture.setResponseCommand(response);
-                callback.operationSuccess(responseFuture.getResponseCommand());
+                callback.operationSucceed(responseFuture.getResponseCommand());
                 return null;
             }
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
@@ -585,7 +585,7 @@ public class MQClientAPIImplTest {
                 response.setOpaque(request.getOpaque());
                 response.setCode(ResponseCode.SUCCESS);
                 responseFuture.setResponseCommand(response);
-                callback.operationSuccess(responseFuture.getResponseCommand());
+                callback.operationSucceed(responseFuture.getResponseCommand());
                 return null;
             }
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
@@ -622,7 +622,7 @@ public class MQClientAPIImplTest {
                 responseHeader.setPopTime(System.currentTimeMillis());
                 responseHeader.setInvisibleTime(10 * 1000L);
                 responseFuture.setResponseCommand(response);
-                callback.operationSuccess(responseFuture.getResponseCommand());
+                callback.operationSucceed(responseFuture.getResponseCommand());
                 return null;
             }
         }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));

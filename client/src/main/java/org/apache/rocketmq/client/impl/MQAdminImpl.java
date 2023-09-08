@@ -49,6 +49,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -355,7 +356,12 @@ public class MQAdminImpl {
                         this.mQClientFactory.getMQClientAPIImpl().queryMessage(addr, requestHeader, timeoutMillis * 3,
                             new InvokeCallback() {
                                 @Override
-                                public void operationSuccess(RemotingCommand response) {
+                                public void operationComplete(ResponseFuture responseFuture) {
+
+                                }
+
+                                @Override
+                                public void operationSucceed(RemotingCommand response) {
                                     try {
                                         switch (response.getCode()) {
                                             case ResponseCode.SUCCESS: {
@@ -392,7 +398,7 @@ public class MQAdminImpl {
                                 }
 
                                 @Override
-                                public void operationException(Throwable throwable) {
+                                public void operationFail(Throwable throwable) {
                                     log.error("queryMessage error, requestHeader={}", requestHeader);
                                     countDownLatch.countDown();
                                 }

@@ -159,7 +159,12 @@ public class RpcClientImpl implements RpcClient {
 
         InvokeCallback callback = new InvokeCallback() {
             @Override
-            public void operationSuccess(RemotingCommand response) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 try {
                     switch (response.getCode()) {
                         case ResponseCode.SUCCESS:
@@ -182,7 +187,7 @@ public class RpcClientImpl implements RpcClient {
             }
 
             @Override
-            public void operationException(Throwable throwable) {
+            public void operationFail(Throwable throwable) {
                 String errorMessage = "process failed. addr: " + addr + ". Request: " + requestCommand;
                 RpcResponse rpcResponse = new RpcResponse(new RpcException(ResponseCode.RPC_UNKNOWN, errorMessage, throwable));
                 rpcResponsePromise.setSuccess(rpcResponse);

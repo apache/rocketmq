@@ -31,6 +31,7 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.AfterClass;
@@ -119,14 +120,19 @@ public class RemotingServerTest {
         request.setRemark("messi");
         remotingClient.invokeAsync("localhost:" + remotingServer.localListenPort(), request, 1000 * 3, new InvokeCallback() {
             @Override
-            public void operationSuccess(RemotingCommand response) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 latch.countDown();
                 assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
                 assertThat(response.getExtFields()).hasSize(2);
             }
 
             @Override
-            public void operationException(Throwable throwable) {
+            public void operationFail(Throwable throwable) {
 
             }
         });
