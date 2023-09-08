@@ -171,7 +171,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     }
 
     private ScheduledExecutorService buildScheduleExecutor() {
-        return ThreadUtils.newFixedThreadScheduledPool(1,
+        return ThreadUtils.newScheduledThreadPool(1,
             new ThreadFactoryImpl("NettyServerScheduler_", true),
             new ThreadPoolExecutor.DiscardOldestPolicy());
     }

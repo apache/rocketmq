@@ -19,6 +19,7 @@ package org.apache.rocketmq.common.utils;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,14 +33,24 @@ import org.apache.rocketmq.common.thread.FutureTaskExtThreadPoolExecutor;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 public final class ThreadUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.TOOLS_LOGGER_NAME);
 
     public static ExecutorService newSingleThreadExecutor(String processName, boolean isDaemon) {
-        return ThreadUtils.newThreadPoolExecutor(1,
-            1, 0L, TimeUnit.MILLISECONDS,
+        return ThreadUtils.newSingleThreadExecutor(newThreadFactory(processName, isDaemon));
+    }
+
+    public static ExecutorService newSingleThreadExecutor(ThreadFactory threadFactory) {
+        return ThreadUtils.newThreadPoolExecutor(1, threadFactory);
+    }
+
+    public static ExecutorService newThreadPoolExecutor(int corePoolSize, ThreadFactory threadFactory) {
+        return ThreadUtils.newThreadPoolExecutor(corePoolSize, corePoolSize,
+            0L, TimeUnit.MILLISECONDS,
             new LinkedBlockingQueue<>(),
-            newThreadFactory(processName, isDaemon));
+            threadFactory);
     }
 
     public static ExecutorService newThreadPoolExecutor(int corePoolSize,
@@ -71,23 +82,27 @@ public final class ThreadUtils {
     }
 
     public static ScheduledExecutorService newSingleThreadScheduledExecutor(String processName, boolean isDaemon) {
-        return ThreadUtils.newFixedThreadScheduledPool(1, processName, isDaemon);
+        return ThreadUtils.newScheduledThreadPool(1, processName, isDaemon);
     }
 
     public static ScheduledExecutorService newSingleThreadScheduledExecutor(ThreadFactory threadFactory) {
-        return ThreadUtils.newFixedThreadScheduledPool(1, threadFactory);
+        return ThreadUtils.newScheduledThreadPool(1, threadFactory);
     }
 
-    public static ScheduledExecutorService newFixedThreadScheduledPool(int nThreads, String processName,
+    public static ScheduledExecutorService newScheduledThreadPool(int corePoolSize) {
+        return ThreadUtils.newScheduledThreadPool(corePoolSize, Executors.defaultThreadFactory());
+    }
+
+    public static ScheduledExecutorService newScheduledThreadPool(int corePoolSize, String processName,
         boolean isDaemon) {
-        return ThreadUtils.newFixedThreadScheduledPool(nThreads, newThreadFactory(processName, isDaemon));
+        return ThreadUtils.newScheduledThreadPool(corePoolSize, newThreadFactory(processName, isDaemon));
     }
 
-    public static ScheduledExecutorService newFixedThreadScheduledPool(int corePoolSize, ThreadFactory threadFactory) {
-        return ThreadUtils.newFixedThreadScheduledPool(corePoolSize, threadFactory, new ThreadPoolExecutor.AbortPolicy());
+    public static ScheduledExecutorService newScheduledThreadPool(int corePoolSize, ThreadFactory threadFactory) {
+        return ThreadUtils.newScheduledThreadPool(corePoolSize, threadFactory, new ThreadPoolExecutor.AbortPolicy());
     }
 
-    public static ScheduledExecutorService newFixedThreadScheduledPool(int corePoolSize,
+    public static ScheduledExecutorService newScheduledThreadPool(int corePoolSize,
         ThreadFactory threadFactory,
         RejectedExecutionHandler handler) {
         return new ScheduledThreadPoolExecutor(corePoolSize, threadFactory, handler);

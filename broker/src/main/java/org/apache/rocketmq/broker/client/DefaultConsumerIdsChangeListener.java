@@ -36,7 +36,7 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
     private final BrokerController brokerController;
     private final int cacheSize = 8096;
 
-    private final ScheduledExecutorService scheduledExecutorService =  ThreadUtils.newFixedThreadScheduledPool(1,
+    private final ScheduledExecutorService scheduledExecutorService =  ThreadUtils.newScheduledThreadPool(1,
         ThreadUtils.newGenericThreadFactory("DefaultConsumerIdsChangeListener", true));
 
     private ConcurrentHashMap<String,List<Channel>> consumerChannelMap = new ConcurrentHashMap<>(cacheSize);

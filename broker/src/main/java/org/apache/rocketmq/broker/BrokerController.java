@@ -454,7 +454,7 @@ public class BrokerController {
      * Initialize resources including remoting server and thread executors.
      */
     protected void initializeResources() {
-        this.scheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(1,
+        this.scheduledExecutorService = ThreadUtils.newScheduledThreadPool(1,
             new ThreadFactoryImpl("BrokerControllerScheduledThread", true, getBrokerIdentity()));
 
         this.sendMessageExecutor = ThreadUtils.newThreadPoolExecutor(
@@ -561,9 +561,9 @@ public class BrokerController {
             this.loadBalanceThreadPoolQueue,
             new ThreadFactoryImpl("LoadBalanceProcessorThread_", getBrokerIdentity()));
 
-        this.syncBrokerMemberGroupExecutorService = ThreadUtils.newFixedThreadScheduledPool(1,
+        this.syncBrokerMemberGroupExecutorService = ThreadUtils.newScheduledThreadPool(1,
             new ThreadFactoryImpl("BrokerControllerSyncBrokerScheduledThread", getBrokerIdentity()));
-        this.brokerHeartbeatExecutorService = ThreadUtils.newFixedThreadScheduledPool(1,
+        this.brokerHeartbeatExecutorService = ThreadUtils.newScheduledThreadPool(1,
             new ThreadFactoryImpl("BrokerControllerHeartbeatScheduledThread", getBrokerIdentity()));
 
         this.topicQueueMappingCleanService = new TopicQueueMappingCleanService(this);

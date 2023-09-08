@@ -60,10 +60,10 @@ public class NamesrvController {
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
 
-    private final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(1,
+    private final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newScheduledThreadPool(1,
             new BasicThreadFactory.Builder().namingPattern("NSScheduledThread").daemon(true).build());
 
-    private final ScheduledExecutorService scanExecutorService = ThreadUtils.newFixedThreadScheduledPool(1,
+    private final ScheduledExecutorService scanExecutorService = ThreadUtils.newScheduledThreadPool(1,
             new BasicThreadFactory.Builder().namingPattern("NSScanScheduledThread").daemon(true).build());
 
     private final KVConfigManager kvConfigManager;

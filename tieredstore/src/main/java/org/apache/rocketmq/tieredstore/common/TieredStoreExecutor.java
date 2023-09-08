@@ -43,15 +43,15 @@ public class TieredStoreExecutor {
     public static ExecutorService compactIndexFileExecutor;
 
     public static void init() {
-        commonScheduledExecutor = ThreadUtils.newFixedThreadScheduledPool(
+        commonScheduledExecutor = ThreadUtils.newScheduledThreadPool(
             Math.max(4, Runtime.getRuntime().availableProcessors()),
             new ThreadFactoryImpl("TieredCommonExecutor_"));
 
-        commitExecutor = ThreadUtils.newFixedThreadScheduledPool(
+        commitExecutor = ThreadUtils.newScheduledThreadPool(
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             new ThreadFactoryImpl("TieredCommitExecutor_"));
 
-        cleanExpiredFileExecutor = ThreadUtils.newFixedThreadScheduledPool(
+        cleanExpiredFileExecutor = ThreadUtils.newScheduledThreadPool(
             Math.max(4, Runtime.getRuntime().availableProcessors()),
             new ThreadFactoryImpl("TieredCleanFileExecutor_"));
 

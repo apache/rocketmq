@@ -90,7 +90,7 @@ public class ScheduleMessageService extends ConfigManager {
     public ScheduleMessageService(final BrokerController brokerController) {
         this.brokerController = brokerController;
         this.enableAsyncDeliver = brokerController.getMessageStoreConfig().isEnableScheduleAsyncDeliver();
-        scheduledPersistService = ThreadUtils.newFixedThreadScheduledPool(1,
+        scheduledPersistService = ThreadUtils.newScheduledThreadPool(1,
             new ThreadFactoryImpl("ScheduleMessageServicePersistThread", true, brokerController.getBrokerConfig()));
     }
 
@@ -133,9 +133,9 @@ public class ScheduleMessageService extends ConfigManager {
     public void start() {
         if (started.compareAndSet(false, true)) {
             this.load();
-            this.deliverExecutorService = ThreadUtils.newFixedThreadScheduledPool(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageTimerThread_"));
+            this.deliverExecutorService = ThreadUtils.newScheduledThreadPool(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageTimerThread_"));
             if (this.enableAsyncDeliver) {
-                this.handleExecutorService = ThreadUtils.newFixedThreadScheduledPool(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageExecutorHandleThread_"));
+                this.handleExecutorService = ThreadUtils.newScheduledThreadPool(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageExecutorHandleThread_"));
             }
             for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
                 Integer level = entry.getKey();

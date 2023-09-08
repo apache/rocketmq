@@ -44,7 +44,7 @@ public class BrokerFastFailure {
 
     public BrokerFastFailure(final BrokerController brokerController) {
         this.brokerController = brokerController;
-        this.scheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(1,
+        this.scheduledExecutorService = ThreadUtils.newScheduledThreadPool(1,
             new ThreadFactoryImpl("BrokerFastFailureScheduledThread", true,
                 brokerController == null ? null : brokerController.getBrokerConfig()));
     }

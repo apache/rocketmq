@@ -52,7 +52,7 @@ import java.util.concurrent.TimeUnit;
 public class BrokerContainer implements IBrokerContainer {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(1,
+    private final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newScheduledThreadPool(1,
         new BasicThreadFactory.Builder()
             .namingPattern("BrokerContainerScheduledThread")
             .daemon(true)

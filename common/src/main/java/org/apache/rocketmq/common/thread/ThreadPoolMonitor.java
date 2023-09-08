@@ -22,7 +22,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -37,7 +36,7 @@ public class ThreadPoolMonitor {
     private static Logger waterMarkLogger = LoggerFactory.getLogger(ThreadPoolMonitor.class);
 
     private static final List<ThreadPoolWrapper> MONITOR_EXECUTOR = new CopyOnWriteArrayList<>();
-    private static final ScheduledExecutorService MONITOR_SCHEDULED = Executors.newSingleThreadScheduledExecutor(
+    private static final ScheduledExecutorService MONITOR_SCHEDULED = ThreadUtils.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat("ThreadPoolMonitor-%d").build()
     );
 
