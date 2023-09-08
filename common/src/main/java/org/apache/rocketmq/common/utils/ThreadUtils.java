@@ -84,7 +84,13 @@ public final class ThreadUtils {
     }
 
     public static ScheduledExecutorService newFixedThreadScheduledPool(int corePoolSize, ThreadFactory threadFactory) {
-        return new ScheduledThreadPoolExecutor(corePoolSize, threadFactory);
+        return ThreadUtils.newFixedThreadScheduledPool(corePoolSize, threadFactory, new ThreadPoolExecutor.AbortPolicy());
+    }
+
+    public static ScheduledExecutorService newFixedThreadScheduledPool(int corePoolSize,
+        ThreadFactory threadFactory,
+        RejectedExecutionHandler handler) {
+        return new ScheduledThreadPoolExecutor(corePoolSize, threadFactory, handler);
     }
 
     public static ThreadFactory newThreadFactory(String processName, boolean isDaemon) {

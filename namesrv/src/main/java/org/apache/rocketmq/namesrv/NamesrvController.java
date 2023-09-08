@@ -21,7 +21,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -61,10 +60,10 @@ public class NamesrvController {
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
 
-    private final ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1,
+    private final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newFixedThreadScheduledPool(1,
             new BasicThreadFactory.Builder().namingPattern("NSScheduledThread").daemon(true).build());
 
-    private final ScheduledExecutorService scanExecutorService = new ScheduledThreadPoolExecutor(1,
+    private final ScheduledExecutorService scanExecutorService = ThreadUtils.newFixedThreadScheduledPool(1,
             new BasicThreadFactory.Builder().namingPattern("NSScanScheduledThread").daemon(true).build());
 
     private final KVConfigManager kvConfigManager;

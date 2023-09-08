@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -83,7 +82,7 @@ public abstract class AbstractRocksDBStorage {
     private volatile boolean closed;
 
     private final Semaphore reloadPermit = new Semaphore(1);
-    private final ScheduledExecutorService reloadScheduler = new ScheduledThreadPoolExecutor(1, new ThreadFactoryImpl("RocksDBStorageReloadService_"));
+    private final ScheduledExecutorService reloadScheduler = ThreadUtils.newFixedThreadScheduledPool(1, new ThreadFactoryImpl("RocksDBStorageReloadService_"));
     private final ThreadPoolExecutor manualCompactionThread = (ThreadPoolExecutor) ThreadUtils.newThreadPoolExecutor(
             1, 1, 1000 * 60, TimeUnit.MILLISECONDS,
             new ArrayBlockingQueue(1),
