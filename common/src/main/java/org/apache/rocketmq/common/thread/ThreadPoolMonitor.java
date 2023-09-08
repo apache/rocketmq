@@ -28,6 +28,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
@@ -81,7 +82,7 @@ public class ThreadPoolMonitor {
         String name,
         int queueCapacity,
         List<ThreadPoolStatusMonitor> threadPoolStatusMonitors) {
-        ThreadPoolExecutor executor = new FutureTaskExtThreadPoolExecutor(
+        ThreadPoolExecutor executor = (ThreadPoolExecutor) ThreadUtils.newThreadPoolExecutor(
             corePoolSize,
             maximumPoolSize,
             keepAliveTime,
