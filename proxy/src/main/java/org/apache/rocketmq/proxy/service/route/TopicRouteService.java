@@ -127,7 +127,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
             @Override
             public String resolve(String name) {
                 try {
-                    String brokerAddr = getBrokerAddr(null, name);
+                    String brokerAddr = getBrokerAddr(ProxyContext.createForInner("MQFaultStrategy"), name);
                     return brokerAddr;
                 } catch (Exception e) {
                     return null;
@@ -175,7 +175,15 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
 
     public void updateFaultItem(final String brokerName, final long currentLatency, boolean isolation,
                                 boolean reachable) {
+        checkSendFaultToleranceEnable();
         this.mqFaultStrategy.updateFaultItem(brokerName, currentLatency, isolation, reachable);
+    }
+
+    public void checkSendFaultToleranceEnable() {
+        boolean hotLatencySwitch = ConfigurationManager.getProxyConfig().isSendLatencyEnable();
+        boolean hotDetectorSwitch = ConfigurationManager.getProxyConfig().isStartDetectorEnable();
+        this.mqFaultStrategy.setSendLatencyFaultEnable(hotLatencySwitch);
+        this.mqFaultStrategy.setStartDetectorEnable(hotDetectorSwitch);
     }
 
     public MQFaultStrategy getMqFaultStrategy() {

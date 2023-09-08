@@ -104,7 +104,7 @@ public class ReplicasInfoManager {
         }
 
         // Check master
-        if (!syncStateInfo.getMasterBrokerId().equals(request.getMasterBrokerId())) {
+        if (syncStateInfo.getMasterBrokerId() == null || !syncStateInfo.getMasterBrokerId().equals(request.getMasterBrokerId())) {
             String err = String.format("Rejecting alter syncStateSet request because the current leader is:{%s}, not {%s}",
                     syncStateInfo.getMasterBrokerId(), request.getMasterBrokerId());
             LOGGER.error("{}", err);
