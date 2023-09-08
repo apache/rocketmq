@@ -83,6 +83,7 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.common.utils.ServiceProvider;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
@@ -2915,7 +2916,7 @@ public class DefaultMessageStore implements MessageStore {
         private final ExecutorService batchDispatchRequestExecutor;
 
         public MainBatchDispatchRequestService() {
-            batchDispatchRequestExecutor = new ThreadPoolExecutor(
+            batchDispatchRequestExecutor = ThreadUtils.newThreadPoolExecutor(
                     DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
                     DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
                     1000 * 60,

@@ -20,29 +20,62 @@ package org.apache.rocketmq.common.utils;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.thread.FutureTaskExtThreadPoolExecutor;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public final class ThreadUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.TOOLS_LOGGER_NAME);
 
-    public static ExecutorService newThreadPoolExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime,
-        TimeUnit unit, BlockingQueue<Runnable> workQueue, String processName, boolean isDaemon) {
-        return new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, newThreadFactory(processName, isDaemon));
+    public static ExecutorService newThreadPoolExecutor(int corePoolSize,
+        int maximumPoolSize,
+        long keepAliveTime,
+        TimeUnit unit,
+        BlockingQueue<Runnable> workQueue,
+        ThreadFactory threadFactory,
+        RejectedExecutionHandler handler) {
+        return new FutureTaskExtThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory, handler);
+    }
+
+    public static ExecutorService newThreadPoolExecutor(final int corePoolSize,
+        final int maximumPoolSize,
+        final long keepAliveTime,
+        final TimeUnit unit,
+        final BlockingQueue<Runnable> workQueue,
+        final ThreadFactory threadFactory) {
+        return new FutureTaskExtThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, threadFactory);
+    }
+
+    public static ExecutorService newThreadPoolExecutor(int corePoolSize,
+        int maximumPoolSize,
+        long keepAliveTime,
+        TimeUnit unit, BlockingQueue<Runnable> workQueue,
+        String processName,
+        boolean isDaemon) {
+        return new FutureTaskExtThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue, newThreadFactory(processName, isDaemon));
     }
 
     public static ExecutorService newSingleThreadExecutor(String processName, boolean isDaemon) {
-        return Executors.newSingleThreadExecutor(newThreadFactory(processName, isDaemon));
+        return new FutureTaskExtThreadPoolExecutor(1,
+            1, 0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>(),
+            newThreadFactory(processName, isDaemon));
     }
 
     public static ScheduledExecutorService newSingleThreadScheduledExecutor(String processName, boolean isDaemon) {
         return Executors.newSingleThreadScheduledExecutor(newThreadFactory(processName, isDaemon));
+    }
+
+    public static ScheduledExecutorService newSingleThreadScheduledExecutor(ThreadFactory threadFactory) {
+        return Executors.newSingleThreadScheduledExecutor(threadFactory);
     }
 
     public static ScheduledExecutorService newFixedThreadScheduledPool(int nThreads, String processName,
@@ -50,8 +83,12 @@ public final class ThreadUtils {
         return Executors.newScheduledThreadPool(nThreads, newThreadFactory(processName, isDaemon));
     }
 
+    public static ScheduledExecutorService newFixedThreadScheduledPool(int corePoolSize, ThreadFactory threadFactory) {
+        return new ScheduledThreadPoolExecutor(corePoolSize, threadFactory);
+    }
+
     public static ThreadFactory newThreadFactory(String processName, boolean isDaemon) {
-        return newGenericThreadFactory("Remoting-" + processName, isDaemon);
+        return newGenericThreadFactory("ThreadUtils-" + processName, isDaemon);
     }
 
     public static ThreadFactory newGenericThreadFactory(String processName) {

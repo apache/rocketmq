@@ -33,6 +33,7 @@ import com.google.common.collect.Maps;
 
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -83,7 +84,7 @@ public abstract class AbstractRocksDBStorage {
 
     private final Semaphore reloadPermit = new Semaphore(1);
     private final ScheduledExecutorService reloadScheduler = new ScheduledThreadPoolExecutor(1, new ThreadFactoryImpl("RocksDBStorageReloadService_"));
-    private final ThreadPoolExecutor manualCompactionThread = new ThreadPoolExecutor(
+    private final ThreadPoolExecutor manualCompactionThread = (ThreadPoolExecutor) ThreadUtils.newThreadPoolExecutor(
             1, 1, 1000 * 60, TimeUnit.MILLISECONDS,
             new ArrayBlockingQueue(1),
             new ThreadFactoryImpl("RocksDBManualCompactionService_"),
