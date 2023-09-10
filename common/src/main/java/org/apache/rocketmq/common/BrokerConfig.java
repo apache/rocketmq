@@ -396,6 +396,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean enableMixedMessageType = false;
 
+    /**
+     * This flag and deleteTopicWithBrokerRegistration flag in the NameServer cannot be set to true at the same time,
+     * otherwise there will be a loss of routing
+     */
+    private boolean enableSplitRegistration = false;
+
+    private int splitRegistrationSize = 800;
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }
@@ -1730,5 +1738,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableMixedMessageType(boolean enableMixedMessageType) {
         this.enableMixedMessageType = enableMixedMessageType;
+    }
+
+    public boolean isEnableSplitRegistration() {
+        return enableSplitRegistration;
+    }
+
+    public void setEnableSplitRegistration(boolean enableSplitRegistration) {
+        this.enableSplitRegistration = enableSplitRegistration;
+    }
+
+    public int getSplitRegistrationSize() {
+        return splitRegistrationSize;
+    }
+
+    public void setSplitRegistrationSize(int splitRegistrationSize) {
+        this.splitRegistrationSize = splitRegistrationSize;
     }
 }

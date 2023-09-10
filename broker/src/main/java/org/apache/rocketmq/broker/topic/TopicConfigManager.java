@@ -29,6 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.collect.ImmutableMap;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
@@ -47,7 +48,9 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.body.KVTable;
+import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -587,6 +590,24 @@ public class TopicConfigManager extends ConfigManager {
         dataVersionCopy.assignNewOne(this.dataVersion);
         topicConfigSerializeWrapper.setDataVersion(dataVersionCopy);
         return topicConfigSerializeWrapper;
+    }
+
+    public TopicConfigAndMappingSerializeWrapper buildSerializeWrapper(final ConcurrentMap<String, TopicConfig> topicConfigTable) {
+        return buildSerializeWrapper(topicConfigTable, Maps.newHashMap());
+    }
+
+    public TopicConfigAndMappingSerializeWrapper buildSerializeWrapper(
+        final ConcurrentMap<String, TopicConfig> topicConfigTable,
+        final Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap
+    ) {
+        TopicConfigAndMappingSerializeWrapper topicConfigWrapper = new TopicConfigAndMappingSerializeWrapper();
+        topicConfigWrapper.setTopicConfigTable(topicConfigTable);
+        topicConfigWrapper.setTopicQueueMappingInfoMap(topicQueueMappingInfoMap);
+        topicConfigWrapper.setDataVersion(this.getDataVersion());
+        if (this.brokerController.getBrokerConfig().isEnableSplitRegistration()) {
+            this.getDataVersion().nextVersion();
+        }
+        return topicConfigWrapper;
     }
 
     @Override
