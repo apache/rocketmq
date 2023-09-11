@@ -21,43 +21,53 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
+import org.apache.rocketmq.tools.command.export.ExportMetadataInRocksDBCommand;
 import org.junit.Test;
 
 import java.io.File;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class KvConfigToJsonCommandTest {
+public class ExportMetadataInRocksDBCommandTest {
     private static final String BASE_PATH = System.getProperty("user.home") + File.separator + "store/config/";
 
     @Test
     public void testExecute() throws SubCommandException {
         {
-            String[] cases = new String[]{"topics", "subscriptionGroups"};
-            for (String c : cases) {
-                RocksDBConfigToJsonCommand cmd = new RocksDBConfigToJsonCommand();
+            String[][] cases = new String[][] {
+                {"topics", "false"},
+                {"topics", "false1"},
+                {"topics", "true"},
+                {"subscriptionGroups", "false"},
+                {"subscriptionGroups", "false2"},
+                {"subscriptionGroups", "true"}
+            };
+
+            for (String[] c : cases) {
+                ExportMetadataInRocksDBCommand cmd = new ExportMetadataInRocksDBCommand();
                 Options options = ServerUtil.buildCommandlineOptions(new Options());
-                String[] subargs = new String[]{"-p " + BASE_PATH + c, "-t " + c};
+                String[] subargs = new String[] {"-p " + BASE_PATH + c[0], "-t " + c[0], "-j " + c[1]};
                 final CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-                        cmd.buildCommandlineOptions(options), new DefaultParser());
+                    cmd.buildCommandlineOptions(options), new DefaultParser());
                 cmd.execute(commandLine, options, null);
-                assertThat(commandLine.getOptionValue("p").trim()).isEqualTo(BASE_PATH + c);
-                assertThat(commandLine.getOptionValue("t").trim()).isEqualTo(c);
+                assertThat(commandLine.getOptionValue("p").trim()).isEqualTo(BASE_PATH + c[0]);
+                assertThat(commandLine.getOptionValue("t").trim()).isEqualTo(c[0]);
+                assertThat(commandLine.getOptionValue("j").trim()).isEqualTo(c[1]);
             }
         }
         // invalid cases
         {
-            String[][] cases = new String[][]{
-                    {"-p " + BASE_PATH + "tmpPath", "-t topics"},
-                    {"-p  ", "-t topics"},
-                    {"-p " + BASE_PATH + "topics", "-t invalid_type"}
+            String[][] cases = new String[][] {
+                {"-p " + BASE_PATH + "tmpPath", "-t topics", "-j true"},
+                {"-p  ", "-t topics", "-j true"},
+                {"-p " + BASE_PATH + "topics", "-t invalid_type", "-j true"}
             };
 
             for (String[] c : cases) {
-                RocksDBConfigToJsonCommand cmd = new RocksDBConfigToJsonCommand();
+                ExportMetadataInRocksDBCommand cmd = new ExportMetadataInRocksDBCommand();
                 Options options = ServerUtil.buildCommandlineOptions(new Options());
                 final CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), c,
-                        cmd.buildCommandlineOptions(options), new DefaultParser());
+                    cmd.buildCommandlineOptions(options), new DefaultParser());
                 cmd.execute(commandLine, options, null);
             }
         }

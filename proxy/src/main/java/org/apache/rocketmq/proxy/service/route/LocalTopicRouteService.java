@@ -54,7 +54,7 @@ public class LocalTopicRouteService extends TopicRouteService {
     @Override
     public MessageQueueView getCurrentMessageQueueView(ProxyContext ctx, String topic) throws Exception {
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic);
-        return new MessageQueueView(topic, toTopicRouteData(topicConfig));
+        return new MessageQueueView(topic, toTopicRouteData(topicConfig), null);
     }
 
     @Override

@@ -14,41 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.tieredstore.provider;
 
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.util.List;
-import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.junit.Assert;
+import org.junit.Test;
 
-public class MockTieredFileSegmentInputStream extends TieredFileSegmentInputStream {
+public class TieredStoreTopicBlackListFilterTest {
 
-    private final InputStream inputStream;
+    @Test
+    public void filterTopicTest() {
+        TieredStoreTopicFilter topicFilter = new TieredStoreTopicBlackListFilter();
+        Assert.assertTrue(topicFilter.filterTopic(""));
+        Assert.assertTrue(topicFilter.filterTopic(TopicValidator.SYSTEM_TOPIC_PREFIX + "_Topic"));
 
-    public MockTieredFileSegmentInputStream(InputStream inputStream) {
-        super(null, null, Integer.MAX_VALUE);
-        this.inputStream = inputStream;
-    }
-
-    @Override
-    public int read() {
-        int res = -1;
-        try {
-            res = inputStream.read();
-        } catch (Exception e) {
-            return -1;
-        }
-        return res;
-    }
-
-    @Override
-    public List<ByteBuffer> getUploadBufferList() {
-        return null;
-    }
-
-    @Override
-    public ByteBuffer getCodaBuffer() {
-        return null;
+        String topicName = "WhiteTopic";
+        Assert.assertFalse(topicFilter.filterTopic(topicName));
+        topicFilter.addTopicToWhiteList(topicName);
+        Assert.assertTrue(topicFilter.filterTopic(topicName));
     }
 }
