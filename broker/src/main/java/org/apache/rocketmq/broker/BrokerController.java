@@ -827,6 +827,8 @@ public class BrokerController {
 
             initializeResources();
 
+            registerProcessor();
+
             initializeScheduledTasks();
 
             initialTransaction();
@@ -1687,8 +1689,6 @@ public class BrokerController {
                 }
             }
         }, 10, 5, TimeUnit.SECONDS);
-
-        registerProcessor();
     }
 
     protected void scheduleSendHeartbeat() {
