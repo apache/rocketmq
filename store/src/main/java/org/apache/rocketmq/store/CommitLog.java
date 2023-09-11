@@ -122,7 +122,7 @@ public class CommitLog implements Swappable {
 
         this.flushDiskWatcher = new FlushDiskWatcher();
 
-        this.topicQueueLock = new TopicQueueLock();
+        this.topicQueueLock = new TopicQueueLock(messageStore.getMessageStoreConfig().getTopicQueueLockNum());
 
         this.commitLogSize = messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
     }
