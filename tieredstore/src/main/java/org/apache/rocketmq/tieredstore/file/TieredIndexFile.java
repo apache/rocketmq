@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -330,9 +331,14 @@ public class TieredIndexFile {
     public void commit(boolean sync) {
         flatFile.commit(sync);
         if (sync) {
-            try {
-                inflightCompactFuture.get();
-            } catch (Exception ignore) {
+            while (!TieredStoreExecutor.compactIndexFileExecutor.isShutdown()) {
+                try {
+                    inflightCompactFuture.get(2, TimeUnit.SECONDS);
+                } catch (TimeoutException ignore) {
+                    continue;
+                } catch (Exception ignore) {
+                    return;
+                }
             }
         }
     }
