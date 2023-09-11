@@ -47,14 +47,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class BrokerContainer implements IBrokerContainer {
     private static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1,
+    private final ScheduledExecutorService scheduledExecutorService = ThreadUtils.newScheduledThreadPool(1,
         new BasicThreadFactory.Builder()
             .namingPattern("BrokerContainerScheduledThread")
             .daemon(true)
@@ -143,7 +141,7 @@ public class BrokerContainer implements IBrokerContainer {
         this.remotingServer = new NettyRemotingServer(this.nettyServerConfig, this.containerClientHouseKeepingService);
         this.fastRemotingServer = this.remotingServer.newRemotingServer(this.nettyServerConfig.getListenPort() - 2);
 
-        this.brokerContainerExecutor = new ThreadPoolExecutor(
+        this.brokerContainerExecutor = ThreadUtils.newThreadPoolExecutor(
             1,
             1,
             1000 * 60,

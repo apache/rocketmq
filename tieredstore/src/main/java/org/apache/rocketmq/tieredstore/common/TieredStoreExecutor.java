@@ -20,10 +20,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 
 public class TieredStoreExecutor {
 
@@ -43,20 +43,20 @@ public class TieredStoreExecutor {
     public static ExecutorService compactIndexFileExecutor;
 
     public static void init() {
-        commonScheduledExecutor = new ScheduledThreadPoolExecutor(
+        commonScheduledExecutor = ThreadUtils.newScheduledThreadPool(
             Math.max(4, Runtime.getRuntime().availableProcessors()),
             new ThreadFactoryImpl("TieredCommonExecutor_"));
 
-        commitExecutor = new ScheduledThreadPoolExecutor(
+        commitExecutor = ThreadUtils.newScheduledThreadPool(
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             new ThreadFactoryImpl("TieredCommitExecutor_"));
 
-        cleanExpiredFileExecutor = new ScheduledThreadPoolExecutor(
+        cleanExpiredFileExecutor = ThreadUtils.newScheduledThreadPool(
             Math.max(4, Runtime.getRuntime().availableProcessors()),
             new ThreadFactoryImpl("TieredCleanFileExecutor_"));
 
         dispatchThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        dispatchExecutor = new ThreadPoolExecutor(
+        dispatchExecutor = ThreadUtils.newThreadPoolExecutor(
             Math.max(2, Runtime.getRuntime().availableProcessors()),
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             1000 * 60,
@@ -66,7 +66,7 @@ public class TieredStoreExecutor {
             new ThreadPoolExecutor.DiscardOldestPolicy());
 
         fetchDataThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        fetchDataExecutor = new ThreadPoolExecutor(
+        fetchDataExecutor = ThreadUtils.newThreadPoolExecutor(
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             Math.max(64, Runtime.getRuntime().availableProcessors() * 8),
             1000 * 60,
@@ -75,7 +75,7 @@ public class TieredStoreExecutor {
             new ThreadFactoryImpl("TieredFetchExecutor_"));
 
         compactIndexFileThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        compactIndexFileExecutor = new ThreadPoolExecutor(
+        compactIndexFileExecutor = ThreadUtils.newThreadPoolExecutor(
             1,
             1,
             1000 * 60,
