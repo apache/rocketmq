@@ -365,7 +365,10 @@ public class TieredFlatFile {
             if (!segmentList.isEmpty()) {
                 return boundaryType == BoundaryType.UPPER ? segmentList.get(0) : segmentList.get(segmentList.size() - 1);
             }
-            return fileSegmentList.isEmpty() ? null : fileSegmentList.get(fileSegmentList.size() - 1);
+            if (fileSegmentList.isEmpty()) {
+                return null;
+            }
+            return boundaryType == BoundaryType.UPPER ? fileSegmentList.get(fileSegmentList.size() - 1) : fileSegmentList.get(0);
         } finally {
             fileSegmentLock.readLock().unlock();
         }
