@@ -253,7 +253,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(reviveTopic);
-        msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.charset));
+        msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.CHARSET_UTF8));
         msgInner.setQueueId(rqId);
         if (ackMsg instanceof BatchAckMsg) {
             msgInner.setTags(PopAckConstants.BATCH_ACK_TAG);

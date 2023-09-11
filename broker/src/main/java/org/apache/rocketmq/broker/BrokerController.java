@@ -16,7 +16,34 @@
  */
 package org.apache.rocketmq.broker;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.Lists;
+
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
@@ -126,6 +153,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.RocksDBMessageStore;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -140,31 +168,6 @@ import org.apache.rocketmq.store.stats.LmqBrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class BrokerController {
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -747,7 +750,12 @@ public class BrokerController {
     public boolean initializeMessageStore() {
         boolean result = true;
         try {
-            DefaultMessageStore defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
+            DefaultMessageStore defaultMessageStore;
+            if (isEnableRocksDBStore()) {
+                defaultMessageStore = new RocksDBMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
+            } else {
+                defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
+            }
 
             if (messageStoreConfig.isEnableDLegerCommitLog()) {
                 DLedgerRoleChangeHandler roleChangeHandler =
@@ -942,16 +950,16 @@ public class BrokerController {
         this.transactionalMessageService = ServiceProvider.loadClass(TransactionalMessageService.class);
         if (null == this.transactionalMessageService) {
             this.transactionalMessageService = new TransactionalMessageServiceImpl(
-                    new TransactionalMessageBridge(this, this.getMessageStore()));
+                new TransactionalMessageBridge(this, this.getMessageStore()));
             LOG.warn("Load default transaction message hook service: {}",
-                    TransactionalMessageServiceImpl.class.getSimpleName());
+                TransactionalMessageServiceImpl.class.getSimpleName());
         }
         this.transactionalMessageCheckListener = ServiceProvider.loadClass(
-                AbstractTransactionalMessageCheckListener.class);
+            AbstractTransactionalMessageCheckListener.class);
         if (null == this.transactionalMessageCheckListener) {
             this.transactionalMessageCheckListener = new DefaultTransactionalMessageCheckListener();
             LOG.warn("Load default discard message hook service: {}",
-                    DefaultTransactionalMessageCheckListener.class.getSimpleName());
+                DefaultTransactionalMessageCheckListener.class.getSimpleName());
         }
         this.transactionalMessageCheckListener.setBrokerController(this);
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);

@@ -28,9 +28,11 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.queue.MultiDispatch;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.rocksdb.RocksDBException;
 
 import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathConsumeQueue;
 import static org.junit.Assert.assertEquals;
@@ -69,15 +71,15 @@ public class MultiDispatchTest {
     }
 
     @Test
-    public void queueKey() {
+    public void lmqQueueKey() {
         MessageExtBrokerInner messageExtBrokerInner = mock(MessageExtBrokerInner.class);
         when(messageExtBrokerInner.getQueueId()).thenReturn(2);
-        String ret = consumeQueue.queueKey("%LMQ%lmq123", messageExtBrokerInner);
+        String ret = MultiDispatch.lmqQueueKey("%LMQ%lmq123");
         assertEquals(ret, "%LMQ%lmq123-0");
     }
 
     @Test
-    public void wrapMultiDispatch() {
+    public void wrapMultiDispatch() throws RocksDBException {
         MessageExtBrokerInner messageExtBrokerInner = buildMessageMultiQueue();
         messageStore.assignOffset(messageExtBrokerInner);
         assertEquals(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET), "0,0");

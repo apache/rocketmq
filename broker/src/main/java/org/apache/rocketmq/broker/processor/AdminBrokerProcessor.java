@@ -190,6 +190,7 @@ import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.LibC;
+import org.rocksdb.RocksDBException;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -545,20 +546,24 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         final Set<String> groups = this.brokerController.getConsumerOffsetManager().whichGroupByTopic(topic);
         // delete pop retry topics first
-        for (String group : groups) {
-            final String popRetryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
-            if (brokerController.getTopicConfigManager().selectTopicConfig(popRetryTopic) != null) {
-                deleteTopicInBroker(popRetryTopic);
+        try {
+            for (String group : groups) {
+                final String popRetryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
+                if (brokerController.getTopicConfigManager().selectTopicConfig(popRetryTopic) != null) {
+                    deleteTopicInBroker(popRetryTopic);
+                }
             }
+            // delete topic
+            deleteTopicInBroker(topic);
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
         }
-        // delete topic
-        deleteTopicInBroker(topic);
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
     }
 
-    private void deleteTopicInBroker(String topic) {
+    private void deleteTopicInBroker(String topic) throws RocksDBException {
         this.brokerController.getTopicConfigManager().deleteTopicConfig(topic);
         this.brokerController.getTopicQueueMappingManager().delete(topic);
         this.brokerController.getConsumerOffsetManager().cleanOffsetByTopic(topic);
@@ -2093,7 +2098,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     public RemotingCommand cleanExpiredConsumeQueue() {
         LOGGER.info("AdminBrokerProcessor#cleanExpiredConsumeQueue: start.");
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        brokerController.getMessageStore().cleanExpiredConsumerQueue();
+        try {
+            brokerController.getMessageStore().cleanExpiredConsumerQueue();
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
         LOGGER.info("AdminBrokerProcessor#cleanExpiredConsumeQueue: end.");
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -2113,7 +2122,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     public RemotingCommand cleanUnusedTopic() {
         LOGGER.warn("invoke cleanUnusedTopic start.");
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        brokerController.getMessageStore().cleanUnusedTopic(brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
+        try {
+            brokerController.getMessageStore().cleanUnusedTopic(brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
+        } catch (Throwable t) {
+            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
+        }
         LOGGER.warn("invoke cleanUnusedTopic end.");
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
@@ -2787,7 +2800,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         final ReplicasManager replicasManager = this.brokerController.getReplicasManager();
         if (replicasManager != null) {
-            replicasManager.changeBrokerRole(requestHeader.getMasterBrokerId(), requestHeader.getMasterAddress(), requestHeader.getMasterEpoch(), requestHeader.getSyncStateSetEpoch(), syncStateSetInfo.getSyncStateSet());
+            try {
+                replicasManager.changeBrokerRole(requestHeader.getMasterBrokerId(), requestHeader.getMasterAddress(), requestHeader.getMasterEpoch(), requestHeader.getSyncStateSetEpoch(), syncStateSetInfo.getSyncStateSet());
+            } catch (Exception e) {
+                throw new RemotingCommandException(e.getMessage());
+            }
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

@@ -17,7 +17,6 @@
 package org.apache.rocketmq.common.config;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -27,11 +26,11 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -47,7 +46,6 @@ import org.rocksdb.Priority;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-import org.rocksdb.RocksIterator;
 import org.rocksdb.Statistics;
 import org.rocksdb.Status;
 import org.rocksdb.WriteBatch;
@@ -58,7 +56,6 @@ import static org.rocksdb.RocksDB.NOT_FOUND;
 public abstract class AbstractRocksDBStorage {
     protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
 
-    private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
     private static final String SPACE = " | ";
 
     protected String dbPath;
@@ -223,10 +220,6 @@ public abstract class AbstractRocksDBStorage {
         }
     }
 
-    protected WrappedRocksIterator newIterator(ColumnFamilyHandle cfHandle, ReadOptions readOptions) {
-        return new WrappedRocksIterator(this.db.newIterator(cfHandle, readOptions));
-    }
-
     protected void rangeDelete(ColumnFamilyHandle cfHandle, WriteOptions writeOptions,
                                final byte[] startKey, final byte[] endKey) throws RocksDBException {
         if (!hold()) {
@@ -240,46 +233,6 @@ public abstract class AbstractRocksDBStorage {
             throw e;
         } finally {
             release();
-        }
-    }
-
-    protected void manualCompactionDefaultCfMaxLevel(final CompactionOptions compactionOptions) throws Exception {
-        final ColumnFamilyHandle defaultCFHandle = this.defaultCFHandle;
-        final byte[] defaultCFName = defaultCFHandle.getName();
-        List<LiveFileMetaData> fileMetaDataList = this.db.getLiveFilesMetaData();
-        if (fileMetaDataList == null || fileMetaDataList.isEmpty()) {
-            return;
-        }
-
-        List<LiveFileMetaData> defaultLiveFileDataList = Lists.newArrayList();
-        List<String> inputFileNames = Lists.newArrayList();
-        int maxLevel = 0;
-        for (LiveFileMetaData fileMetaData : fileMetaDataList) {
-            if (compareTo(fileMetaData.columnFamilyName(), defaultCFName) != 0) {
-                continue;
-            }
-            defaultLiveFileDataList.add(fileMetaData);
-            if (fileMetaData.level() > maxLevel) {
-                maxLevel = fileMetaData.level();
-            }
-        }
-        if (maxLevel == 0) {
-            LOGGER.info("manualCompactionDefaultCfFiles skip level 0.");
-            return;
-        }
-
-        for (LiveFileMetaData fileMetaData : defaultLiveFileDataList) {
-            if (fileMetaData.level() != maxLevel || fileMetaData.beingCompacted()) {
-                continue;
-            }
-            inputFileNames.add(fileMetaData.path() + fileMetaData.fileName());
-        }
-        if (!inputFileNames.isEmpty()) {
-            List<String> outputLists = this.db.compactFiles(compactionOptions, defaultCFHandle,
-                    inputFileNames, maxLevel, -1, null);
-            LOGGER.info("manualCompactionDefaultCfFiles OK. src: {}, dst: {}", inputFileNames, outputLists);
-        } else {
-            LOGGER.info("manualCompactionDefaultCfFiles Empty.");
         }
     }
 
@@ -494,50 +447,6 @@ public abstract class AbstractRocksDBStorage {
         this.db.flushWal(true);
     }
 
-    protected class WrappedRocksIterator {
-        private final RocksIterator iterator;
-
-        public WrappedRocksIterator(final RocksIterator iterator) {
-            this.iterator = iterator;
-        }
-
-        public byte[] key() {
-            return iterator.key();
-        }
-
-        public byte[] value() {
-            return iterator.value();
-        }
-
-        public void next() {
-            iterator.next();
-        }
-
-        public void prev() {
-            iterator.prev();
-        }
-
-        public void seek(byte[] target) {
-            iterator.seek(target);
-        }
-
-        public void seekForPrev(byte[] target) {
-            iterator.seekForPrev(target);
-        }
-
-        public void seekToFirst() {
-            iterator.seekToFirst();
-        }
-
-        public boolean isValid() {
-            return iterator.isValid();
-        }
-
-        public void close() {
-            iterator.close();
-        }
-    }
-
     private String getStatusError(RocksDBException e) {
         if (e == null || e.getStatus() == null) {
             return "null";
@@ -574,7 +483,7 @@ public abstract class AbstractRocksDBStorage {
                     sb = new StringBuilder(256);
                     map.put(metaData.level(), sb);
                 }
-                sb.append(new String(metaData.columnFamilyName(), CHARSET_UTF8)).append(SPACE).
+                sb.append(new String(metaData.columnFamilyName(), DataConverter.CHARSET_UTF8)).append(SPACE).
                         append(metaData.fileName()).append(SPACE).
                         append("s: ").append(metaData.size()).append(SPACE).
                         append("a: ").append(metaData.numEntries()).append(SPACE).
@@ -594,22 +503,5 @@ public abstract class AbstractRocksDBStorage {
                     blockCacheMemUsage, indexesAndFilterBlockMemUsage, memTableMemUsage, blocksPinnedByIteratorMemUsage);
         } catch (Exception ignored) {
         }
-    }
-
-    public int compareTo(byte[] v1, byte[] v2) {
-        int len1 = v1.length;
-        int len2 = v2.length;
-        int lim = Math.min(len1, len2);
-
-        int k = 0;
-        while (k < lim) {
-            byte c1 = v1[k];
-            byte c2 = v2[k];
-            if (c1 != c2) {
-                return c1 - c2;
-            }
-            k++;
-        }
-        return len1 - len2;
     }
 }

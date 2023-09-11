@@ -18,10 +18,12 @@
 package org.apache.rocketmq.store.queue;
 
 import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageFilter;
+import org.rocksdb.RocksDBException;
 
 public interface ConsumeQueueInterface extends FileQueueLifeCycle {
     /**
@@ -45,11 +47,33 @@ public interface ConsumeQueueInterface extends FileQueueLifeCycle {
     ReferredIterator<CqUnit> iterateFrom(long startIndex);
 
     /**
+     * Get the units from the start offset.
+     *
+     * @param startIndex start index
+     * @param count the unit counts will be iterated
+     * @return the unit iterateFrom
+     * @throws RocksDBException only in rocksdb mode
+     */
+    ReferredIterator<CqUnit> iterateFrom(long startIndex, int count) throws RocksDBException;
+
+    /**
      * Get cq unit at specified index
      * @param index index
      * @return the cq unit at index
      */
     CqUnit get(long index);
+
+    /**
+     * Get earliest cq unit
+     * @return the cq unit and message storeTime at index
+     */
+    Pair<CqUnit, Long> getCqUnitAndStoreTime(long index);
+
+    /**
+     * Get earliest cq unit
+     * @return earliest cq unit and message storeTime
+     */
+    Pair<CqUnit, Long> getEarliestUnitAndStoreTime();
 
     /**
      * Get earliest cq unit
@@ -153,8 +177,9 @@ public interface ConsumeQueueInterface extends FileQueueLifeCycle {
      * Assign queue offset.
      * @param queueOffsetAssigner the delegated queue offset assigner
      * @param msg message itself
+     * @throws RocksDBException only in rocksdb mode
      */
-    void assignQueueOffset(QueueOffsetOperator queueOffsetAssigner, MessageExtBrokerInner msg);
+    void assignQueueOffset(QueueOffsetOperator queueOffsetAssigner, MessageExtBrokerInner msg) throws RocksDBException;
 
 
     /**
