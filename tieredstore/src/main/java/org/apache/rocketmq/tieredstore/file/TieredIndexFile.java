@@ -334,6 +334,7 @@ public class TieredIndexFile {
             while (!TieredStoreExecutor.compactIndexFileExecutor.isShutdown()) {
                 try {
                     inflightCompactFuture.get(2, TimeUnit.SECONDS);
+                    return;
                 } catch (TimeoutException ignore) {
                     continue;
                 } catch (Exception ignore) {
