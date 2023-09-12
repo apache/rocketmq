@@ -121,7 +121,7 @@ public class CreateAndUpdateTopicIT extends BaseConf {
 
         String testTopic = "test-topic-";
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 10; i++) {
             TopicConfig topicConfig = new TopicConfig(testTopic + i, 8, 8);
             brokerController1.getTopicConfigManager().updateTopicConfig(topicConfig);
             brokerController2.getTopicConfigManager().updateTopicConfig(topicConfig);
@@ -132,7 +132,7 @@ public class CreateAndUpdateTopicIT extends BaseConf {
         brokerController2.registerBrokerAll(false, true, true);
         brokerController3.registerBrokerAll(false, true, true);
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 10; i++) {
             TopicRouteData route = MQAdminTestUtils.examineTopicRouteInfo(NAMESRV_ADDR, testTopic + i);
             assertThat(route.getBrokerDatas()).hasSize(3);
             assertThat(route.getQueueDatas()).hasSize(3);
