@@ -55,6 +55,8 @@ public class NettyClientConfig {
 
     private long maxReconnectIntervalTimeSeconds = 60;
 
+    private boolean enableReconnectForGoAway = true;
+
     private boolean enableTransparentRetry = true;
 
     public boolean isClientCloseSocketIfTimeout() {
@@ -191,6 +193,14 @@ public class NettyClientConfig {
 
     public void setMaxReconnectIntervalTimeSeconds(long maxReconnectIntervalTimeSeconds) {
         this.maxReconnectIntervalTimeSeconds = maxReconnectIntervalTimeSeconds;
+    }
+
+    public boolean isEnableReconnectForGoAway() {
+        return enableReconnectForGoAway;
+    }
+
+    public void setEnableReconnectForGoAway(boolean enableReconnectForGoAway) {
+        this.enableReconnectForGoAway = enableReconnectForGoAway;
     }
 
     public boolean isEnableTransparentRetry() {

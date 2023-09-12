@@ -801,25 +801,27 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return super.invokeImpl(channel, request, timeoutMillis).thenCompose(responseFuture -> {
             RemotingCommand response = responseFuture.getResponseCommand();
             if (response.getCode() == ResponseCode.GO_AWAY) {
-                ChannelWrapper channelWrapper = channelWrapperTables.computeIfPresent(channel, (channel0, channelWrapper0) -> {
-                    try {
-                        if (channelWrapper0.reconnect()) {
-                            LOGGER.info("Receive go away from channel {}, recreate the channel", channel0);
-                            channelWrapperTables.put(channelWrapper0.getChannel(), channelWrapper0);
+                if (nettyClientConfig.isEnableReconnectForGoAway()) {
+                    ChannelWrapper channelWrapper = channelWrapperTables.computeIfPresent(channel, (channel0, channelWrapper0) -> {
+                        try {
+                            if (channelWrapper0.reconnect()) {
+                                LOGGER.info("Receive go away from channel {}, recreate the channel", channel0);
+                                channelWrapperTables.put(channelWrapper0.getChannel(), channelWrapper0);
+                            }
+                        } catch (Throwable t) {
+                            LOGGER.error("Channel {} reconnect error", channelWrapper0, t);
                         }
-                    } catch (Throwable t) {
-                        LOGGER.error("Channel {} reconnect error", channelWrapper0, t);
-                    }
-                    return channelWrapper0;
-                });
-                if (channelWrapper != null) {
-                    if (nettyClientConfig.isEnableTransparentRetry()) {
-                        long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                        stopwatch.stop();
-                        RemotingCommand retryRequest = RemotingCommand.createRequestCommand(request.getCode(), request.readCustomHeader());
-                        Channel retryChannel = channelWrapper.getChannel();
-                        if (channel != retryChannel) {
-                            return super.invokeImpl(retryChannel, retryRequest, timeoutMillis - duration);
+                        return channelWrapper0;
+                    });
+                    if (channelWrapper != null) {
+                        if (nettyClientConfig.isEnableTransparentRetry()) {
+                            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                            stopwatch.stop();
+                            RemotingCommand retryRequest = RemotingCommand.createRequestCommand(request.getCode(), request.readCustomHeader());
+                            Channel retryChannel = channelWrapper.getChannel();
+                            if (channel != retryChannel) {
+                                return super.invokeImpl(retryChannel, retryRequest, timeoutMillis - duration);
+                            }
                         }
                     }
                 }
