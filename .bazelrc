@@ -24,6 +24,7 @@ build --enable_platform_specific_config
 test --action_env=TEST_TMPDIR=/tmp
 
 test  --experimental_strict_java_deps=warn
+test  --experimental_ui_max_stdouterr_bytes=10485760
 build --experimental_strict_java_deps=warn
 
 test --test_output=errors
