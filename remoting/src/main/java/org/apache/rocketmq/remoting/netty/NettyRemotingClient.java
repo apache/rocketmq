@@ -813,12 +813,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     return channelWrapper0;
                 });
                 if (channelWrapper != null) {
-                    long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                    stopwatch.stop();
-                    RemotingCommand retryRequest = RemotingCommand.createRequestCommand(request.getCode(), request.readCustomHeader());
-                    Channel retryChannel = channelWrapper.getChannel();
-                    if (channel != retryChannel) {
-                        return super.invokeImpl(retryChannel, retryRequest, timeoutMillis - duration);
+                    if (nettyClientConfig.isEnableTransparentRetry()) {
+                        long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                        stopwatch.stop();
+                        RemotingCommand retryRequest = RemotingCommand.createRequestCommand(request.getCode(), request.readCustomHeader());
+                        Channel retryChannel = channelWrapper.getChannel();
+                        if (channel != retryChannel) {
+                            return super.invokeImpl(retryChannel, retryRequest, timeoutMillis - duration);
+                        }
                     }
                 }
             }

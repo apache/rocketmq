@@ -55,6 +55,8 @@ public class NettyClientConfig {
 
     private long maxReconnectIntervalTimeSeconds = 60;
 
+    private boolean enableTransparentRetry = true;
+
     public boolean isClientCloseSocketIfTimeout() {
         return clientCloseSocketIfTimeout;
     }
@@ -189,6 +191,14 @@ public class NettyClientConfig {
 
     public void setMaxReconnectIntervalTimeSeconds(long maxReconnectIntervalTimeSeconds) {
         this.maxReconnectIntervalTimeSeconds = maxReconnectIntervalTimeSeconds;
+    }
+
+    public boolean isEnableTransparentRetry() {
+        return enableTransparentRetry;
+    }
+
+    public void setEnableTransparentRetry(boolean enableTransparentRetry) {
+        this.enableTransparentRetry = enableTransparentRetry;
     }
 
     public String getSocksProxyConfig() {
