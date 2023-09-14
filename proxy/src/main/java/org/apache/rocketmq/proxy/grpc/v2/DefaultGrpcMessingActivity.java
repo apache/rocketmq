@@ -87,7 +87,8 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
         this.routeActivity = new RouteActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.clientActivity = new ClientActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
 
-        this.appendStartAndShutdown(this.grpcChannelManager);
+        this.appendShutdown(this.grpcChannelManager);
+        this.appendStartAndShutdown(this.grpcClientSettingsManager);
     }
 
     @Override
