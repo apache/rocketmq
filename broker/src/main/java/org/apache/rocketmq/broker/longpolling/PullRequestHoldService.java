@@ -36,6 +36,8 @@ public class PullRequestHoldService extends ServiceThread {
     private final SystemClock systemClock = new SystemClock();
     protected ConcurrentMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
         new ConcurrentHashMap<>(1024);
+    protected ConcurrentMap<String/* topic@queueId */, Long/* offset */> lastNotifyMaxOffset =
+        new ConcurrentHashMap<>(1024);
 
     public PullRequestHoldService(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -54,6 +56,11 @@ public class PullRequestHoldService extends ServiceThread {
 
         pullRequest.getRequestCommand().setSuspended(true);
         mpr.addPullRequest(pullRequest);
+        // check the last notify maxOffset
+        long maxOffset = this.lastNotifyMaxOffset.getOrDefault(key, -1L);
+        if (pullRequest.getPullFromThisOffset() < maxOffset) {
+            notifyMessageArriving(topic, queueId, maxOffset);
+        }
     }
 
     private String buildKey(final String topic, final int queueId) {
@@ -122,6 +129,12 @@ public class PullRequestHoldService extends ServiceThread {
     public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset, final Long tagsCode,
         long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         String key = this.buildKey(topic, queueId);
+
+        // record the maxOffset if notify from message store
+        if (msgStoreTime > 0) {
+            this.lastNotifyMaxOffset.put(key, maxOffset);
+        }
+
         ManyPullRequest mpr = this.pullRequestTable.get(key);
         if (mpr != null) {
             List<PullRequest> requestList = mpr.cloneListAndClear();
