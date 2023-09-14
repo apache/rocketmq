@@ -28,6 +28,8 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+import java.nio.charset.StandardCharsets;
+
 public class SendMessageCommand implements SubCommand {
 
     private DefaultMQProducer producer;
@@ -39,7 +41,7 @@ public class SendMessageCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Send a message";
+        return "Send a message.";
     }
 
     @Override
@@ -68,14 +70,18 @@ public class SendMessageCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("m", "msgTraceEnable", true, "Message Trace Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
-    private DefaultMQProducer createProducer(RPCHook rpcHook) {
+    private DefaultMQProducer createProducer(RPCHook rpcHook, boolean msgTraceEnable) {
         if (this.producer != null) {
             return producer;
         } else {
-            producer = new DefaultMQProducer(rpcHook);
+            producer = new DefaultMQProducer(null, rpcHook, msgTraceEnable, null);
             producer.setProducerGroup(Long.toString(System.currentTimeMillis()));
             return producer;
         }
@@ -108,12 +114,15 @@ public class SendMessageCommand implements SubCommand {
                     queueId = Integer.parseInt(commandLine.getOptionValue('i').trim());
                 }
             }
-            msg = new Message(topic, tag, keys, body.getBytes("utf-8"));
+            msg = new Message(topic, tag, keys, body.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             throw new RuntimeException(this.getClass().getSimpleName() + " command failed", e);
         }
-
-        DefaultMQProducer producer = this.createProducer(rpcHook);
+        boolean msgTraceEnable = false;
+        if (commandLine.hasOption('m')) {
+            msgTraceEnable = Boolean.parseBoolean(commandLine.getOptionValue('m').trim());
+        }
+        DefaultMQProducer producer = this.createProducer(rpcHook, msgTraceEnable);
         SendResult result;
         try {
             producer.start();

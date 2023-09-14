@@ -19,8 +19,8 @@ package org.apache.rocketmq.client.producer;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 
 public class TransactionMQProducer extends DefaultMQProducer {
     private TransactionCheckListener transactionCheckListener;
@@ -49,6 +49,10 @@ public class TransactionMQProducer extends DefaultMQProducer {
 
     public TransactionMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
         super(namespace, producerGroup, rpcHook);
+    }
+
+    public TransactionMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace, final String customizedTraceTopic) {
+        super(namespace, producerGroup, rpcHook, enableMsgTrace, customizedTraceTopic);
     }
 
     @Override

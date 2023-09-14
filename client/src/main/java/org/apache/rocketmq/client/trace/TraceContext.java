@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 
 import java.util.List;
@@ -34,6 +35,7 @@ public class TraceContext implements Comparable<TraceContext> {
     private boolean isSuccess = true;
     private String requestId = MessageClientIDSetter.createUniqID();
     private int contextCode = 0;
+    private AccessChannel accessChannel;
     private List<TraceBean> traceBeans;
 
     public int getContextCode() {
@@ -116,21 +118,30 @@ public class TraceContext implements Comparable<TraceContext> {
         this.regionName = regionName;
     }
 
+    public AccessChannel getAccessChannel() {
+        return accessChannel;
+    }
+
+    public void setAccessChannel(AccessChannel accessChannel) {
+        this.accessChannel = accessChannel;
+    }
+
     @Override
     public int compareTo(TraceContext o) {
-        return (int) (this.timeStamp - o.getTimeStamp());
+        return Long.compare(this.timeStamp, o.getTimeStamp());
     }
 
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(1024);
-        sb.append(traceType).append("_").append(groupName)
-            .append("_").append(regionId).append("_").append(isSuccess).append("_");
+        sb.append("TraceContext{").append(traceType).append("_").append(groupName).append("_")
+            .append(regionId).append("_").append(isSuccess).append("_");
         if (traceBeans != null && traceBeans.size() > 0) {
             for (TraceBean bean : traceBeans) {
-                sb.append(bean.getMsgId() + "_" + bean.getTopic() + "_");
+                sb.append(bean.getMsgId()).append("_").append(bean.getTopic()).append("_");
             }
         }
-        return "TraceContext{" + sb.toString() + '}';
+        sb.append('}');
+        return sb.toString();
     }
 }

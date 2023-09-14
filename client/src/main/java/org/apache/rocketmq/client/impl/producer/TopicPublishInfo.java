@@ -18,17 +18,23 @@ package org.apache.rocketmq.client.impl.producer;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import com.google.common.base.Preconditions;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 public class TopicPublishInfo {
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;
-    private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+    private List<MessageQueue> messageQueueList = new ArrayList<>();
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private TopicRouteData topicRouteData;
+
+    public interface QueueFilter {
+        boolean filter(MessageQueue mq);
+    }
 
     public boolean isOrderTopic() {
         return orderTopic;
@@ -66,15 +72,47 @@ public class TopicPublishInfo {
         this.haveTopicRouterInfo = haveTopicRouterInfo;
     }
 
+    public MessageQueue selectOneMessageQueue(QueueFilter ...filter) {
+        return selectOneMessageQueue(this.messageQueueList, this.sendWhichQueue, filter);
+    }
+
+    private MessageQueue selectOneMessageQueue(List<MessageQueue> messageQueueList, ThreadLocalIndex sendQueue, QueueFilter ...filter) {
+        if (messageQueueList == null || messageQueueList.isEmpty()) {
+            return null;
+        }
+
+        if (filter != null && filter.length != 0) {
+            for (int i = 0; i < messageQueueList.size(); i++) {
+                int index = Math.abs(sendQueue.incrementAndGet() % messageQueueList.size());
+                MessageQueue mq = messageQueueList.get(index);
+                boolean filterResult = true;
+                for (QueueFilter f: filter) {
+                    Preconditions.checkNotNull(f);
+                    filterResult &= f.filter(mq);
+                }
+                if (filterResult) {
+                    return mq;
+                }
+            }
+
+            return null;
+        }
+
+        int index = Math.abs(sendQueue.incrementAndGet() % messageQueueList.size());
+        return messageQueueList.get(index);
+    }
+
+    public void resetIndex() {
+        this.sendWhichQueue.reset();
+    }
+
     public MessageQueue selectOneMessageQueue(final String lastBrokerName) {
         if (lastBrokerName == null) {
             return selectOneMessageQueue();
         } else {
-            int index = this.sendWhichQueue.getAndIncrement();
             for (int i = 0; i < this.messageQueueList.size(); i++) {
-                int pos = Math.abs(index++) % this.messageQueueList.size();
-                if (pos < 0)
-                    pos = 0;
+                int index = this.sendWhichQueue.incrementAndGet();
+                int pos = index % this.messageQueueList.size();
                 MessageQueue mq = this.messageQueueList.get(pos);
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
@@ -85,14 +123,13 @@ public class TopicPublishInfo {
     }
 
     public MessageQueue selectOneMessageQueue() {
-        int index = this.sendWhichQueue.getAndIncrement();
-        int pos = Math.abs(index) % this.messageQueueList.size();
-        if (pos < 0)
-            pos = 0;
+        int index = this.sendWhichQueue.incrementAndGet();
+        int pos = index % this.messageQueueList.size();
+
         return this.messageQueueList.get(pos);
     }
 
-    public int getQueueIdByBroker(final String brokerName) {
+    public int getWriteQueueNumsByBroker(final String brokerName) {
         for (int i = 0; i < topicRouteData.getQueueDatas().size(); i++) {
             final QueueData queueData = this.topicRouteData.getQueueDatas().get(i);
             if (queueData.getBrokerName().equals(brokerName)) {

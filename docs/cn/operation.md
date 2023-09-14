@@ -6,7 +6,7 @@
 
 #### 1.1 单Master模式
 
-这种方式风险较大，一旦Broker重启或者宕机时，会导致整个服务不可用。不建议线上环境使用,可以用于本地测试。
+这种方式风险较大，一旦Broker重启或者宕机时，会导致整个服务不可用。不建议线上环境使用，可以用于本地测试。
 
 ##### 1）启动 NameServer
 
@@ -25,8 +25,8 @@ The Name Server boot success...
 ### 启动Broker
 $ nohup sh bin/mqbroker -n localhost:9876 &
 
-### 验证Name Server 是否启动成功，例如Broker的IP为：192.168.1.2，且名称为broker-a
-$ tail -f ~/logs/rocketmqlogs/Broker.log 
+### 验证Broker是否启动成功，例如Broker的IP为：192.168.1.2，且名称为broker-a
+$ tail -f ~/logs/rocketmqlogs/broker.log 
 The broker[broker-a, 192.169.1.2:10911] boot success...
 ```
 
@@ -136,6 +136,16 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 ```
 
 以上Broker与Slave配对是通过指定相同的BrokerName参数来配对，Master的BrokerId必须是0，Slave的BrokerId必须是大于0的数。另外一个Master下面可以挂载多个Slave，同一Master下的多个Slave通过指定不同的BrokerId来区分。$ROCKETMQ_HOME指的RocketMQ安装目录，需要用户自己设置此环境变量。
+
+#### 1.5  RocketMQ 5.0 自动主从切换
+
+RocketMQ 5.0 开始支持自动主从切换的模式，可参考以下文档
+
+[快速开始](controller/quick_start.md)
+
+[部署文档](controller/deploy.md)
+
+[设计思想](controller/design.md)
 
 ### 2 mqadmin管理工具
 
@@ -564,7 +574,23 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>从NameServer上清除 Broker写权限</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Broker 地址，地址为ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>BrokerName</td>
+ </tr>
+ <tr height=57 style='height:43.0pt'>
+  <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
+  <td class=xl68 width=87 style='width:65pt'>打印帮助</td>
+ </tr>
+ <tr height=57 style='height:43.0pt'>
+   <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
+   height:103.0pt;border-top:none;width:143pt'>addWritePerm</td>
+   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
+   border-top:none;width:65pt'>从NameServer上添加 Broker写权限</td>
+   <td class=xl67 width=87 style='width:65pt'>-b</td>
+   <td class=xl68 width=87 style='width:65pt'>BrokerName</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
@@ -579,6 +605,26 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
   height:120.0pt;border-top:none;width:143pt'>cleanExpiredCQ</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>清理Broker上过期的Consume Queue，如果手动减少对列数可能产生过期队列</td>
+  <td class=xl67 width=87 style='width:65pt'>-n</td>
+  <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
+  <td class=xl68 width=87 style='width:65pt'>打印帮助</td>
+ </tr>
+ <tr height=57 style='height:43.0pt'>
+  <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
+  <td class=xl68 width=87 style='width:65pt'>Broker 地址，地址为ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
+  <td class=xl68 width=87 style='width:65pt'>集群名称</td>
+ </tr>
+ <tr height=57 style='height:43.0pt'>
+  <td rowspan=4 height=160 class=xl69 width=191 style='border-bottom:1.0pt;
+  height:120.0pt;border-top:none;width:143pt'>deleteExpiredCommitLog</td>
+  <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
+  border-top:none;width:65pt'>清理Broker上过期的CommitLog文件，Broker最多会执行20次删除操作，每次最多删除10个文件</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
   <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
@@ -1161,7 +1207,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=3 height=119 class=xl69 width=87 style='border-bottom:1.0pt
-  height:89.0pt;border-top:none;width:65pt'>consumerConnec tion</td>
+  height:89.0pt;border-top:none;width:65pt'>consumerConnection</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>查询 Consumer 的网络连接</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>
@@ -1177,7 +1223,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=4 height=142 class=xl69 width=87 style='border-bottom:1.0pt
-  height:106.0pt;border-top:none;width:65pt'>producerConnec tion</td>
+  height:106.0pt;border-top:none;width:65pt'>producerConnection</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>查询 Producer 的网络连接</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>
@@ -1350,13 +1396,13 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-2s-sync/broker
 
 解决方案：rocketmq默认策略是从消息队列尾部，即跳过历史消息。如果想消费历史消息，则需要设置：`org.apache.rocketmq.client.consumer.DefaultMQPushConsumer#setConsumeFromWhere`。常用的有以下三种配置：
 
-- 默认配置,一个新的订阅组第一次启动从队列的最后位置开始消费，后续再启动接着上次消费的进度开始消费,即跳过历史消息；
+- 默认配置，一个新的订阅组第一次启动从队列的最后位置开始消费，后续再启动接着上次消费的进度开始消费，即跳过历史消息；
 
 ```java
 consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
 ```
 
-- 一个新的订阅组第一次启动从队列的最前位置开始消费，后续再启动接着上次消费的进度开始消费,即消费Broker未过期的历史消息；
+- 一个新的订阅组第一次启动从队列的最前位置开始消费，后续再启动接着上次消费的进度开始消费，即消费Broker未过期的历史消息；
 
 ```java
 consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);

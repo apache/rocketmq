@@ -19,34 +19,43 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.opentelemetry.api.common.Attributes;
+import java.net.InetSocketAddress;
+import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.ReplyMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeaderV2;
-import org.apache.rocketmq.common.protocol.header.SendMessageResponseHeader;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.ReplyMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
-public class ReplyMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_MESSAGE_TYPE;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
+
+public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     public ReplyMessageProcessor(final BrokerController brokerController) {
         super(brokerController);
@@ -61,8 +70,8 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
             return null;
         }
 
-        mqtraceContext = buildMsgContext(ctx, requestHeader);
-        this.executeSendMessageHookBefore(ctx, request, mqtraceContext);
+        mqtraceContext = buildMsgContext(ctx, requestHeader, request);
+        this.executeSendMessageHookBefore(mqtraceContext);
 
         RemotingCommand response = this.processReplyMessageRequest(ctx, request, mqtraceContext, requestHeader);
 
@@ -114,7 +123,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
         }
 
         response.setCode(-1);
-        super.msgCheck(ctx, requestHeader, response);
+        super.msgCheck(ctx, requestHeader, request, response);
         if (response.getCode() != -1) {
             return response;
         }
@@ -125,7 +134,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
 
         if (queueIdInt < 0) {
-            queueIdInt = Math.abs(this.random.nextInt() % 99999999) % topicConfig.getWriteQueueNums();
+            queueIdInt = ThreadLocalRandom.current().nextInt(99999999) % topicConfig.getWriteQueueNums();
         }
 
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
@@ -145,7 +154,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
 
         if (this.brokerController.getBrokerConfig().isStoreReplyMessageEnable()) {
             PutMessageResult putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
-            this.handlePutMessageResult(putMessageResult, request, msgInner, responseHeader, sendMessageContext, queueIdInt);
+            this.handlePutMessageResult(putMessageResult, request, msgInner, responseHeader, sendMessageContext, queueIdInt, BrokerMetricsManager.getMessageType(requestHeader));
         }
 
         return response;
@@ -155,8 +164,10 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
         final SendMessageRequestHeader requestHeader,
         final Message msg) {
         ReplyMessageRequestHeader replyMessageRequestHeader = new ReplyMessageRequestHeader();
-        replyMessageRequestHeader.setBornHost(ctx.channel().remoteAddress().toString());
-        replyMessageRequestHeader.setStoreHost(this.getStoreHost().toString());
+        InetSocketAddress bornAddress = (InetSocketAddress)(ctx.channel().remoteAddress());
+        replyMessageRequestHeader.setBornHost(bornAddress.getAddress().getHostAddress() + ":" + bornAddress.getPort());
+        InetSocketAddress storeAddress = (InetSocketAddress)(this.getStoreHost());
+        replyMessageRequestHeader.setStoreHost(storeAddress.getAddress().getHostAddress() + ":" + storeAddress.getPort());
         replyMessageRequestHeader.setStoreTimestamp(System.currentTimeMillis());
         replyMessageRequestHeader.setProducerGroup(requestHeader.getProducerGroup());
         replyMessageRequestHeader.setTopic(requestHeader.getTopic());
@@ -223,7 +234,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
         } else {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
-            //set to zore to avoid client decoding exception
+            //set to zero to avoid client decoding exception
             responseHeader.setMsgId("0");
             responseHeader.setQueueId(queueIdInt);
             responseHeader.setQueueOffset(0L);
@@ -233,7 +244,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
     private void handlePutMessageResult(PutMessageResult putMessageResult,
         final RemotingCommand request, final MessageExt msg,
         final SendMessageResponseHeader responseHeader, SendMessageContext sendMessageContext,
-        int queueIdInt) {
+        int queueIdInt, TopicMessageType messageType) {
         if (putMessageResult == null) {
             log.warn("process reply message, store putMessage return null");
             return;
@@ -250,38 +261,52 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
                 break;
 
             // Failed
-            case CREATE_MAPEDFILE_FAILED:
-                log.info("create mapped file failed, server is busy or broken.");
+            case CREATE_MAPPED_FILE_FAILED:
+                log.warn("create mapped file failed, server is busy or broken.");
                 break;
             case MESSAGE_ILLEGAL:
-                log.info(
-                    "the message is illegal, maybe msg properties length limit 32k.");
+                log.warn(
+                    "the message is illegal, maybe msg body or properties length not matched. msg body length limit {}B.",
+                    this.brokerController.getMessageStoreConfig().getMaxMessageSize());
                 break;
             case PROPERTIES_SIZE_EXCEEDED:
-                log.info(
-                    "the message is illegal, maybe msg body or properties length not matched. msg body length limit 128k.");
+                log.warn(
+                    "the message is illegal, maybe msg properties length limit 32KB.");
                 break;
             case SERVICE_NOT_AVAILABLE:
-                log.info(
-                    "service not available now, maybe disk full, maybe your broker machine memory too small.");
+                log.warn(
+                    "service not available now. It may be caused by one of the following reasons: " +
+                        "the broker's disk is full, messages are put to the slave, message store has been shut down, etc.");
                 break;
-            case OS_PAGECACHE_BUSY:
-                log.info("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
+            case OS_PAGE_CACHE_BUSY:
+                log.warn("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
                 break;
             case UNKNOWN_ERROR:
-                log.info("UNKNOWN_ERROR");
+                log.warn("UNKNOWN_ERROR");
                 break;
             default:
-                log.info("UNKNOWN_ERROR DEFAULT");
+                log.warn("UNKNOWN_ERROR DEFAULT");
                 break;
         }
 
         String owner = request.getExtFields().get(BrokerStatsManager.COMMERCIAL_OWNER);
+        int commercialSizePerMsg = brokerController.getBrokerConfig().getCommercialSizePerMsg();
         if (putOk) {
             this.brokerController.getBrokerStatsManager().incTopicPutNums(msg.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
             this.brokerController.getBrokerStatsManager().incTopicPutSize(msg.getTopic(),
                 putMessageResult.getAppendMessageResult().getWroteBytes());
-            this.brokerController.getBrokerStatsManager().incBrokerPutNums(putMessageResult.getAppendMessageResult().getMsgNum());
+            this.brokerController.getBrokerStatsManager().incBrokerPutNums(msg.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum());
+
+            if (!BrokerMetricsManager.isRetryOrDlqTopic(msg.getTopic())) {
+                Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                    .put(LABEL_TOPIC, msg.getTopic())
+                    .put(LABEL_MESSAGE_TYPE, messageType.getMetricsValue())
+                    .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(msg.getTopic()))
+                    .build();
+                BrokerMetricsManager.messagesInTotal.add(putMessageResult.getAppendMessageResult().getMsgNum(), attributes);
+                BrokerMetricsManager.throughputInTotal.add(putMessageResult.getAppendMessageResult().getWroteBytes(), attributes);
+                BrokerMetricsManager.messageSize.record(putMessageResult.getAppendMessageResult().getWroteBytes() / putMessageResult.getAppendMessageResult().getMsgNum(), attributes);
+            }
 
             responseHeader.setMsgId(putMessageResult.getAppendMessageResult().getMsgId());
             responseHeader.setQueueId(queueIdInt);
@@ -294,7 +319,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
 
                 int commercialBaseCount = brokerController.getBrokerConfig().getCommercialBaseCount();
                 int wroteSize = putMessageResult.getAppendMessageResult().getWroteBytes();
-                int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT) * commercialBaseCount;
+                int incValue = (int) Math.ceil(wroteSize * 1.0 / commercialSizePerMsg) * commercialBaseCount;
 
                 sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_SUCCESS);
                 sendMessageContext.setCommercialSendTimes(incValue);
@@ -304,7 +329,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor implemen
         } else {
             if (hasSendMessageHook()) {
                 int wroteSize = request.getBody().length;
-                int incValue = (int) Math.ceil(wroteSize / BrokerStatsManager.SIZE_PER_COUNT);
+                int incValue = (int) Math.ceil(wroteSize * 1.0 / commercialSizePerMsg);
 
                 sendMessageContext.setCommercialSendStats(BrokerStatsManager.StatsType.SEND_FAILURE);
                 sendMessageContext.setCommercialSendTimes(incValue);

@@ -32,7 +32,7 @@ import java.util.List;
  */
 public abstract class ComparisonExpression extends BinaryExpression implements BooleanExpression {
 
-    public static final ThreadLocal<Boolean> CONVERT_STRING_EXPRESSIONS = new ThreadLocal<Boolean>();
+    public static final ThreadLocal<Boolean> CONVERT_STRING_EXPRESSIONS = new ThreadLocal<>();
 
     boolean convertStringExpressions = false;
 
@@ -69,6 +69,258 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
         return LogicExpression.createOR(createLessThan(value, left), createGreaterThan(value, right));
     }
 
+    static class ContainsExpression extends UnaryExpression implements BooleanExpression {
+
+        String search;
+
+        public ContainsExpression(Expression right, String search) {
+            super(right);
+            this.search = search;
+        }
+
+        public String getExpressionSymbol() {
+            return "CONTAINS";
+        }
+
+        public Object evaluate(EvaluationContext message) throws Exception {
+
+            if (search == null || search.length() == 0) {
+                return Boolean.FALSE;
+            }
+
+            Object rv = this.getRight().evaluate(message);
+
+            if (rv == null) {
+                return Boolean.FALSE;
+            }
+
+            if (!(rv instanceof String)) {
+                return Boolean.FALSE;
+            }
+
+            return ((String)rv).contains(search) ? Boolean.TRUE : Boolean.FALSE;
+        }
+
+        public boolean matches(EvaluationContext message) throws Exception {
+            Object object = evaluate(message);
+            return object != null && object == Boolean.TRUE;
+        }
+    }
+
+    static class NotContainsExpression extends UnaryExpression implements BooleanExpression {
+
+        String search;
+
+        public NotContainsExpression(Expression right, String search) {
+            super(right);
+            this.search = search;
+        }
+
+        public String getExpressionSymbol() {
+            return "NOT CONTAINS";
+        }
+
+        public Object evaluate(EvaluationContext message) throws Exception {
+
+            if (search == null || search.length() == 0) {
+                return Boolean.FALSE;
+            }
+
+            Object rv = this.getRight().evaluate(message);
+
+            if (rv == null) {
+                return Boolean.FALSE;
+            }
+
+            if (!(rv instanceof String)) {
+                return Boolean.FALSE;
+            }
+
+            return ((String)rv).contains(search) ? Boolean.FALSE : Boolean.TRUE;
+        }
+
+        public boolean matches(EvaluationContext message) throws Exception {
+            Object object = evaluate(message);
+            return object != null && object == Boolean.TRUE;
+        }
+    }
+
+    public static BooleanExpression createContains(Expression left, String search) {
+        return new ContainsExpression(left, search);
+    }
+
+    public static BooleanExpression createNotContains(Expression left, String search) {
+        return new NotContainsExpression(left, search);
+    }
+
+    static class StartsWithExpression extends UnaryExpression implements BooleanExpression {
+
+        String search;
+
+        public StartsWithExpression(Expression right, String search) {
+            super(right);
+            this.search = search;
+        }
+
+        public String getExpressionSymbol() {
+            return "STARTSWITH";
+        }
+
+        public Object evaluate(EvaluationContext message) throws Exception {
+
+            if (search == null || search.length() == 0) {
+                return Boolean.FALSE;
+            }
+
+            Object rv = this.getRight().evaluate(message);
+
+            if (rv == null) {
+                return Boolean.FALSE;
+            }
+
+            if (!(rv instanceof String)) {
+                return Boolean.FALSE;
+            }
+
+            return ((String)rv).startsWith(search) ? Boolean.TRUE : Boolean.FALSE;
+        }
+
+        public boolean matches(EvaluationContext message) throws Exception {
+            Object object = evaluate(message);
+            return object != null && object == Boolean.TRUE;
+        }
+    }
+
+    static class NotStartsWithExpression extends UnaryExpression implements BooleanExpression {
+
+        String search;
+
+        public NotStartsWithExpression(Expression right, String search) {
+            super(right);
+            this.search = search;
+        }
+
+        public String getExpressionSymbol() {
+            return "NOT STARTSWITH";
+        }
+
+        public Object evaluate(EvaluationContext message) throws Exception {
+
+            if (search == null || search.length() == 0) {
+                return Boolean.FALSE;
+            }
+
+            Object rv = this.getRight().evaluate(message);
+
+            if (rv == null) {
+                return Boolean.FALSE;
+            }
+
+            if (!(rv instanceof String)) {
+                return Boolean.FALSE;
+            }
+
+            return ((String)rv).startsWith(search) ? Boolean.FALSE : Boolean.TRUE;
+        }
+
+        public boolean matches(EvaluationContext message) throws Exception {
+            Object object = evaluate(message);
+            return object != null && object == Boolean.TRUE;
+        }
+    }
+
+    public static BooleanExpression createStartsWith(Expression left, String search) {
+        return new StartsWithExpression(left, search);
+    }
+
+    public static BooleanExpression createNotStartsWith(Expression left, String search) {
+        return new NotStartsWithExpression(left, search);
+    }
+
+    static class EndsWithExpression extends UnaryExpression implements BooleanExpression {
+
+        String search;
+
+        public EndsWithExpression(Expression right, String search) {
+            super(right);
+            this.search = search;
+        }
+
+        public String getExpressionSymbol() {
+            return "ENDSWITH";
+        }
+
+        public Object evaluate(EvaluationContext message) throws Exception {
+
+            if (search == null || search.length() == 0) {
+                return Boolean.FALSE;
+            }
+
+            Object rv = this.getRight().evaluate(message);
+
+            if (rv == null) {
+                return Boolean.FALSE;
+            }
+
+            if (!(rv instanceof String)) {
+                return Boolean.FALSE;
+            }
+
+            return ((String)rv).endsWith(search) ? Boolean.TRUE : Boolean.FALSE;
+        }
+
+        public boolean matches(EvaluationContext message) throws Exception {
+            Object object = evaluate(message);
+            return object != null && object == Boolean.TRUE;
+        }
+    }
+
+    static class NotEndsWithExpression extends UnaryExpression implements BooleanExpression {
+
+        String search;
+
+        public NotEndsWithExpression(Expression right, String search) {
+            super(right);
+            this.search = search;
+        }
+
+        public String getExpressionSymbol() {
+            return "NOT ENDSWITH";
+        }
+
+        public Object evaluate(EvaluationContext message) throws Exception {
+
+            if (search == null || search.length() == 0) {
+                return Boolean.FALSE;
+            }
+
+            Object rv = this.getRight().evaluate(message);
+
+            if (rv == null) {
+                return Boolean.FALSE;
+            }
+
+            if (!(rv instanceof String)) {
+                return Boolean.FALSE;
+            }
+
+            return ((String)rv).endsWith(search) ? Boolean.FALSE : Boolean.TRUE;
+        }
+
+        public boolean matches(EvaluationContext message) throws Exception {
+            Object object = evaluate(message);
+            return object != null && object == Boolean.TRUE;
+        }
+    }
+
+    public static BooleanExpression createEndsWith(Expression left, String search) {
+        return new EndsWithExpression(left, search);
+    }
+
+    public static BooleanExpression createNotEndsWith(Expression left, String search) {
+        return new NotEndsWithExpression(left, search);
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     public static BooleanExpression createInFilter(Expression left, List elements) {
 
@@ -90,11 +342,11 @@ public abstract class ComparisonExpression extends BinaryExpression implements B
     }
 
     public static BooleanExpression createIsNull(Expression left) {
-        return doCreateEqual(left, ConstantExpression.NULL);
+        return doCreateEqual(left, BooleanConstantExpression.NULL);
     }
 
     public static BooleanExpression createIsNotNull(Expression left) {
-        return UnaryExpression.createNOT(doCreateEqual(left, ConstantExpression.NULL));
+        return UnaryExpression.createNOT(doCreateEqual(left, BooleanConstantExpression.NULL));
     }
 
     public static BooleanExpression createNotEqual(Expression left, Expression right) {

@@ -23,10 +23,10 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.admin.TopicOffset;
-import org.apache.rocketmq.common.admin.TopicStatsTable;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.admin.TopicOffset;
+import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -40,7 +40,7 @@ public class TopicStatusSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Examine topic Status info";
+        return "Examine topic Status info.";
     }
 
     @Override
@@ -63,7 +63,7 @@ public class TopicStatusSubCommand implements SubCommand {
             String topic = commandLine.getOptionValue('t').trim();
             TopicStatsTable topicStatsTable = defaultMQAdminExt.examineTopicStats(topic);
 
-            List<MessageQueue> mqList = new LinkedList<MessageQueue>();
+            List<MessageQueue> mqList = new LinkedList<>();
             mqList.addAll(topicStatsTable.getOffsetTable().keySet());
             Collections.sort(mqList);
 

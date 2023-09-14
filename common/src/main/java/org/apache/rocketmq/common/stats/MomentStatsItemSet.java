@@ -24,16 +24,16 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
 
 public class MomentStatsItemSet {
     private final ConcurrentMap<String/* key */, MomentStatsItem> statsItemTable =
-        new ConcurrentHashMap<String, MomentStatsItem>(128);
+        new ConcurrentHashMap<>(128);
     private final String statsName;
     private final ScheduledExecutorService scheduledExecutorService;
-    private final InternalLogger log;
+    private final Logger log;
 
-    public MomentStatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService, InternalLogger log) {
+    public MomentStatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService, Logger log) {
         this.statsName = statsName;
         this.scheduledExecutorService = scheduledExecutorService;
         this.log = log;
@@ -72,6 +72,26 @@ public class MomentStatsItemSet {
     public void setValue(final String statsKey, final int value) {
         MomentStatsItem statsItem = this.getAndCreateStatsItem(statsKey);
         statsItem.getValue().set(value);
+    }
+
+    public void delValueByInfixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, MomentStatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MomentStatsItem> next = it.next();
+            if (next.getKey().contains(separator + statsKey + separator)) {
+                it.remove();
+            }
+        }
+    }
+
+    public void delValueBySuffixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, MomentStatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, MomentStatsItem> next = it.next();
+            if (next.getKey().endsWith(separator + statsKey)) {
+                it.remove();
+            }
+        }
     }
 
     public MomentStatsItem getAndCreateStatsItem(final String statsKey) {

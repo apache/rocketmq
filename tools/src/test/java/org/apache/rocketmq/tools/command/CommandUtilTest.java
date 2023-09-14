@@ -28,11 +28,11 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl;
 import org.junit.After;
@@ -68,7 +68,7 @@ public class CommandUtilTest {
         HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
         HashMap<String, Set<String>> clusterAddrTable = new HashMap<>();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(1234l, "127.0.0.1:10911");
+        brokerAddrs.put(1234L, "127.0.0.1:10911");
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("default-broker");
         brokerData.setCluster("default-cluster");
@@ -92,7 +92,7 @@ public class CommandUtilTest {
     @Test
     public void testFetchMasterAndSlaveDistinguish() throws InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         Map<String, List<String>> result = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExtImpl, "default-cluster");
-        assertThat(result.get(null).get(0)).isEqualTo("127.0.0.1:10911");
+        assertThat(result.get(CommandUtil.NO_MASTER_PLACEHOLDER).get(0)).isEqualTo("127.0.0.1:10911");
     }
 
     @Test

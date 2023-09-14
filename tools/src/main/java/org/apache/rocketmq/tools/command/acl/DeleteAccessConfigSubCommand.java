@@ -32,22 +32,27 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
+        return "deleteAclConfig";
+    }
+
+    @Override
+    public String commandAlias() {
         return "deleteAccessConfig";
     }
 
     @Override
     public String commandDesc() {
-        return "Delete Acl Config Account in broker";
+        return "Delete Acl Config Account in broker.";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("b", "brokerAddr", true, "delete acl config account to which broker");
+        Option opt = new Option("b", "brokerAddr", true, "delete acl config account from which broker");
         optionGroup.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "delete cl config account to which cluster");
+        opt = new Option("c", "clusterName", true, "delete acl config account from which cluster");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
@@ -60,7 +65,8 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
         return options;
     }
 
-    @Override public void execute(CommandLine commandLine, Options options,
+    @Override
+    public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
 
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
@@ -76,8 +82,8 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
                 defaultMQAdminExt.start();
                 defaultMQAdminExt.deletePlainAccessConfig(addr, accessKey);
 
-                System.out.printf("delete plain access config account to %s success.%n", addr);
-                System.out.printf("account's accesskey is:%s", accessKey);
+                System.out.printf("delete plain access config account from %s success.%n", addr);
+                System.out.printf("account's accessKey is:%s", accessKey);
                 return;
 
             } else if (commandLine.hasOption('c')) {
@@ -85,14 +91,14 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
 
                 defaultMQAdminExt.start();
 
-                Set<String> masterSet =
-                    CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
-                for (String addr : masterSet) {
+                Set<String> brokerAddrSet =
+                    CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : brokerAddrSet) {
                     defaultMQAdminExt.deletePlainAccessConfig(addr, accessKey);
-                    System.out.printf("delete plain access config account to %s success.%n", addr);
+                    System.out.printf("delete plain access config account from %s success.%n", addr);
                 }
 
-                System.out.printf("account's accesskey is:%s", accessKey);
+                System.out.printf("account's accessKey is:%s", accessKey);
                 return;
             }
 

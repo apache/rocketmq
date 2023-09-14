@@ -30,14 +30,16 @@ public class RequestResponseFutureTest {
     public void testExecuteRequestCallback() throws Exception {
         final AtomicInteger cc = new AtomicInteger(0);
         RequestResponseFuture future = new RequestResponseFuture(UUID.randomUUID().toString(), 3 * 1000L, new RequestCallback() {
-            @Override public void onSuccess(Message message) {
+            @Override
+            public void onSuccess(Message message) {
                 cc.incrementAndGet();
             }
 
-            @Override public void onException(Throwable e) {
+            @Override
+            public void onException(Throwable e) {
             }
         });
-        future.setSendReqeustOk(true);
+        future.setSendRequestOk(true);
         future.executeRequestCallback();
         assertThat(cc.get()).isEqualTo(1);
     }

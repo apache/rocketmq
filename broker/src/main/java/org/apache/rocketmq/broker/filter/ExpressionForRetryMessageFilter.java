@@ -17,14 +17,13 @@
 
 package org.apache.rocketmq.broker.filter;
 
+import java.nio.ByteBuffer;
+import java.util.Map;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-
-import java.nio.ByteBuffer;
-import java.util.Map;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 /**
  * Support filter to retry topic.
@@ -46,11 +45,11 @@ public class ExpressionForRetryMessageFilter extends ExpressionMessageFilter {
             return true;
         }
 
-        boolean isRetryTopic = subscriptionData.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
-
-        if (!isRetryTopic && ExpressionType.isTagType(subscriptionData.getExpressionType())) {
+        if (ExpressionType.isTagType(subscriptionData.getExpressionType())) {
             return true;
         }
+
+        boolean isRetryTopic = subscriptionData.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
 
         ConsumerFilterData realFilterData = this.consumerFilterData;
         Map<String, String> tempProperties = properties;

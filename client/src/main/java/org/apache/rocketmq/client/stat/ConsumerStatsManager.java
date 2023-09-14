@@ -18,15 +18,14 @@
 package org.apache.rocketmq.client.stat;
 
 import java.util.concurrent.ScheduledExecutorService;
-
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.common.protocol.body.ConsumeStatus;
 import org.apache.rocketmq.common.stats.StatsItemSet;
 import org.apache.rocketmq.common.stats.StatsSnapshot;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeStatus;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ConsumerStatsManager {
-    private static final InternalLogger log = ClientLogger.getLog();
+    private static final Logger log = LoggerFactory.getLogger(ConsumerStatsManager.class);
 
     private static final String TOPIC_AND_GROUP_CONSUME_OK_TPS = "CONSUME_OK_TPS";
     private static final String TOPIC_AND_GROUP_CONSUME_FAILED_TPS = "CONSUME_FAILED_TPS";
@@ -62,7 +61,7 @@ public class ConsumerStatsManager {
     }
 
     public void incPullRT(final String group, final String topic, final long rt) {
-        this.topicAndGroupPullRT.addValue(topic + "@" + group, (int) rt, 1);
+        this.topicAndGroupPullRT.addRTValue(topic + "@" + group, (int) rt, 1);
     }
 
     public void incPullTPS(final String group, final String topic, final long msgs) {
@@ -70,7 +69,7 @@ public class ConsumerStatsManager {
     }
 
     public void incConsumeRT(final String group, final String topic, final long rt) {
-        this.topicAndGroupConsumeRT.addValue(topic + "@" + group, (int) rt, 1);
+        this.topicAndGroupConsumeRT.addRTValue(topic + "@" + group, (int) rt, 1);
     }
 
     public void incConsumeOKTPS(final String group, final String topic, final long msgs) {

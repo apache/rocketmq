@@ -24,20 +24,21 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
 
 public class StatsItemSet {
     private final ConcurrentMap<String/* key */, StatsItem> statsItemTable =
-        new ConcurrentHashMap<String, StatsItem>(128);
+        new ConcurrentHashMap<>(128);
 
     private final String statsName;
     private final ScheduledExecutorService scheduledExecutorService;
-    private final InternalLogger log;
 
-    public StatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService, InternalLogger log) {
+    private final Logger logger;
+
+    public StatsItemSet(String statsName, ScheduledExecutorService scheduledExecutorService, Logger logger) {
+        this.logger = logger;
         this.statsName = statsName;
         this.scheduledExecutorService = scheduledExecutorService;
-        this.log = log;
         this.init();
     }
 
@@ -154,14 +155,69 @@ public class StatsItemSet {
 
     public void addValue(final String statsKey, final int incValue, final int incTimes) {
         StatsItem statsItem = this.getAndCreateStatsItem(statsKey);
-        statsItem.getValue().addAndGet(incValue);
-        statsItem.getTimes().addAndGet(incTimes);
+        statsItem.getValue().add(incValue);
+        statsItem.getTimes().add(incTimes);
+    }
+
+    public void addRTValue(final String statsKey, final int incValue, final int incTimes) {
+        StatsItem statsItem = this.getAndCreateRTStatsItem(statsKey);
+        statsItem.getValue().add(incValue);
+        statsItem.getTimes().add(incTimes);
+    }
+
+    public void delValue(final String statsKey) {
+        StatsItem statsItem = this.statsItemTable.get(statsKey);
+        if (null != statsItem) {
+            this.statsItemTable.remove(statsKey);
+        }
+    }
+
+    public void delValueByPrefixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, StatsItem> next = it.next();
+            if (next.getKey().startsWith(statsKey + separator)) {
+                it.remove();
+            }
+        }
+    }
+
+    public void delValueByInfixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, StatsItem> next = it.next();
+            if (next.getKey().contains(separator + statsKey + separator)) {
+                it.remove();
+            }
+        }
+    }
+
+    public void delValueBySuffixKey(final String statsKey, String separator) {
+        Iterator<Entry<String, StatsItem>> it = this.statsItemTable.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<String, StatsItem> next = it.next();
+            if (next.getKey().endsWith(separator + statsKey)) {
+                it.remove();
+            }
+        }
     }
 
     public StatsItem getAndCreateStatsItem(final String statsKey) {
+        return getAndCreateItem(statsKey, false);
+    }
+
+    public StatsItem getAndCreateRTStatsItem(final String statsKey) {
+        return getAndCreateItem(statsKey, true);
+    }
+
+    public StatsItem getAndCreateItem(final String statsKey, boolean rtItem) {
         StatsItem statsItem = this.statsItemTable.get(statsKey);
         if (null == statsItem) {
-            statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, this.log);
+            if (rtItem) {
+                statsItem = new RTStatsItem(this.statsName, statsKey, this.scheduledExecutorService, logger);
+            } else {
+                statsItem = new StatsItem(this.statsName, statsKey, this.scheduledExecutorService, logger);
+            }
             StatsItem prev = this.statsItemTable.putIfAbsent(statsKey, statsItem);
 
             if (null != prev) {

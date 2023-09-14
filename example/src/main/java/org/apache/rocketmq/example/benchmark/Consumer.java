@@ -20,55 +20,72 @@ package org.apache.rocketmq.example.benchmark;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
+import java.util.concurrent.atomic.LongAdder;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.MessageSelector;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.SerializeType;
 import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class Consumer {
 
     public static void main(String[] args) throws MQClientException, IOException {
+        System.setProperty(RemotingCommand.SERIALIZE_TYPE_PROPERTY, SerializeType.ROCKETMQ.name());
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkConsumer", args, buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("benchmarkConsumer", args, buildCommandlineOptions(options), new DefaultParser());
         if (null == commandLine) {
             System.exit(-1);
         }
 
         final String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
+        final int threadCount = commandLine.hasOption('w') ? Integer.parseInt(commandLine.getOptionValue('w')) : 20;
         final String groupPrefix = commandLine.hasOption('g') ? commandLine.getOptionValue('g').trim() : "benchmark_consumer";
-        final String isSuffixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "true";
+        final String isSuffixEnable = commandLine.hasOption('p') ? commandLine.getOptionValue('p').trim() : "false";
         final String filterType = commandLine.hasOption('f') ? commandLine.getOptionValue('f').trim() : null;
         final String expression = commandLine.hasOption('e') ? commandLine.getOptionValue('e').trim() : null;
         final double failRate = commandLine.hasOption('r') ? Double.parseDouble(commandLine.getOptionValue('r').trim()) : 0.0;
+        final boolean msgTraceEnable = commandLine.hasOption('m') && Boolean.parseBoolean(commandLine.getOptionValue('m'));
+        final boolean aclEnable = commandLine.hasOption('a') && Boolean.parseBoolean(commandLine.getOptionValue('a'));
+        final boolean clientRebalanceEnable = commandLine.hasOption('c') ? Boolean.parseBoolean(commandLine.getOptionValue('c')) : true;
+        final int reportInterval = commandLine.hasOption("ri") ? Integer.parseInt(commandLine.getOptionValue("ri")) : 10000;
+
         String group = groupPrefix;
         if (Boolean.parseBoolean(isSuffixEnable)) {
             group = groupPrefix + "_" + (System.currentTimeMillis() % 100);
         }
 
-        System.out.printf("topic: %s, group: %s, suffix: %s, filterType: %s, expression: %s%n", topic, group, isSuffixEnable, filterType, expression);
+        System.out.printf("topic: %s, threadCount %d, group: %s, suffix: %s, filterType: %s, expression: %s, msgTraceEnable: %s, aclEnable: %s, reportInterval: %d%n",
+            topic, threadCount, group, isSuffixEnable, filterType, expression, msgTraceEnable, aclEnable, reportInterval);
 
         final StatsBenchmarkConsumer statsBenchmarkConsumer = new StatsBenchmarkConsumer();
 
-        final Timer timer = new Timer("BenchmarkTimerThread", true);
+        ScheduledExecutorService executorService = new ScheduledThreadPoolExecutor(1,
+            new BasicThreadFactory.Builder().namingPattern("BenchmarkTimerThread-%d").daemon(true).build());
 
-        final LinkedList<Long[]> snapshotList = new LinkedList<Long[]>();
+        final LinkedList<Long[]> snapshotList = new LinkedList<>();
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        executorService.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 snapshotList.addLast(statsBenchmarkConsumer.createSnapshot());
@@ -76,9 +93,9 @@ public class Consumer {
                     snapshotList.removeFirst();
                 }
             }
-        }, 1000, 1000);
+        }, 1000, 1000, TimeUnit.MILLISECONDS);
 
-        timer.scheduleAtFixedRate(new TimerTask() {
+        executorService.scheduleAtFixedRate(new TimerTask() {
             private void printStats() {
                 if (snapshotList.size() >= 10) {
                     Long[] begin = snapshotList.getFirst();
@@ -95,9 +112,8 @@ public class Consumer {
                     statsBenchmarkConsumer.getBorn2ConsumerMaxRT().set(0);
                     statsBenchmarkConsumer.getStore2ConsumerMaxRT().set(0);
 
-                    System.out.printf("TPS: %d FAIL: %d AVG(B2C) RT: %7.3f AVG(S2C) RT: %7.3f MAX(B2C) RT: %d MAX(S2C) RT: %d%n",
-                            consumeTps, failCount, averageB2CRT, averageS2CRT, b2cMax, s2cMax
-                    );
+                    System.out.printf("Current Time: %s | Consume TPS: %d | AVG(B2C) RT(ms): %7.3f | AVG(S2C) RT(ms): %7.3f | MAX(B2C) RT(ms): %d | MAX(S2C) RT(ms): %d | Consume Fail: %d%n",
+                        UtilAll.timeMillisToHumanString2(System.currentTimeMillis()), consumeTps, averageB2CRT, averageS2CRT, b2cMax, s2cMax, failCount);
                 }
             }
 
@@ -109,14 +125,23 @@ public class Consumer {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 10000);
+        }, reportInterval, reportInterval, TimeUnit.MILLISECONDS);
 
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
+        RPCHook rpcHook = null;
+        if (aclEnable) {
+            String ak = commandLine.hasOption("ak") ? String.valueOf(commandLine.getOptionValue("ak")) : AclClient.ACL_ACCESS_KEY;
+            String sk = commandLine.hasOption("sk") ? String.valueOf(commandLine.getOptionValue("sk")) : AclClient.ACL_SECRET_KEY;
+            rpcHook = AclClient.getAclRPCHook(ak, sk);
+        }
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group, rpcHook, new AllocateMessageQueueAveragely(), msgTraceEnable, null);
         if (commandLine.hasOption('n')) {
             String ns = commandLine.getOptionValue('n');
             consumer.setNamesrvAddr(ns);
         }
+        consumer.setConsumeThreadMin(threadCount);
+        consumer.setConsumeThreadMax(threadCount);
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
+        consumer.setClientRebalance(clientRebalanceEnable);
 
         if (filterType == null || expression == null) {
             consumer.subscribe(topic, "*");
@@ -141,20 +166,20 @@ public class Consumer {
                 MessageExt msg = msgs.get(0);
                 long now = System.currentTimeMillis();
 
-                statsBenchmarkConsumer.getReceiveMessageTotalCount().incrementAndGet();
+                statsBenchmarkConsumer.getReceiveMessageTotalCount().increment();
 
                 long born2ConsumerRT = now - msg.getBornTimestamp();
-                statsBenchmarkConsumer.getBorn2ConsumerTotalRT().addAndGet(born2ConsumerRT);
+                statsBenchmarkConsumer.getBorn2ConsumerTotalRT().add(born2ConsumerRT);
 
                 long store2ConsumerRT = now - msg.getStoreTimestamp();
-                statsBenchmarkConsumer.getStore2ConsumerTotalRT().addAndGet(store2ConsumerRT);
+                statsBenchmarkConsumer.getStore2ConsumerTotalRT().add(store2ConsumerRT);
 
                 compareAndSetMax(statsBenchmarkConsumer.getBorn2ConsumerMaxRT(), born2ConsumerRT);
 
                 compareAndSetMax(statsBenchmarkConsumer.getStore2ConsumerMaxRT(), store2ConsumerRT);
 
                 if (ThreadLocalRandom.current().nextDouble() < failRate) {
-                    statsBenchmarkConsumer.getFailCount().incrementAndGet();
+                    statsBenchmarkConsumer.getFailCount().increment();
                     return ConsumeConcurrentlyStatus.RECONSUME_LATER;
                 } else {
                     return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
@@ -172,11 +197,14 @@ public class Consumer {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("g", "group", true, "Consumer group name, Default: benchmark_consumer");
+        opt = new Option("w", "threadCount", true, "Thread count, Default: 20");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("p", "group prefix enable", true, "Consumer group name, Default: false");
+        opt = new Option("g", "group", true, "Consumer group name, Default: benchmark_consumer");
+        opt.setRequired(false);
+        options.addOption(opt);
+        opt = new Option("p", "group prefix enable", true, "Is group prefix enable, Default: false");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -189,6 +217,26 @@ public class Consumer {
         options.addOption(opt);
 
         opt = new Option("r", "fail rate", true, "consumer fail rate, default 0");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("m", "msgTraceEnable", true, "Message Trace Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("a", "aclEnable", true, "Acl Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ak", "accessKey", true, "Acl access key, Default: 12345678");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("sk", "secretKey", true, "Acl secret key, Default: rocketmq2");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ri", "reportInterval", true, "The number of ms between reports, Default: 10000");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -208,39 +256,39 @@ public class Consumer {
 }
 
 class StatsBenchmarkConsumer {
-    private final AtomicLong receiveMessageTotalCount = new AtomicLong(0L);
+    private final LongAdder receiveMessageTotalCount = new LongAdder();
 
-    private final AtomicLong born2ConsumerTotalRT = new AtomicLong(0L);
+    private final LongAdder born2ConsumerTotalRT = new LongAdder();
 
-    private final AtomicLong store2ConsumerTotalRT = new AtomicLong(0L);
+    private final LongAdder store2ConsumerTotalRT = new LongAdder();
 
     private final AtomicLong born2ConsumerMaxRT = new AtomicLong(0L);
 
     private final AtomicLong store2ConsumerMaxRT = new AtomicLong(0L);
 
-    private final AtomicLong failCount = new AtomicLong(0L);
+    private final LongAdder failCount = new LongAdder();
 
     public Long[] createSnapshot() {
         Long[] snap = new Long[] {
             System.currentTimeMillis(),
-            this.receiveMessageTotalCount.get(),
-            this.born2ConsumerTotalRT.get(),
-            this.store2ConsumerTotalRT.get(),
-            this.failCount.get()
+            this.receiveMessageTotalCount.longValue(),
+            this.born2ConsumerTotalRT.longValue(),
+            this.store2ConsumerTotalRT.longValue(),
+            this.failCount.longValue()
         };
 
         return snap;
     }
 
-    public AtomicLong getReceiveMessageTotalCount() {
+    public LongAdder getReceiveMessageTotalCount() {
         return receiveMessageTotalCount;
     }
 
-    public AtomicLong getBorn2ConsumerTotalRT() {
+    public LongAdder getBorn2ConsumerTotalRT() {
         return born2ConsumerTotalRT;
     }
 
-    public AtomicLong getStore2ConsumerTotalRT() {
+    public LongAdder getStore2ConsumerTotalRT() {
         return store2ConsumerTotalRT;
     }
 
@@ -252,7 +300,7 @@ class StatsBenchmarkConsumer {
         return store2ConsumerMaxRT;
     }
 
-    public AtomicLong getFailCount() {
+    public LongAdder getFailCount() {
         return failCount;
     }
 }

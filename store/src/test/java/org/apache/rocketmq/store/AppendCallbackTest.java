@@ -25,6 +25,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -42,7 +44,7 @@ public class AppendCallbackTest {
 
     AppendMessageCallback callback;
 
-    CommitLog.MessageExtBatchEncoder batchEncoder = new CommitLog.MessageExtBatchEncoder(10 * 1024 * 1024);
+    MessageExtEncoder batchEncoder = new MessageExtEncoder(10 * 1024 * 1024);
 
     @Before
     public void init() throws Exception {
@@ -51,17 +53,17 @@ public class AppendCallbackTest {
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
-        messageStoreConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "unitteststore");
-        messageStoreConfig.setStorePathCommitLog(System.getProperty("user.home") + File.separator + "unitteststore" + File.separator + "commitlog");
+        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore");
+        messageStoreConfig.setStorePathCommitLog(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore" + File.separator + "commitlog");
         //too much reference
-        DefaultMessageStore messageStore = new DefaultMessageStore(messageStoreConfig, null, null, null);
+        DefaultMessageStore messageStore = new DefaultMessageStore(messageStoreConfig, null, null, new BrokerConfig(), new ConcurrentHashMap<>());
         CommitLog commitLog = new CommitLog(messageStore);
-        callback = commitLog.new DefaultAppendMessageCallback(1024);
+        callback = commitLog.new DefaultAppendMessageCallback();
     }
 
     @After
     public void destroy() {
-        UtilAll.deleteFile(new File(System.getProperty("user.home") + File.separator + "unitteststore"));
+        UtilAll.deleteFile(new File(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore"));
     }
 
     @Test
@@ -84,10 +86,12 @@ public class AppendCallbackTest {
         messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 124));
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
+        PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         //encounter end of file when append half of the data
-        AppendMessageResult result = callback.doAppend(0, buff, 1000, messageExtBatch);
+        AppendMessageResult result =
+                callback.doAppend(0, buff, 1000, messageExtBatch, putMessageContext);
         assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
         assertEquals(0, result.getWroteOffset());
         assertEquals(0, result.getLogicsOffset());
@@ -121,10 +125,12 @@ public class AppendCallbackTest {
         messageExtBatch.setStoreHost(new InetSocketAddress("::1", 124));
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
+        PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
         //encounter end of file when append half of the data
-        AppendMessageResult result = callback.doAppend(0, buff, 1000, messageExtBatch);
+        AppendMessageResult result =
+                callback.doAppend(0, buff, 1000, messageExtBatch, putMessageContext);
         assertEquals(AppendMessageStatus.END_OF_FILE, result.getStatus());
         assertEquals(0, result.getWroteOffset());
         assertEquals(0, result.getLogicsOffset());
@@ -154,9 +160,11 @@ public class AppendCallbackTest {
         messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 124));
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
+        PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
-        AppendMessageResult allresult = callback.doAppend(0, buff, 1024 * 10, messageExtBatch);
+        AppendMessageResult allresult =
+                callback.doAppend(0, buff, 1024 * 10, messageExtBatch, putMessageContext);
 
         assertEquals(AppendMessageStatus.PUT_OK, allresult.getStatus());
         assertEquals(0, allresult.getWroteOffset());
@@ -214,9 +222,11 @@ public class AppendCallbackTest {
         messageExtBatch.setStoreHost(new InetSocketAddress("::1", 124));
         messageExtBatch.setBody(MessageDecoder.encodeMessages(messages));
 
-        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch));
+        PutMessageContext putMessageContext = new PutMessageContext(topic + "-" + queue);
+        messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
         ByteBuffer buff = ByteBuffer.allocate(1024 * 10);
-        AppendMessageResult allresult = callback.doAppend(0, buff, 1024 * 10, messageExtBatch);
+        AppendMessageResult allresult =
+                callback.doAppend(0, buff, 1024 * 10, messageExtBatch, putMessageContext);
 
         assertEquals(AppendMessageStatus.PUT_OK, allresult.getStatus());
         assertEquals(0, allresult.getWroteOffset());

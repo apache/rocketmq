@@ -24,15 +24,15 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.admin.ConsumeStats;
-import org.apache.rocketmq.common.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.common.protocol.body.GroupList;
-import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.stats.Stats;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
+import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
+import org.apache.rocketmq.remoting.protocol.body.GroupList;
+import org.apache.rocketmq.remoting.protocol.body.TopicList;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -52,7 +52,7 @@ public class StatsAllSubCommand implements SubCommand {
             String masterAddr = bd.getBrokerAddrs().get(MixAll.MASTER_ID);
             if (masterAddr != null) {
                 try {
-                    BrokerStatsData bsd = admin.viewBrokerStatsData(masterAddr, BrokerStatsManager.TOPIC_PUT_NUMS, topic);
+                    BrokerStatsData bsd = admin.viewBrokerStatsData(masterAddr, Stats.TOPIC_PUT_NUMS, topic);
                     inTPS += bsd.getStatsMinute().getTps();
                     inMsgCntToday += compute24HourSum(bsd);
                 } catch (Exception e) {
@@ -71,7 +71,7 @@ public class StatsAllSubCommand implements SubCommand {
                     if (masterAddr != null) {
                         try {
                             String statsKey = String.format("%s@%s", topic, group);
-                            BrokerStatsData bsd = admin.viewBrokerStatsData(masterAddr, BrokerStatsManager.GROUP_GET_NUMS, statsKey);
+                            BrokerStatsData bsd = admin.viewBrokerStatsData(masterAddr, Stats.GROUP_GET_NUMS, statsKey);
                             outTPS += bsd.getStatsMinute().getTps();
                             outMsgCntToday += compute24HourSum(bsd);
                         } catch (Exception e) {
@@ -91,12 +91,12 @@ public class StatsAllSubCommand implements SubCommand {
                 } catch (Exception e) {
                 }
 
-                if (!activeTopic || (inMsgCntToday > 0) ||
-                    (outMsgCntToday > 0)) {
+                if (!activeTopic || inMsgCntToday > 0 ||
+                    outMsgCntToday > 0) {
 
-                    System.out.printf("%-32s  %-32s %12d %11.2f %11.2f %14d %14d%n",
-                        UtilAll.frontStringAtLeast(topic, 32),
-                        UtilAll.frontStringAtLeast(group, 32),
+                    System.out.printf("%-64s  %-64s %12d %11.2f %11.2f %14d %14d%n",
+                        UtilAll.frontStringAtLeast(topic, 64),
+                        UtilAll.frontStringAtLeast(group, 64),
                         accumulate,
                         inTPS,
                         outTPS,
@@ -106,10 +106,10 @@ public class StatsAllSubCommand implements SubCommand {
                 }
             }
         } else {
-            if (!activeTopic || (inMsgCntToday > 0)) {
+            if (!activeTopic || inMsgCntToday > 0) {
 
-                System.out.printf("%-32s  %-32s %12d %11.2f %11s %14d %14s%n",
-                    UtilAll.frontStringAtLeast(topic, 32),
+                System.out.printf("%-64s  %-64s %12d %11.2f %11s %14d %14s%n",
+                    UtilAll.frontStringAtLeast(topic, 64),
                     "",
                     0,
                     inTPS,
@@ -144,7 +144,7 @@ public class StatsAllSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Topic and Consumer tps stats";
+        return "Topic and Consumer tps stats.";
     }
 
     @Override
@@ -171,7 +171,7 @@ public class StatsAllSubCommand implements SubCommand {
 
             TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
 
-            System.out.printf("%-32s  %-32s %12s %11s %11s %14s %14s%n",
+            System.out.printf("%-64s  %-64s %12s %11s %11s %14s %14s%n",
                 "#Topic",
                 "#Consumer Group",
                 "#Accumulation",

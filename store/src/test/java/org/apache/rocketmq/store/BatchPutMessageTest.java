@@ -17,13 +17,21 @@
 
 package org.apache.rocketmq.store;
 
+import java.io.File;
+import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
-import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -31,23 +39,17 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
-import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.rocketmq.common.message.MessageDecoder.messageProperties2String;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertTrue;
 
 public class BatchPutMessageTest {
 
     private MessageStore messageStore;
 
-    public static final char NAME_VALUE_SEPARATOR = 1;
-    public static final char PROPERTY_SEPARATOR = 2;
-    public final static Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    public final static Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
 
     @Before
     public void init() throws Exception {
@@ -58,11 +60,11 @@ public class BatchPutMessageTest {
     }
 
     @After
-    public void destory() {
+    public void destroy() {
         messageStore.shutdown();
         messageStore.destroy();
 
-        UtilAll.deleteFile(new File(System.getProperty("user.home") + File.separator + "putmessagesteststore"));
+        UtilAll.deleteFile(new File(System.getProperty("java.io.tmpdir") + File.separator + "putmessagesteststore"));
     }
 
     private MessageStore buildMessageStore() throws Exception {
@@ -73,13 +75,21 @@ public class BatchPutMessageTest {
         messageStoreConfig.setMaxIndexNum(100 * 10);
         messageStoreConfig.setFlushDiskType(FlushDiskType.SYNC_FLUSH);
         messageStoreConfig.setFlushIntervalConsumeQueue(1);
-        messageStoreConfig.setStorePathRootDir(System.getProperty("user.home") + File.separator + "putmessagesteststore");
-        messageStoreConfig.setStorePathCommitLog(System.getProperty("user.home") + File.separator + "putmessagesteststore" + File.separator + "commitlog");
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest"), new MyMessageArrivingListener(), new BrokerConfig());
+        messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "putmessagesteststore");
+        messageStoreConfig.setStorePathCommitLog(System.getProperty("java.io.tmpdir") + File.separator
+            + "putmessagesteststore" + File.separator + "commitlog");
+        messageStoreConfig.setHaListenPort(0);
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
     }
 
     @Test
     public void testPutMessages() throws Exception {
+        String batchPropK = "extraKey";
+        String batchPropV = "extraValue";
+        Map<String, String> batchProp = new HashMap<>(1);
+        batchProp.put(batchPropK, batchPropV);
+        short batchPropLen = (short) messageProperties2String(batchProp).getBytes(MessageDecoder.CHARSET_UTF8).length;
+
         List<Message> messages = new ArrayList<>();
         String topic = "batch-write-topic";
         int queue = 0;
@@ -98,7 +108,7 @@ public class BatchPutMessageTest {
             short propertiesLength = (short) propertiesBytes.length;
             final byte[] topicData = msg.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
             final int topicLength = topicData.length;
-            msgLengthArr[j] = calMsgLength(msg.getBody().length, topicLength, propertiesLength) + msgLengthArr[j - 1];
+            msgLengthArr[j] = calMsgLength(msg.getBody().length, topicLength, propertiesLength + batchPropLen + 1) + msgLengthArr[j - 1];
             j++;
         }
         byte[] batchMessageBody = MessageDecoder.encodeMessages(messages);
@@ -106,22 +116,30 @@ public class BatchPutMessageTest {
         messageExtBatch.setTopic(topic);
         messageExtBatch.setQueueId(queue);
         messageExtBatch.setBody(batchMessageBody);
+        messageExtBatch.putUserProperty(batchPropK, batchPropV);
         messageExtBatch.setBornTimestamp(System.currentTimeMillis());
         messageExtBatch.setStoreHost(new InetSocketAddress("127.0.0.1", 125));
         messageExtBatch.setBornHost(new InetSocketAddress("127.0.0.1", 126));
 
         PutMessageResult putMessageResult = messageStore.putMessages(messageExtBatch);
         assertThat(putMessageResult.isOk()).isTrue();
-        
-        Thread.sleep(3 * 1000);
 
         for (long i = 0; i < 10; i++) {
-            MessageExt messageExt = messageStore.lookMessageByOffset(msgLengthArr[(int) i]);
-            assertThat(messageExt).isNotNull();
-            GetMessageResult result = messageStore.getMessage("batch_write_group", topic, queue, i, 1024 * 1024, null);
-            assertThat(result).isNotNull();
-            assertThat(result.getStatus()).isEqualTo(GetMessageStatus.FOUND);
-            result.release();
+            final long index = i;
+            Boolean exist = await().atMost(3, SECONDS).until(() -> {
+                MessageExt messageExt = messageStore.lookMessageByOffset(msgLengthArr[(int) index]);
+                if (messageExt == null) {
+                    return false;
+                }
+                GetMessageResult result = messageStore.getMessage("batch_write_group", topic, queue, index, 1024 * 1024, null);
+                if (result == null) {
+                    return false;
+                }
+                boolean equals = GetMessageStatus.FOUND.equals(result.getStatus());
+                result.release();
+                return equals;
+            }, item -> item);
+            assertTrue(exist);
         }
 
     }
@@ -165,38 +183,53 @@ public class BatchPutMessageTest {
         PutMessageResult putMessageResult = messageStore.putMessages(messageExtBatch);
         assertThat(putMessageResult.isOk()).isTrue();
 
-        Thread.sleep(3 * 1000);
-
         for (long i = 0; i < 10; i++) {
-            MessageExt messageExt = messageStore.lookMessageByOffset(msgLengthArr[(int) i]);
-            assertThat(messageExt).isNotNull();
-            GetMessageResult result = messageStore.getMessage("batch_write_group", topic, queue, i, 1024 * 1024, null);
-            assertThat(result).isNotNull();
-            assertThat(result.getStatus()).isEqualTo(GetMessageStatus.FOUND);
-            result.release();
+            final long index = i;
+            Boolean exist = await().atMost(3, SECONDS).until(() -> {
+                MessageExt messageExt = messageStore.lookMessageByOffset(msgLengthArr[(int) index]);
+                if (messageExt == null) {
+                    return false;
+                }
+                GetMessageResult result = messageStore.getMessage("batch_write_group", topic, queue, index, 1024 * 1024, null);
+                if (result == null) {
+                    return false;
+                }
+                boolean equals = GetMessageStatus.FOUND.equals(result.getStatus());
+                result.release();
+                return equals;
+            }, item -> item);
+            assertTrue(exist);
         }
 
     }
 
+    private String generateKey(StringBuilder keyBuilder, MessageExt messageExt) {
+        keyBuilder.setLength(0);
+        keyBuilder.append(messageExt.getTopic());
+        keyBuilder.append('-');
+        keyBuilder.append(messageExt.getQueueId());
+        return keyBuilder.toString();
+    }
+
     private int calMsgLength(int bodyLength, int topicLength, int propertiesLength) {
         final int msgLen = 4 //TOTALSIZE
-                + 4 //MAGICCODE
-                + 4 //BODYCRC
-                + 4 //QUEUEID
-                + 4 //FLAG
-                + 8 //QUEUEOFFSET
-                + 8 //PHYSICALOFFSET
-                + 4 //SYSFLAG
-                + 8 //BORNTIMESTAMP
-                + 8 //BORNHOST
-                + 8 //STORETIMESTAMP
-                + 8 //STOREHOSTADDRESS
-                + 4 //RECONSUMETIMES
-                + 8 //Prepared Transaction Offset
-                + 4 + (bodyLength > 0 ? bodyLength : 0) //BODY
-                + 1 + topicLength //TOPIC
-                + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
-                + 0;
+            + 4 //MAGICCODE
+            + 4 //BODYCRC
+            + 4 //QUEUEID
+            + 4 //FLAG
+            + 8 //QUEUEOFFSET
+            + 8 //PHYSICALOFFSET
+            + 4 //SYSFLAG
+            + 8 //BORNTIMESTAMP
+            + 8 //BORNHOST
+            + 8 //STORETIMESTAMP
+            + 8 //STOREHOSTADDRESS
+            + 4 //RECONSUMETIMES
+            + 8 //Prepared Transaction Offset
+            + 4 + (bodyLength > 0 ? bodyLength : 0) //BODY
+            + 1 + topicLength //TOPIC
+            + 2 + (propertiesLength > 0 ? propertiesLength : 0) //propertiesLength
+            + 0;
         return msgLen;
     }
 
@@ -222,26 +255,10 @@ public class BatchPutMessageTest {
         return msgLen;
     }
 
-    public String messageProperties2String(Map<String, String> properties) {
-        StringBuilder sb = new StringBuilder();
-        if (properties != null) {
-            for (final Map.Entry<String, String> entry : properties.entrySet()) {
-                final String name = entry.getKey();
-                final String value = entry.getValue();
-
-                sb.append(name);
-                sb.append(NAME_VALUE_SEPARATOR);
-                sb.append(value);
-                sb.append(PROPERTY_SEPARATOR);
-            }
-        }
-        return sb.toString();
-    }
-
     private class MyMessageArrivingListener implements MessageArrivingListener {
         @Override
         public void arriving(String topic, int queueId, long logicOffset, long tagsCode, long msgStoreTime,
-                             byte[] filterBitMap, Map<String, String> properties) {
+            byte[] filterBitMap, Map<String, String> properties) {
         }
     }
 }

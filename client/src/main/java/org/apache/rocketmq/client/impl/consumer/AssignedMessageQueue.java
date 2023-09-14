@@ -30,15 +30,11 @@ public class AssignedMessageQueue {
     private RebalanceImpl rebalanceImpl;
 
     public AssignedMessageQueue() {
-        assignedMessageQueueState = new ConcurrentHashMap<MessageQueue, MessageQueueState>();
+        assignedMessageQueueState = new ConcurrentHashMap<>();
     }
 
     public void setRebalanceImpl(RebalanceImpl rebalanceImpl) {
         this.rebalanceImpl = rebalanceImpl;
-    }
-
-    public Set<MessageQueue> messageQueues() {
-        return assignedMessageQueueState.keySet();
     }
 
     public boolean isPaused(MessageQueue messageQueue) {
@@ -83,9 +79,12 @@ public class AssignedMessageQueue {
         return -1;
     }
 
-    public void updatePullOffset(MessageQueue messageQueue, long offset) {
+    public void updatePullOffset(MessageQueue messageQueue, long offset, ProcessQueue processQueue) {
         MessageQueueState messageQueueState = assignedMessageQueueState.get(messageQueue);
         if (messageQueueState != null) {
+            if (messageQueueState.getProcessQueue() != processQueue) {
+                return;
+            }
             messageQueueState.setPullOffset(offset);
         }
     }

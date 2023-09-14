@@ -66,7 +66,7 @@ public class TokenMgrError extends Error {
      * equivalents in the given string
      */
     protected static final String addEscapes(String str) {
-        StringBuffer retval = new StringBuffer();
+        StringBuilder retval = new StringBuilder();
         char ch;
         for (int i = 0; i < str.length(); i++) {
             switch (str.charAt(i)) {
@@ -141,6 +141,7 @@ public class TokenMgrError extends Error {
      * <p/>
      * from this method for such cases in the release version of your parser.
      */
+    @Override
     public String getMessage() {
         return super.getMessage();
     }
@@ -171,4 +172,4 @@ public class TokenMgrError extends Error {
         this(LexicalError(eofSeen, lexState, errorLine, errorColumn, errorAfter, curChar), reason);
     }
 }
-/* JavaCC - OriginalChecksum=e960778c8dcd73e167ed5bfddd59f288 (do not edit this line) */
+/* JavaCC - OriginalChecksum=de79709675790dcbad2e0d728aa630d1 (do not edit this line) */

@@ -18,24 +18,24 @@ package org.apache.rocketmq.namesrv.kvconfig;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.protocol.body.KVTable;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
+import org.apache.rocketmq.remoting.protocol.body.KVTable;
+
 public class KVConfigManager {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
 
     private final NamesrvController namesrvController;
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final HashMap<String/* Namespace */, HashMap<String/* Key */, String/* Value */>> configTable =
-        new HashMap<String, HashMap<String, String>>();
+        new HashMap<>();
 
     public KVConfigManager(NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
@@ -64,7 +64,7 @@ public class KVConfigManager {
             try {
                 HashMap<String, String> kvTable = this.configTable.get(namespace);
                 if (null == kvTable) {
-                    kvTable = new HashMap<String, String>();
+                    kvTable = new HashMap<>();
                     this.configTable.put(namespace, kvTable);
                     log.info("putKVConfig create new Namespace {}", namespace);
                 }
@@ -177,15 +177,10 @@ public class KVConfigManager {
 
                 {
                     log.info("configTable SIZE: {}", this.configTable.size());
-                    Iterator<Entry<String, HashMap<String, String>>> it =
-                        this.configTable.entrySet().iterator();
-                    while (it.hasNext()) {
-                        Entry<String, HashMap<String, String>> next = it.next();
-                        Iterator<Entry<String, String>> itSub = next.getValue().entrySet().iterator();
-                        while (itSub.hasNext()) {
-                            Entry<String, String> nextSub = itSub.next();
+                    for (Entry<String, HashMap<String, String>> next : this.configTable.entrySet()) {
+                        for (Entry<String, String> nextSub : next.getValue().entrySet()) {
                             log.info("configTable NS: {} Key: {} Value: {}", next.getKey(), nextSub.getKey(),
-                                nextSub.getValue());
+                                    nextSub.getValue());
                         }
                     }
                 }

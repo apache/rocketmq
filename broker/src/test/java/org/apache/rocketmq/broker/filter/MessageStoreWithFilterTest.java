@@ -17,28 +17,6 @@
 
 package org.apache.rocketmq.broker.filter;
 
-import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.filter.ExpressionType;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.store.CommitLogDispatcher;
-import org.apache.rocketmq.store.ConsumeQueueExt;
-import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.GetMessageStatus;
-import org.apache.rocketmq.store.MessageArrivingListener;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
-import org.apache.rocketmq.store.MessageFilter;
-import org.apache.rocketmq.store.PutMessageResult;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import java.io.File;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -48,24 +26,51 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.filter.ExpressionType;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.store.CommitLogDispatcher;
+import org.apache.rocketmq.store.ConsumeQueueExt;
+import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.GetMessageStatus;
+import org.apache.rocketmq.store.MessageArrivingListener;
+import org.apache.rocketmq.store.MessageFilter;
+import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.awaitility.core.ThrowingRunnable;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 public class MessageStoreWithFilterTest {
 
-    private static final String msg = "Once, there was a chance for me!";
-    private static final byte[] msgBody = msg.getBytes();
+    private static final String MSG = "Once, there was a chance for me!";
+    private static final byte[] MSG_BODY = MSG.getBytes();
 
-    private static final String topic = "topic";
-    private static final int queueId = 0;
-    private static final String storePath = "." + File.separator + "unit_test_store";
-    private static final int commitLogFileSize = 1024 * 1024 * 256;
-    private static final int cqFileSize = 300000 * 20;
-    private static final int cqExtFileSize = 300000 * 128;
+    private static final String TOPIC = "topic";
+    private static final int QUEUE_ID = 0;
+    private static final String STORE_PATH = System.getProperty("java.io.tmpdir") + File.separator + "unit_test_store";
+    private static final int COMMIT_LOG_FILE_SIZE = 1024 * 1024 * 256;
+    private static final int CQ_FILE_SIZE = 300000 * 20;
+    private static final int CQ_EXT_FILE_SIZE = 300000 * 128;
 
-    private static SocketAddress BornHost;
+    private static SocketAddress bornHost;
 
-    private static SocketAddress StoreHost;
+    private static SocketAddress storeHost;
 
     private DefaultMessageStore master;
 
@@ -77,11 +82,11 @@ public class MessageStoreWithFilterTest {
 
     static {
         try {
-            StoreHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
+            storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         } catch (UnknownHostException e) {
         }
         try {
-            BornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
+            bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
         } catch (UnknownHostException e) {
         }
     }
@@ -94,23 +99,25 @@ public class MessageStoreWithFilterTest {
 
     @After
     public void destroy() {
-        master.shutdown();
-        master.destroy();
-        UtilAll.deleteFile(new File(storePath));
+        if (master != null) {
+            master.shutdown();
+            master.destroy();
+        }
+        UtilAll.deleteFile(new File(STORE_PATH));
     }
 
     public MessageExtBrokerInner buildMessage() {
         MessageExtBrokerInner msg = new MessageExtBrokerInner();
-        msg.setTopic(topic);
+        msg.setTopic(TOPIC);
         msg.setTags(System.currentTimeMillis() + "TAG");
         msg.setKeys("Hello");
-        msg.setBody(msgBody);
+        msg.setBody(MSG_BODY);
         msg.setKeys(String.valueOf(System.currentTimeMillis()));
-        msg.setQueueId(queueId);
+        msg.setQueueId(QUEUE_ID);
         msg.setSysFlag(0);
         msg.setBornTimestamp(System.currentTimeMillis());
-        msg.setStoreHost(StoreHost);
-        msg.setBornHost(BornHost);
+        msg.setStoreHost(storeHost);
+        msg.setBornHost(bornHost);
         for (int i = 1; i < 3; i++) {
             msg.putUserProperty(String.valueOf(i), "imagoodperson" + i);
         }
@@ -128,15 +135,15 @@ public class MessageStoreWithFilterTest {
         messageStoreConfig.setMessageIndexEnable(false);
         messageStoreConfig.setEnableConsumeQueueExt(enableCqExt);
 
-        messageStoreConfig.setStorePathRootDir(storePath);
-        messageStoreConfig.setStorePathCommitLog(storePath + File.separator + "commitlog");
+        messageStoreConfig.setStorePathRootDir(STORE_PATH);
+        messageStoreConfig.setStorePathCommitLog(STORE_PATH + File.separator + "commitlog");
 
         return messageStoreConfig;
     }
 
     protected DefaultMessageStore gen(ConsumerFilterManager filterManager) throws Exception {
         MessageStoreConfig messageStoreConfig = buildStoreConfig(
-            commitLogFileSize, cqFileSize, true, cqExtFileSize
+                COMMIT_LOG_FILE_SIZE, CQ_FILE_SIZE, true, CQ_EXT_FILE_SIZE
         );
 
         BrokerConfig brokerConfig = new BrokerConfig();
@@ -146,14 +153,14 @@ public class MessageStoreWithFilterTest {
 
         DefaultMessageStore master = new DefaultMessageStore(
             messageStoreConfig,
-            new BrokerStatsManager(brokerConfig.getBrokerClusterName()),
+            new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat()),
             new MessageArrivingListener() {
                 @Override
                 public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
                                      long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
                 }
             }
-            , brokerConfig);
+            , brokerConfig, new ConcurrentHashMap<>());
 
         master.getDispatcherList().addFirst(new CommitLogDispatcher() {
             @Override
@@ -166,7 +173,11 @@ public class MessageStoreWithFilterTest {
         });
         master.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(brokerConfig, filterManager));
 
-        assertThat(master.load()).isTrue();
+        if (MixAll.isWindows()) {
+            Assume.assumeTrue(master.load());
+        } else {
+            assertThat(master.load()).isTrue();
+        }
 
         master.start();
 
@@ -175,9 +186,9 @@ public class MessageStoreWithFilterTest {
 
     protected List<MessageExtBrokerInner> putMsg(DefaultMessageStore master, int topicCount,
                                                  int msgCountPerTopic) throws Exception {
-        List<MessageExtBrokerInner> msgs = new ArrayList<MessageExtBrokerInner>();
+        List<MessageExtBrokerInner> msgs = new ArrayList<>();
         for (int i = 0; i < topicCount; i++) {
-            String realTopic = topic + i;
+            String realTopic = TOPIC + i;
             for (int j = 0; j < msgCountPerTopic; j++) {
                 MessageExtBrokerInner msg = buildMessage();
                 msg.setTopic(realTopic);
@@ -196,7 +207,7 @@ public class MessageStoreWithFilterTest {
     }
 
     protected List<MessageExtBrokerInner> filtered(List<MessageExtBrokerInner> msgs, ConsumerFilterData filterData) {
-        List<MessageExtBrokerInner> filteredMsgs = new ArrayList<MessageExtBrokerInner>();
+        List<MessageExtBrokerInner> filteredMsgs = new ArrayList<>();
 
         for (MessageExtBrokerInner messageExtBrokerInner : msgs) {
 
@@ -242,7 +253,7 @@ public class MessageStoreWithFilterTest {
                 resetGroup, resetSubData.getSubString(), resetSubData.getExpressionType(),
                 System.currentTimeMillis());
 
-            GetMessageResult resetGetResult = master.getMessage(resetGroup, topic, queueId, 0, 1000,
+            GetMessageResult resetGetResult = master.getMessage(resetGroup, topic, QUEUE_ID, 0, 1000,
                 new ExpressionMessageFilter(resetSubData, resetFilterData, filterManager));
 
             try {
@@ -269,7 +280,7 @@ public class MessageStoreWithFilterTest {
 
             List<MessageExtBrokerInner> filteredMsgs = filtered(msgs, normalFilterData);
 
-            GetMessageResult normalGetResult = master.getMessage(normalGroup, topic, queueId, 0, 1000,
+            GetMessageResult normalGetResult = master.getMessage(normalGroup, topic, QUEUE_ID, 0, 1000,
                 new ExpressionMessageFilter(normalSubData, normalFilterData, filterManager));
 
             try {
@@ -288,7 +299,7 @@ public class MessageStoreWithFilterTest {
         Thread.sleep(100);
 
         for (int i = 0; i < topicCount; i++) {
-            String realTopic = topic + i;
+            String realTopic = TOPIC + i;
 
             for (int j = 0; j < msgPerTopic; j++) {
                 String group = "CID_" + j;
@@ -304,7 +315,7 @@ public class MessageStoreWithFilterTest {
                 subscriptionData.setClassFilterMode(false);
                 subscriptionData.setSubString(filterData.getExpression());
 
-                GetMessageResult getMessageResult = master.getMessage(group, realTopic, queueId, 0, 10000,
+                GetMessageResult getMessageResult = master.getMessage(group, realTopic, QUEUE_ID, 0, 10000,
                     new ExpressionMessageFilter(subscriptionData, filterData, filterManager));
                 String assertMsg = group + "-" + realTopic;
                 try {
@@ -347,27 +358,31 @@ public class MessageStoreWithFilterTest {
     public void testGetMessage_withFilter_checkTagsCode() throws Exception {
         putMsg(master, topicCount, msgPerTopic);
 
-        Thread.sleep(200);
+        await().atMost(3, TimeUnit.SECONDS).untilAsserted(new ThrowingRunnable() {
+            @Override
+            public void run() throws Throwable {
+                for (int i = 0; i < topicCount; i++) {
+                    final String realTopic = TOPIC + i;
+                    GetMessageResult getMessageResult = master.getMessage("test", realTopic, QUEUE_ID, 0, 10000,
+                        new MessageFilter() {
+                            @Override
+                            public boolean isMatchedByConsumeQueue(Long tagsCode,
+                                ConsumeQueueExt.CqExtUnit cqExtUnit) {
+                                if (tagsCode != null && tagsCode <= ConsumeQueueExt.MAX_ADDR) {
+                                    return false;
+                                }
+                                return true;
+                            }
 
-        for (int i = 0; i < topicCount; i++) {
-            String realTopic = topic + i;
-
-            GetMessageResult getMessageResult = master.getMessage("test", realTopic, queueId, 0, 10000,
-                new MessageFilter() {
-                    @Override
-                    public boolean isMatchedByConsumeQueue(Long tagsCode, ConsumeQueueExt.CqExtUnit cqExtUnit) {
-                        if (tagsCode != null && tagsCode <= ConsumeQueueExt.MAX_ADDR) {
-                            return false;
-                        }
-                        return true;
-                    }
-
-                    @Override
-                    public boolean isMatchedByCommitLog(ByteBuffer msgBuffer, Map<String, String> properties) {
-                        return true;
-                    }
-                });
-            assertThat(getMessageResult.getMessageCount()).isEqualTo(msgPerTopic);
-        }
+                            @Override
+                            public boolean isMatchedByCommitLog(ByteBuffer msgBuffer,
+                                Map<String, String> properties) {
+                                return true;
+                            }
+                        });
+                    assertThat(getMessageResult.getMessageCount()).isEqualTo(msgPerTopic);
+                }
+            }
+        });
     }
 }

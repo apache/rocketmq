@@ -39,4 +39,12 @@ public class ManyPullRequest {
 
         return null;
     }
+
+    public ArrayList<PullRequest> getPullRequestList() {
+        return pullRequestList;
+    }
+
+    public synchronized boolean isEmpty() {
+        return this.pullRequestList.isEmpty();
+    }
 }

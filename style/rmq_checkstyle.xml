@@ -73,7 +73,7 @@
     </module>
 
     <module name="FileLength">
-        <property name="max" value="3000"/>
+        <property name="max" value="5000"/>
     </module>
 
     <module name="TreeWalker">
@@ -101,7 +101,7 @@
         <!--Checks that long constants are defined with an upper ell-->
         <module name="UpperEll"/>
         <module name="ConstantName">
-            <property name="format" value="(^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)|(^log$)"/>
+            <property name="format" value="(^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$)|(^log[a-zA-Z0-9]*$)"/>
         </module>
         <!--Checks that local, non-final variable names conform to producerGroup format specified by the format property-->
         <module name="LocalVariableName"/>

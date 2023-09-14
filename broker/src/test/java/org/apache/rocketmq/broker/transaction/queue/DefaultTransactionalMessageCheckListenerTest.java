@@ -19,13 +19,13 @@ package org.apache.rocketmq.broker.transaction.queue;
 import java.net.InetSocketAddress;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
@@ -92,7 +92,7 @@ public class DefaultTransactionalMessageCheckListenerTest {
     @Test
     public void testResolveDiscardMsg() {
         MessageExt messageExt = new MessageExt();
-        messageExt.setTopic(MixAll.RMQ_SYS_TRANS_HALF_TOPIC);
+        messageExt.setTopic(TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC);
         messageExt.setQueueId(0);
         messageExt.setBody("test resolve discard msg".getBytes());
         messageExt.setStoreHost(new InetSocketAddress("127.0.0.1", 10911));

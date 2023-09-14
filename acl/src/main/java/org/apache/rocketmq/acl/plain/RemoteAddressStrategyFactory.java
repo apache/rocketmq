@@ -23,12 +23,12 @@ import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AclUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class RemoteAddressStrategyFactory {
 
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
     public static final NullRemoteAddressStrategy NULL_NET_ADDRESS_STRATEGY = new NullRemoteAddressStrategy();
 
@@ -50,16 +50,20 @@ public class RemoteAddressStrategyFactory {
                 String[] strArray = StringUtils.split(remoteAddr, ":");
                 String last = strArray[strArray.length - 1];
                 if (!last.startsWith("{")) {
-                    throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
+                    throw new AclException(String.format("MultipleRemoteAddressStrategy netAddress examine scope Exception netAddress: %s", remoteAddr));
                 }
-                return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, last));
+                return new MultipleRemoteAddressStrategy(AclUtils.getAddresses(remoteAddr, last));
             } else {
                 String[] strArray = StringUtils.split(remoteAddr, ".");
-                String four = strArray[3];
-                if (!four.startsWith("{")) {
-                    throw new AclException(String.format("MultipleRemoteAddressStrategy netaddress examine scope Exception netaddress", remoteAddr));
+                // However a right IP String provided by user,it always can be divided into 4 parts by '.'.
+                if (strArray.length < 4) {
+                    throw new AclException(String.format("MultipleRemoteAddressStrategy has got a/some wrong format IP(s): %s ", remoteAddr));
                 }
-                return new MultipleRemoteAddressStrategy(AclUtils.getAddreeStrArray(remoteAddr, four));
+                String lastStr = strArray[strArray.length - 1];
+                if (!lastStr.startsWith("{")) {
+                    throw new AclException(String.format("MultipleRemoteAddressStrategy netAddress examine scope Exception netAddress: %s", remoteAddr));
+                }
+                return new MultipleRemoteAddressStrategy(AclUtils.getAddresses(remoteAddr, lastStr));
             }
         } else if (AclUtils.isComma(remoteAddr)) {
             return new MultipleRemoteAddressStrategy(StringUtils.split(remoteAddr, ","));
@@ -92,13 +96,13 @@ public class RemoteAddressStrategyFactory {
 
         public MultipleRemoteAddressStrategy(String[] strArray) {
             InetAddressValidator validator = InetAddressValidator.getInstance();
-            for (String netaddress : strArray) {
-                if (validator.isValidInet4Address(netaddress)) {
-                    multipleSet.add(netaddress);
-                } else if (validator.isValidInet6Address(netaddress)) {
-                    multipleSet.add(AclUtils.expandIP(netaddress, 8));
+            for (String netAddress : strArray) {
+                if (validator.isValidInet4Address(netAddress)) {
+                    multipleSet.add(netAddress);
+                } else if (validator.isValidInet6Address(netAddress)) {
+                    multipleSet.add(AclUtils.expandIP(netAddress, 8));
                 } else {
-                    throw new AclException(String.format("Netaddress examine Exception netaddress is %s", netaddress));
+                    throw new AclException(String.format("NetAddress examine Exception netAddress is %s", netAddress));
                 }
             }
         }
@@ -117,20 +121,22 @@ public class RemoteAddressStrategyFactory {
 
     public static class OneRemoteAddressStrategy implements RemoteAddressStrategy {
 
-        private String netaddress;
+        private String netAddress;
 
-        public OneRemoteAddressStrategy(String netaddress) {
-            this.netaddress = netaddress;
+        public OneRemoteAddressStrategy(String netAddress) {
+            this.netAddress = netAddress;
             InetAddressValidator validator = InetAddressValidator.getInstance();
-            if (!(validator.isValidInet4Address(netaddress) || validator.isValidInet6Address(netaddress))) {
-                throw new AclException(String.format("Netaddress examine Exception netaddress is %s", netaddress));
+            if (!(validator.isValidInet4Address(netAddress) || validator.isValidInet6Address(
+                netAddress))) {
+                throw new AclException(String.format("NetAddress examine Exception netAddress is %s",
+                    netAddress));
             }
         }
 
         @Override
         public boolean match(PlainAccessResource plainAccessResource) {
             String writeRemoteAddress = AclUtils.expandIP(plainAccessResource.getWhiteRemoteAddress(), 8).toUpperCase();
-            return AclUtils.expandIP(netaddress, 8).toUpperCase().equals(writeRemoteAddress);
+            return AclUtils.expandIP(netAddress, 8).toUpperCase().equals(writeRemoteAddress);
         }
 
     }
@@ -153,7 +159,7 @@ public class RemoteAddressStrategyFactory {
                 for (int i = 1; i < strArray.length; i++) {
                     if (ipv6Analysis(strArray, i)) {
                         AclUtils.verify(remoteAddr, index - 1);
-                        String preAddress = AclUtils.v6ipProcess(remoteAddr, strArray, index);
+                        String preAddress = AclUtils.v6ipProcess(remoteAddr);
                         this.index = StringUtils.split(preAddress, ":").length;
                         this.head = preAddress;
                         break;
@@ -163,7 +169,7 @@ public class RemoteAddressStrategyFactory {
                 String[] strArray = StringUtils.split(remoteAddr, ".");
                 if (analysis(strArray, 1) || analysis(strArray, 2) || analysis(strArray, 3)) {
                     AclUtils.verify(remoteAddr, index - 1);
-                    StringBuffer sb = new StringBuffer();
+                    StringBuilder sb = new StringBuilder();
                     for (int j = 0; j < index; j++) {
                         sb.append(strArray[j].trim()).append(".");
                     }
@@ -179,17 +185,17 @@ public class RemoteAddressStrategyFactory {
                 setValue(0, 255);
             } else if (AclUtils.isMinus(value)) {
                 if (value.indexOf("-") == 0) {
-                    throw new AclException(String.format("RangeRemoteAddressStrategy netaddress examine scope Exception value %s ", value));
+                    throw new AclException(String.format("RangeRemoteAddressStrategy netAddress examine scope Exception value %s ", value));
 
                 }
                 String[] valueArray = StringUtils.split(value, "-");
-                this.start = Integer.valueOf(valueArray[0]);
-                this.end = Integer.valueOf(valueArray[1]);
+                this.start = Integer.parseInt(valueArray[0]);
+                this.end = Integer.parseInt(valueArray[1]);
                 if (!(AclUtils.isScope(end) && AclUtils.isScope(start) && start <= end)) {
-                    throw new AclException(String.format("RangeRemoteAddressStrategy netaddress examine scope Exception start is %s , end is %s", start, end));
+                    throw new AclException(String.format("RangeRemoteAddressStrategy netAddress examine scope Exception start is %s , end is %s", start, end));
                 }
             }
-            return this.end > 0 ? true : false;
+            return this.end > 0;
         }
 
         private boolean ipv6Analysis(String[] strArray, int index) {
@@ -201,16 +207,16 @@ public class RemoteAddressStrategyFactory {
                 setValue(min, max);
             } else if (AclUtils.isMinus(value)) {
                 if (value.indexOf("-") == 0) {
-                    throw new AclException(String.format("RangeRemoteAddressStrategy netaddress examine scope Exception value %s ", value));
+                    throw new AclException(String.format("RangeRemoteAddressStrategy netAddress examine scope Exception value %s ", value));
                 }
                 String[] valueArray = StringUtils.split(value, "-");
                 this.start = Integer.parseInt(valueArray[0], 16);
                 this.end = Integer.parseInt(valueArray[1], 16);
                 if (!(AclUtils.isIPv6Scope(end) && AclUtils.isIPv6Scope(start) && start <= end)) {
-                    throw new AclException(String.format("RangeRemoteAddressStrategy netaddress examine scope Exception start is %s , end is %s", start, end));
+                    throw new AclException(String.format("RangeRemoteAddressStrategy netAddress examine scope Exception start is %s , end is %s", start, end));
                 }
             }
-            return this.end > 0 ? true : false;
+            return this.end > 0;
         }
 
         private void setValue(int start, int end) {
@@ -233,18 +239,14 @@ public class RemoteAddressStrategyFactory {
                         value = netAddress.substring(this.head.length(), netAddress.lastIndexOf('.', netAddress.lastIndexOf('.') - 1));
                     }
                     Integer address = Integer.valueOf(value);
-                    if (address >= this.start && address <= this.end) {
-                        return true;
-                    }
+                    return address >= this.start && address <= this.end;
                 }
             } else if (validator.isValidInet6Address(netAddress)) {
                 netAddress = AclUtils.expandIP(netAddress, 8).toUpperCase();
                 if (netAddress.startsWith(this.head)) {
                     String value = netAddress.substring(5 * index, 5 * index + 4);
                     Integer address = Integer.parseInt(value, 16);
-                    if (address >= this.start && address <= this.end) {
-                        return true;
-                    }
+                    return address >= this.start && address <= this.end;
                 }
             }
             return false;

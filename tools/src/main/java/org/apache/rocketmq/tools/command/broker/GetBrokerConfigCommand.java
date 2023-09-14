@@ -20,7 +20,9 @@ package org.apache.rocketmq.tools.command.broker;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -43,16 +45,16 @@ public class GetBrokerConfigCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Get broker config by cluster or special broker!";
+        return "Get broker config by cluster or special broker.";
     }
 
     @Override
     public Options buildCommandlineOptions(final Options options) {
-        Option opt = new Option("b", "brokerAddr", true, "update which broker");
+        Option opt = new Option("b", "brokerAddr", true, "get which broker");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "update which cluster");
+        opt = new Option("c", "clusterName", true, "get which cluster");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -85,12 +87,21 @@ public class GetBrokerConfigCommand implements SubCommand {
 
                 for (String masterAddr : masterAndSlaveMap.keySet()) {
 
+                    if (masterAddr == null) {
+                        continue;
+                    }
+
                     getAndPrint(
                         defaultMQAdminExt,
                         String.format("============Master: %s============\n", masterAddr),
                         masterAddr
                     );
+
                     for (String slaveAddr : masterAndSlaveMap.get(masterAddr)) {
+
+                        if (slaveAddr == null) {
+                            continue;
+                        }
 
                         getAndPrint(
                             defaultMQAdminExt,
@@ -115,14 +126,18 @@ public class GetBrokerConfigCommand implements SubCommand {
 
         System.out.print(printPrefix);
 
+        if (addr.equals(CommandUtil.NO_MASTER_PLACEHOLDER)) {
+            return;
+        }
+
         Properties properties = defaultMQAdminExt.getBrokerConfig(addr);
         if (properties == null) {
             System.out.printf("Broker[%s] has no config property!\n", addr);
             return;
         }
 
-        for (Object key : properties.keySet()) {
-            System.out.printf("%-50s=  %s\n", key, properties.get(key));
+        for (Entry<Object, Object> entry : properties.entrySet()) {
+            System.out.printf("%-50s=  %s\n", entry.getKey(), entry.getValue());
         }
 
         System.out.printf("%n");

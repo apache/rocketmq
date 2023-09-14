@@ -47,7 +47,7 @@ public class MessageSelector {
     }
 
     /**
-     * Use SLQ92 to select message.
+     * Use SQL92 to select message.
      *
      * @param sql if null or empty, will be treated as select all message.
      */

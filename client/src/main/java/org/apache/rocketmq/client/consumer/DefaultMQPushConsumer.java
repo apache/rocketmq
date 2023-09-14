@@ -18,6 +18,7 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
@@ -28,8 +29,8 @@ import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAverage
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.hook.ConsumeMessageHook;
 import org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
@@ -39,11 +40,12 @@ import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
  * In most scenarios, this is the mostly recommended class to consume messages.
@@ -62,7 +64,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
  */
 public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsumer {
 
-    private final InternalLogger log = ClientLogger.getLog();
+    private final Logger log = LoggerFactory.getLogger(DefaultMQPushConsumer.class);
 
     /**
      * Internal implementation. Most of the functions herein are delegated to it.
@@ -74,7 +76,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * load balance. It's required and needs to be globally unique.
      * </p>
      *
-     * See <a href="http://rocketmq.apache.org/docs/core-concept/">here</a> for further discussion.
+     * See <a href="https://rocketmq.apache.org/docs/introduction/02concepts">here</a> for further discussion.
      */
     private String consumerGroup;
 
@@ -141,7 +143,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Subscription relationship
      */
-    private Map<String /* topic */, String /* sub expression */> subscription = new HashMap<String, String>();
+    private Map<String /* topic */, String /* sub expression */> subscription = new HashMap<>();
 
     /**
      * Message listener
@@ -180,19 +182,25 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private int pullThresholdForQueue = 1000;
 
     /**
+     * Flow control threshold on queue level, means max num of messages waiting to ack.
+     * in contrast with pull threshold, once a message is popped, it's considered the beginning of consumption.
+     */
+    private int popThresholdForQueue = 96;
+
+    /**
      * Limit the cached message size on queue level, each message queue will cache at most 100 MiB messages by default,
      * Consider the {@code pullBatchSize}, the instantaneous value may exceed the limit
      *
      * <p>
-     * The size of a message only measured by message body, so it's not accurate
+     * The size(MB) of a message only measured by message body, so it's not accurate
      */
     private int pullThresholdSizeForQueue = 100;
 
     /**
      * Flow control threshold on topic level, default value is -1(Unlimited)
      * <p>
-     * The value of {@code pullThresholdForQueue} will be overwrote and calculated based on
-     * {@code pullThresholdForTopic} if it is't unlimited
+     * The value of {@code pullThresholdForQueue} will be overwritten and calculated based on
+     * {@code pullThresholdForTopic} if it isn't unlimited
      * <p>
      * For example, if the value of pullThresholdForTopic is 1000 and 10 message queues are assigned to this consumer,
      * then pullThresholdForQueue will be set to 100
@@ -202,8 +210,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Limit the cached message size on topic level, default value is -1 MiB(Unlimited)
      * <p>
-     * The value of {@code pullThresholdSizeForQueue} will be overwrote and calculated based on
-     * {@code pullThresholdSizeForTopic} if it is't unlimited
+     * The value of {@code pullThresholdSizeForQueue} will be overwritten and calculated based on
+     * {@code pullThresholdSizeForTopic} if it isn't unlimited
      * <p>
      * For example, if the value of pullThresholdSizeForTopic is 1000 MiB and 10 message queues are
      * assigned to this consumer, then pullThresholdSizeForQueue will be set to 100 MiB
@@ -225,6 +233,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     private int pullBatchSize = 32;
 
+
+    private int pullBatchSizeInBytes = 256 * 1024;
+
     /**
      * Whether update subscription relationship when every pull
      */
@@ -236,11 +247,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private boolean unitMode = false;
 
     /**
-     * Max re-consume times. -1 means 16 times.
-     * </p>
+     * Max re-consume times.
+     * In concurrently mode, -1 means 16;
+     * In orderly mode, -1 means Integer.MAX_VALUE.
      *
-     * If messages are re-consumed more than {@link #maxReconsumeTimes} before success, it's be directed to a deletion
-     * queue waiting.
+     * If messages are re-consumed more than {@link #maxReconsumeTimes} before success.
      */
     private int maxReconsumeTimes = -1;
 
@@ -255,9 +266,27 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private long consumeTimeout = 15;
 
     /**
+     * Maximum amount of invisible time in millisecond of a message, rang is [5000, 300000]
+     */
+    private long popInvisibleTime = 60000;
+
+    /**
+     * Batch pop size. range is [1, 32]
+     */
+    private int popBatchNums = 32;
+
+    /**
+     * Maximum time to await message consuming when shutdown consumer, 0 indicates no await.
+     */
+    private long awaitTerminationMillisWhenShutdown = 0;
+
+    /**
      * Interface of asynchronous transfer data
      */
     private TraceDispatcher traceDispatcher = null;
+
+    // force to use client rebalance
+    private boolean clientRebalance = true;
 
     /**
      * Default constructor.
@@ -389,10 +418,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         if (enableMsgTrace) {
             try {
                 AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, rpcHook);
-                dispatcher.setHostConsumer(this.getDefaultMQPushConsumerImpl());
+                dispatcher.setHostConsumer(this.defaultMQPushConsumerImpl);
                 traceDispatcher = dispatcher;
-                this.getDefaultMQPushConsumerImpl().registerConsumeMessageHook(
-                    new ConsumeMessageTraceHookImpl(traceDispatcher));
+                this.defaultMQPushConsumerImpl.registerConsumeMessageHook(new ConsumeMessageTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
                 log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
             }
@@ -404,8 +432,16 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     @Override
-    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
-        createTopic(key, withNamespace(newTopic), queueNum, 0);
+    public void createTopic(String key, String newTopic, int queueNum, Map<String, String> attributes) throws MQClientException {
+        createTopic(key, withNamespace(newTopic), queueNum, 0, null);
+    }
+
+    @Override
+    public void setUseTLS(boolean useTLS) {
+        super.setUseTLS(useTLS);
+        if (traceDispatcher instanceof AsyncTraceDispatcher) {
+            ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
+        }
     }
 
     /**
@@ -413,7 +449,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag, Map<String, String> attributes) throws MQClientException {
         this.defaultMQPushConsumerImpl.createTopic(key, withNamespace(newTopic), queueNum, topicSysFlag);
     }
 
@@ -593,6 +629,14 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.pullThresholdForQueue = pullThresholdForQueue;
     }
 
+    public int getPopThresholdForQueue() {
+        return popThresholdForQueue;
+    }
+
+    public void setPopThresholdForQueue(int popThresholdForQueue) {
+        this.popThresholdForQueue = popThresholdForQueue;
+    }
+
     public int getPullThresholdForTopic() {
         return pullThresholdForTopic;
     }
@@ -626,9 +670,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     public void setSubscription(Map<String, String> subscription) {
-        Map<String, String> subscriptionWithNamespace = new HashMap<String, String>();
-        for (String topic : subscription.keySet()) {
-            subscriptionWithNamespace.put(withNamespace(topic), subscription.get(topic));
+        Map<String, String> subscriptionWithNamespace = new HashMap<>(subscription.size(), 1);
+        for (Entry<String, String> topicEntry : subscription.entrySet()) {
+            subscriptionWithNamespace.put(withNamespace(topicEntry.getKey()), topicEntry.getValue());
         }
         this.subscription = subscriptionWithNamespace;
     }
@@ -651,7 +695,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public void sendMessageBack(MessageExt msg, int delayLevel)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         msg.setTopic(withNamespace(msg.getTopic()));
-        this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, null);
+        this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, (String) null);
     }
 
     /**
@@ -705,7 +749,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Override
     public void shutdown() {
-        this.defaultMQPushConsumerImpl.shutdown();
+        this.defaultMQPushConsumerImpl.shutdown(awaitTerminationMillisWhenShutdown);
         if (null != traceDispatcher) {
             traceDispatcher.shutdown();
         }
@@ -814,6 +858,18 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.defaultMQPushConsumerImpl.resume();
     }
 
+    public boolean isPause() {
+        return this.defaultMQPushConsumerImpl.isPause();
+    }
+
+    public boolean isConsumeOrderly() {
+        return this.defaultMQPushConsumerImpl.isConsumeOrderly();
+    }
+
+    public void registerConsumeMessageHook(final ConsumeMessageHook hook) {
+        this.defaultMQPushConsumerImpl.registerConsumeMessageHook(hook);
+    }
+
     /**
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
      */
@@ -846,10 +902,12 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.postSubscriptionWhenPull = postSubscriptionWhenPull;
     }
 
+    @Override
     public boolean isUnitMode() {
         return unitMode;
     }
 
+    @Override
     public void setUnitMode(boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }
@@ -886,7 +944,47 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.consumeTimeout = consumeTimeout;
     }
 
+    public long getPopInvisibleTime() {
+        return popInvisibleTime;
+    }
+
+    public void setPopInvisibleTime(long popInvisibleTime) {
+        this.popInvisibleTime = popInvisibleTime;
+    }
+
+    public long getAwaitTerminationMillisWhenShutdown() {
+        return awaitTerminationMillisWhenShutdown;
+    }
+
+    public void setAwaitTerminationMillisWhenShutdown(long awaitTerminationMillisWhenShutdown) {
+        this.awaitTerminationMillisWhenShutdown = awaitTerminationMillisWhenShutdown;
+    }
+
+    public int getPullBatchSizeInBytes() {
+        return pullBatchSizeInBytes;
+    }
+
+    public void setPullBatchSizeInBytes(int pullBatchSizeInBytes) {
+        this.pullBatchSizeInBytes = pullBatchSizeInBytes;
+    }
+
     public TraceDispatcher getTraceDispatcher() {
         return traceDispatcher;
+    }
+
+    public int getPopBatchNums() {
+        return popBatchNums;
+    }
+
+    public void setPopBatchNums(int popBatchNums) {
+        this.popBatchNums = popBatchNums;
+    }
+
+    public boolean isClientRebalance() {
+        return clientRebalance;
+    }
+
+    public void setClientRebalance(boolean clientRebalance) {
+        this.clientRebalance = clientRebalance;
     }
 }
