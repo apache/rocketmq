@@ -168,7 +168,7 @@ public class TieredMessageStoreTest {
         GetMessageResult result1 = new GetMessageResult();
         result1.setStatus(GetMessageStatus.FOUND);
         GetMessageResult result2 = new GetMessageResult();
-        result2.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
+        result2.setStatus(GetMessageStatus.OFFSET_OVERFLOW_BADLY);
 
         when(fetcher.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(result1));
         when(nextStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(result2);
@@ -188,7 +188,8 @@ public class TieredMessageStoreTest {
         properties.setProperty("tieredStorageLevel", "3");
         configuration.update(properties);
         when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
-        Assert.assertSame(result2, store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null));
+        Assert.assertEquals(result2.getStatus(),
+            store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null).getStatus());
     }
 
     @Test
