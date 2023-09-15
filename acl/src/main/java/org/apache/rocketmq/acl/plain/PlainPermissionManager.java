@@ -319,7 +319,7 @@ public class PlainPermissionManager {
                     if (account.getAccessKey().equals(plainAccessConfig.getAccessKey())) {
                         // Update acl access config elements
                         accounts.remove(account);
-                        updateAccountMap = createAclAccessConfigMap(account, plainAccessConfig);
+                        updateAccountMap = createAclAccessConfigMap(null, plainAccessConfig);
                         accounts.add(updateAccountMap);
                         aclAccessConfigMap.setAccounts(accounts);
                         break;
