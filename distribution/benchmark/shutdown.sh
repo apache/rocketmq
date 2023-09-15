@@ -72,6 +72,35 @@ case $1 in
 
     echo "Send shutdown request to benchmark batch producer(${pid}) OK"
     ;;
+      timerproducer)
+
+      pid=`ps ax | grep -i 'org.apache.rocketmq.example.benchmark.timer.TimerProducer' |grep java | grep -v grep | awk '{print $1}'`
+      if [ -z "$pid" ] ; then
+              echo "No benchmark timerProducer running."
+              exit -1;
+      fi
+
+      echo "The benchmark timerProducer(${pid}) is running..."
+
+      kill ${pid}
+
+      echo "Send shutdown request to benchmark timerProducer(${pid}) OK"
+      ;;
+      timerconsumer)
+
+      pid=`ps ax | grep -i 'org.apache.rocketmq.example.benchmark.timer.TimerConsumer' |grep java | grep -v grep | awk '{print $1}'`
+      if [ -z "$pid" ] ; then
+              echo "No benchmark timerConsumer running."
+              exit -1;
+      fi
+
+      echo "The benchmark timerConsumer(${pid}) is running..."
+
+      kill ${pid}
+
+      echo "Send shutdown request to benchmark timerConsumer(${pid}) OK"
+      ;;
+
     *)
-    echo "Usage: shutdown producer | consumer | tproducer | bproducer"
+    echo "Usage: shutdown producer | consumer | tproducer | bproducer | timerProducer | timerConsumer"
 esac
