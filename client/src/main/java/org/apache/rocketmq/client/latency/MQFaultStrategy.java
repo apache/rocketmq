@@ -24,8 +24,8 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 public class MQFaultStrategy {
     private LatencyFaultTolerance<String> latencyFaultTolerance;
-    private boolean sendLatencyFaultEnable;
-    private boolean startDetectorEnable;
+    private volatile boolean sendLatencyFaultEnable;
+    private volatile boolean startDetectorEnable;
     private long[] latencyMax = {50L, 100L, 550L, 1800L, 3000L, 5000L, 15000L};
     private long[] notAvailableDuration = {0L, 0L, 2000L, 5000L, 6000L, 10000L, 30000L};
 
@@ -64,11 +64,11 @@ public class MQFaultStrategy {
 
 
     public MQFaultStrategy(ClientConfig cc, Resolver fetcher, ServiceDetector serviceDetector) {
-        this.setStartDetectorEnable(cc.isStartDetectorEnable());
-        this.setSendLatencyFaultEnable(cc.isSendLatencyEnable());
         this.latencyFaultTolerance = new LatencyFaultToleranceImpl(fetcher, serviceDetector);
         this.latencyFaultTolerance.setDetectInterval(cc.getDetectInterval());
         this.latencyFaultTolerance.setDetectTimeout(cc.getDetectTimeout());
+        this.setStartDetectorEnable(cc.isStartDetectorEnable());
+        this.setSendLatencyFaultEnable(cc.isSendLatencyEnable());
     }
 
     // For unit test.
@@ -123,21 +123,15 @@ public class MQFaultStrategy {
 
     public void setStartDetectorEnable(boolean startDetectorEnable) {
         this.startDetectorEnable = startDetectorEnable;
+        this.latencyFaultTolerance.setStartDetectorEnable(startDetectorEnable);
     }
 
     public void startDetector() {
-        // user should start the detector
-        // and the thread should not be in running state.
-        if (this.sendLatencyFaultEnable && this.startDetectorEnable) {
-            // start the detector.
-            this.latencyFaultTolerance.startDetector();
-        }
+        this.latencyFaultTolerance.startDetector();
     }
 
     public void shutdown() {
-        if (this.sendLatencyFaultEnable && this.startDetectorEnable) {
-            this.latencyFaultTolerance.shutdown();
-        }
+        this.latencyFaultTolerance.shutdown();
     }
 
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName, final boolean resetIndex) {

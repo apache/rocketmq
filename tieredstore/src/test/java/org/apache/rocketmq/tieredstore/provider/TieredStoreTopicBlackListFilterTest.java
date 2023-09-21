@@ -14,26 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.tieredstore.provider;
 
-package org.apache.rocketmq.broker.latency;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.junit.Assert;
+import org.junit.Test;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
+public class TieredStoreTopicBlackListFilterTest {
 
-public class FutureTaskExt<V> extends FutureTask<V> {
-    private final Runnable runnable;
+    @Test
+    public void filterTopicTest() {
+        TieredStoreTopicFilter topicFilter = new TieredStoreTopicBlackListFilter();
+        Assert.assertTrue(topicFilter.filterTopic(""));
+        Assert.assertTrue(topicFilter.filterTopic(TopicValidator.SYSTEM_TOPIC_PREFIX + "_Topic"));
 
-    public FutureTaskExt(final Callable<V> callable) {
-        super(callable);
-        this.runnable = null;
-    }
-
-    public FutureTaskExt(final Runnable runnable, final V result) {
-        super(runnable, result);
-        this.runnable = runnable;
-    }
-
-    public Runnable getRunnable() {
-        return runnable;
+        String topicName = "WhiteTopic";
+        Assert.assertFalse(topicFilter.filterTopic(topicName));
+        topicFilter.addTopicToWhiteList(topicName);
+        Assert.assertTrue(topicFilter.filterTopic(topicName));
     }
 }
