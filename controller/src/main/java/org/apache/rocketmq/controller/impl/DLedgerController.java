@@ -75,21 +75,6 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBro
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
-
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_BROKER_SET;
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_CLUSTER_NAME;
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_DLEDGER_OPERATION;
@@ -114,14 +99,14 @@ public class DLedgerController implements Controller {
 
     private ScheduledFuture scanInactiveMasterFuture;
 
-    private List<BrokerLifecycleListener> brokerLifecycleListeners;
+    private final List<BrokerLifecycleListener> brokerLifecycleListeners;
 
     // Usr for checking whether the broker is alive
     private BrokerValidPredicate brokerAlivePredicate;
     // use for elect a master
     private ElectPolicy electPolicy;
 
-    private AtomicBoolean isScheduling = new AtomicBoolean(false);
+    private final AtomicBoolean isScheduling = new AtomicBoolean(false);
 
     public DLedgerController(final ControllerConfig config, final BrokerValidPredicate brokerAlivePredicate) {
         this(config, brokerAlivePredicate, null, null, null, null);

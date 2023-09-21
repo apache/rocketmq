@@ -17,15 +17,6 @@
 package org.apache.rocketmq.controller.impl.heartbeat;
 
 import io.netty.channel.Channel;
-import org.apache.rocketmq.common.ControllerConfig;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.controller.BrokerHeartbeatManager;
-import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
