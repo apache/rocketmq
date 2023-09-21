@@ -83,21 +83,23 @@ public class ReplicasInfoManager {
     private final Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
 
     protected static byte[] hessianSerialize(Object object) throws IOException {
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        Hessian2Output hessianOut = new Hessian2Output(bout);
-        hessianOut.setSerializerFactory(serializerFactory);
-        hessianOut.writeObject(object);
-        hessianOut.close();
-        return bout.toByteArray();
+        try(ByteArrayOutputStream bout = new ByteArrayOutputStream()) {
+            Hessian2Output hessianOut = new Hessian2Output(bout);
+            hessianOut.setSerializerFactory(serializerFactory);
+            hessianOut.writeObject(object);
+            hessianOut.close();
+            return bout.toByteArray();
+        }
     }
 
     protected static Object hessianDeserialize(byte[] data) throws IOException {
-        ByteArrayInputStream bin = new ByteArrayInputStream(data, 0, data.length);
-        Hessian2Input hin = new Hessian2Input(bin);
-        hin.setSerializerFactory(new SerializerFactory());
-        Object o =  hin.readObject();
-        hin.close();
-        return o;
+        try (ByteArrayInputStream bin = new ByteArrayInputStream(data, 0, data.length)) {
+            Hessian2Input hin = new Hessian2Input(bin);
+            hin.setSerializerFactory(new SerializerFactory());
+            Object o =  hin.readObject();
+            hin.close();
+            return o;
+        }
     }
 
     public ReplicasInfoManager(final ControllerConfig config) {
@@ -618,8 +620,7 @@ public class ReplicasInfoManager {
     }
 
     public byte[] serialize() throws Throwable {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try {
+        try(ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             putInt(outputStream, this.replicaInfoTable.size());
             for (Map.Entry<String, BrokerReplicaInfo> entry : replicaInfoTable.entrySet()) {
                 final byte[] brokerName = entry.getKey().getBytes(StandardCharsets.UTF_8);

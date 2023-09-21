@@ -164,8 +164,7 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
 
     @Override
     public byte[] serialize() throws Throwable {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        try {
+        try(ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             final byte[] superSerialize = super.serialize();
             putInt(outputStream, superSerialize.length);
             outputStream.write(superSerialize);

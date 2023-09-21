@@ -189,18 +189,8 @@ public class JRaftControllerStateMachine implements StateMachine {
 
     private ControllerResult<ElectMasterResponseHeader> electMaster(ElectMasterRequestHeader request) {
         ControllerResult<ElectMasterResponseHeader> electResult = this.replicasInfoManager.electMaster(request, new DefaultElectPolicy(
-            new BrokerValidPredicate() {
-                @Override
-                public boolean check(String clusterName, String brokerName, Long brokerId) {
-                    return replicasInfoManager.isBrokerActive(clusterName, brokerName, brokerId, request.getInvokeTime());
-                }
-            },
-            new BrokerLiveInfoGetter() {
-                @Override
-                public BrokerLiveInfo get(String clusterName, String brokerName, Long brokerId) {
-                    return replicasInfoManager.getBrokerLiveInfo(clusterName, brokerName, brokerId);
-                }
-            }
+            (clusterName, brokerName, brokerId) -> replicasInfoManager.isBrokerActive(clusterName, brokerName, brokerId, request.getInvokeTime()),
+            replicasInfoManager::getBrokerLiveInfo
         ));
         log.info("elect master, request :{}, result: {}", request.toString(), electResult.toString());
         AttributesBuilder attributesBuilder = ControllerMetricsManager.newAttributesBuilder()
