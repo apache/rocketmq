@@ -1462,7 +1462,7 @@ public class TimerMessageStore {
                                 DefaultStoreMetricsManager.incTimerDequeueCount(getRealTopic(msgExt));
                                 if (tr.getEnqueueTime() == Long.MAX_VALUE) {
                                     // never enqueue, mark it.
-                                    MessageAccessor.putProperty(msgExt, TIMER_ENQUEUE_MS, Long.MAX_VALUE+"");
+                                    MessageAccessor.putProperty(msgExt, TIMER_ENQUEUE_MS, String.valueOf(Long.MAX_VALUE));
                                 }
                                 addMetric(msgExt, -1);
                                 MessageExtBrokerInner msg = convert(msgExt, tr.getEnqueueTime(), needRoll(tr.getMagic()));
