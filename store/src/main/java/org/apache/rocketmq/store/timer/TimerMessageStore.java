@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicFilterType;
@@ -600,7 +601,7 @@ public class TimerMessageStore {
                 return;
             }
             if (msg.getProperty(TIMER_ENQUEUE_MS) != null
-                    && Long.parseLong(msg.getProperty(TIMER_ENQUEUE_MS)) == Long.MAX_VALUE) {
+                    && NumberUtils.toLong(msg.getProperty(TIMER_ENQUEUE_MS)) == Long.MAX_VALUE) {
                 return;
             }
             // pass msg into addAndGet, for further more judgement extension.
