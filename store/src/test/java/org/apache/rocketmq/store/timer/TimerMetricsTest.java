@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.store.timer;
 
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -31,8 +34,11 @@ public class TimerMetricsTest {
 
         TimerMetrics first = new TimerMetrics(baseDir);
         Assert.assertTrue(first.load());
-        first.addAndGet("AAA", 1000);
-        first.addAndGet("BBB", 2000);
+        MessageExt msg = new MessageExt();
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, "AAA");
+        first.addAndGet(msg, 1000);
+        MessageAccessor.putProperty(msg, MessageConst.PROPERTY_REAL_TOPIC, "BBB");
+        first.addAndGet(msg, 2000);
         Assert.assertEquals(1000, first.getTimingCount("AAA"));
         Assert.assertEquals(2000, first.getTimingCount("BBB"));
         long curr = System.currentTimeMillis();

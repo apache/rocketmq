@@ -603,7 +603,8 @@ public class TimerMessageStore {
                     && Long.parseLong(msg.getProperty(TIMER_ENQUEUE_MS)) == Long.MAX_VALUE) {
                 return;
             }
-            timerMetrics.addAndGet(msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC), value);
+            // pass msg into addAndGet, for further more judgement extension.
+            timerMetrics.addAndGet(msg, value);
         } catch (Throwable t) {
             if (frequency.incrementAndGet() % 1000 == 0) {
                 LOGGER.error("error in adding metric", t);
