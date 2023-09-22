@@ -18,13 +18,17 @@ package org.apache.rocketmq.controller.impl.task;
 
 import org.apache.rocketmq.controller.impl.heartbeat.BrokerIdentityInfo;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class BrokerCloseChannelRequest implements CommandCustomHeader {
+    @CFNullable
     private String clusterName;
 
+    @CFNullable
     private String brokerName;
 
+    @CFNullable
     private Long brokerId;
 
     public BrokerCloseChannelRequest() {

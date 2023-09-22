@@ -82,19 +82,17 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
         BrokerIdentityInfo brokerIdentityInfo = request.getBrokerIdentityInfo();
         BrokerLiveInfo brokerLiveInfo = request.getBrokerLiveInfo();
         ControllerResult<RaftBrokerHeartBeatEventResponse> result = new ControllerResult<>(new RaftBrokerHeartBeatEventResponse());
-        BrokerLiveInfo prev = brokerLiveTable.get(brokerIdentityInfo);
-        if (prev == null) {
-            brokerLiveTable.put(brokerIdentityInfo, brokerLiveInfo);
-            log.info("new broker registered, brokerIdentityInfo: {}", brokerIdentityInfo);
-        } else {
-            prev.setLastUpdateTimestamp(brokerLiveInfo.getLastUpdateTimestamp());
-            prev.setHeartbeatTimeoutMillis(brokerLiveInfo.getHeartbeatTimeoutMillis());
-            prev.setElectionPriority(brokerLiveInfo.getElectionPriority());
-            if (brokerLiveInfo.getEpoch() > prev.getEpoch() || brokerLiveInfo.getEpoch() == prev.getEpoch() && brokerLiveInfo.getMaxOffset() > prev.getMaxOffset()) {
-                prev.setEpoch(brokerLiveInfo.getEpoch());
-                prev.setMaxOffset(brokerLiveInfo.getMaxOffset());
-                prev.setConfirmOffset(brokerLiveInfo.getConfirmOffset());
-            }
+        BrokerLiveInfo prev = brokerLiveTable.computeIfAbsent(brokerIdentityInfo, (identityInfo) -> {
+            log.info("new broker registered, brokerIdentityInfo: {}", identityInfo);
+            return brokerLiveInfo;
+        });
+        prev.setLastUpdateTimestamp(brokerLiveInfo.getLastUpdateTimestamp());
+        prev.setHeartbeatTimeoutMillis(brokerLiveInfo.getHeartbeatTimeoutMillis());
+        prev.setElectionPriority(brokerLiveInfo.getElectionPriority());
+        if (brokerLiveInfo.getEpoch() > prev.getEpoch() || brokerLiveInfo.getEpoch() == prev.getEpoch() && brokerLiveInfo.getMaxOffset() > prev.getMaxOffset()) {
+            prev.setEpoch(brokerLiveInfo.getEpoch());
+            prev.setMaxOffset(brokerLiveInfo.getMaxOffset());
+            prev.setConfirmOffset(brokerLiveInfo.getConfirmOffset());
         }
         return result;
     }
