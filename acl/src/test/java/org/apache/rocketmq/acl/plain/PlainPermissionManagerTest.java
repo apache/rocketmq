@@ -293,6 +293,9 @@ public class PlainPermissionManagerTest {
         // second update
         plainAccessConfig.setTopicPerms(Lists.newArrayList("topicA=SUB"));
         plainPermissionManager.updateAccessConfig(plainAccessConfig);
+
+        plainAccessConfig.setTopicPerms(new ArrayList<>());
+        plainPermissionManager.updateAccessConfig(plainAccessConfig);
     }
 
     @Test
