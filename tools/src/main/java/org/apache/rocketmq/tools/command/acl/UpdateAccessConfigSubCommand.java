@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.acl;
 
-import io.netty.util.internal.StringUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
