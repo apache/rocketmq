@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tools.command.acl;
 
+import io.netty.util.internal.StringUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +24,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -130,8 +132,8 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
             if (commandLine.hasOption('t')) {
                 String[] topicPerms = commandLine.getOptionValue('t').trim().split(",");
                 List<String> topicPermList = new ArrayList<>();
-                if (topicPerms != null) {
-                    for (String topicPerm : topicPerms) {
+                for (String topicPerm : topicPerms) {
+                    if (StringUtils.isNotBlank(topicPerm)) {
                         topicPermList.add(topicPerm);
                     }
                 }
@@ -142,8 +144,8 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
             if (commandLine.hasOption('g')) {
                 String[] groupPerms = commandLine.getOptionValue('g').trim().split(",");
                 List<String> groupPermList = new ArrayList<>();
-                if (groupPerms != null) {
-                    for (String groupPerm : groupPerms) {
+                for (String groupPerm : groupPerms) {
+                    if (StringUtils.isNotBlank(groupPerm)) {
                         groupPermList.add(groupPerm);
                     }
                 }
