@@ -26,7 +26,6 @@ public class MessageQueueView {
     private final MessageQueueSelector readSelector;
     private final MessageQueueSelector writeSelector;
     private final TopicRouteWrapper topicRouteWrapper;
-    private MQFaultStrategy mqFaultStrategy;
 
     public MessageQueueView(String topic, TopicRouteData topicRouteData, MQFaultStrategy mqFaultStrategy) {
         this.topicRouteWrapper = new TopicRouteWrapper(topicRouteData, topic);
@@ -66,13 +65,5 @@ public class MessageQueueView {
             .add("writeSelector", writeSelector)
             .add("topicRouteWrapper", topicRouteWrapper)
             .toString();
-    }
-
-    public MQFaultStrategy getMQFaultStrategy() {
-        return mqFaultStrategy;
-    }
-
-    public void setMQFaultStrategy(MQFaultStrategy mqFaultStrategy) {
-        this.mqFaultStrategy = mqFaultStrategy;
     }
 }

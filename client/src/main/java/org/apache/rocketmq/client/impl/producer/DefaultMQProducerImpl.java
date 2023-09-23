@@ -263,9 +263,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     mQClientFactory.start();
                 }
 
-                if (this.mqFaultStrategy.isStartDetectorEnable()) {
-                    this.mqFaultStrategy.startDetector();
-                }
+                this.mqFaultStrategy.startDetector();
 
                 log.info("the producer [{}] start OK. sendMessageWithVIPChannel={}", this.defaultMQProducer.getProducerGroup(),
                     this.defaultMQProducer.isSendMessageWithVIPChannel());
@@ -311,9 +309,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 if (shutdownFactory) {
                     this.mQClientFactory.shutdown();
                 }
-                if (this.mqFaultStrategy.isStartDetectorEnable()) {
-                    this.mqFaultStrategy.shutdown();
-                }
+                this.mqFaultStrategy.shutdown();
                 RequestFutureHolder.getInstance().shutdown(this);
                 log.info("the producer [{}] shutdown OK", this.defaultMQProducer.getProducerGroup());
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
