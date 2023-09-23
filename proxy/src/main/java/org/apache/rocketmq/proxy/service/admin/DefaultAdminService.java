@@ -33,6 +33,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIExt;
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.proxy.service.route.TopicRouteHelper;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class DefaultAdminService implements AdminService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -54,6 +55,82 @@ public class DefaultAdminService implements AdminService {
         }
 
         return topicExist;
+    }
+
+    @Override
+    public boolean groupExist(String topic, String groupName) {
+        TopicRouteData topicRouteData = new TopicRouteData();
+        try {
+            topicRouteData = this.getTopicRouteDataDirectlyFromNameServer(topic);
+        } catch (Exception e) {
+            if (!TopicRouteHelper.isTopicNotExistError(e)) {
+                log.error("get topic route {} failed.", topic, e);
+                return false;
+            }
+        }
+        for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
+            String addr = brokerData.getBrokerAddrs() == null ? null : brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+            if (addr == null) {
+                continue;
+            }
+            try {
+                SubscriptionGroupConfig groupConfig = this.getClient().getSubscriptionGroupConfig(addr, groupName, Duration.ofSeconds(3).toMillis());
+                if (groupConfig == null) {
+                    return false;
+                }
+            } catch (Exception e) {
+                log.error("get subscription group {} failed.", groupName, e);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean createSubscriptionGroupIfNotExist(String topic, String groupName, boolean examineGroup, int retryCheckCount) {
+        TopicRouteData topicRouteData = new TopicRouteData();
+        try {
+            topicRouteData = this.getTopicRouteDataDirectlyFromNameServer(topic);
+        } catch (Exception e) {
+            if (!TopicRouteHelper.isTopicNotExistError(e)) {
+                log.error("get topic route {} failed.", topic, e);
+                return false;
+            }
+        }
+
+        SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
+        groupConfig.setGroupName(groupName);
+
+        for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
+            String addr = brokerData.getBrokerAddrs() == null ? null : brokerData.getBrokerAddrs().get(MixAll.MASTER_ID);
+            if (addr == null) {
+                continue;
+            }
+            try {
+                this.getClient().getSubscriptionGroupConfig(addr, groupName, Duration.ofSeconds(3).toMillis());
+            } catch (Exception e) {
+                if (TopicRouteHelper.isGroupNotExistError(e)) {
+                    try {
+                        this.getClient().createSubscriptionGroup(addr, groupConfig, Duration.ofSeconds(3).toMillis());
+                    } catch (Exception ex) {
+                        log.error("create subscription {} failed.", groupName, e);
+                    }
+                }
+            }
+        }
+
+        if (examineGroup) {
+            // examine group exist.
+            int count = retryCheckCount;
+            while (count-- > 0) {
+                if (this.groupExist(topic, groupName)) {
+                    return true;
+                }
+            }
+        } else {
+            return true;
+        }
+        return false;
     }
 
     @Override

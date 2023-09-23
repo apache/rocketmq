@@ -141,6 +141,8 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
     @Override
     public void start() throws Exception {
         this.createSysTopic();
+        this.createSysTopicSubscription();
+
         RPCHook rpcHook = this.getRpcHook();
         this.defaultMQPushConsumer = new DefaultMQPushConsumer(null, this.getSystemMessageConsumerId(), rpcHook);
 
@@ -175,6 +177,22 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
         );
         if (!createSuccess) {
             throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "create system broadcast topic " + this.getBroadcastTopicName() + " failed on cluster " + clusterName);
+        }
+    }
+
+    protected void createSysTopicSubscription() {
+        if (this.adminService.groupExist(this.getBroadcastTopicName(), this.getSystemMessageConsumerId())) {
+            return;
+        }
+        boolean success = this.adminService.createSubscriptionGroupIfNotExist(
+            this.getBroadcastTopicName(),
+            this.getSystemMessageConsumerId(),
+            true,
+            3
+        );
+        if (!success) {
+            throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "create system broadcast topic subscription " + this.getSystemMessageConsumerId()
+                + " failed on cluster " + this.getBroadcastTopicClusterName());
         }
     }
 

@@ -348,7 +348,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         SubscriptionGroupConfig groupConfig = this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().get(requestHeader.getGroup());
         if (groupConfig == null) {
             LOGGER.error("No group in this broker, client: {} group: {}", ctx.channel().remoteAddress(), requestHeader.getGroup());
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
             response.setRemark("No group in this broker");
             return response;
         }
