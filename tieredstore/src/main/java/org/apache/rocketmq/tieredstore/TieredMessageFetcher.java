@@ -319,7 +319,7 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
         }
 
         // if cache is miss, immediately pull messages
-        LOGGER.warn("TieredMessageFetcher#getMessageFromCacheAsync: cache miss: " +
+        LOGGER.info("TieredMessageFetcher#getMessageFromCacheAsync: cache miss: " +
                 "topic: {}, queue: {}, queue offset: {}, max message num: {}",
             mq.getTopic(), mq.getQueueId(), queueOffset, maxCount);
 

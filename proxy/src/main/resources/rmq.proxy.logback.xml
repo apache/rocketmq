@@ -418,6 +418,11 @@
         <appender-ref ref="RocketmqProxyWatermarkAppender" />
     </logger>
 
+    <!-- Use json formatter to log metrics -->
+    <logger name="io.opentelemetry.exporter.logging.otlp.OtlpJsonLoggingMetricExporter" additivity="false" level="INFO">
+        <appender-ref ref="RocketmqProxyMetricsAppender"/>
+    </logger>
+
     <logger name="io.opentelemetry.exporter.logging.LoggingMetricExporter" additivity="false" level="INFO">
         <appender-ref ref="RocketmqProxyMetricsAppender" />
     </logger>
