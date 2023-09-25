@@ -41,6 +41,9 @@ public class AuthorizationHeader {
      * @throws Exception exception.
      */
     public AuthorizationHeader(String header) throws DecoderException {
+        if (header == null) {
+            throw new DecoderException("authorization header is missing");
+        }
         String[] result = header.split(HEADER_SEPARATOR, 2);
         if (result.length != 2) {
             throw new DecoderException("authorization header is incorrect");
