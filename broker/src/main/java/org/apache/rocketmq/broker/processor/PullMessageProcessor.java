@@ -24,10 +24,12 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
+import org.apache.rocketmq.broker.coldctr.ColdDataPullRequestHoldService;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filter.ExpressionForRetryMessageFilter;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
+import org.apache.rocketmq.broker.longpolling.PullRequest;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageHook;
 import org.apache.rocketmq.broker.plugin.PullMessageResultHandler;
@@ -65,6 +67,7 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 import org.apache.rocketmq.remoting.rpc.RpcClientUtils;
 import org.apache.rocketmq.remoting.rpc.RpcRequest;
 import org.apache.rocketmq.remoting.rpc.RpcResponse;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageFilter;
@@ -283,7 +286,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
-        return this.processRequest(ctx.channel(), request, true);
+        return this.processRequest(ctx.channel(), request, true, true);
     }
 
     @Override
@@ -295,7 +298,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
+    private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend, boolean brokerAllowFlowCtrSuspend)
         throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
         final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
@@ -484,6 +487,32 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         final MessageStore messageStore = brokerController.getMessageStore();
+        if (this.brokerController.getMessageStore() instanceof DefaultMessageStore) {
+            DefaultMessageStore defaultMessageStore = (DefaultMessageStore)this.brokerController.getMessageStore();
+            boolean cgNeedColdDataFlowCtr = brokerController.getColdDataCgCtrService().isCgNeedColdDataFlowCtr(requestHeader.getConsumerGroup());
+            if (cgNeedColdDataFlowCtr) {
+                boolean isMsgLogicCold = defaultMessageStore.getCommitLog()
+                    .getColdDataCheckService().isMsgInColdArea(requestHeader.getConsumerGroup(),
+                        requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getQueueOffset());
+                if (isMsgLogicCold) {
+                    ConsumeType consumeType = this.brokerController.getConsumerManager().getConsumerGroupInfo(requestHeader.getConsumerGroup()).getConsumeType();
+                    if (consumeType == ConsumeType.CONSUME_PASSIVELY) {
+                        response.setCode(ResponseCode.SYSTEM_BUSY);
+                        response.setRemark("This consumer group is reading cold data. It has been flow control");
+                        return response;
+                    } else if (consumeType == ConsumeType.CONSUME_ACTIVELY) {
+                        if (brokerAllowFlowCtrSuspend) {  // second arrived, which will not be held
+                            PullRequest pullRequest = new PullRequest(request, channel, 1000,
+                                this.brokerController.getMessageStore().now(), requestHeader.getQueueOffset(), subscriptionData, messageFilter);
+                            this.brokerController.getColdDataPullRequestHoldService().suspendColdDataReadRequest(pullRequest);
+                            return null;
+                        }
+                        requestHeader.setMaxMsgNums(1);
+                    }
+                }
+            }
+        }
+
         final boolean useResetOffsetFeature = brokerController.getBrokerConfig().isUseServerSideResetOffset();
         String topic = requestHeader.getTopic();
         String group = requestHeader.getConsumerGroup();
@@ -515,7 +544,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             finalResponse.setRemark("store getMessage return null");
                             return finalResponse;
                         }
-
+                        brokerController.getColdDataCgCtrService().coldAcc(requestHeader.getConsumerGroup(), result.getColdDataSum());
                         return pullMessageResultHandler.handle(
                             result,
                             request,
@@ -555,6 +584,15 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         return consumeMessageHookList != null && !this.consumeMessageHookList.isEmpty();
     }
 
+    /**
+     * Composes the header of the response message to be sent back to the client
+     * @param requestHeader - the header of the request message
+     * @param getMessageResult - the result of the GetMessage request
+     * @param topicSysFlag - the system flag of the topic
+     * @param subscriptionGroupConfig - configuration of the subscription group
+     * @param response - the response message to be sent back to the client
+     * @param clientAddress - the address of the client
+     */
     protected void composeResponseHeader(PullMessageRequestHeader requestHeader, GetMessageResult getMessageResult,
         int topicSysFlag, SubscriptionGroupConfig subscriptionGroupConfig, RemotingCommand response,
         String clientAddress) {
@@ -572,6 +610,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 response.setCode(ResponseCode.SUCCESS);
                 break;
             case MESSAGE_WAS_REMOVING:
+            case NO_MATCHED_MESSAGE:
                 response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
                 break;
             case NO_MATCHED_LOGIC_QUEUE:
@@ -590,10 +629,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     response.setCode(ResponseCode.PULL_NOT_FOUND);
                 }
                 break;
-            case NO_MATCHED_MESSAGE:
-                response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
-                break;
             case OFFSET_FOUND_NULL:
+            case OFFSET_OVERFLOW_ONE:
                 response.setCode(ResponseCode.PULL_NOT_FOUND);
                 break;
             case OFFSET_OVERFLOW_BADLY:
@@ -601,9 +638,6 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 // XXX: warn and notify me
                 LOGGER.info("the request offset: {} over flow badly, fix to {}, broker max offset: {}, consumer: {}",
                     requestHeader.getQueueOffset(), getMessageResult.getNextBeginOffset(), getMessageResult.getMaxOffset(), clientAddress);
-                break;
-            case OFFSET_OVERFLOW_ONE:
-                response.setCode(ResponseCode.PULL_NOT_FOUND);
                 break;
             case OFFSET_RESET:
                 response.setCode(ResponseCode.PULL_OFFSET_MOVED);
@@ -741,7 +775,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
     public void executeRequestWhenWakeup(final Channel channel, final RemotingCommand request) {
         Runnable run = () -> {
             try {
-                final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false);
+                boolean brokerAllowFlowCtrSuspend = !(request.getExtFields() != null && request.getExtFields().containsKey(ColdDataPullRequestHoldService.NO_SUSPEND_KEY));
+                final RemotingCommand response = PullMessageProcessor.this.processRequest(channel, request, false, brokerAllowFlowCtrSuspend);
 
                 if (response != null) {
                     response.setOpaque(request.getOpaque());

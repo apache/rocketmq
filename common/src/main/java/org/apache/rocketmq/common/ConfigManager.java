@@ -18,6 +18,8 @@ package org.apache.rocketmq.common;
 
 import java.io.IOException;
 import java.util.Map;
+
+import org.apache.rocketmq.common.config.RocksDBConfigManager;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -25,7 +27,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 public abstract class ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
-    public abstract String encode();
+    protected RocksDBConfigManager rocksDBConfigManager;
 
     public boolean load() {
         String fileName = null;
@@ -46,8 +48,6 @@ public abstract class ConfigManager {
         }
     }
 
-    public abstract String configFilePath();
-
     private boolean loadBak() {
         String fileName = null;
         try {
@@ -65,8 +65,6 @@ public abstract class ConfigManager {
 
         return true;
     }
-
-    public abstract void decode(final String jsonString);
 
     public synchronized <T> void persist(String topicName, T t) {
         // stub for future
@@ -90,5 +88,19 @@ public abstract class ConfigManager {
         }
     }
 
+    protected void decode0(final byte[] key, final byte[] body) {
+
+    }
+
+    public boolean stop() {
+        return true;
+    }
+
+    public abstract String configFilePath();
+
+    public abstract String encode();
+
     public abstract String encode(final boolean prettyFormat);
+
+    public abstract void decode(final String jsonString);
 }

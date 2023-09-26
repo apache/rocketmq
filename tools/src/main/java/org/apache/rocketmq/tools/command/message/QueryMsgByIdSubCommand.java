@@ -186,7 +186,7 @@ public class QueryMsgByIdSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Query Message by Id";
+        return "Query Message by Id.";
     }
 
     @Override

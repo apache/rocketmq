@@ -234,7 +234,7 @@ public class ReplyMessageProcessor extends AbstractSendMessageProcessor {
         } else {
             response.setCode(ResponseCode.SUCCESS);
             response.setRemark(null);
-            //set to zore to avoid client decoding exception
+            //set to zero to avoid client decoding exception
             responseHeader.setMsgId("0");
             responseHeader.setQueueId(queueIdInt);
             responseHeader.setQueueOffset(0L);

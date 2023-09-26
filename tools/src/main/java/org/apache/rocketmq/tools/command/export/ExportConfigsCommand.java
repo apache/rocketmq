@@ -42,7 +42,7 @@ public class ExportConfigsCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Export configs";
+        return "Export configs.";
     }
 
     @Override

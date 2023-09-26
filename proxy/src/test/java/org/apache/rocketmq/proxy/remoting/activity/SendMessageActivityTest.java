@@ -76,7 +76,7 @@ public class SendMessageActivityTest extends InitConfigTest {
 
     @Test
     public void testSendMessage() throws Exception {
-        when(metadataServiceMock.getTopicMessageType(eq(topic))).thenReturn(TopicMessageType.NORMAL);
+        when(metadataServiceMock.getTopicMessageType(any(), eq(topic))).thenReturn(TopicMessageType.NORMAL);
         Message message = new Message(topic, "123".getBytes());
         message.putUserProperty("a", "b");
         SendMessageRequestHeader sendMessageRequestHeader = new SendMessageRequestHeader();

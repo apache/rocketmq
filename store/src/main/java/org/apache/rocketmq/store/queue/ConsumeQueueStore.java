@@ -24,7 +24,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
@@ -34,6 +33,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.CommitLog;
@@ -61,12 +61,8 @@ public class ConsumeQueueStore {
 
     protected final DefaultMessageStore messageStore;
     protected final MessageStoreConfig messageStoreConfig;
-    protected final QueueOffsetAssigner queueOffsetAssigner = new QueueOffsetAssigner();
+    protected final QueueOffsetOperator queueOffsetOperator = new QueueOffsetOperator();
     protected final ConcurrentMap<String/* topic */, ConcurrentMap<Integer/* queueId */, ConsumeQueueInterface>> consumeQueueTable;
-
-    // Should be careful, do not change the topic config
-    // TopicConfigManager is more suitable here.
-    private ConcurrentMap<String, TopicConfig> topicConfigTable;
 
     public ConsumeQueueStore(DefaultMessageStore messageStore, MessageStoreConfig messageStoreConfig) {
         this.messageStore = messageStore;
@@ -74,12 +70,8 @@ public class ConsumeQueueStore {
         this.consumeQueueTable = new ConcurrentHashMap<>(32);
     }
 
-    public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
-        this.topicConfigTable = topicConfigTable;
-    }
-
     private FileQueueLifeCycle getLifeCycle(String topic, int queueId) {
-        return (FileQueueLifeCycle) findOrCreateConsumeQueue(topic, queueId);
+        return findOrCreateConsumeQueue(topic, queueId);
     }
 
     public long rollNextFile(ConsumeQueueInterface consumeQueue, final long offset) {
@@ -95,7 +87,7 @@ public class ConsumeQueueStore {
      * Apply the dispatched request and build the consume queue. This function should be idempotent.
      *
      * @param consumeQueue consume queue
-     * @param request      dispatch request
+     * @param request dispatch request
      */
     public void putMessagePositionInfoWrapper(ConsumeQueueInterface consumeQueue, DispatchRequest request) {
         consumeQueue.putMessagePositionInfoWrapper(request);
@@ -173,9 +165,9 @@ public class ConsumeQueueStore {
     }
 
     private void queueTypeShouldBe(String topic, CQType cqTypeExpected) {
-        TopicConfig topicConfig = this.topicConfigTable == null ? null : this.topicConfigTable.get(topic);
+        Optional<TopicConfig> topicConfig = this.messageStore.getTopicConfig(topic);
 
-        CQType cqTypeActual = QueueTypeUtils.getCQType(Optional.ofNullable(topicConfig));
+        CQType cqTypeActual = QueueTypeUtils.getCQType(topicConfig);
 
         if (!Objects.equals(cqTypeExpected, cqTypeActual)) {
             throw new RuntimeException(format("The queue type of topic: %s should be %s, but is %s", topic, cqTypeExpected, cqTypeActual));
@@ -183,7 +175,7 @@ public class ConsumeQueueStore {
     }
 
     private ExecutorService buildExecutorService(BlockingQueue<Runnable> blockingQueue, String threadNamePrefix) {
-        return new ThreadPoolExecutor(
+        return ThreadUtils.newThreadPoolExecutor(
             this.messageStore.getBrokerConfig().getRecoverThreadPoolNums(),
             this.messageStore.getBrokerConfig().getRecoverThreadPoolNums(),
             1000 * 60,
@@ -220,7 +212,7 @@ public class ConsumeQueueStore {
                     FutureTask<Boolean> futureTask = new FutureTask<>(() -> {
                         boolean ret = true;
                         try {
-                            ((FileQueueLifeCycle) logic).recover();
+                            logic.recover();
                         } catch (Throwable e) {
                             ret = false;
                             log.error("Exception occurs while recover consume queue concurrently, " +
@@ -341,7 +333,7 @@ public class ConsumeQueueStore {
 
         ConsumeQueueInterface newLogic;
 
-        Optional<TopicConfig> topicConfig = this.getTopicConfig(topic);
+        Optional<TopicConfig> topicConfig = this.messageStore.getTopicConfig(topic);
         // TODO maybe the topic has been deleted.
         if (Objects.equals(CQType.BatchCQ, QueueTypeUtils.getCQType(topicConfig))) {
             newLogic = new BatchConsumeQueue(
@@ -370,34 +362,39 @@ public class ConsumeQueueStore {
     }
 
     public Long getMaxOffset(String topic, int queueId) {
-        return this.queueOffsetAssigner.currentQueueOffset(topic + "-" + queueId);
+        return this.queueOffsetOperator.currentQueueOffset(topic + "-" + queueId);
     }
 
     public void setTopicQueueTable(ConcurrentMap<String, Long> topicQueueTable) {
-        this.queueOffsetAssigner.setTopicQueueTable(topicQueueTable);
-        this.queueOffsetAssigner.setLmqTopicQueueTable(topicQueueTable);
+        this.queueOffsetOperator.setTopicQueueTable(topicQueueTable);
+        this.queueOffsetOperator.setLmqTopicQueueTable(topicQueueTable);
     }
 
     public ConcurrentMap getTopicQueueTable() {
-        return this.queueOffsetAssigner.getTopicQueueTable();
+        return this.queueOffsetOperator.getTopicQueueTable();
     }
 
     public void setBatchTopicQueueTable(ConcurrentMap<String, Long> batchTopicQueueTable) {
-        this.queueOffsetAssigner.setBatchTopicQueueTable(batchTopicQueueTable);
+        this.queueOffsetOperator.setBatchTopicQueueTable(batchTopicQueueTable);
     }
 
-    public void assignQueueOffset(MessageExtBrokerInner msg, short messageNum) {
+    public void assignQueueOffset(MessageExtBrokerInner msg) {
         ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(msg.getTopic(), msg.getQueueId());
-        consumeQueue.assignQueueOffset(this.queueOffsetAssigner, msg, messageNum);
+        consumeQueue.assignQueueOffset(this.queueOffsetOperator, msg);
+    }
+
+    public void increaseQueueOffset(MessageExtBrokerInner msg, short messageNum) {
+        ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(msg.getTopic(), msg.getQueueId());
+        consumeQueue.increaseQueueOffset(this.queueOffsetOperator, msg, messageNum);
     }
 
     public void updateQueueOffset(String topic, int queueId, long offset) {
         String topicQueueKey = topic + "-" + queueId;
-        this.queueOffsetAssigner.updateQueueOffset(topicQueueKey, offset);
+        this.queueOffsetOperator.updateQueueOffset(topicQueueKey, offset);
     }
 
     public void removeTopicQueueTable(String topic, Integer queueId) {
-        this.queueOffsetAssigner.remove(topic, queueId);
+        this.queueOffsetOperator.remove(topic, queueId);
     }
 
     public ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> getConsumeQueueTable() {
@@ -535,18 +532,6 @@ public class ConsumeQueueStore {
                 this.truncateDirtyLogicFiles(logic, phyOffset);
             }
         }
-    }
-
-    public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
-        return this.topicConfigTable;
-    }
-
-    public Optional<TopicConfig> getTopicConfig(String topic) {
-        if (this.topicConfigTable == null) {
-            return Optional.empty();
-        }
-
-        return Optional.ofNullable(this.topicConfigTable.get(topic));
     }
 
     public long getTotalSize() {

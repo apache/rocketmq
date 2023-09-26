@@ -40,7 +40,6 @@ import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.QueueSelector;
-import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.MessageQueueSelector;
 import org.apache.rocketmq.proxy.service.route.MessageQueueView;
@@ -48,13 +47,11 @@ import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 public class ReceiveMessageActivity extends AbstractMessingActivity {
-    protected ReceiptHandleProcessor receiptHandleProcessor;
     private static final String ILLEGAL_POLLING_TIME_INTRODUCED_CLIENT_VERSION = "5.0.3";
 
-    public ReceiveMessageActivity(MessagingProcessor messagingProcessor, ReceiptHandleProcessor receiptHandleProcessor,
+    public ReceiveMessageActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
-        this.receiptHandleProcessor = receiptHandleProcessor;
     }
 
     public void receiveMessage(ProxyContext ctx, ReceiveMessageRequest request,
@@ -133,6 +130,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                     subscriptionData,
                     fifo,
                     new PopMessageResultFilterImpl(maxAttempts),
+                    request.hasAttemptId() ? request.getAttemptId() : null,
                     timeRemaining
                 ).thenAccept(popResult -> {
                     if (proxyConfig.isEnableProxyAutoRenew() && request.getAutoRenew()) {
@@ -144,7 +142,7 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
                                     MessageReceiptHandle messageReceiptHandle =
                                         new MessageReceiptHandle(group, topic, messageExt.getQueueId(), receiptHandle, messageExt.getMsgId(),
                                             messageExt.getQueueOffset(), messageExt.getReconsumeTimes());
-                                    receiptHandleProcessor.addReceiptHandle(grpcChannelManager.getChannel(ctx.getClientID()), group, messageExt.getMsgId(), receiptHandle, messageReceiptHandle);
+                                    messagingProcessor.addReceiptHandle(ctx, grpcChannelManager.getChannel(ctx.getClientID()), group, messageExt.getMsgId(), messageReceiptHandle);
                                 }
                             }
                         }

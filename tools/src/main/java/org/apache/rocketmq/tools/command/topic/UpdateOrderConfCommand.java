@@ -36,7 +36,7 @@ public class UpdateOrderConfCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Create or update or delete order conf";
+        return "Create or update or delete order conf.";
     }
 
     @Override

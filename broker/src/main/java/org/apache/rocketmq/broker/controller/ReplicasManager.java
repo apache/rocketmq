@@ -27,10 +27,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
@@ -42,6 +40,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.EpochEntry;
@@ -93,8 +92,6 @@ public class ReplicasManager {
 
     private Long masterBrokerId;
 
-    private volatile int originalBrokerPermission = 0;
-
     private BrokerMetadata brokerMetadata;
 
     private TempBrokerMetadata tempBrokerMetadata;
@@ -109,9 +106,9 @@ public class ReplicasManager {
     public ReplicasManager(final BrokerController brokerController) {
         this.brokerController = brokerController;
         this.brokerOuterAPI = brokerController.getBrokerOuterAPI();
-        this.scheduledService = Executors.newScheduledThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ScheduledService_", brokerController.getBrokerIdentity()));
-        this.executorService = Executors.newFixedThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ExecutorService_", brokerController.getBrokerIdentity()));
-        this.scanExecutor = new ThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
+        this.scheduledService = ThreadUtils.newScheduledThreadPool(3, new ThreadFactoryImpl("ReplicasManager_ScheduledService_", brokerController.getBrokerIdentity()));
+        this.executorService = ThreadUtils.newThreadPoolExecutor(3, new ThreadFactoryImpl("ReplicasManager_ExecutorService_", brokerController.getBrokerIdentity()));
+        this.scanExecutor = ThreadUtils.newThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("ReplicasManager_scan_thread_", brokerController.getBrokerIdentity()));
         this.haService = (AutoSwitchHAService) brokerController.getMessageStore().getHaService();
         this.brokerConfig = brokerController.getBrokerConfig();
@@ -120,10 +117,6 @@ public class ReplicasManager {
         this.brokerAddress = brokerController.getBrokerAddr();
         this.brokerMetadata = new BrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathBrokerIdentity());
         this.tempBrokerMetadata = new TempBrokerMetadata(this.brokerController.getMessageStoreConfig().getStorePathBrokerIdentity() + "-temp");
-    }
-
-    public long getConfirmOffset() {
-        return this.haService.getConfirmOffset();
     }
 
     enum State {
@@ -207,7 +200,7 @@ public class ReplicasManager {
             if (this.masterBrokerId != null || brokerElect()) {
                 LOGGER.info("Master in this broker set is elected, masterBrokerId: {}, masterBrokerAddr: {}", this.masterBrokerId, this.masterAddress);
                 this.state = State.RUNNING;
-                setIsolatedAndBrokerPermission(true);
+                setFenced(false);
                 LOGGER.info("All register process has been done, change state to: {}", this.state);
             } else {
                 return false;
@@ -245,7 +238,6 @@ public class ReplicasManager {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.brokerAddress, newMasterEpoch);
-
                 this.masterEpoch = newMasterEpoch;
                 if (this.masterBrokerId != null && this.masterBrokerId.equals(this.brokerControllerId) && this.brokerController.getBrokerConfig().getBrokerId() == MixAll.MASTER_ID) {
                     // Change SyncStateSet
@@ -419,7 +411,7 @@ public class ReplicasManager {
                     this.brokerConfig.getSendHeartbeatTimeoutMillis(),
                     this.brokerConfig.isInBrokerContainer(), this.getLastEpoch(),
                     this.brokerController.getMessageStore().getMaxPhyOffset(),
-                    this.getConfirmOffset(),
+                    this.brokerController.getMessageStore().getConfirmOffset(),
                     this.brokerConfig.getControllerHeartBeatTimeoutMills(),
                     this.brokerConfig.getBrokerElectionPriority()
                 );
@@ -549,6 +541,7 @@ public class ReplicasManager {
             this.brokerMetadata.updateAndPersist(brokerConfig.getBrokerClusterName(), brokerConfig.getBrokerName(), tempBrokerMetadata.getBrokerId());
             this.tempBrokerMetadata.clear();
             this.brokerControllerId = this.brokerMetadata.getBrokerId();
+            this.haService.setLocalBrokerId(this.brokerControllerId);
             return true;
         } catch (Exception e) {
             LOGGER.error("fail to create metadata file", e);
@@ -600,6 +593,7 @@ public class ReplicasManager {
         if (this.brokerMetadata.isLoaded()) {
             this.registerState = RegisterState.CREATE_METADATA_FILE_DONE;
             this.brokerControllerId = brokerMetadata.getBrokerId();
+            this.haService.setLocalBrokerId(this.brokerControllerId);
             return;
         }
         // 2. check if temp metadata exist
@@ -740,23 +734,26 @@ public class ReplicasManager {
         if (this.checkSyncStateSetTaskFuture != null) {
             this.checkSyncStateSetTaskFuture.cancel(false);
         }
-        this.checkSyncStateSetTaskFuture = this.scheduledService.scheduleAtFixedRate(() -> {
-            checkSyncStateSetAndDoReport();
-        }, 3 * 1000, this.brokerConfig.getCheckSyncStateSetPeriod(), TimeUnit.MILLISECONDS);
+        this.checkSyncStateSetTaskFuture = this.scheduledService.scheduleAtFixedRate(this::checkSyncStateSetAndDoReport, 3 * 1000,
+            this.brokerConfig.getCheckSyncStateSetPeriod(), TimeUnit.MILLISECONDS);
     }
 
     private void checkSyncStateSetAndDoReport() {
-        final Set<Long> newSyncStateSet = this.haService.maybeShrinkSyncStateSet();
-        newSyncStateSet.add(this.brokerControllerId);
-        synchronized (this) {
-            if (this.syncStateSet != null) {
-                // Check if syncStateSet changed
-                if (this.syncStateSet.size() == newSyncStateSet.size() && this.syncStateSet.containsAll(newSyncStateSet)) {
-                    return;
+        try {
+            final Set<Long> newSyncStateSet = this.haService.maybeShrinkSyncStateSet();
+            newSyncStateSet.add(this.brokerControllerId);
+            synchronized (this) {
+                if (this.syncStateSet != null) {
+                    // Check if syncStateSet changed
+                    if (this.syncStateSet.size() == newSyncStateSet.size() && this.syncStateSet.containsAll(newSyncStateSet)) {
+                        return;
+                    }
                 }
             }
+            doReportSyncStateSetChanged(newSyncStateSet);
+        } catch (Exception e) {
+            LOGGER.error("Check syncStateSet error", e);
         }
-        doReportSyncStateSetChanged(newSyncStateSet);
     }
 
     private void doReportSyncStateSetChanged(Set<Long> newSyncStateSet) {
@@ -875,15 +872,8 @@ public class ReplicasManager {
         return tempBrokerMetadata;
     }
 
-    public void setIsolatedAndBrokerPermission(boolean isBrokerRoleConfirmed) {
-        if (isBrokerRoleConfirmed) {
-            this.brokerController.setIsolated(false);
-            this.brokerConfig.setBrokerPermission(this.originalBrokerPermission);
-        } else {
-            // prohibit writing and reading before confirming the broker role
-            this.brokerController.setIsolated(true);
-            this.originalBrokerPermission = this.brokerConfig.getBrokerPermission();
-            this.brokerConfig.setBrokerPermission(0);
-        }
+    public void setFenced(boolean fenced) {
+        this.brokerController.setIsolated(fenced);
+        this.brokerController.getMessageStore().getRunningFlags().makeFenced(fenced);
     }
 }

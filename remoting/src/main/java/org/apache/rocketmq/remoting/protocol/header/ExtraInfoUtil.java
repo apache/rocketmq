@@ -26,7 +26,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 
 public class ExtraInfoUtil {
     private static final String NORMAL_TOPIC = "0";
-    private static final String RETRY_TOPIC = "1";
+    public static final String RETRY_TOPIC = "1";
     private static final String QUEUE_OFFSET = "qo";
 
     public static String[] split(String extraInfo) {
@@ -73,6 +73,17 @@ public class ExtraInfoUtil {
         } else {
             return topic;
         }
+    }
+
+    public static String getRealTopic(String topic, String cid, boolean isRetry) {
+        return isRetry ? KeyBuilder.buildPopRetryTopic(topic, cid) : topic;
+    }
+
+    public static String getRetry(String[] extraInfoStrs) {
+        if (extraInfoStrs == null || extraInfoStrs.length < 5) {
+            throw new IllegalArgumentException("getRetry fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
+        }
+        return extraInfoStrs[4];
     }
 
     public static String getBrokerName(String[] extraInfoStrs) {
@@ -269,6 +280,10 @@ public class ExtraInfoUtil {
 
     public static String getStartOffsetInfoMapKey(String topic, long key) {
         return (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) ? RETRY_TOPIC : NORMAL_TOPIC) + "@" + key;
+    }
+
+    public static String getStartOffsetInfoMapKey(String topic, String popCk, long key) {
+        return ((topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) || popCk != null) ? RETRY_TOPIC : NORMAL_TOPIC) + "@" + key;
     }
 
     public static String getQueueOffsetKeyValueKey(long queueId, long queueOffset) {

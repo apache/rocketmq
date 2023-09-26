@@ -18,6 +18,7 @@ package org.apache.rocketmq.controller.impl.heartbeat;
 
 import io.netty.channel.Channel;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -65,7 +67,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void initialize() {
-        this.scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_scheduledService_"));
+        this.scheduledService = ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_scheduledService_"));
         this.executor = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("DefaultBrokerHeartbeatManager_executorService_"));
     }
 
@@ -106,7 +108,8 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void onBrokerHeartbeat(String clusterName, String brokerName, String brokerAddr, Long brokerId,
-        Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset, Integer electionPriority) {
+        Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset,
+        Integer electionPriority) {
         BrokerIdentityInfo brokerIdentityInfo = new BrokerIdentityInfo(clusterName, brokerName, brokerId);
         BrokerLiveInfo prev = this.brokerLiveTable.get(brokerIdentityInfo);
         int realEpoch = Optional.ofNullable(epoch).orElse(-1);
@@ -173,4 +176,17 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
         return false;
     }
 
+    @Override
+    public Map<String, Map<String, Integer>> getActiveBrokersNum() {
+        Map<String, Map<String, Integer>> map = new HashMap<>();
+        this.brokerLiveTable.keySet().stream()
+            .filter(brokerIdentity -> this.isBrokerActive(brokerIdentity.getClusterName(), brokerIdentity.getBrokerName(), brokerIdentity.getBrokerId()))
+            .forEach(id -> {
+                map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
+                map.get(id.getClusterName()).compute(id.getBrokerName(), (broker, num) ->
+                    num == null ? 0 : num + 1
+                );
+            });
+        return map;
+    }
 }

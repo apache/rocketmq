@@ -37,7 +37,7 @@ public class CleanControllerBrokerMetaSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Clean metadata of broker on controller";
+        return "Clean metadata of broker on controller.";
     }
 
     @Override

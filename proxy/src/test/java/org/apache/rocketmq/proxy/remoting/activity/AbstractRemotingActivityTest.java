@@ -17,24 +17,29 @@
 
 package org.apache.rocketmq.proxy.remoting.activity;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.remoting.protocol.RequestCode;
-import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
+import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.netty.AttributeKeys;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,6 +47,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.util.concurrent.CompletableFuture;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -54,6 +61,8 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AbstractRemotingActivityTest extends InitConfigTest {
+
+    private static final String CLIENT_ID = "test@clientId";
     AbstractRemotingActivity remotingActivity;
     @Mock
     MessagingProcessor messagingProcessorMock;
@@ -74,14 +83,23 @@ public class AbstractRemotingActivityTest extends InitConfigTest {
                 return null;
             }
         };
+        Channel channel = ctx.channel();
+        RemotingHelper.setPropertyToAttr(channel, AttributeKeys.CLIENT_ID_KEY, CLIENT_ID);
+        RemotingHelper.setPropertyToAttr(channel, AttributeKeys.LANGUAGE_CODE_KEY, LanguageCode.JAVA);
+        RemotingHelper.setPropertyToAttr(channel, AttributeKeys.VERSION_KEY, MQVersion.CURRENT_VERSION);
     }
 
     @Test
-    public void testCreateContext() throws Exception {
+    public void testCreateContext() {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
         ProxyContext context = remotingActivity.createContext(ctx, request);
-        assertThat(context.getLanguage()).isEqualTo(LanguageCode.JAVA.name());
-        assertThat(context.getAction()).isEqualTo("Remoting" + RequestCode.PULL_MESSAGE);
+
+        Assert.assertEquals(context.getAction(), RemotingHelper.getRequestCodeDesc(RequestCode.PULL_MESSAGE));
+        Assert.assertEquals(context.getProtocolType(), ChannelProtocolType.REMOTING.getName());
+        Assert.assertEquals(context.getLanguage(), LanguageCode.JAVA.name());
+        Assert.assertEquals(context.getClientID(), CLIENT_ID);
+        Assert.assertEquals(context.getClientVersion(), MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
+
     }
 
     @Test

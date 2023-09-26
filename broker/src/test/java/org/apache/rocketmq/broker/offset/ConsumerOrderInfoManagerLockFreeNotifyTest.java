@@ -67,6 +67,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
     @Test
     public void testConsumeMessageThenNoAck() {
         consumerOrderInfoManager.update(
+            null,
             false,
             TOPIC,
             GROUP,
@@ -83,6 +84,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
     @Test
     public void testConsumeMessageThenAck() {
         consumerOrderInfoManager.update(
+            null,
             false,
             TOPIC,
             GROUP,
@@ -106,6 +108,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
     @Test
     public void testConsumeTheChangeInvisibleLonger() {
         consumerOrderInfoManager.update(
+            null,
             false,
             TOPIC,
             GROUP,
@@ -130,6 +133,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
     @Test
     public void testConsumeTheChangeInvisibleShorter() {
         consumerOrderInfoManager.update(
+            null,
             false,
             TOPIC,
             GROUP,
@@ -155,6 +159,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
     public void testRecover() {
         ConsumerOrderInfoManager savedConsumerOrderInfoManager = new ConsumerOrderInfoManager();
         savedConsumerOrderInfoManager.update(
+            null,
             false,
             TOPIC,
             GROUP,

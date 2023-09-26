@@ -30,7 +30,15 @@ public class ThreadLocalIndex {
             index = random.nextInt();
         }
         this.threadLocalIndex.set(++index);
-        return Math.abs(index & POSITIVE_MASK);
+        return index & POSITIVE_MASK;
+    }
+
+    public void reset() {
+        int index = Math.abs(random.nextInt(Integer.MAX_VALUE));
+        if (index < 0) {
+            index = 0;
+        }
+        this.threadLocalIndex.set(index);
     }
 
     @Override

@@ -162,7 +162,12 @@ public class DLedgerCommitLog extends CommitLog {
         if (!mappedFileQueue.getMappedFiles().isEmpty()) {
             return mappedFileQueue.getMinOffset();
         }
-        return dLedgerFileList.getMinOffset();
+        for (MmapFile file : dLedgerFileList.getMappedFiles()) {
+            if (file.isAvailable()) {
+                return file.getFileFromOffset() + file.getStartPosition();
+            }
+        }
+        return 0;
     }
 
     @Override
@@ -435,7 +440,7 @@ public class DLedgerCommitLog extends CommitLog {
         String topicQueueKey = msg.getTopic() + "-" + msg.getQueueId();
         topicQueueLock.lock(topicQueueKey);
         try {
-            defaultMessageStore.assignOffset(msg, getMessageNum(msg));
+            defaultMessageStore.assignOffset(msg);
 
             encodeResult = this.messageSerializer.serialize(msg);
             if (encodeResult.status != AppendMessageStatus.PUT_OK) {
@@ -475,6 +480,8 @@ public class DLedgerCommitLog extends CommitLog {
             if (elapsedTimeInLock > 500) {
                 log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, appendResult);
             }
+
+            defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
         } finally {
             topicQueueLock.unlock(topicQueueKey);
         }
@@ -556,7 +563,7 @@ public class DLedgerCommitLog extends CommitLog {
         int batchNum = encodeResult.batchData.size();
         topicQueueLock.lock(encodeResult.queueOffsetKey);
         try {
-            defaultMessageStore.assignOffset(messageExtBatch, (short) batchNum);
+            defaultMessageStore.assignOffset(messageExtBatch);
 
             putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
             msgIdBuilder.setLength(0);
@@ -616,6 +623,9 @@ public class DLedgerCommitLog extends CommitLog {
                 log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}",
                     elapsedTimeInLock, messageExtBatch.getBody().length, appendResult);
             }
+
+            defaultMessageStore.increaseOffset(messageExtBatch, (short) batchNum);
+
         } finally {
             topicQueueLock.unlock(encodeResult.queueOffsetKey);
         }

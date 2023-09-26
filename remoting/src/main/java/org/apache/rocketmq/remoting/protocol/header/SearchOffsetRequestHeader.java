@@ -21,6 +21,7 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
@@ -32,6 +33,8 @@ public class SearchOffsetRequestHeader extends TopicQueueRequestHeader {
     private Integer queueId;
     @CFNotNull
     private Long timestamp;
+
+    private BoundaryType boundaryType;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -66,12 +69,22 @@ public class SearchOffsetRequestHeader extends TopicQueueRequestHeader {
         this.timestamp = timestamp;
     }
 
+    public BoundaryType getBoundaryType() {
+        // default return LOWER
+        return boundaryType == null ? BoundaryType.LOWER : boundaryType;
+    }
+
+    public void setBoundaryType(BoundaryType boundaryType) {
+        this.boundaryType = boundaryType;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("topic", topic)
             .add("queueId", queueId)
             .add("timestamp", timestamp)
+            .add("boundaryType", boundaryType.getName())
             .toString();
     }
 }

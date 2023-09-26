@@ -21,6 +21,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
 import java.util.HashSet;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.remoting.RemotingProxyOutClient;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
@@ -46,6 +47,7 @@ public class RemotingChannelManagerTest {
     private final String remoteAddress = "10.152.39.53:9768";
     private final String localAddress = "11.193.0.1:1210";
     private RemotingChannelManager remotingChannelManager;
+    private final ProxyContext ctx = ProxyContext.createForInner(this.getClass());
 
     @Before
     public void before() {
@@ -58,13 +60,13 @@ public class RemotingChannelManagerTest {
         String clientId = RandomStringUtils.randomAlphabetic(10);
 
         Channel producerChannel = createMockChannel();
-        RemotingChannel producerRemotingChannel = this.remotingChannelManager.createProducerChannel(producerChannel, group, clientId);
+        RemotingChannel producerRemotingChannel = this.remotingChannelManager.createProducerChannel(ctx, producerChannel, group, clientId);
         assertNotNull(producerRemotingChannel);
-        assertSame(producerRemotingChannel, this.remotingChannelManager.createProducerChannel(producerChannel, group, clientId));
+        assertSame(producerRemotingChannel, this.remotingChannelManager.createProducerChannel(ctx, producerChannel, group, clientId));
 
         Channel consumerChannel = createMockChannel();
-        RemotingChannel consumerRemotingChannel = this.remotingChannelManager.createConsumerChannel(consumerChannel, group, clientId, new HashSet<>());
-        assertSame(consumerRemotingChannel, this.remotingChannelManager.createConsumerChannel(consumerChannel, group, clientId, new HashSet<>()));
+        RemotingChannel consumerRemotingChannel = this.remotingChannelManager.createConsumerChannel(ctx, consumerChannel, group, clientId, new HashSet<>());
+        assertSame(consumerRemotingChannel, this.remotingChannelManager.createConsumerChannel(ctx, consumerChannel, group, clientId, new HashSet<>()));
         assertNotNull(consumerRemotingChannel);
 
         assertNotSame(producerRemotingChannel, consumerRemotingChannel);
@@ -77,14 +79,14 @@ public class RemotingChannelManagerTest {
 
         {
             Channel producerChannel = createMockChannel();
-            RemotingChannel producerRemotingChannel = this.remotingChannelManager.createProducerChannel(producerChannel, group, clientId);
-            assertSame(producerRemotingChannel, this.remotingChannelManager.removeProducerChannel(group, producerRemotingChannel));
+            RemotingChannel producerRemotingChannel = this.remotingChannelManager.createProducerChannel(ctx, producerChannel, group, clientId);
+            assertSame(producerRemotingChannel, this.remotingChannelManager.removeProducerChannel(ctx, group, producerRemotingChannel));
             assertTrue(this.remotingChannelManager.groupChannelMap.isEmpty());
         }
         {
             Channel producerChannel = createMockChannel();
-            RemotingChannel producerRemotingChannel = this.remotingChannelManager.createProducerChannel(producerChannel, group, clientId);
-            assertSame(producerRemotingChannel, this.remotingChannelManager.removeProducerChannel(group, producerChannel));
+            RemotingChannel producerRemotingChannel = this.remotingChannelManager.createProducerChannel(ctx, producerChannel, group, clientId);
+            assertSame(producerRemotingChannel, this.remotingChannelManager.removeProducerChannel(ctx, group, producerChannel));
             assertTrue(this.remotingChannelManager.groupChannelMap.isEmpty());
         }
     }
@@ -96,14 +98,14 @@ public class RemotingChannelManagerTest {
 
         {
             Channel consumerChannel = createMockChannel();
-            RemotingChannel consumerRemotingChannel = this.remotingChannelManager.createConsumerChannel(consumerChannel, group, clientId, new HashSet<>());
-            assertSame(consumerRemotingChannel, this.remotingChannelManager.removeConsumerChannel(group, consumerRemotingChannel));
+            RemotingChannel consumerRemotingChannel = this.remotingChannelManager.createConsumerChannel(ctx, consumerChannel, group, clientId, new HashSet<>());
+            assertSame(consumerRemotingChannel, this.remotingChannelManager.removeConsumerChannel(ctx, group, consumerRemotingChannel));
             assertTrue(this.remotingChannelManager.groupChannelMap.isEmpty());
         }
         {
             Channel consumerChannel = createMockChannel();
-            RemotingChannel consumerRemotingChannel = this.remotingChannelManager.createConsumerChannel(consumerChannel, group, clientId, new HashSet<>());
-            assertSame(consumerRemotingChannel, this.remotingChannelManager.removeConsumerChannel(group, consumerChannel));
+            RemotingChannel consumerRemotingChannel = this.remotingChannelManager.createConsumerChannel(ctx, consumerChannel, group, clientId, new HashSet<>());
+            assertSame(consumerRemotingChannel, this.remotingChannelManager.removeConsumerChannel(ctx, group, consumerChannel));
             assertTrue(this.remotingChannelManager.groupChannelMap.isEmpty());
         }
     }
@@ -115,9 +117,9 @@ public class RemotingChannelManagerTest {
         String clientId = RandomStringUtils.randomAlphabetic(10);
 
         Channel consumerChannel = createMockChannel();
-        RemotingChannel consumerRemotingChannel = this.remotingChannelManager.createConsumerChannel(consumerChannel, consumerGroup, clientId, new HashSet<>());
+        RemotingChannel consumerRemotingChannel = this.remotingChannelManager.createConsumerChannel(ctx, consumerChannel, consumerGroup, clientId, new HashSet<>());
         Channel producerChannel = createMockChannel();
-        RemotingChannel producerRemotingChannel = this.remotingChannelManager.createProducerChannel(producerChannel, producerGroup, clientId);
+        RemotingChannel producerRemotingChannel = this.remotingChannelManager.createProducerChannel(ctx, producerChannel, producerGroup, clientId);
 
         assertSame(consumerRemotingChannel, this.remotingChannelManager.removeChannel(consumerChannel).stream().findFirst().get());
         assertSame(producerRemotingChannel, this.remotingChannelManager.removeChannel(producerChannel).stream().findFirst().get());

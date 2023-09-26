@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store.ha.autoswitch;
 
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -29,6 +30,7 @@ import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MappedFileQueue;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.StoreCheckpoint;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -215,7 +217,7 @@ public class AutoSwitchHATest {
         assertTrue(masterAndPutMessage);
         checkMessage(this.messageStore2, 10, 0);
 
-        final long confirmOffset = ((AutoSwitchHAService) this.messageStore1.getHaService()).getConfirmOffset();
+        final long confirmOffset = this.messageStore1.getConfirmOffset();
 
         // Step2, shutdown store2
         this.messageStore2.shutdown();
@@ -225,16 +227,18 @@ public class AutoSwitchHATest {
         assertEquals(putMessageResult.getPutMessageStatus(), PutMessageStatus.FLUSH_SLAVE_TIMEOUT);
 
         // The confirmOffset still don't change, because syncStateSet contains broker2, but broker2 shutdown
-        assertEquals(confirmOffset, ((AutoSwitchHAService) this.messageStore1.getHaService()).getConfirmOffset());
+        assertEquals(confirmOffset, this.messageStore1.getConfirmOffset());
 
         // Step3, shutdown store1, start store2, change store2 to master, epoch = 2
         this.messageStore1.shutdown();
 
         storeConfig2.setBrokerRole(BrokerRole.SYNC_MASTER);
         messageStore2 = buildMessageStore(storeConfig2, 2L);
+        messageStore2.getRunningFlags().makeFenced(true);
         assertTrue(messageStore2.load());
         messageStore2.start();
         messageStore2.getHaService().changeToMaster(2);
+        messageStore2.getRunningFlags().makeFenced(false);
         ((AutoSwitchHAService) messageStore2.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(2L)));
 
         // Put message on master
@@ -462,7 +466,7 @@ public class AutoSwitchHATest {
 
         // Step2: check flag SynchronizingSyncStateSet
         Assert.assertTrue(masterHAService.isSynchronizingSyncStateSet());
-        Assert.assertEquals(masterHAService.getConfirmOffset(), 1570);
+        Assert.assertEquals(this.messageStore1.getConfirmOffset(), 1570);
         Set<Long> syncStateSet = masterHAService.getSyncStateSet();
         Assert.assertEquals(syncStateSet.size(), 2);
         Assert.assertTrue(syncStateSet.contains(1L));
@@ -474,6 +478,29 @@ public class AutoSwitchHATest {
                 }};
         masterHAService.setSyncStateSet(newSyncStateSet);
         Assert.assertFalse(masterHAService.isSynchronizingSyncStateSet());
+    }
+
+    @Test
+    public void testBuildConsumeQueueNotExceedConfirmOffset() throws Exception {
+        init(defaultMappedFileSize);
+        ((AutoSwitchHAService) this.messageStore1.getHaService()).setSyncStateSet(new HashSet<>(Collections.singletonList(1L)));
+        changeMasterAndPutMessage(this.messageStore1, this.storeConfig1, this.messageStore2, 2, this.storeConfig2, 1, store1HaAddress, 10);
+        checkMessage(this.messageStore2, 10, 0);
+
+        long tmpConfirmOffset = this.messageStore2.getConfirmOffset();
+        long setConfirmOffset = this.messageStore2.getConfirmOffset() - this.messageStore2.getConfirmOffset() / 2;
+        messageStore2.shutdown();
+        StoreCheckpoint storeCheckpoint = new StoreCheckpoint(storeConfig2.getStorePathRootDir() + File.separator + "checkpoint");
+        assertEquals(tmpConfirmOffset, storeCheckpoint.getConfirmPhyOffset());
+        storeCheckpoint.setConfirmPhyOffset(setConfirmOffset);
+        storeCheckpoint.shutdown();
+        messageStore2 = buildMessageStore(storeConfig2, 2L);
+        messageStore2.getRunningFlags().makeFenced(true);
+        assertTrue(messageStore2.load());
+        messageStore2.start();
+        messageStore2.getRunningFlags().makeFenced(false);
+        assertEquals(setConfirmOffset, messageStore2.getConfirmOffset());
+        checkMessage(this.messageStore2, 5, 0);
     }
 
     @After
@@ -499,7 +526,7 @@ public class AutoSwitchHATest {
         BrokerConfig brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerId(brokerId);
         brokerConfig.setEnableControllerMode(true);
-        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig);
+        return new DefaultMessageStore(messageStoreConfig, brokerStatsManager, null, brokerConfig, new ConcurrentHashMap<>());
     }
 
     private void buildMessageStoreConfig(MessageStoreConfig messageStoreConfig, int mappedFileSize) {

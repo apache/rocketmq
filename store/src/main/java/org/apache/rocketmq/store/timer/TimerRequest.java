@@ -27,8 +27,9 @@ public class TimerRequest {
     private final int sizePy;
     private final long delayTime;
 
-    private final long enqueueTime;
     private final int magic;
+
+    private long enqueueTime;
     private MessageExt msg;
 
 
@@ -94,7 +95,9 @@ public class TimerRequest {
     public void setLatch(CountDownLatch latch) {
         this.latch = latch;
     }
-
+    public void setEnqueueTime(long enqueueTime) {
+        this.enqueueTime = enqueueTime;
+    }
     public void idempotentRelease() {
         idempotentRelease(true);
     }
@@ -109,5 +112,21 @@ public class TimerRequest {
 
     public boolean isSucc() {
         return succ;
+    }
+
+    @Override
+    public String toString() {
+        return "TimerRequest{" +
+            "offsetPy=" + offsetPy +
+            ", sizePy=" + sizePy +
+            ", delayTime=" + delayTime +
+            ", enqueueTime=" + enqueueTime +
+            ", magic=" + magic +
+            ", msg=" + msg +
+            ", latch=" + latch +
+            ", released=" + released +
+            ", succ=" + succ +
+            ", deleteList=" + deleteList +
+            '}';
     }
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.tieredstore.util;
 
+import com.google.common.annotations.VisibleForTesting;
+import java.io.File;
 import java.lang.reflect.Constructor;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +27,7 @@ import java.text.NumberFormat;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -32,6 +35,7 @@ import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 
 public class TieredStoreUtil {
+
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     public static final long BYTE = 1L;
@@ -56,7 +60,8 @@ public class TieredStoreUtil {
 
     private final static List<String> SYSTEM_TOPIC_WHITE_LIST = new LinkedList<>();
 
-    private volatile static TieredMetadataStore metadataStoreInstance;
+    @VisibleForTesting
+    public volatile static TieredMetadataStore metadataStoreInstance;
 
     private static String formatSize(long size, long divider, String unitName) {
         return DEC_FORMAT.format((double) size / divider) + unitName;
@@ -143,15 +148,23 @@ public class TieredStoreUtil {
             synchronized (TieredMetadataStore.class) {
                 if (metadataStoreInstance == null) {
                     try {
-                        Class<? extends TieredMetadataStore> clazz = Class.forName(storeConfig.getTieredMetadataServiceProvider()).asSubclass(TieredMetadataStore.class);
-                        Constructor<? extends TieredMetadataStore> constructor = clazz.getConstructor(TieredMessageStoreConfig.class);
+                        Class<? extends TieredMetadataStore> clazz = Class.forName(
+                            storeConfig.getTieredMetadataServiceProvider()).asSubclass(TieredMetadataStore.class);
+                        Constructor<? extends TieredMetadataStore> constructor =
+                            clazz.getConstructor(TieredMessageStoreConfig.class);
                         metadataStoreInstance = constructor.newInstance(storeConfig);
                     } catch (Exception e) {
-                        logger.error("TieredMetadataStore#getInstance: build metadata store failed, provider class: {}", storeConfig.getTieredMetadataServiceProvider(), e);
+                        logger.error("TieredMetadataStore#getInstance: " +
+                            "build metadata store failed, provider class: {}",
+                            storeConfig.getTieredMetadataServiceProvider(), e);
                     }
                 }
             }
         }
         return metadataStoreInstance;
+    }
+
+    public static String toPath(MessageQueue mq) {
+        return mq.getBrokerName() + File.separator + mq.getTopic() + File.separator + mq.getQueueId();
     }
 }

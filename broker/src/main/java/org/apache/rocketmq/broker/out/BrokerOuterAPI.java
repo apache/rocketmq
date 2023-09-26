@@ -27,9 +27,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -42,6 +42,7 @@ import org.apache.rocketmq.common.LockCallback;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UnlockCallback;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -58,6 +59,7 @@ import org.apache.rocketmq.common.namesrv.DefaultTopAddressing;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
@@ -120,12 +122,14 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.QueryDataVersionRequ
 import org.apache.rocketmq.remoting.protocol.header.namesrv.QueryDataVersionResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.rpc.ClientMetadata;
 import org.apache.rocketmq.remoting.rpc.RpcClient;
@@ -141,7 +145,7 @@ public class BrokerOuterAPI {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final RemotingClient remotingClient;
     private final TopAddressing topAddressing = new DefaultTopAddressing(MixAll.getWSAddr());
-    private final BrokerFixedThreadPoolExecutor brokerOuterExecutor = new BrokerFixedThreadPoolExecutor(4, 10, 1, TimeUnit.MINUTES,
+    private final ExecutorService brokerOuterExecutor = ThreadUtils.newThreadPoolExecutor(4, 10, 1, TimeUnit.MINUTES,
             new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("brokerOutApi_thread_", true));
     private final ClientMetadata clientMetadata;
     private final RpcClient rpcClient;
@@ -614,6 +618,65 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr);
     }
 
+    /**
+     * Register the topic route info of single topic to all name server nodes.
+     * This method is used to replace incremental broker registration feature.
+     */
+    public void registerSingleTopicAll(
+        final String brokerName,
+        final TopicConfig topicConfig,
+        final int timeoutMills) {
+        String topic = topicConfig.getTopicName();
+        RegisterTopicRequestHeader requestHeader = new RegisterTopicRequestHeader();
+        requestHeader.setTopic(topic);
+
+        TopicRouteData topicRouteData = new TopicRouteData();
+        List<QueueData> queueDatas = new ArrayList<>();
+        topicRouteData.setQueueDatas(queueDatas);
+
+        final QueueData queueData = new QueueData();
+        queueData.setBrokerName(brokerName);
+        queueData.setPerm(topicConfig.getPerm());
+        queueData.setReadQueueNums(topicConfig.getReadQueueNums());
+        queueData.setWriteQueueNums(topicConfig.getWriteQueueNums());
+        queueData.setTopicSysFlag(topicConfig.getTopicSysFlag());
+        queueDatas.add(queueData);
+        final byte[] topicRouteBody = topicRouteData.encode();
+
+
+        List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
+        final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
+        for (final String namesrvAddr : nameServerAddressList) {
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.REGISTER_TOPIC_IN_NAMESRV, requestHeader);
+            request.setBody(topicRouteBody);
+
+            try {
+                brokerOuterExecutor.execute(() -> {
+                    try {
+                        RemotingCommand response = BrokerOuterAPI.this.remotingClient.invokeSync(namesrvAddr, request, timeoutMills);
+                        assert response != null;
+                        LOGGER.info("Register single topic {} to broker {} with response code {}", topic, brokerName, response.getCode());
+                    } catch (Exception e) {
+                        LOGGER.warn("Register single topic {} to broker {} exception", topic, brokerName, e);
+                    } finally {
+                        countDownLatch.countDown();
+                    }
+                });
+            } catch (Exception e) {
+                LOGGER.warn("Execute single topic registration task failed, topic {}, broker name {}", topic, brokerName);
+                countDownLatch.countDown();
+            }
+
+        }
+
+        try {
+            if (!countDownLatch.await(timeoutMills, TimeUnit.MILLISECONDS)) {
+                LOGGER.warn("Registration single topic to one or more name servers timeout. Timeout threshold: {}ms", timeoutMills);
+            }
+        } catch (InterruptedException ignore) {
+        }
+    }
+
     public List<Boolean> needRegister(
         final String clusterName,
         final String brokerAddr,
@@ -660,10 +723,10 @@ public class BrokerOuterAPI {
                                 default:
                                     break;
                             }
-                            LOGGER.warn("Query data version from name server {} OK, changed {}, broker {},name server {}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
+                            LOGGER.warn("Query data version from name server {} OK, changed {}, broker {}, name server {}", namesrvAddr, changed, topicConfigWrapper.getDataVersion(), nameServerDataVersion == null ? "" : nameServerDataVersion);
                         } catch (Exception e) {
                             changedList.add(Boolean.TRUE);
-                            LOGGER.error("Query data version from name server {}  Exception, {}", namesrvAddr, e);
+                            LOGGER.error("Query data version from name server {} exception", namesrvAddr, e);
                         } finally {
                             countDownLatch.countDown();
                         }
@@ -1030,7 +1093,7 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public BrokerFixedThreadPoolExecutor getBrokerOuterExecutor() {
+    public ExecutorService getBrokerOuterExecutor() {
         return brokerOuterExecutor;
     }
 
@@ -1270,31 +1333,6 @@ public class BrokerOuterAPI {
                 }
             }
         });
-    }
-
-    public PullResult pullMessageFromSpecificBroker(String brokerName, String brokerAddr,
-        String consumerGroup, String topic, int queueId, long offset,
-        int maxNums, long timeoutMillis) throws MQBrokerException, RemotingException, InterruptedException {
-        PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
-        requestHeader.setConsumerGroup(consumerGroup);
-        requestHeader.setTopic(topic);
-        requestHeader.setQueueId(queueId);
-        requestHeader.setQueueOffset(offset);
-        requestHeader.setMaxMsgNums(maxNums);
-        requestHeader.setSysFlag(PullSysFlag.buildSysFlag(false, false, true, false));
-        requestHeader.setCommitOffset(0L);
-        requestHeader.setSuspendTimeoutMillis(0L);
-        requestHeader.setSubscription(SubscriptionData.SUB_ALL);
-        requestHeader.setSubVersion(System.currentTimeMillis());
-        requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
-        requestHeader.setExpressionType(ExpressionType.TAG);
-        requestHeader.setBname(brokerName);
-
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
-        PullResultExt pullResultExt = this.processPullResponse(response, brokerAddr);
-        this.processPullResult(pullResultExt, brokerName, queueId);
-        return pullResultExt;
     }
 
     public CompletableFuture<PullResult> pullMessageFromSpecificBrokerAsync(String brokerName, String brokerAddr,

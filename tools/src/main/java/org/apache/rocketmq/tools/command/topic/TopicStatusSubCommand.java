@@ -40,7 +40,7 @@ public class TopicStatusSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Examine topic Status info";
+        return "Examine topic Status info.";
     }
 
     @Override

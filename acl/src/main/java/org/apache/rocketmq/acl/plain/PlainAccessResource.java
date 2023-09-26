@@ -223,7 +223,7 @@ public class PlainAccessResource implements AccessResource {
                     if (!request.hasGroup()) {
                         throw new AclException("Consumer heartbeat doesn't have group");
                     } else {
-                        accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                        accessResource.addGroupResourceAndPerm(request.getGroup(), Permission.SUB);
                     }
                 }
             } else if (SendMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
@@ -240,15 +240,15 @@ public class PlainAccessResource implements AccessResource {
                 accessResource.addResourceAndPerm(topic, Permission.PUB);
             } else if (ReceiveMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 ReceiveMessageRequest request = (ReceiveMessageRequest) messageV3;
-                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addGroupResourceAndPerm(request.getGroup(), Permission.SUB);
                 accessResource.addResourceAndPerm(request.getMessageQueue().getTopic(), Permission.SUB);
             } else if (AckMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 AckMessageRequest request = (AckMessageRequest) messageV3;
-                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addGroupResourceAndPerm(request.getGroup(), Permission.SUB);
                 accessResource.addResourceAndPerm(request.getTopic(), Permission.SUB);
             } else if (ForwardMessageToDeadLetterQueueRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 ForwardMessageToDeadLetterQueueRequest request = (ForwardMessageToDeadLetterQueueRequest) messageV3;
-                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addGroupResourceAndPerm(request.getGroup(), Permission.SUB);
                 accessResource.addResourceAndPerm(request.getTopic(), Permission.SUB);
             } else if (EndTransactionRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 EndTransactionRequest request = (EndTransactionRequest) messageV3;
@@ -264,7 +264,7 @@ public class PlainAccessResource implements AccessResource {
                     }
                     if (command.getSettings().hasSubscription()) {
                         Subscription subscription = command.getSettings().getSubscription();
-                        accessResource.addResourceAndPerm(subscription.getGroup(), Permission.SUB);
+                        accessResource.addGroupResourceAndPerm(subscription.getGroup(), Permission.SUB);
                         for (SubscriptionEntry entry : subscription.getSubscriptionsList()) {
                             accessResource.addResourceAndPerm(entry.getTopic(), Permission.SUB);
                         }
@@ -275,17 +275,17 @@ public class PlainAccessResource implements AccessResource {
                 }
             } else if (NotifyClientTerminationRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 NotifyClientTerminationRequest request = (NotifyClientTerminationRequest) messageV3;
-                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addGroupResourceAndPerm(request.getGroup(), Permission.SUB);
             } else if (QueryRouteRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 QueryRouteRequest request = (QueryRouteRequest) messageV3;
                 accessResource.addResourceAndPerm(request.getTopic(), Permission.ANY);
             } else if (QueryAssignmentRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 QueryAssignmentRequest request = (QueryAssignmentRequest) messageV3;
-                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addGroupResourceAndPerm(request.getGroup(), Permission.SUB);
                 accessResource.addResourceAndPerm(request.getTopic(), Permission.SUB);
             } else if (ChangeInvisibleDurationRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 ChangeInvisibleDurationRequest request = (ChangeInvisibleDurationRequest) messageV3;
-                accessResource.addResourceAndPerm(request.getGroup(), Permission.SUB);
+                accessResource.addGroupResourceAndPerm(request.getGroup(), Permission.SUB);
                 accessResource.addResourceAndPerm(request.getTopic(), Permission.SUB);
             }
         } catch (Throwable t) {
@@ -297,6 +297,11 @@ public class PlainAccessResource implements AccessResource {
     private void addResourceAndPerm(Resource resource, byte permission) {
         String resourceName = NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
         addResourceAndPerm(resourceName, permission);
+    }
+
+    private void addGroupResourceAndPerm(Resource resource, byte permission) {
+        String resourceName = NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
+        addResourceAndPerm(getRetryTopic(resourceName), permission);
     }
 
     public static PlainAccessResource build(PlainAccessConfig plainAccessConfig, RemoteAddressStrategy remoteAddressStrategy) {
