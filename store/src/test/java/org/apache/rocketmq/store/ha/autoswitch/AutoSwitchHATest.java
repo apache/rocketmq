@@ -36,13 +36,11 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
-import org.apache.rocketmq.common.MixAll;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.Assume;
 
 import java.io.File;
 import java.net.InetAddress;
