@@ -568,7 +568,8 @@ public abstract class NettyRemotingAbstract {
 
     public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
         final InvokeCallback invokeCallback) {
-        invokeImpl(channel, request, timeoutMillis).whenComplete((v, t) -> {
+        invokeImpl(channel, request, timeoutMillis)
+            .whenComplete((v, t) -> {
                 if (t == null) {
                     invokeCallback.operationComplete(v);
                 } else {
