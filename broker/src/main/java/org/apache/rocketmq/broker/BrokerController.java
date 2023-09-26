@@ -1807,7 +1807,7 @@ public class BrokerController {
         TopicConfigSerializeWrapper topicConfigWrapper) {
 
         if (shutdown) {
-            BrokerController.LOG.info("BrokerController#doResterBrokerAll: broker has shutdown, no need to register any more.");
+            BrokerController.LOG.info("BrokerController#doRegisterBrokerAll: broker has shutdown, no need to register any more.");
             return;
         }
         List<RegisterBrokerResult> registerBrokerResultList = this.brokerOuterAPI.registerBrokerAll(
