@@ -490,7 +490,7 @@ public abstract class NettyRemotingAbstract {
         });
     }
 
-    public CompletableFuture<ResponseFuture> invoke0(final Channel channel, final RemotingCommand request,
+    protected CompletableFuture<ResponseFuture> invoke0(final Channel channel, final RemotingCommand request,
         final long timeoutMillis) {
         CompletableFuture<ResponseFuture> future = new CompletableFuture<>();
         long beginStartTime = System.currentTimeMillis();
@@ -568,7 +568,15 @@ public abstract class NettyRemotingAbstract {
 
     public void invokeAsyncImpl(final Channel channel, final RemotingCommand request, final long timeoutMillis,
         final InvokeCallback invokeCallback) {
-        invokeImpl(channel, request, timeoutMillis).whenComplete((v, t) -> invokeCallback.operationComplete(v))
+        invokeImpl(channel, request, timeoutMillis).whenComplete((v, t) -> {
+                if (t == null) {
+                    invokeCallback.operationComplete(v);
+                } else {
+                    ResponseFuture responseFuture = new ResponseFuture(channel, request.getOpaque(), request, timeoutMillis, null, null);
+                    responseFuture.setCause(t);
+                    invokeCallback.operationComplete(responseFuture);
+                }
+            })
             .thenAccept(responseFuture -> invokeCallback.operationSucceed(responseFuture.getResponseCommand()))
             .exceptionally(t -> {
                 invokeCallback.operationFail(t);
