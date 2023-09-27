@@ -276,7 +276,7 @@ public class MQClientInstance {
                     if (!consumerTable.isEmpty()
                             || clientConfig instanceof LitePullConsumer
                             || clientConfig instanceof MQPushConsumer) {
-                        start4ConsumerService();
+                        startConsumerService();
                     }
 
                     log.info("the client factory [{}] start OK", this.clientId);
@@ -285,7 +285,7 @@ public class MQClientInstance {
                 case RUNNING:
                     // If a Consumer is added later, make sure to start the Consumer-related services
                     if (!consumerTable.isEmpty() && !pullMessageService.isStopped()) {
-                        start4ConsumerService();
+                        startConsumerService();
                     }
                     break;
                 case START_FAILED:
@@ -296,7 +296,7 @@ public class MQClientInstance {
         }
     }
 
-    private void start4ConsumerService() throws MQClientException {
+    private void startConsumerService() throws MQClientException {
         // Start pull service
         this.pullMessageService.start();
         // Start rebalance service
