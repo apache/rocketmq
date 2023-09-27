@@ -82,7 +82,7 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
         BrokerIdentityInfo brokerIdentityInfo = request.getBrokerIdentityInfo();
         BrokerLiveInfo brokerLiveInfo = request.getBrokerLiveInfo();
         ControllerResult<RaftBrokerHeartBeatEventResponse> result = new ControllerResult<>(new RaftBrokerHeartBeatEventResponse());
-        BrokerLiveInfo prev = brokerLiveTable.computeIfAbsent(brokerIdentityInfo, (identityInfo) -> {
+        BrokerLiveInfo prev = brokerLiveTable.computeIfAbsent(brokerIdentityInfo, identityInfo -> {
             log.info("new broker registered, brokerIdentityInfo: {}", identityInfo);
             return brokerLiveInfo;
         });
@@ -162,7 +162,7 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
 
     @Override
     public byte[] serialize() throws Throwable {
-        try(ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             final byte[] superSerialize = super.serialize();
             putInt(outputStream, superSerialize.length);
             outputStream.write(superSerialize);

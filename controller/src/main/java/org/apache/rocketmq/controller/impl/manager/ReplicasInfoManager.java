@@ -21,7 +21,6 @@ import com.caucho.hessian.io.Hessian2Output;
 import com.caucho.hessian.io.SerializerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -77,15 +76,15 @@ import java.util.stream.Stream;
 public class ReplicasInfoManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
 
-    protected static final SerializerFactory serializerFactory = new SerializerFactory();
+    protected static final SerializerFactory SERIALIZER_FACTORY = new SerializerFactory();
     protected final ControllerConfig controllerConfig;
     private final Map<String/* brokerName */, BrokerReplicaInfo> replicaInfoTable;
     private final Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
 
     protected static byte[] hessianSerialize(Object object) throws IOException {
-        try(ByteArrayOutputStream bout = new ByteArrayOutputStream()) {
+        try (ByteArrayOutputStream bout = new ByteArrayOutputStream()) {
             Hessian2Output hessianOut = new Hessian2Output(bout);
-            hessianOut.setSerializerFactory(serializerFactory);
+            hessianOut.setSerializerFactory(SERIALIZER_FACTORY);
             hessianOut.writeObject(object);
             hessianOut.close();
             return bout.toByteArray();
@@ -620,7 +619,7 @@ public class ReplicasInfoManager {
     }
 
     public byte[] serialize() throws Throwable {
-        try(ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             putInt(outputStream, this.replicaInfoTable.size());
             for (Map.Entry<String, BrokerReplicaInfo> entry : replicaInfoTable.entrySet()) {
                 final byte[] brokerName = entry.getKey().getBytes(StandardCharsets.UTF_8);
