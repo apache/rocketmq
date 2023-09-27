@@ -19,9 +19,16 @@ package org.apache.rocketmq.common;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.FileVisitResult;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -238,6 +245,7 @@ public class UtilAllTest {
          */
         String basePath = System.getProperty("java.io.tmpdir") + File.separator + "testCalculateFileSizeInPath";
         File baseFile = new File(basePath);
+
         // test empty path
         assertEquals(0, UtilAll.calculateFileSizeInPath(baseFile));
 
@@ -271,8 +279,20 @@ public class UtilAllTest {
 
         assertEquals(1313 * 4, UtilAll.calculateFileSizeInPath(baseFile));
 
-        // clear all file
-        baseFile.deleteOnExit();
+        Path directory = Paths.get(basePath);
+        Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) throws IOException {
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
+            }
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                Files.delete(dir);
+                return FileVisitResult.CONTINUE;
+            }
+        });
+
     }
 
     private void writeFixedBytesToFile(File file, int size) throws Exception {
