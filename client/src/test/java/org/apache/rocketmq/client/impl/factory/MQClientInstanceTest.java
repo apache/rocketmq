@@ -25,12 +25,18 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
@@ -180,5 +186,89 @@ public class MQClientInstanceTest {
         flag = mqClientInstance.registerAdminExt(group, mock(MQAdminExtInner.class));
         assertThat(flag).isTrue();
     }
+
+
+    @Test
+    public void testOnlyRegisterProducer() throws MQClientException {
+
+        DefaultMQProducer producer = new DefaultMQProducer("szz_producer");
+        producer.setInstanceName("szz_producer_instanceName");
+        producer.start();
+
+        // alread created
+        MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(producer);
+
+        // only producer shouldn't start inner DefaultMQProducer and pullRequest
+        ServiceState serviceState = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        assertThat(serviceState).isEqualTo(ServiceState.CREATE_JUST);
+
+        producer.shutdown();
+
+        ServiceState serviceStateAfter = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        assertThat(serviceStateAfter).isEqualTo(ServiceState.SHUTDOWN_ALREADY);
+
+        ServiceState producerServiceState = producer.getDefaultMQProducerImpl().getServiceState();
+        assertThat(producerServiceState).isEqualTo(ServiceState.SHUTDOWN_ALREADY);
+
+    }
+
+    @Test
+    public void testOnlyRegisterConsumer() throws MQClientException {
+
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("szz_consumer");
+        consumer.setInstanceName("szz_consumer_instanceName");
+        consumer.registerMessageListener((MessageListenerConcurrently) (msg, context) -> {
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        });
+        consumer.start();
+
+        // already created
+        MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(consumer);
+
+        ServiceState serviceState = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        assertThat(serviceState).isEqualTo(ServiceState.RUNNING);
+
+        consumer.shutdown();
+
+        ServiceState serviceStateAfter = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        assertThat(serviceStateAfter).isEqualTo(ServiceState.SHUTDOWN_ALREADY);
+
+    }
+
+
+    @Test
+    public void testBothProducerAndConsumer() throws MQClientException {
+
+        DefaultMQProducer producer = new DefaultMQProducer("szz_producer_3");
+        producer.setInstanceName("szz_producerAndconsumer_instanceName");
+        producer.start();
+
+        // alread created
+        MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(producer);
+
+        // only producer shouldn't start inner DefaultMQProducer and pullRequest
+        ServiceState serviceState = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        assertThat(serviceState).isEqualTo(ServiceState.CREATE_JUST);
+
+
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("szz_consumer_3");
+        consumer.setInstanceName("szz_producerAndconsumer_instanceName");
+        consumer.registerMessageListener((MessageListenerConcurrently) (msg, context) -> {
+            return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+        });
+        consumer.start();
+
+        // already created
+        MQClientInstance mqClientInstance2 = MQClientManager.getInstance().getOrCreateMQClientInstance(consumer);
+
+        // same instanceName should use same one MQClientInstance
+        assertThat(mqClientInstance).isEqualTo(mqClientInstance2);
+
+        // consumer started should start inner DefaultMqProducer and pullRequestService
+        ServiceState serviceStateAfter = mqClientInstance2.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        assertThat(serviceStateAfter).isEqualTo(ServiceState.RUNNING);
+
+    }
+
 
 }

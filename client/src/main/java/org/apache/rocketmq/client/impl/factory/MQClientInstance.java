@@ -38,6 +38,8 @@ import com.alibaba.fastjson.JSON;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
+import org.apache.rocketmq.client.consumer.LitePullConsumer;
+import org.apache.rocketmq.client.consumer.MQPushConsumer;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
@@ -269,14 +271,22 @@ public class MQClientInstance {
                     this.mQClientAPIImpl.start();
                     // Start various schedule tasks
                     this.startScheduledTask();
-                    // Start pull service
-                    this.pullMessageService.start();
-                    // Start rebalance service
-                    this.rebalanceService.start();
-                    // Start push service
-                    this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
+
+                    // only for consumer
+                    if (!consumerTable.isEmpty()
+                            || clientConfig instanceof LitePullConsumer
+                            || clientConfig instanceof MQPushConsumer) {
+                        start4ConsumerService();
+                    }
+
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
+                    break;
+                case RUNNING:
+                    // If a Consumer is added later, make sure to start the Consumer-related services
+                    if (!consumerTable.isEmpty() && !pullMessageService.isStopped()) {
+                        start4ConsumerService();
+                    }
                     break;
                 case START_FAILED:
                     throw new MQClientException("The Factory object[" + this.getClientId() + "] has been created before, and failed.", null);
@@ -285,6 +295,17 @@ public class MQClientInstance {
             }
         }
     }
+
+    private void start4ConsumerService() throws MQClientException {
+        // Start pull service
+        this.pullMessageService.start();
+        // Start rebalance service
+        this.rebalanceService.start();
+        // Start push service ;
+        // When the consumer fails to consume and needs to retry, use this internal producer to send a retry message back to the Broker.
+        this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
+    }
+
 
     private void startScheduledTask() {
         if (null == this.clientConfig.getNamesrvAddr()) {

@@ -302,6 +302,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public void shutdown(final boolean shutdownFactory) {
         switch (this.serviceState) {
             case CREATE_JUST:
+                // If the instance is created but not started
+                this.defaultAsyncSenderExecutor.shutdown();
+                this.mqFaultStrategy.shutdown();
+                this.serviceState = ServiceState.SHUTDOWN_ALREADY;
                 break;
             case RUNNING:
                 this.mQClientFactory.unregisterProducer(this.defaultMQProducer.getProducerGroup());
