@@ -35,6 +35,10 @@ public class MessageBatch extends Message implements Iterable<Message> {
         return MessageDecoder.encodeMessages(messages);
     }
 
+    public void fillBody(){
+        super.setBody(MessageDecoder.encodeMessages(messages));
+    }
+
     public Iterator<Message> iterator() {
         return messages.iterator();
     }

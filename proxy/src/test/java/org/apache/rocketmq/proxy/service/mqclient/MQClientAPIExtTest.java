@@ -43,6 +43,8 @@ import org.apache.rocketmq.client.impl.mqclient.DoNothingClientRemotingProcessor
 import org.apache.rocketmq.client.impl.mqclient.MQClientAPIExt;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -172,8 +174,10 @@ public class MQClientAPIExtTest {
             sb.append(sb.length() == 0 ? "" : ",").append(MessageClientIDSetter.getUniqID(messageExt));
             messageExtList.add(messageExt);
         }
-
-        SendResult sendResult = mqClientAPI.sendMessageAsync(BROKER_ADDR, BROKER_NAME, messageExtList, new SendMessageRequestHeader(), TIMEOUT)
+        Message message = MessageBatch.generateFromList(messageExtList);
+        MessageClientIDSetter.setUniqID(message);
+        ((MessageBatch) message).fillBody();
+        SendResult sendResult = mqClientAPI.sendMessageAsync(BROKER_ADDR, BROKER_NAME, message, new SendMessageRequestHeader(), TIMEOUT)
             .get();
         assertNotNull(sendResult);
         assertEquals(sb.toString(), sendResult.getMsgId());

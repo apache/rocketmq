@@ -28,6 +28,8 @@ import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageBatch;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
@@ -63,17 +65,19 @@ public class ClusterMessageService implements MessageService {
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         List<Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<List<SendResult>> future;
-        if (msgList.size() == 1) {
-            future = this.mqClientAPIFactory.getClient().sendMessageAsync(
-                    messageQueue.getBrokerAddr(),
-                    messageQueue.getBrokerName(), msgList.get(0), requestHeader, timeoutMillis)
-                .thenApply(Lists::newArrayList);
+        Message message;
+        if(requestHeader.isBatch()){
+            message = MessageBatch.generateFromList(msgList);
+            MessageClientIDSetter.setUniqID(message);
+            ((MessageBatch) message).fillBody();
         } else {
-            future = this.mqClientAPIFactory.getClient().sendMessageAsync(
-                    messageQueue.getBrokerAddr(),
-                    messageQueue.getBrokerName(), msgList, requestHeader, timeoutMillis)
-                .thenApply(Lists::newArrayList);
+            message = msgList.get(0);
         }
+        future = this.mqClientAPIFactory.getClient().sendMessageAsync(
+            messageQueue.getBrokerAddr(),
+            messageQueue.getBrokerName(), message, requestHeader, timeoutMillis)
+            .thenApply(Lists::newArrayList);
+
         return future;
     }
 

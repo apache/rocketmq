@@ -174,7 +174,9 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         long timeoutMillis
     ) {
         SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
+
+        int code = requestHeader.isBatch() ? RequestCode.SEND_BATCH_MESSAGE : RequestCode.SEND_MESSAGE_V2;
+        RemotingCommand request = RemotingCommand.createRequestCommand(code, requestHeaderV2);
         request.setBody(msg.getBody());
 
         CompletableFuture<SendResult> future = new CompletableFuture<>();
@@ -184,43 +186,6 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 if (response != null) {
                     try {
                         future.complete(this.processSendResponse(brokerName, msg, response, brokerAddr));
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                    }
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
-                }
-            });
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-        return future;
-    }
-
-    public CompletableFuture<SendResult> sendMessageAsync(
-        String brokerAddr,
-        String brokerName,
-        List<? extends Message> msgList,
-        SendMessageRequestHeader requestHeader,
-        long timeoutMillis
-    ) {
-        SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE, requestHeaderV2);
-
-        CompletableFuture<SendResult> future = new CompletableFuture<>();
-        try {
-            requestHeader.setBatch(true);
-            MessageBatch msgBatch = MessageBatch.generateFromList(msgList);
-            MessageClientIDSetter.setUniqID(msgBatch);
-            byte[] body = msgBatch.encode();
-            msgBatch.setBody(body);
-
-            request.setBody(body);
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    try {
-                        future.complete(this.processSendResponse(brokerName, msgBatch, response, brokerAddr));
                     } catch (Exception e) {
                         future.completeExceptionally(e);
                     }
