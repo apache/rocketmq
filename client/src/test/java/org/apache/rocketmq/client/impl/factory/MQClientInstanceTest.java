@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
@@ -55,6 +56,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
@@ -200,56 +205,50 @@ public class MQClientInstanceTest {
 
 
     @Test
-    public void testOnlyRegisterProducer() throws MQClientException, NoSuchFieldException, IllegalAccessException {
+    public void testOnlyRegisterProducer() throws MQClientException, NoSuchFieldException, IllegalAccessException, MQBrokerException, RemotingException, InterruptedException {
         MQClientAPIImpl mQClientAPIImpl = mock(MQClientAPIImpl.class);
 
         DefaultMQProducer producer = new DefaultMQProducer("szz_producer");
         producer.setInstanceName("szz_producer_instanceName");
         producer.setNamesrvAddr("127.0.0.1:9876");
-        producer.start();
 
+        MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(producer);
+        FieldUtils.writeDeclaredField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
 
+        MQClientInstance mQClientFactorySpy = spy(mQClientFactory);
+        lenient().doReturn(false).when(mQClientFactorySpy).updateTopicRouteInfoFromNameServer(anyString());
+        lenient().doReturn(null).when(mQClientFactorySpy).queryAssignment(anyString(), anyString(), anyString(), any(MessageModel.class), anyInt());
+        lenient().doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactorySpy).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
         MQClientInstance instance1 = factoryTable.get(producer.buildMQClientId());
-        assertThat(instance1).isNotNull();
+        // already created
+        assertThat(instance1).isEqualTo(mQClientFactory);
 
+        producer.start();
 
-        // alread created
-        MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(producer);
-        assertThat(instance1).isEqualTo(mqClientInstance);
-
-
-        FieldUtils.writeDeclaredField(mqClientInstance, "mQClientAPIImpl", mQClientAPIImpl, true);
-
-        MQClientInstance mQClientFactorySpy = spy(mqClientInstance);
-
-        lenient().doReturn(false).when(mQClientFactorySpy).updateTopicRouteInfoFromNameServer(anyString());
 
         // only producer shouldn't start inner DefaultMQProducer and pullRequest
-        ServiceState serviceState = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        ServiceState serviceState = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(serviceState).isEqualTo(ServiceState.CREATE_JUST);
 
         // pullMessageService can't stared
         Field field =  PullMessageService.class.getSuperclass().getDeclaredField("started");
         field.setAccessible(true);
 
-        AtomicBoolean pullStared = (AtomicBoolean) field.get(mqClientInstance.getPullMessageService());
+        AtomicBoolean pullStared = (AtomicBoolean) field.get(mQClientFactory.getPullMessageService());
         assertThat(pullStared.get()).isEqualTo(false);
 
 
         //rebalance
 
         // balanceService started
-        RebalanceService rebalanceService = (RebalanceService)FieldUtils.readDeclaredField(mqClientInstance,"rebalanceService",true);
+        RebalanceService rebalanceService = (RebalanceService)FieldUtils.readDeclaredField(mQClientFactory,"rebalanceService",true);
         assertThat(((AtomicBoolean)field.get(rebalanceService)).get()).isEqualTo(false);
-
-
-
 
         producer.shutdown();
 
-        ServiceState serviceStateAfter = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        ServiceState serviceStateAfter = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(serviceStateAfter).isEqualTo(ServiceState.SHUTDOWN_ALREADY);
 
         ServiceState producerServiceState = producer.getDefaultMQProducerImpl().getServiceState();
@@ -268,21 +267,24 @@ public class MQClientInstanceTest {
             return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
         });
         consumer.setNamesrvAddr("127.0.0.1:9876");
-        consumer.start();
 
-        ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        MQClientInstance instance1 = factoryTable.get(consumer.buildMQClientId());
-        assertThat(instance1).isNotNull();
-
-        // already created
         MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(consumer);
-        assertThat(instance1).isEqualTo(mQClientFactory);
-
         FieldUtils.writeDeclaredField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
 
         MQClientInstance mQClientFactorySpy = spy(mQClientFactory);
-
         lenient().doReturn(false).when(mQClientFactorySpy).updateTopicRouteInfoFromNameServer(anyString());
+        lenient().doReturn(null).when(mQClientFactorySpy).queryAssignment(anyString(), anyString(), anyString(), any(MessageModel.class), anyInt());
+        lenient().doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactorySpy).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
+
+        ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
+        MQClientInstance instance1 = factoryTable.get(consumer.buildMQClientId());
+        // already created
+        assertThat(instance1).isEqualTo(mQClientFactory);
+
+
+
+        consumer.start();
+
 
         // inner producer running
         ServiceState serviceState = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
@@ -330,41 +332,41 @@ public class MQClientInstanceTest {
      */
 
     @Test
-    public void testBothProducerAndConsumer() throws MQClientException, IllegalAccessException, NoSuchFieldException {
+    public void testBothProducerAndConsumer() throws MQClientException, IllegalAccessException, NoSuchFieldException, MQBrokerException, RemotingException, InterruptedException {
         MQClientAPIImpl mQClientAPIImpl = mock(MQClientAPIImpl.class);
 
         DefaultMQProducer producer = new DefaultMQProducer("szz_producer");
         producer.setInstanceName("szz_producerAndConsumer_instanceName");
         producer.setNamesrvAddr("127.0.0.1:9876");
-        producer.start();
 
+        MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(producer);
+        FieldUtils.writeDeclaredField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
+
+        MQClientInstance mQClientFactorySpy = spy(mQClientFactory);
+        lenient().doReturn(false).when(mQClientFactorySpy).updateTopicRouteInfoFromNameServer(anyString());
+        lenient().doReturn(null).when(mQClientFactorySpy).queryAssignment(anyString(), anyString(), anyString(), any(MessageModel.class), anyInt());
+        lenient().doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactorySpy).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        MQClientInstance producerInstance1 = factoryTable.get(producer.buildMQClientId());
-        assertThat(producerInstance1).isNotNull();
+        MQClientInstance instance1 = factoryTable.get(producer.buildMQClientId());
+        // already created
+        assertThat(instance1).isEqualTo(mQClientFactory);
 
-        // alread created
-        MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(producer);
-        assertThat(producerInstance1).isEqualTo(mqClientInstance);
-
-        FieldUtils.writeDeclaredField(mqClientInstance, "mQClientAPIImpl", mQClientAPIImpl, true);
-        MQClientInstance mQClientFactorySpy = spy(mqClientInstance);
-        lenient().doReturn(false).when(mQClientFactorySpy).updateTopicRouteInfoFromNameServer(anyString());
-
+        producer.start();
 
         // only producer shouldn't start inner DefaultMQProducer and pullRequest
-        ServiceState serviceState = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        ServiceState serviceState = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(serviceState).isEqualTo(ServiceState.CREATE_JUST);
 
         // pullMessageService can't start
         Field field =  PullMessageService.class.getSuperclass().getDeclaredField("started");
         field.setAccessible(true);
 
-        AtomicBoolean pullStared = (AtomicBoolean) field.get(mqClientInstance.getPullMessageService());
+        AtomicBoolean pullStared = (AtomicBoolean) field.get(mQClientFactory.getPullMessageService());
         assertThat(pullStared.get()).isEqualTo(false);
 
         // balanceService started
-        RebalanceService rebalanceService = (RebalanceService)FieldUtils.readDeclaredField(mqClientInstance,"rebalanceService",true);
+        RebalanceService rebalanceService = (RebalanceService)FieldUtils.readDeclaredField(mQClientFactory,"rebalanceService",true);
         AtomicBoolean rebalancedStared = (AtomicBoolean)field.get(rebalanceService);
         assertThat(rebalancedStared.get()).isEqualTo(false);
 
@@ -380,11 +382,11 @@ public class MQClientInstanceTest {
         consumer.start();
 
         // already created
-        MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(consumer);
-        assertThat(mQClientFactory).isEqualTo(producerInstance1);
+        MQClientInstance mQClientFactory2 = MQClientManager.getInstance().getOrCreateMQClientInstance(consumer);
+        assertThat(mQClientFactory2).isEqualTo(mQClientFactory);
 
         // inner producer running
-        ServiceState innerProducerServiceState = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        ServiceState innerProducerServiceState = mQClientFactory2.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(innerProducerServiceState).isEqualTo(ServiceState.RUNNING);
 
 
@@ -392,11 +394,11 @@ public class MQClientInstanceTest {
         startedField.setAccessible(true);
 
         // pullMessageService stared
-        AtomicBoolean consumerPullStared = (AtomicBoolean) startedField.get(mQClientFactory.getPullMessageService());
+        AtomicBoolean consumerPullStared = (AtomicBoolean) startedField.get(mQClientFactory2.getPullMessageService());
         assertThat(consumerPullStared.get()).isEqualTo(true);
 
         // balanceService started
-        RebalanceService rebalanceService2 = (RebalanceService)FieldUtils.readDeclaredField(mQClientFactory,"rebalanceService",true);
+        RebalanceService rebalanceService2 = (RebalanceService)FieldUtils.readDeclaredField(mQClientFactory2,"rebalanceService",true);
         AtomicBoolean rebalancedStared2 = (AtomicBoolean)field.get(rebalanceService2);
         assertThat(rebalancedStared2.get()).isEqualTo(true);
 
@@ -417,13 +419,13 @@ public class MQClientInstanceTest {
 
         // only all client shutdown then can shutdown all service
         // pullMessageService close
-        AtomicBoolean pullClose = (AtomicBoolean) field.get(mQClientFactory.getPullMessageService());
+        AtomicBoolean pullClose = (AtomicBoolean) field.get(mQClientFactory2.getPullMessageService());
         assertThat(pullClose.get()).isEqualTo(true);
 
         AtomicBoolean rebalancedClose = (AtomicBoolean)field.get(rebalanceService);
         assertThat(rebalancedClose.get()).isEqualTo(true);
 
-        ServiceState serviceStateAfter = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        ServiceState serviceStateAfter = mQClientFactory2.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(serviceStateAfter).isEqualTo(ServiceState.RUNNING);
 
 
@@ -434,15 +436,14 @@ public class MQClientInstanceTest {
         ServiceState producerServiceState = producer.getDefaultMQProducerImpl().getServiceState();
         assertThat(producerServiceState).isEqualTo(ServiceState.SHUTDOWN_ALREADY);
 
-        AtomicBoolean pullClose2 = (AtomicBoolean) field.get(mQClientFactory.getPullMessageService());
+        AtomicBoolean pullClose2 = (AtomicBoolean) field.get(mQClientFactory2.getPullMessageService());
         assertThat(pullClose2.get()).isEqualTo(false);
 
         AtomicBoolean rebalancedClose2 = (AtomicBoolean)field.get(rebalanceService);
         assertThat(rebalancedClose2.get()).isEqualTo(false);
 
-        ServiceState serviceStateAfter2 = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
+        ServiceState serviceStateAfter2 = mQClientFactory2.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(serviceStateAfter2).isEqualTo(ServiceState.SHUTDOWN_ALREADY);
-
 
     }
 
