@@ -702,7 +702,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                             onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                                 retryTimesWhenSendFailed, times, ex, context, true, producer);
                         } else {
-                            MQClientException ex = new MQClientException("unknow reseaon", responseFuture.getCause());
+                            MQClientException ex = new MQClientException("unknown reason", responseFuture.getCause());
                             onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                                 retryTimesWhenSendFailed, times, ex, context, true, producer);
                         }
