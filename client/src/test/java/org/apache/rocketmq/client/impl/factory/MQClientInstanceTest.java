@@ -48,6 +48,7 @@ import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.ByteArrayOutputStream;
@@ -71,6 +72,10 @@ public class MQClientInstanceTest {
     private String group = "FooBarGroup";
     private ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
 
+
+
+    @Mock
+    private  MQClientAPIImpl mQClientAPIImpl ;
 
 
 
@@ -218,7 +223,9 @@ public class MQClientInstanceTest {
 
         DefaultMQProducer producer = new DefaultMQProducer("szz_producer");
         producer.setInstanceName("szz_producer_instanceName");
+        producer.setNamesrvAddr("127.0.0.1:9876");
         producer.start();
+
 
 
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
@@ -228,6 +235,12 @@ public class MQClientInstanceTest {
         // alread created
         MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(producer);
         assertThat(instance1).isEqualTo(mqClientInstance);
+
+
+        MQClientInstance mQClientFactorySpy = spy(mqClientInstance);
+
+        lenient().doReturn(false).when(mQClientFactorySpy).updateTopicRouteInfoFromNameServer(anyString());
+
 
         // only producer shouldn't start inner DefaultMQProducer and pullRequest
         ServiceState serviceState = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
@@ -263,8 +276,6 @@ public class MQClientInstanceTest {
 
     @Test
     public void testOnlyRegisterConsumer() throws MQClientException, IllegalAccessException, MQBrokerException, RemotingException, InterruptedException, NoSuchFieldException {
-
-        MQClientAPIImpl mQClientAPIImpl = mock(MQClientAPIImpl.class);
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("szz_consumer");
         consumer.setInstanceName("szz_consumer_instanceName");
@@ -336,8 +347,6 @@ public class MQClientInstanceTest {
 
     @Test
     public void testBothProducerAndConsumer() throws MQClientException, IllegalAccessException, NoSuchFieldException {
-        MQClientAPIImpl mQClientAPIImpl = mock(MQClientAPIImpl.class);
-
 
         DefaultMQProducer producer = new DefaultMQProducer("szz_producer");
         producer.setInstanceName("szz_producerAndConsumer_instanceName");
