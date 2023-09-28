@@ -20,7 +20,6 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.admin.MQAdminExtInner;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -30,17 +29,13 @@ import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.consumer.MQConsumerInner;
 import org.apache.rocketmq.client.impl.consumer.PullMessageService;
-import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.consumer.RebalanceService;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.ServiceState;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
@@ -48,10 +43,8 @@ import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,7 +56,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientInstanceTest {
@@ -73,25 +70,9 @@ public class MQClientInstanceTest {
     private ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
 
 
-
-    @Mock
-    private  MQClientAPIImpl mQClientAPIImpl ;
-
-
-
     @Before
     public void init() throws Exception {
         FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
-
-
-    }
-    private PullResultExt createPullResult(PullMessageRequestHeader requestHeader, PullStatus pullStatus,
-                                           List<MessageExt> messageExtList) throws Exception {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        for (MessageExt messageExt : messageExtList) {
-            outputStream.write(MessageDecoder.encode(messageExt, false));
-        }
-        return new PullResultExt(pullStatus, requestHeader.getQueueOffset() + messageExtList.size(), 123, 2048, messageExtList, 0, outputStream.toByteArray());
     }
 
     @Test
@@ -220,6 +201,7 @@ public class MQClientInstanceTest {
 
     @Test
     public void testOnlyRegisterProducer() throws MQClientException, NoSuchFieldException, IllegalAccessException {
+        MQClientAPIImpl mQClientAPIImpl = mock(MQClientAPIImpl.class);
 
         DefaultMQProducer producer = new DefaultMQProducer("szz_producer");
         producer.setInstanceName("szz_producer_instanceName");
@@ -232,15 +214,17 @@ public class MQClientInstanceTest {
         MQClientInstance instance1 = factoryTable.get(producer.buildMQClientId());
         assertThat(instance1).isNotNull();
 
+
         // alread created
         MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(producer);
         assertThat(instance1).isEqualTo(mqClientInstance);
 
 
+        FieldUtils.writeDeclaredField(mqClientInstance, "mQClientAPIImpl", mQClientAPIImpl, true);
+
         MQClientInstance mQClientFactorySpy = spy(mqClientInstance);
 
         lenient().doReturn(false).when(mQClientFactorySpy).updateTopicRouteInfoFromNameServer(anyString());
-
 
         // only producer shouldn't start inner DefaultMQProducer and pullRequest
         ServiceState serviceState = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
@@ -251,15 +235,14 @@ public class MQClientInstanceTest {
         field.setAccessible(true);
 
         AtomicBoolean pullStared = (AtomicBoolean) field.get(mqClientInstance.getPullMessageService());
-        assertThat((pullStared).get()).isEqualTo(false);
+        assertThat(pullStared.get()).isEqualTo(false);
 
 
         //rebalance
 
         // balanceService started
         RebalanceService rebalanceService = (RebalanceService)FieldUtils.readDeclaredField(mqClientInstance,"rebalanceService",true);
-        AtomicBoolean rebalancedStared = (AtomicBoolean)field.get(rebalanceService);
-        assertThat((rebalancedStared).get()).isEqualTo(false);
+        assertThat(((AtomicBoolean)field.get(rebalanceService)).get()).isEqualTo(false);
 
 
 
@@ -276,6 +259,8 @@ public class MQClientInstanceTest {
 
     @Test
     public void testOnlyRegisterConsumer() throws MQClientException, IllegalAccessException, MQBrokerException, RemotingException, InterruptedException, NoSuchFieldException {
+
+        MQClientAPIImpl mQClientAPIImpl = mock(MQClientAPIImpl.class);
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("szz_consumer");
         consumer.setInstanceName("szz_consumer_instanceName");
@@ -294,7 +279,6 @@ public class MQClientInstanceTest {
         assertThat(instance1).isEqualTo(mQClientFactory);
 
         FieldUtils.writeDeclaredField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
-        //instance2 = spy(instance2);
 
         MQClientInstance mQClientFactorySpy = spy(mQClientFactory);
 
@@ -310,22 +294,22 @@ public class MQClientInstanceTest {
 
         // pullMessageService stared
         AtomicBoolean pullStared = (AtomicBoolean) field.get(mQClientFactory.getPullMessageService());
-        assertThat((pullStared).get()).isEqualTo(true);
+        assertThat(pullStared.get()).isEqualTo(true);
 
         // balanceService started
         RebalanceService rebalanceService = (RebalanceService)FieldUtils.readDeclaredField(mQClientFactory,"rebalanceService",true);
         AtomicBoolean rebalancedStared = (AtomicBoolean)field.get(rebalanceService);
-        assertThat((rebalancedStared).get()).isEqualTo(true);
+        assertThat(rebalancedStared.get()).isEqualTo(true);
 
 
         consumer.shutdown();
 
         // pullMessageService close
         AtomicBoolean pullClose = (AtomicBoolean) field.get(mQClientFactory.getPullMessageService());
-        assertThat((pullClose).get()).isEqualTo(false);
+        assertThat(pullClose.get()).isEqualTo(false);
 
         AtomicBoolean rebalancedClose = (AtomicBoolean)field.get(rebalanceService);
-        assertThat((rebalancedClose).get()).isEqualTo(false);
+        assertThat(rebalancedClose.get()).isEqualTo(false);
 
         ServiceState serviceStateAfter = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(serviceStateAfter).isEqualTo(ServiceState.SHUTDOWN_ALREADY);
@@ -347,6 +331,7 @@ public class MQClientInstanceTest {
 
     @Test
     public void testBothProducerAndConsumer() throws MQClientException, IllegalAccessException, NoSuchFieldException {
+        MQClientAPIImpl mQClientAPIImpl = mock(MQClientAPIImpl.class);
 
         DefaultMQProducer producer = new DefaultMQProducer("szz_producer");
         producer.setInstanceName("szz_producerAndConsumer_instanceName");
@@ -362,21 +347,26 @@ public class MQClientInstanceTest {
         MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(producer);
         assertThat(producerInstance1).isEqualTo(mqClientInstance);
 
+        FieldUtils.writeDeclaredField(mqClientInstance, "mQClientAPIImpl", mQClientAPIImpl, true);
+        MQClientInstance mQClientFactorySpy = spy(mqClientInstance);
+        lenient().doReturn(false).when(mQClientFactorySpy).updateTopicRouteInfoFromNameServer(anyString());
+
+
         // only producer shouldn't start inner DefaultMQProducer and pullRequest
         ServiceState serviceState = mqClientInstance.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(serviceState).isEqualTo(ServiceState.CREATE_JUST);
 
-        // pullMessageService can't stared
+        // pullMessageService can't start
         Field field =  PullMessageService.class.getSuperclass().getDeclaredField("started");
         field.setAccessible(true);
 
         AtomicBoolean pullStared = (AtomicBoolean) field.get(mqClientInstance.getPullMessageService());
-        assertThat((pullStared).get()).isEqualTo(false);
+        assertThat(pullStared.get()).isEqualTo(false);
 
         // balanceService started
         RebalanceService rebalanceService = (RebalanceService)FieldUtils.readDeclaredField(mqClientInstance,"rebalanceService",true);
         AtomicBoolean rebalancedStared = (AtomicBoolean)field.get(rebalanceService);
-        assertThat((rebalancedStared).get()).isEqualTo(false);
+        assertThat(rebalancedStared.get()).isEqualTo(false);
 
 
 
@@ -393,12 +383,6 @@ public class MQClientInstanceTest {
         MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(consumer);
         assertThat(mQClientFactory).isEqualTo(producerInstance1);
 
-        FieldUtils.writeDeclaredField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
-
-        MQClientInstance mQClientFactorySpy = spy(mQClientFactory);
-
-        lenient().doReturn(false).when(mQClientFactorySpy).updateTopicRouteInfoFromNameServer(anyString());
-
         // inner producer running
         ServiceState innerProducerServiceState = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(innerProducerServiceState).isEqualTo(ServiceState.RUNNING);
@@ -409,12 +393,12 @@ public class MQClientInstanceTest {
 
         // pullMessageService stared
         AtomicBoolean consumerPullStared = (AtomicBoolean) startedField.get(mQClientFactory.getPullMessageService());
-        assertThat((consumerPullStared).get()).isEqualTo(true);
+        assertThat(consumerPullStared.get()).isEqualTo(true);
 
         // balanceService started
         RebalanceService rebalanceService2 = (RebalanceService)FieldUtils.readDeclaredField(mQClientFactory,"rebalanceService",true);
         AtomicBoolean rebalancedStared2 = (AtomicBoolean)field.get(rebalanceService2);
-        assertThat((rebalancedStared2).get()).isEqualTo(true);
+        assertThat(rebalancedStared2.get()).isEqualTo(true);
 
 
         // start second consumer
@@ -434,10 +418,10 @@ public class MQClientInstanceTest {
         // only all client shutdown then can shutdown all service
         // pullMessageService close
         AtomicBoolean pullClose = (AtomicBoolean) field.get(mQClientFactory.getPullMessageService());
-        assertThat((pullClose).get()).isEqualTo(true);
+        assertThat(pullClose.get()).isEqualTo(true);
 
         AtomicBoolean rebalancedClose = (AtomicBoolean)field.get(rebalanceService);
-        assertThat((rebalancedClose).get()).isEqualTo(true);
+        assertThat(rebalancedClose.get()).isEqualTo(true);
 
         ServiceState serviceStateAfter = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(serviceStateAfter).isEqualTo(ServiceState.RUNNING);
@@ -451,10 +435,10 @@ public class MQClientInstanceTest {
         assertThat(producerServiceState).isEqualTo(ServiceState.SHUTDOWN_ALREADY);
 
         AtomicBoolean pullClose2 = (AtomicBoolean) field.get(mQClientFactory.getPullMessageService());
-        assertThat((pullClose2).get()).isEqualTo(false);
+        assertThat(pullClose2.get()).isEqualTo(false);
 
         AtomicBoolean rebalancedClose2 = (AtomicBoolean)field.get(rebalanceService);
-        assertThat((rebalancedClose2).get()).isEqualTo(false);
+        assertThat(rebalancedClose2.get()).isEqualTo(false);
 
         ServiceState serviceStateAfter2 = mQClientFactory.getDefaultMQProducer().getDefaultMQProducerImpl().getServiceState();
         assertThat(serviceStateAfter2).isEqualTo(ServiceState.SHUTDOWN_ALREADY);
