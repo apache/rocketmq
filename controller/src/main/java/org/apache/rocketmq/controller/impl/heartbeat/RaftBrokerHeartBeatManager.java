@@ -167,8 +167,8 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
             }.getType());
         } catch (Throwable e) {
             log.error("get broker live info through raft failed", e);
-            return new HashMap<>();
         }
+        return new HashMap<>();
     }
 
     private void scanNotActiveBroker() {
