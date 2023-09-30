@@ -381,9 +381,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         Validators.checkTopicConfig(topicConfig);
 
-        if(getTopicListFromNameServer(timeoutMillis).getTopicList().contains(topicConfig.getTopicName())){
+        if (getTopicListFromNameServer(timeoutMillis).getTopicList().contains(topicConfig.getTopicName())) {
 
-             throw new MQClientException(405,"Topic is already present");
+            throw new MQClientException("Topic is already present",null);
         }
 
         CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
