@@ -25,6 +25,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -573,8 +574,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         accessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
         accessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
         accessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
-        accessConfig.setTopicPerms(UtilAll.split(requestHeader.getTopicPerms(), ","));
-        accessConfig.setGroupPerms(UtilAll.split(requestHeader.getGroupPerms(), ","));
+        accessConfig.setTopicPerms(
+            StringUtils.isBlank(requestHeader.getTopicPerms()) ? Collections.emptyList() : UtilAll.split(requestHeader.getTopicPerms(), ","));
+        accessConfig.setGroupPerms(
+            StringUtils.isBlank(requestHeader.getTopicPerms()) ? Collections.emptyList() : UtilAll.split(requestHeader.getGroupPerms(), ","));
         accessConfig.setAdmin(requestHeader.isAdmin());
         try {
 
