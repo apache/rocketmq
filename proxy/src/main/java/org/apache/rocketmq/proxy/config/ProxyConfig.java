@@ -87,6 +87,7 @@ public class ProxyConfig implements ConfigFile {
      */
     private String proxyMode = ProxyMode.CLUSTER.name();
     private Integer grpcServerPort = 8081;
+    private long grpcShutdownTimeSeconds = 30;
     private int grpcBossLoopNum = 1;
     private int grpcWorkerLoopNum = PROCESSOR_NUMBER * 2;
     private boolean enableGrpcEpoll = false;
@@ -441,6 +442,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setGrpcServerPort(Integer grpcServerPort) {
         this.grpcServerPort = grpcServerPort;
+    }
+
+    public long getGrpcShutdownTimeSeconds() {
+        return grpcShutdownTimeSeconds;
+    }
+
+    public void setGrpcShutdownTimeSeconds(long grpcShutdownTimeSeconds) {
+        this.grpcShutdownTimeSeconds = grpcShutdownTimeSeconds;
     }
 
     public boolean isUseEndpointPortFromRequest() {
