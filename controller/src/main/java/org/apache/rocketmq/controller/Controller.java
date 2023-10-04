@@ -17,20 +17,20 @@
 
 package org.apache.rocketmq.controller;
 
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
 import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
 import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
-
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * The api for controller
@@ -113,7 +113,6 @@ public interface Controller {
 
     /**
      * Add broker's lifecycle listener
-     *
      * @param listener listener
      */
     void registerBrokerLifecycleListener(final BrokerLifecycleListener listener);
@@ -125,6 +124,7 @@ public interface Controller {
 
     /**
      * Clean controller broker data
+     *
      */
     CompletableFuture<RemotingCommand> cleanBrokerData(final CleanControllerBrokerDataRequestHeader requestHeader);
 }

@@ -17,9 +17,9 @@
 package org.apache.rocketmq.controller.elect.impl;
 
 import org.apache.rocketmq.controller.elect.ElectPolicy;
+import org.apache.rocketmq.controller.impl.heartbeat.BrokerLiveInfo;
 import org.apache.rocketmq.controller.helper.BrokerLiveInfoGetter;
 import org.apache.rocketmq.controller.helper.BrokerValidPredicate;
-import org.apache.rocketmq.controller.impl.heartbeat.BrokerLiveInfo;
 
 import java.util.Comparator;
 import java.util.Set;
@@ -57,10 +57,10 @@ public class DefaultElectPolicy implements ElectPolicy {
     /**
      * We will try to select a new master from syncStateBrokers and allReplicaBrokers in turn.
      * The strategies are as follows:
-     * - Filter alive brokers by 'validPredicate'.
-     * - Check whether the old master is still valid.
-     * - If preferBrokerAddr is not empty and valid, select it as master.
-     * - Otherwise, we will sort the array of 'brokerLiveInfo' according to (epoch, offset, electionPriority), and select the best candidate as the new master.
+     *    - Filter alive brokers by 'validPredicate'.
+     *    - Check whether the old master is still valid.
+     *    - If preferBrokerAddr is not empty and valid, select it as master.
+     *    - Otherwise, we will sort the array of 'brokerLiveInfo' according to (epoch, offset, electionPriority), and select the best candidate as the new master.
      *
      * @param clusterName       the brokerGroup belongs
      * @param syncStateBrokers  all broker replicas in syncStateSet
@@ -117,6 +117,7 @@ public class DefaultElectPolicy implements ElectPolicy {
         }
         return null;
     }
+
 
     public void setBrokerLiveInfoGetter(BrokerLiveInfoGetter brokerLiveInfoGetter) {
         this.brokerLiveInfoGetter = brokerLiveInfoGetter;

@@ -352,8 +352,9 @@ public class ControllerManager {
 
             @Override
             public boolean equals(Object obj) {
-                if (this == obj)
+                if (this == obj) {
                     return true;
+                }
                 if (!(obj instanceof NotifyTask)) {
                     return false;
                 }

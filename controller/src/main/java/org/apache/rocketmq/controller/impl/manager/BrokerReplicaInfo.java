@@ -85,8 +85,9 @@ public class BrokerReplicaInfo implements Serializable {
     }
 
     public String getBrokerAddress(final Long brokerId) {
-        if (brokerId == null)
+        if (brokerId == null) {
             return null;
+        }
         Pair<String, String> pair = this.brokerIdInfo.get(brokerId);
         if (pair != null) {
             return pair.getObject1();
@@ -95,8 +96,9 @@ public class BrokerReplicaInfo implements Serializable {
     }
 
     public String getBrokerRegisterCheckCode(final Long brokerId) {
-        if (brokerId == null)
+        if (brokerId == null) {
             return null;
+        }
         Pair<String, String> pair = this.brokerIdInfo.get(brokerId);
         if (pair != null) {
             return pair.getObject2();
