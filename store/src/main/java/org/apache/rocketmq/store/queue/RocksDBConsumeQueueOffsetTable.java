@@ -352,7 +352,8 @@ public class RocksDBConsumeQueueOffsetTable {
         if (maxPhyOffset >= maxPhyOffsetInCQ) {
             correctMaxCqOffset(topic, queueId, maxCqOffset, maxPhyOffsetInCQ);
             Long newMaxCqOffset = getHeapMaxCqOffset(topic, queueId);
-            ROCKSDB_LOG.warn("truncateDirtyLogicFile topic={}, queueId={} from {} to {}", topic, queueId, maxPhyOffset, newMaxCqOffset);
+            ROCKSDB_LOG.warn("truncateDirtyLogicFile topic: {}, queueId: {} from {} to {}", topic, queueId,
+                maxPhyOffset, newMaxCqOffset);
         }
     }
 
@@ -471,16 +472,20 @@ public class RocksDBConsumeQueueOffsetTable {
             writeBatch.put(this.offsetCFH, offsetKey.array(), offsetValue.array());
             this.rocksDBStorage.batchPut(writeBatch);
 
-            putHeapMinCqOffset(topic, queueId, phyOffset, cqOffset);
+            if (max) {
+                putHeapMaxCqOffset(topic, queueId, cqOffset);
+            } else {
+                putHeapMinCqOffset(topic, queueId, phyOffset, cqOffset);
+            }
         } catch (RocksDBException e) {
-            ERROR_LOG.error("updateOffset max:{} Failed.", max, e);
+            ERROR_LOG.error("updateCqOffset({}) failed.", max ? "max" : "min", e);
             throw e;
         } finally {
             writeBatch.close();
             this.rocksDBStorage.release();
             if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
-                ROCKSDB_LOG.warn("updateTopicQueueOffset. topic:{}, queueId:{}, max:{}, phyOffset:{}, cqOffset:{}",
-                    topic, queueId, max, phyOffset, cqOffset);
+                ROCKSDB_LOG.warn("updateCqOffset({}). topic: {}, queueId: {}, phyOffset: {}, cqOffset: {}",
+                    max ? "max" : "min", topic, queueId, phyOffset, cqOffset);
             }
         }
     }
@@ -490,8 +495,11 @@ public class RocksDBConsumeQueueOffsetTable {
         // 'getMinOffsetInQueue' may correct minCqOffset and put it into heap
         long minCQOffset = getMinCqOffset(topic, queueId);
         PhyAndCQOffset minPhyAndCQOffset = getHeapMinOffset(topic, queueId);
-        if (minPhyAndCQOffset == null || minPhyAndCQOffset.getCqOffset() != minCQOffset || minPhyAndCQOffset.getPhyOffset() > maxPhyOffsetInCQ) {
-            ROCKSDB_LOG.info("[BUG] correctMaxCqOffset error! topic={}, queueId={}, maxPhyOffsetInCQ={}, minCqOffset={}, phyAndCQOffset={}",
+        if (minPhyAndCQOffset == null
+            || minPhyAndCQOffset.getCqOffset() != minCQOffset
+            || minPhyAndCQOffset.getPhyOffset() > maxPhyOffsetInCQ) {
+            ROCKSDB_LOG.info("[BUG] correctMaxCqOffset error! topic: {}, queueId: {}, maxPhyOffsetInCQ: {}, "
+                    + "minCqOffset: {}, phyAndCQOffset: {}",
                 topic, queueId, maxPhyOffsetInCQ, minCQOffset, minPhyAndCQOffset);
             throw new RocksDBException("correctMaxCqOffset error");
         }
