@@ -32,7 +32,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -42,6 +41,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -260,7 +260,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     private ExecutorService buildExecutorService(BlockingQueue<Runnable> blockingQueue, String threadNamePrefix) {
-        return new ThreadPoolExecutor(
+        return ThreadUtils.newThreadPoolExecutor(
             this.messageStore.getBrokerConfig().getRecoverThreadPoolNums(),
             this.messageStore.getBrokerConfig().getRecoverThreadPoolNums(),
             1000 * 60,

@@ -89,4 +89,18 @@ public interface LatencyFaultTolerance<T> {
      * @param detectInterval each broker's detecting interval
      */
     void setDetectInterval(final int detectInterval);
+
+    /**
+     * Use it to set the detector work or not.
+     *
+     * @param startDetectorEnable set the detector's work status
+     */
+    void setStartDetectorEnable(final boolean startDetectorEnable);
+
+    /**
+     * Use it to judge if the detector enabled.
+     *
+     * @return is the detector should be started.
+     */
+    boolean isStartDetectorEnable();
 }

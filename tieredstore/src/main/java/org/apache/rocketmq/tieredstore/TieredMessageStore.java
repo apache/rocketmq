@@ -94,6 +94,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         boolean loadNextStore = next.load();
         boolean result = loadFlatFile && loadNextStore;
         if (result) {
+            dispatcher.initScheduleTask();
             dispatcher.start();
         }
         return result;

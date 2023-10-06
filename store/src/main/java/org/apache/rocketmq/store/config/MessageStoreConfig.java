@@ -403,6 +403,8 @@ public class MessageStoreConfig {
     private boolean realTimePersistRocksDBConfig = true;
     private boolean enableRocksDBLog = false;
 
+    private int topicQueueLockNum = 32;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -1768,5 +1770,13 @@ public class MessageStoreConfig {
 
     public void setEnableRocksDBLog(boolean enableRocksDBLog) {
         this.enableRocksDBLog = enableRocksDBLog;
+    }
+
+    public int getTopicQueueLockNum() {
+        return topicQueueLockNum;
+    }
+
+    public void setTopicQueueLockNum(int topicQueueLockNum) {
+        this.topicQueueLockNum = topicQueueLockNum;
     }
 }

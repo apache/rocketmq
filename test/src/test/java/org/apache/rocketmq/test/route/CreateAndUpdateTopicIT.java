@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.route;
 
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
@@ -110,5 +111,35 @@ public class CreateAndUpdateTopicIT extends BaseConf {
         brokerController2.getBrokerConfig().setEnableSingleTopicRegister(false);
         brokerController3.getBrokerConfig().setEnableSingleTopicRegister(false);
         namesrvController.getNamesrvConfig().setDeleteTopicWithBrokerRegistration(false);
+    }
+
+    @Test
+    public void testCreateOrUpdateTopic_EnableSplitRegistration() {
+        brokerController1.getBrokerConfig().setEnableSplitRegistration(true);
+        brokerController2.getBrokerConfig().setEnableSplitRegistration(true);
+        brokerController3.getBrokerConfig().setEnableSplitRegistration(true);
+
+        String testTopic = "test-topic-";
+
+        for (int i = 0; i < 1000; i++) {
+            TopicConfig topicConfig = new TopicConfig(testTopic + i, 8, 8);
+            brokerController1.getTopicConfigManager().updateTopicConfig(topicConfig);
+            brokerController2.getTopicConfigManager().updateTopicConfig(topicConfig);
+            brokerController3.getTopicConfigManager().updateTopicConfig(topicConfig);
+        }
+
+        brokerController1.registerBrokerAll(false, true, true);
+        brokerController2.registerBrokerAll(false, true, true);
+        brokerController3.registerBrokerAll(false, true, true);
+
+        for (int i = 0; i < 1000; i++) {
+            TopicRouteData route = MQAdminTestUtils.examineTopicRouteInfo(NAMESRV_ADDR, testTopic + i);
+            assertThat(route.getBrokerDatas()).hasSize(3);
+            assertThat(route.getQueueDatas()).hasSize(3);
+        }
+
+        brokerController1.getBrokerConfig().setEnableSplitRegistration(false);
+        brokerController2.getBrokerConfig().setEnableSplitRegistration(false);
+        brokerController3.getBrokerConfig().setEnableSplitRegistration(false);
     }
 }
