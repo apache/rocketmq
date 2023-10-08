@@ -505,12 +505,15 @@ public class MessageStoreConfig {
         return storeType;
     }
 
+    public boolean isEnableRocksDBStore() {
+        return StoreType.DEFAULT_ROCKSDB.getStoreType().equalsIgnoreCase(this.storeType));
+    }
+
     public void setStoreType(String storeType) {
         this.storeType = storeType;
     }
 
     public int getMappedFileSizeConsumeQueue() {
-
         int factor = (int) Math.ceil(this.mappedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
         return (int) (factor * ConsumeQueue.CQ_STORE_UNIT_SIZE);
     }
