@@ -506,7 +506,7 @@ public class MessageStoreConfig {
     }
 
     public boolean isEnableRocksDBStore() {
-        return StoreType.DEFAULT_ROCKSDB.getStoreType().equalsIgnoreCase(this.storeType));
+        return StoreType.DEFAULT_ROCKSDB.getStoreType().equalsIgnoreCase(this.storeType);
     }
 
     public void setStoreType(String storeType) {
