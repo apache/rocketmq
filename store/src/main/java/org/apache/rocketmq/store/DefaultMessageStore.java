@@ -1861,7 +1861,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     private boolean isRecoverConcurrently() {
-        return this.brokerConfig.isRecoverConcurrently() && !StoreType.DEFAULT_ROCKSDB.getStoreType().equals(this.messageStoreConfig.getStoreType());
+        return this.brokerConfig.isRecoverConcurrently() && !this.messageStoreConfig.isEnableRocksDBStore();
     }
 
     private void recover(final boolean lastExitOK) throws RocksDBException {
