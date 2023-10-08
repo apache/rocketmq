@@ -153,8 +153,9 @@ public class MQClientInstance {
         this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
         this.nettyClientConfig.setSocksProxyConfig(clientConfig.getSocksProxyConfig());
         ClientRemotingProcessor clientRemotingProcessor = new ClientRemotingProcessor(this);
-        this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig,
-            new ChannelEventListener() {
+        ChannelEventListener channelEventListener;
+        if (clientConfig.isEnableHeartbeatChannelEventListener()) {
+            channelEventListener = new ChannelEventListener() {
                 private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = MQClientInstance.this.brokerAddrTable;
                 @Override
                 public void onChannelConnect(String remoteAddr, Channel channel) {
@@ -179,7 +180,11 @@ public class MQClientInstance {
                 @Override
                 public void onChannelIdle(String remoteAddr, Channel channel) {
                 }
-            });
+            };
+        } else {
+            channelEventListener = null;
+        }
+        this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig, channelEventListener);
 
         if (this.clientConfig.getNamesrvAddr() != null) {
             this.mQClientAPIImpl.updateNameServerAddressList(this.clientConfig.getNamesrvAddr());
