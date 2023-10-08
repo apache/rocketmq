@@ -501,12 +501,12 @@ public class MessageStoreConfig {
         this.mappedFileSizeCommitLog = mappedFileSizeCommitLog;
     }
 
-    public String getStoreType() {
-        return storeType;
-    }
-
     public boolean isEnableRocksDBStore() {
         return StoreType.DEFAULT_ROCKSDB.getStoreType().equalsIgnoreCase(this.storeType);
+    }
+
+    public String getStoreType() {
+        return storeType;
     }
 
     public void setStoreType(String storeType) {
