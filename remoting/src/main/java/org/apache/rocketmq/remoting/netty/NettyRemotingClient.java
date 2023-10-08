@@ -229,6 +229,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             handler.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
 
+        nettyEventExecutor.start();
+
         TimerTask timerTaskScanResponseTable = new TimerTask() {
             @Override
             public void run(Timeout timeout) {

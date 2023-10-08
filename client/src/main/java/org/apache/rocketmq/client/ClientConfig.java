@@ -94,6 +94,8 @@ public class ClientConfig {
     private boolean sendLatencyEnable = Boolean.parseBoolean(System.getProperty(SEND_LATENCY_ENABLE, "false"));
     private boolean startDetectorEnable = Boolean.parseBoolean(System.getProperty(START_DETECTOR_ENABLE, "false"));
 
+    private boolean enableHeartbeatChannelEventListener = true;
+
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());
@@ -201,6 +203,7 @@ public class ClientConfig {
         this.useHeartbeatV2 = cc.useHeartbeatV2;
         this.startDetectorEnable = cc.startDetectorEnable;
         this.sendLatencyEnable = cc.sendLatencyEnable;
+        this.enableHeartbeatChannelEventListener = cc.enableHeartbeatChannelEventListener;
         this.detectInterval = cc.detectInterval;
         this.detectTimeout = cc.detectTimeout;
     }
@@ -228,6 +231,7 @@ public class ClientConfig {
         cc.enableStreamRequestType = enableStreamRequestType;
         cc.useHeartbeatV2 = useHeartbeatV2;
         cc.startDetectorEnable = startDetectorEnable;
+        cc.enableHeartbeatChannelEventListener = enableHeartbeatChannelEventListener;
         cc.sendLatencyEnable = sendLatencyEnable;
         cc.detectInterval = detectInterval;
         cc.detectTimeout = detectTimeout;
@@ -418,6 +422,14 @@ public class ClientConfig {
         this.startDetectorEnable = startDetectorEnable;
     }
 
+    public boolean isEnableHeartbeatChannelEventListener() {
+        return enableHeartbeatChannelEventListener;
+    }
+
+    public void setEnableHeartbeatChannelEventListener(boolean enableHeartbeatChannelEventListener) {
+        this.enableHeartbeatChannelEventListener = enableHeartbeatChannelEventListener;
+    }
+
     public int getDetectTimeout() {
         return this.detectTimeout;
     }
@@ -444,19 +456,34 @@ public class ClientConfig {
 
     @Override
     public String toString() {
-        return "ClientConfig [namesrvAddr=" + namesrvAddr
-            + ", clientIP=" + clientIP + ", instanceName=" + instanceName
-            + ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads
-            + ", pollNameServerInterval=" + pollNameServerInterval
-            + ", heartbeatBrokerInterval=" + heartbeatBrokerInterval
-            + ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval
-            + ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException
-            + ", unitMode=" + unitMode + ", unitName=" + unitName
-            + ", vipChannelEnabled=" + vipChannelEnabled + ", useTLS=" + useTLS
-            + ", socksProxyConfig=" + socksProxyConfig + ", language=" + language.name()
-            + ", namespace=" + namespace + ", mqClientApiTimeout=" + mqClientApiTimeout
-            + ", decodeReadBody=" + decodeReadBody + ", decodeDecompressBody=" + decodeDecompressBody
-            + ", sendLatencyEnable=" + sendLatencyEnable + ", startDetectorEnable=" + startDetectorEnable
-            + ", enableStreamRequestType=" + enableStreamRequestType + ", useHeartbeatV2=" + useHeartbeatV2 + "]";
+        return "ClientConfig{" +
+            "namesrvAddr='" + namesrvAddr + '\'' +
+            ", clientIP='" + clientIP + '\'' +
+            ", instanceName='" + instanceName + '\'' +
+            ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads +
+            ", namespace='" + namespace + '\'' +
+            ", namespaceInitialized=" + namespaceInitialized +
+            ", accessChannel=" + accessChannel +
+            ", pollNameServerInterval=" + pollNameServerInterval +
+            ", heartbeatBrokerInterval=" + heartbeatBrokerInterval +
+            ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval +
+            ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException +
+            ", unitMode=" + unitMode +
+            ", unitName='" + unitName + '\'' +
+            ", decodeReadBody=" + decodeReadBody +
+            ", decodeDecompressBody=" + decodeDecompressBody +
+            ", vipChannelEnabled=" + vipChannelEnabled +
+            ", useHeartbeatV2=" + useHeartbeatV2 +
+            ", useTLS=" + useTLS +
+            ", socksProxyConfig='" + socksProxyConfig + '\'' +
+            ", mqClientApiTimeout=" + mqClientApiTimeout +
+            ", detectTimeout=" + detectTimeout +
+            ", detectInterval=" + detectInterval +
+            ", language=" + language +
+            ", enableStreamRequestType=" + enableStreamRequestType +
+            ", sendLatencyEnable=" + sendLatencyEnable +
+            ", startDetectorEnable=" + startDetectorEnable +
+            ", enableHeartbeatChannelEventListener=" + enableHeartbeatChannelEventListener +
+            '}';
     }
 }
