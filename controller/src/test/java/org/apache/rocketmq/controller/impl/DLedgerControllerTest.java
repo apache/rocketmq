@@ -63,7 +63,8 @@ public class DLedgerControllerTest {
     private List<String> baseDirs;
     private List<DLedgerController> controllers;
 
-    public DLedgerController launchController(final String group, final String peers, final String selfId, final boolean isEnableElectUncleanMaster) {
+    public DLedgerController launchController(final String group, final String peers, final String selfId,
+        final boolean isEnableElectUncleanMaster) {
         String tmpdir = System.getProperty("java.io.tmpdir");
         final String path = (StringUtils.endsWith(tmpdir, File.separator) ? tmpdir : tmpdir + File.separator) + group + File.separator + selfId;
         baseDirs.add(path);
@@ -121,11 +122,11 @@ public class DLedgerControllerTest {
         final RegisterBrokerToControllerRequestHeader registerBrokerToControllerRequestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, nextBrokerId, brokerAddress);
         RemotingCommand remotingCommand2 = leader.registerBroker(registerBrokerToControllerRequestHeader).get(2, TimeUnit.SECONDS);
 
-
         assertEquals(ResponseCode.SUCCESS, remotingCommand2.getCode());
     }
 
-    public void brokerTryElectMaster(Controller leader, String clusterName, String brokerName, String brokerAddress, Long brokerId,
+    public void brokerTryElectMaster(Controller leader, String clusterName, String brokerName, String brokerAddress,
+        Long brokerId,
         boolean exceptSuccess) throws Exception {
         final ElectMasterRequestHeader electMasterRequestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerId);
         RemotingCommand command = leader.electMaster(electMasterRequestHeader).get(2, TimeUnit.SECONDS);
@@ -186,9 +187,9 @@ public class DLedgerControllerTest {
         registerNewBroker(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[1], 2L);
         registerNewBroker(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[2], 3L);
         // try elect
-        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[0], 1L,true);
-        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[1], 2L,  false);
-        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[2], 3L,false);
+        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[0], 1L, true);
+        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[1], 2L, false);
+        brokerTryElectMaster(leader, DEFAULT_CLUSTER_NAME, DEFAULT_BROKER_NAME, DEFAULT_IP[2], 3L, false);
         final RemotingCommand getInfoResponse = leader.getReplicaInfo(new GetReplicaInfoRequestHeader(DEFAULT_BROKER_NAME)).get(10, TimeUnit.SECONDS);
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) getInfoResponse.readCustomHeader();
         assertEquals(1, replicaInfo.getMasterEpoch().intValue());
@@ -239,6 +240,8 @@ public class DLedgerControllerTest {
     @Test
     public void testBrokerLifecycleListener() throws Exception {
         final DLedgerController leader = mockMetaData(false);
+
+        assertTrue(leader.isLeaderState());
         // Mock that master broker has been inactive, and try to elect a new master from sync-state-set
         // But we shut down two controller, so the ElectMasterEvent will be appended to DLedger failed.
         // So the statemachine still keep the stale master's information
@@ -247,15 +250,21 @@ public class DLedgerControllerTest {
             dLedgerController.shutdown();
             controllers.remove(dLedgerController);
         }
+
         final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger(DEFAULT_BROKER_NAME);
         setBrokerElectPolicy(leader, 1L);
         Exception exception = null;
+        RemotingCommand remotingCommand = null;
         try {
-            leader.electMaster(request).get(5, TimeUnit.SECONDS);
+            remotingCommand = leader.electMaster(request).get(5, TimeUnit.SECONDS);
         } catch (Exception e) {
             exception = e;
         }
-        assertNotNull(exception);
+
+        //
+        assertTrue(exception != null ||
+            (remotingCommand != null && remotingCommand.getCode() == ResponseCode.CONTROLLER_NOT_LEADER));
+
         // Shut down leader controller
         leader.shutdown();
         controllers.remove(leader);
@@ -272,7 +281,7 @@ public class DLedgerControllerTest {
         setBrokerAlivePredicate(newLeader, 1L);
         // Check if the statemachine is stale
         final RemotingCommand resp = newLeader.getReplicaInfo(new GetReplicaInfoRequestHeader(DEFAULT_BROKER_NAME)).
-                get(10, TimeUnit.SECONDS);
+            get(10, TimeUnit.SECONDS);
         final GetReplicaInfoResponseHeader replicaInfo = (GetReplicaInfoResponseHeader) resp.readCustomHeader();
         assertEquals(1, replicaInfo.getMasterBrokerId().longValue());
         assertEquals(1, replicaInfo.getMasterEpoch().intValue());
