@@ -47,7 +47,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -119,13 +118,9 @@ public class NettyRemotingClientTest {
     public void testRemotingException() throws Exception {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, null);
 
-        RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.setCode(ResponseCode.SUCCESS);
-        doAnswer(invocation -> {
-            InvokeCallback callback = invocation.getArgument(3);
-            callback.operationFail(new RemotingException(null));
-            return null;
-        }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+        CompletableFuture<RemotingCommand> future0 = new CompletableFuture<>();
+        future0.completeExceptionally(new RemotingException(""));
+        doReturn(future0).when(remotingClient).invoke(anyString(), any(RemotingCommand.class), anyLong());
 
         CompletableFuture<RemotingCommand> future = remotingClient.invoke("0.0.0.0", request, 1000);
         Throwable thrown = catchThrowable(future::get);
