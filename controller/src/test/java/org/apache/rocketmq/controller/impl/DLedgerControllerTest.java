@@ -260,8 +260,7 @@ public class DLedgerControllerTest {
         } catch (Exception e) {
             exception = e;
         }
-
-        //
+        
         assertTrue(exception != null ||
             (remotingCommand != null && remotingCommand.getCode() == ResponseCode.CONTROLLER_NOT_LEADER));
 
