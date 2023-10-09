@@ -260,9 +260,9 @@ public class DLedgerControllerTest {
         } catch (Exception e) {
             exception = e;
         }
-        
+
         assertTrue(exception != null ||
-            (remotingCommand != null && remotingCommand.getCode() == ResponseCode.CONTROLLER_NOT_LEADER));
+            remotingCommand != null && remotingCommand.getCode() == ResponseCode.CONTROLLER_NOT_LEADER);
 
         // Shut down leader controller
         leader.shutdown();
