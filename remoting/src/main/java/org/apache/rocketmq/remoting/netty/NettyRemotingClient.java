@@ -229,6 +229,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             handler.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         }
 
+        nettyEventExecutor.start();
+
         TimerTask timerTaskScanResponseTable = new TimerTask() {
             @Override
             public void run(Timeout timeout) {
@@ -527,15 +529,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (channel != null && channel.isActive()) {
             long left = timeoutMillis;
             try {
-                doBeforeRpcHooks(channelRemoteAddr, request);
                 long costTime = System.currentTimeMillis() - beginStartTime;
                 left -= costTime;
                 if (left <= 0) {
                     throw new RemotingTimeoutException("invokeSync call the addr[" + channelRemoteAddr + "] timeout");
                 }
                 RemotingCommand response = this.invokeSyncImpl(channel, request, left);
-                doAfterRpcHooks(channelRemoteAddr, request, response);
-                this.updateChannelLastResponseTime(addr);
+                updateChannelLastResponseTime(addr);
                 return response;
             } catch (RemotingSendRequestException e) {
                 LOGGER.warn("invokeSync: send request exception, so close the channel[{}]", channelRemoteAddr);
@@ -727,18 +727,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         final Channel channel = this.getAndCreateChannel(addr);
         String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
         if (channel != null && channel.isActive()) {
-            try {
-                doBeforeRpcHooks(channelRemoteAddr, request);
-                long costTime = System.currentTimeMillis() - beginStartTime;
-                if (timeoutMillis < costTime) {
-                    throw new RemotingTooMuchRequestException("invokeAsync call the addr[" + channelRemoteAddr + "] timeout");
-                }
-                this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, new InvokeCallbackWrapper(invokeCallback, addr));
-            } catch (RemotingSendRequestException e) {
-                LOGGER.warn("invokeAsync: send request exception, so close the channel[{}]", channelRemoteAddr);
-                this.closeChannel(addr, channel);
-                throw e;
+            long costTime = System.currentTimeMillis() - beginStartTime;
+            if (timeoutMillis < costTime) {
+                throw new RemotingTooMuchRequestException("invokeAsync call the addr[" + channelRemoteAddr + "] timeout");
             }
+            this.invokeAsyncImpl(channel, request, timeoutMillis - costTime, new InvokeCallbackWrapper(invokeCallback, addr));
         } else {
             this.closeChannel(addr, channel);
             throw new RemotingConnectException(addr);
@@ -931,10 +924,18 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         @Override
         public void operationComplete(ResponseFuture responseFuture) {
-            if (responseFuture != null && responseFuture.isSendRequestOK() && responseFuture.getResponseCommand() != null) {
-                NettyRemotingClient.this.updateChannelLastResponseTime(addr);
-            }
             this.invokeCallback.operationComplete(responseFuture);
+        }
+
+        @Override
+        public void operationSucceed(RemotingCommand response) {
+            updateChannelLastResponseTime(addr);
+            this.invokeCallback.operationSucceed(response);
+        }
+
+        @Override
+        public void operationFail(final Throwable throwable) {
+            this.invokeCallback.operationFail(throwable);
         }
     }
 
