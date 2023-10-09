@@ -270,7 +270,7 @@ public abstract class NettyRemotingAbstract {
         Runnable run = buildProcessRequestHandler(ctx, cmd, pair, opaque);
 
         if (isShuttingDown.get()) {
-            if (cmd.getVersion() > MQVersion.Version.V5_1_3.ordinal()) {
+            if (cmd.getVersion() > MQVersion.Version.V5_1_4.ordinal()) {
                 final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.GO_AWAY,
                     "please go away");
                 response.setOpaque(opaque);
