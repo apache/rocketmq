@@ -278,6 +278,7 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             this.executeHookBefore(consumeMessageContext);
             consumeMessageContext.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
             consumeMessageContext.setSuccess(true);
+            consumeMessageContext.setAccessChannel(defaultMQPullConsumer.getAccessChannel());
             this.executeHookAfter(consumeMessageContext);
         }
         return pullResult;

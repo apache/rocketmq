@@ -82,6 +82,7 @@ import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.pop.AckMsg;
+import org.apache.rocketmq.store.pop.BatchAckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
@@ -134,6 +135,15 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             + PopAckConstants.SPLIT + ackMsg.getPopTime()
             + PopAckConstants.SPLIT + ackMsg.getBrokerName()
             + PopAckConstants.SPLIT + PopAckConstants.ACK_TAG;
+    }
+
+    public static String genBatchAckUniqueId(BatchAckMsg batchAckMsg) {
+        return batchAckMsg.getTopic()
+                + PopAckConstants.SPLIT + batchAckMsg.getQueueId()
+                + PopAckConstants.SPLIT + batchAckMsg.getAckOffsetList().toString()
+                + PopAckConstants.SPLIT + batchAckMsg.getConsumerGroup()
+                + PopAckConstants.SPLIT + batchAckMsg.getPopTime()
+                + PopAckConstants.SPLIT + PopAckConstants.BATCH_ACK_TAG;
     }
 
     public static String genCkUniqueId(PopCheckPoint ck) {
@@ -560,7 +570,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                         this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
                             requestHeader.getConsumerGroup(), topic, queueId, finalOffset);
                     } else {
-                        appendCheckPoint(requestHeader, topic, reviveQid, queueId, finalOffset, result, popTime, this.brokerController.getBrokerConfig().getBrokerName());
+                        if (!appendCheckPoint(requestHeader, topic, reviveQid, queueId, finalOffset, result, popTime, this.brokerController.getBrokerConfig().getBrokerName())) {
+                            return atomicRestNum.get() + result.getMessageCount();
+                        }
                     }
                     ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, isRetry, queueId, finalOffset);
                     ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, isRetry, queueId,
@@ -579,8 +591,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 atomicRestNum.set(result.getMaxOffset() - result.getNextBeginOffset() + atomicRestNum.get());
                 String brokerName = brokerController.getBrokerConfig().getBrokerName();
                 for (SelectMappedBufferResult mapedBuffer : result.getMessageMapedList()) {
-                    // We should not recode buffer for normal topic message
-                    if (!isRetry) {
+                    // We should not recode buffer when popResponseReturnActualRetryTopic is true or topic is not retry topic
+                    if (brokerController.getBrokerConfig().isPopResponseReturnActualRetryTopic() || !isRetry) {
                         getMessageResult.addMessage(mapedBuffer);
                     } else {
                         List<MessageExt> messageExtList = MessageDecoder.decodesBatch(mapedBuffer.getByteBuffer(),
@@ -627,20 +639,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
         long offset = this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, queueId);
         if (offset < 0) {
-            if (ConsumeInitMode.MIN == initMode) {
-                offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
-            } else {
-                // pop last one,then commit offset.
-                offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - 1;
-                // max & no consumer offset
-                if (offset < 0) {
-                    offset = 0;
-                }
-                if (init) {
-                    this.brokerController.getConsumerOffsetManager().commitOffset(
-                        "getPopOffset", group, topic, queueId, offset);
-                }
-            }
+            offset = this.getInitOffset(topic, group, queueId, initMode, init);
         }
 
         if (checkResetOffset) {
@@ -656,6 +655,31 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         } else {
             return Math.max(bufferOffset, offset);
         }
+    }
+
+    private long getInitOffset(String topic, String group, int queueId, int initMode, boolean init) {
+        long offset;
+        if (ConsumeInitMode.MIN == initMode) {
+            return this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
+        } else {
+            if (this.brokerController.getBrokerConfig().isInitPopOffsetByCheckMsgInMem() &&
+                this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId) <= 0 &&
+                this.brokerController.getMessageStore().checkInMemByConsumeOffset(topic, queueId, 0, 1)) {
+                offset = 0;
+            } else {
+                // pop last one,then commit offset.
+                offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - 1;
+                // max & no consumer offset
+                if (offset < 0) {
+                    offset = 0;
+                }
+            }
+            if (init) {
+                this.brokerController.getConsumerOffsetManager().commitOffset(
+                    "getPopOffset", group, topic, queueId, offset);
+            }
+        }
+        return offset;
     }
 
     public final MessageExtBrokerInner buildCkMsg(final PopCheckPoint ck, final int reviveQid) {
@@ -675,7 +699,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return msgInner;
     }
 
-    private void appendCheckPoint(final PopMessageRequestHeader requestHeader,
+    private boolean appendCheckPoint(final PopMessageRequestHeader requestHeader,
         final String topic, final int reviveQid, final int queueId, final long offset,
         final GetMessageResult getMessageTmpResult, final long popTime, final String brokerName) {
         // add check point msg to revive log
@@ -698,10 +722,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         );
 
         if (addBufferSuc) {
-            return;
+            return true;
         }
-
-        this.popBufferMergeService.addCkJustOffset(
+        return this.popBufferMergeService.addCkJustOffset(
             ck, reviveQid, -1, getMessageTmpResult.getNextBeginOffset()
         );
     }

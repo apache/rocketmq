@@ -32,6 +32,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
@@ -50,12 +51,14 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
     protected final TopicRouteService topicRouteService;
     protected final AdminService adminService;
     protected final MQClientAPIFactory mqClientAPIFactory;
+    protected final RPCHook rpcHook;
     protected DefaultMQPushConsumer defaultMQPushConsumer;
 
-    public AbstractSystemMessageSyncer(TopicRouteService topicRouteService, AdminService adminService, MQClientAPIFactory mqClientAPIFactory) {
+    public AbstractSystemMessageSyncer(TopicRouteService topicRouteService, AdminService adminService, MQClientAPIFactory mqClientAPIFactory, RPCHook rpcHook) {
         this.topicRouteService = topicRouteService;
         this.adminService = adminService;
         this.mqClientAPIFactory = mqClientAPIFactory;
+        this.rpcHook = rpcHook;
     }
 
     protected String getSystemMessageProducerId() {
@@ -83,8 +86,8 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
         return 1;
     }
 
-    protected RPCHook getRpcHook() {
-        return null;
+    public RPCHook getRpcHook() {
+        return rpcHook;
     }
 
     protected void sendSystemMessage(Object data) {
@@ -95,7 +98,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
                 JSON.toJSONString(data).getBytes(StandardCharsets.UTF_8)
             );
 
-            AddressableMessageQueue messageQueue = this.topicRouteService.getAllMessageQueueView(targetTopic)
+            AddressableMessageQueue messageQueue = this.topicRouteService.getAllMessageQueueView(ProxyContext.createForInner(this.getClass()), targetTopic)
                 .getWriteSelector().selectOne(true);
             this.mqClientAPIFactory.getClient().sendMessageAsync(
                 messageQueue.getBrokerAddr(),

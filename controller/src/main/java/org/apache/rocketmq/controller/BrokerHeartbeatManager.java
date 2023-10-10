@@ -17,6 +17,7 @@
 package org.apache.rocketmq.controller;
 
 import io.netty.channel.Channel;
+import java.util.Map;
 import org.apache.rocketmq.controller.helper.BrokerLifecycleListener;
 import org.apache.rocketmq.controller.impl.heartbeat.BrokerLiveInfo;
 
@@ -63,4 +64,10 @@ public interface BrokerHeartbeatManager {
      * Check whether broker active
      */
     boolean isBrokerActive(final String clusterName, final String brokerName, final Long brokerId);
+
+    /**
+     * Count the number of active brokers in each broker-set of each cluster
+     * @return active brokers count
+     */
+    Map<String/*cluster*/, Map<String/*broker-set*/, Integer/*active broker num*/>> getActiveBrokersNum();
 }

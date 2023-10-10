@@ -25,8 +25,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RunnableFuture;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
@@ -34,11 +32,12 @@ import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.future.FutureTaskExt;
 
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.DLedgerController;
 import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManager;
+import org.apache.rocketmq.controller.metrics.ControllerMetricsManager;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -75,6 +74,8 @@ public class ControllerManager {
 
     private NotifyService notifyService;
 
+    private ControllerMetricsManager controllerMetricsManager;
+
     public ControllerManager(ControllerConfig controllerConfig, NettyServerConfig nettyServerConfig,
         NettyClientConfig nettyClientConfig) {
         this.controllerConfig = controllerConfig;
@@ -90,18 +91,14 @@ public class ControllerManager {
 
     public boolean initialize() {
         this.controllerRequestThreadPoolQueue = new LinkedBlockingQueue<>(this.controllerConfig.getControllerRequestThreadPoolQueueCapacity());
-        this.controllerRequestExecutor = new ThreadPoolExecutor(
+        this.controllerRequestExecutor = ThreadUtils.newThreadPoolExecutor(
             this.controllerConfig.getControllerThreadPoolNums(),
             this.controllerConfig.getControllerThreadPoolNums(),
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.controllerRequestThreadPoolQueue,
-            new ThreadFactoryImpl("ControllerRequestExecutorThread_")) {
-            @Override
-            protected <T> RunnableFuture<T> newTaskFor(final Runnable runnable, final T value) {
-                return new FutureTaskExt<T>(runnable, value);
-            }
-        };
+            new ThreadFactoryImpl("ControllerRequestExecutorThread_"));
+
         this.notifyService.initialize();
         if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerPeers())) {
             throw new IllegalArgumentException("Attribute value controllerDLegerPeers of ControllerConfig is null or empty");
@@ -120,6 +117,7 @@ public class ControllerManager {
         this.heartbeatManager.registerBrokerLifecycleListener(this::onBrokerInactive);
         this.controller.registerBrokerLifecycleListener(this::onBrokerInactive);
         registerProcessor();
+        this.controllerMetricsManager = ControllerMetricsManager.getInstance(this);
         return true;
     }
 

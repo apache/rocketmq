@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.AckCallback;
@@ -140,6 +141,27 @@ public class RMQPopClient implements MQConsumer {
         return future;
     }
 
+    public CompletableFuture<AckResult> batchAckMessageAsync(String brokerAddr, String topic, String consumerGroup,
+        List<String> extraInfoList) {
+        CompletableFuture<AckResult> future = new CompletableFuture<>();
+        try {
+            this.mqClientAPI.batchAckMessageAsync(brokerAddr, DEFAULT_TIMEOUT, new AckCallback() {
+                @Override
+                public void onSuccess(AckResult ackResult) {
+                    future.complete(ackResult);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    future.completeExceptionally(e);
+                }
+            }, topic, consumerGroup, extraInfoList);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
     public CompletableFuture<AckResult> changeInvisibleTimeAsync(String brokerAddr, String brokerName, String topic,
         String consumerGroup, String extraInfo, long invisibleTime) {
         String[] extraInfoStrs = ExtraInfoUtil.split(extraInfo);
@@ -172,12 +194,19 @@ public class RMQPopClient implements MQConsumer {
 
     public CompletableFuture<Boolean> notification(String brokerAddr, String topic,
         String consumerGroup, int queueId, long pollTime, long bornTime, long timeoutMillis) {
+        return notification(brokerAddr, topic, consumerGroup, queueId, null, null, pollTime, bornTime, timeoutMillis);
+    }
+
+    public CompletableFuture<Boolean> notification(String brokerAddr, String topic,
+        String consumerGroup, int queueId, Boolean order, String attemptId, long pollTime, long bornTime, long timeoutMillis) {
         NotificationRequestHeader requestHeader = new NotificationRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         requestHeader.setTopic(topic);
         requestHeader.setQueueId(queueId);
         requestHeader.setPollTime(pollTime);
         requestHeader.setBornTime(bornTime);
+        requestHeader.setOrder(order);
+        requestHeader.setAttemptId(attemptId);
         return this.mqClientAPI.notification(brokerAddr, requestHeader, timeoutMillis);
     }
 }

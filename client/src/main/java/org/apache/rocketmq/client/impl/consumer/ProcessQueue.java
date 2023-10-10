@@ -75,7 +75,7 @@ public class ProcessQueue {
      * @param pushConsumer
      */
     public void cleanExpiredMsg(DefaultMQPushConsumer pushConsumer) {
-        if (pushConsumer.getDefaultMQPushConsumerImpl().isConsumeOrderly()) {
+        if (pushConsumer.isConsumeOrderly()) {
             return;
         }
 

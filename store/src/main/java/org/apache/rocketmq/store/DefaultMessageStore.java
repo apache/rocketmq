@@ -22,7 +22,7 @@ import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -42,23 +42,23 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
@@ -82,6 +82,7 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.common.utils.ServiceProvider;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
@@ -204,7 +205,7 @@ public class DefaultMessageStore implements MessageStore {
     private ConcurrentMap<String, TopicConfig> topicConfigTable;
 
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
-        Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
+        ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
@@ -249,10 +250,10 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService = new ConcurrentReputMessageService();
         }
 
-        this.transientStorePool = new TransientStorePool(this);
+        this.transientStorePool = new TransientStorePool(messageStoreConfig.getTransientStorePoolSize(), messageStoreConfig.getMappedFileSizeCommitLog());
 
         this.scheduledExecutorService =
-            Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
+            ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
 
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
@@ -886,6 +887,10 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
+                            if (messageStoreConfig.isColdDataFlowControlEnable() && !MixAll.isSysConsumerGroupForNoColdReadLimit(group) && !selectResult.isInCache()) {
+                                getResult.setColdDataSum(getResult.getColdDataSum() + sizePy);
+                            }
+
                             if (messageFilter != null
                                 && !messageFilter.isMatchedByCommitLog(selectResult.getByteBuffer().slice(), null)) {
                                 if (getResult.getBufferTotalSize() == 0) {
@@ -1011,9 +1016,13 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
+        return getOffsetInQueueByTime(topic, queueId, timestamp, BoundaryType.LOWER);
+    }
+
+    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
         ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
         if (logic != null) {
-            long resultOffset = logic.getOffsetInQueueByTime(timestamp);
+            long resultOffset = logic.getOffsetInQueueByTime(timestamp, boundaryType);
             // Make sure the result offset is in valid range.
             resultOffset = Math.max(resultOffset, logic.getMinOffsetInQueue());
             resultOffset = Math.min(resultOffset, logic.getMaxOffsetInQueue());
@@ -1589,9 +1598,17 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    // Fetch and compute the newest confirmOffset.
+    // Even if it is just inited.
     @Override
     public long getConfirmOffset() {
         return this.commitLog.getConfirmOffset();
+    }
+
+    // Fetch the original confirmOffset's value.
+    // Without checking and re-computing.
+    public long getConfirmOffsetDirectly() {
+        return this.commitLog.getConfirmOffsetDirectly();
     }
 
     @Override
@@ -1695,6 +1712,16 @@ public class DefaultMessageStore implements MessageStore {
 
     public boolean checkInDiskByCommitOffset(long offsetPy) {
         return offsetPy >= commitLog.getMinOffset();
+    }
+
+    /**
+     * The ratio val is estimated by the experiment and experience
+     * so that the result is not high accurate for different business
+     * @return
+     */
+    public boolean checkInColdAreaByCommitOffset(long offsetPy, long maxOffsetPy) {
+        long memory = (long)(StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryHotRatio() / 100.0));
+        return (maxOffsetPy - offsetPy) > memory;
     }
 
     private boolean isTheBatchFull(int sizePy, int unitBatchNum, int maxMsgNums, long maxMsgSize, int bufferTotal,
@@ -1956,7 +1983,10 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public int remainTransientStoreBufferNumbs() {
-        return this.transientStorePool.availableBufferNums();
+        if (this.isTransientStorePoolEnable()) {
+            return this.transientStorePool.availableBufferNums();
+        }
+        return Integer.MAX_VALUE;
     }
 
     @Override
@@ -2885,7 +2915,7 @@ public class DefaultMessageStore implements MessageStore {
         private final ExecutorService batchDispatchRequestExecutor;
 
         public MainBatchDispatchRequestService() {
-            batchDispatchRequestExecutor = new ThreadPoolExecutor(
+            batchDispatchRequestExecutor = ThreadUtils.newThreadPoolExecutor(
                     DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
                     DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
                     1000 * 60,
@@ -3241,7 +3271,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public List<Pair<InstrumentSelector, View>> getMetricsView() {
+    public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
         return DefaultStoreMetricsManager.getMetricsView();
     }
 

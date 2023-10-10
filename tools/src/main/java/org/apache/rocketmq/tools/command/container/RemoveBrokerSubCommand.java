@@ -33,7 +33,7 @@ public class RemoveBrokerSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Remove a broker from specified container";
+        return "Remove a broker from specified container.";
     }
 
     @Override

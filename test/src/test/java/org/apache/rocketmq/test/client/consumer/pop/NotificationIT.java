@@ -66,6 +66,25 @@ public class NotificationIT extends BasePop {
         assertThat(result2).isFalse();
     }
 
+    @Test
+    public void testNotificationOrderly() throws Exception {
+        long pollTime = 500;
+        String attemptId = "attemptId";
+        CompletableFuture<Boolean> future1 = client.notification(brokerAddr, topic, group, messageQueue.getQueueId(), true, attemptId, pollTime, System.currentTimeMillis(), 5000);
+        CompletableFuture<Boolean> future2 = client.notification(brokerAddr, topic, group, messageQueue.getQueueId(), true, attemptId, pollTime, System.currentTimeMillis(), 5000);
+        sendMessage(1);
+        Boolean result1 = future1.get();
+        assertThat(result1).isTrue();
+        client.popMessageAsync(brokerAddr, messageQueue, 10000, 1, group, 1000, false,
+            ConsumeInitMode.MIN, true, null, null, attemptId);
+        Boolean result2 = future2.get();
+        assertThat(result2).isTrue();
+
+        String attemptId2 = "attemptId2";
+        CompletableFuture<Boolean> future3 = client.notification(brokerAddr, topic, group, messageQueue.getQueueId(), true, attemptId2, pollTime, System.currentTimeMillis(), 5000);
+        assertThat(future3.get()).isFalse();
+    }
+
     protected void sendMessage(int num) {
         MessageQueueMsg mqMsgs = new MessageQueueMsg(Lists.newArrayList(messageQueue), num);
         producer.send(mqMsgs.getMsgsWithMQ());

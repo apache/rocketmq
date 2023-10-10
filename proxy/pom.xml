@@ -20,7 +20,7 @@
     <parent>
         <artifactId>rocketmq-all</artifactId>
         <groupId>org.apache.rocketmq</groupId>
-        <version>5.1.1-SNAPSHOT</version>
+        <version>5.1.5-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -74,6 +74,10 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.aliyunmq</groupId>
+            <artifactId>rocketmq-grpc-netty-codec-haproxy</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

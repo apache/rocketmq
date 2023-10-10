@@ -29,6 +29,8 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 public class Http2ProxyBackendHandler extends ChannelInboundHandlerAdapter {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
 
+    public static final String HANDLER_NAME = "Http2ProxyBackendHandler";
+
     private final Channel inboundChannel;
 
     public Http2ProxyBackendHandler(Channel inboundChannel) {

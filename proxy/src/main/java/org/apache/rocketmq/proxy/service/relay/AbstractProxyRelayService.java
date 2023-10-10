@@ -43,6 +43,7 @@ public abstract class AbstractProxyRelayService implements ProxyRelayService {
         CompletableFuture<ProxyRelayResult<Void>> future = new CompletableFuture<>();
         String group = messageExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
         TransactionData transactionData = transactionService.addTransactionDataByBrokerAddr(
+            context,
             command.getExtFields().get(ProxyUtils.BROKER_ADDR),
             group,
             header.getTranStateTableOffset(),

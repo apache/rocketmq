@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.remoting.RemotingProxyOutClient;
 import org.apache.rocketmq.proxy.service.relay.ProxyRelayService;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -57,11 +58,11 @@ public class RemotingChannelManager implements StartAndShutdown {
         return prefix + group;
     }
 
-    public RemotingChannel createProducerChannel(Channel channel, String group, String clientId) {
+    public RemotingChannel createProducerChannel(ProxyContext ctx, Channel channel, String group, String clientId) {
         return createChannel(channel, buildProducerKey(group), clientId, Collections.emptySet());
     }
 
-    public RemotingChannel createConsumerChannel(Channel channel, String group, String clientId, Set<SubscriptionData> subscriptionData) {
+    public RemotingChannel createConsumerChannel(ProxyContext ctx, Channel channel, String group, String clientId, Set<SubscriptionData> subscriptionData) {
         return createChannel(channel, buildConsumerKey(group), clientId, subscriptionData);
     }
 
@@ -96,11 +97,11 @@ public class RemotingChannelManager implements StartAndShutdown {
         return removedChannelSet;
     }
 
-    public RemotingChannel removeProducerChannel(String group, Channel channel) {
+    public RemotingChannel removeProducerChannel(ProxyContext ctx, String group, Channel channel) {
         return removeChannel(buildProducerKey(group), channel);
     }
 
-    public RemotingChannel removeConsumerChannel(String group, Channel channel) {
+    public RemotingChannel removeConsumerChannel(ProxyContext ctx, String group, Channel channel) {
         return removeChannel(buildConsumerKey(group), channel);
     }
 

@@ -49,21 +49,21 @@ $ java -version
 java version "1.8.0_121"
 ```
 
-For Windows users, click [here](https://dist.apache.org/repos/dist/release/rocketmq/5.1.0/rocketmq-all-5.1.0-bin-release.zip) to download the 5.1.0 RocketMQ binary release,
+For Windows users, click [here](https://dist.apache.org/repos/dist/release/rocketmq/5.1.4/rocketmq-all-5.1.4-bin-release.zip) to download the 5.1.4 RocketMQ binary release,
 unpack it to your local disk, such as `D:\rocketmq`.
 For macOS and Linux users, execute following commands:
 
 ```shell
 # Download release from the Apache mirror
-$ wget https://dist.apache.org/repos/dist/release/rocketmq/5.1.0/rocketmq-all-5.1.0-bin-release.zip
+$ wget https://dist.apache.org/repos/dist/release/rocketmq/5.1.4/rocketmq-all-5.1.4-bin-release.zip
 
 # Unpack the release
-$ unzip rocketmq-all-5.1.0-bin-release.zip
+$ unzip rocketmq-all-5.1.4-bin-release.zip
 ```
 
 Prepare a terminal and change to the extracted `bin` directory:
 ```shell
-$ cd rocketmq-all-5.1.0/bin
+$ cd rocketmq-all-5.1.4-bin-release/bin
 ```
 
 **1) Start NameServer**

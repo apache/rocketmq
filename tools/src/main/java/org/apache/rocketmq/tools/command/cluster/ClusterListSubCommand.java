@@ -41,7 +41,7 @@ public class ClusterListSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "List cluster infos";
+        return "List cluster infos.";
     }
 
     @Override

@@ -152,7 +152,7 @@ public class SlaveSynchronize {
                                     .getMessageStoreConfig().getStorePathRootDir());
                     try {
                         MixAll.string2File(delayOffset, fileName);
-                        this.brokerController.getScheduleMessageService().load();
+                        this.brokerController.getScheduleMessageService().loadWhenSyncDelayOffset();
                     } catch (IOException e) {
                         LOGGER.error("Persist file Exception, {}", fileName, e);
                     }
@@ -215,13 +215,15 @@ public class SlaveSynchronize {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null) {
             try {
-                TimerCheckpoint checkpoint = this.brokerController.getBrokerOuterAPI().getTimerCheckPoint(masterAddrBak);
-                if (null != this.brokerController.getTimerCheckpoint()) {
-                    this.brokerController.getTimerCheckpoint().setLastReadTimeMs(checkpoint.getLastReadTimeMs());
-                    this.brokerController.getTimerCheckpoint().setMasterTimerQueueOffset(checkpoint.getMasterTimerQueueOffset());
+                if (null != brokerController.getMessageStore().getTimerMessageStore()) {
+                    TimerCheckpoint checkpoint = this.brokerController.getBrokerOuterAPI().getTimerCheckPoint(masterAddrBak);
+                    if (null != this.brokerController.getTimerCheckpoint()) {
+                        this.brokerController.getTimerCheckpoint().setLastReadTimeMs(checkpoint.getLastReadTimeMs());
+                        this.brokerController.getTimerCheckpoint().setMasterTimerQueueOffset(checkpoint.getMasterTimerQueueOffset());
+                    }
                 }
             } catch (Exception e) {
-                LOGGER.error("SyncSubscriptionGroup Exception, {}", masterAddrBak, e);
+                LOGGER.error("syncTimerCheckPoint Exception, {}", masterAddrBak, e);
             }
         }
     }

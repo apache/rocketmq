@@ -207,6 +207,25 @@ public class ConsumerManager {
         return r1 || r2;
     }
 
+    public boolean registerConsumerWithoutSub(final String group, final ClientChannelInfo clientChannelInfo,
+        ConsumeType consumeType, MessageModel messageModel, ConsumeFromWhere consumeFromWhere, boolean isNotifyConsumerIdsChangedEnable) {
+        long start = System.currentTimeMillis();
+        ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
+        if (null == consumerGroupInfo) {
+            ConsumerGroupInfo tmp = new ConsumerGroupInfo(group, consumeType, messageModel, consumeFromWhere);
+            ConsumerGroupInfo prev = this.consumerTable.putIfAbsent(group, tmp);
+            consumerGroupInfo = prev != null ? prev : tmp;
+        }
+        boolean updateChannelRst = consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel, consumeFromWhere);
+        if (updateChannelRst && isNotifyConsumerIdsChangedEnable) {
+            callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
+        }
+        if (null != this.brokerStatsManager) {
+            this.brokerStatsManager.incConsumerRegisterTime((int) (System.currentTimeMillis() - start));
+        }
+        return updateChannelRst;
+    }
+
     public void unregisterConsumer(final String group, final ClientChannelInfo clientChannelInfo,
         boolean isNotifyConsumerIdsChangedEnable) {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);

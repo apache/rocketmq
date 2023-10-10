@@ -20,11 +20,11 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
-import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public interface RemotingClient extends RemotingService {
@@ -51,18 +51,21 @@ public interface RemotingClient extends RemotingService {
         final long timeoutMillis) {
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
-            invokeAsync(addr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
+            invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
+
+                @Override
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     future.complete(response);
-                } else {
-                    if (!responseFuture.isSendRequestOK()) {
-                        future.completeExceptionally(new RemotingSendRequestException(addr, responseFuture.getCause()));
-                    } else if (responseFuture.isTimeout()) {
-                        future.completeExceptionally(new RemotingTimeoutException(addr, timeoutMillis, responseFuture.getCause()));
-                    } else {
-                        future.completeExceptionally(new RemotingException(request.toString(), responseFuture.getCause()));
-                    }
+                }
+
+                @Override
+                public void operationFail(Throwable throwable) {
+                    future.completeExceptionally(throwable);
                 }
             });
         } catch (Throwable t) {

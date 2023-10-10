@@ -21,15 +21,16 @@ import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
+import io.opentelemetry.exporter.logging.otlp.OtlpJsonLoggingMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
-import io.opentelemetry.exporter.logging.LoggingMetricExporter;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.SdkMeterProviderBuilder;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
+import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
 import java.util.HashMap;
@@ -39,12 +40,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
-import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
-import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
@@ -67,12 +68,12 @@ public class ProxyMetricsManager implements StartAndShutdown {
     private OtlpGrpcMetricExporter metricExporter;
     private PeriodicMetricReader periodicMetricReader;
     private PrometheusHttpServer prometheusHttpServer;
-    private LoggingMetricExporter loggingMetricExporter;
+    private MetricExporter loggingMetricExporter;
 
     public static ObservableLongGauge proxyUp = null;
 
     public static void initLocalMode(BrokerMetricsManager brokerMetricsManager, ProxyConfig proxyConfig) {
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.DISABLE) {
+        if (proxyConfig.getMetricsExporterType() == MetricsExporterType.DISABLE) {
             return;
         }
         ProxyMetricsManager.proxyConfig = proxyConfig;
@@ -116,7 +117,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         if (proxyConfig == null) {
             return false;
         }
-        BrokerConfig.MetricsExporterType exporterType = proxyConfig.getMetricsExporterType();
+        MetricsExporterType exporterType = proxyConfig.getMetricsExporterType();
         if (!exporterType.isEnable()) {
             return false;
         }
@@ -134,8 +135,8 @@ public class ProxyMetricsManager implements StartAndShutdown {
 
     @Override
     public void start() throws Exception {
-        BrokerConfig.MetricsExporterType metricsExporterType = proxyConfig.getMetricsExporterType();
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.DISABLE) {
+        MetricsExporterType metricsExporterType = proxyConfig.getMetricsExporterType();
+        if (metricsExporterType == MetricsExporterType.DISABLE) {
             return;
         }
         if (!checkConfig()) {
@@ -166,7 +167,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
         SdkMeterProviderBuilder providerBuilder = SdkMeterProvider.builder()
             .setResource(Resource.empty());
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+        if (metricsExporterType == MetricsExporterType.OTLP_GRPC) {
             String endpoint = proxyConfig.getMetricsGrpcExporterTarget();
             if (!endpoint.startsWith("http")) {
                 endpoint = "https://" + endpoint;
@@ -206,7 +207,7 @@ public class ProxyMetricsManager implements StartAndShutdown {
             providerBuilder.registerMetricReader(periodicMetricReader);
         }
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.PROM) {
+        if (metricsExporterType == MetricsExporterType.PROM) {
             String promExporterHost = proxyConfig.getMetricsPromExporterHost();
             if (StringUtils.isBlank(promExporterHost)) {
                 promExporterHost = "0.0.0.0";
@@ -218,11 +219,11 @@ public class ProxyMetricsManager implements StartAndShutdown {
             providerBuilder.registerMetricReader(prometheusHttpServer);
         }
 
-        if (metricsExporterType == BrokerConfig.MetricsExporterType.LOG) {
+        if (metricsExporterType == MetricsExporterType.LOG) {
             SLF4JBridgeHandler.removeHandlersForRootLogger();
             SLF4JBridgeHandler.install();
-            loggingMetricExporter = LoggingMetricExporter.create(proxyConfig.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
-            java.util.logging.Logger.getLogger(LoggingMetricExporter.class.getName()).setLevel(java.util.logging.Level.FINEST);
+            loggingMetricExporter = OtlpJsonLoggingMetricExporter.create(proxyConfig.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
+            java.util.logging.Logger.getLogger(OtlpJsonLoggingMetricExporter.class.getName()).setLevel(java.util.logging.Level.FINEST);
             periodicMetricReader = PeriodicMetricReader.builder(loggingMetricExporter)
                 .setInterval(proxyConfig.getMetricLoggingExporterIntervalInMills(), TimeUnit.MILLISECONDS)
                 .build();
@@ -239,16 +240,16 @@ public class ProxyMetricsManager implements StartAndShutdown {
 
     @Override
     public void shutdown() throws Exception {
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.OTLP_GRPC) {
+        if (proxyConfig.getMetricsExporterType() == MetricsExporterType.OTLP_GRPC) {
             periodicMetricReader.forceFlush();
             periodicMetricReader.shutdown();
             metricExporter.shutdown();
         }
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.PROM) {
+        if (proxyConfig.getMetricsExporterType() == MetricsExporterType.PROM) {
             prometheusHttpServer.forceFlush();
             prometheusHttpServer.shutdown();
         }
-        if (proxyConfig.getMetricsExporterType() == BrokerConfig.MetricsExporterType.LOG) {
+        if (proxyConfig.getMetricsExporterType() == MetricsExporterType.LOG) {
             periodicMetricReader.forceFlush();
             periodicMetricReader.shutdown();
             loggingMetricExporter.shutdown();

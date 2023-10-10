@@ -37,7 +37,7 @@ public class UpdateBrokerConfigSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Update broker's config";
+        return "Update broker's config.";
     }
 
     @Override

@@ -121,9 +121,18 @@ public class RouteInfoManager {
         if (queueDatas == null || queueDatas.isEmpty()) {
             return;
         }
+
         try {
             this.lock.writeLock().lockInterruptibly();
             if (this.topicQueueTable.containsKey(topic)) {
+                Map<String, QueueData> queueDataMap  = this.topicQueueTable.get(topic);
+                for (QueueData queueData : queueDatas) {
+                    if (!this.brokerAddrTable.containsKey(queueData.getBrokerName())) {
+                        log.warn("Register topic contains illegal broker, {}, {}", topic, queueData);
+                        return;
+                    }
+                    queueDataMap.put(queueData.getBrokerName(), queueData);
+                }
                 log.info("Topic route already exist.{}, {}", topic, this.topicQueueTable.get(topic));
             } else {
                 // check and construct queue data map
@@ -299,7 +308,32 @@ public class RouteInfoManager {
 
                 ConcurrentMap<String, TopicConfig> tcTable =
                     topicConfigWrapper.getTopicConfigTable();
+
                 if (tcTable != null) {
+
+                    TopicConfigAndMappingSerializeWrapper mappingSerializeWrapper = TopicConfigAndMappingSerializeWrapper.from(topicConfigWrapper);
+                    Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = mappingSerializeWrapper.getTopicQueueMappingInfoMap();
+
+                    // Delete the topics that don't exist in tcTable from the current broker
+                    // Static topic is not supported currently
+                    if (namesrvConfig.isDeleteTopicWithBrokerRegistration() && topicQueueMappingInfoMap.isEmpty()) {
+                        final Set<String> oldTopicSet = topicSetOfBrokerName(brokerName);
+                        final Set<String> newTopicSet = tcTable.keySet();
+                        final Sets.SetView<String> toDeleteTopics = Sets.difference(oldTopicSet, newTopicSet);
+                        for (final String toDeleteTopic : toDeleteTopics) {
+                            Map<String, QueueData> queueDataMap = topicQueueTable.get(toDeleteTopic);
+                            final QueueData removedQD = queueDataMap.remove(brokerName);
+                            if (removedQD != null) {
+                                log.info("deleteTopic, remove one broker's topic {} {} {}", brokerName, toDeleteTopic, removedQD);
+                            }
+
+                            if (queueDataMap.isEmpty()) {
+                                log.info("deleteTopic, remove the topic all queue {}", toDeleteTopic);
+                                topicQueueTable.remove(toDeleteTopic);
+                            }
+                        }
+                    }
+
                     for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
                         if (registerFirst || this.isTopicConfigChanged(clusterName, brokerAddr,
                             topicConfigWrapper.getDataVersion(), brokerName,
@@ -312,19 +346,17 @@ public class RouteInfoManager {
                             this.createAndUpdateQueueData(brokerName, topicConfig);
                         }
                     }
-                }
 
-                if (this.isBrokerTopicConfigChanged(clusterName, brokerAddr, topicConfigWrapper.getDataVersion()) || registerFirst) {
-                    TopicConfigAndMappingSerializeWrapper mappingSerializeWrapper = TopicConfigAndMappingSerializeWrapper.from(topicConfigWrapper);
-                    Map<String, TopicQueueMappingInfo> topicQueueMappingInfoMap = mappingSerializeWrapper.getTopicQueueMappingInfoMap();
-                    //the topicQueueMappingInfoMap should never be null, but can be empty
-                    for (Map.Entry<String, TopicQueueMappingInfo> entry : topicQueueMappingInfoMap.entrySet()) {
-                        if (!topicQueueMappingInfoTable.containsKey(entry.getKey())) {
-                            topicQueueMappingInfoTable.put(entry.getKey(), new HashMap<>());
+                    if (this.isBrokerTopicConfigChanged(clusterName, brokerAddr, topicConfigWrapper.getDataVersion()) || registerFirst) {
+                        //the topicQueueMappingInfoMap should never be null, but can be empty
+                        for (Map.Entry<String, TopicQueueMappingInfo> entry : topicQueueMappingInfoMap.entrySet()) {
+                            if (!topicQueueMappingInfoTable.containsKey(entry.getKey())) {
+                                topicQueueMappingInfoTable.put(entry.getKey(), new HashMap<>());
+                            }
+                            //Note asset brokerName equal entry.getValue().getBname()
+                            //here use the mappingDetail.bname
+                            topicQueueMappingInfoTable.get(entry.getKey()).put(entry.getValue().getBname(), entry.getValue());
                         }
-                        //Note asset brokerName equal entry.getValue().getBname()
-                        //here use the mappingDetail.bname
-                        topicQueueMappingInfoTable.get(entry.getKey()).put(entry.getValue().getBname(), entry.getValue());
                     }
                 }
             }
@@ -372,6 +404,16 @@ public class RouteInfoManager {
         }
 
         return result;
+    }
+
+    private Set<String> topicSetOfBrokerName(final String brokerName) {
+        Set<String> topicOfBroker = new HashSet<>();
+        for (final Entry<String, Map<String, QueueData>> entry : this.topicQueueTable.entrySet()) {
+            if (entry.getValue().containsKey(brokerName)) {
+                topicOfBroker.add(entry.getKey());
+            }
+        }
+        return topicOfBroker;
     }
 
     public BrokerMemberGroup getBrokerMemberGroup(String clusterName, String brokerName) {
@@ -480,7 +522,7 @@ public class RouteInfoManager {
                 this.lock.writeLock().unlock();
             }
         } catch (Exception e) {
-            log.error("wipeWritePermOfBrokerByLock Exception", e);
+            log.error("addWritePermOfBrokerByLock Exception", e);
         }
         return 0;
     }

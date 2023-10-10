@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -40,6 +41,7 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.FileQueueLifeCycle;
 import org.apache.rocketmq.store.queue.QueueOffsetOperator;
 import org.apache.rocketmq.store.queue.ReferredIterator;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -143,7 +145,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
                     if (offset >= 0 && size > 0) {
                         mappedFileOffset = i + CQ_STORE_UNIT_SIZE;
-                        this.maxPhysicOffset = offset + size;
+                        this.setMaxPhysicOffset(offset + size);
                         if (isExtAddr(tagsCode)) {
                             maxExtAddr = tagsCode;
                         }
@@ -202,6 +204,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         return CQ_STORE_UNIT_SIZE;
     }
 
+    @Deprecated
     @Override
     public long getOffsetInQueueByTime(final long timestamp) {
         MappedFile mappedFile = this.mappedFileQueue.getConsumeQueueMappedFileByTime(timestamp,
@@ -209,6 +212,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         return binarySearchInQueueByTime(mappedFile, timestamp, BoundaryType.LOWER);
     }
 
+    @Override
     public long getOffsetInQueueByTime(final long timestamp, final BoundaryType boundaryType) {
         MappedFile mappedFile = this.mappedFileQueue.getConsumeQueueMappedFileByTime(timestamp,
             messageStore.getCommitLog(), boundaryType);
@@ -405,7 +409,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
         int logicFileSize = this.mappedFileSize;
 
-        this.maxPhysicOffset = phyOffset;
+        this.setMaxPhysicOffset(phyOffset);
         long maxExtAddr = 1;
         boolean shouldDeleteFile = false;
         while (true) {
@@ -431,7 +435,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                             mappedFile.setWrotePosition(pos);
                             mappedFile.setCommittedPosition(pos);
                             mappedFile.setFlushedPosition(pos);
-                            this.maxPhysicOffset = offset + size;
+                            this.setMaxPhysicOffset(offset + size);
                             // This maybe not take effect, when not every consume queue has extend file.
                             if (isExtAddr(tagsCode)) {
                                 maxExtAddr = tagsCode;
@@ -449,7 +453,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                             mappedFile.setWrotePosition(pos);
                             mappedFile.setCommittedPosition(pos);
                             mappedFile.setFlushedPosition(pos);
-                            this.maxPhysicOffset = offset + size;
+                            this.setMaxPhysicOffset(offset + size);
                             if (isExtAddr(tagsCode)) {
                                 maxExtAddr = tagsCode;
                             }
@@ -722,7 +726,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     private boolean checkMultiDispatchQueue(DispatchRequest dispatchRequest) {
-        if (!this.messageStore.getMessageStoreConfig().isEnableMultiDispatch() || dispatchRequest.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+        if (!this.messageStore.getMessageStoreConfig().isEnableMultiDispatch()
+            || dispatchRequest.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+            || dispatchRequest.getTopic().equals(TimerMessageStore.TIMER_TOPIC)
+            || dispatchRequest.getTopic().equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC)) {
             return false;
         }
         Map<String, String> prop = dispatchRequest.getPropertiesMap();
@@ -749,6 +756,9 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         }
         for (int i = 0; i < queues.length; i++) {
             String queueName = queues[i];
+            if (StringUtils.contains(queueName, File.separator)) {
+                continue;
+            }
             long queueOffset = Long.parseLong(queueOffsets[i]);
             int queueId = request.getQueueId();
             if (this.messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
@@ -837,7 +847,10 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     public boolean isNeedHandleMultiDispatch(MessageExtBrokerInner msg) {
-        return messageStore.getMessageStoreConfig().isEnableMultiDispatch() && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+        return messageStore.getMessageStoreConfig().isEnableMultiDispatch()
+            && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)
+            && !msg.getTopic().equals(TimerMessageStore.TIMER_TOPIC)
+            && !msg.getTopic().equals(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC);
     }
 
     public String queueKey(String queueName, MessageExtBrokerInner msgInner) {
@@ -868,8 +881,8 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
         final long cqOffset) {
 
-        if (offset + size <= this.maxPhysicOffset) {
-            log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", maxPhysicOffset, offset);
+        if (offset + size <= this.getMaxPhysicOffset()) {
+            log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", this.getMaxPhysicOffset(), offset);
             return true;
         }
 
@@ -913,7 +926,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                     );
                 }
             }
-            this.maxPhysicOffset = offset + size;
+            this.setMaxPhysicOffset(offset + size);
             return mappedFile.appendMessage(this.byteBufferIndex.array());
         }
         return false;
@@ -1117,7 +1130,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
     @Override
     public void destroy() {
-        this.maxPhysicOffset = -1;
+        this.setMaxPhysicOffset(-1);
         this.minLogicOffset = 0;
         this.mappedFileQueue.destroy();
         if (isExtReadEnable()) {

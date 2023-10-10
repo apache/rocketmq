@@ -20,6 +20,7 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
+import com.google.common.base.MoreObjects;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
@@ -72,5 +73,15 @@ public class QueryConsumerOffsetRequestHeader extends TopicQueueRequestHeader {
 
     public void setSetZeroIfNotFound(Boolean setZeroIfNotFound) {
         this.setZeroIfNotFound = setZeroIfNotFound;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("consumerGroup", consumerGroup)
+            .add("topic", topic)
+            .add("queueId", queueId)
+            .add("setZeroIfNotFound", setZeroIfNotFound)
+            .toString();
     }
 }

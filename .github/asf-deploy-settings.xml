@@ -27,6 +27,11 @@
             <id>apache.snapshots.https</id>
             <username>${env.NEXUS_DEPLOY_USERNAME}</username>
             <password>${env.NEXUS_DEPLOY_PASSWORD}</password>
+            <configuration>
+                <snapshotRepository>
+                    <maxUniqueSnapshots>60</maxUniqueSnapshots>
+                </snapshotRepository>
+            </configuration>
         </server>
     </servers>
 

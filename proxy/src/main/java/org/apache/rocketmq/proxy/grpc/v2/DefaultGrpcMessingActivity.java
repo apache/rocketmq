@@ -55,14 +55,12 @@ import org.apache.rocketmq.proxy.grpc.v2.producer.SendMessageActivity;
 import org.apache.rocketmq.proxy.grpc.v2.route.RouteActivity;
 import org.apache.rocketmq.proxy.grpc.v2.transaction.EndTransactionActivity;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 
 public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown implements GrpcMessingActivity {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     protected GrpcClientSettingsManager grpcClientSettingsManager;
     protected GrpcChannelManager grpcChannelManager;
-    protected ReceiptHandleProcessor receiptHandleProcessor;
     protected ReceiveMessageActivity receiveMessageActivity;
     protected AckMessageActivity ackMessageActivity;
     protected ChangeInvisibleDurationActivity changeInvisibleDurationActivity;
@@ -79,18 +77,16 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     protected void init(MessagingProcessor messagingProcessor) {
         this.grpcClientSettingsManager = new GrpcClientSettingsManager(messagingProcessor);
         this.grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService(), this.grpcClientSettingsManager);
-        this.receiptHandleProcessor = new ReceiptHandleProcessor(messagingProcessor);
 
-        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
-        this.ackMessageActivity = new AckMessageActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
-        this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.ackMessageActivity = new AckMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.changeInvisibleDurationActivity = new ChangeInvisibleDurationActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.sendMessageActivity = new SendMessageActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
-        this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(messagingProcessor, receiptHandleProcessor, grpcClientSettingsManager, grpcChannelManager);
+        this.forwardMessageToDLQActivity = new ForwardMessageToDLQActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.endTransactionActivity = new EndTransactionActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.routeActivity = new RouteActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
         this.clientActivity = new ClientActivity(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
 
-        this.appendStartAndShutdown(this.receiptHandleProcessor);
         this.appendStartAndShutdown(this.grpcClientSettingsManager);
     }
 
@@ -150,8 +146,7 @@ public class DefaultGrpcMessingActivity extends AbstractStartAndShutdown impleme
     }
 
     @Override
-    public StreamObserver<TelemetryCommand> telemetry(ProxyContext ctx,
-        StreamObserver<TelemetryCommand> responseObserver) {
-        return this.clientActivity.telemetry(ctx, responseObserver);
+    public ContextStreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
+        return this.clientActivity.telemetry(responseObserver);
     }
 }

@@ -104,6 +104,7 @@ public class MQClientAPIFactory implements StartAndShutdown {
             rpcHook);
 
         if (!mqClientAPIExt.updateNameServerAddressList()) {
+            mqClientAPIExt.fetchNameServerAddr();
             this.scheduledExecutorService.scheduleAtFixedRate(
                 mqClientAPIExt::fetchNameServerAddr,
                 Duration.ofSeconds(10).toMillis(),

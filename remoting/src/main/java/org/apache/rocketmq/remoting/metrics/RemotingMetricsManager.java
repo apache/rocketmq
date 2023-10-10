@@ -26,6 +26,7 @@ import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -61,7 +62,7 @@ public class RemotingMetricsManager {
             .build();
     }
 
-    public static List<Pair<InstrumentSelector, View>> getMetricsView() {
+    public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
         List<Double> rpcCostTimeBuckets = Arrays.asList(
             (double) Duration.ofMillis(1).toMillis(),
             (double) Duration.ofMillis(3).toMillis(),
@@ -77,10 +78,9 @@ public class RemotingMetricsManager {
             .setType(InstrumentType.HISTOGRAM)
             .setName(HISTOGRAM_RPC_LATENCY)
             .build();
-        View view = View.builder()
-            .setAggregation(Aggregation.explicitBucketHistogram(rpcCostTimeBuckets))
-            .build();
-        return Lists.newArrayList(new Pair<>(selector, view));
+        ViewBuilder viewBuilder = View.builder()
+            .setAggregation(Aggregation.explicitBucketHistogram(rpcCostTimeBuckets));
+        return Lists.newArrayList(new Pair<>(selector, viewBuilder));
     }
 
     public static String getWriteAndFlushResult(Future<?> future) {

@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.proxy.common.Address;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -76,8 +77,9 @@ public class LocalTopicRouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testGetCurrentMessageQueueView() throws Throwable {
+        ProxyContext ctx = ProxyContext.create();
         this.topicConfigTable.put(TOPIC, new TopicConfig(TOPIC, 3, 2, PermName.PERM_WRITE | PermName.PERM_READ));
-        MessageQueueView messageQueueView = this.topicRouteService.getCurrentMessageQueueView(TOPIC);
+        MessageQueueView messageQueueView = this.topicRouteService.getCurrentMessageQueueView(ctx, TOPIC);
         assertEquals(3, messageQueueView.getReadSelector().getQueues().size());
         assertEquals(2, messageQueueView.getWriteSelector().getQueues().size());
         assertEquals(1, messageQueueView.getReadSelector().getBrokerActingQueues().size());
@@ -90,7 +92,8 @@ public class LocalTopicRouteServiceTest extends BaseServiceTest {
 
     @Test
     public void testGetTopicRouteForProxy() throws Throwable {
-        ProxyTopicRouteData proxyTopicRouteData = this.topicRouteService.getTopicRouteForProxy(new ArrayList<>(), TOPIC);
+        ProxyContext ctx = ProxyContext.create();
+        ProxyTopicRouteData proxyTopicRouteData = this.topicRouteService.getTopicRouteForProxy(ctx, new ArrayList<>(), TOPIC);
 
         assertEquals(1, proxyTopicRouteData.getBrokerDatas().size());
         assertEquals(
