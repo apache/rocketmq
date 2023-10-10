@@ -92,6 +92,7 @@ maven_install(
         "io.opentelemetry:opentelemetry-exporter-prometheus:1.29.0-alpha",
         "io.opentelemetry:opentelemetry-exporter-logging:1.29.0",
         "io.opentelemetry:opentelemetry-sdk:1.29.0",
+        "io.opentelemetry:opentelemetry-exporter-logging-otlp:1.29.0",
         "com.squareup.okio:okio-jvm:3.0.0",
         "io.opentelemetry:opentelemetry-api:1.29.0",
         "io.opentelemetry:opentelemetry-sdk-metrics:1.29.0",

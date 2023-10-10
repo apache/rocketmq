@@ -136,15 +136,13 @@ public class TieredFlatFileManager {
             TimeUnit.HOURS.toMillis(storeConfig.getTieredStoreFileReservedTime());
         for (CompositeQueueFlatFile flatFile : deepCopyFlatFileToList()) {
             TieredStoreExecutor.cleanExpiredFileExecutor.submit(() -> {
-                flatFile.getCompositeFlatFileLock().lock();
                 try {
+                    flatFile.getCompositeFlatFileLock().lock();
                     flatFile.cleanExpiredFile(expiredTimeStamp);
                     flatFile.destroyExpiredFile();
-                    if (flatFile.getConsumeQueueBaseOffset() == -1) {
-                        logger.info("Clean flatFile because file not initialized, topic={}, queueId={}",
-                            flatFile.getMessageQueue().getTopic(), flatFile.getMessageQueue().getQueueId());
-                        destroyCompositeFile(flatFile.getMessageQueue());
-                    }
+                } catch (Throwable t) {
+                    logger.error("Do Clean expired file error, topic={}, queueId={}",
+                        flatFile.getMessageQueue().getTopic(), flatFile.getMessageQueue().getQueueId(), t);
                 } finally {
                     flatFile.getCompositeFlatFileLock().unlock();
                 }

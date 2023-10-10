@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicFilterType;
@@ -606,7 +607,12 @@ public class TimerMessageStore {
             if (null == msg || null == msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC)) {
                 return;
             }
-            timerMetrics.addAndGet(msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC), value);
+            if (msg.getProperty(TIMER_ENQUEUE_MS) != null
+                    && NumberUtils.toLong(msg.getProperty(TIMER_ENQUEUE_MS)) == Long.MAX_VALUE) {
+                return;
+            }
+            // pass msg into addAndGet, for further more judgement extension.
+            timerMetrics.addAndGet(msg, value);
         } catch (Throwable t) {
             if (frequency.incrementAndGet() % 1000 == 0) {
                 LOGGER.error("error in adding metric", t);
@@ -1336,6 +1342,7 @@ public class TimerMessageStore {
                 perfCounterTicks.startTick(ENQUEUE_PUT);
                 DefaultStoreMetricsManager.incTimerEnqueueCount(getRealTopic(req.getMsg()));
                 if (shouldRunningDequeue && req.getDelayTime() < currWriteTimeMs) {
+                    req.setEnqueueTime(Long.MAX_VALUE);
                     dequeuePutQueue.put(req);
                 } else {
                     boolean doEnqueueRes = doEnqueue(
@@ -1465,9 +1472,14 @@ public class TimerMessageStore {
                             }
                             try {
                                 perfCounterTicks.startTick(DEQUEUE_PUT);
-                                DefaultStoreMetricsManager.incTimerDequeueCount(getRealTopic(tr.getMsg()));
-                                addMetric(tr.getMsg(), -1);
-                                MessageExtBrokerInner msg = convert(tr.getMsg(), tr.getEnqueueTime(), needRoll(tr.getMagic()));
+                                MessageExt msgExt = tr.getMsg();
+                                DefaultStoreMetricsManager.incTimerDequeueCount(getRealTopic(msgExt));
+                                if (tr.getEnqueueTime() == Long.MAX_VALUE) {
+                                    // never enqueue, mark it.
+                                    MessageAccessor.putProperty(msgExt, TIMER_ENQUEUE_MS, String.valueOf(Long.MAX_VALUE));
+                                }
+                                addMetric(msgExt, -1);
+                                MessageExtBrokerInner msg = convert(msgExt, tr.getEnqueueTime(), needRoll(tr.getMagic()));
                                 doRes = PUT_NEED_RETRY != doPut(msg, needRoll(tr.getMagic()));
                                 while (!doRes && !isStopped()) {
                                     if (!isRunningDequeue()) {
