@@ -27,9 +27,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.broker.latency.BrokerFixedThreadPoolExecutor;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.namesrv.DefaultTopAddressing;
 import org.apache.rocketmq.common.namesrv.TopAddressing;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
@@ -72,6 +73,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.BrokerSyncInfo;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -106,6 +108,8 @@ import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
@@ -123,8 +127,6 @@ import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerReques
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
@@ -144,12 +146,11 @@ public class BrokerOuterAPI {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final RemotingClient remotingClient;
     private final TopAddressing topAddressing = new DefaultTopAddressing(MixAll.getWSAddr());
-    private final BrokerFixedThreadPoolExecutor brokerOuterExecutor = new BrokerFixedThreadPoolExecutor(4, 10, 1, TimeUnit.MINUTES,
+    private final ExecutorService brokerOuterExecutor = ThreadUtils.newThreadPoolExecutor(4, 10, 1, TimeUnit.MINUTES,
             new ArrayBlockingQueue<>(32), new ThreadFactoryImpl("brokerOutApi_thread_", true));
     private final ClientMetadata clientMetadata;
     private final RpcClient rpcClient;
     private String nameSrvAddr = null;
-
 
     public BrokerOuterAPI(final NettyClientConfig nettyClientConfig) {
         this(nettyClientConfig, new DynamicalExtFieldRPCHook(), new ClientMetadata());
@@ -458,7 +459,7 @@ public class BrokerOuterAPI {
      * @param filterServerList
      * @param oneway
      * @param timeoutMills
-     * @param compressed default false
+     * @param compressed         default false
      * @return
      */
     public List<RegisterBrokerResult> registerBrokerAll(
@@ -641,7 +642,6 @@ public class BrokerOuterAPI {
         queueData.setTopicSysFlag(topicConfig.getTopicSysFlag());
         queueDatas.add(queueData);
         final byte[] topicRouteBody = topicRouteData.encode();
-
 
         List<String> nameServerAddressList = this.remotingClient.getNameServerAddressList();
         final CountDownLatch countDownLatch = new CountDownLatch(nameServerAddressList.size());
@@ -909,25 +909,33 @@ public class BrokerOuterAPI {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
 
         request.setBody(requestBody.encode());
-        this.remotingClient.invokeAsync(addr, request, timeoutMillis, responseFuture -> {
-            if (callback == null) {
-                return;
+        this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
+            @Override
+            public void operationComplete(ResponseFuture responseFuture) {
+
             }
 
-            try {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    if (response.getCode() == ResponseCode.SUCCESS) {
-                        LockBatchResponseBody responseBody = LockBatchResponseBody.decode(response.getBody(),
-                            LockBatchResponseBody.class);
-                        Set<MessageQueue> messageQueues = responseBody.getLockOKMQSet();
-                        callback.onSuccess(messageQueues);
-                    } else {
-                        callback.onException(new MQBrokerException(response.getCode(), response.getRemark()));
-                    }
+            @Override
+            public void operationSucceed(RemotingCommand response) {
+                if (callback == null) {
+                    return;
                 }
-            } catch (Throwable ignored) {
+                if (response.getCode() == ResponseCode.SUCCESS) {
+                    LockBatchResponseBody responseBody = LockBatchResponseBody.decode(response.getBody(),
+                        LockBatchResponseBody.class);
+                    Set<MessageQueue> messageQueues = responseBody.getLockOKMQSet();
+                    callback.onSuccess(messageQueues);
+                } else {
+                    callback.onException(new MQBrokerException(response.getCode(), response.getRemark()));
+                }
+            }
 
+            @Override
+            public void operationFail(Throwable throwable) {
+                if (callback == null) {
+                    return;
+                }
+                callback.onException(throwable);
             }
         });
     }
@@ -941,22 +949,30 @@ public class BrokerOuterAPI {
 
         request.setBody(requestBody.encode());
 
-        this.remotingClient.invokeAsync(addr, request, timeoutMillis, responseFuture -> {
-            if (callback == null) {
-                return;
+        this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
+            @Override
+            public void operationComplete(ResponseFuture responseFuture) {
+
             }
 
-            try {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    if (response.getCode() == ResponseCode.SUCCESS) {
-                        callback.onSuccess();
-                    } else {
-                        callback.onException(new MQBrokerException(response.getCode(), response.getRemark()));
-                    }
+            @Override
+            public void operationSucceed(RemotingCommand response) {
+                if (callback == null) {
+                    return;
                 }
-            } catch (Throwable ignored) {
+                if (response.getCode() == ResponseCode.SUCCESS) {
+                    callback.onSuccess();
+                } else {
+                    callback.onException(new MQBrokerException(response.getCode(), response.getRemark()));
+                }
+            }
 
+            @Override
+            public void operationFail(Throwable throwable) {
+                if (callback == null) {
+                    return;
+                }
+                callback.onException(throwable);
             }
         });
     }
@@ -982,21 +998,27 @@ public class BrokerOuterAPI {
         CompletableFuture<SendResult> cf = new CompletableFuture<>();
         final String msgId = msg.getMsgId();
         try {
-            this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (null != response) {
-                    SendResult sendResult = null;
+            this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
+                @Override
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     try {
-                        sendResult = this.processSendResponse(brokerName, msg, response);
+                        SendResult sendResult = processSendResponse(brokerName, msg, response);
                         cf.complete(sendResult);
                     } catch (MQBrokerException | RemotingCommandException e) {
                         LOGGER.error("processSendResponse in sendMessageToSpecificBrokerAsync failed, msgId=" + msgId, e);
                         cf.completeExceptionally(e);
                     }
-                } else {
-                    cf.complete(null);
                 }
 
+                @Override
+                public void operationFail(Throwable throwable) {
+                    cf.completeExceptionally(throwable);
+                }
             });
         } catch (Throwable t) {
             LOGGER.error("invokeAsync failed in sendMessageToSpecificBrokerAsync, msgId=" + msgId, t);
@@ -1056,7 +1078,7 @@ public class BrokerOuterAPI {
         }
         if (sendStatus != null) {
             SendMessageResponseHeader responseHeader =
-                    (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
+                (SendMessageResponseHeader) response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
 
             //If namespace not null , reset Topic without namespace.
             String topic = msg.getTopic();
@@ -1072,8 +1094,8 @@ public class BrokerOuterAPI {
                 uniqMsgId = sb.toString();
             }
             SendResult sendResult = new SendResult(sendStatus,
-                    uniqMsgId,
-                    responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
+                uniqMsgId,
+                responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
             sendResult.setTransactionId(responseHeader.getTransactionId());
             String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
             String traceOn = response.getExtFields().get(MessageConst.PROPERTY_TRACE_SWITCH);
@@ -1092,7 +1114,7 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public BrokerFixedThreadPoolExecutor getBrokerOuterExecutor() {
+    public ExecutorService getBrokerOuterExecutor() {
         return brokerOuterExecutor;
     }
 
@@ -1217,8 +1239,9 @@ public class BrokerOuterAPI {
     /**
      * Broker try to elect itself as a master in broker set
      */
-    public Pair<ElectMasterResponseHeader, Set<Long>> brokerElect(String controllerAddress, String clusterName, String brokerName,
-                                                 Long brokerId) throws Exception {
+    public Pair<ElectMasterResponseHeader, Set<Long>> brokerElect(String controllerAddress, String clusterName,
+        String brokerName,
+        Long brokerId) throws Exception {
 
         final ElectMasterRequestHeader requestHeader = ElectMasterRequestHeader.ofBrokerTrigger(clusterName, brokerName, brokerId);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_ELECT_MASTER, requestHeader);
@@ -1236,7 +1259,8 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public GetNextBrokerIdResponseHeader getNextBrokerId(final String clusterName, final String brokerName, final String controllerAddress) throws Exception {
+    public GetNextBrokerIdResponseHeader getNextBrokerId(final String clusterName, final String brokerName,
+        final String controllerAddress) throws Exception {
         final GetNextBrokerIdRequestHeader requestHeader = new GetNextBrokerIdRequestHeader(clusterName, brokerName);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_NEXT_BROKER_ID, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
@@ -1247,7 +1271,8 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public ApplyBrokerIdResponseHeader applyBrokerId(final String clusterName, final String brokerName, final Long brokerId, final String registerCheckCode, final String controllerAddress) throws Exception {
+    public ApplyBrokerIdResponseHeader applyBrokerId(final String clusterName, final String brokerName,
+        final Long brokerId, final String registerCheckCode, final String controllerAddress) throws Exception {
         final ApplyBrokerIdRequestHeader requestHeader = new ApplyBrokerIdRequestHeader(clusterName, brokerName, brokerId, registerCheckCode);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_APPLY_BROKER_ID, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
@@ -1258,7 +1283,9 @@ public class BrokerOuterAPI {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public Pair<RegisterBrokerToControllerResponseHeader, Set<Long>> registerBrokerToController(final String clusterName, final String brokerName, final Long brokerId, final String brokerAddress, final String controllerAddress) throws Exception {
+    public Pair<RegisterBrokerToControllerResponseHeader, Set<Long>> registerBrokerToController(
+        final String clusterName, final String brokerName, final Long brokerId, final String brokerAddress,
+        final String controllerAddress) throws Exception {
         final RegisterBrokerToControllerRequestHeader requestHeader = new RegisterBrokerToControllerRequestHeader(clusterName, brokerName, brokerId, brokerAddress);
         final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_REGISTER_BROKER, requestHeader);
         final RemotingCommand response = this.remotingClient.invokeSync(controllerAddress, request, 3000);
@@ -1354,16 +1381,25 @@ public class BrokerOuterAPI {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
         CompletableFuture<PullResult> pullResultFuture = new CompletableFuture<>();
-        this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-            if (responseFuture.getCause() != null) {
-                pullResultFuture.complete(new PullResult(PullStatus.NO_MATCHED_MSG, -1, -1, -1, new ArrayList<>()));
-                return;
+        this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
+            @Override
+            public void operationComplete(ResponseFuture responseFuture) {
+
             }
-            try {
-                PullResultExt pullResultExt = this.processPullResponse(responseFuture.getResponseCommand(), brokerAddr);
-                this.processPullResult(pullResultExt, brokerName, queueId);
-                pullResultFuture.complete(pullResultExt);
-            } catch (Exception e) {
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
+                try {
+                    PullResultExt pullResultExt = processPullResponse(response, brokerAddr);
+                    processPullResult(pullResultExt, brokerName, queueId);
+                    pullResultFuture.complete(pullResultExt);
+                } catch (Exception e) {
+                    pullResultFuture.complete(new PullResult(PullStatus.NO_MATCHED_MSG, -1, -1, -1, new ArrayList<>()));
+                }
+            }
+
+            @Override
+            public void operationFail(Throwable throwable) {
                 pullResultFuture.complete(new PullResult(PullStatus.NO_MATCHED_MSG, -1, -1, -1, new ArrayList<>()));
             }
         });

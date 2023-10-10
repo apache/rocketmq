@@ -49,6 +49,7 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_sdk_common",
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
         "@maven//:io_opentelemetry_opentelemetry_exporter_logging",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_logging_otlp",
         "@maven//:org_slf4j_jul_to_slf4j",
     ],
 )

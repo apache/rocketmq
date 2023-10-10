@@ -377,8 +377,19 @@ public class MappedFileQueue implements Swappable {
     }
 
     public MappedFile getLastMappedFile() {
-        MappedFile[] mappedFiles = this.mappedFiles.toArray(new MappedFile[0]);
-        return mappedFiles.length == 0 ? null : mappedFiles[mappedFiles.length - 1];
+        MappedFile mappedFileLast = null;
+        while (!this.mappedFiles.isEmpty()) {
+            try {
+                mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1);
+                break;
+            } catch (IndexOutOfBoundsException e) {
+                //continue;
+            } catch (Exception e) {
+                log.error("getLastMappedFile has exception.", e);
+                break;
+            }
+        }
+        return mappedFileLast;
     }
 
     public boolean resetOffset(long offset) {

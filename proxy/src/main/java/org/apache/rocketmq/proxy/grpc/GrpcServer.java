@@ -29,8 +29,14 @@ public class GrpcServer implements StartAndShutdown {
 
     private final Server server;
 
-    protected GrpcServer(Server server) {
+    private final long timeout;
+
+    private final TimeUnit unit;
+
+    protected GrpcServer(Server server, long timeout, TimeUnit unit) {
         this.server = server;
+        this.timeout = timeout;
+        this.unit = unit;
     }
 
     public void start() throws Exception {
@@ -40,7 +46,7 @@ public class GrpcServer implements StartAndShutdown {
 
     public void shutdown() {
         try {
-            this.server.shutdown().awaitTermination(30, TimeUnit.SECONDS);
+            this.server.shutdown().awaitTermination(timeout, unit);
             log.info("grpc server shutdown successfully.");
         } catch (Exception e) {
             e.printStackTrace();
