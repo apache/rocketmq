@@ -21,6 +21,7 @@ public class LoggerName {
     public static final String NAMESRV_LOGGER_NAME = "RocketmqNamesrv";
     public static final String NAMESRV_CONSOLE_LOGGER_NAME = "RocketmqNamesrvConsole";
     public static final String CONTROLLER_LOGGER_NAME = "RocketmqController";
+    public static final String CONTROLLER_CONSOLE_NAME = "RocketmqControllerConsole";
     public static final String NAMESRV_WATER_MARK_LOGGER_NAME = "RocketmqNamesrvWaterMark";
     public static final String BROKER_LOGGER_NAME = "RocketmqBroker";
     public static final String BROKER_CONSOLE_NAME = "RocketmqConsole";
