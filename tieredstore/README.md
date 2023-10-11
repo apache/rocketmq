@@ -21,7 +21,7 @@ Use the following steps to easily use tiered storage
 The following are some core configurations, for more details, see [TieredMessageStoreConfig](https://github.com/apache/rocketmq/blob/develop/tieredstore/src/main/java/org/apache/rocketmq/tieredstore/common/TieredMessageStoreConfig.java)
 
 | Configuration                   | Default value                                                   | Unit        | Function                                                                        |
-|---------------------------------| --------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------- |
+| ------------------------------- | --------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------- |
 | messageStorePlugIn              |                                                                 |             | Set to org.apache.rocketmq.tieredstore.TieredMessageStore to use tiered storage |
 | tieredMetadataServiceProvider   | org.apache.rocketmq.tieredstore.metadata.TieredMetadataManager  |             | Select your metadata provider                                                   |
 | tieredBackendServiceProvider    | org.apache.rocketmq.tieredstore.provider.posix.PosixFileSegment |             | Select your backend service provider                                            |
