@@ -49,23 +49,24 @@ public class StatsItem {
         this.logger = logger;
     }
 
-    private static StatsSnapshot computeStatsData(final LinkedList<CallSnapshot> csList) {
+    private StatsSnapshot computeStatsData(final LinkedList<CallSnapshot> csList) {
         StatsSnapshot statsSnapshot = new StatsSnapshot();
         synchronized (csList) {
-            double tps = 0;
-            double avgpt = 0;
-            long sum = 0;
-            long timesDiff = 0;
-            if (!csList.isEmpty()) {
-                CallSnapshot first = csList.getFirst();
-                CallSnapshot last = csList.getLast();
-                sum = last.getValue() - first.getValue();
-                tps = (sum * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+            if (csList.isEmpty()) {
+                return statsSnapshot;
+            }
 
-                timesDiff = last.getTimes() - first.getTimes();
-                if (timesDiff > 0) {
-                    avgpt = (sum * 1.0d) / timesDiff;
-                }
+            CallSnapshot first = csList.getFirst();
+            CallSnapshot last = csList.getLast();
+            long sum = last.getValue() - first.getValue();
+            double tps = (sum * 1000.0d) / (last.getTimestamp() - first.getTimestamp());
+
+            long timesDiff = last.getTimes() - first.getTimes();
+            double avgpt;
+            if (timesDiff > 0) {
+                avgpt = (sum * 1.0d) / timesDiff;
+            } else {
+                avgpt = 0;
             }
 
             statsSnapshot.setSum(sum);
@@ -91,103 +92,79 @@ public class StatsItem {
 
     public void init() {
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    samplingInSeconds();
-                } catch (Throwable ignored) {
-                }
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                samplingInSeconds();
+            } catch (Throwable ignored) {
             }
         }, 0, 10, TimeUnit.SECONDS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    samplingInMinutes();
-                } catch (Throwable ignored) {
-                }
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                samplingInMinutes();
+            } catch (Throwable ignored) {
             }
         }, 0, 10, TimeUnit.MINUTES);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    samplingInHour();
-                } catch (Throwable ignored) {
-                }
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                samplingInHour();
+            } catch (Throwable ignored) {
             }
         }, 0, 1, TimeUnit.HOURS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    printAtMinutes();
-                } catch (Throwable ignored) {
-                }
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                printAtMinutes();
+            } catch (Throwable ignored) {
             }
         }, Math.abs(UtilAll.computeNextMinutesTimeMillis() - System.currentTimeMillis()), 1000 * 60, TimeUnit.MILLISECONDS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    printAtHour();
-                } catch (Throwable ignored) {
-                }
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                printAtHour();
+            } catch (Throwable ignored) {
             }
         }, Math.abs(UtilAll.computeNextHourTimeMillis() - System.currentTimeMillis()), 1000 * 60 * 60, TimeUnit.MILLISECONDS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    printAtDay();
-                } catch (Throwable ignored) {
-                }
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                printAtDay();
+            } catch (Throwable ignored) {
             }
         }, Math.abs(UtilAll.computeNextMorningTimeMillis() - System.currentTimeMillis()) - 2000, 1000 * 60 * 60 * 24, TimeUnit.MILLISECONDS);
     }
 
     public void samplingInSeconds() {
-        synchronized (this.csListMinute) {
-            if (this.csListMinute.size() == 0) {
-                this.csListMinute.add(new CallSnapshot(System.currentTimeMillis() - 10 * 1000, 0, 0));
-            }
-            this.csListMinute.add(new CallSnapshot(System.currentTimeMillis(), this.times.sum(), this.value
-                .sum()));
-            if (this.csListMinute.size() > 7) {
-                this.csListMinute.removeFirst();
-            }
-        }
+        sampling(this.csListMinute, 7, 10 * 1000);
     }
 
     public void samplingInMinutes() {
-        synchronized (this.csListHour) {
-            if (this.csListHour.size() == 0) {
-                this.csListHour.add(new CallSnapshot(System.currentTimeMillis() - 10 * 60 * 1000, 0, 0));
-            }
-            this.csListHour.add(new CallSnapshot(System.currentTimeMillis(), this.times.sum(), this.value
-                .sum()));
-            if (this.csListHour.size() > 7) {
-                this.csListHour.removeFirst();
-            }
-        }
+        sampling(this.csListHour, 7, 10 * 60 * 1000);
     }
 
     public void samplingInHour() {
-        synchronized (this.csListDay) {
-            if (this.csListDay.size() == 0) {
-                this.csListDay.add(new CallSnapshot(System.currentTimeMillis() - 1 * 60 * 60 * 1000, 0, 0));
+        sampling(this.csListDay, 25, 60 * 60 * 1000);
+    }
+    
+    private void sampling(LinkedList<CallSnapshot> csList, int maxSize, long period) {
+        synchronized (csList) {
+            CallSnapshot snapshot;
+            long currentTimeMillis = System.currentTimeMillis();
+            long times = this.times.sum();
+            long value = this.value.sum();
+            if (csList.size() == maxSize) {
+                snapshot = csList.removeFirst();
+                snapshot.setTimestamp(currentTimeMillis);
+                snapshot.setTimes(times);
+                snapshot.setValue(value);
+            } else {
+                if (csList.size() == 0) {
+                    csList.add(new CallSnapshot(currentTimeMillis - period, 0, 0));
+                }
+                snapshot = new CallSnapshot(currentTimeMillis, times, value);
             }
-            this.csListDay.add(new CallSnapshot(System.currentTimeMillis(), this.times.sum(), this.value
-                .sum()));
-            if (this.csListDay.size() > 25) {
-                this.csListDay.removeFirst();
-            }
+            csList.add(snapshot);
         }
     }
 
@@ -232,13 +209,12 @@ public class StatsItem {
 }
 
 class CallSnapshot {
-    private final long timestamp;
-    private final long times;
+    private long timestamp;
+    private long times;
 
-    private final long value;
+    private long value;
 
     public CallSnapshot(long timestamp, long times, long value) {
-        super();
         this.timestamp = timestamp;
         this.times = times;
         this.value = value;
@@ -248,11 +224,23 @@ class CallSnapshot {
         return timestamp;
     }
 
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
     public long getTimes() {
         return times;
     }
 
+    public void setTimes(long times) {
+        this.times = times;
+    }
+
     public long getValue() {
         return value;
+    }
+
+    public void setValue(long value) {
+        this.value = value;
     }
 }
