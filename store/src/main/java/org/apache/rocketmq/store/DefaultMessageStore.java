@@ -1871,7 +1871,7 @@ public class DefaultMessageStore implements MessageStore {
         // recover consume queue
         long recoverConsumeQueueStart = System.currentTimeMillis();
         this.recoverConsumeQueue();
-        long maxPhyOffsetOfConsumeQueue = this.getMaxPhyOffsetInConsumeQueue();
+        long maxPhyOffsetOfConsumeQueue = this.consumeQueueStore.getMaxPhyOffsetInConsumeQueue();
         long recoverConsumeQueueEnd = System.currentTimeMillis();
 
         // recover commitlog
@@ -1922,10 +1922,6 @@ public class DefaultMessageStore implements MessageStore {
         } else {
             this.consumeQueueStore.recoverConcurrently();
         }
-    }
-
-    private long getMaxPhyOffsetInConsumeQueue() throws RocksDBException {
-        return this.consumeQueueStore.getMaxPhyOffsetInConsumeQueue();
     }
 
     @Override
