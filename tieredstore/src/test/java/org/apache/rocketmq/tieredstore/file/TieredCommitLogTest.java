@@ -49,7 +49,7 @@ public class TieredCommitLogTest {
         TieredMessageStoreConfig storeConfig = new TieredMessageStoreConfig();
         storeConfig.setBrokerName("brokerName");
         storeConfig.setStorePathRootDir(storePath);
-        storeConfig.setTieredStoreFilePath(storePath + File.separator);
+        storeConfig.setTieredStoreFilepath(storePath + File.separator);
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.posix.PosixFileSegment");
         storeConfig.setCommitLogRollingInterval(0);
         storeConfig.setTieredStoreCommitLogMaxSize(1000);
