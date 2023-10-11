@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -236,7 +237,8 @@ public class UtilAllTest {
          *          - file_1_2_0
          *  - dir_2
          */
-        String basePath = System.getProperty("java.io.tmpdir") + File.separator + "testCalculateFileSizeInPath";
+        String uniqueDirName = UUID.randomUUID().toString();
+        String basePath = System.getProperty("java.io.tmpdir") + File.separator + uniqueDirName;
         File baseFile = new File(basePath);
         // test empty path
         assertEquals(0, UtilAll.calculateFileSizeInPath(baseFile));
