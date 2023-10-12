@@ -89,6 +89,7 @@ public class RemotingCommand {
     private String remark;
     private HashMap<String, String> extFields;
     private transient CommandCustomHeader customHeader;
+    private transient CommandCustomHeader cachedHeader;
 
     private SerializeType serializeTypeCurrentRPC = serializeTypeConfigInThisServer;
 
@@ -260,7 +261,11 @@ public class RemotingCommand {
 
     public CommandCustomHeader decodeCommandCustomHeader(
         Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
-        return decodeCommandCustomHeader(classHeader, true);
+        if (cachedHeader != null) {
+            return cachedHeader;
+        }
+        cachedHeader = decodeCommandCustomHeader(classHeader, true);
+        return cachedHeader;
     }
 
     public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader,
