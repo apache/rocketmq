@@ -266,10 +266,7 @@ public class TieredMessageStoreTest {
     @Test
     public void testCleanUnusedTopics() {
         Set<String> topicSet = new HashSet<>();
-        try {
-            store.cleanUnusedTopic(topicSet);
-        } catch (Exception e) {
-        }
+        store.cleanUnusedTopic(topicSet);
         Assert.assertNull(TieredFlatFileManager.getInstance(store.getStoreConfig()).getFlatFile(mq));
         Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getTopic(mq.getTopic()));
         Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getQueue(mq));
@@ -279,10 +276,7 @@ public class TieredMessageStoreTest {
     public void testDeleteTopics() {
         Set<String> topicSet = new HashSet<>();
         topicSet.add(mq.getTopic());
-        try {
-            store.deleteTopics(topicSet);
-        } catch (Exception e) {
-        }
+        store.deleteTopics(topicSet);
         Assert.assertNull(TieredFlatFileManager.getInstance(store.getStoreConfig()).getFlatFile(mq));
         Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getTopic(mq.getTopic()));
         Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getQueue(mq));
