@@ -51,7 +51,6 @@ import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
-import org.rocksdb.RocksDBException;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
@@ -396,7 +395,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public int cleanUnusedTopic(Set<String> retainTopics) throws RocksDBException {
+    public int cleanUnusedTopic(Set<String> retainTopics) {
         try {
             metadataStore.iterateTopic(topicMetadata -> {
                 String topic = topicMetadata.getTopic();
@@ -414,7 +413,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public int deleteTopics(Set<String> deleteTopics) throws RocksDBException {
+    public int deleteTopics(Set<String> deleteTopics) {
         for (String topic : deleteTopics) {
             this.destroyCompositeFlatFile(topic);
         }

@@ -454,18 +454,16 @@ public interface MessageStore {
      *
      * @param deleteTopics unused topic name set
      * @return the number of the topics which has been deleted.
-     * @throws RocksDBException only in rocksdb mode
      */
-    int deleteTopics(final Set<String> deleteTopics) throws RocksDBException;
+    int deleteTopics(final Set<String> deleteTopics);
 
     /**
      * Clean unused topics which not in retain topic name set.
      *
      * @param retainTopics all valid topics.
      * @return number of the topics deleted.
-     * @throws RocksDBException only in rocksdb mode
      */
-    int cleanUnusedTopic(final Set<String> retainTopics) throws RocksDBException;
+    int cleanUnusedTopic(final Set<String> retainTopics);
 
     /**
      * Clean expired consume queues.

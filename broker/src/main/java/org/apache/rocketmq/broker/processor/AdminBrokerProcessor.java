@@ -557,7 +557,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private void deleteTopicInBroker(String topic) throws RocksDBException {
+    private void deleteTopicInBroker(String topic) {
         this.brokerController.getTopicConfigManager().deleteTopicConfig(topic);
         this.brokerController.getTopicQueueMappingManager().delete(topic);
         this.brokerController.getConsumerOffsetManager().cleanOffsetByTopic(topic);
@@ -2110,11 +2110,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     public RemotingCommand cleanUnusedTopic() {
         LOGGER.warn("invoke cleanUnusedTopic start.");
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        try {
-            brokerController.getMessageStore().cleanUnusedTopic(brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
-        } catch (Throwable t) {
-            return buildErrorResponse(ResponseCode.SYSTEM_ERROR, t.getMessage());
-        }
+        brokerController.getMessageStore().cleanUnusedTopic(brokerController.getTopicConfigManager().getTopicConfigTable().keySet());
         LOGGER.warn("invoke cleanUnusedTopic end.");
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

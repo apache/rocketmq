@@ -257,12 +257,12 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public int deleteTopics(final Set<String> deleteTopics) throws RocksDBException {
+    public int deleteTopics(final Set<String> deleteTopics) {
         return next.deleteTopics(deleteTopics);
     }
 
     @Override
-    public int cleanUnusedTopic(final Set<String> retainTopics) throws RocksDBException {
+    public int cleanUnusedTopic(final Set<String> retainTopics) {
         return next.cleanUnusedTopic(retainTopics);
     }
 

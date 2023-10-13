@@ -1366,7 +1366,7 @@ public class DefaultMessageStore implements MessageStore {
      * @throws RocksDBException only in rocksdb mode
      */
     @Override
-    public int deleteTopics(final Set<String> deleteTopics) throws RocksDBException {
+    public int deleteTopics(final Set<String> deleteTopics) {
         if (deleteTopics == null || deleteTopics.isEmpty()) {
             return 0;
         }
@@ -1380,7 +1380,11 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             for (ConsumeQueueInterface cq : queueTable.values()) {
-                this.consumeQueueStore.destroy(cq);
+                try {
+                    this.consumeQueueStore.destroy(cq);
+                } catch (RocksDBException e) {
+                    LOGGER.error("DeleteTopic: ConsumeQueue cleans error!, topic={}, queueId={}", cq.getTopic(), cq.getQueueId(), e);
+                }
                 LOGGER.info("DeleteTopic: ConsumeQueue has been cleaned, topic={}, queueId={}", cq.getTopic(), cq.getQueueId());
                 this.consumeQueueStore.removeTopicQueueTable(cq.getTopic(), cq.getQueueId());
             }
@@ -1411,7 +1415,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public int cleanUnusedTopic(final Set<String> retainTopics) throws RocksDBException {
+    public int cleanUnusedTopic(final Set<String> retainTopics) {
         Set<String> consumeQueueTopicSet = this.getConsumeQueueTable().keySet();
         int deleteCount = 0;
         for (String topicName : Sets.difference(consumeQueueTopicSet, retainTopics)) {

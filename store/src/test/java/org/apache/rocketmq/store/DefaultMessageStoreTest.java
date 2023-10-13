@@ -902,7 +902,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void testDeleteTopics() throws RocksDBException {
+    public void testDeleteTopics() {
         MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
             ((DefaultMessageStore) messageStore).getConsumeQueueTable();
@@ -924,7 +924,7 @@ public class DefaultMessageStoreTest {
     }
 
     @Test
-    public void testCleanUnusedTopic() throws RocksDBException {
+    public void testCleanUnusedTopic() {
         MessageStoreConfig messageStoreConfig = messageStore.getMessageStoreConfig();
         ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> consumeQueueTable =
             ((DefaultMessageStore) messageStore).getConsumeQueueTable();

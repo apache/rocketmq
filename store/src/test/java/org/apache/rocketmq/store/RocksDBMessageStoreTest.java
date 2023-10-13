@@ -996,7 +996,7 @@ public class RocksDBMessageStoreTest {
     }
 
     @Test
-    public void testDeleteTopics() throws Exception {
+    public void testDeleteTopics() {
         if (notExecuted()) {
             return;
         }
@@ -1021,7 +1021,7 @@ public class RocksDBMessageStoreTest {
     }
 
     @Test
-    public void testCleanUnusedTopic() throws Exception {
+    public void testCleanUnusedTopic() {
         if (notExecuted()) {
             return;
         }
