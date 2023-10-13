@@ -129,7 +129,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
         }
         int randomQ = random.nextInt(100);
         int reviveQid = randomQ % this.brokerController.getBrokerConfig().getReviveQueueNum();
-        GetMessageResult getMessageResult = new GetMessageResult();
+        GetMessageResult getMessageResult = new GetMessageResult(requestHeader.getMaxMsgNums());
         boolean needRetry = randomQ % 5 == 0;
         long popTime = System.currentTimeMillis();
         long restNum = 0;
