@@ -347,8 +347,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             reviveQid = (int) Math.abs(ckMessageNumber.getAndIncrement() % this.brokerController.getBrokerConfig().getReviveQueueNum());
         }
 
-        int commercialSizePerMsg = this.brokerController.getBrokerConfig().getCommercialSizePerMsg();
-        GetMessageResult getMessageResult = new GetMessageResult(commercialSizePerMsg);
+        GetMessageResult getMessageResult = new GetMessageResult(requestHeader.getMaxMsgNums());
         ExpressionMessageFilter finalMessageFilter = messageFilter;
         StringBuilder finalOrderCountInfo = orderCountInfo;
 
