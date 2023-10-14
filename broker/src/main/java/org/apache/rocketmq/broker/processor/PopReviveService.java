@@ -356,7 +356,7 @@ public class PopReviveService extends ServiceThread {
             }
             for (MessageExt messageExt : messageExts) {
                 if (PopAckConstants.CK_TAG.equals(messageExt.getTags())) {
-                    String raw = new String(messageExt.getBody(), DataConverter.charset);
+                    String raw = new String(messageExt.getBody(), DataConverter.CHARSET_UTF8);
                     if (brokerController.getBrokerConfig().isEnablePopLog()) {
                         POP_LOGGER.info("reviveQueueId={},find ck, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
                     }
@@ -371,7 +371,7 @@ public class PopReviveService extends ServiceThread {
                         firstRt = point.getReviveTime();
                     }
                 } else if (PopAckConstants.ACK_TAG.equals(messageExt.getTags())) {
-                    String raw = new String(messageExt.getBody(), DataConverter.charset);
+                    String raw = new String(messageExt.getBody(), DataConverter.CHARSET_UTF8);
                     if (brokerController.getBrokerConfig().isEnablePopLog()) {
                         POP_LOGGER.info("reviveQueueId={},find ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
                     }
@@ -395,7 +395,7 @@ public class PopReviveService extends ServiceThread {
                         }
                     }
                 } else if (PopAckConstants.BATCH_ACK_TAG.equals(messageExt.getTags())) {
-                    String raw = new String(messageExt.getBody(), DataConverter.charset);
+                    String raw = new String(messageExt.getBody(), DataConverter.CHARSET_UTF8);
                     if (brokerController.getBrokerConfig().isEnablePopLog()) {
                         POP_LOGGER.info("reviveQueueId={}, find batch ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
                     }
