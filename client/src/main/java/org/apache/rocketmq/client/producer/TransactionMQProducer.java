@@ -67,22 +67,6 @@ public class TransactionMQProducer extends DefaultMQProducer {
         this.defaultMQProducerImpl.destroyTransactionEnv();
     }
 
-    /**
-     * This method will be removed in the version 5.0.0, method <code>sendMessageInTransaction(Message,Object)</code>}
-     * is recommended.
-     */
-    @Override
-    @Deprecated
-    public TransactionSendResult sendMessageInTransaction(final Message msg,
-        final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
-        if (null == this.transactionCheckListener) {
-            throw new MQClientException("localTransactionBranchCheckListener is null", null);
-        }
-
-        msg.setTopic(NamespaceUtil.wrapNamespace(this.getNamespace(), msg.getTopic()));
-        return this.defaultMQProducerImpl.sendMessageInTransaction(msg, tranExecuter, arg);
-    }
-
     @Override
     public TransactionSendResult sendMessageInTransaction(final Message msg,
         final Object arg) throws MQClientException {
