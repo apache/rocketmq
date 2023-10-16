@@ -129,7 +129,7 @@ public class PopReviveService extends ServiceThread {
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
         PopMetricsManager.incPopReviveRetryMessageCount(popCheckPoint, putMessageResult.getPutMessageStatus());
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
-            POP_LOGGER.info("reviveQueueId={},retry msg , ck={}, msg queueId {}, offset {}, reviveDelay={}, result is {} ",
+            POP_LOGGER.info("reviveQueueId={},retry msg, ck={}, msg queueId {}, offset {}, reviveDelay={}, result is {} ",
                 queueId, popCheckPoint, messageExt.getQueueId(), messageExt.getQueueOffset(),
                 (System.currentTimeMillis() - popCheckPoint.getReviveTime()) / 1000, putMessageResult);
         }
@@ -319,7 +319,7 @@ public class PopReviveService extends ServiceThread {
         // offset self amend
         while (true) {
             if (!shouldRunPopRevive) {
-                POP_LOGGER.info("slave skip scan , revive topic={}, reviveQueueId={}", reviveTopic, queueId);
+                POP_LOGGER.info("slave skip scan, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
                 break;
             }
             List<MessageExt> messageExts = getReviveMessage(offset, queueId);
@@ -351,7 +351,7 @@ public class PopReviveService extends ServiceThread {
                 noMsgCount = 0;
             }
             if (System.currentTimeMillis() - startScanTime > brokerController.getBrokerConfig().getReviveScanTime()) {
-                POP_LOGGER.info("reviveQueueId={}, scan timeout  ", queueId);
+                POP_LOGGER.info("reviveQueueId={}, scan timeout ", queueId);
                 break;
             }
             for (MessageExt messageExt : messageExts) {
@@ -373,7 +373,7 @@ public class PopReviveService extends ServiceThread {
                 } else if (PopAckConstants.ACK_TAG.equals(messageExt.getTags())) {
                     String raw = new String(messageExt.getBody(), DataConverter.charset);
                     if (brokerController.getBrokerConfig().isEnablePopLog()) {
-                        POP_LOGGER.info("reviveQueueId={},find ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
+                        POP_LOGGER.info("reviveQueueId={}, find ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
                     }
                     AckMsg ackMsg = JSON.parseObject(raw, AckMsg.class);
                     PopMetricsManager.incPopReviveAckGetCount(ackMsg, queueId);
@@ -520,7 +520,7 @@ public class PopReviveService extends ServiceThread {
 
     private void reviveMsgFromCk(PopCheckPoint popCheckPoint) {
         if (!shouldRunPopRevive) {
-            POP_LOGGER.info("slave skip retry , revive topic={}, reviveQueueId={}", reviveTopic, queueId);
+            POP_LOGGER.info("slave skip retry, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
             return;
         }
         inflightReviveRequestMap.put(popCheckPoint, new Pair<>(System.currentTimeMillis(), false));
@@ -645,7 +645,7 @@ public class PopReviveService extends ServiceThread {
                 consumeReviveMessage(consumeReviveObj);
 
                 if (!shouldRunPopRevive) {
-                    POP_LOGGER.info("slave skip scan , revive topic={}, reviveQueueId={}", reviveTopic, queueId);
+                    POP_LOGGER.info("slave skip scan, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
                     continue;
                 }
 
@@ -661,7 +661,7 @@ public class PopReviveService extends ServiceThread {
                     currentReviveMessageTimestamp = System.currentTimeMillis();
                 }
 
-                POP_LOGGER.info("reviveQueueId={},revive finish,old offset is {}, new offset is {}, ckDelay={}  ",
+                POP_LOGGER.info("reviveQueueId={}, revive finish,old offset is {}, new offset is {}, ckDelay={}  ",
                     queueId, consumeReviveObj.oldOffset, consumeReviveObj.newOffset, delay);
 
                 if (sortList == null || sortList.isEmpty()) {
