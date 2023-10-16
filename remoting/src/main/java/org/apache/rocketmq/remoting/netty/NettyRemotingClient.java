@@ -716,20 +716,25 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         if (cw != null) {
-            ChannelFuture channelFuture = cw.getChannelFuture();
-            if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
-                if (cw.isOK()) {
-                    LOGGER.info("createChannel: connect remote host[{}] success, {}", addr, channelFuture.toString());
-                    return cw.getChannel();
-                } else {
-                    LOGGER.warn("createChannel: connect remote host[" + addr + "] failed, " + channelFuture.toString());
-                }
-            } else {
-                LOGGER.warn("createChannel: connect remote host[{}] timeout {}ms, {}", addr, this.nettyClientConfig.getConnectTimeoutMillis(),
-                    channelFuture.toString());
-            }
+            return waitChannelFuture(addr, cw);
         }
 
+        return null;
+    }
+
+    private Channel waitChannelFuture(String addr, ChannelWrapper cw) {
+        ChannelFuture channelFuture = cw.getChannelFuture();
+        if (channelFuture.awaitUninterruptibly(this.nettyClientConfig.getConnectTimeoutMillis())) {
+            if (cw.isOK()) {
+                LOGGER.info("createChannel: connect remote host[{}] success, {}", addr, channelFuture.toString());
+                return cw.getChannel();
+            } else {
+                LOGGER.warn("createChannel: connect remote host[{}] failed, {}", addr, channelFuture.toString());
+            }
+        } else {
+            LOGGER.warn("createChannel: connect remote host[{}] timeout {}ms, {}", addr, this.nettyClientConfig.getConnectTimeoutMillis(),
+                channelFuture.toString());
+        }
         return null;
     }
 
@@ -818,8 +823,14 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
                             stopwatch.stop();
                             RemotingCommand retryRequest = RemotingCommand.createRequestCommand(request.getCode(), request.readCustomHeader());
-                            Channel retryChannel = channelWrapper.getChannel();
-                            if (channel != retryChannel) {
+                            retryRequest.setBody(request.getBody());
+                            Channel retryChannel;
+                            if (channelWrapper.isOK()) {
+                                retryChannel = channelWrapper.getChannel();
+                            } else {
+                                retryChannel = waitChannelFuture(channelWrapper.getChannelAddress(), channelWrapper);
+                            }
+                            if (retryChannel != null && channel != retryChannel) {
                                 return super.invokeImpl(retryChannel, retryRequest, timeoutMillis - duration);
                             }
                         }
@@ -992,6 +1003,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         public void updateLastResponseTime() {
             this.lastResponseTime = System.currentTimeMillis();
+        }
+
+        public String getChannelAddress() {
+            return channelAddress;
         }
 
         public boolean reconnect() {
