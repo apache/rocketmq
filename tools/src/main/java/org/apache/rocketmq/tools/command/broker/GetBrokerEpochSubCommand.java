@@ -38,7 +38,7 @@ public class GetBrokerEpochSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch broker epoch entries";
+        return "Fetch broker epoch entries.";
     }
 
     @Override

@@ -42,7 +42,7 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Delete Acl Config Account in broker";
+        return "Delete Acl Config Account in broker.";
     }
 
     @Override

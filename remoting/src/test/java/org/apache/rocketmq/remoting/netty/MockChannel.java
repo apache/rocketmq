@@ -15,25 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.broker.latency;
+package org.apache.rocketmq.remoting.netty;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.local.LocalChannel;
 
-public class FutureTaskExt<V> extends FutureTask<V> {
-    private final Runnable runnable;
-
-    public FutureTaskExt(final Callable<V> callable) {
-        super(callable);
-        this.runnable = null;
-    }
-
-    public FutureTaskExt(final Runnable runnable, final V result) {
-        super(runnable, result);
-        this.runnable = runnable;
-    }
-
-    public Runnable getRunnable() {
-        return runnable;
+public class MockChannel extends LocalChannel {
+    @Override
+    public ChannelFuture writeAndFlush(Object msg) {
+        return new MockChannelPromise(MockChannel.this);
     }
 }

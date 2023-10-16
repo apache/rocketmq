@@ -15,15 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.tieredstore.provider.inputstream;
+package org.apache.rocketmq.tieredstore.provider.stream;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 
-public class TieredFileSegmentInputStream extends InputStream {
+public class FileSegmentInputStream extends InputStream {
 
     /**
      * file type, can be commitlog, consume queue or indexfile now
@@ -33,7 +34,7 @@ public class TieredFileSegmentInputStream extends InputStream {
     /**
      * hold bytebuffer
      */
-    protected final List<ByteBuffer> uploadBufferList;
+    protected final List<ByteBuffer> bufferList;
 
     /**
      * total remaining of bytebuffer list
@@ -65,13 +66,13 @@ public class TieredFileSegmentInputStream extends InputStream {
 
     private int markReadPosInCurBuffer = -1;
 
-    public TieredFileSegmentInputStream(FileSegmentType fileType, List<ByteBuffer> uploadBufferList,
-        int contentLength) {
+    public FileSegmentInputStream(
+        FileSegmentType fileType, List<ByteBuffer> bufferList, int contentLength) {
         this.fileType = fileType;
         this.contentLength = contentLength;
-        this.uploadBufferList = uploadBufferList;
-        if (uploadBufferList != null && uploadBufferList.size() > 0) {
-            this.curBuffer = uploadBufferList.get(curReadBufferIndex);
+        this.bufferList = bufferList;
+        if (bufferList != null && bufferList.size() > 0) {
+            this.curBuffer = bufferList.get(curReadBufferIndex);
         }
     }
 
@@ -95,9 +96,25 @@ public class TieredFileSegmentInputStream extends InputStream {
         this.readPosition = markReadPosition;
         this.curReadBufferIndex = markCurReadBufferIndex;
         this.readPosInCurBuffer = markReadPosInCurBuffer;
-        if (this.curReadBufferIndex < uploadBufferList.size()) {
-            this.curBuffer = uploadBufferList.get(curReadBufferIndex);
+        if (this.curReadBufferIndex < bufferList.size()) {
+            this.curBuffer = bufferList.get(curReadBufferIndex);
         }
+    }
+
+    public synchronized void rewind() {
+        this.readPosition = 0;
+        this.curReadBufferIndex = 0;
+        this.readPosInCurBuffer = 0;
+        if (CollectionUtils.isNotEmpty(bufferList)) {
+            this.curBuffer = bufferList.get(0);
+            for (ByteBuffer buffer : bufferList) {
+                buffer.rewind();
+            }
+        }
+    }
+
+    public int getContentLength() {
+        return contentLength;
     }
 
     @Override
@@ -105,8 +122,8 @@ public class TieredFileSegmentInputStream extends InputStream {
         return contentLength - readPosition;
     }
 
-    public List<ByteBuffer> getUploadBufferList() {
-        return uploadBufferList;
+    public List<ByteBuffer> getBufferList() {
+        return bufferList;
     }
 
     public ByteBuffer getCodaBuffer() {
@@ -121,10 +138,10 @@ public class TieredFileSegmentInputStream extends InputStream {
         readPosition++;
         if (readPosInCurBuffer >= curBuffer.remaining()) {
             curReadBufferIndex++;
-            if (curReadBufferIndex >= uploadBufferList.size()) {
+            if (curReadBufferIndex >= bufferList.size()) {
                 return -1;
             }
-            curBuffer = uploadBufferList.get(curReadBufferIndex);
+            curBuffer = bufferList.get(curReadBufferIndex);
             readPosInCurBuffer = 0;
         }
         return curBuffer.get(readPosInCurBuffer++) & 0xff;
@@ -153,8 +170,8 @@ public class TieredFileSegmentInputStream extends InputStream {
         int bufIndex = curReadBufferIndex;
         int posInCurBuffer = readPosInCurBuffer;
         ByteBuffer curBuf = curBuffer;
-        while (needRead > 0 && bufIndex < uploadBufferList.size()) {
-            curBuf = uploadBufferList.get(bufIndex);
+        while (needRead > 0 && bufIndex < bufferList.size()) {
+            curBuf = bufferList.get(bufIndex);
             int remaining = curBuf.remaining() - posInCurBuffer;
             int readLen = Math.min(remaining, needRead);
             // read from curBuf

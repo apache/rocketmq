@@ -80,6 +80,7 @@ import org.apache.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByUniqueKeySubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgTraceByIdSubCommand;
 import org.apache.rocketmq.tools.command.message.SendMessageCommand;
+import org.apache.rocketmq.tools.command.export.ExportMetadataInRocksDBCommand;
 import org.apache.rocketmq.tools.command.namesrv.AddWritePermSubCommand;
 import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
@@ -255,6 +256,7 @@ public class MQAdminStartup {
         initCommand(new ExportMetadataCommand());
         initCommand(new ExportConfigsCommand());
         initCommand(new ExportMetricsCommand());
+        initCommand(new ExportMetadataInRocksDBCommand());
 
         initCommand(new HAStatusSubCommand());
 
@@ -278,7 +280,7 @@ public class MQAdminStartup {
         System.out.printf("The most commonly used mqadmin commands are:%n");
 
         for (SubCommand cmd : SUB_COMMANDS) {
-            System.out.printf("   %-25s %s%n", cmd.commandName(), cmd.commandDesc());
+            System.out.printf("   %-35s %s%n", cmd.commandName(), cmd.commandDesc());
         }
 
         System.out.printf("%nSee 'mqadmin help <command>' for more information on a specific command.%n");

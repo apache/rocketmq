@@ -41,7 +41,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Update or create subscription group";
+        return "Update or create subscription group.";
     }
 
     @Override

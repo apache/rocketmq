@@ -60,6 +60,12 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
         this.readOnly = false;
     }
 
+    public ConfigRocksDBStorage(final String dbPath, boolean readOnly) {
+        super();
+        this.dbPath = dbPath;
+        this.readOnly = readOnly;
+    }
+
     private void initOptions() {
         this.options = createConfigDBOptions();
 
@@ -197,7 +203,7 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
             setUseDirectReads(true);
     }
 
-    private static String getDBLogDir() {
+    public static String getDBLogDir() {
         String rootPath = System.getProperty("user.home");
         if (StringUtils.isEmpty(rootPath)) {
             return "";

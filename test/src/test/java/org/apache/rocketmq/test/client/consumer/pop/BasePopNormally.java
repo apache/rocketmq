@@ -63,4 +63,10 @@ public class BasePopNormally extends BasePop {
             brokerAddr, messageQueue, invisibleTime, maxNums, group, timeout, true,
             ConsumeInitMode.MIN, false, ExpressionType.TAG, "*");
     }
+
+    protected CompletableFuture<PopResult> popMessageAsync(long invisibleTime, int maxNums) {
+        return client.popMessageAsync(
+            brokerAddr, messageQueue, invisibleTime, maxNums, group, 3000, false,
+            ConsumeInitMode.MIN, false, ExpressionType.TAG, "*");
+    }
 }

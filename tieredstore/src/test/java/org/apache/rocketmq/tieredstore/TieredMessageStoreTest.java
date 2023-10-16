@@ -130,36 +130,36 @@ public class TieredMessageStoreTest {
         // TieredStorageLevel.DISABLE
         properties.setProperty("tieredStorageLevel", "0");
         configuration.update(properties);
-        Assert.assertFalse(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertFalse(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         // TieredStorageLevel.NOT_IN_DISK
         properties.setProperty("tieredStorageLevel", "1");
         configuration.update(properties);
         when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(false);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertTrue(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
-        Assert.assertFalse(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertFalse(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         // TieredStorageLevel.NOT_IN_MEM
         properties.setProperty("tieredStorageLevel", "2");
         configuration.update(properties);
         Mockito.when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(false);
         Mockito.when(nextStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(true);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertTrue(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         Mockito.when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
         Mockito.when(nextStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(false);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertTrue(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         Mockito.when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
         Mockito.when(nextStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(true);
-        Assert.assertFalse(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertFalse(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         // TieredStorageLevel.FORCE
         properties.setProperty("tieredStorageLevel", "3");
         configuration.update(properties);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertTrue(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
     }
 
     @Test
@@ -168,7 +168,7 @@ public class TieredMessageStoreTest {
         GetMessageResult result1 = new GetMessageResult();
         result1.setStatus(GetMessageStatus.FOUND);
         GetMessageResult result2 = new GetMessageResult();
-        result2.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
+        result2.setStatus(GetMessageStatus.OFFSET_OVERFLOW_BADLY);
 
         when(fetcher.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(result1));
         when(nextStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(result2);
@@ -188,7 +188,8 @@ public class TieredMessageStoreTest {
         properties.setProperty("tieredStorageLevel", "3");
         configuration.update(properties);
         when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
-        Assert.assertSame(result2, store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null));
+        Assert.assertEquals(result2.getStatus(),
+            store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null).getStatus());
     }
 
     @Test

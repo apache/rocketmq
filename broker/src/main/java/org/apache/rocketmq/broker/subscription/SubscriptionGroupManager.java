@@ -341,10 +341,7 @@ public class SubscriptionGroupManager extends ConfigManager {
 
 
     public void setSubscriptionGroupTable(ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable) {
-        this.subscriptionGroupTable.clear();
-        for (String key : subscriptionGroupTable.keySet()) {
-            putSubscriptionGroupConfig(subscriptionGroupTable.get(key));
-        }
+        this.subscriptionGroupTable = subscriptionGroupTable;
     }
 
     public boolean containsSubscriptionGroup(String group) {

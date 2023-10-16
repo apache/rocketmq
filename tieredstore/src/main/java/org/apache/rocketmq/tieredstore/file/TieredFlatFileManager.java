@@ -134,21 +134,19 @@ public class TieredFlatFileManager {
     public void doCleanExpiredFile() {
         long expiredTimeStamp = System.currentTimeMillis() -
             TimeUnit.HOURS.toMillis(storeConfig.getTieredStoreFileReservedTime());
-        Random random = new Random();
         for (CompositeQueueFlatFile flatFile : deepCopyFlatFileToList()) {
-            int delay = random.nextInt(storeConfig.getMaxCommitJitter());
-            TieredStoreExecutor.cleanExpiredFileExecutor.schedule(() -> {
-                flatFile.getCompositeFlatFileLock().lock();
+            TieredStoreExecutor.cleanExpiredFileExecutor.submit(() -> {
                 try {
+                    flatFile.getCompositeFlatFileLock().lock();
                     flatFile.cleanExpiredFile(expiredTimeStamp);
                     flatFile.destroyExpiredFile();
-                    if (flatFile.getConsumeQueueBaseOffset() == -1) {
-                        destroyCompositeFile(flatFile.getMessageQueue());
-                    }
+                } catch (Throwable t) {
+                    logger.error("Do Clean expired file error, topic={}, queueId={}",
+                        flatFile.getMessageQueue().getTopic(), flatFile.getMessageQueue().getQueueId(), t);
                 } finally {
                     flatFile.getCompositeFlatFileLock().unlock();
                 }
-            }, delay, TimeUnit.MILLISECONDS);
+            });
         }
         if (indexFile != null) {
             indexFile.cleanExpiredFile(expiredTimeStamp);
@@ -218,8 +216,13 @@ public class TieredFlatFileManager {
                                 storeConfig.getBrokerName(), queueMetadata.getQueue().getQueueId()));
                             queueCount.incrementAndGet();
                         });
-                        logger.info("Recover TopicFlatFile, topic: {}, queueCount: {}, cost: {}ms",
-                            topicMetadata.getTopic(), queueCount.get(), subWatch.elapsed(TimeUnit.MILLISECONDS));
+
+                        if (queueCount.get() == 0L) {
+                            metadataStore.deleteTopic(topicMetadata.getTopic());
+                        } else {
+                            logger.info("Recover TopicFlatFile, topic: {}, queueCount: {}, cost: {}ms",
+                                topicMetadata.getTopic(), queueCount.get(), subWatch.elapsed(TimeUnit.MILLISECONDS));
+                        }
                     } catch (Exception e) {
                         logger.error("Recover TopicFlatFile error, topic: {}", topicMetadata.getTopic(), e);
                     } finally {
