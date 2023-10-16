@@ -17,7 +17,6 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
-
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.StoreType;
@@ -270,6 +269,12 @@ public class MessageStoreConfig {
      */
     private boolean autoMessageVersionOnTopicLen = true;
 
+    /**
+     * It cannot be changed after the broker is started.
+     * Modifications need to be restarted to take effect.
+     */
+    private boolean enabledAppendPropCRC = false;
+    private boolean forceVerifyPropCRC = false;
     private int travelCqFileNumWhenGetMessage = 1;
     // Sleep interval between to corrections
     private int correctLogicMinOffsetSleepInterval = 1;
@@ -404,6 +409,14 @@ public class MessageStoreConfig {
     private boolean enableRocksDBLog = false;
 
     private int topicQueueLockNum = 32;
+
+    public boolean isEnabledAppendPropCRC() {
+        return enabledAppendPropCRC;
+    }
+
+    public void setEnabledAppendPropCRC(boolean enabledAppendPropCRC) {
+        this.enabledAppendPropCRC = enabledAppendPropCRC;
+    }
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -639,6 +652,15 @@ public class MessageStoreConfig {
     public void setCheckCRCOnRecover(boolean checkCRCOnRecover) {
         this.checkCRCOnRecover = checkCRCOnRecover;
     }
+
+    public boolean isForceVerifyPropCRC() {
+        return forceVerifyPropCRC;
+    }
+
+    public void setForceVerifyPropCRC(boolean forceVerifyPropCRC) {
+        this.forceVerifyPropCRC = forceVerifyPropCRC;
+    }
+
 
     public String getStorePathCommitLog() {
         if (storePathCommitLog == null) {
