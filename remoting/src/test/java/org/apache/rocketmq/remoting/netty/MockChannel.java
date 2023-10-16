@@ -15,23 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.client.impl;
+package org.apache.rocketmq.remoting.netty;
 
-import org.apache.rocketmq.remoting.InvokeCallback;
-import org.apache.rocketmq.remoting.netty.ResponseFuture;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.local.LocalChannel;
 
-public abstract class BaseInvokeCallback implements InvokeCallback {
-    private final MQClientAPIImpl mqClientAPI;
-
-    public BaseInvokeCallback(MQClientAPIImpl mqClientAPI) {
-        this.mqClientAPI = mqClientAPI;
-    }
-
+public class MockChannel extends LocalChannel {
     @Override
-    public void operationComplete(final ResponseFuture responseFuture) {
-        mqClientAPI.execRpcHooksAfterRequest(responseFuture);
-        onComplete(responseFuture);
+    public ChannelFuture writeAndFlush(Object msg) {
+        return new MockChannelPromise(MockChannel.this);
     }
-
-    public abstract void onComplete(final ResponseFuture responseFuture);
 }

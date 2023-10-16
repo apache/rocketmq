@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Arrays;
 import java.util.Properties;
 
 import com.alibaba.fastjson.JSON;
@@ -106,24 +107,33 @@ public class ExportConfigsCommand implements SubCommand {
         }
     }
 
+
     private Properties needBrokerProprties(Properties properties) {
+        List<String> propertyKeys = Arrays.asList(
+                "brokerClusterName",
+                "brokerId",
+                "brokerName",
+                "brokerRole",
+                "fileReservedTime",
+                "filterServerNums",
+                "flushDiskType",
+                "maxMessageSize",
+                "messageDelayLevel",
+                "msgTraceTopicName",
+                "slaveReadEnable",
+                "traceOn",
+                "traceTopicEnable",
+                "useTLS",
+                "autoCreateTopicEnable",
+                "autoCreateSubscriptionGroup"
+        );
+
         Properties newProperties = new Properties();
-        newProperties.setProperty("brokerClusterName", properties.getProperty("brokerClusterName"));
-        newProperties.setProperty("brokerId", properties.getProperty("brokerId"));
-        newProperties.setProperty("brokerName", properties.getProperty("brokerName"));
-        newProperties.setProperty("brokerRole", properties.getProperty("brokerRole"));
-        newProperties.setProperty("fileReservedTime", properties.getProperty("fileReservedTime"));
-        newProperties.setProperty("filterServerNums", properties.getProperty("filterServerNums"));
-        newProperties.setProperty("flushDiskType", properties.getProperty("flushDiskType"));
-        newProperties.setProperty("maxMessageSize", properties.getProperty("maxMessageSize"));
-        newProperties.setProperty("messageDelayLevel", properties.getProperty("messageDelayLevel"));
-        newProperties.setProperty("msgTraceTopicName", properties.getProperty("msgTraceTopicName"));
-        newProperties.setProperty("slaveReadEnable", properties.getProperty("slaveReadEnable"));
-        newProperties.setProperty("traceOn", properties.getProperty("traceOn"));
-        newProperties.setProperty("traceTopicEnable", properties.getProperty("traceTopicEnable"));
-        newProperties.setProperty("useTLS", properties.getProperty("useTLS"));
-        newProperties.setProperty("autoCreateTopicEnable", properties.getProperty("autoCreateTopicEnable"));
-        newProperties.setProperty("autoCreateSubscriptionGroup", properties.getProperty("autoCreateSubscriptionGroup"));
+        propertyKeys.stream()
+                .filter(key -> properties.getProperty(key) != null)
+                .forEach(key -> newProperties.setProperty(key, properties.getProperty(key)));
+
         return newProperties;
     }
+
 }

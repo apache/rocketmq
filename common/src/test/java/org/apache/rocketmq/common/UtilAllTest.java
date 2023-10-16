@@ -238,41 +238,54 @@ public class UtilAllTest {
          */
         String basePath = System.getProperty("java.io.tmpdir") + File.separator + "testCalculateFileSizeInPath";
         File baseFile = new File(basePath);
-        // test empty path
-        assertEquals(0, UtilAll.calculateFileSizeInPath(baseFile));
+        try {
+            // test empty path
+            assertEquals(0, UtilAll.calculateFileSizeInPath(baseFile));
 
-        // create baseDir
-        assertTrue(baseFile.mkdirs());
+            // create baseDir
+            assertTrue(baseFile.mkdirs());
 
-        File file0 = new File(baseFile, "file_0");
-        assertTrue(file0.createNewFile());
-        writeFixedBytesToFile(file0, 1313);
+            File file0 = new File(baseFile, "file_0");
+            assertTrue(file0.createNewFile());
+            writeFixedBytesToFile(file0, 1313);
 
-        assertEquals(1313, UtilAll.calculateFileSizeInPath(baseFile));
+            assertEquals(1313, UtilAll.calculateFileSizeInPath(baseFile));
 
-        // build a file tree like above
-        File dir1 = new File(baseFile, "dir_1");
-        dir1.mkdirs();
-        File file10 = new File(dir1, "file_1_0");
-        File file11 = new File(dir1, "file_1_1");
-        File dir12 = new File(dir1, "dir_1_2");
-        dir12.mkdirs();
-        File file120 = new File(dir12, "file_1_2_0");
-        File dir2 = new File(baseFile, "dir_2");
-        dir2.mkdirs();
+            // build a file tree like above
+            File dir1 = new File(baseFile, "dir_1");
+            dir1.mkdirs();
+            File file10 = new File(dir1, "file_1_0");
+            File file11 = new File(dir1, "file_1_1");
+            File dir12 = new File(dir1, "dir_1_2");
+            dir12.mkdirs();
+            File file120 = new File(dir12, "file_1_2_0");
+            File dir2 = new File(baseFile, "dir_2");
+            dir2.mkdirs();
 
-        // write all file with 1313 bytes data
-        assertTrue(file10.createNewFile());
-        writeFixedBytesToFile(file10, 1313);
-        assertTrue(file11.createNewFile());
-        writeFixedBytesToFile(file11, 1313);
-        assertTrue(file120.createNewFile());
-        writeFixedBytesToFile(file120, 1313);
+            // write all file with 1313 bytes data
+            assertTrue(file10.createNewFile());
+            writeFixedBytesToFile(file10, 1313);
+            assertTrue(file11.createNewFile());
+            writeFixedBytesToFile(file11, 1313);
+            assertTrue(file120.createNewFile());
+            writeFixedBytesToFile(file120, 1313);
 
-        assertEquals(1313 * 4, UtilAll.calculateFileSizeInPath(baseFile));
+            assertEquals(1313 * 4, UtilAll.calculateFileSizeInPath(baseFile));
+        } finally {
+            deleteFolder(baseFile);
+        }
+    }
 
-        // clear all file
-        baseFile.deleteOnExit();
+    public static void deleteFolder(File folder) {
+        if (folder.isDirectory()) {
+            File[] files = folder.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    deleteFolder(file);
+                }
+            }
+        }
+        folder.delete();
     }
 
     private void writeFixedBytesToFile(File file, int size) throws Exception {

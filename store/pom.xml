@@ -58,6 +58,10 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
         </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
         <!-- Required by DLedger -->
         <dependency>
             <groupId>org.slf4j</groupId>
