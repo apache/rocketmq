@@ -261,14 +261,19 @@ public class RemotingCommand {
 
     public CommandCustomHeader decodeCommandCustomHeader(
         Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
-        if (cachedHeader != null) {
+        return decodeCommandCustomHeader(classHeader, false);
+    }
+
+    public CommandCustomHeader decodeCommandCustomHeader(
+        Class<? extends CommandCustomHeader> classHeader, boolean cacheAble) throws RemotingCommandException {
+        if (cacheAble && cachedHeader != null) {
             return cachedHeader;
         }
-        cachedHeader = decodeCommandCustomHeader(classHeader, true);
+        cachedHeader = decodeCommandCustomHeaderDirectly(classHeader, true);
         return cachedHeader;
     }
 
-    public CommandCustomHeader decodeCommandCustomHeader(Class<? extends CommandCustomHeader> classHeader,
+    public CommandCustomHeader decodeCommandCustomHeaderDirectly(Class<? extends CommandCustomHeader> classHeader,
         boolean useFastEncode) throws RemotingCommandException {
         CommandCustomHeader objectHeader;
         try {
