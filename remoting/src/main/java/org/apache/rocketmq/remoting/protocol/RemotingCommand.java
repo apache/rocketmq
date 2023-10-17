@@ -265,8 +265,8 @@ public class RemotingCommand {
     }
 
     public CommandCustomHeader decodeCommandCustomHeader(
-        Class<? extends CommandCustomHeader> classHeader, boolean cacheAble) throws RemotingCommandException {
-        if (cacheAble && cachedHeader != null) {
+        Class<? extends CommandCustomHeader> classHeader, boolean isCached) throws RemotingCommandException {
+        if (isCached && cachedHeader != null) {
             return cachedHeader;
         }
         cachedHeader = decodeCommandCustomHeaderDirectly(classHeader, true);
