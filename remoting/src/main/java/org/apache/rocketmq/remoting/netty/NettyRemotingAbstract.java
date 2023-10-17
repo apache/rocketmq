@@ -22,6 +22,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.Future;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import java.net.SocketAddress;
 import java.util.ArrayList;
@@ -209,6 +210,7 @@ public abstract class NettyRemotingAbstract {
             .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()));
         if (request.isOnewayRPC()) {
             attributesBuilder.put(LABEL_RESULT, RESULT_ONEWAY);
+            RemotingMetricsManager.requestDist.add(1, attributesBuilder.build());
             RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
             return;
         }
@@ -228,6 +230,7 @@ public abstract class NettyRemotingAbstract {
                 if (callback != null) {
                     callback.accept(future);
                 }
+                RemotingMetricsManager.requestDist.add(1, attributesBuilder.build());
             });
         } catch (Throwable e) {
             log.error("process request over, but response failed", e);
@@ -235,6 +238,7 @@ public abstract class NettyRemotingAbstract {
             log.error(response.toString());
             attributesBuilder.put(LABEL_RESULT, RESULT_WRITE_CHANNEL_FAILED);
             RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
+            RemotingMetricsManager.requestDist.add(1, attributesBuilder.build());
         }
     }
 

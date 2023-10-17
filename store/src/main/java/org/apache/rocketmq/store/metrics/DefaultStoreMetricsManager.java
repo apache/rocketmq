@@ -24,15 +24,19 @@ import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.ViewBuilder;
-import java.io.File;
-import java.util.List;
-import java.util.function.Supplier;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.timer.Slot;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
+import org.apache.rocketmq.store.timer.TimerMetrics;
+import org.apache.rocketmq.store.timer.TimerWheel;
+
+import java.io.File;
+import java.util.List;
+import java.util.function.Supplier;
 
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.COUNTER_TIMER_DEQUEUE_TOTAL;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.COUNTER_TIMER_ENQUEUE_TOTAL;
@@ -46,9 +50,11 @@ import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUG
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_TIMER_DEQUEUE_LATENCY;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_TIMER_ENQUEUE_LAG;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_TIMER_ENQUEUE_LATENCY;
+import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_TIMER_MESSAGE_SNAPSHOT;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_TIMING_MESSAGES;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_STORAGE_MEDIUM;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_STORAGE_TYPE;
+import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_TIMING_BOUND;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_TOPIC;
 
 public class DefaultStoreMetricsManager {
@@ -68,6 +74,7 @@ public class DefaultStoreMetricsManager {
 
     public static LongCounter timerDequeueTotal = new NopLongCounter();
     public static LongCounter timerEnqueueTotal = new NopLongCounter();
+    public static ObservableLongGauge timerMessageSnapshot = new NopObservableLongGauge();
 
     public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
         return Lists.newArrayList();
@@ -168,6 +175,26 @@ public class DefaultStoreMetricsManager {
             timerEnqueueTotal = meter.counterBuilder(COUNTER_TIMER_ENQUEUE_TOTAL)
                 .setDescription("Total number of timer enqueue")
                 .build();
+            timerMessageSnapshot = meter.gaugeBuilder(GAUGE_TIMER_MESSAGE_SNAPSHOT)
+                .setDescription("Timer message distribution snapshot")
+                .ofLongs()
+                .buildWithCallback(measurement -> {
+                    TimerMetrics timerMetrics = messageStore.getTimerMessageStore().getTimerMetrics();
+                    TimerWheel timerWheel = messageStore.getTimerMessageStore().getTimerWheel();
+                    int precisionMs = messageStoreConfig.getTimerPrecisionMs();
+                    List<Integer> timerDist = timerMetrics.getTimerDistList();
+                    long currTime = System.currentTimeMillis() / precisionMs * precisionMs;
+                    for (int i = 0; i < timerDist.size(); i++) {
+                        int slotBeforeNum = i == 0 ? 0 : timerDist.get(i - 1) * 1000 / precisionMs;
+                        int slotTotalNum = timerDist.get(i) * 1000 / precisionMs;
+                        int periodTotal = 0;
+                        for (int j = slotBeforeNum; j < slotTotalNum; j++) {
+                            Slot slotEach = timerWheel.getSlot(currTime + (long) j * precisionMs);
+                            periodTotal += slotEach.num;
+                        }
+                        measurement.record(periodTotal, newAttributesBuilder().put(LABEL_TIMING_BOUND, timerDist.get(i).toString()).build());
+                    }
+                });
         }
     }
 
