@@ -18,8 +18,6 @@ package org.apache.rocketmq.remoting.metrics;
 
 public class RemotingMetricsConstant {
     public static final String HISTOGRAM_RPC_LATENCY = "rocketmq_rpc_latency";
-    public static final String COUNTER_REQUEST_DISTRIBUTION = "rocketmq_request_distribution_total";
-
     public static final String LABEL_PROTOCOL_TYPE = "protocol_type";
     public static final String LABEL_REQUEST_CODE = "request_code";
     public static final String LABEL_RESPONSE_CODE = "response_code";

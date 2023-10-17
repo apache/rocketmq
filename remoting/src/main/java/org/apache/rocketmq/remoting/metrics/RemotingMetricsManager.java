@@ -20,7 +20,6 @@ import com.google.common.collect.Lists;
 import io.netty.util.concurrent.Future;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.LongHistogram;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.Aggregation;
@@ -33,10 +32,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.COUNTER_REQUEST_DISTRIBUTION;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.HISTOGRAM_RPC_LATENCY;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_PROTOCOL_TYPE;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.PROTOCOL_TYPE_REMOTING;
@@ -46,7 +43,6 @@ import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESUL
 
 public class RemotingMetricsManager {
     public static LongHistogram rpcLatency = new NopLongHistogram();
-    public static LongCounter requestDist = new NopLongCounter();
     public static Supplier<AttributesBuilder> attributesBuilderSupplier;
 
     public static AttributesBuilder newAttributesBuilder() {
@@ -64,10 +60,6 @@ public class RemotingMetricsManager {
             .setUnit("milliseconds")
             .ofLongs()
             .build();
-        requestDist = meter.counterBuilder(COUNTER_REQUEST_DISTRIBUTION)
-                .setDescription("Request codes' distribution")
-                .build();
-
     }
 
     public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {

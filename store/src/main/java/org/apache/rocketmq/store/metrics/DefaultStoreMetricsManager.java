@@ -176,7 +176,7 @@ public class DefaultStoreMetricsManager {
                 .setDescription("Total number of timer enqueue")
                 .build();
             timerMessageSnapshot = meter.gaugeBuilder(GAUGE_TIMER_MESSAGE_SNAPSHOT)
-                .setDescription("Timer message distribution snapshot")
+                .setDescription("Timer message distribution snapshot, only count timing messages in 24h.")
                 .ofLongs()
                 .buildWithCallback(measurement -> {
                     TimerMetrics timerMetrics = messageStore.getTimerMessageStore().getTimerMetrics();
