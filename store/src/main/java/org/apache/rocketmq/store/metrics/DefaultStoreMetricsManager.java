@@ -20,12 +20,17 @@ import com.google.common.collect.Lists;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.LongCounter;
+import io.opentelemetry.api.metrics.LongHistogram;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
+import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.InstrumentType;
+import io.opentelemetry.sdk.metrics.View;
 import io.opentelemetry.sdk.metrics.ViewBuilder;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.metrics.NopLongCounter;
+import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -35,6 +40,8 @@ import org.apache.rocketmq.store.timer.TimerMetrics;
 import org.apache.rocketmq.store.timer.TimerWheel;
 
 import java.io.File;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -52,6 +59,7 @@ import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUG
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_TIMER_ENQUEUE_LATENCY;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_TIMER_MESSAGE_SNAPSHOT;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.GAUGE_TIMING_MESSAGES;
+import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.HISTOGRAM_DELAY_MSG_LATENCY;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_STORAGE_MEDIUM;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_STORAGE_TYPE;
 import static org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant.LABEL_TIMING_BOUND;
@@ -75,9 +83,25 @@ public class DefaultStoreMetricsManager {
     public static LongCounter timerDequeueTotal = new NopLongCounter();
     public static LongCounter timerEnqueueTotal = new NopLongCounter();
     public static ObservableLongGauge timerMessageSnapshot = new NopObservableLongGauge();
+    public static LongHistogram timerMessageSetLatency = new NopLongHistogram();
 
     public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
-        return Lists.newArrayList();
+        List<Double> rpcCostTimeBuckets = Arrays.asList(
+                // day * hour * min * second
+                1d * 1 * 1 * 60, // 60 second
+                1d * 1 * 10 * 60, // 10 min
+                1d * 1 * 60 * 60, // 1 hour
+                1d * 12 * 60 * 60, // 12 hour
+                1d * 24 * 60 * 60, // 1 day
+                3d * 24 * 60 * 60 // 3 day
+        );
+        InstrumentSelector selector = InstrumentSelector.builder()
+                .setType(InstrumentType.HISTOGRAM)
+                .setName(HISTOGRAM_DELAY_MSG_LATENCY)
+                .build();
+        ViewBuilder viewBuilder = View.builder()
+                .setAggregation(Aggregation.explicitBucketHistogram(rpcCostTimeBuckets));
+        return Lists.newArrayList(new Pair<>(selector, viewBuilder));
     }
 
     public static void init(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier,
@@ -195,6 +219,11 @@ public class DefaultStoreMetricsManager {
                         measurement.record(periodTotal, newAttributesBuilder().put(LABEL_TIMING_BOUND, timerDist.get(i).toString()).build());
                     }
                 });
+            timerMessageSetLatency = meter.histogramBuilder(HISTOGRAM_DELAY_MSG_LATENCY)
+                    .setDescription("Timer message set latency distribution")
+                    .setUnit("seconds")
+                    .ofLongs()
+                    .build();
         }
     }
 

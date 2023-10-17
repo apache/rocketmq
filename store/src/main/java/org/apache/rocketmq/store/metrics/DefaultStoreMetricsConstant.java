@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.store.metrics;
 
-import java.util.HashMap;
-
 public class DefaultStoreMetricsConstant {
     public static final String GAUGE_STORAGE_SIZE = "rocketmq_storage_size";
     public static final String GAUGE_STORAGE_FLUSH_BEHIND = "rocketmq_storage_flush_behind_bytes";
@@ -33,6 +31,7 @@ public class DefaultStoreMetricsConstant {
     public static final String COUNTER_TIMER_ENQUEUE_TOTAL = "rocketmq_timer_enqueue_total";
     public static final String COUNTER_TIMER_DEQUEUE_TOTAL = "rocketmq_timer_dequeue_total";
     public static final String GAUGE_TIMER_MESSAGE_SNAPSHOT = "rocketmq_timer_message_snapshot";
+    public static final String HISTOGRAM_DELAY_MSG_LATENCY = "rocketmq_delay_message_latency";
 
     public static final String LABEL_STORAGE_TYPE = "storage_type";
     public static final String DEFAULT_STORAGE_TYPE = "local";
