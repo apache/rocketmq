@@ -242,7 +242,7 @@ public class AclUtils {
     }
 
     public static <T> T getYamlDataObject(InputStream fis, Class<T> clazz) {
-        Yaml yaml = new Yaml(new SafeConstructor());
+        Yaml yaml = new Yaml();
         try {
             return yaml.loadAs(fis, clazz);
         } catch (Exception e) {
