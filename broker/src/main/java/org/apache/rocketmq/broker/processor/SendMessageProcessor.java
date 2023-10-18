@@ -290,7 +290,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         // Map<String, String> oriProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
         String traFlag = oriProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
-        boolean sendTransactionPrepareMessage = false;
+        boolean sendTransactionPrepareMessage;
         if (Boolean.parseBoolean(traFlag)
             && !(msgInner.getReconsumeTimes() > 0 && msgInner.getDelayTimeLevel() > 0)) { //For client under version 4.6.1
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
@@ -301,6 +301,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 return response;
             }
             sendTransactionPrepareMessage = true;
+        } else {
+            sendTransactionPrepareMessage = false;
         }
 
         long beginTimeMillis = this.brokerController.getMessageStore().now();
@@ -320,6 +322,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                     handlePutMessageResult(putMessageResult, response, request, finalMsgInner, responseHeader, sendMessageContext,
                         ctx, finalQueueIdInt, beginTimeMillis, mappingContext, BrokerMetricsManager.getMessageType(requestHeader));
                 if (responseFuture != null) {
+                    // record the transaction metrics
+                    if (sendTransactionPrepareMessage && responseFuture.getCode() == ResponseCode.SUCCESS) {
+                        this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(msgInner, 1);
+                    }
                     doResponse(ctx, request, responseFuture);
                 }
                 sendMessageCallback.onComplete(sendMessageContext, response);
@@ -334,6 +340,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
             }
             handlePutMessageResult(putMessageResult, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt, beginTimeMillis, mappingContext, BrokerMetricsManager.getMessageType(requestHeader));
+
             sendMessageCallback.onComplete(sendMessageContext, response);
             return response;
         }

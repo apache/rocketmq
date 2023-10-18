@@ -40,7 +40,6 @@ import org.apache.rocketmq.store.timer.TimerMetrics;
 import org.apache.rocketmq.store.timer.TimerWheel;
 
 import java.io.File;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
@@ -84,6 +83,12 @@ public class DefaultStoreMetricsManager {
     public static LongCounter timerEnqueueTotal = new NopLongCounter();
     public static ObservableLongGauge timerMessageSnapshot = new NopObservableLongGauge();
     public static LongHistogram timerMessageSetLatency = new NopLongHistogram();
+
+    public static ObservableLongGauge halfMessages = new NopObservableLongGauge();
+    public static LongCounter commitMessagesTotal = new NopLongCounter();
+    public static LongCounter rollBackMessagesTotal = new NopLongCounter();
+    public static LongHistogram transactionFinishLatency = new NopLongHistogram();
+
 
     public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
         List<Double> rpcCostTimeBuckets = Arrays.asList(

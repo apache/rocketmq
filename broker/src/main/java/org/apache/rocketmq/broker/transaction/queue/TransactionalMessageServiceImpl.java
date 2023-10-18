@@ -27,8 +27,11 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.OperationResult;
+import org.apache.rocketmq.broker.transaction.TransactionMetrics;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -70,10 +73,24 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
 
+    private static TransactionMetrics transactionMetrics;
+
     public TransactionalMessageServiceImpl(TransactionalMessageBridge transactionBridge) {
         this.transactionalMessageBridge = transactionBridge;
         transactionalOpBatchService = new TransactionalOpBatchService(transactionalMessageBridge.getBrokerController(), this);
         transactionalOpBatchService.start();
+        transactionMetrics = new TransactionMetrics(BrokerPathConfigHelper.getTransactionMetricsPath(
+                transactionalMessageBridge.getBrokerController().getMessageStoreConfig().getStorePathRootDir()));
+    }
+
+    @Override
+    public TransactionMetrics getTransactionMetrics() {
+        return transactionMetrics;
+    }
+
+    @Override
+    public void setTransactionMetrics(TransactionMetrics transactionMetrics) {
+        TransactionalMessageServiceImpl.transactionMetrics = transactionMetrics;
     }
 
 
