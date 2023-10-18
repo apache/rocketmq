@@ -70,4 +70,17 @@ public class MessageExtBrokerInner extends MessageExt {
     public void setVersion(MessageVersion version) {
         this.version = version;
     }
+
+    public void removeWaitStorePropertyString() {
+        if (this.getProperties().containsKey(MessageConst.PROPERTY_WAIT_STORE_MSG_OK)) {
+            // There is no need to store "WAIT=true", remove it from propertiesString to save 9 bytes for each message.
+            // It works for most case. In some cases msgInner.setPropertiesString invoked later and replace it.
+            String waitStoreMsgOKValue = this.getProperties().remove(MessageConst.PROPERTY_WAIT_STORE_MSG_OK);
+            this.setPropertiesString(MessageDecoder.messageProperties2String(this.getProperties()));
+            // Reput to properties, since msgInner.isWaitStoreMsgOK() will be invoked later
+            this.getProperties().put(MessageConst.PROPERTY_WAIT_STORE_MSG_OK, waitStoreMsgOKValue);
+        } else {
+            this.setPropertiesString(MessageDecoder.messageProperties2String(this.getProperties()));
+        }
+    }
 }

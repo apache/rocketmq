@@ -41,7 +41,7 @@ public class HAStatusSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch ha runtime status data";
+        return "Fetch ha runtime status data.";
     }
 
     @Override

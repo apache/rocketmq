@@ -40,7 +40,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Check message send response time";
+        return "Check message send response time.";
     }
 
     @Override

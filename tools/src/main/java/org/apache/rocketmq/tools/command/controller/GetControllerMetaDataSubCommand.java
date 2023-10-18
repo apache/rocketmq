@@ -34,7 +34,7 @@ public class GetControllerMetaDataSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Get controller cluster's metadata";
+        return "Get controller cluster's metadata.";
     }
 
     @Override

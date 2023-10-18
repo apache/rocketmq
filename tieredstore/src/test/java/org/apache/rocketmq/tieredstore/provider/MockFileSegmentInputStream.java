@@ -15,23 +15,40 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.client.impl;
+package org.apache.rocketmq.tieredstore.provider;
 
-import org.apache.rocketmq.remoting.InvokeCallback;
-import org.apache.rocketmq.remoting.netty.ResponseFuture;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.util.List;
+import org.apache.rocketmq.tieredstore.provider.stream.FileSegmentInputStream;
 
-public abstract class BaseInvokeCallback implements InvokeCallback {
-    private final MQClientAPIImpl mqClientAPI;
+public class MockFileSegmentInputStream extends FileSegmentInputStream {
 
-    public BaseInvokeCallback(MQClientAPIImpl mqClientAPI) {
-        this.mqClientAPI = mqClientAPI;
+    private final InputStream inputStream;
+
+    public MockFileSegmentInputStream(InputStream inputStream) {
+        super(null, null, Integer.MAX_VALUE);
+        this.inputStream = inputStream;
     }
 
     @Override
-    public void operationComplete(final ResponseFuture responseFuture) {
-        mqClientAPI.execRpcHooksAfterRequest(responseFuture);
-        onComplete(responseFuture);
+    public int read() {
+        int res = -1;
+        try {
+            res = inputStream.read();
+        } catch (Exception e) {
+            return -1;
+        }
+        return res;
     }
 
-    public abstract void onComplete(final ResponseFuture responseFuture);
+    @Override
+    public List<ByteBuffer> getBufferList() {
+        return null;
+    }
+
+    @Override
+    public ByteBuffer getCodaBuffer() {
+        return null;
+    }
 }

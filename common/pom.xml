@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>5.1.4-SNAPSHOT</version>
+        <version>5.1.5-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -81,6 +81,10 @@
             <artifactId>opentelemetry-sdk</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-logging-otlp</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
         </dependency>
@@ -105,7 +109,7 @@
             <artifactId>rocketmq-logback-classic</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.github.aliyunmq</groupId>
+            <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-rocksdb</artifactId>
         </dependency>
     </dependencies>

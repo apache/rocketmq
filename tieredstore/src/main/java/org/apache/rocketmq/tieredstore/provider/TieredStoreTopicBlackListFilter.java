@@ -17,38 +17,29 @@
 
 package org.apache.rocketmq.tieredstore.provider;
 
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.util.List;
-import org.apache.rocketmq.tieredstore.provider.inputstream.TieredFileSegmentInputStream;
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
-public class MockTieredFileSegmentInputStream extends TieredFileSegmentInputStream {
+public class TieredStoreTopicBlackListFilter implements TieredStoreTopicFilter {
 
-    private final InputStream inputStream;
+    private final Set<String> topicBlackSet;
 
-    public MockTieredFileSegmentInputStream(InputStream inputStream) {
-        super(null, null, Integer.MAX_VALUE);
-        this.inputStream = inputStream;
+    public TieredStoreTopicBlackListFilter() {
+        this.topicBlackSet = new HashSet<>();
     }
 
     @Override
-    public int read() {
-        int res = -1;
-        try {
-            res = inputStream.read();
-        } catch (Exception e) {
-            return -1;
+    public boolean filterTopic(String topicName) {
+        if (StringUtils.isBlank(topicName)) {
+            return true;
         }
-        return res;
+        return TieredStoreUtil.isSystemTopic(topicName) || topicBlackSet.contains(topicName);
     }
 
     @Override
-    public List<ByteBuffer> getUploadBufferList() {
-        return null;
-    }
-
-    @Override
-    public ByteBuffer getCodaBuffer() {
-        return null;
+    public void addTopicToBlackList(String topicName) {
+        this.topicBlackSet.add(topicName);
     }
 }

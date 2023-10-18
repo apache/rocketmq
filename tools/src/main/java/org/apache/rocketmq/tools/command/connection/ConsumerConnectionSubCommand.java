@@ -39,7 +39,7 @@ public class ConsumerConnectionSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Query consumer's socket connection, client version and subscription";
+        return "Query consumer's socket connection, client version and subscription.";
     }
 
     @Override

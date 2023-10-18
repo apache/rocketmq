@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.LongAdder;
 import org.apache.rocketmq.broker.BrokerController;
@@ -41,6 +42,7 @@ import org.apache.rocketmq.broker.topic.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
@@ -74,7 +76,6 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.stats.BrokerStats;
@@ -90,8 +91,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -246,32 +250,6 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
-    public void testUpdateAndCreateTopicOnSlaveInRocksdb() throws Exception {
-        if (notToBeExecuted()) {
-            return;
-        }
-        initRocksdbTopicManager();
-        testUpdateAndCreateTopicOnSlave();
-    }
-
-    @Test
-    public void testUpdateAndCreateTopicOnSlave() throws Exception {
-        // setup
-        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
-        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
-        defaultMessageStore = mock(DefaultMessageStore.class);
-        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-
-        // test on slave
-        String topic = "TEST_CREATE_TOPIC";
-        RemotingCommand request = buildCreateTopicRequest(topic);
-        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
-            "please execute it from master broker.");
-    }
-
-    @Test
     public void testDeleteTopicInRocksdb() throws Exception {
         if (notToBeExecuted()) {
             return;
@@ -297,28 +275,34 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
-    public void testDeleteTopicOnSlaveInRocksdb() throws Exception {
-        if (notToBeExecuted()) {
-            return;
-        }
-        initRocksdbTopicManager();
-        testDeleteTopicOnSlave();
-    }
+    public void testDeleteWithPopRetryTopic() throws Exception {
+        String topic = "topicA";
+        String anotherTopic = "another_topicA";
 
-    @Test
-    public void testDeleteTopicOnSlave() throws Exception {
-        // setup
-        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
-        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
-        defaultMessageStore = mock(DefaultMessageStore.class);
-        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+        topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        final ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        topicConfigTable.put(topic, new TopicConfig());
+        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(topic, "cid1"), new TopicConfig());
 
-        String topic = "TEST_DELETE_TOPIC";
+        topicConfigTable.put(anotherTopic, new TopicConfig());
+        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(anotherTopic, "cid2"), new TopicConfig());
+        when(topicConfigManager.getTopicConfigTable()).thenReturn(topicConfigTable);
+        when(topicConfigManager.selectTopicConfig(anyString())).thenAnswer(invocation -> {
+            final String selectTopic = invocation.getArgument(0);
+            return topicConfigManager.getTopicConfigTable().get(selectTopic);
+        });
+
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(consumerOffsetManager.whichGroupByTopic(topic)).thenReturn(Sets.newHashSet("cid1"));
+
         RemotingCommand request = buildDeleteTopicRequest(topic);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
-            "please execute it from master broker.");
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        verify(topicConfigManager).deleteTopicConfig(topic);
+        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1"));
+        verify(messageStore, times(2)).deleteTopics(anySet());
     }
 
     @Test
@@ -503,36 +487,6 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
-    public void testUpdateAndCreateSubscriptionGroupOnSlaveInRocksdb() throws Exception {
-        initRocksdbSubscriptionManager();
-        testUpdateAndCreateSubscriptionGroupOnSlave();
-    }
-
-    @Test
-    public void testUpdateAndCreateSubscriptionGroupOnSlave() throws RemotingCommandException {
-        // Setup
-        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
-        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
-        defaultMessageStore = mock(DefaultMessageStore.class);
-        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-
-        // Test
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
-        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-        subscriptionGroupConfig.setBrokerId(1);
-        subscriptionGroupConfig.setGroupName("groupId");
-        subscriptionGroupConfig.setConsumeEnable(Boolean.TRUE);
-        subscriptionGroupConfig.setConsumeBroadcastEnable(Boolean.TRUE);
-        subscriptionGroupConfig.setRetryMaxTimes(111);
-        subscriptionGroupConfig.setConsumeFromMinEnable(Boolean.TRUE);
-        request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes());
-        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
-            "please execute it from master broker.");
-    }
-
-    @Test
     public void testGetAllSubscriptionGroupInRocksdb() throws Exception {
         initRocksdbSubscriptionManager();
         testGetAllSubscriptionGroup();
@@ -558,30 +512,6 @@ public class AdminBrokerProcessorTest {
         request.addExtField("removeOffset", "true");
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
-    }
-
-    @Test
-    public void testDeleteSubscriptionGroupOnSlaveInRocksdb() throws Exception {
-        initRocksdbSubscriptionManager();
-        testDeleteSubscriptionGroupOnSlave();
-    }
-
-    @Test
-    public void testDeleteSubscriptionGroupOnSlave() throws RemotingCommandException {
-        // Setup
-        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
-        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
-        defaultMessageStore = mock(DefaultMessageStore.class);
-        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-
-        // Test
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTIONGROUP, null);
-        request.addExtField("groupName", "GID-Group-Name");
-        request.addExtField("removeOffset", "true");
-        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
-            "please execute it from master broker.");
     }
 
     @Test

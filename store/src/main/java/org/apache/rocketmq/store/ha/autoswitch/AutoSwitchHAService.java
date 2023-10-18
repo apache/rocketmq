@@ -17,10 +17,26 @@
 
 package org.apache.rocketmq.store.ha.autoswitch;
 
-
+import java.io.IOException;
+import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.EpochEntry;
@@ -35,30 +51,14 @@ import org.apache.rocketmq.store.ha.GroupTransferService;
 import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnection;
 import org.apache.rocketmq.store.ha.HAConnectionStateNotificationService;
-
-import java.io.IOException;
-import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import org.rocksdb.RocksDBException;
 
 /**
  * SwitchAble ha service, support switch role to master or slave.
  */
 public class AutoSwitchHAService extends DefaultHAService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
-    private final ExecutorService executorService = Executors.newSingleThreadExecutor(new ThreadFactoryImpl("AutoSwitchHAService_Executor_"));
+    private final ExecutorService executorService = ThreadUtils.newSingleThreadExecutor(new ThreadFactoryImpl("AutoSwitchHAService_Executor_"));
     private final ConcurrentHashMap<Long/*brokerId*/, Long/*lastCaughtUpTimestamp*/> connectionCaughtUpTimeTable = new ConcurrentHashMap<>();
     private final List<Consumer<Set<Long/*brokerId*/>>> syncStateSetChangedListeners = new ArrayList<>();
     private final Set<Long/*brokerId*/> syncStateSet = new HashSet<>();
@@ -73,7 +73,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     private EpochFileCache epochCache;
     private AutoSwitchHAClient haClient;
 
-    private Long brokerControllerId = null;
+    private Long localBrokerId = null;
 
     public AutoSwitchHAService() {
     }
@@ -112,7 +112,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override
-    public boolean changeToMaster(int masterEpoch) {
+    public boolean changeToMaster(int masterEpoch) throws RocksDBException {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (masterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
@@ -287,9 +287,11 @@ public class AutoSwitchHAService extends DefaultHAService {
 
         // If the slaveBrokerId is in syncStateSet but not in connectionCaughtUpTimeTable,
         // it means that the broker has not connected.
-        for (Long slaveBrokerId : newSyncStateSet) {
-            if (!this.connectionCaughtUpTimeTable.containsKey(slaveBrokerId)) {
-                newSyncStateSet.remove(slaveBrokerId);
+        Iterator<Long> iterator = newSyncStateSet.iterator();
+        while (iterator.hasNext()) {
+            Long slaveBrokerId = iterator.next();
+            if (!Objects.equals(slaveBrokerId, this.localBrokerId) && !this.connectionCaughtUpTimeTable.containsKey(slaveBrokerId)) {
+                iterator.remove();
                 isSyncStateSetChanged = true;
             }
         }
@@ -314,7 +316,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             final EpochEntry currentLeaderEpoch = this.epochCache.lastEntry();
             if (slaveMaxOffset >= currentLeaderEpoch.getStartOffset()) {
                 LOGGER.info("The slave {} has caught up, slaveMaxOffset: {}, confirmOffset: {}, epoch: {}, leader epoch startOffset: {}.",
-                        slaveBrokerId, slaveMaxOffset, confirmOffset, currentLeaderEpoch.getEpoch(), currentLeaderEpoch.getStartOffset());
+                    slaveBrokerId, slaveMaxOffset, confirmOffset, currentLeaderEpoch.getEpoch(), currentLeaderEpoch.getStartOffset());
                 currentSyncStateSet.add(slaveBrokerId);
                 markSynchronizingSyncStateSet(currentSyncStateSet);
                 // Notify the upper layer that syncStateSet changed.
@@ -419,7 +421,7 @@ public class AutoSwitchHAService extends DefaultHAService {
         // To avoid the syncStateSet is not consistent with connectionList.
         // Fix issue: https://github.com/apache/rocketmq/issues/6662
         for (Long syncId : currentSyncStateSet) {
-            if (!idList.contains(syncId) && this.brokerControllerId != null && !Objects.equals(syncId, this.brokerControllerId)) {
+            if (!idList.contains(syncId) && this.localBrokerId != null && !Objects.equals(syncId, this.localBrokerId)) {
                 LOGGER.warn("Slave {} is still in syncStateSet, but has lost its connection. So new offset can't be compute.", syncId);
                 // Without check and re-compute, return the confirmOffset's value directly.
                 return this.defaultMessageStore.getConfirmOffsetDirectly();
@@ -490,7 +492,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     /**
      * Try to truncate incomplete msg transferred from master.
      */
-    public long truncateInvalidMsg() {
+    public long truncateInvalidMsg() throws RocksDBException {
         long dispatchBehind = this.defaultMessageStore.dispatchBehindBytes();
         if (dispatchBehind <= 0) {
             LOGGER.info("Dispatch complete, skip truncate");
@@ -545,12 +547,12 @@ public class AutoSwitchHAService extends DefaultHAService {
         return this.epochCache.getAllEntries();
     }
 
-    public Long getBrokerControllerId() {
-        return brokerControllerId;
+    public Long getLocalBrokerId() {
+        return localBrokerId;
     }
 
-    public void setBrokerControllerId(Long brokerControllerId) {
-        this.brokerControllerId = brokerControllerId;
+    public void setLocalBrokerId(Long localBrokerId) {
+        this.localBrokerId = localBrokerId;
     }
 
     class AutoSwitchAcceptSocketService extends AcceptSocketService {
