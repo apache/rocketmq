@@ -91,11 +91,10 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
                 LOGGER.error("addBroker load config from {} failed, {}", configPath, e);
             }
         } else {
-            byte[] body = request.getBody();
-            if (body != null) {
-                String bodyStr = new String(body, MixAll.DEFAULT_CHARSET);
-                brokerProperties = MixAll.string2Properties(bodyStr);
-            }
+            LOGGER.error("addBroker config path is empty");
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("addBroker config path is empty");
+            return response;
         }
 
         if (brokerProperties == null) {
