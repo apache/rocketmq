@@ -57,8 +57,7 @@ public class TransactionMetrics extends ConfigManager {
         this.configPath = configPath;
     }
 
-    public long addAndGet(MessageExt msg, int value) {
-        String topic = msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
+    public long addAndGet(String topic, int value) {
         Metric pair = getTopicPair(topic);
         getDataVersion().nextVersion();
         pair.setTimeStamp(System.currentTimeMillis());

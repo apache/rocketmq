@@ -144,6 +144,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     RemotingCommand sendResult = sendFinalMessage(msgInner);
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
                         this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
+                        // successful committed, then total num of half-messages minus 1
+                        this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(msgInner.getTopic(), -1);
                     }
                     return sendResult;
                 }
@@ -161,6 +163,8 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
                     this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
+                    // roll back, then total num of half-messages minus 1
+                    this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(result.getPrepareMessage().getProperty(MessageConst.PROPERTY_REAL_TOPIC), -1);
                 }
                 return res;
             }
