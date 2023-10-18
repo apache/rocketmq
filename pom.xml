@@ -28,7 +28,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>5.1.4-SNAPSHOT</version>
+    <version>5.1.5-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -133,10 +133,11 @@
         <caffeine.version>2.9.3</caffeine.version>
         <spring.version>5.3.27</spring.version>
         <okio-jvm.version>3.0.0</okio-jvm.version>
-        <opentelemetry.version>1.26.0</opentelemetry.version>
-        <opentelemetry-exporter-prometheus.version>1.26.0-alpha</opentelemetry-exporter-prometheus.version>
+        <opentelemetry.version>1.29.0</opentelemetry.version>
+        <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
         <s3.version>2.20.29</s3.version>
+        <rocksdb.version>1.0.2</rocksdb.version>
         <jackson-databind.version>2.13.4.2</jackson-databind.version>
 
         <!-- Test dependencies -->
@@ -712,6 +713,11 @@
                 <version>${slf4j-api.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-rocksdb</artifactId>
+                <version>${rocksdb.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.github.aliyunmq</groupId>
                 <artifactId>rocketmq-shaded-slf4j-api-bridge</artifactId>
                 <version>${rocketmq-shaded-slf4j-api-bridge.version}</version>
@@ -966,6 +972,11 @@
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-sdk</artifactId>
+                <version>${opentelemetry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-exporter-logging-otlp</artifactId>
                 <version>${opentelemetry.version}</version>
             </dependency>
             <dependency>

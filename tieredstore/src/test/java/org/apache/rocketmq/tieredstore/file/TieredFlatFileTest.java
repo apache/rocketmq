@@ -16,14 +16,12 @@
  */
 package org.apache.rocketmq.tieredstore.file;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.metadata.FileSegmentMetadata;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
@@ -33,6 +31,11 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TieredFlatFileTest {
 
@@ -55,6 +58,7 @@ public class TieredFlatFileTest {
     public void tearDown() throws IOException {
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
+        TieredStoreExecutor.shutdown();
     }
 
     private List<FileSegmentMetadata> getSegmentMetadataList(TieredMetadataStore metadataStore) {
@@ -298,5 +302,41 @@ public class TieredFlatFileTest {
 
         fileQueue.rollingNewFile();
         Assert.assertEquals(2, fileQueue.getFileSegmentCount());
+    }
+
+    @Test
+    public void testGetFileByTime() {
+        String filePath = TieredStoreUtil.toPath(queue);
+        TieredFlatFile tieredFlatFile = fileQueueFactory.createFlatFileForCommitLog(filePath);
+        TieredFileSegment fileSegment1 = new MemoryFileSegment(FileSegmentType.CONSUME_QUEUE, queue, 1100, storeConfig);
+        fileSegment1.setMinTimestamp(100);
+        fileSegment1.setMaxTimestamp(200);
+
+        TieredFileSegment fileSegment2 = new MemoryFileSegment(FileSegmentType.CONSUME_QUEUE, queue, 1100, storeConfig);
+        fileSegment2.setMinTimestamp(200);
+        fileSegment2.setMaxTimestamp(300);
+
+        tieredFlatFile.getFileSegmentList().add(fileSegment1);
+        tieredFlatFile.getFileSegmentList().add(fileSegment2);
+
+        TieredFileSegment segmentUpper = tieredFlatFile.getFileByTime(400, BoundaryType.UPPER);
+        Assert.assertEquals(fileSegment2, segmentUpper);
+
+        TieredFileSegment segmentLower = tieredFlatFile.getFileByTime(400, BoundaryType.LOWER);
+        Assert.assertEquals(fileSegment2, segmentLower);
+
+
+        TieredFileSegment segmentUpper2 = tieredFlatFile.getFileByTime(0, BoundaryType.UPPER);
+        Assert.assertEquals(fileSegment1, segmentUpper2);
+
+        TieredFileSegment segmentLower2 = tieredFlatFile.getFileByTime(0, BoundaryType.LOWER);
+        Assert.assertEquals(fileSegment1, segmentLower2);
+
+
+        TieredFileSegment segmentUpper3 = tieredFlatFile.getFileByTime(200, BoundaryType.UPPER);
+        Assert.assertEquals(fileSegment1, segmentUpper3);
+
+        TieredFileSegment segmentLower3 = tieredFlatFile.getFileByTime(200, BoundaryType.LOWER);
+        Assert.assertEquals(fileSegment2, segmentLower3);
     }
 }

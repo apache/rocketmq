@@ -39,7 +39,6 @@ import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.InFlightRequestFuture;
 import org.apache.rocketmq.tieredstore.common.MessageCacheKey;
 import org.apache.rocketmq.tieredstore.common.SelectMappedBufferResultWrapper;
@@ -59,6 +58,7 @@ import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.CQItemBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+import org.apache.rocketmq.common.BoundaryType;
 
 public class TieredMessageFetcher implements MessageStoreFetcher {
 
@@ -273,15 +273,17 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
             TieredStoreMetricsManager.cacheHit.add(resultWrapperList.size(), attributes);
         }
 
-        // if no cached message found and there is currently an inflight request, wait for the request to end before continuing
+        // If there are no messages in the cache and there are currently requests being pulled.
+        // We need to wait for the request to return before continuing.
         if (resultWrapperList.isEmpty() && waitInflightRequest) {
-            CompletableFuture<Long> future = flatFile.getInflightRequest(group, queueOffset, maxCount)
-                .getFuture(queueOffset);
+            CompletableFuture<Long> future =
+                flatFile.getInflightRequest(group, queueOffset, maxCount).getFuture(queueOffset);
             if (!future.isDone()) {
                 Stopwatch stopwatch = Stopwatch.createStarted();
                 // to prevent starvation issues, only allow waiting for inflight request once
                 return future.thenCompose(v -> {
-                    LOGGER.debug("TieredMessageFetcher#getMessageFromCacheAsync: wait for inflight request cost: {}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
+                    LOGGER.debug("MessageFetcher#getMessageFromCacheAsync: wait for response cost: {}ms",
+                        stopwatch.elapsed(TimeUnit.MILLISECONDS));
                     return getMessageFromCacheAsync(flatFile, group, queueOffset, maxCount, false);
                 });
             }
@@ -302,7 +304,8 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
 
         // if cache hit, result will be returned immediately and asynchronously prefetch messages for later requests
         if (!resultWrapperList.isEmpty()) {
-            LOGGER.debug("TieredMessageFetcher#getMessageFromCacheAsync: cache hit: topic: {}, queue: {}, queue offset: {}, max message num: {}, cache hit num: {}",
+            LOGGER.debug("MessageFetcher#getMessageFromCacheAsync: cache hit: " +
+                    "topic: {}, queue: {}, queue offset: {}, max message num: {}, cache hit num: {}",
                 mq.getTopic(), mq.getQueueId(), queueOffset, maxCount, resultWrapperList.size());
             prefetchMessage(flatFile, group, maxCount, lastGetOffset + 1);
 
@@ -316,8 +319,10 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
         }
 
         // if cache is miss, immediately pull messages
-        LOGGER.warn("TieredMessageFetcher#getMessageFromCacheAsync: cache miss: topic: {}, queue: {}, queue offset: {}, max message num: {}",
+        LOGGER.info("TieredMessageFetcher#getMessageFromCacheAsync: cache miss: " +
+                "topic: {}, queue: {}, queue offset: {}, max message num: {}",
             mq.getTopic(), mq.getQueueId(), queueOffset, maxCount);
+
         CompletableFuture<GetMessageResult> resultFuture;
         synchronized (flatFile) {
             int batchSize = maxCount * storeConfig.getReadAheadMinFactor();
@@ -453,42 +458,42 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
     public CompletableFuture<GetMessageResult> getMessageAsync(
         String group, String topic, int queueId, long queueOffset, int maxCount, final MessageFilter messageFilter) {
 
+        GetMessageResult result = new GetMessageResult();
         CompositeQueueFlatFile flatFile = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
+
         if (flatFile == null) {
-            GetMessageResult result = new GetMessageResult();
             result.setNextBeginOffset(queueOffset);
             result.setStatus(GetMessageStatus.NO_MATCHED_LOGIC_QUEUE);
             return CompletableFuture.completedFuture(result);
         }
 
-        GetMessageResult result = new GetMessageResult();
-        long minQueueOffset = flatFile.getConsumeQueueMinOffset();
-        long maxQueueOffset = flatFile.getConsumeQueueCommitOffset();
-        result.setMinOffset(minQueueOffset);
-        result.setMaxOffset(maxQueueOffset);
+        // Max queue offset means next message put position
+        result.setMinOffset(flatFile.getConsumeQueueMinOffset());
+        result.setMaxOffset(flatFile.getConsumeQueueCommitOffset());
 
-        if (flatFile.getConsumeQueueCommitOffset() <= 0) {
+        // Fill result according file offset.
+        // Offset range  | Result           | Fix to
+        // (-oo, 0]      | no message       | current offset
+        // (0, min)      | too small        | min offset
+        // [min, max)    | correct          |
+        // [max, max]    | overflow one     | max offset
+        // (max, +oo)    | overflow badly   | max offset
+
+        if (result.getMaxOffset() <= 0) {
             result.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
             result.setNextBeginOffset(queueOffset);
             return CompletableFuture.completedFuture(result);
-        }
-
-        // request range | result
-        // (0, min)      | too small
-        // [min, max)    | correct
-        // [max, max]    | overflow one
-        // (max, +oo)    | overflow badly
-        if (queueOffset < minQueueOffset) {
+        } else if (queueOffset < result.getMinOffset()) {
             result.setStatus(GetMessageStatus.OFFSET_TOO_SMALL);
-            result.setNextBeginOffset(flatFile.getConsumeQueueMinOffset());
+            result.setNextBeginOffset(result.getMinOffset());
             return CompletableFuture.completedFuture(result);
-        } else if (queueOffset == maxQueueOffset) {
+        } else if (queueOffset == result.getMaxOffset()) {
             result.setStatus(GetMessageStatus.OFFSET_OVERFLOW_ONE);
-            result.setNextBeginOffset(flatFile.getConsumeQueueCommitOffset());
+            result.setNextBeginOffset(result.getMaxOffset());
             return CompletableFuture.completedFuture(result);
-        } else if (queueOffset > maxQueueOffset) {
+        } else if (queueOffset > result.getMaxOffset()) {
             result.setStatus(GetMessageStatus.OFFSET_OVERFLOW_BADLY);
-            result.setNextBeginOffset(flatFile.getConsumeQueueCommitOffset());
+            result.setNextBeginOffset(result.getMaxOffset());
             return CompletableFuture.completedFuture(result);
         }
 

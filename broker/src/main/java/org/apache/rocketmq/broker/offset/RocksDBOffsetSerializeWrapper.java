@@ -14,26 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.broker.offset;
 
-package org.apache.rocketmq.broker.latency;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class FutureTaskExt<V> extends FutureTask<V> {
-    private final Runnable runnable;
+public class RocksDBOffsetSerializeWrapper extends RemotingSerializable {
+    private ConcurrentMap<Integer, Long> offsetTable = new ConcurrentHashMap(16);
 
-    public FutureTaskExt(final Callable<V> callable) {
-        super(callable);
-        this.runnable = null;
+    public ConcurrentMap<Integer, Long> getOffsetTable() {
+        return offsetTable;
     }
 
-    public FutureTaskExt(final Runnable runnable, final V result) {
-        super(runnable, result);
-        this.runnable = runnable;
-    }
-
-    public Runnable getRunnable() {
-        return runnable;
+    public void setOffsetTable(ConcurrentMap<Integer, Long> offsetTable) {
+        this.offsetTable = offsetTable;
     }
 }

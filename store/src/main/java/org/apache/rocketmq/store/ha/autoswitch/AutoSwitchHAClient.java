@@ -432,7 +432,7 @@ public class AutoSwitchHAClient extends ServiceThread implements HAClient {
     /**
      * Compare the master and slave's epoch file, find consistent point, do truncate.
      */
-    private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws IOException {
+    private boolean doTruncate(List<EpochEntry> masterEpochEntries, long masterEndOffset) throws Exception {
         if (this.epochCache.getEntrySize() == 0) {
             // If epochMap is empty, means the broker is a new replicas
             LOGGER.info("Slave local epochCache is empty, skip truncate log");

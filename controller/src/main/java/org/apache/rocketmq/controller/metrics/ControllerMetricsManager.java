@@ -26,7 +26,7 @@ import io.opentelemetry.api.metrics.LongHistogram;
 import io.opentelemetry.api.metrics.LongUpDownCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
-import io.opentelemetry.exporter.logging.LoggingMetricExporter;
+import io.opentelemetry.exporter.logging.otlp.OtlpJsonLoggingMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporter;
 import io.opentelemetry.exporter.otlp.metrics.OtlpGrpcMetricExporterBuilder;
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer;
@@ -38,6 +38,7 @@ import io.opentelemetry.sdk.metrics.SdkMeterProvider;
 import io.opentelemetry.sdk.metrics.SdkMeterProviderBuilder;
 import io.opentelemetry.sdk.metrics.View;
 import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
+import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
 import java.io.File;
@@ -121,7 +122,7 @@ public class ControllerMetricsManager {
 
     private PrometheusHttpServer prometheusHttpServer;
 
-    private LoggingMetricExporter loggingMetricExporter;
+    private MetricExporter loggingMetricExporter;
 
     public static ControllerMetricsManager getInstance(ControllerManager controllerManager) {
         if (instance == null) {
@@ -203,7 +204,7 @@ public class ControllerMetricsManager {
             10 * s
         );
 
-        View latecyView = View.builder()
+        View latencyView = View.builder()
             .setAggregation(Aggregation.explicitBucketHistogram(latencyBuckets))
             .build();
 
@@ -217,8 +218,8 @@ public class ControllerMetricsManager {
             .setName(HISTOGRAM_DLEDGER_OP_LATENCY)
             .build();
 
-        providerBuilder.registerView(requestLatencySelector, latecyView);
-        providerBuilder.registerView(dLedgerOpLatencySelector, latecyView);
+        providerBuilder.registerView(requestLatencySelector, latencyView);
+        providerBuilder.registerView(dLedgerOpLatencySelector, latencyView);
     }
 
     private void initMetric(Meter meter) {
@@ -364,8 +365,8 @@ public class ControllerMetricsManager {
         if (type == MetricsExporterType.LOG) {
             SLF4JBridgeHandler.removeHandlersForRootLogger();
             SLF4JBridgeHandler.install();
-            loggingMetricExporter = LoggingMetricExporter.create(config.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
-            java.util.logging.Logger.getLogger(LoggingMetricExporter.class.getName()).setLevel(java.util.logging.Level.FINEST);
+            loggingMetricExporter = OtlpJsonLoggingMetricExporter.create(config.isMetricsInDelta() ? AggregationTemporality.DELTA : AggregationTemporality.CUMULATIVE);
+            java.util.logging.Logger.getLogger(OtlpJsonLoggingMetricExporter.class.getName()).setLevel(java.util.logging.Level.FINEST);
             periodicMetricReader = PeriodicMetricReader.builder(loggingMetricExporter)
                 .setInterval(config.getMetricLoggingExporterIntervalInMills(), TimeUnit.MILLISECONDS)
                 .build();

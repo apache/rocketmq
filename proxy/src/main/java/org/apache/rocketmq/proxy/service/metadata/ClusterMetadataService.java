@@ -69,11 +69,13 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
         );
         this.topicConfigCache = CacheBuilder.newBuilder()
             .maximumSize(config.getTopicConfigCacheMaxNum())
-            .refreshAfterWrite(config.getTopicConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
+            .expireAfterAccess(config.getTopicConfigCacheExpiredSeconds(), TimeUnit.SECONDS)
+            .refreshAfterWrite(config.getTopicConfigCacheRefreshSeconds(), TimeUnit.SECONDS)
             .build(new ClusterTopicConfigCacheLoader());
         this.subscriptionGroupConfigCache = CacheBuilder.newBuilder()
             .maximumSize(config.getSubscriptionGroupConfigCacheMaxNum())
-            .refreshAfterWrite(config.getSubscriptionGroupConfigCacheExpiredInSeconds(), TimeUnit.SECONDS)
+            .expireAfterAccess(config.getSubscriptionGroupConfigCacheExpiredSeconds(), TimeUnit.SECONDS)
+            .refreshAfterWrite(config.getSubscriptionGroupConfigCacheRefreshSeconds(), TimeUnit.SECONDS)
             .build(new ClusterSubscriptionGroupConfigCacheLoader());
 
         this.init();

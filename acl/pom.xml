@@ -13,7 +13,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>5.1.4-SNAPSHOT</version>
+        <version>5.1.5-SNAPSHOT</version>
     </parent>
     <artifactId>rocketmq-acl</artifactId>
     <name>rocketmq-acl ${project.version}</name>
@@ -74,4 +74,17 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <forkCount>1</forkCount>
+                    <reuseForks>false</reuseForks>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

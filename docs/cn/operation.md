@@ -569,9 +569,9 @@ RocketMQ 5.0 开始支持自动主从切换的模式，可参考以下文档
   <td class=xl68 width=87 style='width:65pt'>NameServer 服务地址，格式 ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
-  <td rowspan=1 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
+  <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
   height:103.0pt;border-top:none;width:143pt'>wipeWritePerm</td>
-  <td rowspan=1 class=xl72 width=87 style='border-bottom:1.0pt
+  <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>从NameServer上清除 Broker写权限</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
   <td class=xl68 width=87 style='width:65pt'>BrokerName</td>

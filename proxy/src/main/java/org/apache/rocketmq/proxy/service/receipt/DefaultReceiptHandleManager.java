@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -42,20 +41,21 @@ import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.AbstractStartAndShutdown;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 import org.apache.rocketmq.proxy.common.ReceiptHandleGroup;
+import org.apache.rocketmq.proxy.common.ReceiptHandleGroupKey;
+import org.apache.rocketmq.proxy.common.RenewEvent;
 import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
 import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.remoting.protocol.subscription.RetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
@@ -64,11 +64,11 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected final MetadataService metadataService;
     protected final ConsumerManager consumerManager;
-    protected final ConcurrentMap<ReceiptHandleProcessor.ReceiptHandleGroupKey, ReceiptHandleGroup> receiptHandleGroupMap;
+    protected final ConcurrentMap<ReceiptHandleGroupKey, ReceiptHandleGroup> receiptHandleGroupMap;
     protected final StateEventListener<RenewEvent> eventListener;
     protected final static RetryPolicy RENEW_POLICY = new RenewStrategyPolicy();
     protected final ScheduledExecutorService scheduledExecutorService =
-        Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RenewalScheduledThread_"));
+        ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RenewalScheduledThread_"));
     protected final ThreadPoolExecutor renewalWorkerService;
 
     public DefaultReceiptHandleManager(MetadataService metadataService, ConsumerManager consumerManager, StateEventListener<RenewEvent> eventListener) {
@@ -96,7 +96,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                             // if the channel sync from other proxy is expired, not to clear data of connect to current proxy
                             return;
                         }
-                        clearGroup(new ReceiptHandleProcessor.ReceiptHandleGroupKey(clientChannelInfo.getChannel(), group));
+                        clearGroup(new ReceiptHandleGroupKey(clientChannelInfo.getChannel(), group));
                         log.info("clear handle of this client when client unregister. group:{}, clientChannelInfo:{}", group, clientChannelInfo);
                     }
                 }
@@ -125,19 +125,19 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
     }
 
     public void addReceiptHandle(ProxyContext context, Channel channel, String group, String msgID, MessageReceiptHandle messageReceiptHandle) {
-        ConcurrentHashMapUtils.computeIfAbsent(this.receiptHandleGroupMap, new ReceiptHandleProcessor.ReceiptHandleGroupKey(channel, group),
+        ConcurrentHashMapUtils.computeIfAbsent(this.receiptHandleGroupMap, new ReceiptHandleGroupKey(channel, group),
             k -> new ReceiptHandleGroup()).put(msgID, messageReceiptHandle);
     }
 
     public MessageReceiptHandle removeReceiptHandle(ProxyContext context, Channel channel, String group, String msgID, String receiptHandle) {
-        ReceiptHandleGroup handleGroup = receiptHandleGroupMap.get(new ReceiptHandleProcessor.ReceiptHandleGroupKey(channel, group));
+        ReceiptHandleGroup handleGroup = receiptHandleGroupMap.get(new ReceiptHandleGroupKey(channel, group));
         if (handleGroup == null) {
             return null;
         }
         return handleGroup.remove(msgID, receiptHandle);
     }
 
-    protected boolean clientIsOffline(ReceiptHandleProcessor.ReceiptHandleGroupKey groupKey) {
+    protected boolean clientIsOffline(ReceiptHandleGroupKey groupKey) {
         return this.consumerManager.findChannel(groupKey.getGroup(), groupKey.getChannel()) == null;
     }
 
@@ -145,8 +145,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
-            for (Map.Entry<ReceiptHandleProcessor.ReceiptHandleGroupKey, ReceiptHandleGroup> entry : receiptHandleGroupMap.entrySet()) {
-                ReceiptHandleProcessor.ReceiptHandleGroupKey key = entry.getKey();
+            for (Map.Entry<ReceiptHandleGroupKey, ReceiptHandleGroup> entry : receiptHandleGroupMap.entrySet()) {
+                ReceiptHandleGroupKey key = entry.getKey();
                 if (clientIsOffline(key)) {
                     clearGroup(key);
                     continue;
@@ -159,7 +159,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                     if (handle.getNextVisibleTime() - current > proxyConfig.getRenewAheadTimeMillis()) {
                         return;
                     }
-                    renewalWorkerService.submit(() -> renewMessage(group, msgID, handleStr));
+                    renewalWorkerService.submit(() -> renewMessage(key, group, msgID, handleStr));
                 });
             }
         } catch (Exception e) {
@@ -169,15 +169,15 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         log.debug("scan for renewal done. cost:{}ms", stopwatch.elapsed().toMillis());
     }
 
-    protected void renewMessage(ReceiptHandleGroup group, String msgID, String handleStr) {
+    protected void renewMessage(ReceiptHandleGroupKey key, ReceiptHandleGroup group, String msgID, String handleStr) {
         try {
-            group.computeIfPresent(msgID, handleStr, this::startRenewMessage);
+            group.computeIfPresent(msgID, handleStr, messageReceiptHandle -> startRenewMessage(key, messageReceiptHandle));
         } catch (Exception e) {
             log.error("error when renew message. msgID:{}, handleStr:{}", msgID, handleStr, e);
         }
     }
 
-    protected CompletableFuture<MessageReceiptHandle> startRenewMessage(MessageReceiptHandle messageReceiptHandle) {
+    protected CompletableFuture<MessageReceiptHandle> startRenewMessage(ReceiptHandleGroupKey key, MessageReceiptHandle messageReceiptHandle) {
         CompletableFuture<MessageReceiptHandle> resFuture = new CompletableFuture<>();
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         long current = System.currentTimeMillis();
@@ -188,7 +188,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             }
             if (current - messageReceiptHandle.getConsumeTimestamp() < proxyConfig.getRenewMaxTimeMillis()) {
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
-                eventListener.fireEvent(new RenewEvent(messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()), RenewEvent.EventType.RENEW, future));
+                eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, RENEW_POLICY.nextDelayDuration(messageReceiptHandle.getRenewTimes()), RenewEvent.EventType.RENEW, future));
                 future.whenComplete((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when renew. handle:{}", messageReceiptHandle, throwable);
@@ -218,7 +218,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                 }
                 RetryPolicy retryPolicy = subscriptionGroupConfig.getGroupRetryPolicy().getRetryPolicy();
                 CompletableFuture<AckResult> future = new CompletableFuture<>();
-                eventListener.fireEvent(new RenewEvent(messageReceiptHandle, retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()), RenewEvent.EventType.STOP_RENEW, future));
+                eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, retryPolicy.nextDelayDuration(messageReceiptHandle.getReconsumeTimes()), RenewEvent.EventType.STOP_RENEW, future));
                 future.whenComplete((ackResult, throwable) -> {
                     if (throwable != null) {
                         log.error("error when nack in renew. handle:{}", messageReceiptHandle, throwable);
@@ -233,7 +233,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         return resFuture;
     }
 
-    protected void clearGroup(ReceiptHandleProcessor.ReceiptHandleGroupKey key) {
+    protected void clearGroup(ReceiptHandleGroupKey key) {
         if (key == null) {
             return;
         }
@@ -246,7 +246,7 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
             try {
                 handleGroup.computeIfPresent(msgID, handle, messageReceiptHandle -> {
                     CompletableFuture<AckResult> future = new CompletableFuture<>();
-                    eventListener.fireEvent(new RenewEvent(messageReceiptHandle, proxyConfig.getInvisibleTimeMillisWhenClear(), RenewEvent.EventType.CLEAR_GROUP, future));
+                    eventListener.fireEvent(new RenewEvent(key, messageReceiptHandle, proxyConfig.getInvisibleTimeMillisWhenClear(), RenewEvent.EventType.CLEAR_GROUP, future));
                     return CompletableFuture.completedFuture(null);
                 });
             } catch (Exception e) {
@@ -257,8 +257,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
 
     protected void clearAllHandle() {
         log.info("start clear all handle in receiptHandleProcessor");
-        Set<ReceiptHandleProcessor.ReceiptHandleGroupKey> keySet = receiptHandleGroupMap.keySet();
-        for (ReceiptHandleProcessor.ReceiptHandleGroupKey key : keySet) {
+        Set<ReceiptHandleGroupKey> keySet = receiptHandleGroupMap.keySet();
+        for (ReceiptHandleGroupKey key : keySet) {
             clearGroup(key);
         }
         log.info("clear all handle in receiptHandleProcessor done");

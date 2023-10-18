@@ -48,6 +48,8 @@ import org.apache.rocketmq.tieredstore.file.CompositeQueueFlatFile;
 import org.apache.rocketmq.tieredstore.file.TieredFlatFileManager;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
+import org.apache.rocketmq.tieredstore.provider.TieredStoreTopicBlackListFilter;
+import org.apache.rocketmq.tieredstore.provider.TieredStoreTopicFilter;
 import org.apache.rocketmq.tieredstore.util.CQItemBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
@@ -56,6 +58,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
 
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
+    private TieredStoreTopicFilter topicFilter;
     private final String brokerName;
     private final MessageStore defaultStore;
     private final TieredMessageStoreConfig storeConfig;
@@ -70,21 +73,29 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         this.defaultStore = defaultStore;
         this.storeConfig = storeConfig;
         this.brokerName = storeConfig.getBrokerName();
+        this.topicFilter = new TieredStoreTopicBlackListFilter();
         this.tieredFlatFileManager = TieredFlatFileManager.getInstance(storeConfig);
         this.dispatchRequestReadMap = new ConcurrentHashMap<>();
         this.dispatchRequestWriteMap = new ConcurrentHashMap<>();
         this.dispatchTaskLock = new ReentrantLock();
         this.dispatchWriteLock = new ReentrantLock();
-        this.initScheduleTask();
     }
 
-    private void initScheduleTask() {
+    protected void initScheduleTask() {
         TieredStoreExecutor.commonScheduledExecutor.scheduleWithFixedDelay(() ->
             tieredFlatFileManager.deepCopyFlatFileToList().forEach(flatFile -> {
                 if (!flatFile.getCompositeFlatFileLock().isLocked()) {
-                    dispatchFlatFile(flatFile);
+                    dispatchFlatFileAsync(flatFile);
                 }
             }), 30, 10, TimeUnit.SECONDS);
+    }
+
+    public TieredStoreTopicFilter getTopicFilter() {
+        return topicFilter;
+    }
+
+    public void setTopicFilter(TieredStoreTopicFilter topicFilter) {
+        this.topicFilter = topicFilter;
     }
 
     @Override
@@ -94,7 +105,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
         }
 
         String topic = request.getTopic();
-        if (TieredStoreUtil.isSystemTopic(topic)) {
+        if (topicFilter != null && topicFilter.filterTopic(topic)) {
             return;
         }
 
@@ -180,10 +191,6 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                 message.release();
                 flatFile.getCompositeFlatFileLock().unlock();
             }
-        } else {
-            if (!flatFile.getCompositeFlatFileLock().isLocked()) {
-                this.dispatchFlatFileAsync(flatFile);
-            }
         }
     }
 
@@ -199,6 +206,11 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
     }
 
     public void dispatchFlatFileAsync(CompositeQueueFlatFile flatFile, Consumer<Long> consumer) {
+        // Avoid dispatch tasks too much
+        if (TieredStoreExecutor.dispatchThreadPoolQueue.size() >
+            TieredStoreExecutor.QUEUE_CAPACITY * 0.75) {
+            return;
+        }
         TieredStoreExecutor.dispatchExecutor.execute(() -> {
             try {
                 dispatchFlatFile(flatFile);
@@ -215,6 +227,10 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
 
     protected void dispatchFlatFile(CompositeQueueFlatFile flatFile) {
         if (stopped) {
+            return;
+        }
+
+        if (topicFilter != null && topicFilter.filterTopic(flatFile.getMessageQueue().getTopic())) {
             return;
         }
 
@@ -278,6 +294,9 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
             long upperBound = Math.min(dispatchOffset + maxCount, maxOffsetInQueue);
             ConsumeQueue consumeQueue = (ConsumeQueue) defaultStore.getConsumeQueue(topic, queueId);
 
+            logger.debug("DispatchFlatFile race, topic={}, queueId={}, cq range={}-{}, dispatch offset={}-{}",
+                topic, queueId, minOffsetInQueue, maxOffsetInQueue, dispatchOffset, upperBound - 1);
+
             for (; dispatchOffset < upperBound; dispatchOffset++) {
                 // get consume queue
                 SelectMappedBufferResult cqItem = consumeQueue.getIndexBuffer(dispatchOffset);
@@ -314,8 +333,7 @@ public class TieredDispatcher extends ServiceThread implements CommitLogDispatch
                         continue;
                     case FILE_CLOSED:
                         tieredFlatFileManager.destroyCompositeFile(flatFile.getMessageQueue());
-                        logger.info("TieredDispatcher#dispatchFlatFile: file has been close and destroy, " +
-                            "topic: {}, queueId: {}", topic, queueId);
+                        logger.info("File has been closed and destroy, topic: {}, queueId: {}", topic, queueId);
                         return;
                     default:
                         dispatchOffset--;

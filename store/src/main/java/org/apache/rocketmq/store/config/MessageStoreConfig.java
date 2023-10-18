@@ -20,6 +20,7 @@ import java.io.File;
 
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
 
 public class MessageStoreConfig {
@@ -102,6 +103,9 @@ public class MessageStoreConfig {
     private int timerMetricSmallThreshold = 1000000;
     private int timerProgressLogIntervalMs = 10 * 1000;
 
+    // default, defaultRocksDB
+    @ImportantField
+    private String storeType = StoreType.DEFAULT.getStoreType();
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -392,6 +396,15 @@ public class MessageStoreConfig {
 
     private int batchDispatchRequestThreadPoolNums = 16;
 
+    // rocksdb mode
+    private long cleanRocksDBDirtyCQIntervalMin = 60;
+    private long statRocksDBCQIntervalSec = 10;
+    private long memTableFlushIntervalMs = 60 * 60 * 1000L;
+    private boolean realTimePersistRocksDBConfig = true;
+    private boolean enableRocksDBLog = false;
+
+    private int topicQueueLockNum = 32;
+
     public boolean isDebugLockEnable() {
         return debugLockEnable;
     }
@@ -488,8 +501,19 @@ public class MessageStoreConfig {
         this.mappedFileSizeCommitLog = mappedFileSizeCommitLog;
     }
 
-    public int getMappedFileSizeConsumeQueue() {
+    public boolean isEnableRocksDBStore() {
+        return StoreType.DEFAULT_ROCKSDB.getStoreType().equalsIgnoreCase(this.storeType);
+    }
 
+    public String getStoreType() {
+        return storeType;
+    }
+
+    public void setStoreType(String storeType) {
+        this.storeType = storeType;
+    }
+
+    public int getMappedFileSizeConsumeQueue() {
         int factor = (int) Math.ceil(this.mappedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
         return (int) (factor * ConsumeQueue.CQ_STORE_UNIT_SIZE);
     }
@@ -1709,5 +1733,53 @@ public class MessageStoreConfig {
 
     public void setBatchDispatchRequestThreadPoolNums(int batchDispatchRequestThreadPoolNums) {
         this.batchDispatchRequestThreadPoolNums = batchDispatchRequestThreadPoolNums;
+    }
+
+    public boolean isRealTimePersistRocksDBConfig() {
+        return realTimePersistRocksDBConfig;
+    }
+
+    public void setRealTimePersistRocksDBConfig(boolean realTimePersistRocksDBConfig) {
+        this.realTimePersistRocksDBConfig = realTimePersistRocksDBConfig;
+    }
+
+    public long getStatRocksDBCQIntervalSec() {
+        return statRocksDBCQIntervalSec;
+    }
+
+    public void setStatRocksDBCQIntervalSec(long statRocksDBCQIntervalSec) {
+        this.statRocksDBCQIntervalSec = statRocksDBCQIntervalSec;
+    }
+
+    public long getCleanRocksDBDirtyCQIntervalMin() {
+        return cleanRocksDBDirtyCQIntervalMin;
+    }
+
+    public void setCleanRocksDBDirtyCQIntervalMin(long cleanRocksDBDirtyCQIntervalMin) {
+        this.cleanRocksDBDirtyCQIntervalMin = cleanRocksDBDirtyCQIntervalMin;
+    }
+
+    public long getMemTableFlushIntervalMs() {
+        return memTableFlushIntervalMs;
+    }
+
+    public void setMemTableFlushIntervalMs(long memTableFlushIntervalMs) {
+        this.memTableFlushIntervalMs = memTableFlushIntervalMs;
+    }
+
+    public boolean isEnableRocksDBLog() {
+        return enableRocksDBLog;
+    }
+
+    public void setEnableRocksDBLog(boolean enableRocksDBLog) {
+        this.enableRocksDBLog = enableRocksDBLog;
+    }
+
+    public int getTopicQueueLockNum() {
+        return topicQueueLockNum;
+    }
+
+    public void setTopicQueueLockNum(int topicQueueLockNum) {
+        this.topicQueueLockNum = topicQueueLockNum;
     }
 }

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.AckCallback;
@@ -134,6 +135,27 @@ public class RMQPopClient implements MQConsumer {
                     future.completeExceptionally(e);
                 }
             }, requestHeader);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
+    public CompletableFuture<AckResult> batchAckMessageAsync(String brokerAddr, String topic, String consumerGroup,
+        List<String> extraInfoList) {
+        CompletableFuture<AckResult> future = new CompletableFuture<>();
+        try {
+            this.mqClientAPI.batchAckMessageAsync(brokerAddr, DEFAULT_TIMEOUT, new AckCallback() {
+                @Override
+                public void onSuccess(AckResult ackResult) {
+                    future.complete(ackResult);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    future.completeExceptionally(e);
+                }
+            }, topic, consumerGroup, extraInfoList);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

@@ -62,7 +62,7 @@ public class PrintMessageSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Print Message Detail";
+        return "Print Message Detail.";
     }
 
     @Override

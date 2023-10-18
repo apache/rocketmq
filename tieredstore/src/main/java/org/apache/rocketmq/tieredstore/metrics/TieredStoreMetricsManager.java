@@ -27,6 +27,7 @@ import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -101,8 +102,8 @@ public class TieredStoreMetricsManager {
     public static ObservableLongGauge storageSize = new NopObservableLongGauge();
     public static ObservableLongGauge storageMessageReserveTime = new NopObservableLongGauge();
 
-    public static List<Pair<InstrumentSelector, View>> getMetricsView() {
-        ArrayList<Pair<InstrumentSelector, View>> res = new ArrayList<>();
+    public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
+        ArrayList<Pair<InstrumentSelector, ViewBuilder>> res = new ArrayList<>();
 
         InstrumentSelector providerRpcLatencySelector = InstrumentSelector.builder()
             .setType(InstrumentType.HISTOGRAM)
@@ -114,10 +115,9 @@ public class TieredStoreMetricsManager {
             .setName(HISTOGRAM_API_LATENCY)
             .build();
 
-        View rpcLatencyView = View.builder()
+        ViewBuilder rpcLatencyViewBuilder = View.builder()
             .setAggregation(Aggregation.explicitBucketHistogram(Arrays.asList(1d, 3d, 5d, 7d, 10d, 100d, 200d, 400d, 600d, 800d, 1d * 1000, 1d * 1500, 1d * 3000)))
-            .setDescription("tiered_store_rpc_latency_view")
-            .build();
+            .setDescription("tiered_store_rpc_latency_view");
 
         InstrumentSelector uploadBufferSizeSelector = InstrumentSelector.builder()
             .setType(InstrumentType.HISTOGRAM)
@@ -129,15 +129,14 @@ public class TieredStoreMetricsManager {
             .setName(HISTOGRAM_DOWNLOAD_BYTES)
             .build();
 
-        View bufferSizeView = View.builder()
+        ViewBuilder bufferSizeViewBuilder = View.builder()
             .setAggregation(Aggregation.explicitBucketHistogram(Arrays.asList(1d * TieredStoreUtil.KB, 10d * TieredStoreUtil.KB, 100d * TieredStoreUtil.KB, 1d * TieredStoreUtil.MB, 10d * TieredStoreUtil.MB, 32d * TieredStoreUtil.MB, 50d * TieredStoreUtil.MB, 100d * TieredStoreUtil.MB)))
-            .setDescription("tiered_store_buffer_size_view")
-            .build();
+            .setDescription("tiered_store_buffer_size_view");
 
-        res.add(new Pair<>(rpcLatencySelector, rpcLatencyView));
-        res.add(new Pair<>(providerRpcLatencySelector, rpcLatencyView));
-        res.add(new Pair<>(uploadBufferSizeSelector, bufferSizeView));
-        res.add(new Pair<>(downloadBufferSizeSelector, bufferSizeView));
+        res.add(new Pair<>(rpcLatencySelector, rpcLatencyViewBuilder));
+        res.add(new Pair<>(providerRpcLatencySelector, rpcLatencyViewBuilder));
+        res.add(new Pair<>(uploadBufferSizeSelector, bufferSizeViewBuilder));
+        res.add(new Pair<>(downloadBufferSizeSelector, bufferSizeViewBuilder));
         return res;
     }
 

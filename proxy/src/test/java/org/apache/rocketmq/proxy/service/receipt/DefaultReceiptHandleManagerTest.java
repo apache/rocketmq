@@ -45,7 +45,7 @@ import org.apache.rocketmq.proxy.common.RenewStrategyPolicy;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
+import org.apache.rocketmq.proxy.common.ReceiptHandleGroupKey;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
@@ -445,7 +445,7 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     public void testClearGroup() {
         Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
         receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
-        receiptHandleManager.clearGroup(new ReceiptHandleProcessor.ReceiptHandleGroupKey(channel, GROUP));
+        receiptHandleManager.clearGroup(new ReceiptHandleGroupKey(channel, GROUP));
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(GROUP))).thenReturn(groupConfig);
         receiptHandleManager.scheduleRenewTask();

@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -311,12 +313,31 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
     }
 
     @Override
+    public ReferredIterator<CqUnit> iterateFrom(long startIndex, int count) {
+        return iterateFrom(startIndex);
+    }
+
+    @Override
     public CqUnit get(long offset) {
         ReferredIterator<CqUnit> it = iterateFrom(offset);
         if (it == null) {
             return null;
         }
         return it.nextAndRelease();
+    }
+
+    @Override
+    public Pair<CqUnit, Long> getCqUnitAndStoreTime(long index) {
+        CqUnit cqUnit = get(index);
+        Long messageStoreTime = this.messageStore.getQueueStore().getStoreTime(cqUnit);
+        return new Pair<>(cqUnit, messageStoreTime);
+    }
+
+    @Override
+    public Pair<CqUnit, Long> getEarliestUnitAndStoreTime() {
+        CqUnit cqUnit = getEarliestUnit();
+        Long messageStoreTime = this.messageStore.getQueueStore().getStoreTime(cqUnit);
+        return new Pair<>(cqUnit, messageStoreTime);
     }
 
     @Override
@@ -708,8 +729,14 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
      * @param timestamp
      * @return
      */
+    @Deprecated
     @Override
     public long getOffsetInQueueByTime(final long timestamp) {
+        return getOffsetInQueueByTime(timestamp, BoundaryType.LOWER);
+    }
+
+    @Override
+    public long getOffsetInQueueByTime(long timestamp, BoundaryType boundaryType) {
         MappedFile targetBcq;
         BatchOffsetIndex targetMinOffset;
 
@@ -760,7 +787,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
             if (timestamp >= maxQueueTimestamp) {
                 return byteBuffer.getLong(right + MSG_BASE_OFFSET_INDEX);
             }
-            int mid = binarySearchRight(byteBuffer, left, right, CQ_STORE_UNIT_SIZE, MSG_STORE_TIME_OFFSET_INDEX, timestamp);
+            int mid = binarySearchRight(byteBuffer, left, right, CQ_STORE_UNIT_SIZE, MSG_STORE_TIME_OFFSET_INDEX, timestamp, boundaryType);
             if (mid != -1) {
                 return byteBuffer.getLong(mid + MSG_BASE_OFFSET_INDEX);
             }
@@ -819,11 +846,11 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
 
     /**
      * Find the offset of which the value is equal or larger than the given targetValue.
-     * If there are many values equal to the target, then find the earliest one.
+     * If there are many values equal to the target, then return the lowest offset if boundaryType is LOWER while
+     * return the highest offset if boundaryType is UPPER.
      */
     public static int binarySearchRight(ByteBuffer byteBuffer, int left, int right, final int unitSize,
-        final int unitShift,
-        long targetValue) {
+        final int unitShift, long targetValue, BoundaryType boundaryType) {
         int mid = -1;
         while (left <= right) {
             mid = ceil((left + right) / 2);
@@ -844,10 +871,24 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
                 }
             } else {
                 //mid is actually in the mid
-                if (tmpValue < targetValue) {
-                    left = mid + unitSize;
-                } else {
-                    right = mid;
+                switch (boundaryType) {
+                    case LOWER:
+                        if (tmpValue < targetValue) {
+                            left = mid + unitSize;
+                        } else {
+                            right = mid;
+                        }
+                        break;
+                    case UPPER:
+                        if (tmpValue <= targetValue) {
+                            left = mid;
+                        } else {
+                            right = mid - unitSize;
+                        }
+                        break;
+                    default:
+                        log.warn("Unknown boundary type");
+                        return -1;
                 }
             }
         }

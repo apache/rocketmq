@@ -36,8 +36,7 @@ public class CompositeQueueFlatFile extends CompositeFlatFile {
     public CompositeQueueFlatFile(TieredFileAllocator fileQueueFactory, MessageQueue messageQueue) {
         super(fileQueueFactory, TieredStoreUtil.toPath(messageQueue));
         this.messageQueue = messageQueue;
-        this.recoverTopicMetadata();
-        super.recoverMetadata();
+        this.recoverQueueMetadata();
         this.indexFile = TieredFlatFileManager.getIndexFile(storeConfig);
     }
 
@@ -46,11 +45,12 @@ public class CompositeQueueFlatFile extends CompositeFlatFile {
         if (!consumeQueue.isInitialized()) {
             queueMetadata.setMinOffset(offset);
             queueMetadata.setMaxOffset(offset);
+            metadataStore.updateQueue(queueMetadata);
         }
         super.initOffset(offset);
     }
 
-    public void recoverTopicMetadata() {
+    public void recoverQueueMetadata() {
         TopicMetadata topicMetadata = this.metadataStore.getTopic(messageQueue.getTopic());
         if (topicMetadata == null) {
             topicMetadata = this.metadataStore.addTopic(messageQueue.getTopic(), -1L);
@@ -64,18 +64,16 @@ public class CompositeQueueFlatFile extends CompositeFlatFile {
         if (queueMetadata.getMaxOffset() < queueMetadata.getMinOffset()) {
             queueMetadata.setMaxOffset(queueMetadata.getMinOffset());
         }
-        this.dispatchOffset.set(queueMetadata.getMaxOffset());
     }
 
-    public void persistMetadata() {
+    public void flushMetadata() {
         try {
-            if (consumeQueue.getCommitOffset() < queueMetadata.getMinOffset()) {
-                return;
-            }
-            queueMetadata.setMaxOffset(consumeQueue.getCommitOffset() / TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
+            queueMetadata.setMinOffset(super.getConsumeQueueMinOffset());
+            queueMetadata.setMaxOffset(super.getConsumeQueueMaxOffset());
             metadataStore.updateQueue(queueMetadata);
         } catch (Exception e) {
-            LOGGER.error("CompositeFlatFile#flushMetadata: update queue metadata failed: topic: {}, queue: {}", messageQueue.getTopic(), messageQueue.getQueueId(), e);
+            LOGGER.error("CompositeFlatFile#flushMetadata error, topic: {}, queue: {}",
+                messageQueue.getTopic(), messageQueue.getQueueId(), e);
         }
     }
 
@@ -114,7 +112,7 @@ public class CompositeQueueFlatFile extends CompositeFlatFile {
     @Override
     public void shutdown() {
         super.shutdown();
-        metadataStore.updateQueue(queueMetadata);
+        this.flushMetadata();
     }
 
     @Override

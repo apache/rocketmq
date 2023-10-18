@@ -30,10 +30,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
@@ -175,53 +175,36 @@ public class TieredFlatFile {
         }
     }
 
-    private FileSegmentMetadata getOrCreateFileSegmentMetadata(TieredFileSegment fileSegment) {
+    /**
+     * FileQueue Status: Sealed | Sealed | Sealed | Not sealed, Allow appended && Not Full
+     */
+    public void updateFileSegment(TieredFileSegment fileSegment) {
 
         FileSegmentMetadata metadata = tieredMetadataStore.getFileSegment(
-            fileSegment.getPath(), fileSegment.getFileType(), fileSegment.getBaseOffset());
-
-        if (metadata != null) {
-            return metadata;
-        }
+            this.filePath, fileSegment.getFileType(), fileSegment.getBaseOffset());
 
         // Note: file segment path may not the same as file base path, use base path here.
-        metadata = new FileSegmentMetadata(
-            this.filePath, fileSegment.getBaseOffset(), fileSegment.getFileType().getType());
+        if (metadata == null) {
+            metadata = new FileSegmentMetadata(
+                this.filePath, fileSegment.getBaseOffset(), fileSegment.getFileType().getType());
+            metadata.setCreateTimestamp(System.currentTimeMillis());
+        }
+
+        metadata.setSize(fileSegment.getCommitPosition());
+        metadata.setBeginTimestamp(fileSegment.getMinTimestamp());
+        metadata.setEndTimestamp(fileSegment.getMaxTimestamp());
+
+        if (fileSegment.isFull() && !fileSegment.needCommit()) {
+            if (metadata.getStatus() == FileSegmentMetadata.STATUS_NEW) {
+                metadata.markSealed();
+            }
+        }
 
         if (fileSegment.isClosed()) {
             metadata.setStatus(FileSegmentMetadata.STATUS_DELETED);
         }
 
-        metadata.setBeginTimestamp(fileSegment.getMinTimestamp());
-        metadata.setEndTimestamp(fileSegment.getMaxTimestamp());
-
-        // Submit to persist
         this.tieredMetadataStore.updateFileSegment(metadata);
-        return metadata;
-    }
-
-    /**
-     * FileQueue Status: Sealed | Sealed | Sealed | Not sealed, Allow appended && Not Full
-     */
-    @VisibleForTesting
-    public void updateFileSegment(TieredFileSegment fileSegment) {
-        FileSegmentMetadata segmentMetadata = getOrCreateFileSegmentMetadata(fileSegment);
-
-        if (segmentMetadata.getStatus() == FileSegmentMetadata.STATUS_NEW
-            && fileSegment.isFull()
-            && !fileSegment.needCommit()) {
-
-            segmentMetadata.markSealed();
-        }
-
-        if (fileSegment.isClosed()) {
-            segmentMetadata.setStatus(FileSegmentMetadata.STATUS_DELETED);
-        }
-
-        segmentMetadata.setSize(fileSegment.getCommitPosition());
-        segmentMetadata.setBeginTimestamp(fileSegment.getMinTimestamp());
-        segmentMetadata.setEndTimestamp(fileSegment.getMaxTimestamp());
-        this.tieredMetadataStore.updateFileSegment(segmentMetadata);
     }
 
     private void checkAndFixFileSize() {
@@ -257,6 +240,7 @@ public class TieredFlatFile {
                 logger.warn("TieredFlatFile#checkAndFixFileSize: fix last file {} size: origin: {}, actual: {}",
                     lastFile.getPath(), lastFile.getCommitOffset() - lastFile.getBaseOffset(), lastFileSize);
                 lastFile.initPosition(lastFileSize);
+                this.updateFileSegment(lastFile);
             }
         }
     }
@@ -361,7 +345,10 @@ public class TieredFlatFile {
             if (!segmentList.isEmpty()) {
                 return boundaryType == BoundaryType.UPPER ? segmentList.get(0) : segmentList.get(segmentList.size() - 1);
             }
-            return fileSegmentList.isEmpty() ? null : fileSegmentList.get(fileSegmentList.size() - 1);
+            if (fileSegmentList.isEmpty()) {
+                return null;
+            }
+            return boundaryType == BoundaryType.UPPER ? fileSegmentList.get(fileSegmentList.size() - 1) : fileSegmentList.get(0);
         } finally {
             fileSegmentLock.readLock().unlock();
         }
@@ -591,6 +578,9 @@ public class TieredFlatFile {
                     logger.error("TieredFlatFile#destroy: mark file segment: {} is deleted failed", fileSegment.getPath(), e);
                 }
                 fileSegment.destroyFile();
+                if (!fileSegment.exists()) {
+                    tieredMetadataStore.deleteFileSegment(filePath, fileType, fileSegment.getBaseOffset());
+                }
             }
             fileSegmentList.clear();
             needCommitFileSegmentList.clear();

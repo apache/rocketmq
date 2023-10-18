@@ -36,7 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
-
+import org.rocksdb.RocksDBException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -114,7 +114,7 @@ public class HAServerTest {
     }
 
     @Test
-    public void inSyncReplicasNums() throws IOException {
+    public void inSyncReplicasNums() throws IOException, RocksDBException {
         DefaultMessageStore messageStore = mockMessageStore();
         doReturn(123L).when(messageStore).getMaxPhyOffset();
         doReturn(123L).when(messageStore).getMasterFlushedOffset();
@@ -150,7 +150,7 @@ public class HAServerTest {
     }
 
     @Test
-    public void isSlaveOK() throws IOException {
+    public void isSlaveOK() throws IOException, RocksDBException {
         DefaultMessageStore messageStore = mockMessageStore();
         doReturn(123L).when(messageStore).getMaxPhyOffset();
         doReturn(123L).when(messageStore).getMasterFlushedOffset();
@@ -175,7 +175,8 @@ public class HAServerTest {
     }
 
     @Test
-    public void putRequest_SingleAck() throws IOException, ExecutionException, InterruptedException, TimeoutException {
+    public void putRequest_SingleAck()
+        throws IOException, ExecutionException, InterruptedException, TimeoutException, RocksDBException {
         CommitLog.GroupCommitRequest request = new CommitLog.GroupCommitRequest(124, 4000, 1);
         this.haService.putRequest(request);
 
@@ -192,7 +193,8 @@ public class HAServerTest {
     }
 
     @Test
-    public void putRequest_MultipleAckAndRequests() throws IOException, ExecutionException, InterruptedException {
+    public void putRequest_MultipleAckAndRequests()
+        throws IOException, ExecutionException, InterruptedException, RocksDBException {
         CommitLog.GroupCommitRequest oneAck = new CommitLog.GroupCommitRequest(124, 4000, 2);
         this.haService.putRequest(oneAck);
 
@@ -218,7 +220,7 @@ public class HAServerTest {
     }
 
     @Test
-    public void getPush2SlaveMaxOffset() throws IOException {
+    public void getPush2SlaveMaxOffset() throws IOException, RocksDBException {
         DefaultMessageStore messageStore = mockMessageStore();
         doReturn(123L).when(messageStore).getMaxPhyOffset();
         doReturn(123L).when(messageStore).getMasterFlushedOffset();
@@ -256,7 +258,7 @@ public class HAServerTest {
         this.haClientList.add(haClient);
     }
 
-    private DefaultMessageStore mockMessageStore() throws IOException {
+    private DefaultMessageStore mockMessageStore() throws IOException, RocksDBException {
         DefaultMessageStore messageStore = mock(DefaultMessageStore.class);
         BrokerConfig brokerConfig = mock(BrokerConfig.class);
 

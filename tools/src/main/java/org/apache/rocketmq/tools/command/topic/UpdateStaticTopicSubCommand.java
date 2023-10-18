@@ -48,7 +48,7 @@ public class UpdateStaticTopicSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Update or create static topic, which has fixed number of queues";
+        return "Update or create static topic, which has fixed number of queues.";
     }
 
     @Override

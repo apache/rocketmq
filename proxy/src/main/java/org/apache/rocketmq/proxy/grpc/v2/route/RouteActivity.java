@@ -32,6 +32,8 @@ import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.Resource;
 import com.google.common.net.HostAndPort;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -259,7 +261,7 @@ public class RouteActivity extends AbstractMessingActivity {
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.READ)
-                .addAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);
         }
@@ -268,7 +270,7 @@ public class RouteActivity extends AbstractMessingActivity {
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.WRITE)
-                .addAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);
         }
@@ -277,7 +279,7 @@ public class RouteActivity extends AbstractMessingActivity {
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.READ_WRITE)
-                .addAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);
         }
@@ -285,18 +287,20 @@ public class RouteActivity extends AbstractMessingActivity {
         return messageQueueList;
     }
 
-    private MessageType parseTopicMessageType(TopicMessageType topicMessageType) {
+    private List<MessageType> parseTopicMessageType(TopicMessageType topicMessageType) {
         switch (topicMessageType) {
             case NORMAL:
-                return MessageType.NORMAL;
+                return Collections.singletonList(MessageType.NORMAL);
             case FIFO:
-                return MessageType.FIFO;
+                return Collections.singletonList(MessageType.FIFO);
             case TRANSACTION:
-                return MessageType.TRANSACTION;
+                return Collections.singletonList(MessageType.TRANSACTION);
             case DELAY:
-                return MessageType.DELAY;
+                return Collections.singletonList(MessageType.DELAY);
+            case MIXED:
+                return Arrays.asList(MessageType.NORMAL, MessageType.FIFO, MessageType.DELAY, MessageType.TRANSACTION);
             default:
-                return MessageType.MESSAGE_TYPE_UNSPECIFIED;
+                return Collections.singletonList(MessageType.MESSAGE_TYPE_UNSPECIFIED);
         }
     }
 }

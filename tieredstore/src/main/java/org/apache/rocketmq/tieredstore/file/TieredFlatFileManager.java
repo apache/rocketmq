@@ -16,16 +16,19 @@
  */
 package org.apache.rocketmq.tieredstore.file;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.Nullable;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -36,6 +39,7 @@ import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 public class TieredFlatFileManager {
 
+    private static final Logger BROKER_LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     private static volatile TieredFlatFileManager instance;
@@ -44,7 +48,7 @@ public class TieredFlatFileManager {
     private final TieredMetadataStore metadataStore;
     private final TieredMessageStoreConfig storeConfig;
     private final TieredFileAllocator tieredFileAllocator;
-    private final ConcurrentMap<MessageQueue, CompositeQueueFlatFile> queueFlatFileMap;
+    private final ConcurrentMap<MessageQueue, CompositeQueueFlatFile> flatFileConcurrentMap;
 
     public TieredFlatFileManager(TieredMessageStoreConfig storeConfig)
         throws ClassNotFoundException, NoSuchMethodException {
@@ -52,23 +56,20 @@ public class TieredFlatFileManager {
         this.storeConfig = storeConfig;
         this.metadataStore = TieredStoreUtil.getMetadataStore(storeConfig);
         this.tieredFileAllocator = new TieredFileAllocator(storeConfig);
-        this.queueFlatFileMap = new ConcurrentHashMap<>();
+        this.flatFileConcurrentMap = new ConcurrentHashMap<>();
         this.doScheduleTask();
     }
 
     public static TieredFlatFileManager getInstance(TieredMessageStoreConfig storeConfig) {
-        if (storeConfig == null) {
+        if (storeConfig == null || instance != null) {
             return instance;
         }
-
-        if (instance == null) {
-            synchronized (TieredFlatFileManager.class) {
-                if (instance == null) {
-                    try {
-                        instance = new TieredFlatFileManager(storeConfig);
-                    } catch (Exception e) {
-                        logger.error("TieredFlatFileManager#getInstance: create flat file manager failed", e);
-                    }
+        synchronized (TieredFlatFileManager.class) {
+            if (instance == null) {
+                try {
+                    instance = new TieredFlatFileManager(storeConfig);
+                } catch (Exception e) {
+                    logger.error("Construct FlatFileManager instance error", e);
                 }
             }
         }
@@ -88,7 +89,7 @@ public class TieredFlatFileManager {
                             TieredStoreUtil.RMQ_SYS_TIERED_STORE_INDEX_TOPIC, storeConfig.getBrokerName(), 0));
                         indexFile = new TieredIndexFile(new TieredFileAllocator(storeConfig), filePath);
                     } catch (Exception e) {
-                        logger.error("TieredFlatFileManager#getIndexFile: create index file failed", e);
+                        logger.error("Construct FlatFileManager indexFile error", e);
                     }
                 }
             }
@@ -105,7 +106,7 @@ public class TieredFlatFileManager {
                     flatFile.commitCommitLog();
                 } catch (Throwable e) {
                     MessageQueue mq = flatFile.getMessageQueue();
-                    logger.error("commit commitLog periodically failed: topic: {}, queue: {}",
+                    logger.error("Commit commitLog periodically failed: topic: {}, queue: {}",
                         mq.getTopic(), mq.getQueueId(), e);
                 }
             }, delay, TimeUnit.MILLISECONDS);
@@ -114,7 +115,7 @@ public class TieredFlatFileManager {
                     flatFile.commitConsumeQueue();
                 } catch (Throwable e) {
                     MessageQueue mq = flatFile.getMessageQueue();
-                    logger.error("commit consumeQueue periodically failed: topic: {}, queue: {}",
+                    logger.error("Commit consumeQueue periodically failed: topic: {}, queue: {}",
                         mq.getTopic(), mq.getQueueId(), e);
                 }
             }, delay, TimeUnit.MILLISECONDS);
@@ -125,7 +126,7 @@ public class TieredFlatFileManager {
                     indexFile.commit(true);
                 }
             } catch (Throwable e) {
-                logger.error("commit indexFile periodically failed", e);
+                logger.error("Commit indexFile periodically failed", e);
             }
         }, 0, TimeUnit.MILLISECONDS);
     }
@@ -133,21 +134,19 @@ public class TieredFlatFileManager {
     public void doCleanExpiredFile() {
         long expiredTimeStamp = System.currentTimeMillis() -
             TimeUnit.HOURS.toMillis(storeConfig.getTieredStoreFileReservedTime());
-        Random random = new Random();
         for (CompositeQueueFlatFile flatFile : deepCopyFlatFileToList()) {
-            int delay = random.nextInt(storeConfig.getMaxCommitJitter());
-            TieredStoreExecutor.cleanExpiredFileExecutor.schedule(() -> {
-                flatFile.getCompositeFlatFileLock().lock();
+            TieredStoreExecutor.cleanExpiredFileExecutor.submit(() -> {
                 try {
+                    flatFile.getCompositeFlatFileLock().lock();
                     flatFile.cleanExpiredFile(expiredTimeStamp);
                     flatFile.destroyExpiredFile();
-                    if (flatFile.getConsumeQueueBaseOffset() == -1) {
-                        destroyCompositeFile(flatFile.getMessageQueue());
-                    }
+                } catch (Throwable t) {
+                    logger.error("Do Clean expired file error, topic={}, queueId={}",
+                        flatFile.getMessageQueue().getTopic(), flatFile.getMessageQueue().getQueueId(), t);
                 } finally {
                     flatFile.getCompositeFlatFileLock().unlock();
                 }
-            }, delay, TimeUnit.MILLISECONDS);
+            });
         }
         if (indexFile != null) {
             indexFile.cleanExpiredFile(expiredTimeStamp);
@@ -160,7 +159,7 @@ public class TieredFlatFileManager {
             try {
                 doCommit();
             } catch (Throwable e) {
-                logger.error("commit flat file periodically failed: ", e);
+                logger.error("Commit flat file periodically failed: ", e);
             }
         }, 60, 60, TimeUnit.SECONDS);
 
@@ -168,49 +167,78 @@ public class TieredFlatFileManager {
             try {
                 doCleanExpiredFile();
             } catch (Throwable e) {
-                logger.error("clean expired flat file failed: ", e);
+                logger.error("Clean expired flat file failed: ", e);
             }
         }, 30, 30, TimeUnit.SECONDS);
     }
 
     public boolean load() {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         try {
-            AtomicLong topicSequenceNumber = new AtomicLong();
-            List<Future<?>> futureList = new ArrayList<>();
-            queueFlatFileMap.clear();
-            metadataStore.iterateTopic(topicMetadata -> {
-                topicSequenceNumber.set(Math.max(topicSequenceNumber.get(), topicMetadata.getTopicId()));
-                Future<?> future = TieredStoreExecutor.dispatchExecutor.submit(() -> {
-                    if (topicMetadata.getStatus() != 0) {
-                        return;
-                    }
-                    try {
-                        metadataStore.iterateQueue(topicMetadata.getTopic(),
-                            queueMetadata -> getOrCreateFlatFileIfAbsent(
-                                new MessageQueue(topicMetadata.getTopic(),
-                                    storeConfig.getBrokerName(),
-                                    queueMetadata.getQueue().getQueueId())));
-                    } catch (Exception e) {
-                        logger.error("load mq composite flat file from metadata failed", e);
-                    }
-                });
-                futureList.add(future);
-            });
-
-            // Wait for load all metadata done
-            for (Future<?> future : futureList) {
-                future.get();
-            }
-            metadataStore.setTopicSequenceNumber(topicSequenceNumber.incrementAndGet());
+            flatFileConcurrentMap.clear();
+            this.recoverSequenceNumber();
+            this.recoverTieredFlatFile();
+            logger.info("Message store recover end, total cost={}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } catch (Exception e) {
-            logger.error("load mq composite flat file from metadata failed", e);
+            long costTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+            logger.info("Message store recover error, total cost={}ms", costTime);
+            BROKER_LOG.error("Message store recover error, total cost={}ms", costTime, e);
             return false;
         }
         return true;
     }
 
+    public void recoverSequenceNumber() {
+        AtomicLong topicSequenceNumber = new AtomicLong();
+        metadataStore.iterateTopic(topicMetadata -> {
+            if (topicMetadata != null && topicMetadata.getTopicId() > 0) {
+                topicSequenceNumber.set(Math.max(topicSequenceNumber.get(), topicMetadata.getTopicId()));
+            }
+        });
+        metadataStore.setTopicSequenceNumber(topicSequenceNumber.incrementAndGet());
+    }
+
+    public void recoverTieredFlatFile() {
+        Semaphore semaphore = new Semaphore((int) (TieredStoreExecutor.QUEUE_CAPACITY * 0.75));
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        metadataStore.iterateTopic(topicMetadata -> {
+            try {
+                semaphore.acquire();
+                CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+                    try {
+                        Stopwatch subWatch = Stopwatch.createStarted();
+                        if (topicMetadata.getStatus() != 0) {
+                            return;
+                        }
+                        AtomicLong queueCount = new AtomicLong();
+                        metadataStore.iterateQueue(topicMetadata.getTopic(), queueMetadata -> {
+                            this.getOrCreateFlatFileIfAbsent(new MessageQueue(topicMetadata.getTopic(),
+                                storeConfig.getBrokerName(), queueMetadata.getQueue().getQueueId()));
+                            queueCount.incrementAndGet();
+                        });
+
+                        if (queueCount.get() == 0L) {
+                            metadataStore.deleteTopic(topicMetadata.getTopic());
+                        } else {
+                            logger.info("Recover TopicFlatFile, topic: {}, queueCount: {}, cost: {}ms",
+                                topicMetadata.getTopic(), queueCount.get(), subWatch.elapsed(TimeUnit.MILLISECONDS));
+                        }
+                    } catch (Exception e) {
+                        logger.error("Recover TopicFlatFile error, topic: {}", topicMetadata.getTopic(), e);
+                    } finally {
+                        semaphore.release();
+                    }
+                }, TieredStoreExecutor.commitExecutor);
+                futures.add(future);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+    }
+
     public void cleanup() {
-        queueFlatFileMap.clear();
+        flatFileConcurrentMap.clear();
         cleanStaticReference();
     }
 
@@ -221,27 +249,25 @@ public class TieredFlatFileManager {
 
     @Nullable
     public CompositeQueueFlatFile getOrCreateFlatFileIfAbsent(MessageQueue messageQueue) {
-        return queueFlatFileMap.computeIfAbsent(messageQueue, mq -> {
+        return flatFileConcurrentMap.computeIfAbsent(messageQueue, mq -> {
             try {
-                logger.debug("TieredFlatFileManager#getOrCreateFlatFileIfAbsent: " +
-                        "try to create new flat file: topic: {}, queueId: {}",
+                logger.debug("Create new TopicFlatFile, topic: {}, queueId: {}",
                     messageQueue.getTopic(), messageQueue.getQueueId());
                 return new CompositeQueueFlatFile(tieredFileAllocator, mq);
             } catch (Exception e) {
-                logger.error("TieredFlatFileManager#getOrCreateFlatFileIfAbsent: " +
-                        "create new flat file: topic: {}, queueId: {}",
+                logger.debug("Create new TopicFlatFile failed, topic: {}, queueId: {}",
                     messageQueue.getTopic(), messageQueue.getQueueId(), e);
-                return null;
             }
+            return null;
         });
     }
 
     public CompositeQueueFlatFile getFlatFile(MessageQueue messageQueue) {
-        return queueFlatFileMap.get(messageQueue);
+        return flatFileConcurrentMap.get(messageQueue);
     }
 
     public ImmutableList<CompositeQueueFlatFile> deepCopyFlatFileToList() {
-        return ImmutableList.copyOf(queueFlatFileMap.values());
+        return ImmutableList.copyOf(flatFileConcurrentMap.values());
     }
 
     public void shutdown() {
@@ -270,7 +296,7 @@ public class TieredFlatFileManager {
         }
 
         // delete memory reference
-        CompositeQueueFlatFile flatFile = queueFlatFileMap.remove(mq);
+        CompositeQueueFlatFile flatFile = flatFileConcurrentMap.remove(mq);
         if (flatFile != null) {
             MessageQueue messageQueue = flatFile.getMessageQueue();
             logger.info("TieredFlatFileManager#destroyCompositeFile: " +

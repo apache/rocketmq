@@ -14,20 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.body;
+package org.apache.rocketmq.client.latency;
 
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+public interface Resolver {
 
-public class GetRemoteClientConfigBody extends RemotingSerializable {
-    private List<String> keys = new ArrayList<>();
-
-    public List<String> getKeys() {
-        return keys;
-    }
-
-    public void setKeys(List<String> keys) {
-        this.keys = keys;
-    }
+    String resolve(String name);
 }
