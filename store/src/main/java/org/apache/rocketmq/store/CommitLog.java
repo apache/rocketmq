@@ -18,6 +18,7 @@ package org.apache.rocketmq.store;
 
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -478,6 +479,11 @@ public class CommitLog implements Swappable {
                         }
                     }
                 } else {
+                    if(byteBuffer.remaining()<bodyLen){
+                        log.warn("bodyLen is {} but buffer remaining is {}",byteBuffer.remaining(),bodyLen);
+                        //same as try read exception
+                        throw new BufferUnderflowException();
+                    }
                     byteBuffer.position(byteBuffer.position() + bodyLen);
                 }
             }
