@@ -322,6 +322,7 @@ public class CommitLog implements Swappable {
             // normal recover doesn't require dispatching
             boolean doDispatch = false;
             while (true) {
+                // if not checkcrc not need to read body, so pass checkCRCOnRecover as readBody
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
                 // Normal data
@@ -663,6 +664,7 @@ public class CommitLog implements Swappable {
             // abnormal recover require dispatching
             boolean doDispatch = true;
             while (true) {
+                // if not checkcrc not need to read body, so pass checkCRCOnRecover as readBody
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
 
