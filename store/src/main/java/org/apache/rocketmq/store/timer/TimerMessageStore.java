@@ -291,6 +291,15 @@ public class TimerMessageStore {
         }
         currQueueOffset = Math.min(currQueueOffset, timerCheckpoint.getMasterTimerQueueOffset());
 
+        ConsumeQueueInterface cq = this.messageStore.getConsumeQueue(TIMER_TOPIC, 0);
+
+        // Correction based consume queue
+        if (currQueueOffset < cq.getMinOffsetInQueue()) {
+            currQueueOffset = cq.getMinOffsetInQueue();
+        } else if (currQueueOffset > cq.getMaxOffsetInQueue()) {
+            currQueueOffset = cq.getMaxOffsetInQueue();
+        }
+
         //check timer wheel
         currReadTimeMs = timerCheckpoint.getLastReadTimeMs();
         long nextReadTimeMs = formatTimeMs(
@@ -608,7 +617,7 @@ public class TimerMessageStore {
                 return;
             }
             if (msg.getProperty(TIMER_ENQUEUE_MS) != null
-                    && NumberUtils.toLong(msg.getProperty(TIMER_ENQUEUE_MS)) == Long.MAX_VALUE) {
+                && NumberUtils.toLong(msg.getProperty(TIMER_ENQUEUE_MS)) == Long.MAX_VALUE) {
                 return;
             }
             // pass msg into addAndGet, for further more judgement extension.
