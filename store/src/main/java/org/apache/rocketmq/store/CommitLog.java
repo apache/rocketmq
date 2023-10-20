@@ -480,7 +480,7 @@ public class CommitLog implements Swappable {
                     }
                 } else {
                     if (byteBuffer.remaining() < bodyLen) {
-                        log.warn("bodyLen is {} but buffer remaining is {}", byteBuffer.remaining(), bodyLen);
+                        log.warn("bodyLen is {} but buffer remaining is {}", bodyLen, byteBuffer.remaining());
                         // Same as byteBuffer.get exception
                         throw new BufferUnderflowException();
                     }
