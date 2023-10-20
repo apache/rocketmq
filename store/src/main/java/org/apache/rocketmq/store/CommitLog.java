@@ -322,6 +322,7 @@ public class CommitLog implements Swappable {
             long lastValidMsgPhyOffset = this.getConfirmOffset();
             // normal recover doesn't require dispatching
             boolean doDispatch = false;
+            log.info("recover physics file {}", mappedFile.getFileName());
             while (true) {
                 // if not checkcrc not need to read body, so pass checkCRCOnRecover as readBody
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo, checkCRCOnRecover);
