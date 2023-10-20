@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.transaction.queue;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -32,6 +33,7 @@ import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.OperationResult;
 import org.apache.rocketmq.broker.transaction.TransactionMetrics;
+import org.apache.rocketmq.broker.transaction.TransactionMetricsFlushService;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -47,9 +49,12 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 
 public class TransactionalMessageServiceImpl implements TransactionalMessageService {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
@@ -73,7 +78,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
 
-    private static TransactionMetrics transactionMetrics;
+    private TransactionMetrics transactionMetrics;
 
     public TransactionalMessageServiceImpl(TransactionalMessageBridge transactionBridge) {
         this.transactionalMessageBridge = transactionBridge;
@@ -81,6 +86,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         transactionalOpBatchService.start();
         transactionMetrics = new TransactionMetrics(BrokerPathConfigHelper.getTransactionMetricsPath(
                 transactionalMessageBridge.getBrokerController().getMessageStoreConfig().getStorePathRootDir()));
+        transactionMetrics.load();
     }
 
     @Override
@@ -90,7 +96,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     @Override
     public void setTransactionMetrics(TransactionMetrics transactionMetrics) {
-        TransactionalMessageServiceImpl.transactionMetrics = transactionMetrics;
+        this.transactionMetrics = transactionMetrics;
     }
 
 
@@ -649,6 +655,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         if (this.transactionalOpBatchService != null) {
             this.transactionalOpBatchService.shutdown();
         }
+        this.getTransactionMetrics().persist();
     }
 
     public Message getOpMessage(int queueId, String moreData) {

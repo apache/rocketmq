@@ -46,7 +46,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 public class TransactionMetrics extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final ConcurrentMap<String, Metric> transactionCount =
+    private final ConcurrentMap<String, Metric> transactionCounts =
             new ConcurrentHashMap<>(1024);
 
     private final DataVersion dataVersion = new DataVersion();
@@ -65,19 +65,19 @@ public class TransactionMetrics extends ConfigManager {
     }
 
     public Metric getTopicPair(String topic) {
-        Metric pair = transactionCount.get(topic);
+        Metric pair = transactionCounts.get(topic);
         if (null != pair) {
             return pair;
         }
         pair = new Metric();
-        final Metric previous = transactionCount.putIfAbsent(topic, pair);
+        final Metric previous = transactionCounts.putIfAbsent(topic, pair);
         if (null != previous) {
             return previous;
         }
         return pair;
     }
     public long getTransactionCount(String topic) {
-        Metric pair = transactionCount.get(topic);
+        Metric pair = transactionCounts.get(topic);
         if (null == pair) {
             return 0;
         } else {
@@ -85,13 +85,13 @@ public class TransactionMetrics extends ConfigManager {
         }
     }
 
-    public Map<String, Metric> getTransactionCount() {
-        return transactionCount;
+    public Map<String, Metric> getTransactionCounts() {
+        return transactionCounts;
     }
 
     protected void write0(Writer writer) {
         TransactionMetricsSerializeWrapper wrapper = new TransactionMetricsSerializeWrapper();
-        wrapper.setTimingCount(transactionCount);
+        wrapper.setTimingCount(transactionCounts);
         wrapper.setDataVersion(dataVersion);
         JSON.writeJSONString(writer, wrapper, SerializerFeature.BrowserCompatible);
     }
@@ -112,7 +112,7 @@ public class TransactionMetrics extends ConfigManager {
             TransactionMetricsSerializeWrapper transactionMetricsSerializeWrapper =
                     TransactionMetricsSerializeWrapper.fromJson(jsonString, TransactionMetricsSerializeWrapper.class);
             if (transactionMetricsSerializeWrapper != null) {
-                this.transactionCount.putAll(transactionMetricsSerializeWrapper.getTimingCount());
+                this.transactionCounts.putAll(transactionMetricsSerializeWrapper.getTimingCount());
                 this.dataVersion.assignNewOne(transactionMetricsSerializeWrapper.getDataVersion());
             }
         }
@@ -122,7 +122,7 @@ public class TransactionMetrics extends ConfigManager {
     public String encode(boolean prettyFormat) {
         TransactionMetricsSerializeWrapper metricsSerializeWrapper = new TransactionMetricsSerializeWrapper();
         metricsSerializeWrapper.setDataVersion(this.dataVersion);
-        metricsSerializeWrapper.setTimingCount(this.transactionCount);
+        metricsSerializeWrapper.setTimingCount(this.transactionCounts);
         return metricsSerializeWrapper.toJson(prettyFormat);
     }
 
@@ -134,7 +134,7 @@ public class TransactionMetrics extends ConfigManager {
         if (topics == null || topics.isEmpty()) {
             return;
         }
-        Iterator<Map.Entry<String, Metric>> iterator = transactionCount.entrySet().iterator();
+        Iterator<Map.Entry<String, Metric>> iterator = transactionCounts.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<String, Metric> entry = iterator.next();
             final String topic = entry.getKey();

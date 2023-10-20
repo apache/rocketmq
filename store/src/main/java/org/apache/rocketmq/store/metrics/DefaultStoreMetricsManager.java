@@ -84,12 +84,6 @@ public class DefaultStoreMetricsManager {
     public static ObservableLongGauge timerMessageSnapshot = new NopObservableLongGauge();
     public static LongHistogram timerMessageSetLatency = new NopLongHistogram();
 
-    public static ObservableLongGauge halfMessages = new NopObservableLongGauge();
-    public static LongCounter commitMessagesTotal = new NopLongCounter();
-    public static LongCounter rollBackMessagesTotal = new NopLongCounter();
-    public static LongHistogram transactionFinishLatency = new NopLongHistogram();
-
-
     public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
         List<Double> rpcCostTimeBuckets = Arrays.asList(
                 // day * hour * min * second
