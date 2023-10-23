@@ -180,6 +180,10 @@ public class MQClientInstance {
                 @Override
                 public void onChannelIdle(String remoteAddr, Channel channel) {
                 }
+
+                @Override
+                public void onChannelActive(String remoteAddr, Channel channel) {
+                }
             };
         } else {
             channelEventListener = null;
