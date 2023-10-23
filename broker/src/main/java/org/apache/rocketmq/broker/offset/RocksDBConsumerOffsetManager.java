@@ -33,7 +33,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     public RocksDBConsumerOffsetManager(BrokerController brokerController) {
         super(brokerController);
-        this.rocksDBConfigManager = new RocksDBConfigManager(this.brokerController.getMessageStoreConfig().getMemTableFlushInterval());
+        this.rocksDBConfigManager = new RocksDBConfigManager(brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
     }
 
     @Override
@@ -49,7 +49,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
     @Override
     protected void removeConsumerOffset(String topicAtGroup) {
         try {
-            byte[] keyBytes = topicAtGroup.getBytes(DataConverter.charset);
+            byte[] keyBytes = topicAtGroup.getBytes(DataConverter.CHARSET_UTF8);
             this.rocksDBConfigManager.delete(keyBytes);
         } catch (Exception e) {
             LOG.error("kv remove consumerOffset Failed, {}", topicAtGroup);
@@ -58,7 +58,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     @Override
     protected void decode0(final byte[] key, final byte[] body) {
-        String topicAtGroup = new String(key, DataConverter.charset);
+        String topicAtGroup = new String(key, DataConverter.CHARSET_UTF8);
         RocksDBOffsetSerializeWrapper wrapper = JSON.parseObject(body, RocksDBOffsetSerializeWrapper.class);
 
         this.offsetTable.put(topicAtGroup, wrapper.getOffsetTable());
@@ -93,7 +93,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
     }
 
     private void putWriteBatch(final WriteBatch writeBatch, final String topicGroupName, final ConcurrentMap<Integer, Long> offsetMap) throws Exception {
-        byte[] keyBytes = topicGroupName.getBytes(DataConverter.charset);
+        byte[] keyBytes = topicGroupName.getBytes(DataConverter.CHARSET_UTF8);
         RocksDBOffsetSerializeWrapper wrapper = new RocksDBOffsetSerializeWrapper();
         wrapper.setOffsetTable(offsetMap);
         byte[] valueBytes = JSON.toJSONBytes(wrapper, SerializerFeature.BrowserCompatible);

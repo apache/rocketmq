@@ -116,6 +116,10 @@
         <appender-ref ref="RocketmqControllerAppender"/>
     </logger>
 
+    <logger name="RocketmqControllerConsole" additivity="false" level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
     <logger name="RocketmqCommon" additivity="false" level="INFO">
         <appender-ref ref="RocketmqControllerAppender"/>
     </logger>

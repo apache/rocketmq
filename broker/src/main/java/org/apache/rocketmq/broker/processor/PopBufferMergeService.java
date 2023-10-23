@@ -633,7 +633,7 @@ public class PopBufferMergeService extends ServiceThread {
         ackMsg.setQueueId(point.getQueueId());
         ackMsg.setPopTime(point.getPopTime());
         msgInner.setTopic(popMessageProcessor.reviveTopic);
-        msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.charset));
+        msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.CHARSET_UTF8));
         msgInner.setQueueId(pointWrapper.getReviveQueueId());
         msgInner.setTags(PopAckConstants.ACK_TAG);
         msgInner.setBornTimestamp(System.currentTimeMillis());
@@ -673,7 +673,7 @@ public class PopBufferMergeService extends ServiceThread {
         batchAckMsg.setQueueId(point.getQueueId());
         batchAckMsg.setPopTime(point.getPopTime());
         msgInner.setTopic(popMessageProcessor.reviveTopic);
-        msgInner.setBody(JSON.toJSONString(batchAckMsg).getBytes(DataConverter.charset));
+        msgInner.setBody(JSON.toJSONString(batchAckMsg).getBytes(DataConverter.CHARSET_UTF8));
         msgInner.setQueueId(pointWrapper.getReviveQueueId());
         msgInner.setTags(PopAckConstants.BATCH_ACK_TAG);
         msgInner.setBornTimestamp(System.currentTimeMillis());

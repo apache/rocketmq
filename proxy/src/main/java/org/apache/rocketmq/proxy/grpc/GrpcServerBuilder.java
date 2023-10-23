@@ -41,6 +41,10 @@ public class GrpcServerBuilder {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     protected NettyServerBuilder serverBuilder;
 
+    protected long time = 30;
+
+    protected TimeUnit unit = TimeUnit.SECONDS;
+
     public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port) {
         return new GrpcServerBuilder(executor, port);
     }
@@ -77,6 +81,12 @@ public class GrpcServerBuilder {
             port, bossLoopNum, workerLoopNum, maxInboundMessageSize);
     }
 
+    public GrpcServerBuilder shutdownTime(long time, TimeUnit unit) {
+        this.time = time;
+        this.unit = unit;
+        return this;
+    }
+
     public GrpcServerBuilder addService(BindableService service) {
         this.serverBuilder.addService(service);
         return this;
@@ -93,7 +103,7 @@ public class GrpcServerBuilder {
     }
 
     public GrpcServer build() {
-        return new GrpcServer(this.serverBuilder.build());
+        return new GrpcServer(this.serverBuilder.build(), time, unit);
     }
 
     public GrpcServerBuilder configInterceptor(List<AccessValidator> accessValidators) {
