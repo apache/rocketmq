@@ -30,7 +30,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
     public RocksDBSubscriptionGroupManager(BrokerController brokerController) {
         super(brokerController, false);
-        this.rocksDBConfigManager = new RocksDBConfigManager(this.brokerController.getMessageStoreConfig().getMemTableFlushInterval());
+        this.rocksDBConfigManager = new RocksDBConfigManager(brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
     }
 
     @Override
@@ -53,7 +53,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         SubscriptionGroupConfig oldConfig = this.subscriptionGroupTable.put(groupName, subscriptionGroupConfig);
 
         try {
-            byte[] keyBytes = groupName.getBytes(DataConverter.charset);
+            byte[] keyBytes = groupName.getBytes(DataConverter.CHARSET_UTF8);
             byte[] valueBytes = JSON.toJSONBytes(subscriptionGroupConfig, SerializerFeature.BrowserCompatible);
             this.rocksDBConfigManager.put(keyBytes, keyBytes.length, valueBytes);
         } catch (Exception e) {
@@ -68,7 +68,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         SubscriptionGroupConfig oldConfig = this.subscriptionGroupTable.putIfAbsent(groupName, subscriptionGroupConfig);
         if (oldConfig == null) {
             try {
-                byte[] keyBytes = groupName.getBytes(DataConverter.charset);
+                byte[] keyBytes = groupName.getBytes(DataConverter.CHARSET_UTF8);
                 byte[] valueBytes = JSON.toJSONBytes(subscriptionGroupConfig, SerializerFeature.BrowserCompatible);
                 this.rocksDBConfigManager.put(keyBytes, keyBytes.length, valueBytes);
             } catch (Exception e) {
@@ -82,7 +82,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
     protected SubscriptionGroupConfig removeSubscriptionGroupConfig(String groupName) {
         SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.remove(groupName);
         try {
-            this.rocksDBConfigManager.delete(groupName.getBytes(DataConverter.charset));
+            this.rocksDBConfigManager.delete(groupName.getBytes(DataConverter.CHARSET_UTF8));
         } catch (Exception e) {
             log.error("kv delete sub Failed, {}", subscriptionGroupConfig.toString());
         }
@@ -91,7 +91,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
     @Override
     protected void decode0(byte[] key, byte[] body) {
-        String groupName = new String(key, DataConverter.charset);
+        String groupName = new String(key, DataConverter.CHARSET_UTF8);
         SubscriptionGroupConfig subscriptionGroupConfig = JSON.parseObject(body, SubscriptionGroupConfig.class);
 
         this.subscriptionGroupTable.put(groupName, subscriptionGroupConfig);

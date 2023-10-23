@@ -39,7 +39,7 @@ public class TieredStoreTopicBlackListFilter implements TieredStoreTopicFilter {
     }
 
     @Override
-    public void addTopicToWhiteList(String topicName) {
+    public void addTopicToBlackList(String topicName) {
         this.topicBlackSet.add(topicName);
     }
 }

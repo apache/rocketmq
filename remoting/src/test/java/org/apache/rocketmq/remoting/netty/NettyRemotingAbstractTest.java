@@ -39,8 +39,18 @@ public class NettyRemotingAbstractTest {
         final Semaphore semaphore = new Semaphore(0);
         ResponseFuture responseFuture = new ResponseFuture(null, 1, 3000, new InvokeCallback() {
             @Override
-            public void operationComplete(final ResponseFuture responseFuture) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 assertThat(semaphore.availablePermits()).isEqualTo(0);
+            }
+
+            @Override
+            public void operationFail(Throwable throwable) {
+
             }
         }, new SemaphoreReleaseOnlyOnce(semaphore));
 
@@ -75,8 +85,18 @@ public class NettyRemotingAbstractTest {
         final Semaphore semaphore = new Semaphore(0);
         ResponseFuture responseFuture = new ResponseFuture(null, 1, 3000, new InvokeCallback() {
             @Override
-            public void operationComplete(final ResponseFuture responseFuture) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 assertThat(semaphore.availablePermits()).isEqualTo(0);
+            }
+
+            @Override
+            public void operationFail(Throwable throwable) {
+
             }
         }, new SemaphoreReleaseOnlyOnce(semaphore));
 
@@ -98,7 +118,18 @@ public class NettyRemotingAbstractTest {
         // mock timeout
         ResponseFuture responseFuture = new ResponseFuture(null, dummyId, -1000, new InvokeCallback() {
             @Override
-            public void operationComplete(final ResponseFuture responseFuture) {
+            public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
+
+            }
+
+            @Override
+            public void operationFail(Throwable throwable) {
+
             }
         }, null);
         remotingAbstract.responseTable.putIfAbsent(dummyId, responseFuture);
@@ -111,7 +142,22 @@ public class NettyRemotingAbstractTest {
         final Semaphore semaphore = new Semaphore(0);
         RemotingCommand request = RemotingCommand.createRequestCommand(1, null);
         ResponseFuture responseFuture = new ResponseFuture(null, 1, request, 3000,
-            responseFuture1 -> assertThat(semaphore.availablePermits()).isEqualTo(0), new SemaphoreReleaseOnlyOnce(semaphore));
+            new InvokeCallback() {
+                @Override
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
+                    assertThat(semaphore.availablePermits()).isEqualTo(0);
+                }
+
+                @Override
+                public void operationFail(Throwable throwable) {
+
+                }
+            }, new SemaphoreReleaseOnlyOnce(semaphore));
 
         remotingAbstract.responseTable.putIfAbsent(1, responseFuture);
         RemotingCommand response = RemotingCommand.createResponseCommand(0, "Foo");

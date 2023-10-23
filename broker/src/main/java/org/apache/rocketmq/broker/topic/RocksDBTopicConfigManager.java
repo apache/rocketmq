@@ -30,7 +30,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
 
     public RocksDBTopicConfigManager(BrokerController brokerController) {
         super(brokerController, false);
-        this.rocksDBConfigManager = new RocksDBConfigManager(this.brokerController.getMessageStoreConfig().getMemTableFlushInterval());
+        this.rocksDBConfigManager = new RocksDBConfigManager(brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
     }
 
     @Override
@@ -49,7 +49,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
 
     @Override
     protected void decode0(byte[] key, byte[] body) {
-        String topicName = new String(key, DataConverter.charset);
+        String topicName = new String(key, DataConverter.CHARSET_UTF8);
         TopicConfig topicConfig = JSON.parseObject(body, TopicConfig.class);
 
         this.topicConfigTable.put(topicName, topicConfig);
@@ -66,7 +66,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         String topicName = topicConfig.getTopicName();
         TopicConfig oldTopicConfig = this.topicConfigTable.put(topicName, topicConfig);
         try {
-            byte[] keyBytes = topicName.getBytes(DataConverter.charset);
+            byte[] keyBytes = topicName.getBytes(DataConverter.CHARSET_UTF8);
             byte[] valueBytes = JSON.toJSONBytes(topicConfig, SerializerFeature.BrowserCompatible);
             this.rocksDBConfigManager.put(keyBytes, keyBytes.length, valueBytes);
         } catch (Exception e) {
@@ -79,7 +79,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
     protected TopicConfig removeTopicConfig(String topicName) {
         TopicConfig topicConfig = this.topicConfigTable.remove(topicName);
         try {
-            this.rocksDBConfigManager.delete(topicName.getBytes(DataConverter.charset));
+            this.rocksDBConfigManager.delete(topicName.getBytes(DataConverter.CHARSET_UTF8));
         } catch (Exception e) {
             log.error("kv remove topic Failed, {}", topicConfig.toString());
         }
