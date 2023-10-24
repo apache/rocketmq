@@ -40,13 +40,6 @@ import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.metrics.internal.SdkMeterProviderUtil;
 import io.opentelemetry.sdk.resources.Resource;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -70,6 +63,14 @@ import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant;
 import org.slf4j.bridge.SLF4JBridgeHandler;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.AGGREGATION_DELTA;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_COMMIT_MESSAGES_TOTAL;
@@ -370,6 +371,15 @@ public class BrokerMetricsManager {
             2d * 1024 * 1024, //2MB
             4d * 1024 * 1024 //4MB
         );
+
+        List<Double> commitLatencyBuckets = Arrays.asList(
+                1d * 1 * 1 * 5, //5s
+                1d * 1 * 1 * 60, //1min
+                1d * 1 * 10 * 60, //10min
+                1d * 1 * 60 * 60, //1h
+                1d * 12 * 60 * 60, //12h
+                1d * 24 * 60 * 60 //24h
+        );
         InstrumentSelector messageSizeSelector = InstrumentSelector.builder()
             .setType(InstrumentType.HISTOGRAM)
             .setName(HISTOGRAM_MESSAGE_SIZE)
@@ -379,6 +389,16 @@ public class BrokerMetricsManager {
         // To config the cardinalityLimit for openTelemetry metrics exporting.
         SdkMeterProviderUtil.setCardinalityLimit(messageSizeViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
         providerBuilder.registerView(messageSizeSelector, messageSizeViewBuilder.build());
+
+        InstrumentSelector commitLatencySelector = InstrumentSelector.builder()
+            .setType(InstrumentType.HISTOGRAM)
+            .setName(HISTOGRAM_FINISH_MSG_LATENCY)
+            .build();
+        ViewBuilder commitLatencyViewBuilder = View.builder()
+            .setAggregation(Aggregation.explicitBucketHistogram(commitLatencyBuckets));
+        // To config the cardinalityLimit for openTelemetry metrics exporting.
+        SdkMeterProviderUtil.setCardinalityLimit(commitLatencyViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+        providerBuilder.registerView(commitLatencySelector, commitLatencyViewBuilder.build());
 
         for (Pair<InstrumentSelector, ViewBuilder> selectorViewPair : RemotingMetricsManager.getMetricsView()) {
             ViewBuilder viewBuilder = selectorViewPair.getObject2();
