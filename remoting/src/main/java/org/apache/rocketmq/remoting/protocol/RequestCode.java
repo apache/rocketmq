@@ -80,6 +80,9 @@ public class RequestCode {
 
     public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG = 53;
 
+    @Deprecated
+    public static final int GET_BROKER_CLUSTER_ACL_CONFIG = 54;
+
     public static final int GET_TIMER_CHECK_POINT = 60;
 
     public static final int GET_TIMER_METRICS = 61;
