@@ -44,6 +44,11 @@ public class BrokerContainerConfig {
      */
     private long fetchNamesrvAddrInterval = 10 * 1000;
 
+    /**
+     * The interval to update namesrv addr, default value is 120 second
+     */
+    private long updateNamesrvAddrInterval = 60 * 2 * 1000;
+
     public String getRocketmqHome() {
         return rocketmqHome;
     }
@@ -94,5 +99,13 @@ public class BrokerContainerConfig {
     
     public void setFetchNamesrvAddrInterval(final long fetchNamesrvAddrInterval) {
         this.fetchNamesrvAddrInterval = fetchNamesrvAddrInterval;
+    }
+
+    public long getUpdateNamesrvAddrInterval() {
+        return updateNamesrvAddrInterval;
+    }
+
+    public void setUpdateNamesrvAddrInterval(long updateNamesrvAddrInterval) {
+        this.updateNamesrvAddrInterval = updateNamesrvAddrInterval;
     }
 }
