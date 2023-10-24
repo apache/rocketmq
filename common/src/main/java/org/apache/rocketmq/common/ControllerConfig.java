@@ -209,7 +209,7 @@ public class ControllerConfig {
         this.metricsExporterType = metricsExporterType;
     }
 
-    // support read from config file using org.apache.rocketmq.common.MixAll.properties2Object
+    // support read from config file using MixAll.properties2Object
     public void setMetricsExporterType(String metricsExporterType) {
         this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
     }
