@@ -295,8 +295,12 @@ public class TimerMessageStore {
 
         // Correction based consume queue
         if (currQueueOffset < cq.getMinOffsetInQueue()) {
+            LOGGER.warn("Timer currQueueOffset:{} is smaller than minOffsetInQueue:{}",
+                currQueueOffset, cq.getMinOffsetInQueue());
             currQueueOffset = cq.getMinOffsetInQueue();
         } else if (currQueueOffset > cq.getMaxOffsetInQueue()) {
+            LOGGER.warn("Timer currQueueOffset:{} is larger than maxOffsetInQueue:{}",
+                currQueueOffset, cq.getMaxOffsetInQueue());
             currQueueOffset = cq.getMaxOffsetInQueue();
         }
 
