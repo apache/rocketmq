@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
+
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.StoreType;

@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.store;
 
-import com.sun.jna.NativeLong;
-import com.sun.jna.Pointer;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -35,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import com.sun.jna.NativeLong;
+import com.sun.jna.Pointer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
@@ -61,6 +61,7 @@ import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
+
 import sun.nio.ch.DirectBuffer;
 
 /**
