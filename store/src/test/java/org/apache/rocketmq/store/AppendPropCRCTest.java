@@ -106,13 +106,13 @@ public class AppendPropCRCTest {
             AppendMessageResult allresult = callback.doAppend(0, buff, 1024 * 10, messageExtBrokerInner, null);
             assertEquals(AppendMessageStatus.PUT_OK, allresult.getStatus());
         }
-        // 未修改消息时期望通过
+        // Expected to pass when message is not modified
         buff.flip();
         for (int i = 0; i < msgNum - 1; i++) {
             DispatchRequest request = commitLog.checkMessageAndReturnSize(buff, true, false);
             assertTrue(request.isSuccess());
         }
-        // 修改最后一条消息的properties，期望校验失败
+        // Modify the properties of the last message and expect the verification to fail.
         int idx = buff.limit() - (propertiesLen / 2);
         buff.put(idx, (byte) (buff.get(idx) + 1));
         DispatchRequest request = commitLog.checkMessageAndReturnSize(buff, true, false);
@@ -185,13 +185,13 @@ public class AppendPropCRCTest {
             assertEquals(queueOffset++, decodeMsgs.get(i).getQueueOffset());
         }
 
-        // 未修改消息时期望通过
+        // Expected to pass when message is not modified
         buff.flip();
         for (int i = 0; i < messages.size() - 1; i++) {
             DispatchRequest request = commitLog.checkMessageAndReturnSize(buff, true, false);
             assertTrue(request.isSuccess());
         }
-        // 修改最后一条消息的properties，期望校验失败
+        // Modify the properties of the last message and expect the verification to fail.
         int idx = buff.limit() - (propertiesLen / 2);
         buff.put(idx, (byte) (buff.get(idx) + 1));
         DispatchRequest request = commitLog.checkMessageAndReturnSize(buff, true, false);
