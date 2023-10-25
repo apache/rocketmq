@@ -484,7 +484,7 @@ public class PlainPermissionManager {
             return false;
         }
 
-        if (!fileName.startsWith(fileHome)) {
+        if (!file.getAbsolutePath().startsWith(fileHome)) {
             log.error("Parameter value " + fileName + " is not in the directory rocketmq.home.dir " + fileHome);
             return false;
         }

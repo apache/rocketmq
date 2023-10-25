@@ -204,7 +204,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
         final PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
         final PopMessageRequestHeader requestHeader =
-            (PopMessageRequestHeader) request.decodeCommandCustomHeader(PopMessageRequestHeader.class);
+            (PopMessageRequestHeader) request.decodeCommandCustomHeader(PopMessageRequestHeader.class, true);
         StringBuilder startOffsetInfo = new StringBuilder(64);
         StringBuilder msgOffsetInfo = new StringBuilder(64);
         StringBuilder orderCountInfo = null;

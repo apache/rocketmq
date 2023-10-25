@@ -29,7 +29,6 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.acl.ClusterAclConfigVersionListSubCommand;
 import org.apache.rocketmq.tools.command.acl.DeleteAccessConfigSubCommand;
-import org.apache.rocketmq.tools.command.acl.GetAccessConfigSubCommand;
 import org.apache.rocketmq.tools.command.acl.UpdateAccessConfigSubCommand;
 import org.apache.rocketmq.tools.command.acl.UpdateGlobalWhiteAddrSubCommand;
 import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommad;
@@ -248,7 +247,6 @@ public class MQAdminStartup {
         initCommand(new DeleteAccessConfigSubCommand());
         initCommand(new ClusterAclConfigVersionListSubCommand());
         initCommand(new UpdateGlobalWhiteAddrSubCommand());
-        initCommand(new GetAccessConfigSubCommand());
 
         initCommand(new UpdateStaticTopicSubCommand());
         initCommand(new RemappingStaticTopicSubCommand());

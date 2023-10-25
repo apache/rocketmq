@@ -24,7 +24,6 @@ import java.util.Set;
 import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
@@ -108,9 +107,6 @@ public interface MQAdminExt extends MQAdmin {
 
     ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
         final String addr) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    AclConfig examineBrokerClusterAclConfig(final String addr) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
     void createAndUpdateSubscriptionGroupConfig(final String addr,
