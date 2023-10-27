@@ -473,7 +473,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
-                this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+                this.mQClientFactory.updateTopicRouteInfoFromNameServerWithoutException(topic);
             }
         }
     }

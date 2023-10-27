@@ -438,7 +438,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             }
         }
 
-        private Set<String> tryGetMessageQueueBrokerSet(DefaultMQProducerImpl producer, String topic) {
+        private Set<String> tryGetMessageQueueBrokerSet(DefaultMQProducerImpl producer, String topic) throws MQClientException {
             Set<String> brokerSet = new HashSet<>();
             TopicPublishInfo topicPublishInfo = producer.getTopicPublishInfoTable().get(topic);
             if (null == topicPublishInfo || !topicPublishInfo.ok()) {

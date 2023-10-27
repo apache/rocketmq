@@ -843,7 +843,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             null).setResponseCode(ClientErrorCode.NOT_FOUND_TOPIC_EXCEPTION);
     }
 
-    private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) {
+    private TopicPublishInfo tryToFindTopicPublishInfo(final String topic) throws MQClientException {
         TopicPublishInfo topicPublishInfo = this.topicPublishInfoTable.get(topic);
         if (null == topicPublishInfo || !topicPublishInfo.ok()) {
             this.topicPublishInfoTable.putIfAbsent(topic, new TopicPublishInfo());
@@ -1722,7 +1722,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
     }
 
-    private void prepareSendRequest(final Message msg, long timeout) {
+    private void prepareSendRequest(final Message msg, long timeout) throws MQClientException {
         String correlationId = CorrelationIdUtil.createCorrelationId();
         String requestClientId = this.getMqClientFactory().getClientId();
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_CORRELATION_ID, correlationId);

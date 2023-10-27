@@ -372,7 +372,7 @@ public class MQClientInstance {
         return clientId;
     }
 
-    public void updateTopicRouteInfoFromNameServer() {
+    public void updateTopicRouteInfoFromNameServer() throws MQClientException {
         Set<String> topicList = new HashSet<>();
 
         // Consumer
@@ -402,7 +402,7 @@ public class MQClientInstance {
         }
 
         for (String topic : topicList) {
-            this.updateTopicRouteInfoFromNameServer(topic);
+            this.updateTopicRouteInfoFromNameServerWithoutException(topic);
         }
     }
 
@@ -562,8 +562,16 @@ public class MQClientInstance {
         }
     }
 
-    public boolean updateTopicRouteInfoFromNameServer(final String topic) {
+    public boolean updateTopicRouteInfoFromNameServer(final String topic) throws MQClientException {
         return updateTopicRouteInfoFromNameServer(topic, false, null);
+    }
+
+    public boolean updateTopicRouteInfoFromNameServerWithoutException(final String topic) {
+        try {
+            return updateTopicRouteInfoFromNameServer(topic, false, null);
+        } catch (MQClientException e) {
+            return false;
+        }
     }
 
     private boolean isBrokerAddrExistInTopicRouteTable(final String addr) {
@@ -711,7 +719,7 @@ public class MQClientInstance {
     }
 
     public boolean updateTopicRouteInfoFromNameServer(final String topic, boolean isDefault,
-        DefaultMQProducer defaultMQProducer) {
+        DefaultMQProducer defaultMQProducer) throws MQClientException {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
@@ -785,6 +793,7 @@ public class MQClientInstance {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && !topic.equals(TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC)) {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     }
+                    throw e;
                 } catch (RemotingException e) {
                     log.error("updateTopicRouteInfoFromNameServer Exception", e);
                     throw new IllegalStateException(e);
@@ -1128,7 +1137,11 @@ public class MQClientInstance {
     public List<String> findConsumerIdList(final String topic, final String group) {
         String brokerAddr = this.findBrokerAddrByTopic(topic);
         if (null == brokerAddr) {
-            this.updateTopicRouteInfoFromNameServer(topic);
+            try {
+                this.updateTopicRouteInfoFromNameServer(topic);
+            } catch (MQClientException e) {
+                return null;
+            }
             brokerAddr = this.findBrokerAddrByTopic(topic);
         }
 
@@ -1145,7 +1158,7 @@ public class MQClientInstance {
 
     public Set<MessageQueueAssignment> queryAssignment(final String topic, final String consumerGroup,
         final String strategyName, final MessageModel messageModel, int timeout)
-        throws RemotingException, InterruptedException, MQBrokerException {
+        throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         String brokerAddr = this.findBrokerAddrByTopic(topic);
         if (null == brokerAddr) {
             this.updateTopicRouteInfoFromNameServer(topic);
@@ -1323,12 +1336,4 @@ public class MQClientInstance {
         return clientConfig;
     }
 
-    public TopicRouteData queryTopicRouteData(String topic) {
-        TopicRouteData data = this.getAnExistTopicRouteData(topic);
-        if (data == null) {
-            this.updateTopicRouteInfoFromNameServer(topic);
-            data = this.getAnExistTopicRouteData(topic);
-        }
-        return data;
-    }
 }

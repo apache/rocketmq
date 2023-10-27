@@ -889,7 +889,7 @@ public class DefaultLitePullConsumerTest {
     }
 
     private void suppressUpdateTopicRouteInfoFromNameServer(
-        DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException {
+        DefaultLitePullConsumer litePullConsumer) throws IllegalAccessException, MQClientException {
         if (litePullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
             litePullConsumer.changeInstanceNameToPID();
         }
