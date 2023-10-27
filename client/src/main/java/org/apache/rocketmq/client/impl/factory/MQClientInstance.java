@@ -372,7 +372,7 @@ public class MQClientInstance {
         return clientId;
     }
 
-    public void updateTopicRouteInfoFromNameServer() throws MQClientException {
+    public void updateTopicRouteInfoFromNameServer() {
         Set<String> topicList = new HashSet<>();
 
         // Consumer
