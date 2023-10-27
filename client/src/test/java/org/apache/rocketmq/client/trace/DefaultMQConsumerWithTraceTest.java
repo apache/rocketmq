@@ -147,7 +147,7 @@ public class DefaultMQConsumerWithTraceTest {
         pushConsumer.changeInstanceNameToPID();
         mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true)));
         factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
-        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServerWithoutException(anyString());
 
         rebalancePushImpl = spy(new RebalancePushImpl(pushConsumer.getDefaultMQPushConsumerImpl()));
         Field field = DefaultMQPushConsumerImpl.class.getDeclaredField("rebalanceImpl");
