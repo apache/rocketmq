@@ -70,7 +70,7 @@ public class RebalancePushImplTest {
     }
 
     @Test
-    public void testMessageQueueChanged_CountThreshold() {
+    public void testMessageQueueChanged_CountThreshold() throws MQClientException {
         RebalancePushImpl rebalancePush = new RebalancePushImpl(consumerGroup, MessageModel.CLUSTERING,
             new AllocateMessageQueueAveragely(), mqClientInstance, defaultMQPushConsumer);
         init(rebalancePush);
@@ -100,7 +100,7 @@ public class RebalancePushImplTest {
         rebalancePush.messageQueueChanged(topic, allocateResultSet, allocateResultSet);
     }
 
-    private void init(final RebalancePushImpl rebalancePush) {
+    private void init(final RebalancePushImpl rebalancePush) throws MQClientException {
         rebalancePush.getSubscriptionInner().putIfAbsent(topic, new SubscriptionData());
 
         rebalancePush.subscriptionInner.putIfAbsent(topic, new SubscriptionData());
@@ -111,7 +111,7 @@ public class RebalancePushImplTest {
     }
 
     @Test
-    public void testMessageQueueChanged_SizeThreshold() {
+    public void testMessageQueueChanged_SizeThreshold() throws MQClientException {
         RebalancePushImpl rebalancePush = new RebalancePushImpl(consumerGroup, MessageModel.CLUSTERING,
             new AllocateMessageQueueAveragely(), mqClientInstance, defaultMQPushConsumer);
         init(rebalancePush);

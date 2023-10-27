@@ -314,7 +314,7 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         MQClientInstance mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(litePullConsumer, (RPCHook) FieldUtils.readDeclaredField(defaultLitePullConsumerImpl, "rpcHook", true)));
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
         factoryTable.put(litePullConsumer.buildMQClientId(), mQClientFactory);
-        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServerWithoutException(anyString());
     }
 
 }

@@ -296,7 +296,7 @@ public abstract class RebalanceImpl {
         return subscriptionInner;
     }
 
-    private boolean rebalanceByTopic(final String topic, final boolean isOrder) {
+    private boolean rebalanceByTopic(final String topic, final boolean isOrder) throws MQClientException {
         boolean balanced = true;
         switch (messageModel) {
             case BROADCASTING: {

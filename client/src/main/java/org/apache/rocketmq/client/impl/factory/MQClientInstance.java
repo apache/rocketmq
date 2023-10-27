@@ -1134,14 +1134,10 @@ public class MQClientInstance {
         return 0;
     }
 
-    public List<String> findConsumerIdList(final String topic, final String group) {
+    public List<String> findConsumerIdList(final String topic, final String group) throws MQClientException {
         String brokerAddr = this.findBrokerAddrByTopic(topic);
         if (null == brokerAddr) {
-            try {
-                this.updateTopicRouteInfoFromNameServer(topic);
-            } catch (MQClientException e) {
-                return null;
-            }
+            this.updateTopicRouteInfoFromNameServer(topic);
             brokerAddr = this.findBrokerAddrByTopic(topic);
         }
 
