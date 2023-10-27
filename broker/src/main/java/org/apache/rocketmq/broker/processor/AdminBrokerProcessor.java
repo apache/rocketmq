@@ -441,7 +441,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         if (topicConfig.equals(this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic))) {
-            LOGGER.info("Broker receive request to update or create topic={}, but topic exists, so idempotent, caller address={}",
+            LOGGER.info("Broker receive request to update or create topic={}, but topicConfig has  no changes , so idempotent, caller address={}",
                 requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
             response.setCode(ResponseCode.SUCCESS);
             return response;
