@@ -30,7 +30,7 @@ public class TieredStoreTopicBlackListFilterTest {
 
         String topicName = "WhiteTopic";
         Assert.assertFalse(topicFilter.filterTopic(topicName));
-        topicFilter.addTopicToWhiteList(topicName);
+        topicFilter.addTopicToBlackList(topicName);
         Assert.assertTrue(topicFilter.filterTopic(topicName));
     }
 }

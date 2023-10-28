@@ -15,28 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.protocol.header;
+package org.apache.rocketmq.remoting.netty;
 
-import java.util.List;
-import org.apache.rocketmq.common.PlainAccessConfig;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.local.LocalChannel;
 
-public class GetBrokerClusterAclConfigResponseHeader implements CommandCustomHeader {
-
-    @CFNotNull
-    private List<PlainAccessConfig> plainAccessConfigs;
-
+public class MockChannel extends LocalChannel {
     @Override
-    public void checkFields() throws RemotingCommandException {
-    }
-
-    public List<PlainAccessConfig> getPlainAccessConfigs() {
-        return plainAccessConfigs;
-    }
-
-    public void setPlainAccessConfigs(List<PlainAccessConfig> plainAccessConfigs) {
-        this.plainAccessConfigs = plainAccessConfigs;
+    public ChannelFuture writeAndFlush(Object msg) {
+        return new MockChannelPromise(MockChannel.this);
     }
 }
