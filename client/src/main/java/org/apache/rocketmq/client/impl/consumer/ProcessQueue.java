@@ -142,6 +142,7 @@ public class ProcessQueue {
                         msgSize.addAndGet(msg.getBody().length);
                     }
                 }
+                // 为什么不原子自增呢？
                 msgCount.addAndGet(validMsgCnt);
 
                 if (!msgTreeMap.isEmpty() && !this.consuming) {
@@ -155,6 +156,7 @@ public class ProcessQueue {
                     if (property != null) {
                         long accTotal = Long.parseLong(property) - messageExt.getQueueOffset();
                         if (accTotal > 0) {
+                            // 消息accCnt？ 当前拉取消息的总数
                             this.msgAccCnt = accTotal;
                         }
                     }

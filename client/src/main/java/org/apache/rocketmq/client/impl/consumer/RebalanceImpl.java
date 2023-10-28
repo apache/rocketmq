@@ -519,6 +519,7 @@ public abstract class RebalanceImpl {
                 }
 
                 this.removeDirtyOffset(mq);
+                // 传了topic，却都没有使用
                 ProcessQueue pq = createProcessQueue(topic);
                 pq.setLocked(true);
                 long nextOffset = this.computePullFromWhere(mq);

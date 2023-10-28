@@ -438,7 +438,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             }
 
             subscriptionData = consumerGroupInfo.findSubscriptionData(requestHeader.getTopic());
-            if (null == subscriptionData) {
+            if (null == subscriptionData){
                 LOGGER.warn("the consumer's subscription not exist, group: {}, topic:{}", requestHeader.getConsumerGroup(), requestHeader.getTopic());
                 response.setCode(ResponseCode.SUBSCRIPTION_NOT_EXIST);
                 response.setRemark("the consumer's subscription not exist" + FAQUrl.suggestTodo(FAQUrl.SAME_GROUP_DIFFERENT_TOPIC));
