@@ -106,8 +106,8 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
             final Map<String, JSONObject> jsonConfig = new HashMap<>();
             final Map<String, JSONObject> configTable = new HashMap<>();
             iterateKvStore(kvStore, (key, value) -> {
-                    final String configKey = new String(key, DataConverter.charset);
-                    final String configValue = new String(value, DataConverter.charset);
+                    final String configKey = new String(key, DataConverter.CHARSET_UTF8);
+                    final String configValue = new String(value, DataConverter.CHARSET_UTF8);
                     final JSONObject jsonObject = JSONObject.parseObject(configValue);
                     configTable.put(configKey, jsonObject);
                 }
@@ -120,8 +120,8 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
         } else {
             AtomicLong count = new AtomicLong(0);
             iterateKvStore(kvStore, (key, value) -> {
-                final String configKey = new String(key, DataConverter.charset);
-                final String configValue = new String(value, DataConverter.charset);
+                final String configKey = new String(key, DataConverter.CHARSET_UTF8);
+                final String configValue = new String(value, DataConverter.CHARSET_UTF8);
                 System.out.printf("%d, Key: %s, Value: %s%n", count.incrementAndGet(), configKey, configValue);
             });
         }

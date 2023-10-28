@@ -44,6 +44,7 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
         "@maven//:io_opentelemetry_opentelemetry_exporter_prometheus",
         "@maven//:io_opentelemetry_opentelemetry_exporter_logging",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_logging_otlp",
         "@maven//:io_opentelemetry_opentelemetry_sdk",
         "@maven//:io_opentelemetry_opentelemetry_sdk_common",
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
@@ -53,7 +54,7 @@ java_library(
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
         "@maven//:org_slf4j_jul_to_slf4j",
         "@maven//:io_github_aliyunmq_rocketmq_shaded_slf4j_api_bridge",
-        "@maven//:io_github_aliyunmq_rocketmq_rocksdb",
+        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
         "@maven//:net_java_dev_jna_jna",
     ],
 )

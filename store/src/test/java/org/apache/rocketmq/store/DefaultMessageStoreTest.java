@@ -428,9 +428,10 @@ public class DefaultMessageStoreTest {
 
     private long getStoreTime(CqUnit cqUnit) {
         try {
-            Method getStoreTime = getDefaultMessageStore().getClass().getDeclaredMethod("getStoreTime", CqUnit.class);
+            Class abstractConsumeQueueStore = getDefaultMessageStore().getQueueStore().getClass().getSuperclass();
+            Method getStoreTime = abstractConsumeQueueStore.getDeclaredMethod("getStoreTime", CqUnit.class);
             getStoreTime.setAccessible(true);
-            return (long) getStoreTime.invoke(getDefaultMessageStore(), cqUnit);
+            return (long) getStoreTime.invoke(getDefaultMessageStore().getQueueStore(), cqUnit);
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             throw new RuntimeException(e);
         }

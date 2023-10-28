@@ -16,17 +16,14 @@
  */
 package org.apache.rocketmq.tieredstore;
 
-import com.google.common.base.Stopwatch;
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import com.google.common.base.Stopwatch;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
@@ -54,6 +51,12 @@ import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 
 public class TieredMessageStore extends AbstractPluginMessageStore {
 
@@ -147,6 +150,11 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     public CompletableFuture<GetMessageResult> getMessageAsync(String group, String topic,
         int queueId, long offset, int maxMsgNums, MessageFilter messageFilter) {
 
+        // For system topic, force reading from local store
+        if (TieredStoreUtil.isSystemTopic(topic) || PopAckConstants.isStartWithRevivePrefix(topic)) {
+            return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
+        }
+
         if (fetchFromCurrentStore(topic, queueId, offset, maxMsgNums)) {
             logger.trace("GetMessageAsync from current store, topic: {}, queue: {}, offset: {}", topic, queueId, offset);
         } else {
@@ -158,6 +166,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         return fetcher
             .getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter)
             .thenApply(result -> {
+
                 Attributes latencyAttributes = TieredStoreMetricsManager.newAttributesBuilder()
                     .put(TieredStoreMetricsConstant.LABEL_OPERATION, TieredStoreMetricsConstant.OPERATION_API_GET_MESSAGE)
                     .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
@@ -166,8 +175,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
 
                 if (result.getStatus() == GetMessageStatus.OFFSET_FOUND_NULL ||
-                    result.getStatus() == GetMessageStatus.OFFSET_OVERFLOW_ONE ||
-                    result.getStatus() == GetMessageStatus.OFFSET_OVERFLOW_BADLY) {
+                    result.getStatus() == GetMessageStatus.NO_MATCHED_LOGIC_QUEUE) {
 
                     if (next.checkInStoreByConsumeOffset(topic, queueId, offset)) {
                         TieredStoreMetricsManager.fallbackTotal.add(1, latencyAttributes);
@@ -178,14 +186,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                     }
                 }
 
-                // Fetch system topic data from the broker when using the force level.
-                if (result.getStatus() == GetMessageStatus.NO_MATCHED_LOGIC_QUEUE) {
-                    if (TieredStoreUtil.isSystemTopic(topic) || PopAckConstants.isStartWithRevivePrefix(topic)) {
-                        return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
-                    }
-                }
-
                 if (result.getStatus() != GetMessageStatus.FOUND &&
+                    result.getStatus() != GetMessageStatus.NO_MATCHED_LOGIC_QUEUE &&
                     result.getStatus() != GetMessageStatus.OFFSET_OVERFLOW_ONE &&
                     result.getStatus() != GetMessageStatus.OFFSET_OVERFLOW_BADLY) {
                     logger.warn("GetMessageAsync not found and message is not in next store, result: {}, " +
@@ -206,10 +208,14 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 if (minOffsetInQueue >= 0 && minOffsetInQueue < result.getMinOffset()) {
                     result.setMinOffset(minOffsetInQueue);
                 }
-                long maxOffsetInQueue = next.getMaxOffsetInQueue(topic, queueId);
-                if (maxOffsetInQueue >= 0 && maxOffsetInQueue > result.getMaxOffset()) {
-                    result.setMaxOffset(maxOffsetInQueue);
-                }
+
+                // In general, the local cq offset is slightly greater than the commit offset in read message,
+                // so there is no need to update the maximum offset to the local cq offset here,
+                // otherwise it will cause repeated consumption after next begin offset over commit offset.
+
+                logger.trace("GetMessageAsync result, group: {}, topic: {}, queueId: {}, offset: {}, count:{}, {}",
+                    group, topic, queueId, offset, maxMsgNums, result);
+
                 return result;
             }).exceptionally(e -> {
                 logger.error("GetMessageAsync from tiered store failed", e);

@@ -92,6 +92,7 @@ maven_install(
         "io.opentelemetry:opentelemetry-exporter-prometheus:1.29.0-alpha",
         "io.opentelemetry:opentelemetry-exporter-logging:1.29.0",
         "io.opentelemetry:opentelemetry-sdk:1.29.0",
+        "io.opentelemetry:opentelemetry-exporter-logging-otlp:1.29.0",
         "com.squareup.okio:okio-jvm:3.0.0",
         "io.opentelemetry:opentelemetry-api:1.29.0",
         "io.opentelemetry:opentelemetry-sdk-metrics:1.29.0",
@@ -105,7 +106,7 @@ maven_install(
         "com.fasterxml.jackson.core:jackson-databind:2.13.4.2",
         "com.adobe.testing:s3mock-junit4:2.11.0",
         "io.github.aliyunmq:rocketmq-grpc-netty-codec-haproxy:1.0.0",
-        "io.github.aliyunmq:rocketmq-rocksdb:1.0.3",
+        "org.apache.rocketmq:rocketmq-rocksdb:1.0.2",
     ],
     fetch_sources = True,
     repositories = [

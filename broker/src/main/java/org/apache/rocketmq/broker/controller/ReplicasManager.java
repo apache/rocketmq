@@ -224,7 +224,7 @@ public class ReplicasManager {
 
     public synchronized void changeBrokerRole(final Long newMasterBrokerId, final String newMasterAddress,
         final Integer newMasterEpoch,
-        final Integer syncStateSetEpoch, final Set<Long> syncStateSet) {
+        final Integer syncStateSetEpoch, final Set<Long> syncStateSet) throws Exception {
         if (newMasterBrokerId != null && newMasterEpoch > this.masterEpoch) {
             if (newMasterBrokerId.equals(this.brokerControllerId)) {
                 changeToMaster(newMasterEpoch, syncStateSetEpoch, syncStateSet);
@@ -234,7 +234,7 @@ public class ReplicasManager {
         }
     }
 
-    public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch, final Set<Long> syncStateSet) {
+    public void changeToMaster(final int newMasterEpoch, final int syncStateSetEpoch, final Set<Long> syncStateSet) throws Exception {
         synchronized (this) {
             if (newMasterEpoch > this.masterEpoch) {
                 LOGGER.info("Begin to change to master, brokerName:{}, replicas:{}, new Epoch:{}", this.brokerConfig.getBrokerName(), this.brokerAddress, newMasterEpoch);

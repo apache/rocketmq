@@ -270,6 +270,12 @@ public class MessageStoreConfig {
      */
     private boolean autoMessageVersionOnTopicLen = true;
 
+    /**
+     * It cannot be changed after the broker is started.
+     * Modifications need to be restarted to take effect.
+     */
+    private boolean enabledAppendPropCRC = false;
+    private boolean forceVerifyPropCRC = false;
     private int travelCqFileNumWhenGetMessage = 1;
     // Sleep interval between to corrections
     private int correctLogicMinOffsetSleepInterval = 1;
@@ -397,11 +403,21 @@ public class MessageStoreConfig {
     private int batchDispatchRequestThreadPoolNums = 16;
 
     // rocksdb mode
+    private long cleanRocksDBDirtyCQIntervalMin = 60;
+    private long statRocksDBCQIntervalSec = 10;
+    private long memTableFlushIntervalMs = 60 * 60 * 1000L;
     private boolean realTimePersistRocksDBConfig = true;
-    private long memTableFlushInterval = 60 * 60 * 1000L;
     private boolean enableRocksDBLog = false;
 
     private int topicQueueLockNum = 32;
+
+    public boolean isEnabledAppendPropCRC() {
+        return enabledAppendPropCRC;
+    }
+
+    public void setEnabledAppendPropCRC(boolean enabledAppendPropCRC) {
+        this.enabledAppendPropCRC = enabledAppendPropCRC;
+    }
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -499,6 +515,10 @@ public class MessageStoreConfig {
         this.mappedFileSizeCommitLog = mappedFileSizeCommitLog;
     }
 
+    public boolean isEnableRocksDBStore() {
+        return StoreType.DEFAULT_ROCKSDB.getStoreType().equalsIgnoreCase(this.storeType);
+    }
+
     public String getStoreType() {
         return storeType;
     }
@@ -508,7 +528,6 @@ public class MessageStoreConfig {
     }
 
     public int getMappedFileSizeConsumeQueue() {
-
         int factor = (int) Math.ceil(this.mappedFileSizeConsumeQueue / (ConsumeQueue.CQ_STORE_UNIT_SIZE * 1.0));
         return (int) (factor * ConsumeQueue.CQ_STORE_UNIT_SIZE);
     }
@@ -634,6 +653,15 @@ public class MessageStoreConfig {
     public void setCheckCRCOnRecover(boolean checkCRCOnRecover) {
         this.checkCRCOnRecover = checkCRCOnRecover;
     }
+
+    public boolean isForceVerifyPropCRC() {
+        return forceVerifyPropCRC;
+    }
+
+    public void setForceVerifyPropCRC(boolean forceVerifyPropCRC) {
+        this.forceVerifyPropCRC = forceVerifyPropCRC;
+    }
+
 
     public String getStorePathCommitLog() {
         if (storePathCommitLog == null) {
@@ -1738,12 +1766,28 @@ public class MessageStoreConfig {
         this.realTimePersistRocksDBConfig = realTimePersistRocksDBConfig;
     }
 
-    public long getMemTableFlushInterval() {
-        return memTableFlushInterval;
+    public long getStatRocksDBCQIntervalSec() {
+        return statRocksDBCQIntervalSec;
     }
 
-    public void setMemTableFlushInterval(long memTableFlushInterval) {
-        this.memTableFlushInterval = memTableFlushInterval;
+    public void setStatRocksDBCQIntervalSec(long statRocksDBCQIntervalSec) {
+        this.statRocksDBCQIntervalSec = statRocksDBCQIntervalSec;
+    }
+
+    public long getCleanRocksDBDirtyCQIntervalMin() {
+        return cleanRocksDBDirtyCQIntervalMin;
+    }
+
+    public void setCleanRocksDBDirtyCQIntervalMin(long cleanRocksDBDirtyCQIntervalMin) {
+        this.cleanRocksDBDirtyCQIntervalMin = cleanRocksDBDirtyCQIntervalMin;
+    }
+
+    public long getMemTableFlushIntervalMs() {
+        return memTableFlushIntervalMs;
+    }
+
+    public void setMemTableFlushIntervalMs(long memTableFlushIntervalMs) {
+        this.memTableFlushIntervalMs = memTableFlushIntervalMs;
     }
 
     public boolean isEnableRocksDBLog() {

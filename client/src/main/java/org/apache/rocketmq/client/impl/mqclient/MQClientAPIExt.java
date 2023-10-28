@@ -30,7 +30,6 @@ import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.OffsetNotFoundException;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.client.impl.CommunicationMode;
@@ -47,6 +46,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -106,19 +106,6 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         return false;
     }
 
-    protected static MQClientException processNullResponseErr(ResponseFuture responseFuture) {
-        MQClientException ex;
-        if (!responseFuture.isSendRequestOK()) {
-            ex = new MQClientException("send request failed", responseFuture.getCause());
-        } else if (responseFuture.isTimeout()) {
-            ex = new MQClientException("wait response timeout " + responseFuture.getTimeoutMillis() + "ms",
-                responseFuture.getCause());
-        } else {
-            ex = new MQClientException("unknown reason", responseFuture.getCause());
-        }
-        return ex;
-    }
-
     public CompletableFuture<Void> sendHeartbeatOneway(
         String brokerAddr,
         HeartbeatData heartbeatData,
@@ -146,24 +133,15 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         request.setLanguage(clientConfig.getLanguage());
         request.setBody(heartbeatData.encode());
 
-        CompletableFuture<Integer> future = new CompletableFuture<>();
-        try {
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    if (ResponseCode.SUCCESS == response.getCode()) {
-                        future.complete(response.getVersion());
-                    } else {
-                        future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr));
-                    }
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
-                }
-            });
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-        return future;
+        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
+            CompletableFuture<Integer> future0 = new CompletableFuture<>();
+            if (ResponseCode.SUCCESS == response.getCode()) {
+                future0.complete(response.getVersion());
+            } else {
+                future0.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr));
+            }
+            return future0;
+        });
     }
 
     public CompletableFuture<SendResult> sendMessageAsync(
@@ -179,24 +157,15 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         RemotingCommand request = RemotingCommand.createRequestCommand(code, requestHeaderV2);
         request.setBody(msg.getBody());
 
-        CompletableFuture<SendResult> future = new CompletableFuture<>();
-        try {
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    try {
-                        future.complete(this.processSendResponse(brokerName, msg, response, brokerAddr));
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                    }
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
-                }
-            });
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-        return future;
+        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
+            CompletableFuture<SendResult> future0 = new CompletableFuture<>();
+            try {
+                future0.complete(this.processSendResponse(brokerName, msg, response, brokerAddr));
+            } catch (Exception e) {
+                future0.completeExceptionally(e);
+            }
+            return future0;
+        });
     }
 
     public CompletableFuture<RemotingCommand> sendMessageBackAsync(
@@ -205,21 +174,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         long timeoutMillis
     ) {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
-
-        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
-        try {
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    future.complete(response);
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
-                }
-            });
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-        return future;
+        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis);
     }
 
     public CompletableFuture<PopResult> popMessageAsync(
@@ -367,38 +322,31 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         QueryConsumerOffsetRequestHeader requestHeader,
         long timeoutMillis
     ) {
-        CompletableFuture<Long> future = new CompletableFuture<>();
-        try {
-            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUMER_OFFSET, requestHeader);
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    switch (response.getCode()) {
-                        case ResponseCode.SUCCESS: {
-                            try {
-                                QueryConsumerOffsetResponseHeader responseHeader =
-                                    (QueryConsumerOffsetResponseHeader) response.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
-                                future.complete(responseHeader.getOffset());
-                            } catch (RemotingCommandException e) {
-                                future.completeExceptionally(e);
-                            }
-                            break;
-                        }
-                        case ResponseCode.QUERY_NOT_FOUND: {
-                            future.completeExceptionally(new OffsetNotFoundException(response.getCode(), response.getRemark(), brokerAddr));
-                            break;
-                        }
-                        default:
-                            break;
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.QUERY_CONSUMER_OFFSET, requestHeader);
+        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
+            CompletableFuture<Long> future0 = new CompletableFuture<>();
+            switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    try {
+                        QueryConsumerOffsetResponseHeader responseHeader =
+                            (QueryConsumerOffsetResponseHeader) response.decodeCommandCustomHeader(QueryConsumerOffsetResponseHeader.class);
+                        future0.complete(responseHeader.getOffset());
+                    } catch (RemotingCommandException e) {
+                        future0.completeExceptionally(e);
                     }
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                    break;
                 }
-            });
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-        return future;
+                case ResponseCode.QUERY_NOT_FOUND: {
+                    future0.completeExceptionally(new OffsetNotFoundException(response.getCode(), response.getRemark(), brokerAddr));
+                    break;
+                }
+                default: {
+                    future0.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+                    break;
+                }
+            }
+            return future0;
+        });
     }
 
     public CompletableFuture<Void> updateConsumerOffsetOneWay(
@@ -426,9 +374,14 @@ public class MQClientAPIExt extends MQClientAPIImpl {
 
         CompletableFuture<List<String>> future = new CompletableFuture<>();
         try {
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
+            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
+                @Override
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     switch (response.getCode()) {
                         case ResponseCode.SUCCESS: {
                             if (response.getBody() != null) {
@@ -450,8 +403,11 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                             break;
                     }
                     future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                }
+
+                @Override
+                public void operationFail(Throwable throwable) {
+                    future.completeExceptionally(throwable);
                 }
             });
         } catch (Throwable t) {
@@ -466,9 +422,14 @@ public class MQClientAPIExt extends MQClientAPIImpl {
 
         CompletableFuture<Long> future = new CompletableFuture<>();
         try {
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
+            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
+                @Override
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     if (ResponseCode.SUCCESS == response.getCode()) {
                         try {
                             GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.decodeCommandCustomHeader(GetMaxOffsetResponseHeader.class);
@@ -478,8 +439,11 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                         }
                     }
                     future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                }
+
+                @Override
+                public void operationFail(Throwable throwable) {
+                    future.completeExceptionally(throwable);
                 }
             });
         } catch (Throwable t) {
@@ -494,9 +458,14 @@ public class MQClientAPIExt extends MQClientAPIImpl {
 
         CompletableFuture<Long> future = new CompletableFuture<>();
         try {
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
+            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
+                @Override
+                public void operationComplete(ResponseFuture responseFuture) {
+
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
                     if (ResponseCode.SUCCESS == response.getCode()) {
                         try {
                             GetMinOffsetResponseHeader responseHeader = (GetMinOffsetResponseHeader) response.decodeCommandCustomHeader(GetMinOffsetResponseHeader.class);
@@ -506,8 +475,11 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                         }
                     }
                     future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
+                }
+
+                @Override
+                public void operationFail(Throwable throwable) {
+                    future.completeExceptionally(throwable);
                 }
             });
         } catch (Throwable t) {
@@ -520,57 +492,41 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         long timeoutMillis) {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
 
-        CompletableFuture<Long> future = new CompletableFuture<>();
-        try {
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    if (response.getCode() == ResponseCode.SUCCESS) {
-                        try {
-                            SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
-                            future.complete(responseHeader.getOffset());
-                        } catch (Throwable t) {
-                            future.completeExceptionally(t);
-                        }
-                    }
-                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
+        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
+            CompletableFuture<Long> future0 = new CompletableFuture<>();
+            if (response.getCode() == ResponseCode.SUCCESS) {
+                try {
+                    SearchOffsetResponseHeader responseHeader = (SearchOffsetResponseHeader) response.decodeCommandCustomHeader(SearchOffsetResponseHeader.class);
+                    future0.complete(responseHeader.getOffset());
+                } catch (Throwable t) {
+                    future0.completeExceptionally(t);
                 }
-            });
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-        return future;
+            } else {
+                future0.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+            }
+            return future0;
+        });
     }
 
     public CompletableFuture<Set<MessageQueue>> lockBatchMQWithFuture(String brokerAddr,
         LockBatchRequestBody requestBody, long timeoutMillis) {
-        CompletableFuture<Set<MessageQueue>> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
         request.setBody(requestBody.encode());
-        try {
-            this.getRemotingClient().invokeAsync(brokerAddr, request, timeoutMillis, responseFuture -> {
-                RemotingCommand response = responseFuture.getResponseCommand();
-                if (response != null) {
-                    if (response.getCode() == ResponseCode.SUCCESS) {
-                        try {
-                            LockBatchResponseBody responseBody = LockBatchResponseBody.decode(response.getBody(), LockBatchResponseBody.class);
-                            Set<MessageQueue> messageQueues = responseBody.getLockOKMQSet();
-                            future.complete(messageQueues);
-                        } catch (Throwable t) {
-                            future.completeExceptionally(t);
-                        }
-                    }
-                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
-                } else {
-                    future.completeExceptionally(processNullResponseErr(responseFuture));
+        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
+            CompletableFuture<Set<MessageQueue>> future0 = new CompletableFuture<>();
+            if (response.getCode() == ResponseCode.SUCCESS) {
+                try {
+                    LockBatchResponseBody responseBody = LockBatchResponseBody.decode(response.getBody(), LockBatchResponseBody.class);
+                    Set<MessageQueue> messageQueues = responseBody.getLockOKMQSet();
+                    future0.complete(messageQueues);
+                } catch (Throwable t) {
+                    future0.completeExceptionally(t);
                 }
-            });
-        } catch (Exception e) {
-            future.completeExceptionally(e);
-        }
-        return future;
+            } else {
+                future0.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+            }
+            return future0;
+        });
     }
 
     public CompletableFuture<Void> unlockBatchMQOneway(String brokerAddr,
@@ -589,25 +545,21 @@ public class MQClientAPIExt extends MQClientAPIImpl {
 
     public CompletableFuture<Boolean> notification(String brokerAddr, NotificationRequestHeader requestHeader,
         long timeoutMillis) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFICATION, requestHeader);
-        try {
-            this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenAccept(response -> {
-                if (response.getCode() == ResponseCode.SUCCESS) {
-                    try {
-                        NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.decodeCommandCustomHeader(NotificationResponseHeader.class);
-                        future.complete(responseHeader.isHasMsg());
-                    } catch (Throwable t) {
-                        future.completeExceptionally(t);
-                    }
-                } else {
-                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
+            CompletableFuture<Boolean> future0 = new CompletableFuture<>();
+            if (response.getCode() == ResponseCode.SUCCESS) {
+                try {
+                    NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.decodeCommandCustomHeader(NotificationResponseHeader.class);
+                    future0.complete(responseHeader.isHasMsg());
+                } catch (Throwable t) {
+                    future0.completeExceptionally(t);
                 }
-            });
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-        return future;
+            } else {
+                future0.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+            }
+            return future0;
+        });
     }
 
     public CompletableFuture<RemotingCommand> invoke(String brokerAddr, RemotingCommand request, long timeoutMillis) {

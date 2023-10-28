@@ -51,6 +51,7 @@ import org.apache.rocketmq.store.ha.GroupTransferService;
 import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnection;
 import org.apache.rocketmq.store.ha.HAConnectionStateNotificationService;
+import org.rocksdb.RocksDBException;
 
 /**
  * SwitchAble ha service, support switch role to master or slave.
@@ -111,7 +112,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     }
 
     @Override
-    public boolean changeToMaster(int masterEpoch) {
+    public boolean changeToMaster(int masterEpoch) throws RocksDBException {
         final int lastEpoch = this.epochCache.lastEpoch();
         if (masterEpoch < lastEpoch) {
             LOGGER.warn("newMasterEpoch {} < lastEpoch {}, fail to change to master", masterEpoch, lastEpoch);
@@ -315,7 +316,7 @@ public class AutoSwitchHAService extends DefaultHAService {
             final EpochEntry currentLeaderEpoch = this.epochCache.lastEntry();
             if (slaveMaxOffset >= currentLeaderEpoch.getStartOffset()) {
                 LOGGER.info("The slave {} has caught up, slaveMaxOffset: {}, confirmOffset: {}, epoch: {}, leader epoch startOffset: {}.",
-                        slaveBrokerId, slaveMaxOffset, confirmOffset, currentLeaderEpoch.getEpoch(), currentLeaderEpoch.getStartOffset());
+                    slaveBrokerId, slaveMaxOffset, confirmOffset, currentLeaderEpoch.getEpoch(), currentLeaderEpoch.getStartOffset());
                 currentSyncStateSet.add(slaveBrokerId);
                 markSynchronizingSyncStateSet(currentSyncStateSet);
                 // Notify the upper layer that syncStateSet changed.
@@ -491,7 +492,7 @@ public class AutoSwitchHAService extends DefaultHAService {
     /**
      * Try to truncate incomplete msg transferred from master.
      */
-    public long truncateInvalidMsg() {
+    public long truncateInvalidMsg() throws RocksDBException {
         long dispatchBehind = this.defaultMessageStore.dispatchBehindBytes();
         if (dispatchBehind <= 0) {
             LOGGER.info("Dispatch complete, skip truncate");
