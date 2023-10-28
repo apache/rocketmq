@@ -91,12 +91,13 @@ public class LocalMessageService implements MessageService {
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         List<Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
         Message message;
-        if (requestHeader.isBatch()) {
+        if (msgList.size() == 1) {
+            message = msgList.get(0);
+        } else {
+            requestHeader.setBatch(true);
             message = MessageBatch.generateFromList(msgList);
             MessageClientIDSetter.setUniqID(message);
             ((MessageBatch) message).fillBody();
-        } else {
-            message = msgList.get(0);
         }
         RemotingCommand request = LocalRemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader, ctx.getLanguage());
         request.setBody(message.getBody());
@@ -171,7 +172,8 @@ public class LocalMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<Void> endTransactionOneway(ProxyContext ctx, String brokerName, EndTransactionRequestHeader requestHeader,
+    public CompletableFuture<Void> endTransactionOneway(ProxyContext ctx, String brokerName,
+        EndTransactionRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         SimpleChannel channel = channelManager.createChannel(ctx);
