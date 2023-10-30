@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentMap;
 @RunWith(MockitoJUnitRunner.class)
 public class TransactionMetricsTest {
     private TransactionMetrics transactionMetrics;
-    private ConcurrentMap<String, Metric> transactionCounts = new ConcurrentHashMap<>();
     private String configPath;
 
     @Before
@@ -25,7 +24,7 @@ public class TransactionMetricsTest {
     }
 
     /**
-     * 测试addAndGet方法
+     * test addAndGet method
      */
     @Test
     public void testAddAndGet() {
@@ -36,9 +35,6 @@ public class TransactionMetricsTest {
         assert result == value;
     }
 
-    /**
-     * 测试获取主题对应的度量值
-     */
     @Test
     public void testGetTopicPair() {
         String topic = "getTopicPair";
@@ -46,9 +42,6 @@ public class TransactionMetricsTest {
         assert result != null;
     }
 
-    /**
-     * 测试获取事务计数
-     */
     @Test
     public void testGetTransactionCount() {
         String topicExist = "topicExist";
@@ -62,7 +55,7 @@ public class TransactionMetricsTest {
 
 
     /**
-     * 测试清除指标
+     * test clean metrics
      */
     @Test
     public void testCleanMetrics() {
