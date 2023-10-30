@@ -44,10 +44,10 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 public class TransactionMetrics extends ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final ConcurrentMap<String, Metric> transactionCounts =
+    private ConcurrentMap<String, Metric> transactionCounts =
             new ConcurrentHashMap<>(1024);
 
-    private final DataVersion dataVersion = new DataVersion();
+    private DataVersion dataVersion = new DataVersion();
 
     private final String configPath;
 
@@ -86,10 +86,13 @@ public class TransactionMetrics extends ConfigManager {
     public Map<String, Metric> getTransactionCounts() {
         return transactionCounts;
     }
+    public void setTransactionCounts(ConcurrentMap<String, Metric> transactionCounts) {
+        this.transactionCounts = transactionCounts;
+    }
 
     protected void write0(Writer writer) {
         TransactionMetricsSerializeWrapper wrapper = new TransactionMetricsSerializeWrapper();
-        wrapper.setTimingCount(transactionCounts);
+        wrapper.setTransactionCount(transactionCounts);
         wrapper.setDataVersion(dataVersion);
         JSON.writeJSONString(writer, wrapper, SerializerFeature.BrowserCompatible);
     }
@@ -110,7 +113,7 @@ public class TransactionMetrics extends ConfigManager {
             TransactionMetricsSerializeWrapper transactionMetricsSerializeWrapper =
                     TransactionMetricsSerializeWrapper.fromJson(jsonString, TransactionMetricsSerializeWrapper.class);
             if (transactionMetricsSerializeWrapper != null) {
-                this.transactionCounts.putAll(transactionMetricsSerializeWrapper.getTimingCount());
+                this.transactionCounts.putAll(transactionMetricsSerializeWrapper.getTransactionCount());
                 this.dataVersion.assignNewOne(transactionMetricsSerializeWrapper.getDataVersion());
             }
         }
@@ -120,12 +123,16 @@ public class TransactionMetrics extends ConfigManager {
     public String encode(boolean prettyFormat) {
         TransactionMetricsSerializeWrapper metricsSerializeWrapper = new TransactionMetricsSerializeWrapper();
         metricsSerializeWrapper.setDataVersion(this.dataVersion);
-        metricsSerializeWrapper.setTimingCount(this.transactionCounts);
+        metricsSerializeWrapper.setTransactionCount(this.transactionCounts);
         return metricsSerializeWrapper.toJson(prettyFormat);
     }
 
     public DataVersion getDataVersion() {
         return dataVersion;
+    }
+
+    public void setDataVersion(DataVersion dataVersion) {
+        this.dataVersion = dataVersion;
     }
 
     public void cleanMetrics(Set<String> topics) {
@@ -139,12 +146,11 @@ public class TransactionMetrics extends ConfigManager {
             if (topic.startsWith(TopicValidator.SYSTEM_TOPIC_PREFIX)) {
                 continue;
             }
-            if (topics.contains(topic)) {
+            if (!topics.contains(topic)) {
                 continue;
             }
-
+            // in the input topics set, then remove it.
             iterator.remove();
-            log.info("clean timer metrics, because not in topic config, {}", topic);
         }
     }
 
@@ -153,11 +159,11 @@ public class TransactionMetrics extends ConfigManager {
                 new ConcurrentHashMap<>(1024);
         private DataVersion dataVersion = new DataVersion();
 
-        public ConcurrentMap<String, Metric> getTimingCount() {
+        public ConcurrentMap<String, Metric> getTransactionCount() {
             return transactionCount;
         }
 
-        public void setTimingCount(
+        public void setTransactionCount(
                 ConcurrentMap<String, Metric> transactionCount) {
             this.transactionCount = transactionCount;
         }
