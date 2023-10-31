@@ -49,7 +49,6 @@ import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
-import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.LockCallback;
@@ -130,8 +129,6 @@ import org.apache.rocketmq.remoting.protocol.header.ExchangeHAInfoResponseHeader
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetBrokerAclConfigResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.GetBrokerClusterAclConfigResponseBody;
-import org.apache.rocketmq.remoting.protocol.header.GetBrokerClusterAclConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetBrokerConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsInBrokerHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsRequestHeader;
@@ -311,8 +308,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return updateGlobalWhiteAddrsConfig(ctx, request);
             case RequestCode.RESUME_CHECK_HALF_MESSAGE:
                 return resumeCheckHalfMessage(ctx, request);
-            case RequestCode.GET_BROKER_CLUSTER_ACL_CONFIG:
-                return getBrokerClusterAclConfig(ctx, request);
             case RequestCode.GET_TOPIC_CONFIG:
                 return getTopicConfig(ctx, request);
             case RequestCode.UPDATE_AND_CREATE_STATIC_TOPIC:
@@ -445,6 +440,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        if (topicConfig.equals(this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic))) {
+            LOGGER.info("Broker receive request to update or create topic={}, but topicConfig has  no changes , so idempotent, caller address={}",
+                requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+            response.setCode(ResponseCode.SUCCESS);
+            return response;
+        }
+
         try {
             this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
             if (brokerController.getBrokerConfig().isEnableSingleTopicRegister()) {
@@ -523,12 +525,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         String topic = requestHeader.getTopic();
-        TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
-        if (!result.isValid()) {
+
+        if (UtilAll.isBlank(topic)) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(result.getRemark());
+            response.setRemark("The specified topic is blank.");
             return response;
         }
+
         if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
             if (TopicValidator.isSystemTopic(topic)) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
@@ -694,27 +697,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         } catch (Exception e) {
             LOGGER.error("Failed to generate a proper getBrokerAclConfigVersion response", e);
-        }
-
-        return null;
-    }
-
-    private RemotingCommand getBrokerClusterAclConfig(ChannelHandlerContext ctx, RemotingCommand request) {
-
-        final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerClusterAclConfigResponseHeader.class);
-
-        try {
-            AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            GetBrokerClusterAclConfigResponseBody body = new GetBrokerClusterAclConfigResponseBody();
-            AclConfig aclConfig = accessValidator.getAllAclConfig();
-            body.setGlobalWhiteAddrs(aclConfig.getGlobalWhiteAddrs());
-            body.setPlainAccessConfigs(aclConfig.getPlainAccessConfigs());
-            response.setCode(ResponseCode.SUCCESS);
-            response.setBody(body.encode());
-            response.setRemark(null);
-            return response;
-        } catch (Exception e) {
-            LOGGER.error("Failed to generate a proper getBrokerClusterAclConfig response", e);
         }
 
         return null;
@@ -2752,7 +2734,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
         final EpochEntryCache entryCache = new EpochEntryCache(brokerConfig.getBrokerClusterName(),
-                brokerConfig.getBrokerName(), brokerConfig.getBrokerId(), replicasManager.getEpochEntries(), this.brokerController.getMessageStore().getMaxPhyOffset());
+            brokerConfig.getBrokerName(), brokerConfig.getBrokerId(), replicasManager.getEpochEntries(), this.brokerController.getMessageStore().getMaxPhyOffset());
 
         response.setBody(entryCache.encode());
         response.setCode(ResponseCode.SUCCESS);

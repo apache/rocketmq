@@ -19,6 +19,7 @@ package org.apache.rocketmq.store;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
+import java.nio.ByteBuffer;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -29,8 +30,6 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
-
 public class MessageExtEncoder {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private ByteBuf byteBuf;
@@ -38,7 +37,13 @@ public class MessageExtEncoder {
     private int maxMessageBodySize;
     // The maximum length of the full message.
     private int maxMessageSize;
+    private final int crc32ReservedLength;
+
     public MessageExtEncoder(final int maxMessageBodySize) {
+        this(maxMessageBodySize, false);
+    }
+
+    public MessageExtEncoder(final int maxMessageBodySize, boolean enabledAppendPropCRC) {
         ByteBufAllocator alloc = UnpooledByteBufAllocator.DEFAULT;
         //Reserve 64kb for encoding buffer outside body
         int maxMessageSize = Integer.MAX_VALUE - maxMessageBodySize >= 64 * 1024 ?
@@ -46,6 +51,7 @@ public class MessageExtEncoder {
         byteBuf = alloc.directBuffer(maxMessageSize);
         this.maxMessageBodySize = maxMessageBodySize;
         this.maxMessageSize = maxMessageSize;
+        this.crc32ReservedLength = enabledAppendPropCRC ? CommitLog.CRC32_RESERVED_LEN : 0;
     }
 
     public static int calMsgLength(MessageVersion messageVersion,
@@ -81,10 +87,13 @@ public class MessageExtEncoder {
         final byte[] propertiesData =
             msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
 
-        final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
+        boolean needAppendLastPropertySeparator = crc32ReservedLength > 0 && propertiesData != null && propertiesData.length > 0
+            && propertiesData[propertiesData.length - 1] != MessageDecoder.PROPERTY_SEPARATOR;
+
+        final int propertiesLength = (propertiesData == null ? 0 : propertiesData.length) + (needAppendLastPropertySeparator ? 1 : 0) + crc32ReservedLength;
 
         if (propertiesLength > Short.MAX_VALUE) {
-            log.warn("putMessage message properties length too long. length={}", propertiesData.length);
+            log.warn("putMessage message properties length too long. length={}", propertiesLength);
             return new PutMessageResult(PutMessageStatus.PROPERTIES_SIZE_EXCEEDED, null);
         }
 
@@ -160,8 +169,14 @@ public class MessageExtEncoder {
 
         // 17 PROPERTIES
         this.byteBuf.writeShort((short) propertiesLength);
-        if (propertiesLength > 0)
+        if (propertiesLength > crc32ReservedLength) {
             this.byteBuf.writeBytes(propertiesData);
+        }
+        if (needAppendLastPropertySeparator) {
+            this.byteBuf.writeByte((byte) MessageDecoder.PROPERTY_SEPARATOR);
+        }
+        // 18 CRC32
+        this.byteBuf.writerIndex(this.byteBuf.writerIndex() + crc32ReservedLength);
 
         return null;
     }
@@ -213,10 +228,11 @@ public class MessageExtEncoder {
             final byte[] topicData = messageExtBatch.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
 
             final int topicLength = topicData.length;
-            final int topicLengthSize = messageExtBatch.getVersion().getTopicLengthSize();
             int totalPropLen = needAppendLastPropertySeparator ?
-                propertiesLen + batchPropLen + topicLengthSize : propertiesLen + batchPropLen;
+                propertiesLen + batchPropLen + 1 : propertiesLen + batchPropLen;
 
+            // properties need to add crc32
+            totalPropLen += crc32ReservedLength;
             final int msgLen = calMsgLength(
                 messageExtBatch.getVersion(), messageExtBatch.getSysFlag(), bodyLen, topicLength, totalPropLen);
 
@@ -278,6 +294,7 @@ public class MessageExtEncoder {
                 }
                 this.byteBuf.writeBytes(batchPropData, 0, batchPropLen);
             }
+            this.byteBuf.writerIndex(this.byteBuf.writerIndex() + crc32ReservedLength);
         }
         putMessageContext.setBatchSize(batchSize);
         putMessageContext.setPhyPos(new long[batchSize]);
@@ -304,8 +321,13 @@ public class MessageExtEncoder {
     static class PutMessageThreadLocal {
         private final MessageExtEncoder encoder;
         private final StringBuilder keyBuilder;
+
         PutMessageThreadLocal(int size) {
-            encoder = new MessageExtEncoder(size);
+            this(size, false);
+        }
+
+        PutMessageThreadLocal(int size, boolean enabledAppendPropCRC) {
+            encoder = new MessageExtEncoder(size, enabledAppendPropCRC);
             keyBuilder = new StringBuilder();
         }
 
