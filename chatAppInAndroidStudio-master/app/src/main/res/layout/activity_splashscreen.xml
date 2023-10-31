@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    tools:context=".splashscreen">
+
+
+    <ImageView
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_centerInParent="true"
+        android:src="@drawable/mychatapplogo">
+
+    </ImageView>
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="from"
+        android:fontFamily="@font/raleway"
+        android:textColor="#1E1D1D"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@+id/maintext"
+        android:layout_marginBottom="5dp">
+
+    </TextView>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TECH PROJECTS"
+        android:layout_alignParentBottom="true"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/raleway"
+        android:id="@+id/maintext"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="30dp"
+        android:textColor="#25d366">
+
+    </TextView>
+
+
+</RelativeLayout>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="90dp"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@color/white">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="10dp"
+        android:paddingBottom="-5dp">
+
+
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Name Display Here"
+            android:layout_toRightOf="@id/cardviewofuser"
+            android:layout_marginTop="15dp"
+            android:layout_marginLeft="15dp"
+            android:textSize="20sp"
+            android:id="@+id/nameofuser"
+            android:textStyle="bold"
+            android:textColor="#0b0b0b">
+
+        </TextView>
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Status Displays here"
+            android:textSize="12sp"
+            android:layout_marginLeft="15dp"
+            android:layout_marginTop="3dp"
+            android:layout_toRightOf="@id/cardviewofuser"
+            android:id="@+id/statusofuser"
+            android:layout_below="@id/nameofuser"
+            android:textColor="#6a6a6a">
+
+        </TextView>
+
+
+
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="55dp"
+            android:layout_height="55dp"
+            android:layout_above="@+id/viewusername"
+            android:layout_marginBottom="20dp"
+            android:layout_alignParentLeft="true"
+            android:layout_centerVertical="true"
+
+            android:id="@+id/cardviewofuser"
+
+            app:cardCornerRadius="55dp">
+
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:src="@drawable/ic_launcher_background"
+                android:id="@+id/imageviewofuser"
+                android:scaleType="centerCrop">
+
+            </ImageView>
+
+
+
+        </androidx.cardview.widget.CardView>
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="0.1dp"
+            android:layout_marginLeft="10dp"
+            android:backgroundTint="#a6a6a6"
+            android:background="#a6a6a6"
+            android:layout_below="@id/cardviewofuser"
+            android:layout_toRightOf="@id/cardviewofuser"
+            android:layout_marginTop="-5dp" />
+
+
+
+
+
+    </RelativeLayout>
+
+
+
+
+
+
+
+</RelativeLayout>
