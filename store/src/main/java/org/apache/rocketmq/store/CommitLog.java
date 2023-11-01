@@ -1642,7 +1642,8 @@ public class CommitLog implements Swappable {
                             break;
                         } else {
                             // When transientStorePoolEnable is true, the messages in writeBuffer may not be committed
-                            // to pageCache very quickly, and flushOk here may almost be false.
+                            // to pageCache very quickly, and flushOk here may almost be false, so we can sleep 1ms to
+                            // wait for the messages to be committed to pageCache.
                             try {
                                 Thread.sleep(1);
                             } catch (InterruptedException ignored) {
