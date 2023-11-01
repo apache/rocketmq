@@ -1634,13 +1634,15 @@ public class CommitLog implements Swappable {
         private void doCommit() {
             if (!this.requestsRead.isEmpty()) {
                 for (GroupCommitRequest req : this.requestsRead) {
-                    boolean flushOK = false;
-                    for (int i = 0; i < 1000; i++) {
+                    boolean flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
+                    for (int i = 0; i < 1000 && !flushOK; i++) {
                         CommitLog.this.mappedFileQueue.flush(0);
                         flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
                         if (flushOK) {
                             break;
                         } else {
+                            // When transientStorePoolEnable is true, the messages in writeBuffer may not be committed
+                            // to pageCache very quickly, and flushOk here may almost be false.
                             try {
                                 Thread.sleep(1);
                             } catch (InterruptedException ignored) {
