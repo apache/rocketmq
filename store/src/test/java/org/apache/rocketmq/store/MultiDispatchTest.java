@@ -28,7 +28,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.store.queue.MultiDispatch;
+import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -74,7 +74,7 @@ public class MultiDispatchTest {
     public void lmqQueueKey() {
         MessageExtBrokerInner messageExtBrokerInner = mock(MessageExtBrokerInner.class);
         when(messageExtBrokerInner.getQueueId()).thenReturn(2);
-        String ret = MultiDispatch.lmqQueueKey("%LMQ%lmq123");
+        String ret = MultiDispatchUtils.lmqQueueKey("%LMQ%lmq123");
         assertEquals(ret, "%LMQ%lmq123-0");
     }
 

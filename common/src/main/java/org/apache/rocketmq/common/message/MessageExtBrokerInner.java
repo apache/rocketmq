@@ -30,6 +30,8 @@ public class MessageExtBrokerInner extends MessageExt {
 
     private ByteBuffer encodedBuff;
 
+    private volatile boolean encodeCompleted;
+
     private MessageVersion version = MessageVersion.MESSAGE_VERSION_V1;
 
     public ByteBuffer getEncodedBuff() {
@@ -131,5 +133,13 @@ public class MessageExtBrokerInner extends MessageExt {
         } else {
             this.setPropertiesString(MessageDecoder.messageProperties2String(this.getProperties()));
         }
+    }
+
+    public boolean isEncodeCompleted() {
+        return encodeCompleted;
+    }
+
+    public void setEncodeCompleted(boolean encodeCompleted) {
+        this.encodeCompleted = encodeCompleted;
     }
 }
