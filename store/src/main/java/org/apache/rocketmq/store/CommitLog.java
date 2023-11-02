@@ -1634,12 +1634,21 @@ public class CommitLog implements Swappable {
         private void doCommit() {
             if (!this.requestsRead.isEmpty()) {
                 for (GroupCommitRequest req : this.requestsRead) {
-                    // There may be a message in the next file, so a maximum of
-                    // two times the flush
                     boolean flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
-                    for (int i = 0; i < 2 && !flushOK; i++) {
+                    for (int i = 0; i < 1000 && !flushOK; i++) {
                         CommitLog.this.mappedFileQueue.flush(0);
                         flushOK = CommitLog.this.mappedFileQueue.getFlushedWhere() >= req.getNextOffset();
+                        if (flushOK) {
+                            break;
+                        } else {
+                            // When transientStorePoolEnable is true, the messages in writeBuffer may not be committed
+                            // to pageCache very quickly, and flushOk here may almost be false, so we can sleep 1ms to
+                            // wait for the messages to be committed to pageCache.
+                            try {
+                                Thread.sleep(1);
+                            } catch (InterruptedException ignored) {
+                            }
+                        }
                     }
 
                     req.wakeupCustomer(flushOK ? PutMessageStatus.PUT_OK : PutMessageStatus.FLUSH_DISK_TIMEOUT);
@@ -1846,7 +1855,7 @@ public class CommitLog implements Swappable {
             // Record ConsumeQueue information
             Long queueOffset = msgInner.getQueueOffset();
 
-            // this msg maybe a inner-batch msg.
+            // this msg maybe an inner-batch msg.
             short messageNum = getMessageNum(msgInner);
 
             // Transaction messages that require special handling
