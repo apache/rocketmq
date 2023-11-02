@@ -20,10 +20,10 @@
 
     <appender name="RocketmqProxyAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/proxy.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}proxy.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/proxy.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}proxy.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -41,10 +41,10 @@
 
     <appender name="RocketmqProxyWatermarkAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/proxy_watermark.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}proxy_watermark.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/proxy_watermark.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}proxy_watermark.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -63,10 +63,10 @@
     <!-- Below is the logger configuration for broker-->
     <appender name="DefaultAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/broker_default.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}broker_default.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/broker_default.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}broker_default.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -81,10 +81,10 @@
 
     <appender name="RocketmqBrokerAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/broker.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}broker.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/broker.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}broker.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>20</maxIndex>
         </rollingPolicy>
@@ -102,10 +102,10 @@
 
     <appender name="RocketmqProtectionAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/protection.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}protection.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/protection.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}protection.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -123,10 +123,10 @@
 
     <appender name="RocketmqWaterMarkAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/watermark.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}watermark.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/watermark.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}watermark.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -144,10 +144,10 @@
 
     <appender name="RocketmqStoreAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/store.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}store.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/store.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}store.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -165,10 +165,10 @@
 
     <appender name="RocketmqRemotingAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/remoting.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}remoting.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/remoting.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}remoting.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -186,10 +186,10 @@
 
     <appender name="RocketmqStoreErrorAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/storeerror.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}storeerror.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/storeerror.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}storeerror.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -208,10 +208,10 @@
 
     <appender name="RocketmqTransactionAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/transaction.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}transaction.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/transaction.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}transaction.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -229,10 +229,10 @@
 
     <appender name="RocketmqRebalanceLockAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/lock.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}lock.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/lock.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}lock.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
@@ -250,10 +250,10 @@
 
     <appender name="RocketmqFilterAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/filter.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}filter.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/filter.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}filter.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -271,10 +271,10 @@
 
     <appender name="RocketmqStatsAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/stats.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}stats.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/stats.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}stats.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>5</maxIndex>
         </rollingPolicy>
@@ -289,10 +289,10 @@
 
     <appender name="RocketmqCommercialAppender"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/${brokerLogDir}/commercial.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}commercial.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/${brokerLogDir}/commercial.%i.log.gz</fileNamePattern>
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}commercial.%i.log.gz</fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
@@ -307,10 +307,10 @@
 
     <appender name="RocketmqPopAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${user.home}/logs/rocketmqlogs/pop.log</file>
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}pop.log</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/pop.%i.log
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}pop.%i.log
             </fileNamePattern>
             <minIndex>1</minIndex>
             <maxIndex>20</maxIndex>
@@ -321,6 +321,24 @@
         </triggeringPolicy>
         <encoder>
             <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="RocketmqProxyMetricsAppender"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}${brokerLogDir:-${file.separator}}${file.separator}proxy_metric.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}${brokerLogDir:-${file.separator}}${file.separator}proxy_metric.%i.log.gz</fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>10</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>500MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p - %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>
@@ -398,6 +416,15 @@
 
     <logger name="RocketmqProxyWatermark" additivity="false" level="INFO">
         <appender-ref ref="RocketmqProxyWatermarkAppender" />
+    </logger>
+
+    <!-- Use json formatter to log metrics -->
+    <logger name="io.opentelemetry.exporter.logging.otlp.OtlpJsonLoggingMetricExporter" additivity="false" level="INFO">
+        <appender-ref ref="RocketmqProxyMetricsAppender"/>
+    </logger>
+
+    <logger name="io.opentelemetry.exporter.logging.LoggingMetricExporter" additivity="false" level="INFO">
+        <appender-ref ref="RocketmqProxyMetricsAppender" />
     </logger>
 
     <root level="INFO">

@@ -28,6 +28,10 @@ find_java_home()
 {
     case "`uname`" in
         Darwin)
+          if [ -n "$JAVA_HOME" ]; then
+              JAVA_HOME=$JAVA_HOME
+              return
+          fi
             JAVA_HOME=$(/usr/libexec/java_home)
         ;;
         *)
@@ -101,4 +105,4 @@ JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages"
 JAVA_OPT="${JAVA_OPT} ${JAVA_OPT_EXT}"
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 
-$JAVA ${JAVA_OPT} $@
+"$JAVA" ${JAVA_OPT} $@

@@ -35,7 +35,7 @@ namesrvAddr=XX.XX.XX.XX:9876
 RocketMQ集群中每一个Broker节点均用于存储Client端收集并发送过来的消息轨迹数据。因此，对于RocketMQ集群中的Broker节点数量并无要求和限制。
 
 ### 2.3 物理IO隔离模式
-对于消息轨迹数据量较大的场景，可以在RocketMQ集群中选择其中一个Broker节点专用于存储消息轨迹，使得用户普通的消息数据与消息轨迹数据的物理IO完全隔离，互不影响。在该模式下，RockeMQ集群中至少有两个Broker节点，其中一个Broker节点定义为存储消息轨迹数据的服务端。
+对于消息轨迹数据量较大的场景，可以在RocketMQ集群中选择其中一个Broker节点专用于存储消息轨迹，使得用户普通的消息数据与消息轨迹数据的物理IO完全隔离，互不影响。在该模式下，RocketMQ集群中至少有两个Broker节点，其中一个Broker节点定义为存储消息轨迹数据的服务端。
 
 ### 2.4 启动开启消息轨迹的Broker
 `nohup sh mqbroker -c ../conf/2m-noslave/broker-a.properties &`

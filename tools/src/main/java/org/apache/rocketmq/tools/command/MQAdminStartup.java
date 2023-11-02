@@ -29,19 +29,22 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.acl.ClusterAclConfigVersionListSubCommand;
 import org.apache.rocketmq.tools.command.acl.DeleteAccessConfigSubCommand;
-import org.apache.rocketmq.tools.command.acl.GetAccessConfigSubCommand;
 import org.apache.rocketmq.tools.command.acl.UpdateAccessConfigSubCommand;
 import org.apache.rocketmq.tools.command.acl.UpdateGlobalWhiteAddrSubCommand;
 import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommad;
 import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanUnusedTopicCommand;
+import org.apache.rocketmq.tools.command.broker.CommitLogSetReadAheadSubCommand;
 import org.apache.rocketmq.tools.command.broker.DeleteExpiredCommitLogSubCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerConfigCommand;
 import org.apache.rocketmq.tools.command.broker.GetBrokerEpochSubCommand;
+import org.apache.rocketmq.tools.command.broker.GetColdDataFlowCtrInfoSubCommand;
+import org.apache.rocketmq.tools.command.broker.RemoveColdDataFlowCtrGroupConfigSubCommand;
 import org.apache.rocketmq.tools.command.broker.ResetMasterFlushOffsetSubCommand;
 import org.apache.rocketmq.tools.command.broker.SendMsgStatusCommand;
 import org.apache.rocketmq.tools.command.broker.UpdateBrokerConfigSubCommand;
+import org.apache.rocketmq.tools.command.broker.UpdateColdDataFlowCtrGroupConfigSubCommand;
 import org.apache.rocketmq.tools.command.cluster.CLusterSendMsgRTCommand;
 import org.apache.rocketmq.tools.command.cluster.ClusterListSubCommand;
 import org.apache.rocketmq.tools.command.connection.ConsumerConnectionSubCommand;
@@ -55,7 +58,7 @@ import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import org.apache.rocketmq.tools.command.container.AddBrokerSubCommand;
 import org.apache.rocketmq.tools.command.container.RemoveBrokerSubCommand;
-import org.apache.rocketmq.tools.command.controller.CleanControllerBrokerDataSubCommand;
+import org.apache.rocketmq.tools.command.controller.CleanControllerBrokerMetaSubCommand;
 import org.apache.rocketmq.tools.command.controller.GetControllerConfigSubCommand;
 import org.apache.rocketmq.tools.command.controller.GetControllerMetaDataSubCommand;
 import org.apache.rocketmq.tools.command.controller.ReElectMasterSubCommand;
@@ -76,6 +79,7 @@ import org.apache.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByUniqueKeySubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgTraceByIdSubCommand;
 import org.apache.rocketmq.tools.command.message.SendMessageCommand;
+import org.apache.rocketmq.tools.command.export.ExportMetadataInRocksDBCommand;
 import org.apache.rocketmq.tools.command.namesrv.AddWritePermSubCommand;
 import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
@@ -243,7 +247,6 @@ public class MQAdminStartup {
         initCommand(new DeleteAccessConfigSubCommand());
         initCommand(new ClusterAclConfigVersionListSubCommand());
         initCommand(new UpdateGlobalWhiteAddrSubCommand());
-        initCommand(new GetAccessConfigSubCommand());
 
         initCommand(new UpdateStaticTopicSubCommand());
         initCommand(new RemappingStaticTopicSubCommand());
@@ -251,6 +254,7 @@ public class MQAdminStartup {
         initCommand(new ExportMetadataCommand());
         initCommand(new ExportConfigsCommand());
         initCommand(new ExportMetricsCommand());
+        initCommand(new ExportMetadataInRocksDBCommand());
 
         initCommand(new HAStatusSubCommand());
 
@@ -261,15 +265,20 @@ public class MQAdminStartup {
         initCommand(new GetControllerConfigSubCommand());
         initCommand(new UpdateControllerConfigSubCommand());
         initCommand(new ReElectMasterSubCommand());
-        initCommand(new CleanControllerBrokerDataSubCommand());
+        initCommand(new CleanControllerBrokerMetaSubCommand());
         initCommand(new DumpCompactionLogCommand());
+
+        initCommand(new GetColdDataFlowCtrInfoSubCommand());
+        initCommand(new UpdateColdDataFlowCtrGroupConfigSubCommand());
+        initCommand(new RemoveColdDataFlowCtrGroupConfigSubCommand());
+        initCommand(new CommitLogSetReadAheadSubCommand());
     }
 
     private static void printHelp() {
         System.out.printf("The most commonly used mqadmin commands are:%n");
 
         for (SubCommand cmd : SUB_COMMANDS) {
-            System.out.printf("   %-25s %s%n", cmd.commandName(), cmd.commandDesc());
+            System.out.printf("   %-35s %s%n", cmd.commandName(), cmd.commandDesc());
         }
 
         System.out.printf("%nSee 'mqadmin help <command>' for more information on a specific command.%n");

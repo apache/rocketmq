@@ -54,7 +54,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Query consumers's progress, speed";
+        return "Query consumer's progress, speed.";
     }
 
     @Override

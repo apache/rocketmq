@@ -24,13 +24,14 @@ public interface ElectPolicy {
     /**
      * elect a master
      *
-     * @param clusterName       the brokerGroup belongs
+     * @param clusterName       the broker group belongs to
+     * @param brokerName        the broker group name
      * @param syncStateBrokers  all broker replicas in syncStateSet
      * @param allReplicaBrokers all broker replicas
      * @param oldMaster         old master
-     * @param preferBrokerAddr  the broker prefer to be elected
-     * @return new master's brokerAddr
+     * @param brokerId          broker id(can be used as prefer or assigned in some elect policy)
+     * @return new master's broker id
      */
-    String elect(String clusterName, Set<String> syncStateBrokers, Set<String> allReplicaBrokers, String oldMaster, String preferBrokerAddr);
+    Long elect(String clusterName, String brokerName, Set<Long> syncStateBrokers, Set<Long> allReplicaBrokers, Long oldMaster, Long brokerId);
 
 }

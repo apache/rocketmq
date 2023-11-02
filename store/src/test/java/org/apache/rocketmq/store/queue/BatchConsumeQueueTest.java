@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store.queue;
 
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -299,7 +300,7 @@ public class BatchConsumeQueueTest extends StoreTestBase {
             new BrokerStatsManager("simpleTest", true),
             (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
             },
-            new BrokerConfig());
+            new BrokerConfig(), new ConcurrentHashMap<>());
     }
 
 }

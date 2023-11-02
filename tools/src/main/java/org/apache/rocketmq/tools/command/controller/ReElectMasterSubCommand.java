@@ -20,6 +20,7 @@ package org.apache.rocketmq.tools.command.controller;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
@@ -36,7 +37,7 @@ public class ReElectMasterSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Re-elect the specified broker as master";
+        return "Re-elect the specified broker as master.";
     }
 
     @Override
@@ -45,11 +46,11 @@ public class ReElectMasterSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("b", "brokerAddress", true, "The address of the broker which requires to become master");
+        opt = new Option("b", "brokerId", true, "The id of the broker which requires to become master");
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("n", "brokerName", true, "The broker name of the replicas that require to be manipulated");
+        opt = new Option("bn", "brokerName", true, "The broker name of the replicas that require to be manipulated");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -67,18 +68,19 @@ public class ReElectMasterSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         String controllerAddress = commandLine.getOptionValue("a").trim();
         String clusterName = commandLine.getOptionValue('c').trim();
-        String brokerName = commandLine.getOptionValue('n').trim();
-        String brokerAddress = commandLine.getOptionValue("b").trim();
+        String brokerName = commandLine.getOptionValue("bn").trim();
+        Long brokerId = Long.valueOf(commandLine.getOptionValue("b").trim());
 
         try {
             defaultMQAdminExt.start();
-            final ElectMasterResponseHeader metaData = defaultMQAdminExt.electMaster(controllerAddress, clusterName, brokerName, brokerAddress);
+            final Pair<ElectMasterResponseHeader, BrokerMemberGroup> pair = defaultMQAdminExt.electMaster(controllerAddress, clusterName, brokerName, brokerId);
+            final ElectMasterResponseHeader metaData = pair.getObject1();
+            final BrokerMemberGroup brokerMemberGroup = pair.getObject2();
             System.out.printf("\n#ClusterName\t%s", clusterName);
             System.out.printf("\n#BrokerName\t%s", brokerName);
-            System.out.printf("\n#BrokerMasterAddr\t%s", metaData.getNewMasterAddress());
+            System.out.printf("\n#BrokerMasterAddr\t%s", metaData.getMasterAddress());
             System.out.printf("\n#MasterEpoch\t%s", metaData.getMasterEpoch());
             System.out.printf("\n#SyncStateSetEpoch\t%s\n", metaData.getSyncStateSetEpoch());
-            BrokerMemberGroup brokerMemberGroup = metaData.getBrokerMemberGroup();
             if (null != brokerMemberGroup && null != brokerMemberGroup.getBrokerAddrs()) {
                 brokerMemberGroup.getBrokerAddrs().forEach((key, value) -> System.out.printf("\t#Broker\t%d\t%s\n", key, value));
             }

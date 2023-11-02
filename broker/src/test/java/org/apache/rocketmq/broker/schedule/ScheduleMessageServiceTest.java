@@ -119,7 +119,7 @@ public class ScheduleMessageServiceTest {
 
         brokerConfig = new BrokerConfig();
         BrokerStatsManager manager = new BrokerStatsManager(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat());
-        messageStore = new DefaultMessageStore(messageStoreConfig, manager, new MyMessageArrivingListener(), new BrokerConfig());
+        messageStore = new DefaultMessageStore(messageStoreConfig, manager, new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
 
         assertThat(messageStore.load()).isTrue();
 

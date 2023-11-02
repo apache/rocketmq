@@ -17,8 +17,10 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.transaction.OperationResult;
+import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -125,6 +127,12 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
             result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
+                if (rejectCommitOrRollback(requestHeader, result.getPrepareMessage())) {
+                    response.setCode(ResponseCode.ILLEGAL_OPERATION);
+                    LOGGER.warn("Message commit fail [producer end]. currentTimeMillis - bornTime > checkImmunityTime, msgId={},commitLogOffset={}, wait check",
+                            requestHeader.getMsgId(), requestHeader.getCommitLogOffset());
+                    return response;
+                }
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
                     MessageExtBrokerInner msgInner = endMessageTransaction(result.getPrepareMessage());
@@ -144,6 +152,12 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
+                if (rejectCommitOrRollback(requestHeader, result.getPrepareMessage())) {
+                    response.setCode(ResponseCode.ILLEGAL_OPERATION);
+                    LOGGER.warn("Message rollback fail [producer end]. currentTimeMillis - bornTime > checkImmunityTime, msgId={},commitLogOffset={}, wait check",
+                            requestHeader.getMsgId(), requestHeader.getCommitLogOffset());
+                    return response;
+                }
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
                     this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
@@ -154,6 +168,30 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         response.setCode(result.getResponseCode());
         response.setRemark(result.getResponseRemark());
         return response;
+    }
+
+    /**
+     * If you specify a custom first check time CheckImmunityTimeInSeconds,
+     * And the commit/rollback request whose validity period exceeds CheckImmunityTimeInSeconds and is not checked back will be processed and failed
+     * returns ILLEGAL_OPERATION 604 error
+     * @param requestHeader
+     * @param messageExt
+     * @return
+     */
+    public boolean rejectCommitOrRollback(EndTransactionRequestHeader requestHeader, MessageExt messageExt) {
+        if (requestHeader.getFromTransactionCheck()) {
+            return false;
+        }
+        long transactionTimeout = brokerController.getBrokerConfig().getTransactionTimeOut();
+
+        String checkImmunityTimeStr = messageExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
+        if (StringUtils.isNotEmpty(checkImmunityTimeStr)) {
+            long valueOfCurrentMinusBorn = System.currentTimeMillis() - messageExt.getBornTimestamp();
+            long checkImmunityTime = TransactionalMessageUtil.getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+            //Non-check requests that exceed the specified custom first check time fail to return
+            return valueOfCurrentMinusBorn > checkImmunityTime;
+        }
+        return false;
     }
 
     @Override
@@ -262,6 +300,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark(String.format("accurate timer message is not enabled, timerWheelEnable is %s",
                         this.brokerController.getMessageStoreConfig().isTimerWheelEnable()));
+                    break;
                 case UNKNOWN_ERROR:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("UNKNOWN_ERROR");

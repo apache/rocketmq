@@ -50,6 +50,8 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
      */
     private Boolean order = Boolean.FALSE;
 
+    private String attemptId;
+
     @Override
     public void checkFields() throws RemotingCommandException {
     }
@@ -154,6 +156,14 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
         return this.order != null && this.order.booleanValue();
     }
 
+    public String getAttemptId() {
+        return attemptId;
+    }
+
+    public void setAttemptId(String attemptId) {
+        this.attemptId = attemptId;
+    }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
@@ -168,6 +178,7 @@ public class PopMessageRequestHeader extends TopicQueueRequestHeader {
             .add("expType", expType)
             .add("exp", exp)
             .add("order", order)
+            .add("attemptId", attemptId)
             .toString();
     }
 }

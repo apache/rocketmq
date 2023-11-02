@@ -49,5 +49,9 @@ public class ClientHousekeepingService implements ChannelEventListener {
         this.clientManagerActivity.doChannelCloseEvent(remoteAddr, channel);
     }
 
+    @Override
+    public void onChannelActive(String remoteAddr, Channel channel) {
+
+    }
 }
 

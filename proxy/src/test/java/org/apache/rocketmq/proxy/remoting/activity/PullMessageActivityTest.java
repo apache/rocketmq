@@ -77,7 +77,7 @@ public class PullMessageActivityTest extends InitConfigTest {
 
     @Test
     public void testPullMessageWithoutSub() throws Exception {
-        when(messagingProcessorMock.getConsumerGroupInfo(eq(group)))
+        when(messagingProcessorMock.getConsumerGroupInfo(any(), eq(group)))
             .thenReturn(consumerGroupInfoMock);
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setSubString(subString);
@@ -128,7 +128,7 @@ public class PullMessageActivityTest extends InitConfigTest {
 
     @Test
     public void testPullMessageWithSub() throws Exception {
-        when(messagingProcessorMock.getConsumerGroupInfo(eq(group)))
+        when(messagingProcessorMock.getConsumerGroupInfo(any(), eq(group)))
             .thenReturn(consumerGroupInfoMock);
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setSubString(subString);

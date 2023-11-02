@@ -17,21 +17,22 @@
 package org.apache.rocketmq.acl.common;
 
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.plain.PlainAccessData;
+import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.remoting.RPCHook;
+import org.junit.Assert;
+import org.junit.Test;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.remoting.RPCHook;
-import org.junit.Assert;
-import org.junit.Test;
 
 public class AclUtilsTest {
 
@@ -227,26 +228,26 @@ public class AclUtilsTest {
         Assert.assertTrue(transport.createNewFile());
         transport.deleteOnExit();
 
-        Map<String, Object> aclYamlMap = new HashMap<>();
+        PlainAccessData aclYamlMap = new PlainAccessData();
 
         // For globalWhiteRemoteAddrs element in acl yaml config file
         List<String> globalWhiteRemoteAddrs = new ArrayList<>();
         globalWhiteRemoteAddrs.add("10.10.103.*");
         globalWhiteRemoteAddrs.add("192.168.0.*");
-        aclYamlMap.put("globalWhiteRemoteAddrs", globalWhiteRemoteAddrs);
+        aclYamlMap.setGlobalWhiteRemoteAddresses(globalWhiteRemoteAddrs);
 
         // For accounts element in acl yaml config file
-        List<Map<String, Object>> accounts = new ArrayList<>();
-        Map<String, Object> accountsMap = new LinkedHashMap<String, Object>() {
+        List<PlainAccessConfig> accounts = new ArrayList<>();
+        PlainAccessConfig accountsMap = new PlainAccessConfig() {
             {
-                put("accessKey", "RocketMQ");
-                put("secretKey", "12345678");
-                put("whiteRemoteAddress", "whiteRemoteAddress");
-                put("admin", "true");
+                setAccessKey("RocketMQ");
+                setSecretKey("12345678");
+                setWhiteRemoteAddress("whiteRemoteAddress");
+                setAdmin(true);
             }
         };
         accounts.add(accountsMap);
-        aclYamlMap.put("accounts", accounts);
+        aclYamlMap.setAccounts(accounts);
         Assert.assertTrue(AclUtils.writeDataObject(targetFileName, aclYamlMap));
     }
 
@@ -257,27 +258,27 @@ public class AclUtilsTest {
         Assert.assertTrue(transport.createNewFile());
         transport.deleteOnExit();
 
-        Map<String, Object> aclYamlMap = new HashMap<>();
+        PlainAccessData aclYamlMap = new PlainAccessData();
 
         // For globalWhiteRemoteAddrs element in acl yaml config file
         List<String> globalWhiteRemoteAddrs = new ArrayList<>();
         globalWhiteRemoteAddrs.add("10.10.103.*");
         globalWhiteRemoteAddrs.add("192.168.0.*");
-        aclYamlMap.put("globalWhiteRemoteAddrs", globalWhiteRemoteAddrs);
+        aclYamlMap.setGlobalWhiteRemoteAddresses(globalWhiteRemoteAddrs);
 
         // Write file to yaml file
         AclUtils.writeDataObject(targetFileName, aclYamlMap);
 
-        Map<String, Object> updatedMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
-        List<String> globalWhiteRemoteAddrList = (List<String>) updatedMap.get("globalWhiteRemoteAddrs");
+        PlainAccessData updatedMap = AclUtils.getYamlDataObject(targetFileName, PlainAccessData.class);
+        List<String> globalWhiteRemoteAddrList = updatedMap.getGlobalWhiteRemoteAddresses();
         globalWhiteRemoteAddrList.clear();
         globalWhiteRemoteAddrList.add("192.168.1.2");
 
         // Update file and flush to yaml file
         AclUtils.writeDataObject(targetFileName, updatedMap);
 
-        Map<String, Object> readableMap = AclUtils.getYamlDataObject(targetFileName, Map.class);
-        List<String> updatedGlobalWhiteRemoteAddrs = (List<String>) readableMap.get("globalWhiteRemoteAddrs");
+        PlainAccessData readableMap = AclUtils.getYamlDataObject(targetFileName, PlainAccessData.class);
+        List<String> updatedGlobalWhiteRemoteAddrs = readableMap.getGlobalWhiteRemoteAddresses();
         Assert.assertEquals("192.168.1.2", updatedGlobalWhiteRemoteAddrs.get(0));
     }
 

@@ -1,0 +1,112 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Bug Report
+title: "[Bug] Bug title "
+description: Create a report to help us identify any unintended flaws, errors, or faults.
+body:
+  - type: checkboxes
+    attributes:
+      label: Before Creating the Bug Report
+      options:
+        - label: >
+            I found a bug, not just asking a question, which should be created in [GitHub Discussions](https://github.com/apache/rocketmq/discussions).
+          required: true
+        - label: >
+            I have searched the [GitHub Issues](https://github.com/apache/rocketmq/issues) and [GitHub Discussions](https://github.com/apache/rocketmq/discussions)  of this repository and believe that this is not a duplicate.
+          required: true
+        - label: >
+            I have confirmed that this bug belongs to the current repository, not other repositories of RocketMQ.
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Runtime platform environment
+      description: Describe the runtime platform environment.
+      placeholder: >
+        OS: (e.g., "Ubuntu 20.04")
+        OS: (e.g., "Windows Server 2019")
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: RocketMQ version
+      description: Describe the RocketMQ version.
+      placeholder: >
+        branch: (e.g develop|4.9.x)
+        version: (e.g. 5.1.0|4.9.5)
+        Git commit id: (e.g. c88b5cfa72e204962929eea105687647146112c6)
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: JDK Version
+      description: Run or Compiler version.
+      placeholder: >
+        Compiler: (e.g., "Oracle JDK 11.0.17")
+        OS: (e.g., "Ubuntu 20.04")
+        Runtime (if different from JDK above): (e.g., "Oracle JRE 8u251")
+        OS (if different from OS compiled on): (e.g., "Windows Server 2019")
+    validations:
+      required: false
+
+  - type: textarea
+    attributes:
+      label: Describe the Bug
+      description: Describe what happened.
+      placeholder: >
+        A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to Reproduce
+      description: Describe the steps to reproduce the bug here.
+      placeholder: >
+        If possible, provide a recipe for reproducing the error.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What Did You Expect to See?
+      description: You expect to see result.
+      placeholder: >
+        A clear and concise description of what you expected to see.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: What Did You See Instead?
+      description: You instead to see result.
+      placeholder: >
+        A clear and concise description of what you saw instead.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: Additional context.
+      placeholder: >
+        Add any other context about the problem here.
+    validations:
+      required: false

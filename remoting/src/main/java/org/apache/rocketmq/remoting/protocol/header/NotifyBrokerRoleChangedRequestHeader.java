@@ -21,19 +21,18 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
 public class NotifyBrokerRoleChangedRequestHeader implements CommandCustomHeader {
     private String masterAddress;
-    private int masterEpoch;
-    private int syncStateSetEpoch;
-    // The id of this broker.
-    private long brokerId;
+    private Integer masterEpoch;
+    private Integer syncStateSetEpoch;
+    private Long masterBrokerId;
 
     public NotifyBrokerRoleChangedRequestHeader() {
     }
 
-    public NotifyBrokerRoleChangedRequestHeader(String masterAddress, int masterEpoch, int syncStateSetEpoch, long brokerId) {
+    public NotifyBrokerRoleChangedRequestHeader(String masterAddress, Long masterBrokerId, Integer masterEpoch, Integer syncStateSetEpoch) {
         this.masterAddress = masterAddress;
         this.masterEpoch = masterEpoch;
         this.syncStateSetEpoch = syncStateSetEpoch;
-        this.brokerId = brokerId;
+        this.masterBrokerId = masterBrokerId;
     }
 
     public String getMasterAddress() {
@@ -44,38 +43,38 @@ public class NotifyBrokerRoleChangedRequestHeader implements CommandCustomHeader
         this.masterAddress = masterAddress;
     }
 
-    public int getMasterEpoch() {
+    public Integer getMasterEpoch() {
         return masterEpoch;
     }
 
-    public void setMasterEpoch(int masterEpoch) {
+    public void setMasterEpoch(Integer masterEpoch) {
         this.masterEpoch = masterEpoch;
     }
 
-    public int getSyncStateSetEpoch() {
+    public Integer getSyncStateSetEpoch() {
         return syncStateSetEpoch;
     }
 
-    public void setSyncStateSetEpoch(int syncStateSetEpoch) {
+    public void setSyncStateSetEpoch(Integer syncStateSetEpoch) {
         this.syncStateSetEpoch = syncStateSetEpoch;
     }
 
-    public long getBrokerId() {
-        return brokerId;
+    public Long getMasterBrokerId() {
+        return masterBrokerId;
     }
 
-    public void setBrokerId(long brokerId) {
-        this.brokerId = brokerId;
+    public void setMasterBrokerId(Long masterBrokerId) {
+        this.masterBrokerId = masterBrokerId;
     }
 
     @Override
     public String toString() {
         return "NotifyBrokerRoleChangedRequestHeader{" +
-            "masterAddress='" + masterAddress + '\'' +
-            ", masterEpoch=" + masterEpoch +
-            ", syncStateSetEpoch=" + syncStateSetEpoch +
-            ", brokerId=" + brokerId +
-            '}';
+                "masterAddress='" + masterAddress + '\'' +
+                ", masterEpoch=" + masterEpoch +
+                ", syncStateSetEpoch=" + syncStateSetEpoch +
+                ", masterBrokerId=" + masterBrokerId +
+                '}';
     }
 
     @Override

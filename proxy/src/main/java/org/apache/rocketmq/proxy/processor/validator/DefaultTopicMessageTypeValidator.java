@@ -23,9 +23,10 @@ import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
 
 public class DefaultTopicMessageTypeValidator implements TopicMessageTypeValidator {
 
-    public void validate(TopicMessageType topicMessageType, TopicMessageType messageType) {
-        if (messageType.equals(TopicMessageType.UNSPECIFIED) || !messageType.equals(topicMessageType)) {
-            String errorInfo = String.format("TopicMessageType validate failed, topic type is %s, message type is %s", topicMessageType, messageType);
+    public void validate(TopicMessageType expectedType, TopicMessageType actualType) {
+        if (actualType.equals(TopicMessageType.UNSPECIFIED)
+                || !actualType.equals(expectedType) && !expectedType.equals(TopicMessageType.MIXED)) {
+            String errorInfo = String.format("TopicMessageType validate failed, the expected type is %s, but actual type is %s", expectedType, actualType);
             throw new ProxyException(ProxyExceptionCode.MESSAGE_PROPERTY_CONFLICT_WITH_TYPE, errorInfo);
         }
     }

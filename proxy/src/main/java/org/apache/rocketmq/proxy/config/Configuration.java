@@ -58,6 +58,7 @@ public class Configuration {
         }
 
         File file = new File(filePath);
+        log.info("The current configuration file path is {}", filePath);
         if (!file.exists()) {
             log.warn("the config file {} not exist", filePath);
             throw new RuntimeException(String.format("the config file %s not exist", filePath));

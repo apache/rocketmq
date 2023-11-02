@@ -33,15 +33,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
-import org.apache.rocketmq.proxy.common.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.MetricCollectorMode;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -68,7 +67,7 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
 
     public Settings getClientSettings(ProxyContext ctx) {
         String clientId = ctx.getClientID();
-        Settings settings = CLIENT_SETTINGS_MAP.get(clientId);
+        Settings settings = getRawClientSettings(clientId);
         if (settings == null) {
             return null;
         }
@@ -182,7 +181,7 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
             .build();
     }
 
-    public void updateClientSettings(String clientId, Settings settings) {
+    public void updateClientSettings(ProxyContext ctx, String clientId, Settings settings) {
         if (settings.hasSubscription()) {
             settings = createDefaultConsumerSettingsBuilder().mergeFrom(settings).build();
         }
@@ -194,17 +193,13 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
             .toBuilder();
     }
 
-    public void removeClientSettings(String clientId) {
-        CLIENT_SETTINGS_MAP.remove(clientId);
-    }
-
-    public void computeIfPresent(String clientId, Function<Settings, Settings> function) {
-        CLIENT_SETTINGS_MAP.computeIfPresent(clientId, (clientIdKey, value) -> function.apply(value));
+    public Settings removeAndGetRawClientSettings(String clientId) {
+        return CLIENT_SETTINGS_MAP.remove(clientId);
     }
 
     public Settings removeAndGetClientSettings(ProxyContext ctx) {
         String clientId = ctx.getClientID();
-        Settings settings = CLIENT_SETTINGS_MAP.remove(clientId);
+        Settings settings = this.removeAndGetRawClientSettings(clientId);
         if (settings == null) {
             return null;
         }
@@ -237,7 +232,10 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
                         return settings;
                     }
                     String consumerGroup = GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup());
-                    ConsumerGroupInfo consumerGroupInfo = this.messagingProcessor.getConsumerGroupInfo(consumerGroup);
+                    ConsumerGroupInfo consumerGroupInfo = this.messagingProcessor.getConsumerGroupInfo(
+                        ProxyContext.createForInner(this.getClass()),
+                        consumerGroup
+                    );
                     if (consumerGroupInfo == null || consumerGroupInfo.findChannel(clientId) == null) {
                         log.info("remove unused grpc client settings. group:{}, settings:{}", consumerGroupInfo, settings);
                         return null;

@@ -28,7 +28,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>5.1.1-SNAPSHOT</version>
+    <version>5.1.5-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -108,7 +108,7 @@
         <jna.version>4.2.2</jna.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-io.version>2.7</commons-io.version>
-        <guava.version>31.0.1-jre</guava.version>
+        <guava.version>31.1-jre</guava.version>
         <gson.version>2.9.0</gson.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
         <snakeyaml.version>1.32</snakeyaml.version>
@@ -121,27 +121,34 @@
         <lz4-java.version>1.8.0</lz4-java.version>
         <opentracing.version>0.33.0</opentracing.version>
         <jaeger.version>1.6.0</jaeger.version>
-        <dleger.version>0.3.1.1</dleger.version>
+        <dleger.version>0.3.1.2</dleger.version>
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
-        <rocketmq-proto.version>2.0.2</rocketmq-proto.version>
+        <rocketmq-proto.version>2.0.3</rocketmq-proto.version>
         <grpc.version>1.50.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
         <caffeine.version>2.9.3</caffeine.version>
-        <spring.version>5.3.23</spring.version>
+        <spring.version>5.3.27</spring.version>
         <okio-jvm.version>3.0.0</okio-jvm.version>
-        <opentelemetry.version>1.19.0</opentelemetry.version>
-        <opentelemetry-exporter-prometheus.version>1.19.0-alpha</opentelemetry-exporter-prometheus.version>
+        <opentelemetry.version>1.29.0</opentelemetry.version>
+        <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
+        <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
+        <s3.version>2.20.29</s3.version>
+        <rocksdb.version>1.0.2</rocksdb.version>
+        <jackson-databind.version>2.13.4.2</jackson-databind.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
         <assertj-core.version>3.22.0</assertj-core.version>
         <mockito-core.version>3.10.0</mockito-core.version>
+        <powermock-version>2.0.9</powermock-version>
         <awaitility.version>4.1.0</awaitility.version>
         <truth.version>0.30</truth.version>
+        <s3mock-junit4.version>2.11.0</s3mock-junit4.version>
+        <rocketmq-client-java.version>5.0.5</rocketmq-client-java.version>
 
         <!-- Build plugin dependencies -->
         <versions-maven-plugin.version>2.2</versions-maven-plugin.version>
@@ -706,6 +713,11 @@
                 <version>${slf4j-api.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-rocksdb</artifactId>
+                <version>${rocksdb.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.github.aliyunmq</groupId>
                 <artifactId>rocketmq-shaded-slf4j-api-bridge</artifactId>
                 <version>${rocketmq-shaded-slf4j-api-bridge.version}</version>
@@ -884,6 +896,11 @@
                 </exclusions>
             </dependency>
             <dependency>
+                <groupId>io.github.aliyunmq</groupId>
+                <artifactId>rocketmq-grpc-netty-codec-haproxy</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+            <dependency>
                 <groupId>com.conversantmedia</groupId>
                 <artifactId>disruptor</artifactId>
                 <version>${disruptor.version}</version>
@@ -931,18 +948,16 @@
                         <groupId>org.jetbrains.kotlin</groupId>
                         <artifactId>kotlin-stdlib-common</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-stdlib-jdk8</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-exporter-otlp</artifactId>
                 <version>${opentelemetry.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.squareup.okio</groupId>
-                        <artifactId>okio-jvm</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>io.opentelemetry</groupId>
@@ -951,8 +966,77 @@
             </dependency>
             <dependency>
                 <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-exporter-logging</artifactId>
+                <version>${opentelemetry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
                 <artifactId>opentelemetry-sdk</artifactId>
                 <version>${opentelemetry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-exporter-logging-otlp</artifactId>
+                <version>${opentelemetry.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>jul-to-slf4j</artifactId>
+                <version>${jul-to-slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>s3</artifactId>
+                <version>${s3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson-databind.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.adobe.testing</groupId>
+                <artifactId>s3mock-junit4</artifactId>
+                <version>${s3mock-junit4.version}</version>
+                <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <artifactId>annotations</artifactId>
+                        <groupId>software.amazon.awssdk</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>commons-logging</artifactId>
+                        <groupId>commons-logging</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>http-client-spi</artifactId>
+                        <groupId>software.amazon.awssdk</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>json-utils</artifactId>
+                        <groupId>software.amazon.awssdk</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>profiles</artifactId>
+                        <groupId>software.amazon.awssdk</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>regions</artifactId>
+                        <groupId>software.amazon.awssdk</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>sdk-core</artifactId>
+                        <groupId>software.amazon.awssdk</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>utils</artifactId>
+                        <groupId>software.amazon.awssdk</groupId>
+                    </exclusion>
+                    <exclusion>
+                        <artifactId>jackson-dataformat-cbor</artifactId>
+                        <groupId>com.fasterxml.jackson.dataformat</groupId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -980,6 +1064,32 @@
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <version>${awaitility.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-module-junit4</artifactId>
+            <version>${powermock-version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.objenesis</groupId>
+                    <artifactId>objenesis</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>net.bytebuddy</groupId>
+                    <artifactId>byte-buddy-agent</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-api-mockito2</artifactId>
+            <version>${powermock-version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

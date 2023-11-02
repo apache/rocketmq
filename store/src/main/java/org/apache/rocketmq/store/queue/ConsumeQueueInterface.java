@@ -17,12 +17,15 @@
 
 package org.apache.rocketmq.store.queue;
 
+import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageFilter;
+import org.rocksdb.RocksDBException;
 
-public interface ConsumeQueueInterface {
+public interface ConsumeQueueInterface extends FileQueueLifeCycle {
     /**
      * Get the topic name
      * @return the topic this cq belongs to.
@@ -44,11 +47,33 @@ public interface ConsumeQueueInterface {
     ReferredIterator<CqUnit> iterateFrom(long startIndex);
 
     /**
+     * Get the units from the start offset.
+     *
+     * @param startIndex start index
+     * @param count the unit counts will be iterated
+     * @return the unit iterateFrom
+     * @throws RocksDBException only in rocksdb mode
+     */
+    ReferredIterator<CqUnit> iterateFrom(long startIndex, int count) throws RocksDBException;
+
+    /**
      * Get cq unit at specified index
      * @param index index
      * @return the cq unit at index
      */
     CqUnit get(long index);
+
+    /**
+     * Get earliest cq unit
+     * @return the cq unit and message storeTime at index
+     */
+    Pair<CqUnit, Long> getCqUnitAndStoreTime(long index);
+
+    /**
+     * Get earliest cq unit
+     * @return earliest cq unit and message storeTime
+     */
+    Pair<CqUnit, Long> getEarliestUnitAndStoreTime();
 
     /**
      * Get earliest cq unit
@@ -92,6 +117,15 @@ public interface ConsumeQueueInterface {
      * @return the offset(index)
      */
     long getOffsetInQueueByTime(final long timestamp);
+
+    /**
+     * Get the message whose timestamp is the smallest, greater than or equal to the given time and when there are more
+     * than one message satisfy the condition, decide which one to return based on boundaryType.
+     * @param timestamp    timestamp
+     * @param boundaryType Lower or Upper
+     * @return the offset(index)
+     */
+    long getOffsetInQueueByTime(final long timestamp, final BoundaryType boundaryType);
 
     /**
      * The max physical offset of commitlog has been dispatched to this queue.
@@ -143,9 +177,18 @@ public interface ConsumeQueueInterface {
      * Assign queue offset.
      * @param queueOffsetAssigner the delegated queue offset assigner
      * @param msg message itself
+     * @throws RocksDBException only in rocksdb mode
+     */
+    void assignQueueOffset(QueueOffsetOperator queueOffsetAssigner, MessageExtBrokerInner msg) throws RocksDBException;
+
+
+    /**
+     * Increase queue offset.
+     * @param queueOffsetAssigner the delegated queue offset assigner
+     * @param msg message itself
      * @param messageNum message number
      */
-    void assignQueueOffset(QueueOffsetAssigner queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum);
+    void increaseQueueOffset(QueueOffsetOperator queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum);
 
     /**
      * Estimate number of records matching given filter.

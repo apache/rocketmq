@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.util;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingOne;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
@@ -318,5 +320,40 @@ public class MQAdminTestUtils {
         } catch (Exception ignored) {
         }
         return consumeStats;
+    }
+
+    /**
+     * Delete topic from broker only without cleaning route info from name server forwardly
+     *
+     * @param nameSrvAddr the namesrv addr to connect
+     * @param brokerName the specific broker
+     * @param topic the specific topic to delete
+     */
+    public static void deleteTopicFromBrokerOnly(String nameSrvAddr, String brokerName, String topic) {
+        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
+        mqAdminExt.setNamesrvAddr(nameSrvAddr);
+
+        try {
+            mqAdminExt.start();
+            String brokerAddr = CommandUtil.fetchMasterAddrByBrokerName(mqAdminExt, brokerName);
+            mqAdminExt.deleteTopicInBroker(Collections.singleton(brokerAddr), topic);
+        } catch (Exception ignored) {
+        } finally {
+            mqAdminExt.shutdown();
+        }
+    }
+
+    public static TopicRouteData examineTopicRouteInfo(String nameSrvAddr, String topicName) {
+        DefaultMQAdminExt mqAdminExt = new DefaultMQAdminExt();
+        mqAdminExt.setNamesrvAddr(nameSrvAddr);
+        TopicRouteData route = null;
+        try {
+            mqAdminExt.start();
+            route = mqAdminExt.examineTopicRouteInfo(topicName);
+        } catch (Exception ignored) {
+        } finally {
+            mqAdminExt.shutdown();
+        }
+        return route;
     }
 }

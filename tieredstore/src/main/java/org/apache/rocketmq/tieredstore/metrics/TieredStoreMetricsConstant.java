@@ -38,6 +38,7 @@ public class TieredStoreMetricsConstant {
     public static final String LABEL_OPERATION = "operation";
     public static final String LABEL_SUCCESS = "success";
 
+    public static final String LABEL_PATH = "path";
     public static final String LABEL_TOPIC = "topic";
     public static final String LABEL_GROUP = "group";
     public static final String LABEL_QUEUE_ID = "queue_id";

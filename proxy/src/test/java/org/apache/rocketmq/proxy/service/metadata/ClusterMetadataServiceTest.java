@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.service.metadata;
 
 import java.util.HashMap;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.service.BaseServiceTest;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicConfigAndQueueMapping;
@@ -54,17 +55,19 @@ public class ClusterMetadataServiceTest extends BaseServiceTest {
 
     @Test
     public void testGetTopicMessageType() {
-        assertEquals(TopicMessageType.UNSPECIFIED, this.clusterMetadataService.getTopicMessageType(ERR_TOPIC));
+        ProxyContext ctx = ProxyContext.create();
+        assertEquals(TopicMessageType.UNSPECIFIED, this.clusterMetadataService.getTopicMessageType(ctx, ERR_TOPIC));
         assertEquals(1, this.clusterMetadataService.topicConfigCache.asMap().size());
-        assertEquals(TopicMessageType.UNSPECIFIED, this.clusterMetadataService.getTopicMessageType(ERR_TOPIC));
+        assertEquals(TopicMessageType.UNSPECIFIED, this.clusterMetadataService.getTopicMessageType(ctx, ERR_TOPIC));
 
-        assertEquals(TopicMessageType.NORMAL, this.clusterMetadataService.getTopicMessageType(TOPIC));
+        assertEquals(TopicMessageType.NORMAL, this.clusterMetadataService.getTopicMessageType(ctx, TOPIC));
         assertEquals(2, this.clusterMetadataService.topicConfigCache.asMap().size());
     }
 
     @Test
     public void testGetSubscriptionGroupConfig() {
-        assertNotNull(this.clusterMetadataService.getSubscriptionGroupConfig(GROUP));
+        ProxyContext ctx = ProxyContext.create();
+        assertNotNull(this.clusterMetadataService.getSubscriptionGroupConfig(ctx, GROUP));
         assertEquals(1, this.clusterMetadataService.subscriptionGroupConfigCache.asMap().size());
     }
 }

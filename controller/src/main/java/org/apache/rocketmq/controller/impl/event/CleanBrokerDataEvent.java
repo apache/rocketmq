@@ -23,11 +23,11 @@ public class CleanBrokerDataEvent implements EventMessage {
 
     private String brokerName;
 
-    private Set<String> brokerAddressSet;
+    private Set<Long> brokerIdSetToClean;
 
-    public CleanBrokerDataEvent(String brokerName, Set<String> brokerAddressSet) {
+    public CleanBrokerDataEvent(String brokerName, Set<Long> brokerIdSetToClean) {
         this.brokerName = brokerName;
-        this.brokerAddressSet = brokerAddressSet;
+        this.brokerIdSetToClean = brokerIdSetToClean;
     }
 
     public String getBrokerName() {
@@ -38,12 +38,12 @@ public class CleanBrokerDataEvent implements EventMessage {
         this.brokerName = brokerName;
     }
 
-    public Set<String> getBrokerAddressSet() {
-        return brokerAddressSet;
+    public void setBrokerIdSetToClean(Set<Long> brokerIdSetToClean) {
+        this.brokerIdSetToClean = brokerIdSetToClean;
     }
 
-    public void setBrokerAddressSet(Set<String> brokerAddressSet) {
-        this.brokerAddressSet = brokerAddressSet;
+    public Set<Long> getBrokerIdSetToClean() {
+        return brokerIdSetToClean;
     }
 
     /**
@@ -57,8 +57,8 @@ public class CleanBrokerDataEvent implements EventMessage {
     @Override
     public String toString() {
         return "CleanBrokerDataEvent{" +
-            "brokerName='" + brokerName + '\'' +
-            ", brokerAddressSet=" + brokerAddressSet +
-            '}';
+                "brokerName='" + brokerName + '\'' +
+                ", brokerIdSetToClean=" + brokerIdSetToClean +
+                '}';
     }
 }

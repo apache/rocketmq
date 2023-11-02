@@ -250,7 +250,7 @@ public class DefaultMQProducerTest {
 
     @Test
     public void testBatchSendMessageAsync()
-            throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
         final AtomicInteger cc = new AtomicInteger(0);
         final CountDownLatch countDownLatch = new CountDownLatch(4);
 
@@ -502,6 +502,42 @@ public class DefaultMQProducerTest {
         }
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(1);
+    }
+
+    @Test
+    public void testBatchSendMessageAsync_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        producer.setAutoBatch(true);
+        producer.send(message, new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+                assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
+                assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+                countDownLatch.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                countDownLatch.countDown();
+            }
+        });
+
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        producer.setAutoBatch(false);
+    }
+
+    @Test
+    public void testBatchSendMessageSync_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
+        producer.setAutoBatch(true);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        SendResult sendResult = producer.send(message);
+
+        assertThat(sendResult.getSendStatus()).isEqualTo(SendStatus.SEND_OK);
+        assertThat(sendResult.getOffsetMsgId()).isEqualTo("123");
+        assertThat(sendResult.getQueueOffset()).isEqualTo(456L);
+        producer.setAutoBatch(false);
     }
 
     public static TopicRouteData createTopicRoute() {

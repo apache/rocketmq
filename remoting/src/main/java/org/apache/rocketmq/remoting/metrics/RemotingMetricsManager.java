@@ -26,6 +26,7 @@ import io.opentelemetry.sdk.metrics.Aggregation;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.InstrumentType;
 import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -36,8 +37,6 @@ import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.HISTOGRAM_RPC_LATENCY;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_PROTOCOL_TYPE;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.PROTOCOL_TYPE_REMOTING;
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.REQUEST_CODE_MAP;
-import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESPONSE_CODE_MAP;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_CANCELED;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_SUCCESS;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.RESULT_WRITE_CHANNEL_FAILED;
@@ -63,7 +62,7 @@ public class RemotingMetricsManager {
             .build();
     }
 
-    public static List<Pair<InstrumentSelector, View>> getMetricsView() {
+    public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
         List<Double> rpcCostTimeBuckets = Arrays.asList(
             (double) Duration.ofMillis(1).toMillis(),
             (double) Duration.ofMillis(3).toMillis(),
@@ -79,10 +78,9 @@ public class RemotingMetricsManager {
             .setType(InstrumentType.HISTOGRAM)
             .setName(HISTOGRAM_RPC_LATENCY)
             .build();
-        View view = View.builder()
-            .setAggregation(Aggregation.explicitBucketHistogram(rpcCostTimeBuckets))
-            .build();
-        return Lists.newArrayList(new Pair<>(selector, view));
+        ViewBuilder viewBuilder = View.builder()
+            .setAggregation(Aggregation.explicitBucketHistogram(rpcCostTimeBuckets));
+        return Lists.newArrayList(new Pair<>(selector, viewBuilder));
     }
 
     public static String getWriteAndFlushResult(Future<?> future) {
@@ -95,11 +93,4 @@ public class RemotingMetricsManager {
         return result;
     }
 
-    public static String getRequestCodeDesc(int code) {
-        return REQUEST_CODE_MAP.getOrDefault(code, String.valueOf(code));
-    }
-
-    public static String getResponseCodeDesc(int code) {
-        return RESPONSE_CODE_MAP.getOrDefault(code, String.valueOf(code));
-    }
 }

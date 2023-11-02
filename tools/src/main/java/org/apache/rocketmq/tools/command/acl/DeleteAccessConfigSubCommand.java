@@ -42,7 +42,7 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Delete Acl Config Account in broker";
+        return "Delete Acl Config Account in broker.";
     }
 
     @Override
@@ -83,7 +83,7 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
                 defaultMQAdminExt.deletePlainAccessConfig(addr, accessKey);
 
                 System.out.printf("delete plain access config account from %s success.%n", addr);
-                System.out.printf("account's accesskey is:%s", accessKey);
+                System.out.printf("account's accessKey is:%s", accessKey);
                 return;
 
             } else if (commandLine.hasOption('c')) {
@@ -98,7 +98,7 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
                     System.out.printf("delete plain access config account from %s success.%n", addr);
                 }
 
-                System.out.printf("account's accesskey is:%s", accessKey);
+                System.out.printf("account's accessKey is:%s", accessKey);
                 return;
             }
 

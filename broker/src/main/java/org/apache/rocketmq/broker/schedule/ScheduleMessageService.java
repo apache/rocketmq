@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -91,15 +90,8 @@ public class ScheduleMessageService extends ConfigManager {
     public ScheduleMessageService(final BrokerController brokerController) {
         this.brokerController = brokerController;
         this.enableAsyncDeliver = brokerController.getMessageStoreConfig().isEnableScheduleAsyncDeliver();
-        scheduledPersistService = new ScheduledThreadPoolExecutor(1,
+        scheduledPersistService = ThreadUtils.newScheduledThreadPool(1,
             new ThreadFactoryImpl("ScheduleMessageServicePersistThread", true, brokerController.getBrokerConfig()));
-        scheduledPersistService.scheduleAtFixedRate(() -> {
-            try {
-                ScheduleMessageService.this.persist();
-            } catch (Throwable e) {
-                log.error("scheduleAtFixedRate flush exception", e);
-            }
-        }, 10000, this.brokerController.getMessageStoreConfig().getFlushDelayOffsetInterval(), TimeUnit.MILLISECONDS);
     }
 
     public static int queueId2DelayLevel(final int queueId) {
@@ -141,9 +133,9 @@ public class ScheduleMessageService extends ConfigManager {
     public void start() {
         if (started.compareAndSet(false, true)) {
             this.load();
-            this.deliverExecutorService = new ScheduledThreadPoolExecutor(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageTimerThread_"));
+            this.deliverExecutorService = ThreadUtils.newScheduledThreadPool(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageTimerThread_"));
             if (this.enableAsyncDeliver) {
-                this.handleExecutorService = new ScheduledThreadPoolExecutor(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageExecutorHandleThread_"));
+                this.handleExecutorService = ThreadUtils.newScheduledThreadPool(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageExecutorHandleThread_"));
             }
             for (Map.Entry<Integer, Long> entry : this.delayLevelTable.entrySet()) {
                 Integer level = entry.getKey();
@@ -161,15 +153,13 @@ public class ScheduleMessageService extends ConfigManager {
                 }
             }
 
-            this.deliverExecutorService.scheduleAtFixedRate(() -> {
+            scheduledPersistService.scheduleAtFixedRate(() -> {
                 try {
-                    if (started.get()) {
-                        ScheduleMessageService.this.persist();
-                    }
+                    ScheduleMessageService.this.persist();
                 } catch (Throwable e) {
                     log.error("scheduleAtFixedRate flush exception", e);
                 }
-            }, 10000, this.brokerController.getMessageStore().getMessageStoreConfig().getFlushDelayOffsetInterval(), TimeUnit.MILLISECONDS);
+            }, 10000, this.brokerController.getMessageStoreConfig().getFlushDelayOffsetInterval(), TimeUnit.MILLISECONDS);
         }
     }
 
@@ -178,7 +168,7 @@ public class ScheduleMessageService extends ConfigManager {
         ThreadUtils.shutdown(scheduledPersistService);
     }
 
-    public void stop() {
+    public boolean stop() {
         if (this.started.compareAndSet(true, false) && null != this.deliverExecutorService) {
             this.deliverExecutorService.shutdown();
             try {
@@ -202,6 +192,7 @@ public class ScheduleMessageService extends ConfigManager {
 
             this.persist();
         }
+        return true;
     }
 
     public boolean isStarted() {
@@ -230,6 +221,12 @@ public class ScheduleMessageService extends ConfigManager {
         boolean result = super.load();
         result = result && this.parseDelayLevel();
         result = result && this.correctDelayOffset();
+        return result;
+    }
+    
+    public boolean loadWhenSyncDelayOffset() {
+        boolean result = super.load();
+        result = result && this.parseDelayLevel();
         return result;
     }
 
@@ -332,7 +329,7 @@ public class ScheduleMessageService extends ConfigManager {
         return true;
     }
 
-    private MessageExtBrokerInner messageTimeup(MessageExt msgExt) {
+    private MessageExtBrokerInner messageTimeUp(MessageExt msgExt) {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setBody(msgExt.getBody());
         msgInner.setFlag(msgExt.getFlag());
@@ -381,7 +378,7 @@ public class ScheduleMessageService extends ConfigManager {
                 }
             } catch (Exception e) {
                 // XXX: warn and notify me
-                log.error("ScheduleMessageService, executeOnTimeup exception", e);
+                log.error("ScheduleMessageService, executeOnTimeUp exception", e);
                 this.scheduleNextTimerTask(this.offset, DELAY_FOR_A_PERIOD);
             }
         }
@@ -460,7 +457,7 @@ public class ScheduleMessageService extends ConfigManager {
                         continue;
                     }
 
-                    MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeup(msgExt);
+                    MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeUp(msgExt);
                     if (TopicValidator.RMQ_SYS_TRANS_HALF_TOPIC.equals(msgInner.getTopic())) {
                         log.error("[BUG] the real topic of schedule msg is {}, discard the msg. msg={}",
                             msgInner.getTopic(), msgInner);
@@ -480,7 +477,7 @@ public class ScheduleMessageService extends ConfigManager {
                     }
                 }
             } catch (Exception e) {
-                log.error("ScheduleMessageService, messageTimeup execute error, offset = {}", nextOffset, e);
+                log.error("ScheduleMessageService, messageTimeUp execute error, offset = {}", nextOffset, e);
             } finally {
                 bufferCQ.release();
             }
@@ -568,7 +565,8 @@ public class ScheduleMessageService extends ConfigManager {
                             pendingQueue.remove();
                             break;
                         case RUNNING:
-                            break;
+                            scheduleNextTask();
+                            return;
                         case EXCEPTION:
                             if (!isStarted()) {
                                 log.warn("HandlePutResultTask shutdown, info={}", putResultProcess.toString());
@@ -588,6 +586,10 @@ public class ScheduleMessageService extends ConfigManager {
                 }
             }
 
+            scheduleNextTask();
+        }
+
+        private void scheduleNextTask() {
             if (isStarted()) {
                 ScheduleMessageService.this.handleExecutorService
                     .schedule(new HandlePutResultTask(this.delayLevel), DELAY_FOR_A_SLEEP, TimeUnit.MILLISECONDS);
@@ -780,7 +782,7 @@ public class ScheduleMessageService extends ConfigManager {
                     return;
                 }
 
-                MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeup(msgExt);
+                MessageExtBrokerInner msgInner = ScheduleMessageService.this.messageTimeUp(msgExt);
                 PutMessageResult result = ScheduleMessageService.this.brokerController.getEscapeBridge().putMessage(msgInner);
                 this.handleResult(result);
                 if (result != null && result.getPutMessageStatus() == PutMessageStatus.PUT_OK) {

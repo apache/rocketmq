@@ -17,19 +17,6 @@
 
 package org.apache.rocketmq.remoting;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.net.Socket;
-import java.time.Duration;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -46,6 +33,20 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_CLIENT_AUTHSERVER;
 import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_CLIENT_CERTPATH;
@@ -143,8 +144,13 @@ public class TlsTest {
             tlsClientKeyPath = "";
             tlsClientCertPath = "";
             clientConfig.setUseTLS(false);
-        } else if ("serverRejectsSSLClient".equals(name.getMethodName())) {
+        } else if ("disabledServerRejectsSSLClient".equals(name.getMethodName())) {
             tlsMode = TlsMode.DISABLED;
+        } else if ("disabledServerAcceptUnAuthClient".equals(name.getMethodName())) {
+            tlsMode = TlsMode.DISABLED;
+            tlsClientKeyPath = "";
+            tlsClientCertPath = "";
+            clientConfig.setUseTLS(false);
         } else if ("reloadSslContextForServer".equals(name.getMethodName())) {
             tlsClientAuthServer = false;
             tlsServerNeedClientAuth = "none";
@@ -210,12 +216,17 @@ public class TlsTest {
     }
 
     @Test
-    public void serverRejectsSSLClient() throws Exception {
+    public void disabledServerRejectsSSLClient() throws Exception {
         try {
             RemotingCommand response = remotingClient.invokeSync(getServerAddress(), createRequest(), 1000 * 5);
             failBecauseExceptionWasNotThrown(RemotingSendRequestException.class);
         } catch (RemotingSendRequestException ignore) {
         }
+    }
+
+    @Test
+    public void disabledServerAcceptUnAuthClient() throws Exception {
+        requestThenAssertResponse();
     }
 
     /**
@@ -234,6 +245,7 @@ public class TlsTest {
     @Test
     public void serverAcceptsUntrustedClientCert() throws Exception {
         requestThenAssertResponse();
+//        Thread.sleep(1000000L);
     }
 
     /**

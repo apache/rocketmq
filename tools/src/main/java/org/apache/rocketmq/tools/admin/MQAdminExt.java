@@ -24,7 +24,7 @@ import java.util.Set;
 import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.AclConfig;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -38,6 +38,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.RollbackStats;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
@@ -106,9 +107,6 @@ public interface MQAdminExt extends MQAdmin {
 
     ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
         final String addr) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    AclConfig examineBrokerClusterAclConfig(final String addr) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
     void createAndUpdateSubscriptionGroupConfig(final String addr,
@@ -455,20 +453,32 @@ public interface MQAdminExt extends MQAdmin {
      * @param controllerAddr controller address
      * @param clusterName    cluster name
      * @param brokerName     broker name
-     * @param brokerAddr     broker address
+     * @param brokerId     broker id
      * @return
      * @throws RemotingException
      * @throws InterruptedException
      * @throws MQBrokerException
      */
-    ElectMasterResponseHeader electMaster(String controllerAddr, String clusterName, String brokerName,
-        String brokerAddr) throws RemotingException, InterruptedException, MQBrokerException;
+    Pair<ElectMasterResponseHeader, BrokerMemberGroup> electMaster(String controllerAddr, String clusterName, String brokerName,
+                                                                   Long brokerId) throws RemotingException, InterruptedException, MQBrokerException;
 
     /**
      * clean controller broker meta data
      */
     void cleanControllerBrokerData(String controllerAddr, String clusterName, String brokerName,
-        String brokerAddr,
+        String brokerControllerIdsToClean,
         boolean isCleanLivingBroker) throws RemotingException, InterruptedException, MQBrokerException;
+
+    void updateColdDataFlowCtrGroupConfig(final String brokerAddr, final Properties properties)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    void removeColdDataFlowCtrGroupConfig(final String brokerAddr, final String consumerGroup)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    String getColdDataFlowCtrInfo(final String brokerAddr)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    String setCommitLogReadAheadMode(final String brokerAddr, String mode)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
 
 }

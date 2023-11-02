@@ -18,11 +18,11 @@ package org.apache.rocketmq.broker.client;
 
 import io.netty.channel.Channel;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -35,7 +35,7 @@ public class ClientHousekeepingService implements ChannelEventListener {
 
     public ClientHousekeepingService(final BrokerController brokerController) {
         this.brokerController = brokerController;
-        scheduledExecutorService = new ScheduledThreadPoolExecutor(1,
+        scheduledExecutorService = ThreadUtils.newScheduledThreadPool(1,
             new ThreadFactoryImpl("ClientHousekeepingScheduledThread", brokerController.getBrokerIdentity()));
     }
 
@@ -56,7 +56,6 @@ public class ClientHousekeepingService implements ChannelEventListener {
     private void scanExceptionChannel() {
         this.brokerController.getProducerManager().scanNotActiveChannel();
         this.brokerController.getConsumerManager().scanNotActiveChannel();
-        this.brokerController.getFilterServerManager().scanNotActiveChannel();
     }
 
     public void shutdown() {
@@ -72,7 +71,6 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void onChannelClose(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getBrokerStatsManager().incChannelCloseNum();
     }
 
@@ -80,7 +78,6 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void onChannelException(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getBrokerStatsManager().incChannelExceptionNum();
     }
 
@@ -88,7 +85,11 @@ public class ClientHousekeepingService implements ChannelEventListener {
     public void onChannelIdle(String remoteAddr, Channel channel) {
         this.brokerController.getProducerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
-        this.brokerController.getFilterServerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getBrokerStatsManager().incChannelIdleNum();
+    }
+
+    @Override
+    public void onChannelActive(String remoteAddr, Channel channel) {
+
     }
 }

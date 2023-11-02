@@ -33,13 +33,11 @@ public class TransientStorePool {
     private final int poolSize;
     private final int fileSize;
     private final Deque<ByteBuffer> availableBuffers;
-    private final DefaultMessageStore messageStore;
     private volatile boolean isRealCommit = true;
 
-    public TransientStorePool(final DefaultMessageStore messageStore) {
-        this.messageStore = messageStore;
-        this.poolSize = messageStore.getMessageStoreConfig().getTransientStorePoolSize();
-        this.fileSize = messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
+    public TransientStorePool(final int poolSize, final int fileSize) {
+        this.poolSize = poolSize;
+        this.fileSize = fileSize;
         this.availableBuffers = new ConcurrentLinkedDeque<>();
     }
 
@@ -81,10 +79,7 @@ public class TransientStorePool {
     }
 
     public int availableBufferNums() {
-        if (messageStore.isTransientStorePoolEnable()) {
-            return availableBuffers.size();
-        }
-        return Integer.MAX_VALUE;
+        return availableBuffers.size();
     }
 
     public boolean isRealCommit() {

@@ -25,8 +25,8 @@ import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.tieredstore.container.TieredCommitLog;
-import org.apache.rocketmq.tieredstore.container.TieredConsumeQueue;
+import org.apache.rocketmq.tieredstore.file.TieredCommitLog;
+import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -47,10 +47,10 @@ public class MessageBufferUtilTest {
         + 8 //Prepared Transaction Offset
         + 4 + 0 //BODY
         + 2 + 0 //TOPIC
-        + 2 + 30 //properties
+        + 2 + 31 //properties
         + 0;
 
-    public static ByteBuffer buildMessageBuffer() {
+    public static ByteBuffer buildMockedMessageBuffer() {
         // Initialization of storage space
         ByteBuffer buffer = ByteBuffer.allocate(MSG_LEN);
         // 1 TOTALSIZE
@@ -99,35 +99,73 @@ public class MessageBufferUtilTest {
         return buffer;
     }
 
+    public static ByteBuffer buildMockedConsumeQueueBuffer() {
+        ByteBuffer byteBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
+        // 1 COMMIT_LOG_OFFSET
+        byteBuffer.putLong(1);
+        // 2 MESSAGE_SIZE
+        byteBuffer.putInt(2);
+        // 3 TAG_HASH_CODE
+        byteBuffer.putLong(3);
+        byteBuffer.flip();
+        return byteBuffer;
+    }
+
+    public static void verifyMockedMessageBuffer(ByteBuffer buffer, int phyOffset) {
+        Assert.assertEquals(MSG_LEN, buffer.remaining());
+        Assert.assertEquals(MSG_LEN, buffer.getInt());
+        Assert.assertEquals(MessageDecoder.MESSAGE_MAGIC_CODE_V2, buffer.getInt());
+        Assert.assertEquals(3, buffer.getInt());
+        Assert.assertEquals(4, buffer.getInt());
+        Assert.assertEquals(5, buffer.getInt());
+        Assert.assertEquals(6, buffer.getLong());
+        Assert.assertEquals(phyOffset, buffer.getLong());
+        Assert.assertEquals(8, buffer.getInt());
+        Assert.assertEquals(9, buffer.getLong());
+        Assert.assertEquals(10, buffer.getLong());
+        Assert.assertEquals(11, buffer.getLong());
+        Assert.assertEquals(10, buffer.getLong());
+        Assert.assertEquals(13, buffer.getInt());
+        Assert.assertEquals(14, buffer.getLong());
+        Assert.assertEquals(0, buffer.getInt());
+        Assert.assertEquals(0, buffer.getShort());
+        buffer.rewind();
+        Map<String, String> properties = MessageBufferUtil.getProperties(buffer);
+        Assert.assertEquals("uk", properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
+        Assert.assertEquals("uservalue0", properties.get("userkey"));
+    }
+
+
     @Test
     public void testGetTotalSize() {
-        ByteBuffer buffer = buildMessageBuffer();
+        ByteBuffer buffer = buildMockedMessageBuffer();
         int totalSize = MessageBufferUtil.getTotalSize(buffer);
         Assert.assertEquals(MSG_LEN, totalSize);
     }
 
     @Test
     public void testGetMagicCode() {
-        ByteBuffer buffer = buildMessageBuffer();
+        ByteBuffer buffer = buildMockedMessageBuffer();
         int magicCode = MessageBufferUtil.getMagicCode(buffer);
         Assert.assertEquals(MessageDecoder.MESSAGE_MAGIC_CODE_V2, magicCode);
     }
 
     @Test
     public void testSplitMessages() {
-        ByteBuffer msgBuffer1 = buildMessageBuffer();
+        ByteBuffer msgBuffer1 = buildMockedMessageBuffer();
         msgBuffer1.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 10);
-        ByteBuffer msgBuffer2 = ByteBuffer.allocate(TieredCommitLog.CODA_SIZE);
 
+        ByteBuffer msgBuffer2 = ByteBuffer.allocate(TieredCommitLog.CODA_SIZE);
         msgBuffer2.putInt(TieredCommitLog.CODA_SIZE);
         msgBuffer2.putInt(TieredCommitLog.BLANK_MAGIC_CODE);
         msgBuffer2.putLong(System.currentTimeMillis());
         msgBuffer2.flip();
 
-        ByteBuffer msgBuffer3 = buildMessageBuffer();
+        ByteBuffer msgBuffer3 = buildMockedMessageBuffer();
         msgBuffer3.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 11);
 
-        ByteBuffer msgBuffer = ByteBuffer.allocate(msgBuffer1.remaining() + msgBuffer2.remaining() + msgBuffer3.remaining());
+        ByteBuffer msgBuffer = ByteBuffer.allocate(
+            msgBuffer1.remaining() + msgBuffer2.remaining() + msgBuffer3.remaining());
         msgBuffer.put(msgBuffer1);
         msgBuffer.put(msgBuffer2);
         msgBuffer.put(msgBuffer3);
@@ -202,21 +240,21 @@ public class MessageBufferUtilTest {
 
     @Test
     public void testGetQueueOffset() {
-        ByteBuffer buffer = buildMessageBuffer();
+        ByteBuffer buffer = buildMockedMessageBuffer();
         long queueOffset = MessageBufferUtil.getQueueOffset(buffer);
         Assert.assertEquals(6, queueOffset);
     }
 
     @Test
     public void testGetStoreTimeStamp() {
-        ByteBuffer buffer = buildMessageBuffer();
+        ByteBuffer buffer = buildMockedMessageBuffer();
         long storeTimeStamp = MessageBufferUtil.getStoreTimeStamp(buffer);
         Assert.assertEquals(11, storeTimeStamp);
     }
 
     @Test
     public void testGetOffsetId() {
-        ByteBuffer buffer = buildMessageBuffer();
+        ByteBuffer buffer = buildMockedMessageBuffer();
         InetSocketAddress inetSocketAddress = new InetSocketAddress("255.255.255.255", 65535);
         ByteBuffer addr = ByteBuffer.allocate(Long.BYTES);
         addr.put(inetSocketAddress.getAddress().getAddress(), 0, 4);
@@ -232,7 +270,7 @@ public class MessageBufferUtilTest {
 
     @Test
     public void testGetProperties() {
-        ByteBuffer buffer = buildMessageBuffer();
+        ByteBuffer buffer = buildMockedMessageBuffer();
         Map<String, String> properties = MessageBufferUtil.getProperties(buffer);
         Assert.assertEquals(2, properties.size());
         Assert.assertTrue(properties.containsKey(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));

@@ -229,6 +229,29 @@ public class GrpcBaseIT extends BaseConf {
             .build());
     }
 
+    public void testQueryAssignment() throws Exception {
+        String topic = initTopic();
+        String group = "group";
+
+        QueryAssignmentResponse response = blockingStub.queryAssignment(buildQueryAssignmentRequest(topic, group));
+
+        assertQueryAssignment(response, BROKER_NUM);
+    }
+
+    public void testQueryFifoAssignment() throws Exception {
+        String topic = initTopic(TopicMessageType.FIFO);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+        SubscriptionGroupConfig groupConfig = brokerController1.getSubscriptionGroupManager().findSubscriptionGroupConfig(group);
+        groupConfig.setConsumeMessageOrderly(true);
+        brokerController1.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        brokerController2.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+        brokerController3.getSubscriptionGroupManager().updateSubscriptionGroupConfig(groupConfig);
+
+        QueryAssignmentResponse response = blockingStub.queryAssignment(buildQueryAssignmentRequest(topic, group));
+
+        assertQueryAssignment(response, BROKER_NUM * QUEUE_NUMBERS);
+    }
+
     public void testTransactionCheckThenCommit() {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.TRANSACTION);
         String group = MQRandomUtils.getRandomConsumerGroup();

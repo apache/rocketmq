@@ -25,68 +25,69 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
+import org.apache.rocketmq.tieredstore.provider.stream.FileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_FILE_TYPE;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_OPERATION;
+import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_PATH;
 import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_SUCCESS;
-import static org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant.LABEL_TOPIC;
 
 /**
  * this class is experimental and may change without notice.
  */
 public class PosixFileSegment extends TieredFileSegment {
+
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
+    private static final String UNDERLINE = "_";
     private static final String OPERATION_POSIX_READ = "read";
     private static final String OPERATION_POSIX_WRITE = "write";
 
-    private final String basePath;
-    private final String filepath;
-
+    private final String fullPath;
     private volatile File file;
     private volatile FileChannel readFileChannel;
     private volatile FileChannel writeFileChannel;
 
-    public PosixFileSegment(FileSegmentType fileType, MessageQueue messageQueue,
-        long baseOffset, TieredMessageStoreConfig storeConfig) {
-        super(fileType, messageQueue, baseOffset, storeConfig);
+    public PosixFileSegment(TieredMessageStoreConfig storeConfig,
+        FileSegmentType fileType, String filePath, long baseOffset) {
 
-        String basePath = storeConfig.getTieredStoreFilepath();
-        if (StringUtils.isBlank(basePath) || basePath.endsWith(File.separator)) {
-            this.basePath = basePath;
-        } else {
-            this.basePath = basePath + File.separator;
-        }
-        this.filepath = this.basePath
-            + TieredStoreUtil.getHash(storeConfig.getBrokerClusterName()) + "_" + storeConfig.getBrokerClusterName() + File.separator
-            + messageQueue.getBrokerName() + File.separator
-            + messageQueue.getTopic() + File.separator
-            + messageQueue.getQueueId() + File.separator
-            + fileType + File.separator
-            + TieredStoreUtil.offset2FileName(baseOffset);
+        super(storeConfig, fileType, filePath, baseOffset);
+
+        // basePath
+        String basePath = StringUtils.defaultString(storeConfig.getTieredStoreFilePath(),
+            StringUtils.appendIfMissing(storeConfig.getTieredStoreFilePath(), File.separator));
+
+        // fullPath: basePath/hash_cluster/broker/topic/queueId/fileType/baseOffset
+        String brokerClusterName = storeConfig.getBrokerClusterName();
+        String clusterBasePath = TieredStoreUtil.getHash(brokerClusterName) + UNDERLINE + brokerClusterName;
+        this.fullPath = Paths.get(basePath, clusterBasePath, filePath,
+            fileType.toString(), TieredStoreUtil.offset2FileName(baseOffset)).toString();
+        logger.info("Constructing Posix FileSegment, filePath: {}", fullPath);
+
         createFile();
     }
 
     protected AttributesBuilder newAttributesBuilder() {
         return TieredStoreMetricsManager.newAttributesBuilder()
-            .put(LABEL_TOPIC, messageQueue.getTopic())
+            .put(LABEL_PATH, filePath)
             .put(LABEL_FILE_TYPE, fileType.name().toLowerCase());
     }
 
     @Override
     public String getPath() {
-        return filepath;
+        return fullPath;
     }
 
     @Override
@@ -107,7 +108,7 @@ public class PosixFileSegment extends TieredFileSegment {
         if (file == null) {
             synchronized (this) {
                 if (file == null) {
-                    File file = new File(filepath);
+                    File file = new File(fullPath);
                     try {
                         File dir = file.getParentFile();
                         if (!dir.exists()) {
@@ -120,7 +121,7 @@ public class PosixFileSegment extends TieredFileSegment {
                         this.writeFileChannel = new RandomAccessFile(file, "rwd").getChannel();
                         this.file = file;
                     } catch (Exception e) {
-                        logger.error("PosixFileSegment#createFile: create file {} failed: ", filepath, e);
+                        logger.error("PosixFileSegment#createFile: create file {} failed: ", filePath, e);
                     }
                 }
             }
@@ -136,8 +137,9 @@ public class PosixFileSegment extends TieredFileSegment {
             if (writeFileChannel != null && writeFileChannel.isOpen()) {
                 writeFileChannel.close();
             }
+            logger.info("Destroy Posix FileSegment, filePath: {}", fullPath);
         } catch (IOException e) {
-            logger.error("PosixFileSegment#destroyFile: destroy file {} failed: ", filepath, e);
+            logger.error("Destroy Posix FileSegment failed, filePath: {}", fullPath, e);
         }
 
         if (file.exists()) {
@@ -174,27 +176,28 @@ public class PosixFileSegment extends TieredFileSegment {
             attributesBuilder.put(LABEL_SUCCESS, false);
             TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
             logger.error("PosixFileSegment#read0: read file {} failed: position: {}, length: {}",
-                filepath, position, length, e);
+                filePath, position, length, e);
             future.completeExceptionally(e);
         }
         return future;
     }
 
     @Override
-    public CompletableFuture<Boolean> commit0(TieredFileSegmentInputStream inputStream, long position, int length,
-        boolean append) {
+    public CompletableFuture<Boolean> commit0(
+        FileSegmentInputStream inputStream, long position, int length, boolean append) {
+
         Stopwatch stopwatch = Stopwatch.createStarted();
         AttributesBuilder attributesBuilder = newAttributesBuilder()
             .put(LABEL_OPERATION, OPERATION_POSIX_WRITE);
 
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-            TieredStoreExecutor.COMMIT_EXECUTOR.execute(() -> {
+            TieredStoreExecutor.commitExecutor.execute(() -> {
                 try {
                     byte[] byteArray = ByteStreams.toByteArray(inputStream);
                     if (byteArray.length != length) {
                         logger.error("PosixFileSegment#commit0: append file {} failed: real data size: {}, is not equal to length: {}",
-                            filepath, byteArray.length, length);
+                            filePath, byteArray.length, length);
                         future.complete(false);
                         return;
                     }
@@ -220,7 +223,7 @@ public class PosixFileSegment extends TieredFileSegment {
                     TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
 
                     logger.error("PosixFileSegment#commit0: append file {} failed: position: {}, length: {}",
-                        filepath, position, length, e);
+                        filePath, position, length, e);
                     future.completeExceptionally(e);
                 }
             });

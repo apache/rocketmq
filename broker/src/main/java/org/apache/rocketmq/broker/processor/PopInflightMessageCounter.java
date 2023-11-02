@@ -16,17 +16,17 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class PopInflightMessageCounter {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -61,26 +61,24 @@ public class PopInflightMessageCounter {
         });
     }
 
-    public void decrementInFlightMessageNum(String topic, String group, String ckInfo) {
-        String[] ckInfoList = ExtraInfoUtil.split(ckInfo);
-        long popTime = ExtraInfoUtil.getPopTime(ckInfoList);
+    public void decrementInFlightMessageNum(String topic, String group, long popTime, int qId, int delta) {
         if (popTime < this.brokerController.getShouldStartTime()) {
             return;
         }
-        decrementInFlightMessageNum(topic, group, ExtraInfoUtil.getQueueId(ckInfoList));
+        decrementInFlightMessageNum(topic, group, qId, delta);
     }
 
     public void decrementInFlightMessageNum(PopCheckPoint checkPoint) {
         if (checkPoint.getPopTime() < this.brokerController.getShouldStartTime()) {
             return;
         }
-        decrementInFlightMessageNum(checkPoint.getTopic(), checkPoint.getCId(), checkPoint.getQueueId());
+        decrementInFlightMessageNum(checkPoint.getTopic(), checkPoint.getCId(), checkPoint.getQueueId(), 1);
     }
 
-    public void decrementInFlightMessageNum(String topic, String group, int queueId) {
+    private void decrementInFlightMessageNum(String topic, String group, int queueId, int delta) {
         topicInFlightMessageNum.computeIfPresent(buildKey(topic, group), (key, queueNum) -> {
             queueNum.computeIfPresent(queueId, (queueIdKey, counter) -> {
-                if (counter.decrementAndGet() <= 0) {
+                if (counter.addAndGet(-delta) <= 0) {
                     return null;
                 }
                 return counter;

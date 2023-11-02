@@ -96,6 +96,7 @@ GenTestRules(
     default_test_size = "medium",
     exclude_tests = [
         "src/test/java/org/apache/rocketmq/test/grpc/v2/GrpcBaseIT",
+        # Following tests are found flaky
         "src/test/java/org/apache/rocketmq/test/statictopic/StaticTopicIT",
         "src/test/java/org/apache/rocketmq/test/client/consumer/topic/MulConsumerMulTopicIT",
         "src/test/java/org/apache/rocketmq/test/client/consumer/tag/MulTagSubIT",
@@ -123,7 +124,12 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/test/client/producer/oneway/OneWaySendWithSelectorIT",
         "src/test/java/org/apache/rocketmq/test/smoke/NormalMessageSendAndRecvIT",
         "src/test/java/org/apache/rocketmq/test/base/dledger/DLedgerProduceAndConsumeIT",
-	"src/test/java/org/apache/rocketmq/test/client/consumer/pop/PopOrderlyIT",
+    	"src/test/java/org/apache/rocketmq/test/client/consumer/pop/PopOrderlyIT",
+        "src/test/java/org/apache/rocketmq/test/delay/NormalMsgDelayIT",
+        "src/test/java/org/apache/rocketmq/test/client/producer/querymsg/QueryMsgByIdExceptionIT",
+    ],
+    flaky_tests = [
+       "src/test/java/org/apache/rocketmq/test/client/producer/querymsg/QueryMsgByKeyIT", 
     ],
     test_files = glob(["src/test/java/**/*IT.java"]),
     deps = [

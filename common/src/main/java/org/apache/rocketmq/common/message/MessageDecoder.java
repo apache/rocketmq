@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common.message;
 
+import io.netty.buffer.ByteBuf;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -150,6 +151,34 @@ public class MessageDecoder {
             return string2messageProperties(propertiesString);
         }
         return null;
+    }
+
+    public static void createCrc32(final ByteBuffer input, int crc32) {
+        input.put(MessageConst.PROPERTY_CRC32.getBytes(StandardCharsets.UTF_8));
+        input.put((byte) NAME_VALUE_SEPARATOR);
+        for (int i = 0; i < 10; i++) {
+            byte b = '0';
+            if (crc32 > 0) {
+                b += (byte) (crc32 % 10);
+                crc32 /= 10;
+            }
+            input.put(b);
+        }
+        input.put((byte) PROPERTY_SEPARATOR);
+    }
+
+    public static void createCrc32(final ByteBuf input, int crc32) {
+        input.writeBytes(MessageConst.PROPERTY_CRC32.getBytes(StandardCharsets.UTF_8));
+        input.writeByte((byte) NAME_VALUE_SEPARATOR);
+        for (int i = 0; i < 10; i++) {
+            byte b = '0';
+            if (crc32 > 0) {
+                b += (byte) (crc32 % 10);
+                crc32 /= 10;
+            }
+            input.writeByte(b);
+        }
+        input.writeByte((byte) PROPERTY_SEPARATOR);
     }
 
     public static MessageExt decode(ByteBuffer byteBuffer) {
@@ -600,9 +629,6 @@ public class MessageDecoder {
             sb.append(NAME_VALUE_SEPARATOR);
             sb.append(value);
             sb.append(PROPERTY_SEPARATOR);
-        }
-        if (sb.length() > 0) {
-            sb.deleteCharAt(sb.length() - 1);
         }
         return sb.toString();
     }

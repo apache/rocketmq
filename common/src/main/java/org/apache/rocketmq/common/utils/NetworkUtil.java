@@ -116,7 +116,7 @@ public class NetworkUtil {
             // prefer ipv4
             if (!ipv4Result.isEmpty()) {
                 for (String ip : ipv4Result) {
-                    if (ip.startsWith("127.0") || ip.startsWith("192.168")) {
+                    if (ip.startsWith("127.0") || ip.startsWith("192.168") || ip.startsWith("0.")) {
                         continue;
                     }
 

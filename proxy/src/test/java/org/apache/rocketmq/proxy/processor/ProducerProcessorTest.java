@@ -70,7 +70,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
 
     @Test
     public void testSendMessage() throws Throwable {
-        when(metadataService.getTopicMessageType(eq(TOPIC))).thenReturn(TopicMessageType.NORMAL);
+        when(metadataService.getTopicMessageType(any(), eq(TOPIC))).thenReturn(TopicMessageType.NORMAL);
         String txId = MessageClientIDSetter.createUniqID();
         String msgId = MessageClientIDSetter.createUniqID();
         long commitLogOffset = 1000L;
@@ -96,6 +96,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         ArgumentCaptor<Long> tranStateTableOffsetCaptor = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<Long> commitLogOffsetCaptor = ArgumentCaptor.forClass(Long.class);
         when(transactionService.addTransactionDataByBrokerName(
+            any(),
             brokerNameCaptor.capture(),
             anyString(),
             tranStateTableOffsetCaptor.capture(),
@@ -150,6 +151,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         ArgumentCaptor<Long> tranStateTableOffsetCaptor = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<Long> commitLogOffsetCaptor = ArgumentCaptor.forClass(Long.class);
         when(transactionService.addTransactionDataByBrokerName(
+            any(),
             brokerNameCaptor.capture(),
             anyString(),
             tranStateTableOffsetCaptor.capture(),

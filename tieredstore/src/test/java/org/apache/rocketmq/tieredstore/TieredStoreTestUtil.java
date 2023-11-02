@@ -18,13 +18,19 @@ package org.apache.rocketmq.tieredstore;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.util.UUID;
 import org.apache.commons.io.FileUtils;
-import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
+import org.apache.rocketmq.tieredstore.file.TieredFlatFileManager;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.Assert;
 
 public class TieredStoreTestUtil {
+
+    public static String getRandomStorePath() {
+        return FileUtils.getTempDirectory() + File.separator + "unit_test_tiered_store" + UUID.randomUUID();
+    }
+
     public static void destroyMetadataStore() {
         TieredMetadataStore metadataStore = TieredStoreUtil.getMetadataStore(null);
         if (metadataStore != null) {
@@ -39,13 +45,13 @@ public class TieredStoreTestUtil {
         }
     }
 
-    public static void destroyContainerManager() {
-        TieredContainerManager containerManager = TieredContainerManager.getInstance(null);
-        if (containerManager != null) {
-            containerManager.destroy();
+    public static void destroyCompositeFlatFileManager() {
+        TieredFlatFileManager flatFileManagerManager = TieredFlatFileManager.getInstance(null);
+        if (flatFileManagerManager != null) {
+            flatFileManagerManager.destroy();
         }
         try {
-            Field field = TieredContainerManager.class.getDeclaredField("instance");
+            Field field = TieredFlatFileManager.class.getDeclaredField("instance");
             field.setAccessible(true);
             field.set(null, null);
         } catch (NoSuchFieldException | IllegalAccessException e) {

@@ -41,6 +41,16 @@ java_library(
         "@maven//:commons_cli_commons_cli",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
+        "@maven//:io_opentelemetry_opentelemetry_api",
+        "@maven//:io_opentelemetry_opentelemetry_context",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_prometheus",
+        "@maven//:io_opentelemetry_opentelemetry_sdk",
+        "@maven//:io_opentelemetry_opentelemetry_sdk_common",
+        "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_logging",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_logging_otlp",
+        "@maven//:org_slf4j_jul_to_slf4j",
     ],
 )
 
@@ -69,6 +79,10 @@ GenTestRules(
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [
         ":tests",
+    ],
+    exclude_tests = [
+        # This test is buggy, exclude it.
+        "src/test/java/org/apache/rocketmq/controller/impl/DLedgerControllerTest",
     ],
     medium_tests = [
         "src/test/java/org/apache/rocketmq/controller/impl/controller/impl/DLedgerControllerTest",

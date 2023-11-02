@@ -56,8 +56,8 @@ public class PlainAccessValidator implements AccessValidator {
     }
 
     @Override
-    public boolean deleteAccessConfig(String accesskey) {
-        return aclPlugEngine.deleteAccessConfig(accesskey);
+    public boolean deleteAccessConfig(String accessKey) {
+        return aclPlugEngine.deleteAccessConfig(accessKey);
     }
 
     @Override

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.trace;
 
+import org.apache.rocketmq.client.AccessChannel;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageType;
@@ -190,9 +191,11 @@ public class TraceDataEncoder {
                         .append(ctx.getCostTime()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(ctx.isSuccess()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
-                        .append(ctx.getContextCode()).append(TraceConstants.CONTENT_SPLITOR)
-                        .append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)
-                        .append(ctx.getGroupName()).append(TraceConstants.FIELD_SPLITOR);
+                        .append(ctx.getContextCode()).append(TraceConstants.CONTENT_SPLITOR);
+                    if (!ctx.getAccessChannel().equals(AccessChannel.CLOUD)) {
+                        sb.append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)
+                            .append(ctx.getGroupName()).append(TraceConstants.FIELD_SPLITOR);
+                    }
                 }
             }
             break;

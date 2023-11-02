@@ -16,15 +16,15 @@
  */
 package org.apache.rocketmq.store.metrics;
 
+import com.google.common.collect.Lists;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.LongCounter;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.api.metrics.ObservableLongGauge;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.io.File;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.Pair;
@@ -69,8 +69,8 @@ public class DefaultStoreMetricsManager {
     public static LongCounter timerDequeueTotal = new NopLongCounter();
     public static LongCounter timerEnqueueTotal = new NopLongCounter();
 
-    public static List<Pair<InstrumentSelector, View>> getMetricsView() {
-        return Collections.emptyList();
+    public static List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
+        return Lists.newArrayList();
     }
 
     public static void init(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier,

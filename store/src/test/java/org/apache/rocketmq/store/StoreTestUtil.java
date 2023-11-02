@@ -38,11 +38,16 @@ public class StoreTestUtil {
 
     public static boolean isCommitLogAvailable(DefaultMessageStore store) {
         try {
+            Field serviceField = null;
+            if (store instanceof RocksDBMessageStore) {
+                serviceField = store.getClass().getSuperclass().getDeclaredField("reputMessageService");
+            } else {
+                serviceField = store.getClass().getDeclaredField("reputMessageService");
+            }
 
-            Field serviceField = store.getClass().getDeclaredField("reputMessageService");
             serviceField.setAccessible(true);
             DefaultMessageStore.ReputMessageService reputService =
-                    (DefaultMessageStore.ReputMessageService) serviceField.get(store);
+                (DefaultMessageStore.ReputMessageService) serviceField.get(store);
 
             Method method = DefaultMessageStore.ReputMessageService.class.getDeclaredMethod("isCommitLogAvailable");
             method.setAccessible(true);

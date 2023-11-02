@@ -20,74 +20,89 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 
 public class TieredStoreExecutor {
-    private static final int QUEUE_CAPACITY = 10000;
-    private static final BlockingQueue<Runnable> DISPATCH_THREAD_POOL_QUEUE;
-    public static final ExecutorService DISPATCH_EXECUTOR;
-    public static final ScheduledExecutorService COMMON_SCHEDULED_EXECUTOR;
 
-    public static final ScheduledExecutorService COMMIT_EXECUTOR;
+    public static final int QUEUE_CAPACITY = 10000;
 
-    public static final ScheduledExecutorService CLEAN_EXPIRED_FILE_EXECUTOR;
+    // Visible for monitor
+    public static BlockingQueue<Runnable> dispatchThreadPoolQueue;
+    public static BlockingQueue<Runnable> fetchDataThreadPoolQueue;
+    public static BlockingQueue<Runnable> compactIndexFileThreadPoolQueue;
 
-    private static final BlockingQueue<Runnable> FETCH_DATA_THREAD_POOL_QUEUE;
-    public static final ExecutorService FETCH_DATA_EXECUTOR;
+    public static ScheduledExecutorService commonScheduledExecutor;
+    public static ScheduledExecutorService commitExecutor;
+    public static ScheduledExecutorService cleanExpiredFileExecutor;
 
-    private static final BlockingQueue<Runnable> COMPACT_INDEX_FILE_THREAD_POOL_QUEUE;
-    public static final ExecutorService COMPACT_INDEX_FILE_EXECUTOR;
+    public static ExecutorService dispatchExecutor;
+    public static ExecutorService fetchDataExecutor;
+    public static ExecutorService compactIndexFileExecutor;
 
-    static {
-        DISPATCH_THREAD_POOL_QUEUE = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        DISPATCH_EXECUTOR = new ThreadPoolExecutor(
+    public static void init() {
+        commonScheduledExecutor = ThreadUtils.newScheduledThreadPool(
+            Math.max(4, Runtime.getRuntime().availableProcessors()),
+            new ThreadFactoryImpl("TieredCommonExecutor_"));
+
+        commitExecutor = ThreadUtils.newScheduledThreadPool(
+            Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
+            new ThreadFactoryImpl("TieredCommitExecutor_"));
+
+        cleanExpiredFileExecutor = ThreadUtils.newScheduledThreadPool(
+            Math.max(4, Runtime.getRuntime().availableProcessors()),
+            new ThreadFactoryImpl("TieredCleanFileExecutor_"));
+
+        dispatchThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+        dispatchExecutor = ThreadUtils.newThreadPoolExecutor(
             Math.max(2, Runtime.getRuntime().availableProcessors()),
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             1000 * 60,
             TimeUnit.MILLISECONDS,
-            DISPATCH_THREAD_POOL_QUEUE,
-            new ThreadFactoryImpl("TieredCommonExecutor_"));
+            dispatchThreadPoolQueue,
+            new ThreadFactoryImpl("TieredDispatchExecutor_"),
+            new ThreadPoolExecutor.DiscardOldestPolicy());
 
-        COMMON_SCHEDULED_EXECUTOR = new ScheduledThreadPoolExecutor(
-            Math.max(4, Runtime.getRuntime().availableProcessors()),
-            new ThreadFactoryImpl("TieredCommonScheduledExecutor_"));
-
-        COMMIT_EXECUTOR = new ScheduledThreadPoolExecutor(
-            Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
-            new ThreadFactoryImpl("TieredCommitExecutor_"));
-
-        CLEAN_EXPIRED_FILE_EXECUTOR = new ScheduledThreadPoolExecutor(
-            Math.max(4, Runtime.getRuntime().availableProcessors()),
-            new ThreadFactoryImpl("TieredCleanExpiredFileExecutor_"));
-
-        FETCH_DATA_THREAD_POOL_QUEUE = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        FETCH_DATA_EXECUTOR = new ThreadPoolExecutor(
+        fetchDataThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+        fetchDataExecutor = ThreadUtils.newThreadPoolExecutor(
             Math.max(16, Runtime.getRuntime().availableProcessors() * 4),
             Math.max(64, Runtime.getRuntime().availableProcessors() * 8),
             1000 * 60,
             TimeUnit.MILLISECONDS,
-            FETCH_DATA_THREAD_POOL_QUEUE,
-            new ThreadFactoryImpl("TieredFetchDataExecutor_"));
+            fetchDataThreadPoolQueue,
+            new ThreadFactoryImpl("TieredFetchExecutor_"));
 
-        COMPACT_INDEX_FILE_THREAD_POOL_QUEUE = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
-        COMPACT_INDEX_FILE_EXECUTOR = new ThreadPoolExecutor(
+        compactIndexFileThreadPoolQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+        compactIndexFileExecutor = ThreadUtils.newThreadPoolExecutor(
             1,
             1,
             1000 * 60,
             TimeUnit.MILLISECONDS,
-            COMPACT_INDEX_FILE_THREAD_POOL_QUEUE,
+            compactIndexFileThreadPoolQueue,
             new ThreadFactoryImpl("TieredCompactIndexFileExecutor_"));
     }
 
     public static void shutdown() {
-        DISPATCH_EXECUTOR.shutdown();
-        COMMON_SCHEDULED_EXECUTOR.shutdown();
-        COMMIT_EXECUTOR.shutdown();
-        CLEAN_EXPIRED_FILE_EXECUTOR.shutdown();
-        FETCH_DATA_EXECUTOR.shutdown();
-        COMPACT_INDEX_FILE_EXECUTOR.shutdown();
+        shutdownExecutor(dispatchExecutor);
+        shutdownExecutor(commonScheduledExecutor);
+        shutdownExecutor(commitExecutor);
+        shutdownExecutor(cleanExpiredFileExecutor);
+        shutdownExecutor(fetchDataExecutor);
+        shutdownExecutor(compactIndexFileExecutor);
+    }
+
+    private static void shutdownExecutor(ExecutorService executor) {
+        if (executor != null) {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+            }
+        }
     }
 }

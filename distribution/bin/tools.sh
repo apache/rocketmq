@@ -28,6 +28,10 @@ find_java_home()
 {
     case "`uname`" in
         Darwin)
+          if [ -n "$JAVA_HOME" ]; then
+              JAVA_HOME=$JAVA_HOME
+              return
+          fi
             JAVA_HOME=$(/usr/libexec/java_home)
         ;;
         *)
@@ -53,4 +57,4 @@ export CLASSPATH=.:${BASE_DIR}/conf:${BASE_DIR}/lib/*:${CLASSPATH}
 JAVA_OPT="${JAVA_OPT} -server -Xms1g -Xmx1g -Xmn256m -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=128m"
 JAVA_OPT="${JAVA_OPT} -cp ${CLASSPATH}"
 
-$JAVA ${JAVA_OPT} "$@"
+"$JAVA" ${JAVA_OPT} "$@"

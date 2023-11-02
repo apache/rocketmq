@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.remoting.protocol.remoting;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.function.Supplier;
 import org.apache.rocketmq.proxy.remoting.protocol.ProtocolHandler;
 import org.apache.rocketmq.remoting.netty.NettyDecoder;
 import org.apache.rocketmq.remoting.netty.NettyEncoder;
@@ -27,19 +28,19 @@ import org.apache.rocketmq.remoting.netty.RemotingCodeDistributionHandler;
 
 public class RemotingProtocolHandler implements ProtocolHandler {
 
-    private final NettyEncoder encoder;
-    private final RemotingCodeDistributionHandler remotingCodeDistributionHandler;
-    private final NettyRemotingServer.NettyConnectManageHandler connectionManageHandler;
-    private final NettyRemotingServer.NettyServerHandler serverHandler;
+    private final Supplier<NettyEncoder> encoderSupplier;
+    private final Supplier<RemotingCodeDistributionHandler> remotingCodeDistributionHandlerSupplier;
+    private final Supplier<NettyRemotingServer.NettyConnectManageHandler> connectionManageHandlerSupplier;
+    private final Supplier<NettyRemotingServer.NettyServerHandler> serverHandlerSupplier;
 
-    public RemotingProtocolHandler(NettyEncoder encoder,
-        RemotingCodeDistributionHandler remotingCodeDistributionHandler,
-        NettyRemotingServer.NettyConnectManageHandler connectionManageHandler,
-        NettyRemotingServer.NettyServerHandler serverHandler) {
-        this.encoder = encoder;
-        this.remotingCodeDistributionHandler = remotingCodeDistributionHandler;
-        this.connectionManageHandler = connectionManageHandler;
-        this.serverHandler = serverHandler;
+    public RemotingProtocolHandler(Supplier<NettyEncoder> encoderSupplier,
+        Supplier<RemotingCodeDistributionHandler> remotingCodeDistributionHandlerSupplier,
+        Supplier<NettyRemotingServer.NettyConnectManageHandler> connectionManageHandlerSupplier,
+        Supplier<NettyRemotingServer.NettyServerHandler> serverHandlerSupplier) {
+        this.encoderSupplier = encoderSupplier;
+        this.remotingCodeDistributionHandlerSupplier = remotingCodeDistributionHandlerSupplier;
+        this.connectionManageHandlerSupplier = connectionManageHandlerSupplier;
+        this.serverHandlerSupplier = serverHandlerSupplier;
     }
 
     @Override
@@ -50,11 +51,11 @@ public class RemotingProtocolHandler implements ProtocolHandler {
     @Override
     public void config(ChannelHandlerContext ctx, ByteBuf msg) {
         ctx.pipeline().addLast(
-            this.encoder,
+            this.encoderSupplier.get(),
             new NettyDecoder(),
-            this.remotingCodeDistributionHandler,
-            this.connectionManageHandler,
-            this.serverHandler
+            this.remotingCodeDistributionHandlerSupplier.get(),
+            this.connectionManageHandlerSupplier.get(),
+            this.serverHandlerSupplier.get()
         );
     }
 }

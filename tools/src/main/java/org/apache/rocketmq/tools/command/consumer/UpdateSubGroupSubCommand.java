@@ -17,10 +17,12 @@
 package org.apache.rocketmq.tools.command.consumer;
 
 import com.alibaba.fastjson.JSON;
+import java.util.Map;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.attribute.AttributeParser;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
@@ -39,7 +41,7 @@ public class UpdateSubGroupSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Update or create subscription group";
+        return "Update or create subscription group.";
     }
 
     @Override
@@ -96,6 +98,10 @@ public class UpdateSubGroupSubCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("a", "notifyConsumerIdsChanged", true, "notify consumerId changed");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option(null, "attributes", true, "attribute(+a=b,+c=d,-e)");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -175,6 +181,12 @@ public class UpdateSubGroupSubCommand implements SubCommand {
             if (commandLine.hasOption('a')) {
                 subscriptionGroupConfig.setNotifyConsumerIdsChangedEnable(Boolean.parseBoolean(commandLine
                     .getOptionValue('a').trim()));
+            }
+
+            if (commandLine.hasOption("attributes")) {
+                String attributesModification = commandLine.getOptionValue("attributes").trim();
+                Map<String, String> attributes = AttributeParser.parseToMap(attributesModification);
+                subscriptionGroupConfig.setAttributes(attributes);
             }
 
             if (commandLine.hasOption('b')) {
