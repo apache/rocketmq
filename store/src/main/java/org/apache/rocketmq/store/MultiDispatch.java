@@ -61,6 +61,7 @@ public class MultiDispatch {
         }
         MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET,
                 StringUtils.join(queueOffsets, MixAll.MULTI_DISPATCH_QUEUE_SPLITTER));
+        msg.removeWaitStorePropertyString();
     }
 
     public void updateMultiQueueOffset(final MessageExtBrokerInner msgInner) {

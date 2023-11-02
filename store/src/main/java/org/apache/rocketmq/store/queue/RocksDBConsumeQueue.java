@@ -213,7 +213,6 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
             queueOffsetOperator.updateQueueOffset(topicQueueKey, queueOffset);
         }
         msg.setQueueOffset(queueOffset);
-        msg.removeWaitStorePropertyString();
     }
 
     @Override

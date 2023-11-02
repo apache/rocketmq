@@ -775,7 +775,6 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         String topicQueueKey = getTopic() + "-" + getQueueId();
         long queueOffset = queueOffsetOperator.getQueueOffset(topicQueueKey);
         msg.setQueueOffset(queueOffset);
-        msg.removeWaitStorePropertyString();
     }
 
     @Override
