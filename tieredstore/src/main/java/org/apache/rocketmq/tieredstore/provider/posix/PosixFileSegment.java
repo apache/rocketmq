@@ -74,7 +74,7 @@ public class PosixFileSegment extends TieredFileSegment {
         String clusterBasePath = TieredStoreUtil.getHash(brokerClusterName) + UNDERLINE + brokerClusterName;
         this.fullPath = Paths.get(basePath, clusterBasePath, filePath,
             fileType.toString(), TieredStoreUtil.offset2FileName(baseOffset)).toString();
-        logger.info("Constructing Posix FileSegment, filePath: {}", fullPath);
+        logger.debug("Constructing Posix FileSegment, filePath: {}", fullPath);
 
         createFile();
     }
@@ -159,6 +159,7 @@ public class PosixFileSegment extends TieredFileSegment {
             readFileChannel.position(position);
             readFileChannel.read(byteBuffer);
             byteBuffer.flip();
+            byteBuffer.limit(length);
 
             attributesBuilder.put(LABEL_SUCCESS, true);
             long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);

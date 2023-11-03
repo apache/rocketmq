@@ -19,11 +19,22 @@
         <!-- encoders are assigned the type
              ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
         </encoder>
     </appender>
 
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS,GMT+8} ${LOG_LEVEL_PATTERN:-%5p} [%20.20thread] [%20.20logger{39}] %m%n"/>
+
     <root level="info">
-        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDOUT"/>
     </root>
+
+    <logger name="RocketmqStore" additivity="false" level="ERROR">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <logger name="RocketmqCommon" additivity="false" level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </logger>
 </configuration>
