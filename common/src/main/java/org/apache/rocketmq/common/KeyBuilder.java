@@ -18,14 +18,23 @@ package org.apache.rocketmq.common;
 
 public class KeyBuilder {
     public static final int POP_ORDER_REVIVE_QUEUE = 999;
+    private static final String POP_RETRY_DELIMITER_V1 = "_";
+    private static final String POP_RETRY_DELIMITER_V2 = "/";
 
     public static String buildPopRetryTopic(String topic, String cid) {
-        return MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + "_" + topic;
+        return MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_DELIMITER_V2 + topic;
+    }
+
+    public static String buildPopRetryTopicV1(String topic, String cid) {
+        return MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_DELIMITER_V1 + topic;
     }
 
     public static String parseNormalTopic(String topic, String cid) {
         if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-            return topic.substring((MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + "_").length());
+            if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_DELIMITER_V2)) {
+                return topic.substring((MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_DELIMITER_V2).length());
+            }
+            return topic.substring((MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_DELIMITER_V1).length());
         } else {
             return topic;
         }
@@ -33,9 +42,5 @@ public class KeyBuilder {
 
     public static String buildPollingKey(String topic, String cid, int queueId) {
         return topic + PopAckConstants.SPLIT + cid + PopAckConstants.SPLIT + queueId;
-    }
-
-    public static String buildPollingNotificationKey(String topic, int queueId) {
-        return topic + PopAckConstants.SPLIT + queueId;
     }
 }
