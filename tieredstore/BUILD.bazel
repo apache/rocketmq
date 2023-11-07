@@ -41,6 +41,7 @@ java_library(
         "@maven//:org_apache_tomcat_annotations_api",
         "@maven//:com_alibaba_fastjson",
         "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
+        "@maven//:commons_collections_commons_collections",
     ],
 )
 
