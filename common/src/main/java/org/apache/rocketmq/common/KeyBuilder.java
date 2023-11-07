@@ -50,6 +50,16 @@ public class KeyBuilder {
         return retryTopic;
     }
 
+    public static String parseGroup(String retryTopic) {
+        if (isPopRetryTopicV2(retryTopic)) {
+            String[] result = retryTopic.split(POP_RETRY_DELIMITER_V2);
+            if (result.length == 2) {
+                return result[0].substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+            }
+        }
+        return retryTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+    }
+
     public static String buildPollingKey(String topic, String cid, int queueId) {
         return topic + PopAckConstants.SPLIT + cid + PopAckConstants.SPLIT + queueId;
     }
