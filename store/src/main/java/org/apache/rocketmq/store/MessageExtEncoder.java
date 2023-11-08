@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.message.MessageVersion;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class MessageExtEncoder {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -38,20 +39,22 @@ public class MessageExtEncoder {
     // The maximum length of the full message.
     private int maxMessageSize;
     private final int crc32ReservedLength;
+    private MessageStoreConfig messageStoreConfig;
 
-    public MessageExtEncoder(final int maxMessageBodySize) {
-        this(maxMessageBodySize, false);
+    public MessageExtEncoder(final int maxMessageBodySize, final MessageStoreConfig messageStoreConfig) {
+        this(messageStoreConfig);
     }
 
-    public MessageExtEncoder(final int maxMessageBodySize, boolean enabledAppendPropCRC) {
+    public MessageExtEncoder(final MessageStoreConfig messageStoreConfig) {
         ByteBufAllocator alloc = UnpooledByteBufAllocator.DEFAULT;
+        this.messageStoreConfig = messageStoreConfig;
+        this.maxMessageBodySize = messageStoreConfig.getMaxMessageSize();
         //Reserve 64kb for encoding buffer outside body
         int maxMessageSize = Integer.MAX_VALUE - maxMessageBodySize >= 64 * 1024 ?
             maxMessageBodySize + 64 * 1024 : Integer.MAX_VALUE;
         byteBuf = alloc.directBuffer(maxMessageSize);
-        this.maxMessageBodySize = maxMessageBodySize;
         this.maxMessageSize = maxMessageSize;
-        this.crc32ReservedLength = enabledAppendPropCRC ? CommitLog.CRC32_RESERVED_LEN : 0;
+        this.crc32ReservedLength = messageStoreConfig.isEnabledAppendPropCRC() ? CommitLog.CRC32_RESERVED_LEN : 0;
     }
 
     public static int calMsgLength(MessageVersion messageVersion,
@@ -79,8 +82,103 @@ public class MessageExtEncoder {
             + 2 + (Math.max(propertiesLength, 0)); //propertiesLength
     }
 
+    public static int calMsgLengthNoProperties(MessageVersion messageVersion,
+                                               int sysFlag, int bodyLength, int topicLength) {
+
+        int bornhostLength = (sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 8 : 20;
+        int storehostAddressLength = (sysFlag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 8 : 20;
+
+        return 4 //TOTALSIZE
+                + 4 //MAGICCODE
+                + 4 //BODYCRC
+                + 4 //QUEUEID
+                + 4 //FLAG
+                + 8 //QUEUEOFFSET
+                + 8 //PHYSICALOFFSET
+                + 4 //SYSFLAG
+                + 8 //BORNTIMESTAMP
+                + bornhostLength //BORNHOST
+                + 8 //STORETIMESTAMP
+                + storehostAddressLength //STOREHOSTADDRESS
+                + 4 //RECONSUMETIMES
+                + 8 //Prepared Transaction Offset
+                + 4 + (Math.max(bodyLength, 0)) //BODY
+                + messageVersion.getTopicLengthSize() + topicLength; //TOPIC
+    }
+
+    public PutMessageResult encodeWithoutProperties(MessageExtBrokerInner msgInner) {
+
+        final byte[] topicData = msgInner.getTopic().getBytes(MessageDecoder.CHARSET_UTF8);
+        final int topicLength = topicData.length;
+
+        final int bodyLength = msgInner.getBody() == null ? 0 : msgInner.getBody().length;
+
+        // Exceeds the maximum message body
+        if (bodyLength > this.maxMessageBodySize) {
+            CommitLog.log.warn("message body size exceeded, msg body size: " + bodyLength
+                    + ", maxMessageSize: " + this.maxMessageBodySize);
+            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, null);
+        }
+
+        final int msgLenNoProperties = calMsgLengthNoProperties(msgInner.getVersion(), msgInner.getSysFlag(), bodyLength, topicLength);
+
+        // 1 TOTALSIZE
+        this.byteBuf.writeInt(msgLenNoProperties);
+        // 2 MAGICCODE
+        this.byteBuf.writeInt(msgInner.getVersion().getMagicCode());
+        // 3 BODYCRC
+        this.byteBuf.writeInt(msgInner.getBodyCRC());
+        // 4 QUEUEID
+        this.byteBuf.writeInt(msgInner.getQueueId());
+        // 5 FLAG
+        this.byteBuf.writeInt(msgInner.getFlag());
+        // 6 QUEUEOFFSET, need update later
+        this.byteBuf.writeLong(0);
+        // 7 PHYSICALOFFSET, need update later
+        this.byteBuf.writeLong(0);
+        // 8 SYSFLAG
+        this.byteBuf.writeInt(msgInner.getSysFlag());
+        // 9 BORNTIMESTAMP
+        this.byteBuf.writeLong(msgInner.getBornTimestamp());
+
+        // 10 BORNHOST
+        ByteBuffer bornHostBytes = msgInner.getBornHostBytes();
+        this.byteBuf.writeBytes(bornHostBytes.array());
+
+        // 11 STORETIMESTAMP
+        this.byteBuf.writeLong(msgInner.getStoreTimestamp());
+
+        // 12 STOREHOSTADDRESS
+        ByteBuffer storeHostBytes = msgInner.getStoreHostBytes();
+        this.byteBuf.writeBytes(storeHostBytes.array());
+
+        // 13 RECONSUMETIMES
+        this.byteBuf.writeInt(msgInner.getReconsumeTimes());
+        // 14 Prepared Transaction Offset
+        this.byteBuf.writeLong(msgInner.getPreparedTransactionOffset());
+        // 15 BODY
+        this.byteBuf.writeInt(bodyLength);
+        if (bodyLength > 0)
+            this.byteBuf.writeBytes(msgInner.getBody());
+
+        // 16 TOPIC
+        if (MessageVersion.MESSAGE_VERSION_V2.equals(msgInner.getVersion())) {
+            this.byteBuf.writeShort((short) topicLength);
+        } else {
+            this.byteBuf.writeByte((byte) topicLength);
+        }
+        this.byteBuf.writeBytes(topicData);
+
+        return null;
+    }
+
     public PutMessageResult encode(MessageExtBrokerInner msgInner) {
         this.byteBuf.clear();
+
+        if (messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner)) {
+            return encodeWithoutProperties(msgInner);
+        }
+
         /**
          * Serialize message
          */
@@ -303,7 +401,7 @@ public class MessageExtEncoder {
     }
 
     public ByteBuffer getEncoderBuffer() {
-        return this.byteBuf.nioBuffer();
+        return this.byteBuf.nioBuffer(0, this.byteBuf.capacity());
     }
 
     public int getMaxMessageBodySize() {
@@ -322,12 +420,8 @@ public class MessageExtEncoder {
         private final MessageExtEncoder encoder;
         private final StringBuilder keyBuilder;
 
-        PutMessageThreadLocal(int size) {
-            this(size, false);
-        }
-
-        PutMessageThreadLocal(int size, boolean enabledAppendPropCRC) {
-            encoder = new MessageExtEncoder(size, enabledAppendPropCRC);
+        PutMessageThreadLocal(MessageStoreConfig messageStoreConfig) {
+            encoder = new MessageExtEncoder(messageStoreConfig);
             keyBuilder = new StringBuilder();
         }
 

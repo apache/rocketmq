@@ -71,9 +71,9 @@ public class QueueOffsetOperator {
         return this.lmqTopicQueueTable.get(topicQueueKey);
     }
 
-    public void increaseLmqOffset(String topicQueueKey, short messageNum) {
-        Long lmqOffset = ConcurrentHashMapUtils.computeIfAbsent(this.lmqTopicQueueTable, topicQueueKey, k -> 0L);
-        this.lmqTopicQueueTable.put(topicQueueKey, lmqOffset + messageNum);
+    public void increaseLmqOffset(String queueKey, short messageNum) {
+        Long lmqOffset = ConcurrentHashMapUtils.computeIfAbsent(this.lmqTopicQueueTable, queueKey, k -> 0L);
+        this.lmqTopicQueueTable.put(queueKey, lmqOffset + messageNum);
     }
 
     public long currentQueueOffset(String topicQueueKey) {

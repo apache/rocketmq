@@ -2112,7 +2112,6 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-
     @Override
     public void increaseOffset(MessageExtBrokerInner msg, short messageNum) {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
