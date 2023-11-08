@@ -223,7 +223,7 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean enablePopBatchAck = false;
     private boolean enableNotifyAfterPopOrderLockRelease = true;
     private boolean initPopOffsetByCheckMsgInMem = true;
-    // read message from pop retry topic v1, for the compatibility, will be removed in the next version
+    // read message from pop retry topic v1, for the compatibility, will be removed in the future version
     private boolean retrieveMessageFromPopRetryTopicV1 = true;
 
     private boolean realTimeNotifyConsumerChange = true;
