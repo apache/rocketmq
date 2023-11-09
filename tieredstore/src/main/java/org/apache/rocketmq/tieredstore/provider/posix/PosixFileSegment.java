@@ -66,8 +66,8 @@ public class PosixFileSegment extends TieredFileSegment {
         super(storeConfig, fileType, filePath, baseOffset);
 
         // basePath
-        String basePath = StringUtils.defaultString(storeConfig.getTieredStoreFilePath(),
-            StringUtils.appendIfMissing(storeConfig.getTieredStoreFilePath(), File.separator));
+        String basePath = StringUtils.defaultString(storeConfig.getTieredStoreFilepath(),
+            StringUtils.appendIfMissing(storeConfig.getTieredStoreFilepath(), File.separator));
 
         // fullPath: basePath/hash_cluster/broker/topic/queueId/fileType/baseOffset
         String brokerClusterName = storeConfig.getBrokerClusterName();
