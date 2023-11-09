@@ -103,6 +103,7 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.remoting.protocol.body.BatchAck;
 import org.apache.rocketmq.remoting.protocol.body.BatchAckMessageRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
@@ -137,6 +138,7 @@ import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.AddBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
@@ -145,12 +147,17 @@ import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeade
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAccessConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
+import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetBrokerAclConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumeStatsInBrokerHeader;
@@ -171,6 +178,9 @@ import org.apache.rocketmq.remoting.protocol.header.GetSubscriptionGroupConfigRe
 import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicStatsInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicsByClusterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetUserRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ListAclsRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ListUsersRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
@@ -194,9 +204,11 @@ import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGroupForbiddenRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ViewBrokerStatsDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ViewMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
@@ -3286,6 +3298,160 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 return;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public void createUser(String addr, UserInfo userInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        CreateUserRequestHeader requestHeader = new CreateUserRequestHeader(userInfo.getUsername());
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CREATE_USER, requestHeader);
+        request.setBody(RemotingSerializable.encode(userInfo));
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public void updateUser(String addr, UserInfo userInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        UpdateUserRequestHeader requestHeader = new UpdateUserRequestHeader(userInfo.getUsername());
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_USER, requestHeader);
+        request.setBody(RemotingSerializable.encode(userInfo));
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public void deleteUser(String addr, String username, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        DeleteUserRequestHeader requestHeader = new DeleteUserRequestHeader(username);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_USER, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public UserInfo getUser(String addr, String username, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        GetUserRequestHeader requestHeader = new GetUserRequestHeader(username);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_USER, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return RemotingSerializable.decode(response.getBody(), UserInfo.class);
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public List<UserInfo> listUsers(String addr, String filter, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        ListUsersRequestHeader requestHeader = new ListUsersRequestHeader(filter);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LIST_USER, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return RemotingSerializable.decodeList(response.getBody(), UserInfo.class);
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public void createAcl(String addr, AclInfo aclInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        CreateAclRequestHeader requestHeader = new CreateAclRequestHeader(aclInfo.getSubject());
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CREATE_ACL, requestHeader);
+        request.setBody(RemotingSerializable.encode(aclInfo));
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public void updateAcl(String addr, AclInfo aclInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        UpdateAclRequestHeader requestHeader = new UpdateAclRequestHeader(aclInfo.getSubject());
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_ACL, requestHeader);
+        request.setBody(RemotingSerializable.encode(aclInfo));
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public void deleteAcl(String addr, String subject, List<String> resources, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        DeleteAclRequestHeader requestHeader = new DeleteAclRequestHeader(subject, resources);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_ACL, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public AclInfo getAcl(String addr, String subject, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        GetAclRequestHeader requestHeader = new GetAclRequestHeader(subject);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ACL, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return RemotingSerializable.decode(response.getBody(), AclInfo.class);
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public List<AclInfo> listAcl(String addr, String subjectFilter, String resourceFilter, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        ListAclsRequestHeader requestHeader = new ListAclsRequestHeader(subjectFilter, resourceFilter);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LIST_ACL, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return RemotingSerializable.decodeList(response.getBody(), AclInfo.class);
             }
             default:
                 break;

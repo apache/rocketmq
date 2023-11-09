@@ -37,10 +37,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
+import org.apache.rocketmq.auth.authentication.enums.UserType;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
+import org.apache.rocketmq.auth.authentication.model.Subject;
+import org.apache.rocketmq.auth.authentication.model.User;
+import org.apache.rocketmq.auth.authorization.enums.PolicyType;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
+import org.apache.rocketmq.auth.authorization.model.Acl;
+import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.auth.converter.AclConverter;
+import org.apache.rocketmq.broker.auth.converter.UserConverter;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
@@ -74,6 +85,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.stats.StatsItem;
 import org.apache.rocketmq.common.stats.StatsSnapshot;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -92,6 +104,7 @@ import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
 import org.apache.rocketmq.remoting.protocol.admin.TopicOffset;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsItem;
@@ -117,15 +130,21 @@ import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAccessConfigRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExchangeHAInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExchangeHAInfoResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetBrokerAclConfigResponseHeader;
@@ -145,6 +164,9 @@ import org.apache.rocketmq.remoting.protocol.header.GetProducerConnectionListReq
 import org.apache.rocketmq.remoting.protocol.header.GetSubscriptionGroupConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicStatsInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetUserRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ListAclsRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ListUsersRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotifyBrokerRoleChangedRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotifyMinBrokerIdChangeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumeQueueRequestHeader;
@@ -158,8 +180,10 @@ import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGroupForbiddenRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ViewBrokerStatsDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.statictopic.LogicQueueMappingItem;
@@ -324,6 +348,26 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getBrokerEpochCache(ctx, request);
             case RequestCode.NOTIFY_BROKER_ROLE_CHANGED:
                 return this.notifyBrokerRoleChanged(ctx, request);
+            case RequestCode.CREATE_USER:
+                return this.createUser(ctx, request);
+            case RequestCode.UPDATE_USER:
+                return this.updateUser(ctx, request);
+            case RequestCode.DELETE_USER:
+                return this.deleteUser(ctx, request);
+            case RequestCode.GET_USER:
+                return this.getUser(ctx, request);
+            case RequestCode.LIST_USER:
+                return this.listUser(ctx, request);
+            case RequestCode.CREATE_ACL:
+                return this.createAcl(ctx, request);
+            case RequestCode.UPDATE_ACL:
+                return this.updateAcl(ctx, request);
+            case RequestCode.DELETE_ACL:
+                return this.deleteAcl(ctx, request);
+            case RequestCode.GET_ACL:
+                return this.getAcl(ctx, request);
+            case RequestCode.LIST_ACL:
+                return this.listAcls(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -1837,13 +1881,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     /**
      * Reset consumer offset.
      *
-     * @param topic Required, not null.
-     * @param group Required, not null.
-     * @param queueId if target queue ID is negative, all message queues will be reset; otherwise, only the target queue
-     * would get reset.
+     * @param topic     Required, not null.
+     * @param group     Required, not null.
+     * @param queueId   if target queue ID is negative, all message queues will be reset; otherwise, only the target queue
+     *                  would get reset.
      * @param timestamp if timestamp is negative, offset would be reset to broker offset at the time being; otherwise,
-     * binary search is performed to locate target offset.
-     * @param offset Target offset to reset to if target queue ID is properly provided.
+     *                  binary search is performed to locate target offset.
+     * @param offset    Target offset to reset to if target queue ID is properly provided.
      * @return Affected queues and their new offset
      */
     private RemotingCommand resetOffsetInner(String topic, String group, int queueId, long timestamp, Long offset) {
@@ -2781,6 +2825,300 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setRemark(null);
 
         return response;
+    }
+
+    private RemotingCommand createUser(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        CreateUserRequestHeader requestHeader = request.decodeCommandCustomHeader(CreateUserRequestHeader.class);
+        if (StringUtils.isEmpty(requestHeader.getUsername())) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The username is blank");
+            return response;
+        }
+
+        UserInfo userInfo = RemotingSerializable.decode(request.getBody(), UserInfo.class);
+        userInfo.setUsername(requestHeader.getUsername());
+        User user = UserConverter.convertUser(userInfo);
+
+        if (user.getUserType() == UserType.SUPER && isNotSuperUserLogin(request)) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The super user can only be create by super user");
+            return response;
+        }
+
+        this.brokerController.getAuthenticationMetadataManager().createUser(user)
+            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .exceptionally(ex -> {
+                LOGGER.error("create user {} error", user.getUsername(), ex);
+                return handleAuthException(response, ex);
+            })
+            .join();
+
+        return response;
+    }
+
+    private RemotingCommand updateUser(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        UpdateUserRequestHeader requestHeader = request.decodeCommandCustomHeader(UpdateUserRequestHeader.class);
+        if (StringUtils.isEmpty(requestHeader.getUsername())) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The username is blank");
+            return response;
+        }
+
+        UserInfo userInfo = RemotingSerializable.decode(request.getBody(), UserInfo.class);
+        userInfo.setUsername(requestHeader.getUsername());
+        User user = UserConverter.convertUser(userInfo);
+
+        if (user.getUserType() == UserType.SUPER && isNotSuperUserLogin(request)) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The super user can only be update by super user");
+            return response;
+        }
+
+        this.brokerController.getAuthenticationMetadataManager().updateUser(user)
+                    .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .exceptionally(ex -> handleAuthException(response, ex))
+            .join();
+
+        return response;
+    }
+
+    private RemotingCommand deleteUser(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        DeleteUserRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteUserRequestHeader.class);
+
+        this.brokerController.getAuthenticationMetadataManager().deleteUser(requestHeader.getUsername())
+            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .exceptionally(ex -> {
+                LOGGER.error("delete user {} error", requestHeader.getUsername(), ex);
+                return handleAuthException(response, ex);
+            })
+            .join();
+
+        return response;
+    }
+
+    private RemotingCommand getUser(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        GetUserRequestHeader requestHeader = request.decodeCommandCustomHeader(GetUserRequestHeader.class);
+
+        if (StringUtils.isBlank(requestHeader.getUsername())) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The username is blank");
+            return response;
+        }
+
+        this.brokerController.getAuthenticationMetadataManager().getUser(requestHeader.getUsername())
+            .thenAccept((user) -> {
+                response.setCode(ResponseCode.SUCCESS);
+                if (user != null) {
+                    UserInfo userInfo = UserConverter.convertUser(user);
+                    response.setBody(JSON.toJSONString(userInfo).getBytes(StandardCharsets.UTF_8));
+                }
+            })
+            .exceptionally(ex -> {
+                LOGGER.error("get user {} error", requestHeader.getUsername(), ex);
+                return handleAuthException(response, ex);
+            })
+            .join();
+
+        return response;
+    }
+
+    private RemotingCommand listUser(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        ListUsersRequestHeader requestHeader = request.decodeCommandCustomHeader(ListUsersRequestHeader.class);
+
+        this.brokerController.getAuthenticationMetadataManager().listUser(requestHeader.getFilter())
+            .thenAccept((users) -> {
+                response.setCode(ResponseCode.SUCCESS);
+                if (CollectionUtils.isNotEmpty(users)) {
+                    List<UserInfo> userInfos = UserConverter.convertUsers(users);
+                    response.setBody(JSON.toJSONString(userInfos).getBytes(StandardCharsets.UTF_8));
+                }
+            })
+            .exceptionally(ex -> {
+                LOGGER.error("list user by {} error", requestHeader.getFilter(), ex);
+                return handleAuthException(response, ex);
+            })
+            .join();
+
+        return response;
+    }
+
+    private RemotingCommand createAcl(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        CreateAclRequestHeader requestHeader = request.decodeCommandCustomHeader(CreateAclRequestHeader.class);
+        Subject subject = Subject.parseSubject(requestHeader.getSubject());
+
+        AclInfo aclInfo = RemotingSerializable.decode(request.getBody(), AclInfo.class);
+        if (aclInfo == null || CollectionUtils.isEmpty(aclInfo.getPolicies())) {
+            throw new AuthorizationException("The body of acl is null");
+        }
+
+        Acl acl = AclConverter.convertAcl(aclInfo);
+        if (acl != null && acl.getSubject() == null) {
+            acl.setSubject(subject);
+        }
+
+        this.brokerController.getAuthorizationMetadataManager().createAcl(acl)
+            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .exceptionally(ex -> {
+                LOGGER.error("create acl for {} error", requestHeader.getSubject(), ex);
+                return handleAuthException(response, ex);
+            })
+            .join();
+
+        return response;
+    }
+
+    private RemotingCommand updateAcl(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        UpdateAclRequestHeader requestHeader = request.decodeCommandCustomHeader(UpdateAclRequestHeader.class);
+        Subject subject = Subject.parseSubject(requestHeader.getSubject());
+
+        AclInfo aclInfo = RemotingSerializable.decode(request.getBody(), AclInfo.class);
+        if (aclInfo == null || CollectionUtils.isEmpty(aclInfo.getPolicies())) {
+            throw new AuthorizationException("The body of acl is null");
+        }
+
+        Acl acl = AclConverter.convertAcl(aclInfo);
+        if (acl != null && acl.getSubject() == null) {
+            acl.setSubject(subject);
+        }
+
+        this.brokerController.getAuthorizationMetadataManager().updateAcl(acl)
+            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .exceptionally(ex -> {
+                LOGGER.error("update acl for {} error", requestHeader.getSubject(), ex);
+                return handleAuthException(response, ex);
+            })
+            .join();
+
+        return response;
+    }
+
+    private RemotingCommand deleteAcl(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        DeleteAclRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteAclRequestHeader.class);
+
+        Subject subject = Subject.parseSubject(requestHeader.getSubject());
+
+        PolicyType policyType = PolicyType.getByCode(requestHeader.getPolicyType());
+
+        List<Resource> resources = Resource.parseResources(requestHeader.getResources());
+
+        this.brokerController.getAuthorizationMetadataManager().deleteAcl(subject, policyType, resources)
+            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .exceptionally(ex -> {
+                LOGGER.error("delete acl for {} error", requestHeader.getSubject(), ex);
+                return handleAuthException(response, ex);
+            })
+            .join();
+
+        return response;
+    }
+
+    private RemotingCommand getAcl(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        GetAclRequestHeader requestHeader = request.decodeCommandCustomHeader(GetAclRequestHeader.class);
+
+        Subject subject = Subject.parseSubject(requestHeader.getSubject());
+
+        this.brokerController.getAuthorizationMetadataManager().getAcl(subject)
+            .thenAccept((acl) -> {
+                response.setCode(ResponseCode.SUCCESS);
+                if (acl != null) {
+                    AclInfo aclInfo = AclConverter.convertAcl(acl);
+                    String body = JSON.toJSONString(aclInfo);
+                    response.setBody(body.getBytes(StandardCharsets.UTF_8));
+                }
+            })
+            .exceptionally(ex -> {
+                LOGGER.error("get acl for {} error", requestHeader.getSubject(), ex);
+                return handleAuthException(response, ex);
+            })
+            .join();
+
+        return response;
+    }
+
+    private RemotingCommand listAcls(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        ListAclsRequestHeader requestHeader = request.decodeCommandCustomHeader(ListAclsRequestHeader.class);
+
+        this.brokerController.getAuthorizationMetadataManager()
+            .listAcl(requestHeader.getSubjectFilter(), requestHeader.getResourceFilter())
+            .thenAccept((acls) -> {
+                response.setCode(ResponseCode.SUCCESS);
+                if (CollectionUtils.isNotEmpty(acls)) {
+                    List<AclInfo> aclInfos = AclConverter.convertAcls(acls);
+                    String body = JSON.toJSONString(aclInfos);
+                    response.setBody(body.getBytes(StandardCharsets.UTF_8));
+                }
+            })
+            .exceptionally(ex -> {
+                LOGGER.error("list acl error, subjectFilter:{}, resourceFilter:{}", requestHeader.getSubjectFilter(), requestHeader.getResourceFilter(), ex);
+                return handleAuthException(response, ex);
+            })
+            .join();
+
+        return response;
+    }
+
+    private boolean isNotSuperUserLogin(RemotingCommand request) {
+        String accessKey = request.getExtFields().get("AccessKey");
+        // if accessKey is null, it may be authentication is not enabled.
+        if (StringUtils.isEmpty(accessKey)) {
+            return false;
+        }
+        return !this.brokerController.getAuthenticationMetadataManager()
+            .isSuperUser(accessKey).join();
+    }
+
+    private Void handleAuthException(RemotingCommand response, Throwable ex) {
+        Throwable throwable = ExceptionUtils.getRealException(ex);
+        if (throwable instanceof AuthenticationException) {
+            AuthenticationException exception = (AuthenticationException) throwable;
+            if (exception.getCode() != 0) {
+                response.setCode(exception.getCode());
+            } else {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+            }
+            response.setRemark(throwable.getMessage());
+        } else if (throwable instanceof AuthorizationException) {
+            AuthorizationException exception = (AuthorizationException) throwable;
+            if (exception.getCode() != 0) {
+                response.setCode(exception.getCode());
+            } else {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+            }
+            response.setRemark(throwable.getMessage());
+        } else {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("An system error occurred, please have a check.");
+        }
+        return null;
     }
 
     private boolean validateSlave(RemotingCommand response) {

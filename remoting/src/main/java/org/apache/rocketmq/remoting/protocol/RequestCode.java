@@ -285,4 +285,25 @@ public class RequestCode {
     public static final int CONTROLLER_GET_NEXT_BROKER_ID = 1012;
 
     public static final int CONTROLLER_APPLY_BROKER_ID = 1013;
+
+
+    public static final int CREATE_USER = 3001;
+
+    public static final int UPDATE_USER = 3002;
+
+    public static final int DELETE_USER = 3003;
+
+    public static final int GET_USER = 3004;
+
+    public static final int LIST_USER = 3005;
+
+    public static final int CREATE_ACL = 3006;
+
+    public static final int UPDATE_ACL = 3007;
+
+    public static final int DELETE_ACL = 3008;
+
+    public static final int GET_ACL = 3009;
+
+    public static final int LIST_ACL = 3010;
 }

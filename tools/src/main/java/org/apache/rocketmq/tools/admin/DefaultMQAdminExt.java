@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
@@ -32,7 +33,6 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -42,7 +42,9 @@ import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.RollbackStats;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
+import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
@@ -53,7 +55,6 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
-import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.protocol.body.ProducerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
@@ -62,6 +63,7 @@ import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
+import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -873,5 +875,61 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException,
         InterruptedException, MQBrokerException {
         return defaultMQAdminExtImpl.setCommitLogReadAheadMode(brokerAddr, mode);
+    }
+
+    @Override
+    public void createUser(String brokerAddr, String username, String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.createUser(brokerAddr, username, password, userType);
+    }
+
+    @Override
+    public void updateUser(String brokerAddr, String username,
+        String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.updateUser(brokerAddr, username, password, userType);
+    }
+
+    @Override
+    public void deleteUser(String brokerAddr,
+        String username) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.deleteUser(brokerAddr, username);
+    }
+
+    @Override
+    public UserInfo getUser(String brokerAddr,
+        String username) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return defaultMQAdminExtImpl.getUser(brokerAddr, username);
+    }
+
+    @Override
+    public List<UserInfo> listUsers(String brokerAddr,
+        String filter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return defaultMQAdminExtImpl.listUsers(brokerAddr, filter);
+    }
+
+    @Override
+    public void createAcl(String brokerAddr, String subject, List<String> resources, List<String> actions,
+        List<String> sourceIps, String decision) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.createAcl(brokerAddr, subject, resources, actions, sourceIps, decision);
+    }
+
+    @Override
+    public void updateAcl(String brokerAddr, String subject, List<String> resources, List<String> actions,
+        List<String> sourceIps, String decision) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.updateAcl(brokerAddr, subject, resources, actions, sourceIps, decision);
+    }
+
+    @Override
+    public void deleteAcl(String brokerAddr, String subject, List<String> resources) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.deleteAcl(brokerAddr, subject, resources);
+    }
+
+    @Override
+    public AclInfo getAcl(String brokerAddr, String subject) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return defaultMQAdminExtImpl.getAcl(brokerAddr, subject);
+    }
+
+    @Override
+    public List<AclInfo> listAcls(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return defaultMQAdminExtImpl.listAcls(brokerAddr, subjectFilter, resourceFilter);
     }
 }

@@ -18,13 +18,20 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.CONSUME_MESSAGE_DIRECTLY, action = Action.SUB)
 public class ConsumeMessageDirectlyResultRequestHeader implements CommandCustomHeader {
     @CFNotNull
+    @RocketMQResource(ResourceType.GROUP)
     private String consumerGroup;
     @CFNullable
     private String clientId;
@@ -33,6 +40,7 @@ public class ConsumeMessageDirectlyResultRequestHeader implements CommandCustomH
     @CFNullable
     private String brokerName;
     @CFNullable
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
     @CFNullable
     private Integer topicSysFlag;

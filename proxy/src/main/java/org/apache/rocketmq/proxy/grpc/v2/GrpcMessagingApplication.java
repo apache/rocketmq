@@ -41,6 +41,7 @@ import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.SendMessageResponse;
 import apache.rocketmq.v2.Status;
 import apache.rocketmq.v2.TelemetryCommand;
+import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Context;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
@@ -50,19 +51,22 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.pipeline.AuthenticationPipeline;
+import org.apache.rocketmq.proxy.grpc.pipeline.AuthorizationPipeline;
+import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
 
 public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServiceImplBase implements StartAndShutdown {
@@ -70,14 +74,18 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     private final GrpcMessingActivity grpcMessingActivity;
 
+    protected final RequestPipeline requestPipeline;
+
     protected ThreadPoolExecutor routeThreadPoolExecutor;
     protected ThreadPoolExecutor producerThreadPoolExecutor;
     protected ThreadPoolExecutor consumerThreadPoolExecutor;
     protected ThreadPoolExecutor clientManagerThreadPoolExecutor;
     protected ThreadPoolExecutor transactionThreadPoolExecutor;
 
-    protected GrpcMessagingApplication(GrpcMessingActivity grpcMessingActivity) {
+
+    protected GrpcMessagingApplication(GrpcMessingActivity grpcMessingActivity, RequestPipeline requestPipeline) {
         this.grpcMessingActivity = grpcMessingActivity;
+        this.requestPipeline = requestPipeline;
 
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         this.routeThreadPoolExecutor = ThreadPoolMonitor.createAndMonitor(
@@ -135,9 +143,14 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     }
 
     public static GrpcMessagingApplication create(MessagingProcessor messagingProcessor) {
-        return new GrpcMessagingApplication(new DefaultGrpcMessingActivity(
-            messagingProcessor
-        ));
+        RequestPipeline pipeline = (context, headers, request) -> {
+        };
+        // add pipeline
+        // the last pipe add will execute at the first
+        pipeline = pipeline
+            .pipe(new AuthorizationPipeline(ConfigurationManager.getAuthConfig(), messagingProcessor))
+            .pipe(new AuthenticationPipeline(ConfigurationManager.getAuthConfig(), messagingProcessor));
+        return new GrpcMessagingApplication(new DefaultGrpcMessingActivity(messagingProcessor), pipeline);
     }
 
     protected Status flowLimitStatus() {
@@ -150,6 +163,11 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     protected <V, T> void addExecutor(ExecutorService executor, ProxyContext context, V request, Runnable runnable,
         StreamObserver<T> responseObserver, Function<Status, T> statusResponseCreator) {
+        if (request instanceof GeneratedMessageV3) {
+            requestPipeline.execute(context, GrpcConstants.METADATA.get(Context.current()), (GeneratedMessageV3) request);
+        } else {
+            log.error("[BUG]grpc request pipe is not been executed");
+        }
         executor.submit(new GrpcTask<>(runnable, context, request, responseObserver, statusResponseCreator.apply(flowLimitStatus())));
     }
 
@@ -167,15 +185,15 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
 
     protected ProxyContext createContext() {
         Context ctx = Context.current();
-        Metadata headers = InterceptorConstants.METADATA.get(ctx);
+        Metadata headers = GrpcConstants.METADATA.get(ctx);
         ProxyContext context = ProxyContext.create()
-            .setLocalAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.LOCAL_ADDRESS))
-            .setRemoteAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.REMOTE_ADDRESS))
-            .setClientID(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_ID))
+            .setLocalAddress(getDefaultStringMetadataInfo(headers, GrpcConstants.LOCAL_ADDRESS))
+            .setRemoteAddress(getDefaultStringMetadataInfo(headers, GrpcConstants.REMOTE_ADDRESS))
+            .setClientID(getDefaultStringMetadataInfo(headers, GrpcConstants.CLIENT_ID))
             .setProtocolType(ChannelProtocolType.GRPC_V2.getName())
-            .setLanguage(getDefaultStringMetadataInfo(headers, InterceptorConstants.LANGUAGE))
-            .setClientVersion(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_VERSION))
-            .setAction(getDefaultStringMetadataInfo(headers, InterceptorConstants.SIMPLE_RPC_NAME));
+            .setLanguage(getDefaultStringMetadataInfo(headers, GrpcConstants.LANGUAGE))
+            .setClientVersion(getDefaultStringMetadataInfo(headers, GrpcConstants.CLIENT_VERSION))
+            .setAction(getDefaultStringMetadataInfo(headers, GrpcConstants.SIMPLE_RPC_NAME));
         if (ctx.getDeadline() != null) {
             context.setRemainingMs(ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS));
         }

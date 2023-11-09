@@ -16,9 +16,14 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.NOTIFY_BROKER_ROLE_CHANGED, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class NotifyBrokerRoleChangedRequestHeader implements CommandCustomHeader {
     private String masterAddress;
     private Integer masterEpoch;

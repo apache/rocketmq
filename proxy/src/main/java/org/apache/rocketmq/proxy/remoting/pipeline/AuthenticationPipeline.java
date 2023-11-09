@@ -17,20 +17,35 @@
 
 package org.apache.rocketmq.proxy.remoting.pipeline;
 
+import io.grpc.Context;
+import io.grpc.Metadata;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.auth.authentication.AuthenticationEvaluator;
+import org.apache.rocketmq.auth.authentication.context.AuthenticationContext;
+import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
+import org.apache.rocketmq.auth.config.AuthConfig;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
+import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class AuthenticationPipeline implements RequestPipeline {
+
     private final List<AccessValidator> accessValidatorList;
 
-    public AuthenticationPipeline(List<AccessValidator> accessValidatorList) {
+    private final AuthConfig authConfig;
+
+    private final AuthenticationEvaluator authenticationEvaluator;
+
+    public AuthenticationPipeline(List<AccessValidator> accessValidatorList, AuthConfig authConfig, MessagingProcessor messagingProcessor) {
         this.accessValidatorList = accessValidatorList;
+        this.authConfig = authConfig;
+        this.authenticationEvaluator = AuthenticationFactory.getEvaluator(authConfig, messagingProcessor::getMetadataService);
     }
 
     @Override
@@ -41,6 +56,15 @@ public class AuthenticationPipeline implements RequestPipeline {
                 AccessResource accessResource = accessValidator.parse(request, context.getRemoteAddress());
                 accessValidator.validate(accessResource);
             }
+        }
+
+        if (this.authenticationEvaluator == null) {
+            return;
+        }
+        if (authConfig.isAuthenticationEnabled()) {
+            Metadata metadata = GrpcConstants.METADATA.get(Context.current());
+            AuthenticationContext authenticationContext = AuthenticationFactory.newContext(authConfig, metadata);
+            authenticationEvaluator.evaluate(authenticationContext);
         }
     }
 }

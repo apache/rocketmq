@@ -17,14 +17,21 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.REMOVE_BROKER, resource = ResourceType.CLUSTER,action = Action.GET)
 public class RemoveBrokerRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String brokerName;
     @CFNotNull
+    @RocketMQResource(ResourceType.CLUSTER)
     private String brokerClusterName;
     @CFNotNull
     private Long brokerId;

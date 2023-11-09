@@ -48,6 +48,7 @@ import org.apache.rocketmq.proxy.remoting.activity.SendMessageActivity;
 import org.apache.rocketmq.proxy.remoting.activity.TransactionActivity;
 import org.apache.rocketmq.proxy.remoting.channel.RemotingChannelManager;
 import org.apache.rocketmq.proxy.remoting.pipeline.AuthenticationPipeline;
+import org.apache.rocketmq.proxy.remoting.pipeline.AuthorizationPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
@@ -89,7 +90,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         this.messagingProcessor = messagingProcessor;
         this.remotingChannelManager = new RemotingChannelManager(this, messagingProcessor.getProxyRelayService());
 
-        RequestPipeline pipeline = createRequestPipeline(accessValidators);
+        RequestPipeline pipeline = createRequestPipeline(accessValidators, messagingProcessor);
         this.getTopicRouteActivity = new GetTopicRouteActivity(pipeline, messagingProcessor);
         this.clientManagerActivity = new ClientManagerActivity(pipeline, messagingProcessor, remotingChannelManager);
         this.consumerManagerActivity = new ConsumerManagerActivity(pipeline, messagingProcessor);
@@ -262,12 +263,14 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         return future;
     }
 
-    protected RequestPipeline createRequestPipeline(List<AccessValidator> accessValidators) {
+    protected RequestPipeline createRequestPipeline(List<AccessValidator> accessValidators,
+        MessagingProcessor messagingProcessor) {
         RequestPipeline pipeline = (ctx, request, context) -> {
         };
         // add pipeline
         // the last pipe add will execute at the first
-        return pipeline.pipe(new AuthenticationPipeline(accessValidators));
+        return pipeline.pipe(new AuthorizationPipeline(ConfigurationManager.getAuthConfig(), messagingProcessor))
+            .pipe(new AuthenticationPipeline(accessValidators, ConfigurationManager.getAuthConfig(), messagingProcessor));
     }
 
     protected class ThreadPoolHeadSlowTimeMillsMonitor implements ThreadPoolStatusMonitor {

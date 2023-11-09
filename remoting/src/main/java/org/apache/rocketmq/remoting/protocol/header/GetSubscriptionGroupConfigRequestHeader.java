@@ -20,10 +20,16 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.GET_SUBSCRIPTIONGROUP_CONFIG, action = Action.GET)
 public class GetSubscriptionGroupConfigRequestHeader implements CommandCustomHeader {
 
     @Override
@@ -31,6 +37,7 @@ public class GetSubscriptionGroupConfigRequestHeader implements CommandCustomHea
     }
 
     @CFNotNull
+    @RocketMQResource(ResourceType.GROUP)
     private String group;
 
     /**

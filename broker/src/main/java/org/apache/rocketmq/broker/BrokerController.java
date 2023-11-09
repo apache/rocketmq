@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker;
 
+import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
@@ -40,11 +41,15 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.Lists;
-
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
+import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
+import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
+import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
+import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
+import org.apache.rocketmq.auth.config.AuthConfig;
+import org.apache.rocketmq.broker.auth.rpchook.AuthenticationRPCHook;
+import org.apache.rocketmq.broker.auth.rpchook.AuthorizationRPCHook;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -141,6 +146,7 @@ import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.RequestHeaderRegistry;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
@@ -177,6 +183,7 @@ public class BrokerController {
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
     protected final MessageStoreConfig messageStoreConfig;
+    private final AuthConfig authConfig;
     protected final ConsumerOffsetManager consumerOffsetManager;
     protected final BroadcastOffsetManager broadcastOffsetManager;
     protected final ConsumerManager consumerManager;
@@ -277,15 +284,18 @@ public class BrokerController {
     private BrokerMetricsManager brokerMetricsManager;
     private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
     private ColdDataCgCtrService coldDataCgCtrService;
+    private AuthenticationMetadataManager authenticationMetadataManager;
+    private AuthorizationMetadataManager authorizationMetadataManager;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
         final NettyServerConfig nettyServerConfig,
         final NettyClientConfig nettyClientConfig,
         final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig,
         final ShutdownHook shutdownHook
     ) {
-        this(brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig);
+        this(brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig, authConfig);
         this.shutdownHook = shutdownHook;
     }
 
@@ -293,19 +303,21 @@ public class BrokerController {
         final BrokerConfig brokerConfig,
         final MessageStoreConfig messageStoreConfig
     ) {
-        this(brokerConfig, null, null, messageStoreConfig);
+        this(brokerConfig, null, null, messageStoreConfig, null);
     }
 
     public BrokerController(
         final BrokerConfig brokerConfig,
         final NettyServerConfig nettyServerConfig,
         final NettyClientConfig nettyClientConfig,
-        final MessageStoreConfig messageStoreConfig
+        final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig
     ) {
         this.brokerConfig = brokerConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
         this.messageStoreConfig = messageStoreConfig;
+        this.authConfig = authConfig;
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat()) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
         this.broadcastOffsetManager = new BroadcastOffsetManager(this);
@@ -319,6 +331,8 @@ public class BrokerController {
             this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
         }
         this.topicQueueMappingManager = new TopicQueueMappingManager(this);
+        this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(this.authConfig);
+        this.authorizationMetadataManager = AuthorizationFactory.getMetadataManager(this.authConfig);
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.peekMessageProcessor = new PeekMessageProcessor(this);
         this.pullRequestHoldService = messageStoreConfig.isEnableLmq() ? new LmqPullRequestHoldService(this) : new PullRequestHoldService(this);
@@ -412,6 +426,10 @@ public class BrokerController {
         if (this.brokerConfig.isEnableSlaveActingMaster() && !this.brokerConfig.isSkipPreOnline()) {
             this.brokerPreOnlineService = new BrokerPreOnlineService(this);
         }
+    }
+
+    public AuthConfig getAuthConfig() {
+        return authConfig;
     }
 
     public BrokerConfig getBrokerConfig() {
@@ -966,6 +984,17 @@ public class BrokerController {
     }
 
     private void initialAcl() {
+        try {
+            if (this.authConfig.isAuthenticationEnabled()) {
+                this.registerServerRPCHook(new AuthenticationRPCHook(this.authConfig));
+            }
+            if (this.authConfig.isAuthorizationEnabled()) {
+                this.registerServerRPCHook(new AuthorizationRPCHook(this.authConfig));
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
         if (!this.brokerConfig.isAclEnable()) {
             LOG.info("The broker dose not enable acl");
             return;
@@ -1124,6 +1153,11 @@ public class BrokerController {
         AdminBrokerProcessor adminProcessor = new AdminBrokerProcessor(this);
         this.remotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
         this.fastRemotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
+
+        /*
+         * Initialize the mapping of request codes to request headers.
+         */
+        RequestHeaderRegistry.getInstance().initialize();
     }
 
     public BrokerStats getBrokerStats() {
@@ -1476,6 +1510,14 @@ public class BrokerController {
         if (this.consumerOffsetManager != null) {
             this.consumerOffsetManager.persist();
             this.consumerOffsetManager.stop();
+        }
+
+        if (this.authorizationMetadataManager != null) {
+            this.authorizationMetadataManager.shutdown();
+        }
+
+        if (this.authorizationMetadataManager != null) {
+            this.authorizationMetadataManager.shutdown();
         }
 
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
@@ -2142,6 +2184,14 @@ public class BrokerController {
 
     public TopicQueueMappingManager getTopicQueueMappingManager() {
         return topicQueueMappingManager;
+    }
+
+    public AuthenticationMetadataManager getAuthenticationMetadataManager() {
+        return authenticationMetadataManager;
+    }
+
+    public AuthorizationMetadataManager getAuthorizationMetadataManager() {
+        return authorizationMetadataManager;
     }
 
     public String getHAServerAddr() {

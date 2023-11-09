@@ -43,7 +43,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
-import org.apache.rocketmq.proxy.common.utils.FutureUtils;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;

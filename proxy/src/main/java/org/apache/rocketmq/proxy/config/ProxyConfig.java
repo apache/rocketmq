@@ -168,6 +168,12 @@ public class ProxyConfig implements ConfigFile {
     private int subscriptionGroupConfigCacheExpiredSeconds = 300;
     private int subscriptionGroupConfigCacheRefreshSeconds = 20;
     private int subscriptionGroupConfigCacheMaxNum = 20000;
+    private int userCacheExpiredSeconds = 300;
+    private int userCacheRefreshSeconds = 20;
+    private int userCacheMaxNum = 20000;
+    private int aclCacheExpiredSeconds = 300;
+    private int aclCacheRefreshSeconds = 20;
+    private int aclCacheMaxNum = 20000;
     private int metadataThreadPoolNums = 3;
     private int metadataThreadPoolQueueCapacity = 100000;
 
@@ -898,6 +904,54 @@ public class ProxyConfig implements ConfigFile {
 
     public void setSubscriptionGroupConfigCacheMaxNum(int subscriptionGroupConfigCacheMaxNum) {
         this.subscriptionGroupConfigCacheMaxNum = subscriptionGroupConfigCacheMaxNum;
+    }
+
+    public int getUserCacheExpiredSeconds() {
+        return userCacheExpiredSeconds;
+    }
+
+    public void setUserCacheExpiredSeconds(int userCacheExpiredSeconds) {
+        this.userCacheExpiredSeconds = userCacheExpiredSeconds;
+    }
+
+    public int getUserCacheRefreshSeconds() {
+        return userCacheRefreshSeconds;
+    }
+
+    public void setUserCacheRefreshSeconds(int userCacheRefreshSeconds) {
+        this.userCacheRefreshSeconds = userCacheRefreshSeconds;
+    }
+
+    public int getUserCacheMaxNum() {
+        return userCacheMaxNum;
+    }
+
+    public void setUserCacheMaxNum(int userCacheMaxNum) {
+        this.userCacheMaxNum = userCacheMaxNum;
+    }
+
+    public int getAclCacheExpiredSeconds() {
+        return aclCacheExpiredSeconds;
+    }
+
+    public void setAclCacheExpiredSeconds(int aclCacheExpiredSeconds) {
+        this.aclCacheExpiredSeconds = aclCacheExpiredSeconds;
+    }
+
+    public int getAclCacheRefreshSeconds() {
+        return aclCacheRefreshSeconds;
+    }
+
+    public void setAclCacheRefreshSeconds(int aclCacheRefreshSeconds) {
+        this.aclCacheRefreshSeconds = aclCacheRefreshSeconds;
+    }
+
+    public int getAclCacheMaxNum() {
+        return aclCacheMaxNum;
+    }
+
+    public void setAclCacheMaxNum(int aclCacheMaxNum) {
+        this.aclCacheMaxNum = aclCacheMaxNum;
     }
 
     public int getMetadataThreadPoolNums() {

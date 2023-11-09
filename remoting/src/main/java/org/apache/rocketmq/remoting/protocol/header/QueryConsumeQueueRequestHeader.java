@@ -17,15 +17,23 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.QUERY_CONSUME_QUEUE, action = Action.GET)
 public class QueryConsumeQueueRequestHeader implements CommandCustomHeader {
 
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
     private int queueId;
     private long index;
     private int count;
+    @RocketMQResource(ResourceType.GROUP)
     private String consumerGroup;
 
     public String getTopic() {

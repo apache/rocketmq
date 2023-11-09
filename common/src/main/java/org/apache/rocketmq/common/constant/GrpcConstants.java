@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.grpc.interceptor;
+package org.apache.rocketmq.common.constant;
 
 import io.grpc.Context;
 import io.grpc.Metadata;
 
-public class InterceptorConstants {
+public class GrpcConstants {
     public static final Context.Key<Metadata> METADATA = Context.key("rpc-metadata");
 
     /**

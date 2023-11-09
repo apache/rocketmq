@@ -112,7 +112,7 @@ public class AdminBrokerProcessorTest {
     @Spy
     private BrokerController
         brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(),
-            new MessageStoreConfig());
+            new MessageStoreConfig(), null);
 
     @Mock
     private MessageStore messageStore;
