@@ -17,11 +17,8 @@
 
 package org.apache.rocketmq.test.client.consumer.balance;
 
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.client.consumer.MessageQueueListener;
-import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
