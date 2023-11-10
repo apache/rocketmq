@@ -32,6 +32,7 @@ public class LocalRemotingCommand extends RemotingCommand {
         cmd.writeCustomHeader(customHeader);
         cmd.setExtFields(new HashMap<>());
         setCmdVersion(cmd);
+        cmd.makeCustomHeaderToNet();
         return cmd;
     }
 
