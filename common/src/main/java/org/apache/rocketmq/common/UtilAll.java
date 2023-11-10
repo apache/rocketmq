@@ -700,6 +700,9 @@ public class UtilAll {
     }
 
     public static void cleanBuffer(final ByteBuffer buffer) {
+        if (null == buffer) {
+            return;
+        }
         PlatformDependent.freeDirectBuffer(buffer);
     }
 
