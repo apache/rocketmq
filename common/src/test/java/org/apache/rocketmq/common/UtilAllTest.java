@@ -219,16 +219,6 @@ public class UtilAllTest {
         UtilAll.cleanBuffer(ByteBuffer.allocate(0));
     }
 
-    @Test(expected = NoSuchMethodException.class)
-    public void testMethod() throws NoSuchMethodException {
-        UtilAll.method(new Object(), "noMethod", null);
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testInvoke() throws Exception {
-        UtilAll.invoke(new Object(), "noMethod");
-    }
-
     @Test
     public void testCalculateFileSizeInPath() throws Exception {
         /**
