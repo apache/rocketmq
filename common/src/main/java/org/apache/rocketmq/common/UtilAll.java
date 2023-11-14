@@ -16,21 +16,18 @@
  */
 package org.apache.rocketmq.common;
 
+import io.netty.util.internal.PlatformDependent;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -46,15 +43,11 @@ import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import org.apache.commons.lang3.JavaVersion;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import sun.misc.Unsafe;
-import sun.nio.ch.DirectBuffer;
 
 public class UtilAll {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -707,57 +700,10 @@ public class UtilAll {
     }
 
     public static void cleanBuffer(final ByteBuffer buffer) {
-        if (buffer == null || !buffer.isDirect() || buffer.capacity() == 0) {
+        if (null == buffer) {
             return;
         }
-        if (SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_9)) {
-            try {
-                Field field = Unsafe.class.getDeclaredField("theUnsafe");
-                field.setAccessible(true);
-                Unsafe unsafe = (Unsafe) field.get(null);
-                Method cleaner = method(unsafe, "invokeCleaner", new Class[] {ByteBuffer.class});
-                cleaner.invoke(unsafe, viewed(buffer));
-            } catch (Exception e) {
-                throw new IllegalStateException(e);
-            }
-        } else {
-            invoke(invoke(viewed(buffer), "cleaner"), "clean");
-        }
-    }
-
-    public static Object invoke(final Object target, final String methodName, final Class<?>... args) {
-        return AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-                try {
-                    Method method = method(target, methodName, args);
-                    method.setAccessible(true);
-                    return method.invoke(target);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
-    }
-
-    public static Method method(Object target, String methodName, Class<?>[] args) throws NoSuchMethodException {
-        try {
-            return target.getClass().getMethod(methodName, args);
-        } catch (NoSuchMethodException e) {
-            return target.getClass().getDeclaredMethod(methodName, args);
-        }
-    }
-
-    private static ByteBuffer viewed(ByteBuffer buffer) {
-        if (!buffer.isDirect()) {
-            throw new IllegalArgumentException("buffer is non-direct");
-        }
-        ByteBuffer viewedBuffer = (ByteBuffer) ((DirectBuffer) buffer).attachment();
-        if (viewedBuffer == null) {
-            return buffer;
-        } else {
-            return viewed(viewedBuffer);
-        }
+        PlatformDependent.freeDirectBuffer(buffer);
     }
 
     public static void ensureDirOK(final String dirName) {

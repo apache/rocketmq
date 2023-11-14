@@ -42,7 +42,7 @@ public class PosixFileSegmentTest {
     @Before
     public void setUp() {
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setTieredStoreFilePath(storePath);
+        storeConfig.setTieredStoreFilepath(storePath);
         mq = new MessageQueue("OSSFileSegmentTest", "broker", 0);
         TieredStoreExecutor.init();
     }

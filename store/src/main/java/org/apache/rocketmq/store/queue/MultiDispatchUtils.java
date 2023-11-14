@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.store.queue;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -27,7 +25,7 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
-public class MultiDispatch {
+public class MultiDispatchUtils {
 
     public static String lmqQueueKey(String queueName) {
         StringBuilder keyBuilder = new StringBuilder();
@@ -59,18 +57,5 @@ public class MultiDispatch {
             return false;
         }
         return true;
-    }
-
-    public static List<DispatchRequest> checkMultiDispatchQueue(MessageStoreConfig messageStoreConfig, List<DispatchRequest> dispatchRequests) {
-        if (!messageStoreConfig.isEnableMultiDispatch() || dispatchRequests == null || dispatchRequests.size() == 0) {
-            return null;
-        }
-        List<DispatchRequest> result = new ArrayList<>();
-        for (DispatchRequest dispatchRequest : dispatchRequests) {
-            if (checkMultiDispatchQueue(messageStoreConfig, dispatchRequest)) {
-                result.add(dispatchRequest);
-            }
-        }
-        return dispatchRequests;
     }
 }

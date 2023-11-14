@@ -56,6 +56,7 @@ public class AppendPropCRCTest {
         messageStoreConfig.setMappedFileSizeConsumeQueue(1024 * 4);
         messageStoreConfig.setMaxHashSlotNum(100);
         messageStoreConfig.setMaxIndexNum(100 * 10);
+        messageStoreConfig.setMaxMessageSize(10 * 1024 * 1024);
         messageStoreConfig.setStorePathRootDir(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore");
         messageStoreConfig.setStorePathCommitLog(System.getProperty("java.io.tmpdir") + File.separator + "unitteststore" + File.separator + "commitlog");
         messageStoreConfig.setForceVerifyPropCRC(true);
@@ -63,8 +64,8 @@ public class AppendPropCRCTest {
         //too much reference
         DefaultMessageStore messageStore = new DefaultMessageStore(messageStoreConfig, null, null, new BrokerConfig(), new ConcurrentHashMap<>());
         commitLog = new CommitLog(messageStore);
-        encoder = new MessageExtEncoder(10 * 1024 * 1024, true);
-        callback = commitLog.new DefaultAppendMessageCallback();
+        encoder = new MessageExtEncoder(messageStoreConfig);
+        callback = commitLog.new DefaultAppendMessageCallback(messageStoreConfig);
     }
 
     @After
