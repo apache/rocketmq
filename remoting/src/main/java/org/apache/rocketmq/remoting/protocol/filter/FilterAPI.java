@@ -46,6 +46,14 @@ public class FilterAPI {
         return subscriptionData;
     }
 
+    public static SubscriptionData buildSubscriptionData(String topic, String subString, String expressionType) throws Exception {
+        final SubscriptionData subscriptionData = buildSubscriptionData(topic, subString);
+        if (StringUtils.isNotBlank(expressionType)) {
+            subscriptionData.setExpressionType(expressionType);
+        }
+        return subscriptionData;
+    }
+
     public static SubscriptionData build(final String topic, final String subString,
         final String type) throws Exception {
         if (ExpressionType.TAG.equals(type) || type == null) {
