@@ -84,6 +84,7 @@ import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.ConcurrentTopicList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
@@ -1084,7 +1085,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public AdminToolResult<TopicList> queryTopicsByConsumerConcurrent(final String group) {
+    public AdminToolResult<ConcurrentTopicList> queryTopicsByConsumerConcurrent(final String group) {
         return adminToolExecute(new AdminToolHandler() {
             @Override
             public AdminToolResult doExecute() throws Exception {
@@ -1094,7 +1095,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
                 if (topicRouteData == null || CollectionUtils.isEmpty(topicRouteData.getBrokerDatas())) {
                     return AdminToolResult.failure(AdminToolsResultCodeEnum.TOPIC_ROUTE_INFO_NOT_EXIST, "router info not found.");
                 }
-                final TopicList result = new TopicList();
+                final ConcurrentTopicList result = new ConcurrentTopicList();
                 final CountDownLatch latch = new CountDownLatch(topicRouteData.getBrokerDatas().size());
                 for (final BrokerData bd : topicRouteData.getBrokerDatas()) {
                     threadPoolExecutor.submit(new Runnable() {

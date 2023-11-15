@@ -16,12 +16,12 @@
  */
 package org.apache.rocketmq.remoting.protocol.body;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class TopicList extends RemotingSerializable {
-    private Set<String> topicList = new HashSet<>();
+public class ConcurrentTopicList extends RemotingSerializable {
+    private Set<String> topicList = new CopyOnWriteArraySet<>();
     private String brokerAddr;
 
     public Set<String> getTopicList() {

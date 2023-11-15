@@ -42,6 +42,7 @@ import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.ConcurrentTopicList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
@@ -243,7 +244,7 @@ public interface MQAdminExt extends MQAdmin {
     TopicList queryTopicsByConsumer(
         final String group) throws InterruptedException, MQBrokerException, RemotingException, MQClientException;
 
-    AdminToolResult<TopicList> queryTopicsByConsumerConcurrent(final String group);
+    AdminToolResult<ConcurrentTopicList> queryTopicsByConsumerConcurrent(final String group);
 
     SubscriptionData querySubscription(final String group,
         final String topic) throws InterruptedException, MQBrokerException, RemotingException, MQClientException;

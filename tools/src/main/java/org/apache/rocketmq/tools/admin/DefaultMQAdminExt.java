@@ -46,6 +46,7 @@ import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.ConcurrentTopicList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
@@ -505,7 +506,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public AdminToolResult<TopicList> queryTopicsByConsumerConcurrent(String group) {
+    public AdminToolResult<ConcurrentTopicList> queryTopicsByConsumerConcurrent(String group) {
         return defaultMQAdminExtImpl.queryTopicsByConsumerConcurrent(group);
     }
 
