@@ -19,6 +19,7 @@ package org.apache.rocketmq.common.message;
 import java.nio.ByteBuffer;
 
 import org.apache.rocketmq.common.TopicFilterType;
+import org.apache.rocketmq.common.utils.MessageUtils;
 
 public class MessageExtBrokerInner extends MessageExt {
     private static final long serialVersionUID = 7256001576878700634L;
@@ -26,6 +27,8 @@ public class MessageExtBrokerInner extends MessageExt {
     private long tagsCode;
 
     private ByteBuffer encodedBuff;
+
+    private volatile boolean encodeCompleted;
 
     private MessageVersion version = MessageVersion.MESSAGE_VERSION_V1;
 
@@ -55,6 +58,14 @@ public class MessageExtBrokerInner extends MessageExt {
         this.propertiesString = propertiesString;
     }
 
+
+    public void deleteProperty(String name) {
+        super.clearProperty(name);
+        if (propertiesString != null) {
+            this.setPropertiesString(MessageUtils.deleteProperty(propertiesString, name));
+        }
+    }
+
     public long getTagsCode() {
         return tagsCode;
     }
@@ -69,5 +80,26 @@ public class MessageExtBrokerInner extends MessageExt {
 
     public void setVersion(MessageVersion version) {
         this.version = version;
+    }
+
+    public void removeWaitStorePropertyString() {
+        if (this.getProperties().containsKey(MessageConst.PROPERTY_WAIT_STORE_MSG_OK)) {
+            // There is no need to store "WAIT=true", remove it from propertiesString to save 9 bytes for each message.
+            // It works for most case. In some cases msgInner.setPropertiesString invoked later and replace it.
+            String waitStoreMsgOKValue = this.getProperties().remove(MessageConst.PROPERTY_WAIT_STORE_MSG_OK);
+            this.setPropertiesString(MessageDecoder.messageProperties2String(this.getProperties()));
+            // Reput to properties, since msgInner.isWaitStoreMsgOK() will be invoked later
+            this.getProperties().put(MessageConst.PROPERTY_WAIT_STORE_MSG_OK, waitStoreMsgOKValue);
+        } else {
+            this.setPropertiesString(MessageDecoder.messageProperties2String(this.getProperties()));
+        }
+    }
+
+    public boolean isEncodeCompleted() {
+        return encodeCompleted;
+    }
+
+    public void setEncodeCompleted(boolean encodeCompleted) {
+        this.encodeCompleted = encodeCompleted;
     }
 }

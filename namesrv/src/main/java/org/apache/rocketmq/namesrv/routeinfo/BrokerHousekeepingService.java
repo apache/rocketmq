@@ -46,4 +46,9 @@ public class BrokerHousekeepingService implements ChannelEventListener {
     public void onChannelIdle(String remoteAddr, Channel channel) {
         this.namesrvController.getRouteInfoManager().onChannelDestroy(channel);
     }
+
+    @Override
+    public void onChannelActive(String remoteAddr, Channel channel) {
+
+    }
 }

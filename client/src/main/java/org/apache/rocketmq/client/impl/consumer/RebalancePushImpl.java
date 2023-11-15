@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -52,7 +53,7 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-        /**
+        /*
          * When rebalance result changed, should update subscription's version to notify broker.
          * Fix: inconsistency subscription may lead to consumer miss messages.
          */
@@ -82,6 +83,11 @@ public class RebalancePushImpl extends RebalanceImpl {
 
         // notify broker
         this.getmQClientFactory().sendHeartbeatToAllBrokerWithLockV2(true);
+
+        MessageQueueListener messageQueueListener = defaultMQPushConsumerImpl.getMessageQueueListener();
+        if (null != messageQueueListener) {
+            messageQueueListener.messageQueueChanged(topic, mqAll, mqDivided);
+        }
     }
 
     @Override

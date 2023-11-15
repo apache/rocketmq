@@ -86,7 +86,7 @@ public class CompactionLogTest {
     int compactionCqFileSize = 1024;
 
 
-    private static MessageExtEncoder encoder = new MessageExtEncoder(1024);
+    private static MessageExtEncoder encoder = new MessageExtEncoder(1024, new MessageStoreConfig());
     private static SocketAddress storeHost;
     private static SocketAddress bornHost;
 

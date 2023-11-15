@@ -41,6 +41,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.rocksdb.RocksDBException;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -180,7 +181,7 @@ public class AutoSwitchHATest {
 
     private boolean changeMasterAndPutMessage(DefaultMessageStore master, MessageStoreConfig masterConfig,
         DefaultMessageStore slave, long slaveId, MessageStoreConfig slaveConfig, int epoch, String masterHaAddress,
-        int totalPutMessageNums) {
+        int totalPutMessageNums) throws RocksDBException {
 
         boolean flag = true;
         // Change role
@@ -464,7 +465,7 @@ public class AutoSwitchHATest {
 
         // Step2: check flag SynchronizingSyncStateSet
         Assert.assertTrue(masterHAService.isSynchronizingSyncStateSet());
-        Assert.assertEquals(this.messageStore1.getConfirmOffset(), 1570);
+        Assert.assertEquals(this.messageStore1.getConfirmOffset(), 1580);
         Set<Long> syncStateSet = masterHAService.getSyncStateSet();
         Assert.assertEquals(syncStateSet.size(), 2);
         Assert.assertTrue(syncStateSet.contains(1L));

@@ -27,6 +27,7 @@ java_library(
         "@maven//:com_conversantmedia_disruptor",
         "@maven//:com_google_guava_guava",
         "@maven//:commons_collections_commons_collections",
+        "@maven//:commons_io_commons_io",
         "@maven//:io_netty_netty_all",
         "@maven//:io_openmessaging_storage_dledger",
         "@maven//:io_opentelemetry_opentelemetry_api",
@@ -40,6 +41,7 @@ java_library(
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
+        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
     ],
 )
 
@@ -60,6 +62,7 @@ java_library(
         "@maven//:com_google_guava_guava",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
+        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
     ],
 )
 
@@ -68,6 +71,7 @@ GenTestRules(
     exclude_tests = [
         # This test is extremely slow and flaky, exclude it.
         "src/test/java/org/apache/rocketmq/store/ha/autoswitch/AutoSwitchHATest",
+        "src/test/java/org/apache/rocketmq/store/RocksDBMessageStoreTest",
     ],
     medium_tests = [
         "src/test/java/org/apache/rocketmq/store/DefaultMessageStoreTest",
@@ -75,6 +79,7 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/store/dledger/DLedgerCommitlogTest",
         "src/test/java/org/apache/rocketmq/store/MappedFileQueueTest",
         "src/test/java/org/apache/rocketmq/store/queue/BatchConsumeMessageTest",
+        "src/test/java/org/apache/rocketmq/store/dledger/MixCommitlogTest",
     ],
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [
