@@ -88,6 +88,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private String producerGroup;
 
     /**
+     * Topics that need to be initialized for transaction producer
+     */
+    private List<String> topics;
+
+    /**
      * Just for testing or demo program
      */
     private String createTopicKey = TopicValidator.AUTO_CREATE_TOPIC_KEY_TOPIC;
@@ -236,6 +241,22 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
+     * Constructor specifying namespace, producer group, topics and RPC hook.
+     *
+     * @param namespace     Namespace for this MQ Producer instance.
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param topics        Topic that needs to be initialized for routing
+     * @param rpcHook       RPC hook to execute per each remoting command execution.
+     */
+    public DefaultMQProducer(final String namespace, final String producerGroup, final List<String> topics, RPCHook rpcHook) {
+        this.namespace = namespace;
+        this.producerGroup = producerGroup;
+        this.topics = topics;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+    }
+
+    /**
      * Constructor specifying producer group and enabled msg trace flag.
      *
      * @param producerGroup  Producer group, see the name-sake field.
@@ -284,6 +305,41 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
                     new SendMessageTraceHookImpl(traceDispatcher));
                 this.defaultMQProducerImpl.registerEndTransactionHook(
                     new EndTransactionTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
+    }
+
+    /**
+     * Constructor specifying namespace, producer group, topics, RPC hook, enabled msgTrace flag and customized trace topic
+     * name.
+     *
+     * @param namespace            Namespace for this MQ Producer instance.
+     * @param producerGroup        Producer group, see the name-sake field.
+     * @param topics               Topic that needs to be initialized for routing
+     * @param rpcHook              RPC hook to execute per each remoting command execution.
+     * @param enableMsgTrace       Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     *                             trace topic name.
+     */
+    public DefaultMQProducer(final String namespace, final String producerGroup, final List<String> topics,
+                             RPCHook rpcHook, boolean enableMsgTrace, final String customizedTraceTopic) {
+        this.namespace = namespace;
+        this.producerGroup = producerGroup;
+        this.topics = topics;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+        //if client open the message trace feature
+        if (enableMsgTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
+                dispatcher.setHostProducer(this.defaultMQProducerImpl);
+                traceDispatcher = dispatcher;
+                this.defaultMQProducerImpl.registerSendMessageHook(
+                        new SendMessageTraceHookImpl(traceDispatcher));
+                this.defaultMQProducerImpl.registerEndTransactionHook(
+                        new EndTransactionTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
                 logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
             }
@@ -1332,4 +1388,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         defaultMQProducerImpl.setSemaphoreAsyncSendSize(backPressureForAsyncSendSize);
     }
 
+    public List<String> getTopics() {
+        return topics;
+    }
+
+    public void setTopics(List<String> topics) {
+        this.topics = topics;
+    }
 }
