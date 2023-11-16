@@ -883,18 +883,20 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 this.currentThread = Thread.currentThread();
 
-                if (assignedMessageQueue.isPaused(messageQueue)) {
-                    scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_PAUSE, TimeUnit.MILLISECONDS);
-                    log.debug("Message Queue: {} has been paused!", messageQueue);
-                    return;
-                }
-
                 ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
 
                 if (null == processQueue || processQueue.isDropped()) {
                     log.info("The message queue not be able to poll, because it's dropped. group={}, messageQueue={}", defaultLitePullConsumer.getConsumerGroup(), this.messageQueue);
                     return;
                 }
+
+                if (assignedMessageQueue.isPaused(messageQueue)) {
+                    scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_PAUSE, TimeUnit.MILLISECONDS);
+                    log.debug("Message Queue: {} has been paused!", messageQueue);
+                    return;
+                }
+
+
 
                 processQueue.setLastPullTimestamp(System.currentTimeMillis());
 
