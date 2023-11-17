@@ -26,7 +26,7 @@ public class PopProcessQueue {
 
     private final static long PULL_MAX_IDLE_TIME = Long.parseLong(System.getProperty("rocketmq.client.pull.pullMaxIdleTime", "120000"));
 
-    private long lastPopTimestamp;
+    private long lastPopTimestamp = System.currentTimeMillis();
     private AtomicInteger waitAckCounter = new AtomicInteger(0);
     private volatile boolean dropped = false;
 
