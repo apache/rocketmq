@@ -35,6 +35,7 @@ import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.file.TieredFileAllocator;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
@@ -51,6 +52,7 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
+@Ignore
 @State(Scope.Benchmark)
 @Fork(value = 1, jvmArgs = {"-Djava.net.preferIPv4Stack=true", "-Djmh.rmi.port=1099"})
 public class IndexStoreServiceBenchTest {

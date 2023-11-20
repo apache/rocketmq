@@ -22,6 +22,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -54,8 +55,9 @@ public class IndexStoreFileTest {
 
     @Before
     public void init() throws IOException {
-        String filePath = Paths.get(System.getProperty("user.home"), "store_test", "index").toString();
         TieredStoreExecutor.init();
+        String filePath = Paths.get(System.getProperty("user.home"), "store_test",
+            UUID.randomUUID().toString().replace("-", "").substring(0, 8)).toString();
         storeConfig = new TieredMessageStoreConfig();
         storeConfig.setTieredStoreFilePath(filePath);
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(5);
