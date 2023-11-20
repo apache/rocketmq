@@ -87,8 +87,12 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             }
             MappedFile mappedFile = new DefaultMappedFile(file.getPath(), (int) file.length());
             long timestamp = mappedFile.getMappedByteBuffer().getLong(IndexStoreFile.INDEX_BEGIN_TIME_STAMP);
-            mappedFile.renameTo(String.valueOf(new File(file.getParent(), String.valueOf(timestamp))));
-            mappedFile.shutdown(TimeUnit.SECONDS.toMillis(10));
+            if (timestamp <= 0) {
+                mappedFile.destroy(TimeUnit.SECONDS.toMillis(10));
+            } else {
+                mappedFile.renameTo(String.valueOf(new File(file.getParent(), String.valueOf(timestamp))));
+                mappedFile.shutdown(TimeUnit.SECONDS.toMillis(10));
+            }
         } catch (Exception e) {
             log.error("IndexStoreService do convert old format error, file: {}", filePath, e);
         }
@@ -141,7 +145,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             log.info("IndexStoreService recover load remote file, timestamp: {}", indexFile.getTimestamp());
         }
 
-        log.info("IndexStoreService recover finished, entrySize: {}, cost: {}ms, filePath: {}",
+        log.info("IndexStoreService recover finished, entrySize: {}, cost: {}ms, directory: {}",
             timeStoreTable.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS), dir.getAbsolutePath());
     }
 
@@ -352,6 +356,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         for (Map.Entry<Long /* timestamp */, IndexFile> entry : timeStoreTable.entrySet()) {
             entry.getValue().shutdown();
         }
+        this.timeStoreTable.clear();
         log.info("IndexStoreService shutdown gracefully");
     }
 }

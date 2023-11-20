@@ -50,16 +50,18 @@ public class IndexStoreFileTest {
     private static final String KEY = "MessageKey";
     private static final Set<String> KEY_SET = Collections.singleton(KEY);
 
+    private String filePath;
     private TieredMessageStoreConfig storeConfig;
     private IndexStoreFile indexStoreFile;
 
     @Before
     public void init() throws IOException {
         TieredStoreExecutor.init();
-        String filePath = Paths.get(System.getProperty("user.home"), "store_test",
-            UUID.randomUUID().toString().replace("-", "").substring(0, 8)).toString();
+        filePath = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String directory = Paths.get(System.getProperty("user.home"), "store_test", filePath).toString();
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setTieredStoreFilePath(filePath);
+        storeConfig.setStorePathRootDir(directory);
+        storeConfig.setTieredStoreFilePath(directory);
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(5);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(20);
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.posix.PosixFileSegment");
@@ -73,6 +75,7 @@ public class IndexStoreFileTest {
             this.indexStoreFile.destroy();
         }
         TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storeConfig.getStorePathRootDir());
         TieredStoreTestUtil.destroyTempDir(storeConfig.getTieredStoreFilePath());
         TieredStoreExecutor.shutdown();
     }
@@ -214,7 +217,6 @@ public class IndexStoreFileTest {
     @Test
     public void doCompactionTest() throws Exception {
         long timestamp = indexStoreFile.getTimestamp();
-        indexStoreFile = new IndexStoreFile(storeConfig, System.currentTimeMillis());
         for (int i = 0; i < 10; i++) {
             Assert.assertEquals(AppendResult.SUCCESS, indexStoreFile.putKey(
                 TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, timestamp));
@@ -222,7 +224,7 @@ public class IndexStoreFileTest {
 
         ByteBuffer byteBuffer = indexStoreFile.doCompaction();
         TieredFileSegment fileSegment = new PosixFileSegment(
-            storeConfig, FileSegmentType.INDEX, "store_index", 0L);
+            storeConfig, FileSegmentType.INDEX, filePath, 0L);
         fileSegment.append(byteBuffer, timestamp);
         fileSegment.commit();
         Assert.assertEquals(byteBuffer.limit(), fileSegment.getSize());
@@ -255,7 +257,7 @@ public class IndexStoreFileTest {
 
         ByteBuffer byteBuffer = indexStoreFile.doCompaction();
         TieredFileSegment fileSegment = new PosixFileSegment(
-            storeConfig, FileSegmentType.INDEX, "store_index", 0L);
+            storeConfig, FileSegmentType.INDEX, filePath, 0L);
         fileSegment.append(byteBuffer, timestamp);
         fileSegment.commit();
         Assert.assertEquals(byteBuffer.limit(), fileSegment.getSize());

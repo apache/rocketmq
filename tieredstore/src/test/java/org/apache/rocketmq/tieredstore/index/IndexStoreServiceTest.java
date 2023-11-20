@@ -36,6 +36,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.logfile.DefaultMappedFile;
+import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
@@ -67,10 +69,11 @@ public class IndexStoreServiceTest {
     @Before
     public void init() throws IOException, ClassNotFoundException, NoSuchMethodException {
         TieredStoreExecutor.init();
-        filePath = Paths.get(System.getProperty("user.home"), "store_test",
-            UUID.randomUUID().toString().replace("-", "").substring(0, 8)).toString();
+        filePath = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+        String directory = Paths.get(System.getProperty("user.home"), "store_test", filePath).toString();
         storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setStorePathRootDir(filePath);
+        storeConfig.setStorePathRootDir(directory);
+        storeConfig.setTieredStoreFilePath(directory);
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(5);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(20);
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.posix.PosixFileSegment");
@@ -83,6 +86,9 @@ public class IndexStoreServiceTest {
             indexService.shutdown();
             indexService.destroy();
         }
+        TieredStoreTestUtil.destroyMetadataStore();
+        TieredStoreTestUtil.destroyTempDir(storeConfig.getStorePathRootDir());
+        TieredStoreTestUtil.destroyTempDir(storeConfig.getTieredStoreFilePath());
         TieredStoreExecutor.shutdown();
     }
 
@@ -99,7 +105,7 @@ public class IndexStoreServiceTest {
     }
 
     @Test
-    public void doConvertOldFormatTest() {
+    public void doConvertOldFormatTest() throws IOException {
         indexService = new IndexStoreService(fileAllocator, filePath);
         long timestamp = indexService.getTimeStoreTable().firstKey();
         Assert.assertEquals(AppendResult.SUCCESS, indexService.putKey(
@@ -107,18 +113,15 @@ public class IndexStoreServiceTest {
         indexService.shutdown();
 
         File file = new File(Paths.get(filePath, IndexStoreService.FILE_DIRECTORY_NAME, String.valueOf(timestamp)).toString());
-        log.info(filePath);
-        log.info(file.getPath());
-        Assert.assertTrue(file.exists());
-
-        Assert.assertTrue(file.renameTo(new File(file.getParent(), "0000")));
-        file = new File(Paths.get(file.getParent(), "0000").toString());
-        Assert.assertTrue(file.exists());
+        DefaultMappedFile mappedFile = new DefaultMappedFile(file.getName(), (int) file.length());
+        mappedFile.renameTo(String.valueOf(new File(file.getParent(), "0000")));
+        mappedFile.shutdown(10 * 1000);
 
         indexService = new IndexStoreService(fileAllocator, filePath);
         ConcurrentSkipListMap<Long, IndexFile> timeStoreTable = indexService.getTimeStoreTable();
         Assert.assertEquals(1, timeStoreTable.size());
         Assert.assertEquals(Long.valueOf(timestamp), timeStoreTable.firstKey());
+        mappedFile.destroy(10 * 1000);
     }
 
     @Test
