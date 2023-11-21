@@ -159,6 +159,7 @@ public class PosixFileSegment extends TieredFileSegment {
             readFileChannel.position(position);
             readFileChannel.read(byteBuffer);
             byteBuffer.flip();
+            byteBuffer.limit(length);
 
             attributesBuilder.put(LABEL_SUCCESS, true);
             long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);

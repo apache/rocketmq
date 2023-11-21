@@ -31,6 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -50,7 +51,8 @@ import org.apache.rocketmq.tieredstore.file.CompositeFlatFile;
 import org.apache.rocketmq.tieredstore.file.CompositeQueueFlatFile;
 import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
 import org.apache.rocketmq.tieredstore.file.TieredFlatFileManager;
-import org.apache.rocketmq.tieredstore.file.TieredIndexFile;
+import org.apache.rocketmq.tieredstore.index.IndexItem;
+import org.apache.rocketmq.tieredstore.index.IndexService;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.TopicMetadata;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant;
@@ -58,7 +60,6 @@ import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.CQItemBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
-import org.apache.rocketmq.common.BoundaryType;
 
 public class TieredMessageFetcher implements MessageStoreFetcher {
 
@@ -555,85 +556,51 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
     public CompletableFuture<QueryMessageResult> queryMessageAsync(
         String topic, String key, int maxCount, long begin, long end) {
 
-        TieredIndexFile indexFile = TieredFlatFileManager.getIndexFile(storeConfig);
+        IndexService indexStoreService = TieredFlatFileManager.getTieredIndexService(storeConfig);
 
-        int hashCode = TieredIndexFile.indexKeyHashMethod(TieredIndexFile.buildKey(topic, key));
         long topicId;
         try {
             TopicMetadata topicMetadata = metadataStore.getTopic(topic);
             if (topicMetadata == null) {
-                LOGGER.info("TieredMessageFetcher#queryMessageAsync, topic metadata not found, topic: {}", topic);
+                LOGGER.info("MessageFetcher#queryMessageAsync, topic metadata not found, topic: {}", topic);
                 return CompletableFuture.completedFuture(new QueryMessageResult());
             }
             topicId = topicMetadata.getTopicId();
         } catch (Exception e) {
-            LOGGER.error("TieredMessageFetcher#queryMessageAsync, get topic id failed, topic: {}", topic, e);
+            LOGGER.error("MessageFetcher#queryMessageAsync, get topic id failed, topic: {}", topic, e);
             return CompletableFuture.completedFuture(new QueryMessageResult());
         }
 
-        return indexFile.queryAsync(topic, key, begin, end)
-            .thenCompose(indexBufferList -> {
-                QueryMessageResult result = new QueryMessageResult();
-                int resultCount = 0;
-                List<CompletableFuture<Void>> futureList = new ArrayList<>(maxCount);
-                for (Pair<Long, ByteBuffer> pair : indexBufferList) {
-                    Long fileBeginTimestamp = pair.getKey();
-                    ByteBuffer indexBuffer = pair.getValue();
+        CompletableFuture<List<IndexItem>> future = indexStoreService.queryAsync(topic, key, maxCount, begin, end);
 
-                    if (indexBuffer.remaining() % TieredIndexFile.INDEX_FILE_HASH_COMPACT_INDEX_SIZE != 0) {
-                        LOGGER.error("[Bug] TieredMessageFetcher#queryMessageAsync: " +
-                            "index buffer size {} is not multiple of index item size {}",
-                            indexBuffer.remaining(), TieredIndexFile.INDEX_FILE_HASH_COMPACT_INDEX_SIZE);
-                        continue;
-                    }
-
-                    for (int indexOffset = indexBuffer.position();
-                        indexOffset < indexBuffer.limit();
-                        indexOffset += TieredIndexFile.INDEX_FILE_HASH_COMPACT_INDEX_SIZE) {
-
-                        int indexItemHashCode = indexBuffer.getInt(indexOffset);
-                        if (indexItemHashCode != hashCode) {
-                            continue;
-                        }
-
-                        int indexItemTopicId = indexBuffer.getInt(indexOffset + 4);
-                        if (indexItemTopicId != topicId) {
-                            continue;
-                        }
-
-                        int queueId = indexBuffer.getInt(indexOffset + 4 + 4);
-                        CompositeFlatFile flatFile =
-                            flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
-                        if (flatFile == null) {
-                            continue;
-                        }
-
-                        // decode index item
-                        long offset = indexBuffer.getLong(indexOffset + 4 + 4 + 4);
-                        int size = indexBuffer.getInt(indexOffset + 4 + 4 + 4 + 8);
-                        int timeDiff = indexBuffer.getInt(indexOffset + 4 + 4 + 4 + 8 + 4);
-                        long indexTimestamp = fileBeginTimestamp + timeDiff;
-                        if (indexTimestamp < begin || indexTimestamp > end) {
-                            continue;
-                        }
-
-                        CompletableFuture<Void> getMessageFuture = flatFile.getCommitLogAsync(offset, size)
-                            .thenAccept(messageBuffer -> result.addMessage(
-                                new SelectMappedBufferResult(0, messageBuffer, size, null)));
-                        futureList.add(getMessageFuture);
-
-                        resultCount++;
-                        if (resultCount >= maxCount) {
-                            break;
-                        }
-                    }
-
-                    if (resultCount >= maxCount) {
-                        break;
-                    }
+        return future.thenCompose(indexItemList -> {
+            QueryMessageResult result = new QueryMessageResult();
+            List<CompletableFuture<Void>> futureList = new ArrayList<>(maxCount);
+            for (IndexItem indexItem : indexItemList) {
+                if (topicId != indexItem.getTopicId()) {
+                    continue;
                 }
-                return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0]))
-                    .thenApply(v -> result);
-            });
+                CompositeFlatFile flatFile =
+                    flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, indexItem.getQueueId()));
+                if (flatFile == null) {
+                    continue;
+                }
+                CompletableFuture<Void> getMessageFuture = flatFile
+                    .getCommitLogAsync(indexItem.getOffset(), indexItem.getSize())
+                    .thenAccept(messageBuffer -> result.addMessage(
+                        new SelectMappedBufferResult(
+                            indexItem.getOffset(), messageBuffer, indexItem.getSize(), null)));
+                futureList.add(getMessageFuture);
+                if (futureList.size() >= maxCount) {
+                    break;
+                }
+            }
+            return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).thenApply(v -> result);
+        }).whenComplete((result, throwable) -> {
+            if (result != null) {
+                LOGGER.info("MessageFetcher#queryMessageAsync, query result: {}, topic: {}, topicId: {}, key: {}, maxCount: {}, timestamp: {}-{}",
+                    result.getMessageBufferList().size(), topic, topicId, key, maxCount, begin, end);
+            }
+        });
     }
 }
