@@ -27,7 +27,7 @@ public class KeyBuilderTest {
 
     @Test
     public void buildPopRetryTopic() {
-        assertThat(KeyBuilder.buildPopRetryTopic(topic, group)).isEqualTo(MixAll.RETRY_GROUP_TOPIC_PREFIX + group + "/" + topic);
+        assertThat(KeyBuilder.buildPopRetryTopic(topic, group)).isEqualTo(MixAll.RETRY_GROUP_TOPIC_PREFIX + group + ":" + topic);
     }
 
     @Test
