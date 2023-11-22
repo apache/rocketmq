@@ -1105,7 +1105,11 @@ public class TimerMessageStore {
                 }
             }
             Thread.sleep(50);
-            putMessageResult = messageStore.putMessage(message);
+            if (escapeBridgeHook != null) {
+                putMessageResult = escapeBridgeHook.apply(message);
+            } else {
+                putMessageResult = messageStore.putMessage(message);
+            }
             LOGGER.warn("Retrying to do put timer msg retryNum:{} putRes:{} msg:{}", retryNum, putMessageResult, message);
         }
         return PUT_NO_RETRY;
