@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -33,6 +34,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.ConcurrentTopicList;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.UnRegisterBrokerRequestHeader;
@@ -129,6 +131,24 @@ public class RouteInfoManagerNewTest {
 
         topicList = TopicList.decode(content, TopicList.class);
         assertThat(topicList.getTopicList()).contains("TestTopic", "TestTopic1", "TestTopic2");
+    }
+
+    @Test
+    public void hugeTopicListAddTest() {
+        TopicList topicList = new TopicList();
+        ConcurrentTopicList concurrentTopicList = new ConcurrentTopicList();
+        HashSet<String> topics= new HashSet<>();
+        for(int i=0; i< 100000 ; ++i) {
+            topics.add("Topic" + i);
+        }
+        long startTime = System.currentTimeMillis();
+        topicList.getTopicList().addAll(topics);
+        long endTime = System.currentTimeMillis();
+        assertThat(endTime - startTime < 1000).isTrue();
+        startTime = System.currentTimeMillis();
+        concurrentTopicList.getTopicList().addAll(topics);
+        endTime = System.currentTimeMillis();
+        assertThat(endTime - startTime > 3000).isTrue();
     }
 
     @Test
