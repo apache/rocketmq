@@ -185,7 +185,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     }
 
     public void notifyMessageArriving(final String topic, final int queueId) {
-        popLongPollingService.notifyMessageArriving(topic, queueId);
+        popLongPollingService.notifyMessageArrivingWithRetryTopic(topic, queueId);
     }
 
     public boolean notifyMessageArriving(final String topic, final String cid, final int queueId) {
@@ -364,6 +364,17 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                         startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
                 }
             }
+            if (brokerController.getBrokerConfig().isRetrieveMessageFromPopRetryTopicV1()) {
+                TopicConfig retryTopicConfigV1 =
+                    this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
+                if (retryTopicConfigV1 != null) {
+                    for (int i = 0; i < retryTopicConfigV1.getReadQueueNums(); i++) {
+                        int queueId = (randomQ + i) % retryTopicConfigV1.getReadQueueNums();
+                        getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(requestHeader.getAttemptId(), true, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                            startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
+                    }
+                }
+            }
         }
         if (requestHeader.getQueueId() < 0) {
             // read all queue
@@ -386,6 +397,17 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
                     getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(requestHeader.getAttemptId(), true, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
                         startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
+                }
+            }
+            if (brokerController.getBrokerConfig().isRetrieveMessageFromPopRetryTopicV1()) {
+                TopicConfig retryTopicConfigV1 =
+                    this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
+                if (retryTopicConfigV1 != null) {
+                    for (int i = 0; i < retryTopicConfigV1.getReadQueueNums(); i++) {
+                        int queueId = (randomQ + i) % retryTopicConfigV1.getReadQueueNums();
+                        getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(requestHeader.getAttemptId(), true, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                            startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
+                    }
                 }
             }
         }

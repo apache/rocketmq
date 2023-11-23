@@ -548,6 +548,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 if (brokerController.getTopicConfigManager().selectTopicConfig(popRetryTopic) != null) {
                     deleteTopicInBroker(popRetryTopic);
                 }
+                final String popRetryTopicV1 = KeyBuilder.buildPopRetryTopicV1(topic, group);
+                if (brokerController.getTopicConfigManager().selectTopicConfig(popRetryTopicV1) != null) {
+                    deleteTopicInBroker(popRetryTopicV1);
+                }
             }
             // delete topic
             deleteTopicInBroker(topic);

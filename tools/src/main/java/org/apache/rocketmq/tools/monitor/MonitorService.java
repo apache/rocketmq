@@ -34,6 +34,7 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
@@ -172,7 +173,7 @@ public class MonitorService {
         TopicList topicList = defaultMQAdminExt.fetchAllTopicList();
         for (String topic : topicList.getTopicList()) {
             if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                String consumerGroup = topic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+                String consumerGroup = KeyBuilder.parseGroup(topic);
 
                 try {
                     this.reportUndoneMsgs(consumerGroup);
