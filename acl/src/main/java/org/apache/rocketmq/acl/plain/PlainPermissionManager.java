@@ -30,6 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.PermissionChecker;
@@ -62,7 +63,7 @@ public class PlainPermissionManager {
 
     private Map<String/** AccessKey **/, String/** fileFullPath **/> accessKeyTable = new HashMap<>();
 
-    private List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
+    private List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new CopyOnWriteArrayList<>();
 
     private RemoteAddressStrategyFactory remoteAddressStrategyFactory = new RemoteAddressStrategyFactory();
 
@@ -115,7 +116,7 @@ public class PlainPermissionManager {
 
         Map<String, Map<String, PlainAccessResource>> aclPlainAccessResourceMap = new HashMap<>();
         Map<String, String> accessKeyTable = new HashMap<>();
-        List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new ArrayList<>();
+        List<RemoteAddressStrategy> globalWhiteRemoteAddressStrategy = new CopyOnWriteArrayList<>();
         Map<String, List<RemoteAddressStrategy>> globalWhiteRemoteAddressStrategyMap = new HashMap<>();
         Map<String, DataVersion> dataVersionMap = new HashMap<>();
 
