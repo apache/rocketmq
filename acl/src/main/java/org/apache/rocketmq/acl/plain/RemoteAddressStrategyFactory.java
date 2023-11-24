@@ -238,14 +238,14 @@ public class RemoteAddressStrategyFactory {
                     } else {
                         value = netAddress.substring(this.head.length(), netAddress.lastIndexOf('.', netAddress.lastIndexOf('.') - 1));
                     }
-                    Integer address = Integer.valueOf(value);
+                    int address = Integer.parseInt(value);
                     return address >= this.start && address <= this.end;
                 }
             } else if (validator.isValidInet6Address(netAddress)) {
                 netAddress = AclUtils.expandIP(netAddress, 8).toUpperCase();
                 if (netAddress.startsWith(this.head)) {
                     String value = netAddress.substring(5 * index, 5 * index + 4);
-                    Integer address = Integer.parseInt(value, 16);
+                    int address = Integer.parseInt(value, 16);
                     return address >= this.start && address <= this.end;
                 }
             }
