@@ -475,6 +475,9 @@ public class MappedFileQueue implements Swappable {
         final long intervalForcibly,
         final boolean cleanImmediately,
         final int deleteFileBatchMax) {
+        //do check before deleting
+        checkSelf();
+
         Object[] mfs = this.copyMappedFiles(0);
 
         if (null == mfs)
@@ -483,39 +486,31 @@ public class MappedFileQueue implements Swappable {
         int mfsLength = mfs.length - 1;
         int deleteCount = 0;
         List<MappedFile> files = new ArrayList<>();
-        int skipFileNum = 0;
-        if (null != mfs) {
-            //do check before deleting
-            checkSelf();
-            for (int i = 0; i < mfsLength; i++) {
-                MappedFile mappedFile = (MappedFile) mfs[i];
-                long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
-                if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
-                    if (skipFileNum > 0) {
-                        log.info("Delete CommitLog {} but skip {} files", mappedFile.getFileName(), skipFileNum);
-                    }
-                    if (mappedFile.destroy(intervalForcibly)) {
-                        files.add(mappedFile);
-                        deleteCount++;
 
-                        if (files.size() >= deleteFileBatchMax) {
-                            break;
-                        }
+        for (int i = 0; i < mfsLength; i++) {
+            MappedFile mappedFile = (MappedFile) mfs[i];
+            long liveMaxTimestamp = mappedFile.getLastModifiedTimestamp() + expiredTime;
+            if (System.currentTimeMillis() >= liveMaxTimestamp || cleanImmediately) {
+                if (mappedFile.destroy(intervalForcibly)) {
+                    files.add(mappedFile);
+                    deleteCount++;
 
-                        if (deleteFilesInterval > 0 && (i + 1) < mfsLength) {
-                            try {
-                                Thread.sleep(deleteFilesInterval);
-                            } catch (InterruptedException e) {
-                            }
-                        }
-                    } else {
+                    if (files.size() >= deleteFileBatchMax) {
                         break;
                     }
+
+                    if (deleteFilesInterval > 0 && (i + 1) < mfsLength) {
+                        try {
+                            Thread.sleep(deleteFilesInterval);
+                        } catch (InterruptedException e) {
+                        }
+                    }
                 } else {
-                    skipFileNum++;
-                    //avoid deleting files in the middle
                     break;
                 }
+            } else {
+                //avoid deleting files in the middle
+                break;
             }
         }
 
