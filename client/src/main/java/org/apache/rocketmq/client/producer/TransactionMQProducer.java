@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.producer;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.Message;
@@ -36,19 +37,31 @@ public class TransactionMQProducer extends DefaultMQProducer {
     }
 
     public TransactionMQProducer(final String producerGroup) {
-        this(null, producerGroup, null);
+        this(null, producerGroup, null, null);
+    }
+
+    public TransactionMQProducer(final String producerGroup, final List<String> topics) {
+        this(null, producerGroup, topics, null);
     }
 
     public TransactionMQProducer(final String namespace, final String producerGroup) {
-        this(namespace, producerGroup, null);
+        this(namespace, producerGroup, null, null);
+    }
+
+    public TransactionMQProducer(final String namespace, final String producerGroup, final List<String> topics) {
+        this(namespace, producerGroup, topics, null);
     }
 
     public TransactionMQProducer(final String producerGroup, RPCHook rpcHook) {
-        this(null, producerGroup, rpcHook);
+        this(null, producerGroup, null, rpcHook);
     }
 
-    public TransactionMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
-        super(namespace, producerGroup, rpcHook);
+    public TransactionMQProducer(final String producerGroup, final List<String> topics, RPCHook rpcHook) {
+        this(null, producerGroup, topics, rpcHook);
+    }
+
+    public TransactionMQProducer(final String namespace, final String producerGroup, final List<String> topics, RPCHook rpcHook) {
+        super(namespace, producerGroup, topics, rpcHook);
     }
 
     public TransactionMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace, final String customizedTraceTopic) {
@@ -65,22 +78,6 @@ public class TransactionMQProducer extends DefaultMQProducer {
     public void shutdown() {
         super.shutdown();
         this.defaultMQProducerImpl.destroyTransactionEnv();
-    }
-
-    /**
-     * This method will be removed in the version 5.0.0, method <code>sendMessageInTransaction(Message,Object)</code>}
-     * is recommended.
-     */
-    @Override
-    @Deprecated
-    public TransactionSendResult sendMessageInTransaction(final Message msg,
-        final LocalTransactionExecuter tranExecuter, final Object arg) throws MQClientException {
-        if (null == this.transactionCheckListener) {
-            throw new MQClientException("localTransactionBranchCheckListener is null", null);
-        }
-
-        msg.setTopic(NamespaceUtil.wrapNamespace(this.getNamespace(), msg.getTopic()));
-        return this.defaultMQProducerImpl.sendMessageInTransaction(msg, tranExecuter, arg);
     }
 
     @Override

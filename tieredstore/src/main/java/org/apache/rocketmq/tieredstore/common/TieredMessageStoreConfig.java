@@ -115,7 +115,7 @@ public class TieredMessageStoreConfig {
     private long readAheadCacheExpireDuration = 10 * 1000;
     private double readAheadCacheSizeThresholdRate = 0.3;
 
-    private String tieredStoreFilepath = "";
+    private String tieredStoreFilePath = "";
 
     private String objectStoreEndpoint = "";
 
@@ -350,12 +350,12 @@ public class TieredMessageStoreConfig {
         this.readAheadCacheSizeThresholdRate = rate;
     }
 
-    public String getTieredStoreFilepath() {
-        return tieredStoreFilepath;
+    public String getTieredStoreFilePath() {
+        return tieredStoreFilePath;
     }
 
-    public void setTieredStoreFilepath(String tieredStoreFilepath) {
-        this.tieredStoreFilepath = tieredStoreFilepath;
+    public void setTieredStoreFilePath(String tieredStoreFilePath) {
+        this.tieredStoreFilePath = tieredStoreFilePath;
     }
 
     public void setObjectStoreEndpoint(String objectStoreEndpoint) {

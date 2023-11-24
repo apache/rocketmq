@@ -141,7 +141,6 @@ public class TieredFlatFile {
         return fileType;
     }
 
-    @VisibleForTesting
     public List<TieredFileSegment> getFileSegmentList() {
         return fileSegmentList;
     }
@@ -274,7 +273,7 @@ public class TieredFlatFile {
     }
 
     @Nullable
-    protected TieredFileSegment getFileByIndex(int index) {
+    public TieredFileSegment getFileByIndex(int index) {
         fileSegmentLock.readLock().lock();
         try {
             if (index < fileSegmentList.size()) {
@@ -354,7 +353,7 @@ public class TieredFlatFile {
         }
     }
 
-    protected List<TieredFileSegment> getFileListByTime(long beginTime, long endTime) {
+    public List<TieredFileSegment> getFileListByTime(long beginTime, long endTime) {
         fileSegmentLock.readLock().lock();
         try {
             return fileSegmentList.stream()

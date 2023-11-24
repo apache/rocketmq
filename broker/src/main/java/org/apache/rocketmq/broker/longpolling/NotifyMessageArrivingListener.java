@@ -17,11 +17,10 @@
 
 package org.apache.rocketmq.broker.longpolling;
 
+import java.util.Map;
 import org.apache.rocketmq.broker.processor.NotificationProcessor;
 import org.apache.rocketmq.broker.processor.PopMessageProcessor;
 import org.apache.rocketmq.store.MessageArrivingListener;
-
-import java.util.Map;
 
 public class NotifyMessageArrivingListener implements MessageArrivingListener {
     private final PullRequestHoldService pullRequestHoldService;

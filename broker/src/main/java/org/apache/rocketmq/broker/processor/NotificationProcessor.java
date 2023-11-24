@@ -58,7 +58,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
     }
 
     public void notifyMessageArriving(final String topic, final int queueId) {
-        popLongPollingService.notifyMessageArriving(topic, queueId);
+        popLongPollingService.notifyMessageArrivingWithRetryTopic(topic, queueId);
     }
 
     @Override

@@ -14,14 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.producer;
+package org.apache.rocketmq.tieredstore.index;
 
-import org.apache.rocketmq.common.message.Message;
+import java.nio.ByteBuffer;
 
-/**
- * @deprecated This interface will be removed in the version 5.0.0, interface {@link TransactionListener} is recommended.
- */
-@Deprecated
-public interface LocalTransactionExecuter {
-    LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg);
+public interface IndexFile extends IndexService {
+
+    /**
+     * Enumeration for the status of the index file.
+     */
+    enum IndexStatusEnum {
+        SHUTDOWN, UNSEALED, SEALED, UPLOAD
+    }
+
+    long getTimestamp();
+
+    IndexStatusEnum getFileStatus();
+
+    ByteBuffer doCompaction();
 }

@@ -30,7 +30,7 @@ public class RunningFlags {
 
     private static final int FENCED_BIT = 1 << 5;
 
-    private static final int LOGIC_DISK_FULL_BIT = 1 << 5;
+    private static final int LOGIC_DISK_FULL_BIT = 1 << 6;
 
     private volatile int flagBits = 0;
 
