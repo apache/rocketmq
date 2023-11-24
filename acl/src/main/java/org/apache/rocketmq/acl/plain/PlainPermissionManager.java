@@ -87,21 +87,21 @@ public class PlainPermissionManager {
     }
 
     public List<String> getAllAclFiles(String path) {
-        if (!new File(path).exists()) {
-            log.info("The default acl dir {} is not exist", path);
-            return new ArrayList<>();
-        }
         List<String> allAclFileFullPath = new ArrayList<>();
-        File file = new File(path);
-        File[] files = file.listFiles();
-        for (int i = 0; i < files.length; i++) {
-            String fileName = files[i].getAbsolutePath();
-            File f = new File(fileName);
-            if (fileName.equals(fileHome + MixAll.ACL_CONF_TOOLS_FILE)) {
+        File rootFile = new File(path);
+        File[] files = rootFile.listFiles();
+        if (!rootFile.exists() || files == null) {
+            log.info("The default acl dir {} is not exist", path);
+            return allAclFileFullPath;
+        }
+        for (File file : files) {
+            String fileName = file.getAbsolutePath();
+            if ((fileHome + MixAll.ACL_CONF_TOOLS_FILE).equals(fileName)) {
                 continue;
-            } else if (fileName.endsWith(".yml") || fileName.endsWith(".yaml")) {
+            }
+            if (fileName.endsWith(".yml") || fileName.endsWith(".yaml")) {
                 allAclFileFullPath.add(fileName);
-            } else if (f.isDirectory()) {
+            } else if (file.isDirectory()) {
                 allAclFileFullPath.addAll(getAllAclFiles(fileName));
             }
         }
