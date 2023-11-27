@@ -23,9 +23,12 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -129,6 +132,25 @@ public class RouteInfoManagerNewTest {
 
         topicList = TopicList.decode(content, TopicList.class);
         assertThat(topicList.getTopicList()).contains("TestTopic", "TestTopic1", "TestTopic2");
+    }
+
+    @Test
+    public void hugeTopicListAddTest() {
+        Set<String> mapSet = ConcurrentHashMap.newKeySet();
+        Set<String> copyOnWriteArraySet = new CopyOnWriteArraySet<>();
+        HashSet<String> topics= new HashSet<>();
+
+        for(int i=0; i< 100000 ; ++i) {
+            topics.add("Topic" + i);
+        }
+        long startTime = System.currentTimeMillis();
+        mapSet.addAll(topics);
+        long endTime = System.currentTimeMillis();
+        assertThat(endTime - startTime < 100).isTrue();
+        startTime = System.currentTimeMillis();
+        copyOnWriteArraySet.addAll(topics);
+        endTime = System.currentTimeMillis();
+        assertThat(endTime - startTime > 3000).isTrue();
     }
 
     @Test
