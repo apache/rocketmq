@@ -295,7 +295,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             return future;
         }
         if (position + length > commitPosition) {
-            logger.warn("TieredFileSegment#readAsync request position + length is greater than commit position," +
+            logger.debug("TieredFileSegment#readAsync request position + length is greater than commit position," +
                     " correct length using commit position, file: {}, request position: {}, commit position:{}, change length from {} to {}",
                 getPath(), position, commitPosition, length, commitPosition - position);
             length = (int) (commitPosition - position);
