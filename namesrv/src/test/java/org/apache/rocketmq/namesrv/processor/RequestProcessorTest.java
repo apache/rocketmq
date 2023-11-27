@@ -110,6 +110,19 @@ public class RequestProcessorTest {
 
         assertThat(namesrvController.getKvConfigManager().getKVConfig("namespace", "key"))
             .isEqualTo("value");
+
+        // use key in black list
+        RemotingCommand requestFailed = RemotingCommand.createRequestCommand(RequestCode.PUT_KV_CONFIG,
+                header);
+        requestFailed.addExtField("namespace", "namespace");
+        requestFailed.addExtField("key", "configBlackList");
+        requestFailed.addExtField("value", "value");
+
+        RemotingCommand responseFailed = defaultRequestProcessor.processRequest(null, requestFailed);
+
+        assertThat(responseFailed).isNotNull();
+        assertThat(responseFailed.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(responseFailed.getRemark()).contains("Can not update config in black list.");
     }
 
     @Test
@@ -203,7 +216,7 @@ public class RequestProcessorTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
-        assertThat(response.getRemark()).contains("Can not update config path");
+        assertThat(response.getRemark()).contains("Can not update config in black list.");
 
         //update disallowed values
         properties.clear();
@@ -214,7 +227,18 @@ public class RequestProcessorTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
-        assertThat(response.getRemark()).contains("Can not update config path");
+        assertThat(response.getRemark()).contains("Can not update config in black list");
+
+        //update disallowed values
+        properties.clear();
+        properties.setProperty("configBlackList", "test;path");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        response = defaultRequestProcessor.processRequest(null, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).contains("Can not update config in black list");
     }
 
     @Test

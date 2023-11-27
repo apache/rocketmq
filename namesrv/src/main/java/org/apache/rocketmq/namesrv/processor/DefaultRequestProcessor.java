@@ -18,8 +18,11 @@ package org.apache.rocketmq.namesrv.processor;
 
 import io.netty.channel.ChannelHandlerContext;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MQVersion;
@@ -71,8 +74,20 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
 
     protected final NamesrvController namesrvController;
 
+    protected Set<String> configBlackList = new HashSet<>();
+
     public DefaultRequestProcessor(NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
+        initConfigBlackList();
+    }
+
+    private void initConfigBlackList() {
+        configBlackList.add("configBlackList");
+        configBlackList.add("configStorePath");
+        configBlackList.add("kvConfigPath");
+        configBlackList.add("rocketmqHome");
+        String[] configArray = namesrvController.getNamesrvConfig().getConfigBlackList().split(";");
+        configBlackList.addAll(Arrays.asList(configArray));
     }
 
     @Override
@@ -151,6 +166,11 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         if (requestHeader.getNamespace() == null || requestHeader.getKey() == null) {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("namespace or key is null");
+            return response;
+        }
+        if (validateBlackListConfigExist(requestHeader.getKey())) {
+            response.setCode(ResponseCode.NO_PERMISSION);
+            response.setRemark("Can not update config in black list.");
             return response;
         }
         this.namesrvController.getKvConfigManager().putKVConfig(
@@ -623,10 +643,9 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
                 response.setRemark("string2Properties error");
                 return response;
             }
-
-            if (properties.containsKey("kvConfigPath") || properties.containsKey("configStorePath")) {
+            if (validateBlackListConfigExist(properties)) {
                 response.setCode(ResponseCode.NO_PERMISSION);
-                response.setRemark("Can not update config path");
+                response.setRemark("Can not update config in black list.");
                 return response;
             }
 
@@ -658,4 +677,16 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    private boolean validateBlackListConfigExist(Properties properties) {
+        for (String blackConfig : configBlackList) {
+            if (properties.containsKey(blackConfig)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean validateBlackListConfigExist(String key) {
+        return configBlackList.contains(key);
+    }
 }
