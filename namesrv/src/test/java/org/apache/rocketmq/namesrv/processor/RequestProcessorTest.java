@@ -110,19 +110,6 @@ public class RequestProcessorTest {
 
         assertThat(namesrvController.getKvConfigManager().getKVConfig("namespace", "key"))
             .isEqualTo("value");
-
-        // use key in black list
-        RemotingCommand requestFailed = RemotingCommand.createRequestCommand(RequestCode.PUT_KV_CONFIG,
-                header);
-        requestFailed.addExtField("namespace", "namespace");
-        requestFailed.addExtField("key", "configBlackList");
-        requestFailed.addExtField("value", "value");
-
-        RemotingCommand responseFailed = defaultRequestProcessor.processRequest(null, requestFailed);
-
-        assertThat(responseFailed).isNotNull();
-        assertThat(responseFailed.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
-        assertThat(responseFailed.getRemark()).contains("Can not update config in black list.");
     }
 
     @Test

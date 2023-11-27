@@ -168,11 +168,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
             response.setRemark("namespace or key is null");
             return response;
         }
-        if (validateBlackListConfigExist(requestHeader.getKey())) {
-            response.setCode(ResponseCode.NO_PERMISSION);
-            response.setRemark("Can not update config in black list.");
-            return response;
-        }
+
         this.namesrvController.getKvConfigManager().putKVConfig(
             requestHeader.getNamespace(),
             requestHeader.getKey(),
@@ -686,7 +682,4 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private boolean validateBlackListConfigExist(String key) {
-        return configBlackList.contains(key);
-    }
 }
