@@ -406,6 +406,17 @@ public class BrokerConfig extends BrokerIdentity {
 
     private int splitRegistrationSize = 800;
 
+    /**
+     * Config in this black list will be not allowed to update by command.
+     * Try to update this config black list by restart process.
+     * Try to update configures in black list by restart process.
+     */
+    private String configBlackList = "configBlackList;brokerConfigPath";
+
+    public String getConfigBlackList() {
+        return configBlackList;
+    }
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }
