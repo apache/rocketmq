@@ -417,6 +417,10 @@ public class BrokerConfig extends BrokerIdentity {
         return configBlackList;
     }
 
+    public void setConfigBlackList(String configBlackList) {
+        this.configBlackList = configBlackList;
+    }
+
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
     }

@@ -94,6 +94,10 @@ public class ControllerConfig {
         return configBlackList;
     }
 
+    public void setConfigBlackList(String configBlackList) {
+        this.configBlackList = configBlackList;
+    }
+
     public String getRocketmqHome() {
         return rocketmqHome;
     }
