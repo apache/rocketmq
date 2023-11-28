@@ -1915,9 +1915,9 @@ public class BrokerController {
         final boolean isInBrokerContainer) {
 
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
-        List<Boolean> changeList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigWrapper, timeoutMills, isInBrokerContainer);
+        Boolean[] changeArray = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigWrapper, timeoutMills, isInBrokerContainer);
         boolean needRegister = false;
-        for (Boolean changed : changeList) {
+        for (Boolean changed : changeArray) {
             if (changed) {
                 needRegister = true;
                 break;

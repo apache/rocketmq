@@ -676,7 +676,7 @@ public class BrokerOuterAPI {
         }
     }
 
-    public List<Boolean> needRegister(
+    public Boolean[] needRegister(
         final String clusterName,
         final String brokerAddr,
         final String brokerName,
@@ -739,7 +739,7 @@ public class BrokerOuterAPI {
                 LOGGER.error("query dataversion from nameserver countDownLatch await Exception", e);
             }
         }
-        return changedList;
+        return changedList.toArray(new Boolean[0]);
     }
 
     public TopicConfigAndMappingSerializeWrapper getAllTopicConfig(

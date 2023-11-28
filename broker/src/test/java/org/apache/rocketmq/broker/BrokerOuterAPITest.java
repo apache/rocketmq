@@ -109,9 +109,16 @@ public class BrokerOuterAPITest {
 
         when(nettyRemotingClient.getNameServerAddressList()).thenReturn(Lists.asList(nameserver1, nameserver2, new String[] {nameserver3}));
         when(nettyRemotingClient.invokeSync(anyString(), any(RemotingCommand.class), anyLong())).thenReturn(response);
-        List<Boolean> booleanList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigSerializeWrapper, timeOut, false);
-        assertTrue(booleanList.size() > 0);
-        assertFalse(booleanList.contains(Boolean.FALSE));
+        Boolean[] booleanArray = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigSerializeWrapper, timeOut, false);
+        assertTrue(booleanArray.length > 0);
+        Boolean isFalse=false;
+        for(Boolean value:booleanArray){
+            if(!value){
+                isFalse=true;
+                break;
+            }
+        }
+        assertFalse(isFalse);
     }
 
     @Test
@@ -137,14 +144,15 @@ public class BrokerOuterAPITest {
                 return buildResponse(Boolean.TRUE);
             }
         });
-        List<Boolean> booleanList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigSerializeWrapper, timeOut, false);
-        assertEquals(2, booleanList.size());
-        boolean success = Iterables.any(booleanList,
-            new Predicate<Boolean>() {
-                public boolean apply(Boolean input) {
-                    return input;
-                }
-            });
+        Boolean[] booleanArray = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigSerializeWrapper, timeOut, false);
+        assertEquals(2, booleanArray.length);
+        boolean success = false;
+        for(boolean value: booleanArray){
+            if(value){
+                success=true;
+                break;
+            }
+        }
 
         assertTrue(success);
 
