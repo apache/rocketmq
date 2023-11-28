@@ -215,8 +215,8 @@ public class UtilAllTest {
     @Test
     public void testCleanBuffer() {
         UtilAll.cleanBuffer(null);
-        UtilAll.cleanBuffer(ByteBuffer.allocate(10));
-        UtilAll.cleanBuffer(ByteBuffer.allocate(0));
+        UtilAll.cleanBuffer(ByteBuffer.allocateDirect(10));
+        UtilAll.cleanBuffer(ByteBuffer.allocateDirect(0));
     }
 
     @Test
