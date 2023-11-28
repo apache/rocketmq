@@ -101,6 +101,10 @@ public class NamesrvConfig {
         return configBlackList;
     }
 
+    public void setConfigBlackList(String configBlackList) {
+        this.configBlackList = configBlackList;
+    }
+
     public boolean isOrderMessageEnable() {
         return orderMessageEnable;
     }
