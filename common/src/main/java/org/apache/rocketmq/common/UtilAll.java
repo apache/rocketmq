@@ -699,10 +699,19 @@ public class UtilAll {
         }
     }
 
+    /**
+     * Free direct-buffer's memory actively.
+     * @param buffer Direct buffer to free.
+     */
     public static void cleanBuffer(final ByteBuffer buffer) {
         if (null == buffer) {
             return;
         }
+
+        if (!buffer.isDirect()) {
+            return;
+        }
+
         PlatformDependent.freeDirectBuffer(buffer);
     }
 
