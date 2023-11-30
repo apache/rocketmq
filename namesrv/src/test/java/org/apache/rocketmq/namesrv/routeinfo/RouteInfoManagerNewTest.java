@@ -138,9 +138,9 @@ public class RouteInfoManagerNewTest {
     public void hugeTopicListAddTest() {
         Set<String> mapSet = ConcurrentHashMap.newKeySet();
         Set<String> copyOnWriteArraySet = new CopyOnWriteArraySet<>();
-        HashSet<String> topics= new HashSet<>();
+        HashSet<String> topics = new HashSet<>();
 
-        for(int i=0; i< 100000 ; ++i) {
+        for (int i = 0; i < 100000; ++i) {
             topics.add("Topic" + i);
         }
         long startTime = System.currentTimeMillis();
