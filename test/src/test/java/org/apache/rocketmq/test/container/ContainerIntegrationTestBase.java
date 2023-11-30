@@ -67,6 +67,8 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAConnection;
 import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 
@@ -507,8 +509,8 @@ public class ContainerIntegrationTestBase {
             });
 
         try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
+            Awaitility.await().pollDelay(Duration.ofMillis(2000)).until(()->true);
+        } catch (ConditionTimeoutException e) {
             e.printStackTrace();
         }
     }

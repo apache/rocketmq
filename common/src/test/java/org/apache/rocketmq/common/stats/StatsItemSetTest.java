@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.stats;
 
+import java.time.Duration;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -26,6 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Test;
 
@@ -66,7 +68,7 @@ public class StatsItemSetTest {
             if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
-            Thread.sleep(1000);
+            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
         }
         // simulate schedule task execution , tps stat
         {
@@ -113,7 +115,7 @@ public class StatsItemSetTest {
             if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
-            Thread.sleep(1000);
+            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
         }
         return statsItemSet.getStatsItem("topicTest").getValue();
     }
@@ -134,7 +136,7 @@ public class StatsItemSetTest {
             if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
-            Thread.sleep(1000);
+            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
         }
         return statsItemSet.getAndCreateStatsItem("test").getValue();
     }

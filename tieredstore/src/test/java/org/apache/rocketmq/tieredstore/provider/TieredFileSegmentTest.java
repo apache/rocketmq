@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tieredstore.provider;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
@@ -26,8 +27,12 @@ import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
 import org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Assert;
 import org.junit.Test;
+
+import io.opentelemetry.sdk.metrics.internal.state.DebugUtils;
 
 public class TieredFileSegmentTest {
 
@@ -135,8 +140,8 @@ public class TieredFileSegmentTest {
         segment.blocker = new CompletableFuture<>();
         new Thread(() -> {
             try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
+                Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
+            } catch (ConditionTimeoutException e) {
                 Assert.fail(e.getMessage());
             }
             ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
@@ -191,8 +196,8 @@ public class TieredFileSegmentTest {
         segment.blocker = new CompletableFuture<>();
         new Thread(() -> {
             try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
+                Awaitility.await().pollDelay(Duration.ofMillis(3000)).until(()->true);
+            } catch (ConditionTimeoutException e) {
                 Assert.fail(e.getMessage());
             }
             ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();

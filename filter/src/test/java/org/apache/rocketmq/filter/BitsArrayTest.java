@@ -18,8 +18,11 @@
 package org.apache.rocketmq.filter;
 
 import org.apache.rocketmq.filter.util.BitsArray;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,8 +35,8 @@ public class BitsArrayTest {
         for (int i = 0; i < bitCount / Byte.SIZE; i++) {
             bitsArray.setByte(i, (byte) (new Random(System.currentTimeMillis())).nextInt(0xff));
             try {
-                Thread.sleep(2);
-            } catch (InterruptedException e) {
+                Awaitility.await().pollDelay(Duration.ofMillis(2)).until(()->true);
+            } catch (ConditionTimeoutException e) {
             }
         }
 

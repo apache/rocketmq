@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.consumer.rebalance;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.Random;
 import java.util.TreeMap;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -85,8 +87,8 @@ public class AllocateMessageQueueConsitentHashTest {
             int queueSize = new Random().nextInt(20) + 1;//1-20
             testAllocate(queueSize, consumerSize);
             try {
-                Thread.sleep(1);
-            } catch (InterruptedException e) {
+                Awaitility.await().pollDelay(Duration.ofMillis(1)).until(()->true);
+            } catch (Exception e) {
             }
         }
     }

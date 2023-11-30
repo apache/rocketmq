@@ -32,6 +32,7 @@ import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
+import org.awaitility.Awaitility;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,6 +44,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 import static org.apache.rocketmq.broker.processor.PullMessageProcessorTest.createConsumerData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+
+import java.time.Duration;
 
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class PopBufferMergeServiceTest {
@@ -115,7 +118,7 @@ public class PopBufferMergeServiceTest {
         try {
             assertThat(popBufferMergeService.addCk(ck, reviveQid, ackOffset, nextBeginOffset)).isTrue();
             assertThat(popBufferMergeService.getLatestOffset(topic, group, queueId)).isEqualTo(nextBeginOffset);
-            Thread.sleep(1000); // wait background threads of PopBufferMergeService run for some time
+            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);  // wait background threads of PopBufferMergeService run for some time
             assertThat(popBufferMergeService.addAk(reviveQid, ackMsg)).isTrue();
             assertThat(popBufferMergeService.getLatestOffset(topic, group, queueId)).isEqualTo(nextBeginOffset);
         } finally {

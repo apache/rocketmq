@@ -40,6 +40,7 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -189,7 +190,7 @@ public class HATest {
         messageStore.setAliveReplicaNumInGroup(1);
 
         //wait to let master clean the slave's connection
-        Thread.sleep(masterMessageStoreConfig.getHaHousekeepingInterval() + 500);
+        Awaitility.await().pollDelay(Duration.ofMillis(masterMessageStoreConfig.getHaHousekeepingInterval()+500));
         for (long i = 0; i < totalMsgs; i++) {
             CompletableFuture<PutMessageResult> putResultFuture = messageStore.asyncPutMessage(buildMessage());
             PutMessageResult result = putResultFuture.get();

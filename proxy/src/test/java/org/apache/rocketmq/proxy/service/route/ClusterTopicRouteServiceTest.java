@@ -22,6 +22,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.net.HostAndPort;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.assertj.core.util.Lists;
+import org.awaitility.Awaitility;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Before;
@@ -161,7 +163,7 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
                 }
             });
         assertThat(value).isEqualTo(topicCache.get(key));
-        TimeUnit.SECONDS.sleep(5);
+        Awaitility.await().pollDelay(Duration.ofSeconds(5)).until(()->true);
         assertThat(value).isEqualTo(topicCache.get(key));
     }
 }

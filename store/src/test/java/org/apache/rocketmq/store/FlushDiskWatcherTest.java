@@ -18,9 +18,11 @@
 package org.apache.rocketmq.store;
 
 import org.apache.rocketmq.store.CommitLog.GroupCommitRequest;
+import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -42,7 +44,7 @@ public class FlushDiskWatcherTest {
             requestList.add(groupCommitRequest);
             flushDiskWatcher.add(groupCommitRequest);
         }
-        Thread.sleep(2 * timeoutMill);
+        Awaitility.await().pollDelay(Duration.ofMillis(2*timeoutMill)).until(()->true);
 
         for (GroupCommitRequest request : requestList) {
             request.wakeupCustomer(PutMessageStatus.PUT_OK);
@@ -71,7 +73,7 @@ public class FlushDiskWatcherTest {
             flushDiskWatcher.add(groupCommitRequest);
             groupCommitRequest.wakeupCustomer(PutMessageStatus.PUT_OK);
         }
-        Thread.sleep((timeoutMill << 20) / 1000000);
+        Awaitility.await().pollDelay(Duration.ofMillis((timeoutMill<<20)/1000000));
         for (GroupCommitRequest request : requestList) {
             Assert.assertTrue(request.future().isDone());
             Assert.assertEquals(request.future().get(), PutMessageStatus.PUT_OK);

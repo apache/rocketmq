@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client.producer;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,6 +51,8 @@ import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -406,8 +409,8 @@ public class DefaultMQProducerTest {
                 assertThat(responseMap).isNotNull();
                 while (!finish.get()) {
                     try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
+                        Awaitility.await().pollDelay(Duration.ofMillis(10)).until(()->true);
+                    } catch (ConditionTimeoutException e) {
                     }
                     MessageExt responseMsg = new MessageExt();
                     responseMsg.setTopic(message.getTopic());

@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -52,6 +53,7 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -250,7 +252,7 @@ public class TimerMessageStoreTest {
                 }
             }
             //wait reput
-            Thread.sleep(5);
+            Awaitility.await().pollDelay(Duration.ofMillis(5)).until(()->true);
         }
         assertThat(passFlowControlNum).isGreaterThan(0).isLessThan(120);
     }
@@ -407,7 +409,7 @@ public class TimerMessageStoreTest {
 
         for (int i = 0; i <= first.getTimerLog().getMappedFileQueue().getMappedFiles().size() + 10; i++) {
             first.getTimerLog().getMappedFileQueue().flush(0);
-            Thread.sleep(10);
+            Awaitility.await().pollDelay(Duration.ofMillis(10)).until(()->true);
         }
 
         // Damage the timer wheel, trigger the check physical pos.
@@ -493,7 +495,7 @@ public class TimerMessageStoreTest {
             if (null != getMessageResult && GetMessageStatus.FOUND == getMessageResult.getStatus()) {
                 return getMessageResult.getMessageBufferList().get(0);
             }
-            Thread.sleep(100);
+            Awaitility.await().pollDelay(Duration.ofMillis(100)).until(()->true);
         }
         return null;
     }

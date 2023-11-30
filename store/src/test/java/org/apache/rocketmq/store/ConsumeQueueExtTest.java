@@ -18,8 +18,11 @@
 package org.apache.rocketmq.store;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.Random;
 import org.apache.rocketmq.common.UtilAll;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.After;
 import org.junit.Test;
 
@@ -79,8 +82,8 @@ public class ConsumeQueueExtTest {
             }
 
             try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
+                Awaitility.await().pollDelay(Duration.ofMillis(10)).until(()->true);
+            } catch (ConditionTimeoutException e) {
                 e.printStackTrace();
                 assertThat(false).isTrue();
             }

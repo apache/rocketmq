@@ -45,6 +45,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBro
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -291,7 +292,7 @@ public class DLedgerControllerTest {
             assertEquals(DEFAULT_BROKER_NAME, brokerName);
             atomicBoolean.set(true);
         });
-        Thread.sleep(2000);
+        Awaitility.await().pollDelay(Duration.ofMillis(2000)).until(()->true);
         assertTrue(atomicBoolean.get());
     }
 

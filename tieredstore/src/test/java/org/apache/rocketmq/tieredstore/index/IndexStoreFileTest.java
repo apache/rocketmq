@@ -19,6 +19,7 @@ package org.apache.rocketmq.tieredstore.index;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +36,8 @@ import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
 import org.apache.rocketmq.tieredstore.provider.posix.PosixFileSegment;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -186,8 +189,8 @@ public class IndexStoreFileTest {
                 Assert.assertEquals(AppendResult.SUCCESS, indexStoreFile.putKey(
                     TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, timestamp));
                 try {
-                    Thread.sleep(100);
-                } catch (InterruptedException ignored) {
+                    Awaitility.await().pollDelay(Duration.ofMillis(100)).until(()->true);
+                } catch (ConditionTimeoutException ignored) {
                 }
                 latch.countDown();
             });

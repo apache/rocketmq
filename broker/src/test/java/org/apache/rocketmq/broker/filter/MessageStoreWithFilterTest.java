@@ -23,6 +23,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.awaitility.Awaitility;
 import org.awaitility.core.ThrowingRunnable;
 import org.junit.After;
 import org.junit.Assume;
@@ -234,7 +236,8 @@ public class MessageStoreWithFilterTest {
     public void testGetMessage_withFilterBitMapAndConsumerChanged() throws Exception {
         List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
 
-        Thread.sleep(200);
+        Awaitility.await().pollDelay(Duration.ofMillis(200)).until(()->true);
+
 
         // reset consumer;
         String topic = "topic" + 0;
@@ -296,7 +299,7 @@ public class MessageStoreWithFilterTest {
     public void testGetMessage_withFilterBitMap() throws Exception {
         List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
 
-        Thread.sleep(100);
+        Awaitility.await().pollDelay(Duration.ofMillis(200)).until(()->true);
 
         for (int i = 0; i < topicCount; i++) {
             String realTopic = TOPIC + i;

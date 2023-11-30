@@ -18,6 +18,7 @@
 package org.apache.rocketmq.test.autoswitchrole;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,6 +44,8 @@ import org.apache.rocketmq.store.ha.HAClient;
 import org.apache.rocketmq.store.ha.HAConnectionState;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.assertj.core.api.DurationAssert;
+import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -101,7 +104,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         this.brokerController2 = startBroker(nameserverAddress, controllerAddress, brokerName, 2, nextPort(), nextPort(), nextPort(), BrokerRole.SLAVE, mappedFileSize);
         // Wait slave connecting to master
         assertTrue(waitSlaveReady(this.brokerController2.getMessageStore()));
-        Thread.sleep(1000);
+        Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
     }
 
     public void mockData(String topic) throws Exception {
@@ -118,7 +121,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
             if (haClient != null && haClient.getCurrentState().equals(HAConnectionState.TRANSFER)) {
                 return true;
             } else {
-                Thread.sleep(2000);
+                Awaitility.await().pollDelay(Duration.ofMillis(2000)).until(()->true);
                 tryTimes++;
             }
         }
@@ -162,7 +165,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         // Let master shutdown
         brokerController1.shutdown();
         brokerList.remove(this.brokerController1);
-        Thread.sleep(6000);
+        Awaitility.await().pollDelay(Duration.ofMillis(6000)).until(()->true);
 
         // The slave should change to master
         assertTrue(brokerController2.getReplicasManager().isMasterState());
@@ -191,19 +194,19 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         String brokerName = "Broker-" + AutoSwitchRoleIntegrationTest.class.getSimpleName() + random.nextInt(65535);
         int oldPort = nextPort();
         this.brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), oldPort, oldPort, BrokerRole.SYNC_MASTER, DEFAULT_FILE_SIZE);
-        Thread.sleep(1000);
+        Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
         assertTrue(brokerController1.getReplicasManager().isMasterState());
         assertEquals(brokerController1.getReplicasManager().getMasterEpoch(), 1);
 
         // Let master shutdown
         brokerController1.shutdown();
         brokerList.remove(this.brokerController1);
-        Thread.sleep(6000);
+        Awaitility.await().pollDelay(Duration.ofMillis(6000)).until(()->true);
 
         // Restart with changed address
         int newPort = nextPort();
         this.brokerController1 = startBroker(nameserverAddress, controllerAddress, brokerName, 1, nextPort(), newPort, newPort, BrokerRole.SYNC_MASTER, DEFAULT_FILE_SIZE);
-        Thread.sleep(1000);
+        Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
 
         // Check broker id
         assertEquals(1, brokerController1.getReplicasManager().getBrokerControllerId().longValue());
@@ -266,7 +269,7 @@ public class AutoSwitchRoleIntegrationTest extends AutoSwitchRoleBase {
         // Step2: shutdown broker1, broker2 as master
         brokerController1.shutdown();
         brokerList.remove(brokerController1);
-        Thread.sleep(5000);
+        Awaitility.await().pollDelay(Duration.ofMillis(5000)).until(()->true);
 
         assertTrue(brokerController2.getReplicasManager().isMasterState());
         assertEquals(brokerController2.getReplicasManager().getMasterEpoch(), 2);

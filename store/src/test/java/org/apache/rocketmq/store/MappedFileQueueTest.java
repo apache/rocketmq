@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.assertj.core.util.Lists;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Test;
@@ -33,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -298,7 +300,7 @@ public class MappedFileQueueTest {
                     while (!readOver.get()) {
                         for (MappedFile mappedFile : mappedFileQueue.getMappedFiles()) {
                             mappedFile.swapMap();
-                            Thread.sleep(10);
+                            Awaitility.await().pollDelay(Duration.ofMillis(10)).until(()->true);
                             mappedFile.cleanSwapedMap(true);
                         }
                     }
@@ -318,7 +320,7 @@ public class MappedFileQueueTest {
                         mappedFile = mappedFileQueue.findMappedFileByOffset(i * fixedMsg.getBytes().length);
                         retryTime++;
                         if (mappedFile == null) {
-                            Thread.sleep(1);
+                            Awaitility.await().pollDelay(Duration.ofMillis(1)).until(()->true);
                         }
                     }
                     assertThat(mappedFile != null).isTrue();
@@ -327,7 +329,7 @@ public class MappedFileQueueTest {
                     while ((pos + fixedMsg.getBytes().length) > mappedFile.getReadPosition() && retryTime < 10000) {
                         retryTime++;
                         if ((pos + fixedMsg.getBytes().length) > mappedFile.getReadPosition()) {
-                            Thread.sleep(1);
+                            Awaitility.await().pollDelay(Duration.ofMillis(1)).until(()->true);
                         }
                     }
                     assertThat((pos + fixedMsg.getBytes().length) <= mappedFile.getReadPosition()).isTrue();
@@ -468,13 +470,13 @@ public class MappedFileQueueTest {
             mappedFile.destroy(1000);
         });
 
-        TimeUnit.SECONDS.sleep(3);
+        Awaitility.await().pollDelay(Duration.ofMillis(3)).until(()->true);
         ses.shutdown();
 
         mappedFileQueue.getMappedFiles().clear();
         mappedFileQueue.getMappedFiles().addAll(compactingMappedFileQueue.getMappedFiles());
 
-        TimeUnit.SECONDS.sleep(3);
+        Awaitility.await().pollDelay(Duration.ofMillis(3)).until(()->true);
     }
 
     @After

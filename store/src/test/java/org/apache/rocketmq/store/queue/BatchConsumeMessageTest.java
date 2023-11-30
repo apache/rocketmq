@@ -19,6 +19,7 @@ package org.apache.rocketmq.store.queue;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,6 +48,7 @@ import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -213,7 +215,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         for (int i = 0; i < 19; i++) {
             PutMessageResult putMessageResult = messageStore.putMessage(buildMessage(topic, batchNum));
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
-            Thread.sleep(2);
+            Awaitility.await().pollDelay(Duration.ofMillis(2)).until(()->true);
             if (i == 7)
                 timeMid = System.currentTimeMillis();
         }
@@ -253,7 +255,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
             PutMessageResult putMessageResult = messageStore.putMessage(messageExtBrokerInner);
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
 
-            Thread.sleep(2);
+            Awaitility.await().pollDelay(Duration.ofMillis(2)).until(()->true);
             if (i == 0) {
                 timeStart = putMessageResult.getAppendMessageResult().getStoreTimestamp();
             }
@@ -308,7 +310,7 @@ public class BatchConsumeMessageTest extends QueueTestBase {
         for (int i = 0; i < 100; i++) {
             PutMessageResult putMessageResult = messageStore.putMessage(buildMessage(topic, batchNum));
             Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
-            Thread.sleep(2);
+            Awaitility.await().pollDelay(Duration.ofMillis(2)).until(()->true);
             if (i == 0) {
                 timeStart = putMessageResult.getAppendMessageResult().getStoreTimestamp();
             }

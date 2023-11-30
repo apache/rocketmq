@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.util;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,6 +53,7 @@ import org.apache.rocketmq.tools.admin.MQAdminUtils;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.topic.RemappingStaticTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
+import org.awaitility.Awaitility;
 
 import static org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils.getMappingDetailFromConfig;
 import static org.awaitility.Awaitility.await;
@@ -121,7 +123,7 @@ public class MQAdminTestUtils {
                             addr));
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Thread.sleep(1000 * 1);
+                    Awaitility.await().pollDelay(Duration.ofMillis(1000*1)).until(()->true);
                 }
             }
         } catch (Exception e) {
@@ -171,7 +173,7 @@ public class MQAdminTestUtils {
             if (checkStaticTopic(topic, defaultMQAdminExt, clientInstance)) {
                 return true;
             }
-            Thread.sleep(100);
+            Awaitility.await().pollDelay(Duration.ofMillis(100)).until(()->true);
         }
         return false;
     }

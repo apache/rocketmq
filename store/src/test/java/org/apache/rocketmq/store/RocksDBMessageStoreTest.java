@@ -29,6 +29,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -60,6 +61,8 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.assertj.core.util.Strings;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -465,9 +468,9 @@ public class RocksDBMessageStoreTest {
             assertThat(result.getPutMessageStatus()).isEqualTo(PutMessageStatus.PUT_OK);
             if (interval) {
                 try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException("Thread sleep ERROR");
+                    Awaitility.await().pollDelay(Duration.ofMillis(10)).until(()->true);
+                } catch (ConditionTimeoutException e) {
+                    throw new RuntimeException("Timeout ERROR");
                 }
             }
         }
@@ -619,7 +622,7 @@ public class RocksDBMessageStoreTest {
         }
 
         while (messageStore.dispatchBehindBytes() != 0) {
-            TimeUnit.MILLISECONDS.sleep(1);
+            Awaitility.await().pollDelay(Duration.ofMillis(1)).until(()->true);
         }
 
         assertThat(messageStore.getMaxOffsetInQueue(messageTopic, queueId)).isEqualTo(firstBatchMessages);

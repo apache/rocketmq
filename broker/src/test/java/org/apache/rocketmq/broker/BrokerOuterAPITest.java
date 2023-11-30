@@ -23,6 +23,7 @@ import com.google.common.collect.Lists;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +49,7 @@ import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -131,7 +133,7 @@ public class BrokerOuterAPITest {
                 } else if (invocation.getArgument(0) == nameserver2) {
                     return buildResponse(Boolean.FALSE);
                 } else if (invocation.getArgument(0) == nameserver3) {
-                    TimeUnit.MILLISECONDS.sleep(timeOut + 20);
+                    Awaitility.await().pollDelay(Duration.ofMillis(timeOut+20)).until(()->true);
                     return buildResponse(Boolean.TRUE);
                 }
                 return buildResponse(Boolean.TRUE);

@@ -16,11 +16,13 @@
  */
 package org.apache.rocketmq.broker.latency;
 
+import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.remoting.netty.RequestTask;
+import org.awaitility.Awaitility;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,7 +54,8 @@ public class BrokerFastFailureTest {
         //With expired request
         RequestTask expiredRequest = new RequestTask(runnable, null, null);
         queue.add(new FutureTaskExt<>(expiredRequest, null));
-        TimeUnit.MILLISECONDS.sleep(100);
+    
+        Awaitility.await().pollDelay(Duration.ofMillis(100)).until(()->true);
 
         RequestTask requestTask = new RequestTask(runnable, null, null);
         queue.add(new FutureTaskExt<>(requestTask, null));

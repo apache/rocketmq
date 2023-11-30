@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -52,6 +53,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatus;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -181,7 +183,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         pullMessageService.executePullRequestImmediately(createPullRequest());
         countDownLatch.await();
 
-        Thread.sleep(1000);
+        Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
 
         ConsumeStatus stats = normalServie.getConsumerStatsManager().consumeStatus(pushConsumer.getDefaultMQPushConsumerImpl().groupName(),topic);
 

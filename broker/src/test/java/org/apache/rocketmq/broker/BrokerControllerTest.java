@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -30,6 +31,7 @@ import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,7 +93,7 @@ public class BrokerControllerTest {
         queue.add(new FutureTaskExt<>(requestTask, null));
 
         long headSlowTimeMills = 100;
-        TimeUnit.MILLISECONDS.sleep(headSlowTimeMills);
+        Awaitility.await().pollDelay(Duration.ofMillis(headSlowTimeMills)).until(()->true);
         assertThat(brokerController.headSlowTimeMills(queue)).isGreaterThanOrEqualTo(headSlowTimeMills);
     }
 }

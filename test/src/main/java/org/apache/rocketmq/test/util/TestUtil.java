@@ -19,11 +19,15 @@ package org.apache.rocketmq.test.util;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 
 public final class TestUtil {
 
@@ -58,24 +62,24 @@ public final class TestUtil {
 
     public static void waitForMonment(long time) {
         try {
-            Thread.sleep(time);
-        } catch (InterruptedException e) {
+            Awaitility.await().pollDelay(Duration.ofMillis(time)).until(()->true);
+        } catch (ConditionTimeoutException e) {
             e.printStackTrace();
         }
     }
 
     public static void waitForSeconds(long time) {
         try {
-            TimeUnit.SECONDS.sleep(time);
-        } catch (InterruptedException e) {
+            Awaitility.await().pollDelay(Duration.ofSeconds(time)).until(()->true);
+        } catch (ConditionTimeoutException e) {
             e.printStackTrace();
         }
     }
 
     public static void waitForMinutes(long time) {
         try {
-            TimeUnit.MINUTES.sleep(time);
-        } catch (InterruptedException e) {
+            Awaitility.await().pollDelay(Duration.ofMinutes(time)).until(()->true);
+        } catch (ConditionTimeoutException e) {
             e.printStackTrace();
         }
     }

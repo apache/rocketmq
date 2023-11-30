@@ -54,6 +54,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -480,7 +481,7 @@ public class DefaultLitePullConsumerTest {
             Set<MessageQueue> set = new HashSet<>();
             set.add(createMessageQueue());
             doReturn(set).when(mQAdminImpl).fetchSubscribeMessageQueues(anyString());
-            Thread.sleep(11 * 1000);
+            Awaitility.await().pollDelay(Duration.ofMillis(11*1000)).until(()->true);
             assertThat(flag).isTrue();
         } finally {
             litePullConsumer.shutdown();
@@ -644,7 +645,7 @@ public class DefaultLitePullConsumerTest {
 
         new AsyncConsumer().executeAsync(defaultLitePullConsumer);
 
-        Thread.sleep(100);
+        Awaitility.await().pollDelay(Duration.ofMillis(100)).until(()->true);
         defaultLitePullConsumer.shutdown();
         assertThat(defaultLitePullConsumer.isRunning()).isFalse();
     }

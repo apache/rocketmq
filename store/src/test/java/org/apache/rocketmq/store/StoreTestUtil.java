@@ -25,10 +25,14 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.index.IndexFile;
 import org.apache.rocketmq.store.index.IndexService;
+import org.assertj.core.api.DurationAssert;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.ArrayList;
 
 
@@ -72,8 +76,8 @@ public class StoreTestUtil {
     public static void waitCommitLogReput(DefaultMessageStore store) {
         for (int i = 0; i < 500 && isCommitLogAvailable(store); i++) {
             try {
-                Thread.sleep(100);
-            } catch (InterruptedException ignored) {
+                Awaitility.await().pollDelay(Duration.ofMillis(100)).until(()->true);
+            } catch (ConditionTimeoutException ignored) {
             }
         }
 

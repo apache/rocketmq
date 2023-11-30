@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.consumer;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -61,6 +62,7 @@ import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -312,9 +314,9 @@ public class DefaultMQPushConsumerTest {
                 assertThat(msgs.get(0).getBody()).isEqualTo(msgBody);
                 countDownLatch.countDown();
                 try {
-                    Thread.sleep(1000);
+                    Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
                     messageConsumedFlag.set(true);
-                } catch (InterruptedException e) {
+                } catch (Exception e) {
                 }
 
                 return null;

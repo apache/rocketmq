@@ -17,13 +17,19 @@
 
 package org.apache.rocketmq.test.util;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
+
+import io.opentelemetry.sdk.metrics.internal.state.DebugUtils;
 
 public class TestUtils {
     public static void waitForMoment(long time) {
         try {
-            Thread.sleep(time);
-        } catch (InterruptedException var3) {
+            Awaitility.await().pollDelay(Duration.ofMillis(time)).until(()->true);
+        } catch (ConditionTimeoutException var3) {
             var3.printStackTrace();
         }
 
@@ -31,8 +37,8 @@ public class TestUtils {
 
     public static void waitForSeconds(long time) {
         try {
-            TimeUnit.SECONDS.sleep(time);
-        } catch (InterruptedException var3) {
+            Awaitility.await().pollDelay(Duration.ofMillis(time)).until(()->true);
+        } catch (ConditionTimeoutException var3) {
             var3.printStackTrace();
         }
 
@@ -40,8 +46,8 @@ public class TestUtils {
 
     public static void waitForMinutes(long time) {
         try {
-            TimeUnit.MINUTES.sleep(time);
-        } catch (InterruptedException var3) {
+            Awaitility.await().pollDelay(Duration.ofMillis(time)).until(()->true);
+        } catch (ConditionTimeoutException var3) {
             var3.printStackTrace();
         }
 
