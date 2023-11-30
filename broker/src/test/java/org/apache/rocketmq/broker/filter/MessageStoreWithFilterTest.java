@@ -236,7 +236,7 @@ public class MessageStoreWithFilterTest {
     public void testGetMessage_withFilterBitMapAndConsumerChanged() throws Exception {
         List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
 
-        Awaitility.await().pollDelay(Duration.ofMillis(200)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofMillis(200)).until(() -> true);
 
 
         // reset consumer;
@@ -299,7 +299,7 @@ public class MessageStoreWithFilterTest {
     public void testGetMessage_withFilterBitMap() throws Exception {
         List<MessageExtBrokerInner> msgs = putMsg(master, topicCount, msgPerTopic);
 
-        Awaitility.await().pollDelay(Duration.ofMillis(200)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofMillis(200)).until(() -> true);
 
         for (int i = 0; i < topicCount; i++) {
             String realTopic = TOPIC + i;

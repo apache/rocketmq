@@ -68,7 +68,7 @@ public class StatsItemSetTest {
             if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
-            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(() -> true);
         }
         // simulate schedule task execution , tps stat
         {
@@ -115,7 +115,7 @@ public class StatsItemSetTest {
             if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
-            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(() -> true);
         }
         return statsItemSet.getStatsItem("topicTest").getValue();
     }
@@ -136,7 +136,7 @@ public class StatsItemSetTest {
             if (executor.getCompletedTaskCount() == 10) {
                 break;
             }
-            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(() -> true);
         }
         return statsItemSet.getAndCreateStatsItem("test").getValue();
     }

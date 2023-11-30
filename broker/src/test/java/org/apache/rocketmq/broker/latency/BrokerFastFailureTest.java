@@ -19,7 +19,6 @@ package org.apache.rocketmq.broker.latency;
 import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.awaitility.Awaitility;
@@ -55,7 +54,7 @@ public class BrokerFastFailureTest {
         RequestTask expiredRequest = new RequestTask(runnable, null, null);
         queue.add(new FutureTaskExt<>(expiredRequest, null));
     
-        Awaitility.await().pollDelay(Duration.ofMillis(100)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofMillis(100)).until(() -> true);
 
         RequestTask requestTask = new RequestTask(runnable, null, null);
         queue.add(new FutureTaskExt<>(requestTask, null));

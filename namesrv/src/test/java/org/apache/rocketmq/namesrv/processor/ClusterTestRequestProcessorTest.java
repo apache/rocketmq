@@ -23,7 +23,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientAPIImpl;
@@ -169,7 +168,7 @@ public class ClusterTestRequestProcessorTest {
         RemotingCommand response = clientRequestProcessor.processRequest(mock(ChannelHandlerContext.class),
                 remotingCommand);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        Awaitility.await().pollDelay(Duration.ofSeconds(waitSecondsForService+1)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofSeconds(waitSecondsForService + 1)).until(() -> true);
         response = clientRequestProcessor.processRequest(mock(ChannelHandlerContext.class), remotingCommand);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }

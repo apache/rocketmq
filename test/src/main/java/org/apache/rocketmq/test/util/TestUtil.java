@@ -24,7 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+
 
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
@@ -62,7 +62,7 @@ public final class TestUtil {
 
     public static void waitForMonment(long time) {
         try {
-            Awaitility.await().pollDelay(Duration.ofMillis(time)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofMillis(time)).until(() -> true);
         } catch (ConditionTimeoutException e) {
             e.printStackTrace();
         }
@@ -70,7 +70,7 @@ public final class TestUtil {
 
     public static void waitForSeconds(long time) {
         try {
-            Awaitility.await().pollDelay(Duration.ofSeconds(time)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofSeconds(time)).until(() -> true);
         } catch (ConditionTimeoutException e) {
             e.printStackTrace();
         }
@@ -78,7 +78,7 @@ public final class TestUtil {
 
     public static void waitForMinutes(long time) {
         try {
-            Awaitility.await().pollDelay(Duration.ofMinutes(time)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofMinutes(time)).until(() -> true);
         } catch (ConditionTimeoutException e) {
             e.printStackTrace();
         }

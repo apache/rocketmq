@@ -183,7 +183,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         pullMessageService.executePullRequestImmediately(createPullRequest());
         countDownLatch.await();
 
-        Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(() -> true);
 
         ConsumeStatus stats = normalServie.getConsumerStatsManager().consumeStatus(pushConsumer.getDefaultMQPushConsumerImpl().groupName(),topic);
 

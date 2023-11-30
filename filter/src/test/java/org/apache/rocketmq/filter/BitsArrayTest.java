@@ -35,7 +35,7 @@ public class BitsArrayTest {
         for (int i = 0; i < bitCount / Byte.SIZE; i++) {
             bitsArray.setByte(i, (byte) (new Random(System.currentTimeMillis())).nextInt(0xff));
             try {
-                Awaitility.await().pollDelay(Duration.ofMillis(2)).until(()->true);
+                Awaitility.await().pollDelay(Duration.ofMillis(2)).until(() -> true);
             } catch (ConditionTimeoutException e) {
             }
         }

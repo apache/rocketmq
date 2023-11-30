@@ -32,7 +32,6 @@ import org.awaitility.core.ConditionTimeoutException;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.opentelemetry.sdk.metrics.internal.state.DebugUtils;
 
 public class TieredFileSegmentTest {
 
@@ -140,7 +139,7 @@ public class TieredFileSegmentTest {
         segment.blocker = new CompletableFuture<>();
         new Thread(() -> {
             try {
-                Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
+                Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(() -> true);
             } catch (ConditionTimeoutException e) {
                 Assert.fail(e.getMessage());
             }
@@ -196,7 +195,7 @@ public class TieredFileSegmentTest {
         segment.blocker = new CompletableFuture<>();
         new Thread(() -> {
             try {
-                Awaitility.await().pollDelay(Duration.ofMillis(3000)).until(()->true);
+                Awaitility.await().pollDelay(Duration.ofMillis(3000)).until(() -> true);
             } catch (ConditionTimeoutException e) {
                 Assert.fail(e.getMessage());
             }

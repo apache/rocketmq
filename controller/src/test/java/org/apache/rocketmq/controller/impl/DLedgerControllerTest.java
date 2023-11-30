@@ -292,7 +292,7 @@ public class DLedgerControllerTest {
             assertEquals(DEFAULT_BROKER_NAME, brokerName);
             atomicBoolean.set(true);
         });
-        Awaitility.await().pollDelay(Duration.ofMillis(2000)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofMillis(2000)).until(() -> true);
         assertTrue(atomicBoolean.get());
     }
 

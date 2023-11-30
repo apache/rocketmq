@@ -118,7 +118,7 @@ public class PopBufferMergeServiceTest {
         try {
             assertThat(popBufferMergeService.addCk(ck, reviveQid, ackOffset, nextBeginOffset)).isTrue();
             assertThat(popBufferMergeService.getLatestOffset(topic, group, queueId)).isEqualTo(nextBeginOffset);
-            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);  // wait background threads of PopBufferMergeService run for some time
+            Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(() -> true);  // wait background threads of PopBufferMergeService run for some time
             assertThat(popBufferMergeService.addAk(reviveQid, ackMsg)).isTrue();
             assertThat(popBufferMergeService.getLatestOffset(topic, group, queueId)).isEqualTo(nextBeginOffset);
         } finally {

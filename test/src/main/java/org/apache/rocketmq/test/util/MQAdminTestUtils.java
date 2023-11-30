@@ -123,7 +123,7 @@ public class MQAdminTestUtils {
                             addr));
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Awaitility.await().pollDelay(Duration.ofMillis(1000*1)).until(()->true);
+                    Awaitility.await().pollDelay(Duration.ofMillis(1000 * 1)).until(() -> true);
                 }
             }
         } catch (Exception e) {
@@ -173,7 +173,7 @@ public class MQAdminTestUtils {
             if (checkStaticTopic(topic, defaultMQAdminExt, clientInstance)) {
                 return true;
             }
-            Awaitility.await().pollDelay(Duration.ofMillis(100)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofMillis(100)).until(() -> true);
         }
         return false;
     }

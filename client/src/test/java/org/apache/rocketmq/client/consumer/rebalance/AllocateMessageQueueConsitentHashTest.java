@@ -87,7 +87,7 @@ public class AllocateMessageQueueConsitentHashTest {
             int queueSize = new Random().nextInt(20) + 1;//1-20
             testAllocate(queueSize, consumerSize);
             try {
-                Awaitility.await().pollDelay(Duration.ofMillis(1)).until(()->true);
+                Awaitility.await().pollDelay(Duration.ofMillis(1)).until(() -> true);
             } catch (Exception e) {
             }
         }

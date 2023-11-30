@@ -409,7 +409,7 @@ public class DefaultMQProducerTest {
                 assertThat(responseMap).isNotNull();
                 while (!finish.get()) {
                     try {
-                        Awaitility.await().pollDelay(Duration.ofMillis(10)).until(()->true);
+                        Awaitility.await().pollDelay(Duration.ofMillis(10)).until(() -> true);
                     } catch (ConditionTimeoutException e) {
                     }
                     MessageExt responseMsg = new MessageExt();

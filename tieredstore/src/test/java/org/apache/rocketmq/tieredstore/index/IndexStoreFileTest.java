@@ -189,7 +189,7 @@ public class IndexStoreFileTest {
                 Assert.assertEquals(AppendResult.SUCCESS, indexStoreFile.putKey(
                     TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, timestamp));
                 try {
-                    Awaitility.await().pollDelay(Duration.ofMillis(100)).until(()->true);
+                    Awaitility.await().pollDelay(Duration.ofMillis(100)).until(() -> true);
                 } catch (ConditionTimeoutException ignored) {
                 }
                 latch.countDown();

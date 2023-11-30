@@ -163,7 +163,7 @@ public class ClusterTopicRouteServiceTest extends BaseServiceTest {
                 }
             });
         assertThat(value).isEqualTo(topicCache.get(key));
-        Awaitility.await().pollDelay(Duration.ofSeconds(5)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofSeconds(5)).until(() -> true);
         assertThat(value).isEqualTo(topicCache.get(key));
     }
 }

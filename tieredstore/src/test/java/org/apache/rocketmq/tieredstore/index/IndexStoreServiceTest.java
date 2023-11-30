@@ -99,7 +99,7 @@ public class IndexStoreServiceTest {
         for (int i = 0; i < 50; i++) {
             Assert.assertEquals(AppendResult.SUCCESS, indexService.putKey(
                 TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, i * 100, MESSAGE_SIZE, System.currentTimeMillis()));
-            Awaitility.await().pollDelay(Duration.ofMillis(1)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofMillis(1)).until(() -> true);
         }
         ConcurrentSkipListMap<Long, IndexFile> timeStoreTable = indexService.getTimeStoreTable();
         Assert.assertEquals(3, timeStoreTable.size());
@@ -213,7 +213,7 @@ public class IndexStoreServiceTest {
                 TOPIC_NAME, TOPIC_ID, QUEUE_ID, Collections.singleton(String.valueOf(i)),
                 i * 100L, MESSAGE_SIZE, System.currentTimeMillis());
             Assert.assertEquals(AppendResult.SUCCESS, result);
-            Awaitility.await().pollDelay(Duration.ofMillis(1)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofMillis(1)).until(() -> true);
         }
         long timestamp = indexService.getTimeStoreTable().firstKey();
         indexService.shutdown();
@@ -246,7 +246,7 @@ public class IndexStoreServiceTest {
                     TOPIC_NAME, TOPIC_ID, QUEUE_ID, Collections.singleton(String.valueOf(j)),
                     i * 100L + j, MESSAGE_SIZE, System.currentTimeMillis());
                 Assert.assertEquals(AppendResult.SUCCESS, result);
-                Awaitility.await().pollDelay(Duration.ofMillis(1)).until(()->true);
+                Awaitility.await().pollDelay(Duration.ofMillis(1)).until(() -> true);
             }
         }
 
@@ -280,7 +280,7 @@ public class IndexStoreServiceTest {
                 indexService.putKey(TOPIC_NAME, TOPIC_ID, j, Collections.singleton(String.valueOf(i)),
                     i * 100L, i * 100, System.currentTimeMillis());
             }
-            Awaitility.await().pollDelay(Duration.ofMillis(1)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofMillis(1)).until(() -> true);
         }
 
         CountDownLatch latch = new CountDownLatch(fileCount * 3);

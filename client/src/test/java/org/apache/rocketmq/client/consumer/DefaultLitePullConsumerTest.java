@@ -481,7 +481,7 @@ public class DefaultLitePullConsumerTest {
             Set<MessageQueue> set = new HashSet<>();
             set.add(createMessageQueue());
             doReturn(set).when(mQAdminImpl).fetchSubscribeMessageQueues(anyString());
-            Awaitility.await().pollDelay(Duration.ofMillis(11*1000)).until(()->true);
+            Awaitility.await().pollDelay(Duration.ofMillis(11 * 1000)).until(() -> true);
             assertThat(flag).isTrue();
         } finally {
             litePullConsumer.shutdown();
@@ -645,7 +645,7 @@ public class DefaultLitePullConsumerTest {
 
         new AsyncConsumer().executeAsync(defaultLitePullConsumer);
 
-        Awaitility.await().pollDelay(Duration.ofMillis(100)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofMillis(100)).until(() -> true);
         defaultLitePullConsumer.shutdown();
         assertThat(defaultLitePullConsumer.isRunning()).isFalse();
     }

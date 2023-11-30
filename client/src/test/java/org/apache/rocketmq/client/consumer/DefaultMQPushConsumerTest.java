@@ -314,7 +314,7 @@ public class DefaultMQPushConsumerTest {
                 assertThat(msgs.get(0).getBody()).isEqualTo(msgBody);
                 countDownLatch.countDown();
                 try {
-                    Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(()->true);
+                    Awaitility.await().pollDelay(Duration.ofMillis(1000)).until(() -> true);
                     messageConsumedFlag.set(true);
                 } catch (Exception e) {
                 }

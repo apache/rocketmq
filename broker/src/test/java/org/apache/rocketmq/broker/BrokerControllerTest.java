@@ -22,7 +22,6 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -93,7 +92,7 @@ public class BrokerControllerTest {
         queue.add(new FutureTaskExt<>(requestTask, null));
 
         long headSlowTimeMills = 100;
-        Awaitility.await().pollDelay(Duration.ofMillis(headSlowTimeMills)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofMillis(headSlowTimeMills)).until(() -> true);
         assertThat(brokerController.headSlowTimeMills(queue)).isGreaterThanOrEqualTo(headSlowTimeMills);
     }
 }

@@ -22,7 +22,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
@@ -173,7 +173,7 @@ public class ReplicasManagerTest {
         autoSwitchHAService.init(defaultMessageStore);
         replicasManager.start();
         // execute schedulingSyncBrokerMetadata()
-        Awaitility.await().pollDelay(Duration.ofSeconds(SCHEDULE_SERVICE_EXEC_PERIOD)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofSeconds(SCHEDULE_SERVICE_EXEC_PERIOD)).until(() -> true);
     }
 
     @After

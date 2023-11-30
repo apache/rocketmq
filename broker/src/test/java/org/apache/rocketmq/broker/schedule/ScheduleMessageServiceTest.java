@@ -32,7 +32,6 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.failover.EscapeBridge;
 import org.apache.rocketmq.broker.util.HookUtils;
@@ -220,7 +219,7 @@ public class ScheduleMessageServiceTest {
 
         // timer run maybe delay, then consumer message again
         // and wait offsetTable
-        Awaitility.await().pollDelay(Duration.ofSeconds(15)).until(()->true);
+        Awaitility.await().pollDelay(Duration.ofSeconds(15)).until(() -> true);
         scheduleMessageService.buildRunningStats(new HashMap<>());
 
         messageResult = getMessage(realQueueId, offset);
