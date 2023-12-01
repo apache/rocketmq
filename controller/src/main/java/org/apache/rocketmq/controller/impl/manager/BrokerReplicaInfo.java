@@ -16,12 +16,12 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import com.google.common.collect.Maps;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 
@@ -75,7 +75,7 @@ public class BrokerReplicaInfo {
     }
 
     public Map<Long, String> getBrokerIdTable() {
-        Map<Long/*brokerId*/, String/*address*/> map = new HashMap<>(this.brokerIdInfo.size());
+        Map<Long/*brokerId*/, String/*address*/> map = Maps.newHashMapWithExpectedSize(this.brokerIdInfo.size());
         this.brokerIdInfo.forEach((id, pair) -> {
             map.put(id, pair.getObject1());
         });
