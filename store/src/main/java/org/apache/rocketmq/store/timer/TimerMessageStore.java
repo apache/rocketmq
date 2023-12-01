@@ -1142,8 +1142,8 @@ public class TimerMessageStore {
         } else {
             msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
             msgInner.setQueueId(Integer.parseInt(msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
-            MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC);
-            MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID);
+            // MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_TOPIC);
+            // MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_REAL_QUEUE_ID);
         }
         return msgInner;
     }
