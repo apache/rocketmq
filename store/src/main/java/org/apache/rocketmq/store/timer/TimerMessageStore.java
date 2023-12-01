@@ -1084,8 +1084,10 @@ public class TimerMessageStore {
                     case PUT_OK:
                         if (brokerStatsManager != null) {
                             this.brokerStatsManager.incTopicPutNums(message.getTopic(), 1, 1);
-                            this.brokerStatsManager.incTopicPutSize(message.getTopic(),
-                                putMessageResult.getAppendMessageResult().getWroteBytes());
+                            if (putMessageResult.getAppendMessageResult() != null) {
+                                this.brokerStatsManager.incTopicPutSize(message.getTopic(),
+                                        putMessageResult.getAppendMessageResult().getWroteBytes());
+                            }
                             this.brokerStatsManager.incBrokerPutNums(message.getTopic(), 1);
                         }
                         return PUT_OK;
