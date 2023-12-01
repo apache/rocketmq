@@ -602,6 +602,10 @@ public class TimerMessageStore {
         this.shouldRunningDequeue = shouldRunningDequeue;
     }
 
+    public boolean isShouldRunningDequeue() {
+        return shouldRunningDequeue;
+    }
+
     public void addMetric(MessageExt msg, int value) {
         try {
             if (null == msg || null == msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC)) {

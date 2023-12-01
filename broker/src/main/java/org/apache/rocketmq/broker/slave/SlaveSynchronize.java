@@ -215,11 +215,13 @@ public class SlaveSynchronize {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null) {
             try {
-                if (null != brokerController.getMessageStore().getTimerMessageStore()) {
+                if (null != brokerController.getMessageStore().getTimerMessageStore() &&
+                        !brokerController.getTimerMessageStore().isShouldRunningDequeue()) {
                     TimerCheckpoint checkpoint = this.brokerController.getBrokerOuterAPI().getTimerCheckPoint(masterAddrBak);
                     if (null != this.brokerController.getTimerCheckpoint()) {
                         this.brokerController.getTimerCheckpoint().setLastReadTimeMs(checkpoint.getLastReadTimeMs());
                         this.brokerController.getTimerCheckpoint().setMasterTimerQueueOffset(checkpoint.getMasterTimerQueueOffset());
+                        this.brokerController.getTimerCheckpoint().getDataVersion().assignNewOne(checkpoint.getDataVersion());
                     }
                 }
             } catch (Exception e) {
