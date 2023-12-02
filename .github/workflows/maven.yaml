@@ -1,7 +1,7 @@
 name: Build and Run Tests by Maven
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, edited, reopened, synchronize]
   push:
     branches: [master, develop, bazel]
 jobs:
