@@ -1,6 +1,6 @@
 # Build and Test RocketMQ on Harness CI
 
-This is a fork of RocketMQ project. This project was used to demo the new capabilities of Harness CI at [Unscripted Conference 2022](https://www.unscriptedconf.io/). This file contains instructions on how to run the RocketMQ pipeline shown during the demo.
+This is a fork of apache/rocketmq project. This file contains instructions on how to run the RocketMQ pipeline on Harness CI.
 
 - [Harness Fast CI Blog Announcement](https://harness.io/blog/announcing-speed-enhancements-and-hosted-builds-for-harness-ci)
 - [Get Started with Harness CI](https://harness.io/products/continuous-integration)
@@ -9,7 +9,7 @@ This is a fork of RocketMQ project. This project was used to demo the new capabi
 
 1. Create a [GitHub Account](https://github.com) or use an existing one
 
-2. Fork [this repository](https://github.com/apache/rocketmq) into your GitHub account.
+2. Fork [this repository](https://github.com/harness-community/rocketmq) into your GitHub account.
 
 3. If you are new to Harness CI, signup for [Harness CI](https://app.harness.io/auth/#/signup)
 * Select the `Continuous Integration` module and choose the `Starter pipeline` wizard to create your first pipeline using the forked repo from #2.
@@ -28,7 +28,7 @@ This is a fork of RocketMQ project. This project was used to demo the new capabi
       spec:
         language: Java
         buildTool: Maven
-        args: mvn clean install -DskipITs -Dmaven.test.failure.ignore=true -DfailIfNoTests=false
+        args: clean install -DskipITs -Dmaven.test.failure.ignore=true -DfailIfNoTests=false
         runOnlySelectedTests: true
         reports:
           type: JUnit
