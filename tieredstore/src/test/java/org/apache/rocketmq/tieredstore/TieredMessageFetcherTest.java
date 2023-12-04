@@ -31,7 +31,7 @@ import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.common.SelectMappedBufferResultWrapper;
+import org.apache.rocketmq.tieredstore.common.SelectBufferResultWrapper;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.file.CompositeFlatFile;
@@ -143,17 +143,18 @@ public class TieredMessageFetcherTest {
 
         fetcher.recordCacheAccess(flatFile, "prevent-invalid-cache", 0, new ArrayList<>());
         Assert.assertEquals(0, fetcher.getMessageCache().estimatedSize());
-        fetcher.putMessageToCache(flatFile, 0, new SelectMappedBufferResult(0, msg1, msg1.remaining(), null), 0, 0, 1);
+        SelectMappedBufferResult bufferResult = new SelectMappedBufferResult(0, msg1, msg1.remaining(), null);
+        fetcher.putMessageToCache(flatFile, new SelectBufferResultWrapper(bufferResult, 0, 0, false));
         Assert.assertEquals(1, fetcher.getMessageCache().estimatedSize());
 
-        GetMessageResult getMessageResult = fetcher.getMessageFromCacheAsync(flatFile, "group", 0, 32).join();
+        GetMessageResult getMessageResult = fetcher.getMessageFromCacheAsync(flatFile, "group", 0, 32, true).join();
         Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
         Assert.assertEquals(1, getMessageResult.getMessageBufferList().size());
         Assert.assertEquals(msg1, getMessageResult.getMessageBufferList().get(0));
 
         Awaitility.waitAtMost(3, TimeUnit.SECONDS)
             .until(() -> fetcher.getMessageCache().estimatedSize() == 2);
-        ArrayList<SelectMappedBufferResultWrapper> wrapperList = new ArrayList<>();
+        ArrayList<SelectBufferResultWrapper> wrapperList = new ArrayList<>();
         wrapperList.add(fetcher.getMessageFromCache(flatFile, 0));
         fetcher.recordCacheAccess(flatFile, "prevent-invalid-cache", 0, wrapperList);
         Assert.assertEquals(1, fetcher.getMessageCache().estimatedSize());

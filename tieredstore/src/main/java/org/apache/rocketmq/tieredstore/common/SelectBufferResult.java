@@ -14,29 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.remoting.protocol.body;
 
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+package org.apache.rocketmq.tieredstore.common;
 
-public class TopicList extends RemotingSerializable {
-    private Set<String> topicList = ConcurrentHashMap.newKeySet();
-    private String brokerAddr;
+import java.nio.ByteBuffer;
 
-    public Set<String> getTopicList() {
-        return topicList;
+public class SelectBufferResult {
+
+    private final ByteBuffer byteBuffer;
+    private final long startOffset;
+    private final int size;
+    private final long tagCode;
+
+    public SelectBufferResult(ByteBuffer byteBuffer, long startOffset, int size, long tagCode) {
+        this.startOffset = startOffset;
+        this.byteBuffer = byteBuffer;
+        this.size = size;
+        this.tagCode = tagCode;
     }
 
-    public void setTopicList(Set<String> topicList) {
-        this.topicList = topicList;
+    public ByteBuffer getByteBuffer() {
+        return byteBuffer;
     }
 
-    public String getBrokerAddr() {
-        return brokerAddr;
+    public long getStartOffset() {
+        return startOffset;
     }
 
-    public void setBrokerAddr(String brokerAddr) {
-        this.brokerAddr = brokerAddr;
+    public int getSize() {
+        return size;
+    }
+
+    public long getTagCode() {
+        return tagCode;
     }
 }

@@ -387,7 +387,7 @@ public class TimerMessageStoreTest {
             assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
         }
 
-        // Wait until messages have wrote to TimerLog and currReadTimeMs catches up current time.
+        // Wait until messages have written to TimerLog and currReadTimeMs catches up current time.
         await().atMost(5000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
             @Override
             public Boolean call() {

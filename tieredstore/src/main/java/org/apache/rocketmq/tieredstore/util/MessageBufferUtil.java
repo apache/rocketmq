@@ -20,11 +20,11 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.tieredstore.common.SelectBufferResult;
 import org.apache.rocketmq.tieredstore.file.TieredCommitLog;
 import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
 
@@ -113,53 +113,72 @@ public class MessageBufferUtil {
         return MessageDecoder.decodeProperties(slice);
     }
 
-    public static List<Pair<Integer/* offset of msgBuffer */, Integer/* msg size */>> splitMessageBuffer(
-        ByteBuffer cqBuffer, ByteBuffer msgBuffer) {
+    public static List<SelectBufferResult> splitMessageBuffer(ByteBuffer cqBuffer, ByteBuffer msgBuffer) {
+
         cqBuffer.rewind();
         msgBuffer.rewind();
-        List<Pair<Integer, Integer>> messageList = new ArrayList<>(cqBuffer.remaining() / TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
-        if (cqBuffer.remaining() % TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE != 0) {
-            logger.warn("MessageBufferUtil#splitMessage: consume queue buffer size {} is not an integer multiple of CONSUME_QUEUE_STORE_UNIT_SIZE {}",
-                cqBuffer.remaining(), TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
-            return messageList;
-        }
-        try {
-            long startCommitLogOffset = CQItemBufferUtil.getCommitLogOffset(cqBuffer);
-            for (int pos = cqBuffer.position(); pos < cqBuffer.limit(); pos += TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE) {
-                cqBuffer.position(pos);
-                int diff = (int) (CQItemBufferUtil.getCommitLogOffset(cqBuffer) - startCommitLogOffset);
-                int size = CQItemBufferUtil.getSize(cqBuffer);
-                if (diff + size > msgBuffer.limit()) {
-                    logger.error("MessageBufferUtil#splitMessage: message buffer size is incorrect: record in consume queue: {}, actual: {}", diff + size, msgBuffer.remaining());
-                    return messageList;
-                }
-                msgBuffer.position(diff);
 
+        List<SelectBufferResult> bufferResultList = new ArrayList<>(
+            cqBuffer.remaining() / TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
+
+        if (msgBuffer.remaining() == 0) {
+            logger.error("MessageBufferUtil#splitMessage, msg buffer length is zero");
+            return bufferResultList;
+        }
+
+        if (cqBuffer.remaining() % TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE != 0) {
+            logger.error("MessageBufferUtil#splitMessage, consume queue buffer size incorrect, {}", cqBuffer.remaining());
+            return bufferResultList;
+        }
+
+        try {
+            long firstCommitLogOffset = CQItemBufferUtil.getCommitLogOffset(cqBuffer);
+
+            for (int position = cqBuffer.position(); position < cqBuffer.limit();
+                position += TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE) {
+
+                cqBuffer.position(position);
+                long logOffset = CQItemBufferUtil.getCommitLogOffset(cqBuffer);
+                int bufferSize = CQItemBufferUtil.getSize(cqBuffer);
+                long tagCode = CQItemBufferUtil.getTagCode(cqBuffer);
+
+                int offset = (int) (logOffset - firstCommitLogOffset);
+                if (offset + bufferSize > msgBuffer.limit()) {
+                    logger.error("MessageBufferUtil#splitMessage, message buffer size incorrect. " +
+                        "Expect length in consume queue: {}, actual length: {}", offset + bufferSize, msgBuffer.limit());
+                    break;
+                }
+
+                msgBuffer.position(offset);
                 int magicCode = getMagicCode(msgBuffer);
                 if (magicCode == TieredCommitLog.BLANK_MAGIC_CODE) {
-                    logger.warn("MessageBufferUtil#splitMessage: message decode error: blank magic code, this message may be coda, try to fix offset");
-                    diff = diff + TieredCommitLog.CODA_SIZE;
-                    msgBuffer.position(diff);
+                    offset += TieredCommitLog.CODA_SIZE;
+                    msgBuffer.position(offset);
                     magicCode = getMagicCode(msgBuffer);
                 }
-                if (magicCode != MessageDecoder.MESSAGE_MAGIC_CODE && magicCode != MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
-                    logger.warn("MessageBufferUtil#splitMessage: message decode error: unknown magic code");
+                if (magicCode != MessageDecoder.MESSAGE_MAGIC_CODE &&
+                    magicCode != MessageDecoder.MESSAGE_MAGIC_CODE_V2) {
+                    logger.warn("MessageBufferUtil#splitMessage, found unknown magic code. " +
+                        "Message offset: {}, wrong magic code: {}", offset, magicCode);
                     continue;
                 }
 
-                if (getTotalSize(msgBuffer) != size) {
-                    logger.warn("MessageBufferUtil#splitMessage: message size is not right: except: {}, actual: {}", size, getTotalSize(msgBuffer));
+                if (bufferSize != getTotalSize(msgBuffer)) {
+                    logger.warn("MessageBufferUtil#splitMessage, message length in commitlog incorrect. " +
+                        "Except length in commitlog: {}, actual: {}", getTotalSize(msgBuffer), bufferSize);
                     continue;
                 }
 
-                messageList.add(Pair.of(diff, size));
+                ByteBuffer sliceBuffer = msgBuffer.slice();
+                sliceBuffer.limit(bufferSize);
+                bufferResultList.add(new SelectBufferResult(sliceBuffer, offset, bufferSize, tagCode));
             }
         } catch (Exception e) {
-            logger.error("MessageBufferUtil#splitMessage: split message failed, maybe decode consume queue item failed", e);
+            logger.error("MessageBufferUtil#splitMessage, split message buffer error", e);
         } finally {
             cqBuffer.rewind();
             msgBuffer.rewind();
         }
-        return messageList;
+        return bufferResultList;
     }
 }
