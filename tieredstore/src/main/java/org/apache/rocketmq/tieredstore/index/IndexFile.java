@@ -14,29 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.tieredstore.index;
 
-package org.apache.rocketmq.remoting.protocol.header;
+import java.nio.ByteBuffer;
 
-import java.util.List;
-import org.apache.rocketmq.common.PlainAccessConfig;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+public interface IndexFile extends IndexService {
 
-public class GetBrokerClusterAclConfigResponseHeader implements CommandCustomHeader {
-
-    @CFNotNull
-    private List<PlainAccessConfig> plainAccessConfigs;
-
-    @Override
-    public void checkFields() throws RemotingCommandException {
+    /**
+     * Enumeration for the status of the index file.
+     */
+    enum IndexStatusEnum {
+        SHUTDOWN, UNSEALED, SEALED, UPLOAD
     }
 
-    public List<PlainAccessConfig> getPlainAccessConfigs() {
-        return plainAccessConfigs;
-    }
+    long getTimestamp();
 
-    public void setPlainAccessConfigs(List<PlainAccessConfig> plainAccessConfigs) {
-        this.plainAccessConfigs = plainAccessConfigs;
-    }
+    IndexStatusEnum getFileStatus();
+
+    ByteBuffer doCompaction();
 }

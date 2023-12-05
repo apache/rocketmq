@@ -16,6 +16,12 @@
  */
 package org.apache.rocketmq.controller;
 
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+import java.util.concurrent.Callable;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
@@ -99,10 +105,11 @@ public class ControllerStartup {
         }
 
         if (commandLine.hasOption('p')) {
-            MixAll.printObjectProperties(null, controllerConfig);
-            MixAll.printObjectProperties(null, jraftConfig);
-            MixAll.printObjectProperties(null, nettyServerConfig);
-            MixAll.printObjectProperties(null, nettyClientConfig);
+            Logger console = LoggerFactory.getLogger(LoggerName.CONTROLLER_CONSOLE_NAME);
+            MixAll.printObjectProperties(console, controllerConfig);
+            MixAll.printObjectProperties(console, jraftConfig);
+            MixAll.printObjectProperties(console, nettyServerConfig);
+            MixAll.printObjectProperties(console, nettyClientConfig);
             System.exit(0);
         }
 

@@ -240,6 +240,8 @@ public class DLedgerControllerTest {
     @Test
     public void testBrokerLifecycleListener() throws Exception {
         final DLedgerController leader = mockMetaData(false);
+
+        assertTrue(leader.isLeaderState());
         // Mock that master broker has been inactive, and try to elect a new master from sync-state-set
         // But we shut down two controller, so the ElectMasterEvent will be appended to DLedger failed.
         // So the statemachine still keep the stale master's information
@@ -248,15 +250,20 @@ public class DLedgerControllerTest {
             dLedgerController.shutdown();
             controllers.remove(dLedgerController);
         }
+
         final ElectMasterRequestHeader request = ElectMasterRequestHeader.ofControllerTrigger(DEFAULT_BROKER_NAME);
         setBrokerElectPolicy(leader, 1L);
         Exception exception = null;
+        RemotingCommand remotingCommand = null;
         try {
-            leader.electMaster(request).get(5, TimeUnit.SECONDS);
+            remotingCommand = leader.electMaster(request).get(5, TimeUnit.SECONDS);
         } catch (Exception e) {
             exception = e;
         }
-        assertNotNull(exception);
+
+        assertTrue(exception != null ||
+            remotingCommand != null && remotingCommand.getCode() == ResponseCode.CONTROLLER_NOT_LEADER);
+
         // Shut down leader controller
         leader.shutdown();
         controllers.remove(leader);

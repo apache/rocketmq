@@ -19,6 +19,16 @@ package org.apache.rocketmq.controller.processor;
 import com.google.common.base.Stopwatch;
 import io.netty.channel.ChannelHandlerContext;
 import io.opentelemetry.api.common.Attributes;
+import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
+import java.util.concurrent.TimeoutException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
@@ -42,27 +52,24 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBro
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
-
-import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_REQUEST_HANDLE_STATUS;
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_REQUEST_TYPE;
+import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_APPLY_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.BROKER_HEARTBEAT;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CLEAN_BROKER_DATA;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET;
-import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_APPLY_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_ELECT_MASTER;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_METADATA_INFO;
-import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_NEXT_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_REPLICA_INFO;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_SYNC_STATE_DATA;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_REGISTER_BROKER;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.GET_CONTROLLER_CONFIG;
+import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_GET_NEXT_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.UPDATE_CONTROLLER_CONFIG;
 
 /**
@@ -73,12 +80,20 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     private static final int WAIT_TIMEOUT_OUT = 5;
     private final ControllerManager controllerManager;
     private final BrokerHeartbeatManager heartbeatManager;
+    protected Set<String> configBlackList = new HashSet<>();
 
     public ControllerRequestProcessor(final ControllerManager controllerManager) {
         this.controllerManager = controllerManager;
         this.heartbeatManager = controllerManager.getHeartbeatManager();
+        initConfigBlackList();
     }
-
+    private void initConfigBlackList() {
+        configBlackList.add("configBlackList");
+        configBlackList.add("configStorePath");
+        configBlackList.add("rocketmqHome");
+        String[] configArray = controllerManager.getControllerConfig().getConfigBlackList().split(";");
+        configBlackList.addAll(Arrays.asList(configArray));
+    }
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
         if (ctx != null) {
@@ -181,7 +196,7 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand handleControllerGetReplicaInfo(ChannelHandlerContext ctx,
-        RemotingCommand request) throws Exception {
+                                                           RemotingCommand request) throws Exception {
         final GetReplicaInfoRequestHeader controllerRequest = (GetReplicaInfoRequestHeader) request.decodeCommandCustomHeader(GetReplicaInfoRequestHeader.class);
         final CompletableFuture<RemotingCommand> future = this.controllerManager.getController().getReplicaInfo(controllerRequest);
         if (future != null) {
@@ -200,12 +215,12 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
             return RemotingCommand.createResponseCommand(ResponseCode.CONTROLLER_INVALID_REQUEST, "Heart beat with empty brokerId");
         }
         this.heartbeatManager.onBrokerHeartbeat(requestHeader.getClusterName(), requestHeader.getBrokerName(), requestHeader.getBrokerAddr(), requestHeader.getBrokerId(),
-            requestHeader.getHeartbeatTimeoutMills(), ctx.channel(), requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset(), requestHeader.getElectionPriority());
+                requestHeader.getHeartbeatTimeoutMills(), ctx.channel(), requestHeader.getEpoch(), requestHeader.getMaxOffset(), requestHeader.getConfirmOffset(), requestHeader.getElectionPriority());
         return RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "Heart beat success");
     }
 
     private RemotingCommand handleControllerGetSyncStateData(ChannelHandlerContext ctx,
-        RemotingCommand request) throws Exception {
+                                                             RemotingCommand request) throws Exception {
         if (request.getBody() != null) {
             final List<String> brokerNames = RemotingSerializable.decode(request.getBody(), List.class);
             if (brokerNames != null && brokerNames.size() > 0) {
@@ -280,10 +295,9 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 response.setRemark("string2Properties error");
                 return response;
             }
-
-            if (properties.containsKey("configStorePath")) {
+            if (validateBlackListConfigExist(properties)) {
                 response.setCode(ResponseCode.NO_PERMISSION);
-                response.setRemark("Can not update config path");
+                response.setRemark("Can not update config in black list.");
                 return response;
             }
 
@@ -319,5 +333,12 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     public boolean rejectRequest() {
         return false;
     }
-
+    private boolean validateBlackListConfigExist(Properties properties) {
+        for (String blackConfig : configBlackList) {
+            if (properties.containsKey(blackConfig)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -28,6 +28,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.mqtrace.SendMessageContext;
 import org.apache.rocketmq.common.AbortProcessException;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -47,6 +48,7 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
+import org.apache.rocketmq.common.utils.MessageUtils;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
@@ -106,6 +108,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 }
 
                 RemotingCommand response;
+                clearReservedProperties(requestHeader);
+
                 if (requestHeader.isBatch()) {
                     response = this.sendBatchMessage(ctx, request, sendMessageContext, requestHeader, mappingContext,
                         (ctx1, response1) -> executeSendMessageHookAfter(response1, ctx1));
@@ -129,6 +133,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         return false;
+    }
+
+    private void clearReservedProperties(SendMessageRequestHeader requestHeader) {
+        String properties = requestHeader.getProperties();
+        properties = MessageUtils.deleteProperty(properties, MessageConst.PROPERTY_POP_CK);
+        requestHeader.setProperties(properties);
     }
 
     /**
@@ -169,7 +179,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         MessageExt msg, TopicConfig topicConfig, Map<String, String> properties) {
         String newTopic = requestHeader.getTopic();
         if (null != newTopic && newTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-            String groupName = newTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+            String groupName = KeyBuilder.parseGroup(newTopic);
             SubscriptionGroupConfig subscriptionGroupConfig =
                 this.brokerController.getSubscriptionGroupManager().findSubscriptionGroupConfig(groupName);
             if (null == subscriptionGroupConfig) {

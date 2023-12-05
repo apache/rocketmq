@@ -99,6 +99,8 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int RPC_SEND_TO_CHANNEL_FAILED = -1004;
     public static final int RPC_TIME_OUT = -1006;
 
+    public static final int GO_AWAY = 1500;
+
     /**
      * Controller response code
      */

@@ -15,31 +15,37 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.protocol.header;
+package org.apache.rocketmq.tieredstore.common;
 
-import java.util.List;
-import org.apache.rocketmq.common.PlainAccessConfig;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import java.nio.ByteBuffer;
 
-public class GetBrokerClusterAclConfigResponseBody extends RemotingSerializable {
+public class SelectBufferResult {
 
-    private List<String> globalWhiteAddrs;
+    private final ByteBuffer byteBuffer;
+    private final long startOffset;
+    private final int size;
+    private final long tagCode;
 
-    private List<PlainAccessConfig> plainAccessConfigs;
-
-    public List<String> getGlobalWhiteAddrs() {
-        return globalWhiteAddrs;
+    public SelectBufferResult(ByteBuffer byteBuffer, long startOffset, int size, long tagCode) {
+        this.startOffset = startOffset;
+        this.byteBuffer = byteBuffer;
+        this.size = size;
+        this.tagCode = tagCode;
     }
 
-    public void setGlobalWhiteAddrs(List<String> globalWhiteAddrs) {
-        this.globalWhiteAddrs = globalWhiteAddrs;
+    public ByteBuffer getByteBuffer() {
+        return byteBuffer;
     }
 
-    public List<PlainAccessConfig> getPlainAccessConfigs() {
-        return plainAccessConfigs;
+    public long getStartOffset() {
+        return startOffset;
     }
 
-    public void setPlainAccessConfigs(List<PlainAccessConfig> plainAccessConfigs) {
-        this.plainAccessConfigs = plainAccessConfigs;
+    public int getSize() {
+        return size;
+    }
+
+    public long getTagCode() {
+        return tagCode;
     }
 }

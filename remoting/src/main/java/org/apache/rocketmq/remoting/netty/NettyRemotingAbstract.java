@@ -40,9 +40,11 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import org.apache.rocketmq.common.AbortProcessException;
+import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
@@ -60,6 +62,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_IS_LONG_POLLING;
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_REQUEST_CODE;
@@ -119,6 +122,8 @@ public abstract class NettyRemotingAbstract {
      * custom rpc hooks
      */
     protected List<RPCHook> rpcHooks = new ArrayList<>();
+
+    protected AtomicBoolean isShuttingDown = new AtomicBoolean(false);
 
     static {
         NettyLogger.initNettyLogger();
@@ -263,6 +268,16 @@ public abstract class NettyRemotingAbstract {
         }
 
         Runnable run = buildProcessRequestHandler(ctx, cmd, pair, opaque);
+
+        if (isShuttingDown.get()) {
+            if (cmd.getVersion() > MQVersion.Version.V5_1_4.ordinal()) {
+                final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.GO_AWAY,
+                    "please go away");
+                response.setOpaque(opaque);
+                writeResponse(ctx.channel(), cmd, response);
+                return;
+            }
+        }
 
         if (pair.getObject1().rejectRequest()) {
             final RemotingCommand response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_BUSY,
@@ -685,6 +700,9 @@ public abstract class NettyRemotingAbstract {
                                 break;
                             case EXCEPTION:
                                 listener.onChannelException(event.getRemoteAddr(), event.getChannel());
+                                break;
+                            case ACTIVE:
+                                listener.onChannelActive(event.getRemoteAddr(), event.getChannel());
                                 break;
                             default:
                                 break;

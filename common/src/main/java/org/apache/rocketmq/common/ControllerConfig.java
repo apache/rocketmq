@@ -87,6 +87,21 @@ public class ControllerConfig {
 
     private boolean metricsInDelta = false;
 
+    /**
+     * Config in this black list will be not allowed to update by command.
+     * Try to update this config black list by restart process.
+     * Try to update configures in black list by restart process.
+     */
+    private String configBlackList = "configBlackList;configStorePath";
+
+    public String getConfigBlackList() {
+        return configBlackList;
+    }
+
+    public void setConfigBlackList(String configBlackList) {
+        this.configBlackList = configBlackList;
+    }
+
     public String getRocketmqHome() {
         return rocketmqHome;
     }

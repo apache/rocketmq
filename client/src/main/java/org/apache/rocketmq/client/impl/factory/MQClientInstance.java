@@ -159,14 +159,6 @@ public class MQClientInstance {
                 private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = MQClientInstance.this.brokerAddrTable;
                 @Override
                 public void onChannelConnect(String remoteAddr, Channel channel) {
-                    for (Map.Entry<String, HashMap<Long, String>> addressEntry : brokerAddrTable.entrySet()) {
-                        for (String address : addressEntry.getValue().values()) {
-                            if (address.equals(remoteAddr)) {
-                                sendHeartbeatToAllBrokerWithLockV2(false);
-                                break;
-                            }
-                        }
-                    }
                 }
 
                 @Override
@@ -179,6 +171,18 @@ public class MQClientInstance {
 
                 @Override
                 public void onChannelIdle(String remoteAddr, Channel channel) {
+                }
+
+                @Override
+                public void onChannelActive(String remoteAddr, Channel channel) {
+                    for (Map.Entry<String, HashMap<Long, String>> addressEntry : brokerAddrTable.entrySet()) {
+                        for (String address : addressEntry.getValue().values()) {
+                            if (address.equals(remoteAddr)) {
+                                sendHeartbeatToAllBrokerWithLockV2(false);
+                                break;
+                            }
+                        }
+                    }
                 }
             };
         } else {

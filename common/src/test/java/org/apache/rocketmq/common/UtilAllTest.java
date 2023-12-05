@@ -26,7 +26,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
@@ -34,6 +37,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class UtilAllTest {
+    @Rule
+    public TemporaryFolder tempDir = new TemporaryFolder();
 
     @Test
     public void testCurrentStackTrace() {
@@ -210,18 +215,9 @@ public class UtilAllTest {
     @Test
     public void testCleanBuffer() {
         UtilAll.cleanBuffer(null);
+        UtilAll.cleanBuffer(ByteBuffer.allocateDirect(10));
+        UtilAll.cleanBuffer(ByteBuffer.allocateDirect(0));
         UtilAll.cleanBuffer(ByteBuffer.allocate(10));
-        UtilAll.cleanBuffer(ByteBuffer.allocate(0));
-    }
-
-    @Test(expected = NoSuchMethodException.class)
-    public void testMethod() throws NoSuchMethodException {
-        UtilAll.method(new Object(), "noMethod", null);
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testInvoke() throws Exception {
-        UtilAll.invoke(new Object(), "noMethod");
     }
 
     @Test
@@ -236,13 +232,10 @@ public class UtilAllTest {
          *          - file_1_2_0
          *  - dir_2
          */
-        String basePath = System.getProperty("java.io.tmpdir") + File.separator + "testCalculateFileSizeInPath";
-        File baseFile = new File(basePath);
+        File baseFile = tempDir.getRoot();
+
         // test empty path
         assertEquals(0, UtilAll.calculateFileSizeInPath(baseFile));
-
-        // create baseDir
-        assertTrue(baseFile.mkdirs());
 
         File file0 = new File(baseFile, "file_0");
         assertTrue(file0.createNewFile());
@@ -270,9 +263,6 @@ public class UtilAllTest {
         writeFixedBytesToFile(file120, 1313);
 
         assertEquals(1313 * 4, UtilAll.calculateFileSizeInPath(baseFile));
-
-        // clear all file
-        baseFile.deleteOnExit();
     }
 
     private void writeFixedBytesToFile(File file, int size) throws Exception {

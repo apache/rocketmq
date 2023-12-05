@@ -144,6 +144,16 @@ public class PopLongPollingService extends ServiceThread {
         }
     }
 
+    public void notifyMessageArrivingWithRetryTopic(final String topic, final int queueId) {
+        String notifyTopic;
+        if (KeyBuilder.isPopRetryTopicV2(topic)) {
+            notifyTopic = KeyBuilder.parseNormalTopic(topic);
+        } else {
+            notifyTopic = topic;
+        }
+        notifyMessageArriving(notifyTopic, queueId);
+    }
+
     public void notifyMessageArriving(final String topic, final int queueId) {
         ConcurrentHashMap<String, Byte> cids = topicCidMap.get(topic);
         if (cids == null) {

@@ -37,7 +37,6 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
-import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
@@ -62,8 +61,6 @@ import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
-import org.apache.rocketmq.remoting.protocol.header.GetBrokerClusterAclConfigResponseBody;
-import org.apache.rocketmq.remoting.protocol.header.GetBrokerClusterAclConfigResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseBody;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeResponseHeader;
@@ -698,30 +695,6 @@ public class MQClientAPIImplTest {
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
         mqClientAPI.createTopic(brokerAddr, topic, new TopicConfig(), 10000);
-    }
-
-    @Test
-    public void testGetBrokerClusterConfig() throws Exception {
-        doAnswer(new Answer<RemotingCommand>() {
-            @Override
-            public RemotingCommand answer(InvocationOnMock mock) {
-                RemotingCommand request = mock.getArgument(1);
-
-                RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerClusterAclConfigResponseHeader.class);
-                GetBrokerClusterAclConfigResponseBody body = new GetBrokerClusterAclConfigResponseBody();
-                body.setGlobalWhiteAddrs(Collections.singletonList("1.1.1.1"));
-                body.setPlainAccessConfigs(Collections.singletonList(new PlainAccessConfig()));
-                response.setBody(body.encode());
-                response.makeCustomHeaderToNet();
-                response.setCode(ResponseCode.SUCCESS);
-                response.setOpaque(request.getOpaque());
-                return response;
-            }
-        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
-
-        AclConfig aclConfig = mqClientAPI.getBrokerClusterConfig(brokerAddr, 10000);
-        assertThat(aclConfig.getPlainAccessConfigs()).size().isGreaterThan(0);
-        assertThat(aclConfig.getGlobalWhiteAddrs()).size().isGreaterThan(0);
     }
 
     @Test
