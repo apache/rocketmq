@@ -67,7 +67,7 @@ import java.util.concurrent.CompletableFuture;
 public class JRaftController implements Controller {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
     private final RaftGroupService raftGroupService;
-    private final Node node;
+    private Node node;
     private final JRaftControllerStateMachine stateMachine;
     private final ControllerConfig controllerConfig;
     private final List<BrokerLifecycleListener> brokerLifecycleListeners;
@@ -110,8 +110,6 @@ public class JRaftController implements Controller {
         NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(Integer.parseInt(this.peerIdToAddr.get(serverId).split(":")[1]));
         remotingServer = new NettyRemotingServer(nettyServerConfig, channelEventListener);
-
-        this.node = this.raftGroupService.start();
     }
 
     private void initPeerIdMap() {
@@ -129,6 +127,7 @@ public class JRaftController implements Controller {
     @Override
     public void startup() {
         this.remotingServer.start();
+        this.node = this.raftGroupService.start();
         log.info("Controller {} started.", node.getNodeId());
     }
 
