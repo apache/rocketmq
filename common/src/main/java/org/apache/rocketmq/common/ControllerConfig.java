@@ -49,7 +49,7 @@ public class ControllerConfig {
     private String controllerDLegerPeers;
     private String controllerDLegerSelfId;
     private int mappedFileSize = 1024 * 1024 * 1024;
-    private String controllerStorePath = System.getProperty("user.home") + File.separator + controllerType + "Controller";
+    private String controllerStorePath = "";
 
     /**
      * Whether the controller can elect a master which is not in the syncStateSet.
@@ -160,6 +160,9 @@ public class ControllerConfig {
     }
 
     public String getControllerStorePath() {
+        if (controllerStorePath.isEmpty()) {
+            controllerStorePath = System.getProperty("user.home") + File.separator + controllerType + "Controller";
+        }
         return controllerStorePath;
     }
 
