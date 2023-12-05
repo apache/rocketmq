@@ -25,6 +25,9 @@ public class ControllerConfig {
     private String configStorePath = System.getProperty("user.home") + File.separator + "controller" + File.separator + "controller.properties";
     public static final String DLEDGER_CONTROLLER = "DLedger";
     public static final String JRAFT_CONTROLLER = "jRaft";
+
+    private JraftConfig jraftConfig = new JraftConfig();
+
     private String controllerType = DLEDGER_CONTROLLER;
     /**
      * Interval of periodic scanning for non-active broker;
@@ -67,13 +70,6 @@ public class ControllerConfig {
      * Unit: millisecond
      */
     private long scanInactiveMasterInterval = 5 * 1000;
-
-    private int jRaftElectionTimeoutMs = 1000;
-    private int jRaftSnapshotIntervalSecs = 3600;
-    private String jRaftGroupId = "jRaft-Controller";
-    private String jRaftServerId = "localhost:9880";
-    private String jRaftInitConf = "localhost:9880,localhost:9881,localhost:9882";
-    private String jRaftControllerRPCAddr = "localhost:9770,localhost:9771,localhost:9772";
 
     private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
 
@@ -209,10 +205,6 @@ public class ControllerConfig {
             .map(x -> x.split("-")[1]).findFirst().get();
     }
 
-    public String getJRaftAddress() {
-        return jRaftServerId;
-    }
-
     public MetricsExporterType getMetricsExporterType() {
         return metricsExporterType;
     }
@@ -301,51 +293,11 @@ public class ControllerConfig {
         this.controllerType = controllerType;
     }
 
-    public int getjRaftElectionTimeoutMs() {
-        return jRaftElectionTimeoutMs;
+    public JraftConfig getJraftConfig() {
+        return jraftConfig;
     }
 
-    public void setjRaftElectionTimeoutMs(int jRaftElectionTimeoutMs) {
-        this.jRaftElectionTimeoutMs = jRaftElectionTimeoutMs;
-    }
-
-    public int getjRaftSnapshotIntervalSecs() {
-        return jRaftSnapshotIntervalSecs;
-    }
-
-    public void setjRaftSnapshotIntervalSecs(int jRaftSnapshotIntervalSecs) {
-        this.jRaftSnapshotIntervalSecs = jRaftSnapshotIntervalSecs;
-    }
-
-    public String getjRaftGroupId() {
-        return jRaftGroupId;
-    }
-
-    public void setjRaftGroupId(String jRaftGroupId) {
-        this.jRaftGroupId = jRaftGroupId;
-    }
-
-    public String getjRaftServerId() {
-        return jRaftServerId;
-    }
-
-    public void setjRaftServerId(String jRaftServerId) {
-        this.jRaftServerId = jRaftServerId;
-    }
-
-    public String getjRaftInitConf() {
-        return jRaftInitConf;
-    }
-
-    public void setjRaftInitConf(String jRaftInitConf) {
-        this.jRaftInitConf = jRaftInitConf;
-    }
-
-    public String getjRaftControllerRPCAddr() {
-        return jRaftControllerRPCAddr;
-    }
-
-    public void setjRaftControllerRPCAddr(String jRaftControllerRPCAddr) {
-        this.jRaftControllerRPCAddr = jRaftControllerRPCAddr;
+    public void setJraftConfig(JraftConfig jraftConfig) {
+        this.jraftConfig = jraftConfig;
     }
 }

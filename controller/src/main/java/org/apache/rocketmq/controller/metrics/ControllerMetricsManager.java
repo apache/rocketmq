@@ -167,9 +167,9 @@ public class ControllerMetricsManager {
         this.controllerManager = controllerManager;
         this.config = this.controllerManager.getControllerConfig();
         if (config.getControllerType().equals(ControllerConfig.JRAFT_CONTROLLER)) {
-            this.LABEL_MAP.put(LABEL_ADDRESS, this.config.getJRaftAddress());
-            this.LABEL_MAP.put(LABEL_GROUP, this.config.getjRaftGroupId());
-            this.LABEL_MAP.put(LABEL_PEER_ID, this.config.getjRaftServerId());
+            this.LABEL_MAP.put(LABEL_ADDRESS, this.config.getJraftConfig().getjRaftAddress());
+            this.LABEL_MAP.put(LABEL_GROUP, this.config.getJraftConfig().getjRaftGroupId());
+            this.LABEL_MAP.put(LABEL_PEER_ID, this.config.getJraftConfig().getjRaftServerId());
         } else {
             this.LABEL_MAP.put(LABEL_ADDRESS, this.config.getDLedgerAddress());
             this.LABEL_MAP.put(LABEL_GROUP, this.config.getControllerDLegerGroup());

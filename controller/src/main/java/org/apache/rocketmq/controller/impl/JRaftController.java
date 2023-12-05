@@ -80,15 +80,15 @@ public class JRaftController implements Controller {
         this.brokerLifecycleListeners = new ArrayList<>();
 
         final NodeOptions nodeOptions = new NodeOptions();
-        nodeOptions.setElectionTimeoutMs(controllerConfig.getjRaftElectionTimeoutMs());
-        nodeOptions.setSnapshotIntervalSecs(controllerConfig.getjRaftSnapshotIntervalSecs());
+        nodeOptions.setElectionTimeoutMs(controllerConfig.getJraftConfig().getjRaftElectionTimeoutMs());
+        nodeOptions.setSnapshotIntervalSecs(controllerConfig.getJraftConfig().getjRaftSnapshotIntervalSecs());
         final PeerId serverId = new PeerId();
-        if (!serverId.parse(controllerConfig.getjRaftServerId())) {
-            throw new IllegalArgumentException("Fail to parse serverId:" + controllerConfig.getjRaftServerId());
+        if (!serverId.parse(controllerConfig.getJraftConfig().getjRaftServerId())) {
+            throw new IllegalArgumentException("Fail to parse serverId:" + controllerConfig.getJraftConfig().getjRaftServerId());
         }
         final Configuration initConf = new Configuration();
-        if (!initConf.parse(controllerConfig.getjRaftInitConf())) {
-            throw new IllegalArgumentException("Fail to parse initConf:" + controllerConfig.getjRaftInitConf());
+        if (!initConf.parse(controllerConfig.getJraftConfig().getjRaftInitConf())) {
+            throw new IllegalArgumentException("Fail to parse initConf:" + controllerConfig.getJraftConfig().getjRaftInitConf());
         }
         nodeOptions.setInitialConf(initConf);
 
@@ -97,12 +97,12 @@ public class JRaftController implements Controller {
         nodeOptions.setRaftMetaUri(controllerConfig.getControllerStorePath() + File.separator + "raft_meta");
         nodeOptions.setSnapshotUri(controllerConfig.getControllerStorePath() + File.separator + "snapshot");
 
-        this.stateMachine = new JRaftControllerStateMachine(controllerConfig, new NodeId(controllerConfig.getjRaftGroupId(), serverId));
+        this.stateMachine = new JRaftControllerStateMachine(controllerConfig, new NodeId(controllerConfig.getJraftConfig().getjRaftGroupId(), serverId));
         this.stateMachine.registerOnLeaderStart(this::onLeaderStart);
         this.stateMachine.registerOnLeaderStop(this::onLeaderStop);
         nodeOptions.setFsm(this.stateMachine);
 
-        this.raftGroupService = new RaftGroupService(controllerConfig.getjRaftGroupId(), serverId, nodeOptions);
+        this.raftGroupService = new RaftGroupService(controllerConfig.getJraftConfig().getjRaftGroupId(), serverId, nodeOptions);
 
         this.peerIdToAddr = new HashMap<>();
         initPeerIdMap();
@@ -113,8 +113,8 @@ public class JRaftController implements Controller {
     }
 
     private void initPeerIdMap() {
-        String[] peers = this.controllerConfig.getjRaftInitConf().split(",");
-        String[] rpcAddrs = this.controllerConfig.getjRaftControllerRPCAddr().split(",");
+        String[] peers = this.controllerConfig.getJraftConfig().getjRaftInitConf().split(",");
+        String[] rpcAddrs = this.controllerConfig.getJraftConfig().getjRaftControllerRPCAddr().split(",");
         for (int i = 0; i < peers.length; i++) {
             PeerId peerId = new PeerId();
             if (!peerId.parse(peers[i])) {

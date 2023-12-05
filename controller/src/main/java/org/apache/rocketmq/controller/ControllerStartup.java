@@ -22,6 +22,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.JraftConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -75,6 +76,8 @@ public class ControllerStartup {
         }
 
         final ControllerConfig controllerConfig = new ControllerConfig();
+        final JraftConfig jraftConfig = new JraftConfig();
+        controllerConfig.setJraftConfig(jraftConfig);
         final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         final NettyClientConfig nettyClientConfig = new NettyClientConfig();
         nettyServerConfig.setListenPort(19876);
@@ -86,6 +89,7 @@ public class ControllerStartup {
                 properties = new Properties();
                 properties.load(in);
                 MixAll.properties2Object(properties, controllerConfig);
+                MixAll.properties2Object(properties, jraftConfig);
                 MixAll.properties2Object(properties, nettyServerConfig);
                 MixAll.properties2Object(properties, nettyClientConfig);
 
@@ -96,6 +100,7 @@ public class ControllerStartup {
 
         if (commandLine.hasOption('p')) {
             MixAll.printObjectProperties(null, controllerConfig);
+            MixAll.printObjectProperties(null, jraftConfig);
             MixAll.printObjectProperties(null, nettyServerConfig);
             MixAll.printObjectProperties(null, nettyClientConfig);
             System.exit(0);

@@ -100,10 +100,10 @@ public class ControllerManager {
         this.notifyService.initialize();
 
         if (controllerConfig.getControllerType().equals(ControllerConfig.JRAFT_CONTROLLER)) {
-            if (StringUtils.isEmpty(this.controllerConfig.getjRaftInitConf())) {
+            if (StringUtils.isEmpty(this.controllerConfig.getJraftConfig().getjRaftInitConf())) {
                 throw new IllegalArgumentException("Attribute value jRaftInitConf of ControllerConfig is null or empty");
             }
-            if (StringUtils.isEmpty(this.controllerConfig.getjRaftServerId())) {
+            if (StringUtils.isEmpty(this.controllerConfig.getJraftConfig().getjRaftServerId())) {
                 throw new IllegalArgumentException("Attribute value jRaftServerId of ControllerConfig is null or empty");
             }
             try {
