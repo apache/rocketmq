@@ -117,7 +117,7 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         CompletableFuture<RemotingCommand> future = controller.onBrokerHeartBeat(requestHeader);
         try {
             RemotingCommand remotingCommand = future.get(5, java.util.concurrent.TimeUnit.SECONDS);
-            if (remotingCommand.getCode() != ResponseCode.SUCCESS) {
+            if (remotingCommand.getCode() != ResponseCode.SUCCESS && remotingCommand.getCode() != ResponseCode.CONTROLLER_NOT_LEADER) {
                 throw new RuntimeException("on broker heartbeat return invalid code, code: " + remotingCommand.getCode());
             }
         } catch (ExecutionException | InterruptedException | TimeoutException | RuntimeException e) {
