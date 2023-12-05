@@ -65,6 +65,32 @@
         <discardingThreshold>0</discardingThreshold>
     </appender>
 
+    <appender name="JRaftAppender_inner"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}jraft.log</file>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+            <fileNamePattern>
+                ${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}jraft.%i.log.gz
+            </fileNamePattern>
+            <minIndex>1</minIndex>
+            <maxIndex>5</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy
+            class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+            <maxFileSize>100MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %p %t - %m%n</pattern>
+            <charset class="java.nio.charset.Charset">UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <appender name="JRaftAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="JRaftAppender_inner"/>
+        <discardingThreshold>0</discardingThreshold>
+    </appender>
+
     <appender name="RocketmqTrafficAppender_inner"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}controller_traffic.log
@@ -136,6 +162,10 @@
 
     <logger name="io.openmessaging.storage.dledger" additivity="false" level="INFO">
         <appender-ref ref="DLedgerAppender"/>
+    </logger>
+
+    <logger name="com.alipay.sofa.jraft" additivity="false" level="INFO">
+        <appender-ref ref="JRaftAppender"/>
     </logger>
 
     <logger name="RocketmqControllerConsole" additivity="false" level="INFO">
