@@ -52,6 +52,12 @@ public class ControllerConfig {
     private String controllerStorePath = "";
 
     /**
+     * Max retry count for electing master when failed because of network or system error.
+     */
+    private int electMasterMaxRetryCount = 3;
+
+
+    /**
      * Whether the controller can elect a master which is not in the syncStateSet.
      */
     private boolean enableElectUncleanMaster = false;
@@ -317,5 +323,13 @@ public class ControllerConfig {
 
     public void setJraftConfig(JraftConfig jraftConfig) {
         this.jraftConfig = jraftConfig;
+    }
+
+    public int getElectMasterMaxRetryCount() {
+        return this.electMasterMaxRetryCount;
+    }
+
+    public void setElectMasterMaxRetryCount(int electMasterMaxRetryCount) {
+        this.electMasterMaxRetryCount = electMasterMaxRetryCount;
     }
 }

@@ -27,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.Pair;
@@ -172,17 +173,35 @@ public class ControllerManager {
         }
     }
 
-    private void triggerElectMaster(String brokerName) {
+    private CompletableFuture<Boolean> triggerElectMaster0(String brokerName) {
         final CompletableFuture<RemotingCommand> electMasterFuture = controller.electMaster(ElectMasterRequestHeader.ofControllerTrigger(brokerName));
-        electMasterFuture.whenCompleteAsync((electMasterResponse, err) -> {
-            if (err != null || electMasterResponse == null) {
+        return electMasterFuture.handleAsync((electMasterResponse, err) -> {
+            if (err != null || electMasterResponse == null || electMasterResponse.getCode() != ResponseCode.SUCCESS) {
                 log.error("Failed to trigger elect-master in broker-set: {}", brokerName, err);
-                return;
+                return false;
             }
             if (electMasterResponse.getCode() == ResponseCode.SUCCESS) {
                 log.info("Elect a new master in broker-set: {} done, result: {}", brokerName, electMasterResponse);
                 if (controllerConfig.isNotifyBrokerRoleChanged()) {
                     notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(electMasterResponse));
+                }
+                return true;
+            }
+            //default is false
+            return false;
+        });
+    }
+
+    private void triggerElectMaster(String brokerName) {
+        int maxRetryCount = controllerConfig.getElectMasterMaxRetryCount();
+        AtomicInteger retryCount = new AtomicInteger();
+        triggerElectMaster0(brokerName).thenAcceptAsync((result) -> {
+            if (!result) {
+                retryCount.getAndIncrement();
+                if (retryCount.get() < maxRetryCount) {
+                    triggerElectMaster(brokerName);
+                } else {
+                    log.error("Failed to trigger elect-master in broker-set: {} after {} times retry", brokerName, maxRetryCount);
                 }
             }
         });
