@@ -195,7 +195,7 @@ public class ControllerManager {
     private void triggerElectMaster(String brokerName) {
         int maxRetryCount = controllerConfig.getElectMasterMaxRetryCount();
         AtomicInteger retryCount = new AtomicInteger();
-        triggerElectMaster0(brokerName).thenAcceptAsync((result) -> {
+        triggerElectMaster0(brokerName).thenAcceptAsync(result -> {
             if (!result) {
                 retryCount.getAndIncrement();
                 if (retryCount.get() < maxRetryCount) {

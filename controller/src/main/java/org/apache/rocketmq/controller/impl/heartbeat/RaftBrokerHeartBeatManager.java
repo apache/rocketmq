@@ -60,6 +60,11 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
 
     private final Map<Channel, BrokerIdentityInfo> brokerChannelIdentityInfoMap = new HashMap<>();
 
+
+    // resolve the scene
+    // when controller all down and startup again, we wait for some time to avoid electing a new leader,which is not necessary
+    private long firstReceivedHeartbeatTime = -1;
+
     public RaftBrokerHeartBeatManager(ControllerConfig controllerConfig) {
         this.scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RaftBrokerHeartbeatManager_scheduledService_"));
         this.executor = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("RaftBrokerHeartbeatManager_executorService_"));
@@ -95,6 +100,11 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
     public void onBrokerHeartbeat(String clusterName, String brokerName, String brokerAddr, Long brokerId,
         Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset,
         Integer electionPriority) {
+
+        if (firstReceivedHeartbeatTime == -1) {
+            firstReceivedHeartbeatTime = System.currentTimeMillis();
+        }
+
         BrokerIdentityInfo brokerIdentityInfo = new BrokerIdentityInfo(clusterName, brokerName, brokerId);
         int realEpoch = Optional.ofNullable(epoch).orElse(-1);
         long realBrokerId = Optional.ofNullable(brokerId).orElse(-1L);
@@ -176,6 +186,13 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
             log.info("current node is not leader, skip scan not active broker");
             return;
         }
+
+        // if has not received any heartbeat from broker, we do not need to scan
+        if (this.firstReceivedHeartbeatTime + controllerConfig.getJraftConfig().getjRaftScanWaitTimeoutMs() < System.currentTimeMillis()) {
+            log.info("has not received any heartbeat from broker, skip scan not active broker");
+            return;
+        }
+
         log.info("start scan not active broker");
         CheckNotActiveBrokerRequest requestHeader = new CheckNotActiveBrokerRequest();
         CompletableFuture<RemotingCommand> future = this.controller.checkNotActiveBroker(requestHeader);
