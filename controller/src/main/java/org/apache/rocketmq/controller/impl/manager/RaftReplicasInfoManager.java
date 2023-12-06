@@ -132,6 +132,8 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
         Set<String> alreadyReportedBrokerName = notActiveBrokerIdentityInfoList.stream()
             .map(BrokerIdentityInfo::getBrokerName)
             .collect(Collectors.toSet());
+        // avoid to duplicate report, filter by name,
+        // because BrokerIdentityInfo in needReElectBrokerNames does not have brokerId or clusterName
         notActiveBrokerIdentityInfoList.addAll(needReElectBrokerNames.stream()
             .filter(brokerName -> !alreadyReportedBrokerName.contains(brokerName))
             .map(brokerName -> new BrokerIdentityInfo(null, brokerName, null))
