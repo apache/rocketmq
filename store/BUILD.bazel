@@ -71,7 +71,6 @@ GenTestRules(
     exclude_tests = [
         # These tests are extremely slow and flaky, exclude them before they are properly fixed.
         "src/test/java/org/apache/rocketmq/store/ha/autoswitch/AutoSwitchHATest",
-      # "src/test/java/org/apache/rocketmq/store/RocksDBMessageStoreTest",
     ],
     medium_tests = [
         "src/test/java/org/apache/rocketmq/store/DefaultMessageStoreTest",
