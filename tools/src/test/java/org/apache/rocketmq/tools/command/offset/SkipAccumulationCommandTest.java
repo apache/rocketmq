@@ -39,20 +39,20 @@ public class SkipAccumulationCommandTest {
     private static DefaultMQAdminExt defaultMQAdminExt;
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
-    private static MQClientAPIImpl mQClientAPIImpl;
+    private static MQClientAPIImpl mqClientAPIImpl;
 
     @BeforeClass
     public static void init() throws Exception {
-        mQClientAPIImpl = mock(MQClientAPIImpl.class);
+        mqClientAPIImpl = mock(MQClientAPIImpl.class);
         defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
 
         Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
         field.setAccessible(true);
         field.set(defaultMQAdminExtImpl, mqClientInstance);
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mqClientInstance, mQClientAPIImpl);
+        field.set(mqClientInstance, mqClientAPIImpl);
         field = DefaultMQAdminExt.class.getDeclaredField("defaultMQAdminExtImpl");
         field.setAccessible(true);
         field.set(defaultMQAdminExt, defaultMQAdminExtImpl);

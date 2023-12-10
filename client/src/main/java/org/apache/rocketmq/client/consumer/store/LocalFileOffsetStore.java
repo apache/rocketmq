@@ -44,17 +44,17 @@ public class LocalFileOffsetStore implements OffsetStore {
         "rocketmq.client.localOffsetStoreDir",
         System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
     private final static Logger log = LoggerFactory.getLogger(LocalFileOffsetStore.class);
-    private final MQClientInstance mQClientFactory;
+    private final MQClientInstance mqClientFactory;
     private final String groupName;
     private final String storePath;
     private ConcurrentMap<MessageQueue, AtomicLong> offsetTable =
         new ConcurrentHashMap<>();
 
-    public LocalFileOffsetStore(MQClientInstance mQClientFactory, String groupName) {
-        this.mQClientFactory = mQClientFactory;
+    public LocalFileOffsetStore(MQClientInstance mqClientFactory, String groupName) {
+        this.mqClientFactory = mqClientFactory;
         this.groupName = groupName;
         this.storePath = LOCAL_OFFSET_STORE_DIR + File.separator +
-            this.mQClientFactory.getClientId() + File.separator +
+            this.mqClientFactory.getClientId() + File.separator +
             this.groupName + File.separator +
             "offsets.json";
     }

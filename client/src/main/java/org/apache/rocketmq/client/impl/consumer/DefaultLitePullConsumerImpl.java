@@ -88,7 +88,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private volatile ServiceState serviceState = ServiceState.CREATE_JUST;
 
-    protected MQClientInstance mQClientFactory;
+    protected MQClientInstance mqClientFactory;
 
     private PullAPIWrapper pullAPIWrapper;
 
@@ -208,7 +208,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     public void updateNameServerAddr(String newAddresses) {
-        this.mQClientFactory.getMQClientAPIImpl().updateNameServerAddressList(newAddresses);
+        this.mqClientFactory.getMQClientAPIImpl().updateNameServerAddressList(newAddresses);
     }
 
     private synchronized void setSubscriptionType(SubscriptionType type) {
@@ -266,10 +266,10 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 break;
             case RUNNING:
                 persistConsumerOffset();
-                this.mQClientFactory.unregisterConsumer(this.defaultLitePullConsumer.getConsumerGroup());
+                this.mqClientFactory.unregisterConsumer(this.defaultLitePullConsumer.getConsumerGroup());
                 scheduledThreadPoolExecutor.shutdown();
                 scheduledExecutorService.shutdown();
-                this.mQClientFactory.shutdown();
+                this.mqClientFactory.shutdown();
                 this.serviceState = ServiceState.SHUTDOWN_ALREADY;
                 log.info("the consumer [{}] shutdown OK", this.defaultLitePullConsumer.getConsumerGroup());
                 break;
@@ -301,7 +301,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 initOffsetStore();
 
-                mQClientFactory.start();
+                mqClientFactory.start();
 
                 startScheduleTask();
 
@@ -325,8 +325,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     }
 
     private void initMQClientFactory() throws MQClientException {
-        this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultLitePullConsumer, this.rpcHook);
-        boolean registerOK = mQClientFactory.registerConsumer(this.defaultLitePullConsumer.getConsumerGroup(), this);
+        this.mqClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultLitePullConsumer, this.rpcHook);
+        boolean registerOK = mqClientFactory.registerConsumer(this.defaultLitePullConsumer.getConsumerGroup(), this);
         if (!registerOK) {
             this.serviceState = ServiceState.CREATE_JUST;
 
@@ -340,12 +340,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         this.rebalanceImpl.setConsumerGroup(this.defaultLitePullConsumer.getConsumerGroup());
         this.rebalanceImpl.setMessageModel(this.defaultLitePullConsumer.getMessageModel());
         this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultLitePullConsumer.getAllocateMessageQueueStrategy());
-        this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
+        this.rebalanceImpl.setMQClientFactory(this.mqClientFactory);
     }
 
     private void initPullAPIWrapper() {
         this.pullAPIWrapper = new PullAPIWrapper(
-            mQClientFactory,
+                mqClientFactory,
             this.defaultLitePullConsumer.getConsumerGroup(), isUnitMode());
         this.pullAPIWrapper.registerFilterMessageHook(filterMessageHookList);
     }
@@ -356,10 +356,10 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         } else {
             switch (this.defaultLitePullConsumer.getMessageModel()) {
                 case BROADCASTING:
-                    this.offsetStore = new LocalFileOffsetStore(this.mQClientFactory, this.defaultLitePullConsumer.getConsumerGroup());
+                    this.offsetStore = new LocalFileOffsetStore(this.mqClientFactory, this.defaultLitePullConsumer.getConsumerGroup());
                     break;
                 case CLUSTERING:
-                    this.offsetStore = new RemoteBrokerOffsetStore(this.mQClientFactory, this.defaultLitePullConsumer.getConsumerGroup());
+                    this.offsetStore = new RemoteBrokerOffsetStore(this.mqClientFactory, this.defaultLitePullConsumer.getConsumerGroup());
                     break;
                 default:
                     break;
@@ -397,7 +397,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             Set<MessageQueue> messageQueues = fetchMessageQueues(topic);
             messageQueuesForTopic.put(topic, messageQueues);
         }
-        this.mQClientFactory.checkClientInBroker();
+        this.mqClientFactory.checkClientInBroker();
     }
 
     private void checkConfig() throws MQClientException {
@@ -473,7 +473,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
-                this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
+                this.mqClientFactory.updateTopicRouteInfoFromNameServer(topic);
             }
         }
     }
@@ -506,7 +506,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             });
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+                this.mqClientFactory.sendHeartbeatToAllBrokerWithLock();
                 updateTopicSubscribeInfoWhenSubscriptionChanged();
             }
         } catch (Exception e) {
@@ -525,7 +525,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+                this.mqClientFactory.sendHeartbeatToAllBrokerWithLock();
                 updateTopicSubscribeInfoWhenSubscriptionChanged();
             }
         } catch (Exception e) {
@@ -549,7 +549,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             this.defaultLitePullConsumer.setMessageQueueListener(new MessageQueueListenerImpl());
             assignedMessageQueue.setRebalanceImpl(this.rebalanceImpl);
             if (serviceState == ServiceState.RUNNING) {
-                this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
+                this.mqClientFactory.sendHeartbeatToAllBrokerWithLock();
                 updateTopicSubscribeInfoWhenSubscriptionChanged();
             }
         } catch (Exception e) {
@@ -696,12 +696,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     private long maxOffset(MessageQueue messageQueue) throws MQClientException {
         checkServiceState();
-        return this.mQClientFactory.getMQAdminImpl().maxOffset(messageQueue);
+        return this.mqClientFactory.getMQAdminImpl().maxOffset(messageQueue);
     }
 
     private long minOffset(MessageQueue messageQueue) throws MQClientException {
         checkServiceState();
-        return this.mQClientFactory.getMQAdminImpl().minOffset(messageQueue);
+        return this.mqClientFactory.getMQAdminImpl().minOffset(messageQueue);
     }
 
     private void removePullTaskCallback(final String topic) {
@@ -854,7 +854,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
         checkServiceState();
-        return this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
+        return this.mqClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
     }
 
     public class PullTaskImpl implements Runnable {
@@ -1202,7 +1202,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
     public Set<MessageQueue> fetchMessageQueues(String topic) throws MQClientException {
         checkServiceState();
-        Set<MessageQueue> result = this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
+        Set<MessageQueue> result = this.mqClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
         return parseMessageQueues(result);
     }
 

@@ -46,7 +46,7 @@ public class RebalanceLitePullImplTest {
     public RebalanceLitePullImplTest() {
         when(consumerImpl.getDefaultLitePullConsumer()).thenReturn(consumer);
         when(consumerImpl.getOffsetStore()).thenReturn(offsetStore);
-        rebalanceImpl.setmQClientFactory(client);
+        rebalanceImpl.setMQClientFactory(client);
         when(client.getMQAdminImpl()).thenReturn(admin);
     }
 

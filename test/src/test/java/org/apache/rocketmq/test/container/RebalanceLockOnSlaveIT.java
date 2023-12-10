@@ -97,8 +97,8 @@ public class RebalanceLockOnSlaveIT extends ContainerIntegrationTestBase {
 
         isolateBroker(master3With3Replicas);
 
-        mqConsumerThreeReplica3.getDefaultMQPushConsumerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
-        FindBrokerResult result = mqConsumerThreeReplica3.getDefaultMQPushConsumerImpl().getmQClientFactory().findBrokerAddressInSubscribe(
+        mqConsumerThreeReplica3.getDefaultMQPushConsumerImpl().getMQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
+        FindBrokerResult result = mqConsumerThreeReplica3.getDefaultMQPushConsumerImpl().getMQClientFactory().findBrokerAddressInSubscribe(
             master3With3Replicas.getBrokerConfig().getBrokerName(), MixAll.MASTER_ID, true);
         assertThat(result).isNotNull();
 
@@ -111,7 +111,7 @@ public class RebalanceLockOnSlaveIT extends ContainerIntegrationTestBase {
         removeSlaveBroker(1, brokerContainer1, master3With3Replicas);
         assertThat(brokerContainer1.getSlaveBrokers().size()).isEqualTo(1);
 
-        mqConsumerThreeReplica3.getDefaultMQPushConsumerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
+        mqConsumerThreeReplica3.getDefaultMQPushConsumerImpl().getMQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
 
         for (MessageQueue mq : mqSet) {
             if (mq.getBrokerName().equals(master3With3Replicas.getBrokerConfig().getBrokerName())) {
@@ -151,15 +151,15 @@ public class RebalanceLockOnSlaveIT extends ContainerIntegrationTestBase {
 
         Thread.sleep(5000);
 
-        mqConsumerThreeReplica1.getDefaultMQPushConsumerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
-        mqConsumerThreeReplica2.getDefaultMQPushConsumerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
+        mqConsumerThreeReplica1.getDefaultMQPushConsumerImpl().getMQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
+        mqConsumerThreeReplica2.getDefaultMQPushConsumerImpl().getMQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
 
-        assertThat(mqConsumerThreeReplica1.getDefaultMQPushConsumerImpl().getmQClientFactory().findBrokerAddressInSubscribe(
+        assertThat(mqConsumerThreeReplica1.getDefaultMQPushConsumerImpl().getMQClientFactory().findBrokerAddressInSubscribe(
             master3With3Replicas.getBrokerConfig().getBrokerName(), MixAll.MASTER_ID, true)).isNotNull();
 
-        mqConsumerThreeReplica2.getDefaultMQPushConsumerImpl().getmQClientFactory().findBrokerAddressInSubscribe(
+        mqConsumerThreeReplica2.getDefaultMQPushConsumerImpl().getMQClientFactory().findBrokerAddressInSubscribe(
             master3With3Replicas.getBrokerConfig().getBrokerName(), MixAll.MASTER_ID, true);
-        assertThat(mqConsumerThreeReplica2.getDefaultMQPushConsumerImpl().getmQClientFactory().findBrokerAddressInSubscribe(
+        assertThat(mqConsumerThreeReplica2.getDefaultMQPushConsumerImpl().getMQClientFactory().findBrokerAddressInSubscribe(
             master3With3Replicas.getBrokerConfig().getBrokerName(), MixAll.MASTER_ID, true)).isNotNull();
 
         mqConsumerThreeReplica1.getDefaultMQPushConsumerImpl().doRebalance();

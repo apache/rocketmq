@@ -49,7 +49,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class RemoteBrokerOffsetStoreTest {
     @Mock
-    private MQClientInstance mQClientFactory;
+    private MQClientInstance mqClientFactory;
     @Mock
     private MQClientAPIImpl mqClientAPI;
     private String group = "FooBarGroup";
@@ -60,15 +60,15 @@ public class RemoteBrokerOffsetStoreTest {
     public void init() {
         System.setProperty("rocketmq.client.localOffsetStoreDir", System.getProperty("java.io.tmpdir") + ".rocketmq_offsets");
         String clientId = new ClientConfig().buildMQClientId() + "#TestNamespace" + System.currentTimeMillis();
-        when(mQClientFactory.getClientId()).thenReturn(clientId);
-        when(mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, false)).thenReturn(new FindBrokerResult("127.0.0.1", false));
-        when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mqClientAPI);
-        when(mQClientFactory.getBrokerNameFromMessageQueue(any())).thenReturn(brokerName);
+        when(mqClientFactory.getClientId()).thenReturn(clientId);
+        when(mqClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, false)).thenReturn(new FindBrokerResult("127.0.0.1", false));
+        when(mqClientFactory.getMQClientAPIImpl()).thenReturn(mqClientAPI);
+        when(mqClientFactory.getBrokerNameFromMessageQueue(any())).thenReturn(brokerName);
     }
 
     @Test
     public void testUpdateOffset() throws Exception {
-        OffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, group);
+        OffsetStore offsetStore = new RemoteBrokerOffsetStore(mqClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 1);
 
         offsetStore.updateOffset(messageQueue, 1024, false);
@@ -83,7 +83,7 @@ public class RemoteBrokerOffsetStoreTest {
 
     @Test
     public void testReadOffset_WithException() throws Exception {
-        OffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, group);
+        OffsetStore offsetStore = new RemoteBrokerOffsetStore(mqClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 2);
 
         offsetStore.updateOffset(messageQueue, 1024, false);
@@ -104,7 +104,7 @@ public class RemoteBrokerOffsetStoreTest {
 
     @Test
     public void testReadOffset_Success() throws Exception {
-        OffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, group);
+        OffsetStore offsetStore = new RemoteBrokerOffsetStore(mqClientFactory, group);
         final MessageQueue messageQueue = new MessageQueue(topic, brokerName, 3);
 
         doAnswer(new Answer() {
@@ -135,7 +135,7 @@ public class RemoteBrokerOffsetStoreTest {
 
     @Test
     public void testRemoveOffset() throws Exception {
-        OffsetStore offsetStore = new RemoteBrokerOffsetStore(mQClientFactory, group);
+        OffsetStore offsetStore = new RemoteBrokerOffsetStore(mqClientFactory, group);
         final MessageQueue messageQueue = new MessageQueue(topic, brokerName, 4);
 
         offsetStore.updateOffset(messageQueue, 1024, false);

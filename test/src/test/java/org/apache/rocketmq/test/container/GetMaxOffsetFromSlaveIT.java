@@ -65,7 +65,7 @@ public class GetMaxOffsetFromSlaveIT extends ContainerIntegrationTestBase {
     @Test
     public void testGetMaxOffsetFromSlave() throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
         awaitUntilSlaveOK();
-        mqProducer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
+        mqProducer.getDefaultMQProducerImpl().getMQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
 
         for (int i = 0; i < 100; i++) {
             Message msg = new Message(THREE_REPLICAS_TOPIC, MESSAGE_BODY);
@@ -83,8 +83,8 @@ public class GetMaxOffsetFromSlaveIT extends ContainerIntegrationTestBase {
 
         isolateBroker(master3With3Replicas);
 
-        mqProducer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
-        assertThat(mqProducer.getDefaultMQProducerImpl().getmQClientFactory().findBrokerAddressInPublish(
+        mqProducer.getDefaultMQProducerImpl().getMQClientFactory().updateTopicRouteInfoFromNameServer(THREE_REPLICAS_TOPIC);
+        assertThat(mqProducer.getDefaultMQProducerImpl().getMQClientFactory().findBrokerAddressInPublish(
             master3With3Replicas.getBrokerConfig().getBrokerName())).isNotNull();
 
         for (MessageQueue mq : publishInfo.getMessageQueueList()) {

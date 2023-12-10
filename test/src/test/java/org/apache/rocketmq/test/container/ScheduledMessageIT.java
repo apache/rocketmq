@@ -129,8 +129,8 @@ public class ScheduledMessageIT extends ContainerIntegrationTestBase {
 
         isolateBroker(master1With3Replicas);
 
-        producer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
-        assertThat(producer.getDefaultMQProducerImpl().getmQClientFactory().findBrokerAddressInPublish(topic)).isNull();
+        producer.getDefaultMQProducerImpl().getMQClientFactory().updateTopicRouteInfoFromNameServer(topic);
+        assertThat(producer.getDefaultMQProducerImpl().getMQClientFactory().findBrokerAddressInPublish(topic)).isNull();
 
         pushConsumer.start();
 
@@ -163,8 +163,8 @@ public class ScheduledMessageIT extends ContainerIntegrationTestBase {
 
         isolateBroker(master1With3Replicas);
 
-        producer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
-        assertThat(producer.getDefaultMQProducerImpl().getmQClientFactory().findBrokerAddressInPublish(topic)).isNull();
+        producer.getDefaultMQProducerImpl().getMQClientFactory().updateTopicRouteInfoFromNameServer(topic);
+        assertThat(producer.getDefaultMQProducerImpl().getMQClientFactory().findBrokerAddressInPublish(topic)).isNull();
 
         pushConsumer.start();
 

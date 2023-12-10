@@ -84,7 +84,7 @@ public class TestBenchLmqStore {
         RebalanceImpl rebalanceImpl = mock(RebalanceImpl.class);
         when(defaultMQPullConsumerImpl.getRebalanceImpl()).thenReturn(rebalanceImpl);
         MQClientInstance mqClientInstance = mock(MQClientInstance.class);
-        when(rebalanceImpl.getmQClientFactory()).thenReturn(mqClientInstance);
+        when(rebalanceImpl.getMQClientFactory()).thenReturn(mqClientInstance);
         MQClientAPIImpl mqClientAPI = mock(MQClientAPIImpl.class);
         when(mqClientInstance.getMQClientAPIImpl()).thenReturn(mqClientAPI);
         TopicRouteData topicRouteData = new TopicRouteData();

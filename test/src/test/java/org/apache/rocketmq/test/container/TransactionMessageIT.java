@@ -145,7 +145,7 @@ public class TransactionMessageIT extends ContainerIntegrationTestBase {
         createTopicTo(master2With3Replicas, topic, 1, 1);
 
         transactionCheckListener.setShouldReturnUnknownState(false);
-        producer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
+        producer.getDefaultMQProducerImpl().getMQClientFactory().updateTopicRouteInfoFromNameServer(topic);
 
         System.out.printf("Wait for consuming%n");
 
@@ -233,7 +233,7 @@ public class TransactionMessageIT extends ContainerIntegrationTestBase {
 
         pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().doRebalance(false);
         transactionCheckListener.setShouldReturnUnknownState(false);
-        producer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
+        producer.getDefaultMQProducerImpl().getMQClientFactory().updateTopicRouteInfoFromNameServer(topic);
 
         System.out.printf("Wait for consuming%n");
 

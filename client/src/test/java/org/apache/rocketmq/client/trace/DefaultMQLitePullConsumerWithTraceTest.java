@@ -85,12 +85,12 @@ import static org.mockito.Mockito.when;
 public class DefaultMQLitePullConsumerWithTraceTest {
 
     @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mqClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
 
     @Mock
-    private MQClientAPIImpl mQClientAPIImpl;
+    private MQClientAPIImpl mqClientAPIImpl;
     @Mock
-    private MQAdminImpl mQAdminImpl;
+    private MQAdminImpl mqAdminImpl;
 
     private AsyncTraceDispatcher asyncTraceDispatcher;
     private DefaultMQProducer traceProducer;
@@ -113,7 +113,7 @@ public class DefaultMQLitePullConsumerWithTraceTest {
     public void init() throws Exception {
         Field field = MQClientInstance.class.getDeclaredField("rebalanceService");
         field.setAccessible(true);
-        RebalanceService rebalanceService = (RebalanceService) field.get(mQClientFactory);
+        RebalanceService rebalanceService = (RebalanceService) field.get(mqClientFactory);
         field = RebalanceService.class.getDeclaredField("waitInterval");
         field.setAccessible(true);
         field.set(rebalanceService, 100);
@@ -190,33 +190,33 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         Field field = DefaultLitePullConsumer.class.getDeclaredField("defaultLitePullConsumerImpl");
         field.setAccessible(true);
         litePullConsumerImpl = (DefaultLitePullConsumerImpl) field.get(litePullConsumer);
-        field = DefaultLitePullConsumerImpl.class.getDeclaredField("mQClientFactory");
+        field = DefaultLitePullConsumerImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(litePullConsumerImpl, mQClientFactory);
+        field.set(litePullConsumerImpl, mqClientFactory);
 
         PullAPIWrapper pullAPIWrapper = litePullConsumerImpl.getPullAPIWrapper();
-        field = PullAPIWrapper.class.getDeclaredField("mQClientFactory");
+        field = PullAPIWrapper.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(pullAPIWrapper, mQClientFactory);
+        field.set(pullAPIWrapper, mqClientFactory);
 
-        Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
+        Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mqClientFactory");
         fieldTrace.setAccessible(true);
-        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mQClientFactory);
+        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mqClientFactory);
 
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
+        field.set(mqClientFactory, mqClientAPIImpl);
 
-        field = MQClientInstance.class.getDeclaredField("mQAdminImpl");
+        field = MQClientInstance.class.getDeclaredField("mqAdminImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQAdminImpl);
+        field.set(mqClientFactory, mqAdminImpl);
 
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
         rebalanceImpl = (RebalanceImpl) field.get(litePullConsumerImpl);
-        field = RebalanceImpl.class.getDeclaredField("mQClientFactory");
+        field = RebalanceImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(rebalanceImpl, mQClientFactory);
+        field.set(rebalanceImpl, mqClientFactory);
 
         offsetStore = spy(litePullConsumerImpl.getOffsetStore());
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("offsetStore");
@@ -225,7 +225,7 @@ public class DefaultMQLitePullConsumerWithTraceTest {
 
         traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
 
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mqClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<Object>() {
                 @Override
@@ -244,9 +244,9 @@ public class DefaultMQLitePullConsumerWithTraceTest {
                 }
             });
 
-        when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
+        when(mqClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
 
-        doReturn(Collections.singletonList(mQClientFactory.getClientId())).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
+        doReturn(Collections.singletonList(mqClientFactory.getClientId())).when(mqClientFactory).findConsumerIdList(anyString(), anyString());
 
         doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
 
@@ -310,10 +310,10 @@ public class DefaultMQLitePullConsumerWithTraceTest {
         if (litePullConsumer.getMessageModel() == MessageModel.CLUSTERING) {
             litePullConsumer.changeInstanceNameToPID();
         }
-        MQClientInstance mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(litePullConsumer, (RPCHook) FieldUtils.readDeclaredField(defaultLitePullConsumerImpl, "rpcHook", true)));
+        MQClientInstance mqClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(litePullConsumer, (RPCHook) FieldUtils.readDeclaredField(defaultLitePullConsumerImpl, "rpcHook", true)));
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        factoryTable.put(litePullConsumer.buildMQClientId(), mQClientFactory);
-        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+        factoryTable.put(litePullConsumer.buildMQClientId(), mqClientFactory);
+        doReturn(false).when(mqClientFactory).updateTopicRouteInfoFromNameServer(anyString());
     }
 
 }

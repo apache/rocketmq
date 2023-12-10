@@ -65,7 +65,7 @@ public class RebalancePushImplTest {
     public RebalancePushImplTest() {
         when(consumerImpl.getDefaultMQPushConsumer()).thenReturn(consumer);
         when(consumerImpl.getOffsetStore()).thenReturn(offsetStore);
-        rebalanceImpl.setmQClientFactory(client);
+        rebalanceImpl.setMQClientFactory(client);
         when(client.getMQAdminImpl()).thenReturn(admin);
     }
 

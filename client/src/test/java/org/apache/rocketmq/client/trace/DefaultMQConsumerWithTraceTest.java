@@ -97,10 +97,10 @@ public class DefaultMQConsumerWithTraceTest {
 
     private String topic = "FooBar";
     private String brokerName = "BrokerA";
-    private MQClientInstance mQClientFactory;
+    private MQClientInstance mqClientFactory;
 
     @Mock
-    private MQClientAPIImpl mQClientAPIImpl;
+    private MQClientAPIImpl mqClientAPIImpl;
     private PullAPIWrapper pullAPIWrapper;
     private RebalancePushImpl rebalancePushImpl;
     private DefaultMQPushConsumer pushConsumer;
@@ -108,9 +108,9 @@ public class DefaultMQConsumerWithTraceTest {
     private DefaultMQPushConsumer customTraceTopicPushConsumer;
 
     private AsyncTraceDispatcher asyncTraceDispatcher;
-    private MQClientInstance mQClientTraceFactory;
+    private MQClientInstance mqClientTraceFactory;
     @Mock
-    private MQClientAPIImpl mQClientTraceAPIImpl;
+    private MQClientAPIImpl mqClientTraceAPIImpl;
     private DefaultMQProducer traceProducer;
     private String customerTraceTopic = "rmq_trace_topic_12345";
 
@@ -145,9 +145,9 @@ public class DefaultMQConsumerWithTraceTest {
 
         // suppress updateTopicRouteInfoFromNameServer
         pushConsumer.changeInstanceNameToPID();
-        mQClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true)));
-        factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
-        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+        mqClientFactory = spy(MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true)));
+        factoryTable.put(pushConsumer.buildMQClientId(), mqClientFactory);
+        doReturn(false).when(mqClientFactory).updateTopicRouteInfoFromNameServer(anyString());
 
         rebalancePushImpl = spy(new RebalancePushImpl(pushConsumer.getDefaultMQPushConsumerImpl()));
         Field field = DefaultMQPushConsumerImpl.class.getDeclaredField("rebalanceImpl");
@@ -157,34 +157,34 @@ public class DefaultMQConsumerWithTraceTest {
 
         pushConsumer.start();
 
-        mQClientFactory = spy(pushConsumerImpl.getmQClientFactory());
-        mQClientTraceFactory = spy(pushConsumerImpl.getmQClientFactory());
+        mqClientFactory = spy(pushConsumerImpl.getMQClientFactory());
+        mqClientTraceFactory = spy(pushConsumerImpl.getMQClientFactory());
 
-        field = DefaultMQPushConsumerImpl.class.getDeclaredField("mQClientFactory");
+        field = DefaultMQPushConsumerImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(pushConsumerImpl, mQClientFactory);
+        field.set(pushConsumerImpl, mqClientFactory);
 
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
+        field.set(mqClientFactory, mqClientAPIImpl);
 
-        Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
+        Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mqClientFactory");
         fieldTrace.setAccessible(true);
-        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mQClientTraceFactory);
+        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mqClientTraceFactory);
 
-        fieldTrace = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        fieldTrace = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         fieldTrace.setAccessible(true);
-        fieldTrace.set(mQClientTraceFactory, mQClientTraceAPIImpl);
+        fieldTrace.set(mqClientTraceFactory, mqClientTraceAPIImpl);
 
-        pullAPIWrapper = spy(new PullAPIWrapper(mQClientFactory, consumerGroup, false));
+        pullAPIWrapper = spy(new PullAPIWrapper(mqClientFactory, consumerGroup, false));
         field = DefaultMQPushConsumerImpl.class.getDeclaredField("pullAPIWrapper");
         field.setAccessible(true);
         field.set(pushConsumerImpl, pullAPIWrapper);
 
-        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setmQClientFactory(mQClientFactory);
-        mQClientFactory.registerConsumer(consumerGroup, pushConsumerImpl);
+        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setMQClientFactory(mqClientFactory);
+        mqClientFactory.registerConsumer(consumerGroup, pushConsumerImpl);
 
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mqClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<PullResult>() {
                 @Override
@@ -204,7 +204,7 @@ public class DefaultMQConsumerWithTraceTest {
                 }
             });
 
-        doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
+        doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mqClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
         Set<MessageQueue> messageQueueSet = new HashSet<>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
@@ -231,7 +231,7 @@ public class DefaultMQConsumerWithTraceTest {
             }
         }));
 
-        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
+        PullMessageService pullMessageService = mqClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
         countDownLatch.await(30, TimeUnit.SECONDS);
         MessageExt msg = messageAtomic.get();

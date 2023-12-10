@@ -76,14 +76,14 @@ public class QueryMsgByUniqueKeySubCommandTest {
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
 
-    private static MQClientAPIImpl mQClientAPIImpl;
-    private static MQAdminImpl mQAdminImpl;
+    private static MQClientAPIImpl mqClientAPIImpl;
+    private static MQAdminImpl mqAdminImpl;
 
     @Before
     public void before() throws NoSuchFieldException, IllegalAccessException, InterruptedException, RemotingException, MQClientException, MQBrokerException {
 
-        mQClientAPIImpl = mock(MQClientAPIImpl.class);
-        mQAdminImpl = mock(MQAdminImpl.class);
+        mqClientAPIImpl = mock(MQClientAPIImpl.class);
+        mqAdminImpl = mock(MQAdminImpl.class);
 
         defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
@@ -92,13 +92,13 @@ public class QueryMsgByUniqueKeySubCommandTest {
         field.setAccessible(true);
         field.set(defaultMQAdminExtImpl, mqClientInstance);
 
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mqClientInstance, mQClientAPIImpl);
+        field.set(mqClientInstance, mqClientAPIImpl);
 
-        field = MQClientInstance.class.getDeclaredField("mQAdminImpl");
+        field = MQClientInstance.class.getDeclaredField("mqAdminImpl");
         field.setAccessible(true);
-        field.set(mqClientInstance, mQAdminImpl);
+        field.set(mqClientInstance, mqAdminImpl);
 
         field = DefaultMQAdminExt.class.getDeclaredField("defaultMQAdminExtImpl");
         field.setAccessible(true);
@@ -107,7 +107,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
         ConsumeMessageDirectlyResult result = new ConsumeMessageDirectlyResult();
         result.setConsumeResult(CMResult.CR_SUCCESS);
         result.setRemark("customRemark_122333444");
-        when(mQClientAPIImpl.consumeMessageDirectly(anyString(), anyString(), anyString(), anyString(), anyString(), anyLong())).thenReturn(result);
+        when(mqClientAPIImpl.consumeMessageDirectly(anyString(), anyString(), anyString(), anyString(), anyString(), anyLong())).thenReturn(result);
 
         MessageExt retMsgExt = new MessageExt();
         retMsgExt.setMsgId("0A3A54F7BF7D18B4AAC28A3FA2CF0000");
@@ -122,9 +122,9 @@ public class QueryMsgByUniqueKeySubCommandTest {
         retMsgExt.setReconsumeTimes(2);
         retMsgExt.setBornTimestamp(System.currentTimeMillis());
         retMsgExt.setStoreTimestamp(System.currentTimeMillis());
-        when(mQAdminImpl.viewMessage(anyString())).thenReturn(retMsgExt);
+        when(mqAdminImpl.viewMessage(anyString())).thenReturn(retMsgExt);
 
-        when(mQAdminImpl.queryMessageByUniqKey(anyString(), anyString())).thenReturn(retMsgExt);
+        when(mqAdminImpl.queryMessageByUniqKey(anyString(), anyString())).thenReturn(retMsgExt);
 
         QueryResult queryResult = new QueryResult(0, Lists.newArrayList(retMsgExt));
         when(defaultMQAdminExtImpl.queryMessageByUniqKey(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(queryResult);
@@ -137,13 +137,13 @@ public class QueryMsgByUniqueKeySubCommandTest {
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
+        when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
 
         GroupList groupList = new GroupList();
         HashSet<String> groupSets = new HashSet<>();
         groupSets.add("testGroup");
         groupList.setGroupList(groupSets);
-        when(mQClientAPIImpl.queryTopicConsumeByWho(anyString(), anyString(), anyLong())).thenReturn(groupList);
+        when(mqClientAPIImpl.queryTopicConsumeByWho(anyString(), anyString(), anyLong())).thenReturn(groupList);
 
         ConsumeStats consumeStats = new ConsumeStats();
         consumeStats.setConsumeTps(100 * 10000);
@@ -158,7 +158,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
         offsetWrapper.setLastTimestamp(System.currentTimeMillis());
         offsetTable.put(messageQueue, offsetWrapper);
         consumeStats.setOffsetTable(offsetTable);
-        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), (String) isNull(), anyLong())).thenReturn(consumeStats);
+        when(mqClientAPIImpl.getConsumeStats(anyString(), anyString(), (String) isNull(), anyLong())).thenReturn(consumeStats);
 
         ClusterInfo clusterInfo = new ClusterInfo();
         HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
@@ -169,7 +169,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
         addrSet.add("127.0.0.1:9876");
         clusterAddrTable.put("key", addrSet);
         clusterInfo.setClusterAddrTable(clusterAddrTable);
-        when(mQClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
+        when(mqClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
 
         field = QueryMsgByUniqueKeySubCommand.class.getDeclaredField("defaultMQAdminExt");
         field.setAccessible(true);
@@ -190,7 +190,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
         conn.setVersion(1);
         connectionSet.add(conn);
         consumerConnection.setConnectionSet(connectionSet);
-        when(mQClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(consumerConnection);
+        when(mqClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(consumerConnection);
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
@@ -214,7 +214,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
         conn.setVersion(2);
         connectionSet.add(conn);
         consumerConnection.setConnectionSet(connectionSet);
-        when(mQClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(consumerConnection);
+        when(mqClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(consumerConnection);
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 

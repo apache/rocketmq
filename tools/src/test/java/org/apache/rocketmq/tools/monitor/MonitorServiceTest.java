@@ -66,7 +66,7 @@ public class MonitorServiceTest {
     private static DefaultMQAdminExt defaultMQAdminExt;
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
-    private static MQClientAPIImpl mQClientAPIImpl;
+    private static MQClientAPIImpl mqClientAPIImpl;
     private static MonitorConfig monitorConfig;
     private static MonitorListener monitorListener;
     private static DefaultMQPullConsumer defaultMQPullConsumer;
@@ -79,7 +79,7 @@ public class MonitorServiceTest {
         monitorListener = new DefaultMonitorListener();
         defaultMQPullConsumer = mock(DefaultMQPullConsumer.class);
         defaultMQPushConsumer = mock(DefaultMQPushConsumer.class);
-        mQClientAPIImpl = mock(MQClientAPIImpl.class);
+        mqClientAPIImpl = mock(MQClientAPIImpl.class);
         defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
         monitorService = new MonitorService(monitorConfig, monitorListener, null);
@@ -87,9 +87,9 @@ public class MonitorServiceTest {
         Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
         field.setAccessible(true);
         field.set(defaultMQAdminExtImpl, mqClientInstance);
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mqClientInstance, mQClientAPIImpl);
+        field.set(mqClientInstance, mqClientAPIImpl);
         field = DefaultMQAdminExt.class.getDeclaredField("defaultMQAdminExtImpl");
         field.setAccessible(true);
         field.set(defaultMQAdminExt, defaultMQAdminExtImpl);
@@ -109,7 +109,7 @@ public class MonitorServiceTest {
         topicSet.add("topic_one");
         topicSet.add("topic_two");
         topicList.setTopicList(topicSet);
-        when(mQClientAPIImpl.getTopicListFromNameServer(anyLong())).thenReturn(topicList);
+        when(mqClientAPIImpl.getTopicListFromNameServer(anyLong())).thenReturn(topicList);
 
         TopicRouteData topicRouteData = new TopicRouteData();
         List<BrokerData> brokerDatas = new ArrayList<>();
@@ -123,7 +123,7 @@ public class MonitorServiceTest {
         topicRouteData.setBrokerDatas(brokerDatas);
         topicRouteData.setQueueDatas(new ArrayList<>());
         topicRouteData.setFilterServerTable(new HashMap<>());
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
+        when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
 
         ConsumeStats consumeStats = new ConsumeStats();
         consumeStats.setConsumeTps(1234);
@@ -132,7 +132,7 @@ public class MonitorServiceTest {
         HashMap<MessageQueue, OffsetWrapper> stats = new HashMap<>();
         stats.put(messageQueue, offsetWrapper);
         consumeStats.setOffsetTable(stats);
-        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), anyString(), anyLong())).thenReturn(consumeStats);
+        when(mqClientAPIImpl.getConsumeStats(anyString(), anyString(), anyString(), anyLong())).thenReturn(consumeStats);
 
         ConsumerConnection consumerConnection = new ConsumerConnection();
         consumerConnection.setConsumeType(ConsumeType.CONSUME_PASSIVELY);
@@ -147,7 +147,7 @@ public class MonitorServiceTest {
         consumerConnection.setConnectionSet(connections);
         consumerConnection.setSubscriptionTable(new ConcurrentHashMap<>());
         consumerConnection.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-        when(mQClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(consumerConnection);
+        when(mqClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(consumerConnection);
 
         ConsumerRunningInfo consumerRunningInfo = new ConsumerRunningInfo();
         consumerRunningInfo.setJstack("test");
@@ -158,7 +158,7 @@ public class MonitorServiceTest {
         properties.put(ConsumerRunningInfo.PROP_CONSUME_TYPE, CONSUME_ACTIVELY);
         properties.put(ConsumerRunningInfo.PROP_CONSUMER_START_TIMESTAMP, System.currentTimeMillis());
         consumerRunningInfo.setProperties(properties);
-        when(mQClientAPIImpl.getConsumerRunningInfo(anyString(), anyString(), anyString(), anyBoolean(), anyLong())).thenReturn(consumerRunningInfo);
+        when(mqClientAPIImpl.getConsumerRunningInfo(anyString(), anyString(), anyString(), anyBoolean(), anyLong())).thenReturn(consumerRunningInfo);
     }
 
     @AfterClass

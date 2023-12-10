@@ -54,7 +54,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class PullAPIWrapper {
     private static final Logger log = LoggerFactory.getLogger(PullAPIWrapper.class);
-    private final MQClientInstance mQClientFactory;
+    private final MQClientInstance mqClientFactory;
     private final String consumerGroup;
     private final boolean unitMode;
     private ConcurrentMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
@@ -64,8 +64,8 @@ public class PullAPIWrapper {
     private Random random = new Random(System.nanoTime());
     private ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<>();
 
-    public PullAPIWrapper(MQClientInstance mQClientFactory, String consumerGroup, boolean unitMode) {
-        this.mQClientFactory = mQClientFactory;
+    public PullAPIWrapper(MQClientInstance mqClientFactory, String consumerGroup, boolean unitMode) {
+        this.mqClientFactory = mqClientFactory;
         this.consumerGroup = consumerGroup;
         this.unitMode = unitMode;
     }
@@ -79,8 +79,8 @@ public class PullAPIWrapper {
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
             List<MessageExt> msgList = MessageDecoder.decodesBatch(
                 byteBuffer,
-                this.mQClientFactory.getClientConfig().isDecodeReadBody(),
-                this.mQClientFactory.getClientConfig().isDecodeDecompressBody(),
+                this.mqClientFactory.getClientConfig().isDecodeReadBody(),
+                this.mqClientFactory.getClientConfig().isDecodeDecompressBody(),
                 true
             );
 
@@ -193,12 +193,12 @@ public class PullAPIWrapper {
         final PullCallback pullCallback
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         FindBrokerResult findBrokerResult =
-            this.mQClientFactory.findBrokerAddressInSubscribe(this.mQClientFactory.getBrokerNameFromMessageQueue(mq),
+            this.mqClientFactory.findBrokerAddressInSubscribe(this.mqClientFactory.getBrokerNameFromMessageQueue(mq),
                 this.recalculatePullFromWhichNode(mq), false);
         if (null == findBrokerResult) {
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            this.mqClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
-                this.mQClientFactory.findBrokerAddressInSubscribe(this.mQClientFactory.getBrokerNameFromMessageQueue(mq),
+                this.mqClientFactory.findBrokerAddressInSubscribe(this.mqClientFactory.getBrokerNameFromMessageQueue(mq),
                     this.recalculatePullFromWhichNode(mq), false);
         }
 
@@ -238,7 +238,7 @@ public class PullAPIWrapper {
                 brokerAddr = computePullFromWhichFilterServer(mq.getTopic(), brokerAddr);
             }
 
-            PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(
+            PullResult pullResult = this.mqClientFactory.getMQClientAPIImpl().pullMessage(
                 brokerAddr,
                 requestHeader,
                 timeoutMillis,
@@ -296,7 +296,7 @@ public class PullAPIWrapper {
 
     private String computePullFromWhichFilterServer(final String topic, final String brokerAddr)
         throws MQClientException {
-        ConcurrentMap<String, TopicRouteData> topicRouteTable = this.mQClientFactory.getTopicRouteTable();
+        ConcurrentMap<String, TopicRouteData> topicRouteTable = this.mqClientFactory.getTopicRouteTable();
         if (topicRouteTable != null) {
             TopicRouteData topicRouteData = topicRouteTable.get(topic);
             List<String> list = topicRouteData.getFilterServerTable().get(brokerAddr);
@@ -362,10 +362,10 @@ public class PullAPIWrapper {
     public void popAsync(MessageQueue mq, long invisibleTime, int maxNums, String consumerGroup,
                          long timeout, PopCallback popCallback, boolean poll, int initMode, boolean order, String expressionType, String expression)
         throws MQClientException, RemotingException, InterruptedException {
-        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        FindBrokerResult findBrokerResult = this.mqClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         if (null == findBrokerResult) {
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
-            findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+            this.mqClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            findBrokerResult = this.mqClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
         }
         if (findBrokerResult != null) {
             PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
@@ -387,7 +387,7 @@ public class PullAPIWrapper {
                 timeout += 10 * 1000;
             }
             String brokerAddr = findBrokerResult.getBrokerAddr();
-            this.mQClientFactory.getMQClientAPIImpl().popMessageAsync(mq.getBrokerName(), brokerAddr, requestHeader, timeout, popCallback);
+            this.mqClientFactory.getMQClientAPIImpl().popMessageAsync(mq.getBrokerName(), brokerAddr, requestHeader, timeout, popCallback);
             return;
         }
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);

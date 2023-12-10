@@ -32,12 +32,12 @@ public class PullMessageService extends ServiceThread {
     private final Logger logger = LoggerFactory.getLogger(PullMessageService.class);
     private final LinkedBlockingQueue<MessageRequest> messageRequestQueue = new LinkedBlockingQueue<>();
 
-    private final MQClientInstance mQClientFactory;
+    private final MQClientInstance mqClientFactory;
     private final ScheduledExecutorService scheduledExecutorService = Executors
         .newSingleThreadScheduledExecutor(new ThreadFactoryImpl("PullMessageServiceScheduledThread"));
 
-    public PullMessageService(MQClientInstance mQClientFactory) {
-        this.mQClientFactory = mQClientFactory;
+    public PullMessageService(MQClientInstance mqClientFactory) {
+        this.mqClientFactory = mqClientFactory;
     }
 
     public void executePullRequestLater(final PullRequest pullRequest, final long timeDelay) {
@@ -95,7 +95,7 @@ public class PullMessageService extends ServiceThread {
     }
 
     private void pullMessage(final PullRequest pullRequest) {
-        final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
+        final MQConsumerInner consumer = this.mqClientFactory.selectConsumer(pullRequest.getConsumerGroup());
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
             impl.pullMessage(pullRequest);
@@ -105,7 +105,7 @@ public class PullMessageService extends ServiceThread {
     }
 
     private void popMessage(final PopRequest popRequest) {
-        final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(popRequest.getConsumerGroup());
+        final MQConsumerInner consumer = this.mqClientFactory.selectConsumer(popRequest.getConsumerGroup());
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
             impl.popMessage(popRequest);

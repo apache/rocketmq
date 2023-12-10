@@ -72,10 +72,10 @@ public class ConsumeMessageOrderlyServiceTest {
     private String topic = "FooBar";
     private String brokerName = "BrokerA";
     private DefaultMQPushConsumer pushConsumer;
-    private MQClientInstance mQClientFactory;
+    private MQClientInstance mqClientFactory;
 
     @Mock
-    private MQClientAPIImpl mQClientAPIImpl;
+    private MQClientAPIImpl mqClientAPIImpl;
     private PullAPIWrapper pullAPIWrapper;
     private RebalancePushImpl rebalancePushImpl;
     @Before
@@ -110,26 +110,26 @@ public class ConsumeMessageOrderlyServiceTest {
 
         // suppress updateTopicRouteInfoFromNameServer
         pushConsumer.changeInstanceNameToPID();
-        mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true));
-        mQClientFactory = spy(mQClientFactory);
-        field = DefaultMQPushConsumerImpl.class.getDeclaredField("mQClientFactory");
+        mqClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true));
+        mqClientFactory = spy(mqClientFactory);
+        field = DefaultMQPushConsumerImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(pushConsumerImpl, mQClientFactory);
-        factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
+        field.set(pushConsumerImpl, mqClientFactory);
+        factoryTable.put(pushConsumer.buildMQClientId(), mqClientFactory);
 
-        mQClientAPIImpl = mock(MQClientAPIImpl.class);
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        mqClientAPIImpl = mock(MQClientAPIImpl.class);
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
+        field.set(mqClientFactory, mqClientAPIImpl);
 
-        pullAPIWrapper = spy(new PullAPIWrapper(mQClientFactory, consumerGroup, false));
+        pullAPIWrapper = spy(new PullAPIWrapper(mqClientFactory, consumerGroup, false));
         field = DefaultMQPushConsumerImpl.class.getDeclaredField("pullAPIWrapper");
         field.setAccessible(true);
         field.set(pushConsumerImpl, pullAPIWrapper);
 
-        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setmQClientFactory(mQClientFactory);
+        pushConsumer.getDefaultMQPushConsumerImpl().getRebalanceImpl().setMQClientFactory(mqClientFactory);
 
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mqClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
                 anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
                 .thenAnswer(new Answer<PullResult>() {
                     @Override
@@ -149,8 +149,8 @@ public class ConsumeMessageOrderlyServiceTest {
                     }
                 });
 
-        doReturn(new FindBrokerResult("127.0.0.1:10912", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
-        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+        doReturn(new FindBrokerResult("127.0.0.1:10912", false)).when(mqClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
+        doReturn(false).when(mqClientFactory).updateTopicRouteInfoFromNameServer(anyString());
         Set<MessageQueue> messageQueueSet = new HashSet<>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
         pushConsumer.getDefaultMQPushConsumerImpl().updateTopicSubscribeInfo(topic, messageQueueSet);
@@ -221,7 +221,7 @@ public class ConsumeMessageOrderlyServiceTest {
         pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(consumeMessageOrderlyService);
 
 
-        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
+        PullMessageService pullMessageService = mqClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
         countDownLatch.await();
         if (consumeGroup2.length() <= 100) {

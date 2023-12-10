@@ -251,7 +251,7 @@ public class BenchLmqStore {
         Map<String, Long> offsetMap = new ConcurrentHashMap<>();
         String statKey = "benchOffset";
         TopicRouteData topicRouteData = defaultMQPullConsumers[0].getDefaultMQPullConsumerImpl().
-            getRebalanceImpl().getmQClientFactory().getMQClientAPIImpl().
+            getRebalanceImpl().getMQClientFactory().getMQClientAPIImpl().
             getTopicRouteInfoFromNameServer(lmqTopic, 3000);
         HashMap<Long, String> brokerMap = topicRouteData.getBrokerDatas().get(0).getBrokerAddrs();
         if (brokerMap == null || brokerMap.isEmpty()) {
@@ -284,7 +284,7 @@ public class BenchLmqStore {
                             defaultMQPullConsumer
                                 .getDefaultMQPullConsumerImpl()
                                 .getRebalanceImpl()
-                                .getmQClientFactory()
+                                .getMQClientFactory()
                                 .getMQClientAPIImpl().updateConsumerOffset(brokerAddress, updateHeader, 1000);
                             QueryConsumerOffsetRequestHeader queryHeader = new QueryConsumerOffsetRequestHeader();
                             queryHeader.setTopic(lmq);
@@ -293,7 +293,7 @@ public class BenchLmqStore {
                             long newOffset2 = defaultMQPullConsumer
                                 .getDefaultMQPullConsumerImpl()
                                 .getRebalanceImpl()
-                                .getmQClientFactory()
+                                .getMQClientFactory()
                                 .getMQClientAPIImpl()
                                 .queryConsumerOffset(brokerAddress, queryHeader, 1000);
                             offsetMap.put(lmq, newOffset2);

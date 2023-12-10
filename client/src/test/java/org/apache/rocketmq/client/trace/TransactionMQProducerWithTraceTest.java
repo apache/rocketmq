@@ -75,9 +75,9 @@ import static org.mockito.Mockito.when;
 public class TransactionMQProducerWithTraceTest {
 
     @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mqClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     @Mock
-    private MQClientAPIImpl mQClientAPIImpl;
+    private MQClientAPIImpl mqClientAPIImpl;
     @Mock
     private EndTransactionHook endTransactionHook;
 
@@ -116,17 +116,17 @@ public class TransactionMQProducerWithTraceTest {
 
         producer.start();
 
-        Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
+        Field field = DefaultMQProducerImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(producer.getDefaultMQProducerImpl(), mQClientFactory);
+        field.set(producer.getDefaultMQProducerImpl(), mqClientFactory);
 
-        Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
+        Field fieldTrace = DefaultMQProducerImpl.class.getDeclaredField("mqClientFactory");
         fieldTrace.setAccessible(true);
-        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mQClientFactory);
+        fieldTrace.set(traceProducer.getDefaultMQProducerImpl(), mqClientFactory);
 
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
+        field.set(mqClientFactory, mqClientAPIImpl);
 
         producer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
 
@@ -136,9 +136,9 @@ public class TransactionMQProducerWithTraceTest {
         hooks.add(endTransactionHook);
         fieldHooks.set(producer.getDefaultMQProducerImpl(), hooks);
 
-        when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
+        when(mqClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
             nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
-        when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
+        when(mqClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
             nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
             .thenReturn(createSendResult(SendStatus.SEND_OK));
 
@@ -147,7 +147,7 @@ public class TransactionMQProducerWithTraceTest {
     @Test
     public void testSendMessageSync_WithTrace_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         final AtomicReference<EndTransactionContext> context = new AtomicReference<>();
         doAnswer(new Answer() {
             @Override

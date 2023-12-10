@@ -67,9 +67,9 @@ import static org.mockito.Mockito.when;
 public class DefaultMQProducerWithOpenTracingTest {
 
     @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mqClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     @Mock
-    private MQClientAPIImpl mQClientAPIImpl;
+    private MQClientAPIImpl mqClientAPIImpl;
 
     private DefaultMQProducer producer;
 
@@ -91,19 +91,19 @@ public class DefaultMQProducerWithOpenTracingTest {
 
         producer.start();
 
-        Field field = DefaultMQProducerImpl.class.getDeclaredField("mQClientFactory");
+        Field field = DefaultMQProducerImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(producer.getDefaultMQProducerImpl(), mQClientFactory);
+        field.set(producer.getDefaultMQProducerImpl(), mqClientFactory);
 
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
+        field.set(mqClientFactory, mqClientAPIImpl);
 
         producer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTemp, producer.getDefaultMQProducerImpl());
 
-        when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
+        when(mqClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
             nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class))).thenCallRealMethod();
-        when(mQClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
+        when(mqClientAPIImpl.sendMessage(anyString(), anyString(), any(Message.class), any(SendMessageRequestHeader.class), anyLong(), any(CommunicationMode.class),
             nullable(SendCallback.class), nullable(TopicPublishInfo.class), nullable(MQClientInstance.class), anyInt(), nullable(SendMessageContext.class), any(DefaultMQProducerImpl.class)))
             .thenReturn(createSendResult(SendStatus.SEND_OK));
 
@@ -112,7 +112,7 @@ public class DefaultMQProducerWithOpenTracingTest {
     @Test
     public void testSendMessageSync_WithTrace_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         producer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, producer.getDefaultMQProducerImpl());
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         producer.send(message);
         assertThat(tracer.finishedSpans().size()).isEqualTo(1);
         MockSpan span = tracer.finishedSpans().get(0);

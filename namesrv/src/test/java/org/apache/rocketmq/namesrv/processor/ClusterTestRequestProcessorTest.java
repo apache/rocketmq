@@ -59,7 +59,7 @@ public class ClusterTestRequestProcessorTest {
     private DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private MQClientInstance mqClientInstance = MQClientManager.getInstance()
             .getOrCreateMQClientInstance(new ClientConfig());
-    private MQClientAPIImpl mQClientAPIImpl;
+    private MQClientAPIImpl mqClientAPIImpl;
     private ChannelHandlerContext ctx;
 
     @Before
@@ -70,7 +70,7 @@ public class ClusterTestRequestProcessorTest {
                 new NettyServerConfig());
 
         clusterTestProcessor = new ClusterTestRequestProcessor(namesrvController, "default-producer");
-        mQClientAPIImpl = mock(MQClientAPIImpl.class);
+        mqClientAPIImpl = mock(MQClientAPIImpl.class);
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
         ctx = mock(ChannelHandlerContext.class);
@@ -78,9 +78,9 @@ public class ClusterTestRequestProcessorTest {
         Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
         field.setAccessible(true);
         field.set(defaultMQAdminExtImpl, mqClientInstance);
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mqClientInstance, mQClientAPIImpl);
+        field.set(mqClientInstance, mqClientAPIImpl);
         field = ClusterTestRequestProcessor.class.getDeclaredField("adminExt");
         field.setAccessible(true);
         field.set(clusterTestProcessor, defaultMQAdminExt);
@@ -95,7 +95,7 @@ public class ClusterTestRequestProcessorTest {
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDatas.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDatas);
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
+        when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
     }
 
     @After

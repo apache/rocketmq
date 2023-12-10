@@ -388,7 +388,7 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             MessageAccessor.clearProperty(newMsg, MessageConst.PROPERTY_TRANSACTION_PREPARED);
             newMsg.setDelayTimeLevel(3 + msg.getReconsumeTimes());
 
-            this.defaultMQPushConsumerImpl.getmQClientFactory().getDefaultMQProducer().send(newMsg);
+            this.defaultMQPushConsumerImpl.getMQClientFactory().getDefaultMQProducer().send(newMsg);
             return true;
         } catch (Exception e) {
             log.error("sendMessageBack exception, group: " + this.consumerGroup + " msg: " + msg.toString(), e);

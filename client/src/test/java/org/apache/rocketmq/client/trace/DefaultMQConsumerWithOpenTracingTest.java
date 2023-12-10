@@ -92,10 +92,10 @@ public class DefaultMQConsumerWithOpenTracingTest {
 
     private String topic = "FooBar";
     private String brokerName = "BrokerA";
-    private MQClientInstance mQClientFactory;
+    private MQClientInstance mqClientFactory;
 
     @Mock
-    private MQClientAPIImpl mQClientAPIImpl;
+    private MQClientAPIImpl mqClientAPIImpl;
     private PullAPIWrapper pullAPIWrapper;
     private RebalancePushImpl rebalancePushImpl;
     private DefaultMQPushConsumer pushConsumer;
@@ -109,7 +109,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
         }
         factoryTable.clear();
 
-        when(mQClientAPIImpl.pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mqClientAPIImpl.pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<PullResult>() {
                 @Override
@@ -152,13 +152,13 @@ public class DefaultMQConsumerWithOpenTracingTest {
 
         // suppress updateTopicRouteInfoFromNameServer
         pushConsumer.changeInstanceNameToPID();
-        mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true));
-        FieldUtils.writeDeclaredField(mQClientFactory, "mQClientAPIImpl", mQClientAPIImpl, true);
-        mQClientFactory = spy(mQClientFactory);
-        factoryTable.put(pushConsumer.buildMQClientId(), mQClientFactory);
-        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+        mqClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(pushConsumer, (RPCHook) FieldUtils.readDeclaredField(pushConsumerImpl, "rpcHook", true));
+        FieldUtils.writeDeclaredField(mqClientFactory, "mqClientAPIImpl", mqClientAPIImpl, true);
+        mqClientFactory = spy(mqClientFactory);
+        factoryTable.put(pushConsumer.buildMQClientId(), mqClientFactory);
+        doReturn(false).when(mqClientFactory).updateTopicRouteInfoFromNameServer(anyString());
 
-        doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mQClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
+        doReturn(new FindBrokerResult("127.0.0.1:10911", false)).when(mqClientFactory).findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean());
 
         Set<MessageQueue> messageQueueSet = new HashSet<>();
         messageQueueSet.add(createPullRequest().getMessageQueue());
@@ -187,7 +187,7 @@ public class DefaultMQConsumerWithOpenTracingTest {
             }
         }));
 
-        PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
+        PullMessageService pullMessageService = mqClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
         countDownLatch.await(30, TimeUnit.SECONDS);
         MessageExt msg = messageAtomic.get();

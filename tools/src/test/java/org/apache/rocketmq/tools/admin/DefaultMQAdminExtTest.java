@@ -101,7 +101,7 @@ public class DefaultMQAdminExtTest {
     private static DefaultMQAdminExt defaultMQAdminExt;
     private static DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private static MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
-    private static MQClientAPIImpl mQClientAPIImpl;
+    private static MQClientAPIImpl mqClientAPIImpl;
     private static Properties properties = new Properties();
     private static TopicList topicList = new TopicList();
     private static TopicRouteData topicRouteData = new TopicRouteData();
@@ -110,16 +110,16 @@ public class DefaultMQAdminExtTest {
 
     @BeforeClass
     public static void init() throws Exception {
-        mQClientAPIImpl = mock(MQClientAPIImpl.class);
+        mqClientAPIImpl = mock(MQClientAPIImpl.class);
         defaultMQAdminExt = new DefaultMQAdminExt();
         defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 1000);
 
         Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
         field.setAccessible(true);
         field.set(defaultMQAdminExtImpl, mqClientInstance);
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mqClientInstance, mQClientAPIImpl);
+        field.set(mqClientInstance, mqClientAPIImpl);
         field = DefaultMQAdminExt.class.getDeclaredField("defaultMQAdminExtImpl");
         field.setAccessible(true);
         field.set(defaultMQAdminExt, defaultMQAdminExtImpl);
@@ -127,13 +127,13 @@ public class DefaultMQAdminExtTest {
         properties.setProperty("maxMessageSize", "5000000");
         properties.setProperty("flushDelayOffsetInterval", "15000");
         properties.setProperty("serverSocketRcvBufSize", "655350");
-        when(mQClientAPIImpl.getBrokerConfig(anyString(), anyLong())).thenReturn(properties);
+        when(mqClientAPIImpl.getBrokerConfig(anyString(), anyLong())).thenReturn(properties);
 
         Set<String> topicSet = new HashSet<>();
         topicSet.add(TOPIC1);
         topicSet.add(TOPIC2);
         topicList.setTopicList(topicSet);
-        when(mQClientAPIImpl.getTopicListFromNameServer(anyLong())).thenReturn(topicList);
+        when(mqClientAPIImpl.getTopicListFromNameServer(anyLong())).thenReturn(topicList);
 
         List<BrokerData> brokerDatas = new ArrayList<>();
         HashMap<Long, String> brokerAddrs = new HashMap<>();
@@ -147,34 +147,34 @@ public class DefaultMQAdminExtTest {
         topicRouteData.setBrokerDatas(brokerDatas);
         topicRouteData.setQueueDatas(new ArrayList<>());
         topicRouteData.setFilterServerTable(new HashMap<>());
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
+        when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
 
         HashMap<String, String> result = new HashMap<>();
         result.put("id", String.valueOf(MixAll.MASTER_ID));
         result.put("brokerName", BROKER1_NAME);
         kvTable.setTable(result);
-        when(mQClientAPIImpl.getBrokerRuntimeInfo(anyString(), anyLong())).thenReturn(kvTable);
+        when(mqClientAPIImpl.getBrokerRuntimeInfo(anyString(), anyLong())).thenReturn(kvTable);
 
         HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
         brokerAddrTable.put(BROKER1_NAME, brokerData);
         brokerAddrTable.put(BROKER2_NAME, new BrokerData());
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
         clusterInfo.setClusterAddrTable(new HashMap<>());
-        when(mQClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
-        when(mQClientAPIImpl.cleanExpiredConsumeQueue(anyString(), anyLong())).thenReturn(true);
+        when(mqClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
+        when(mqClientAPIImpl.cleanExpiredConsumeQueue(anyString(), anyLong())).thenReturn(true);
 
         Set<String> clusterList = new HashSet<>();
         clusterList.add("default-cluster-one");
         clusterList.add("default-cluster-two");
-        when(mQClientAPIImpl.getClusterList(anyString(), anyLong())).thenReturn(clusterList);
+        when(mqClientAPIImpl.getClusterList(anyString(), anyLong())).thenReturn(clusterList);
 
         GroupList groupList = new GroupList();
         HashSet<String> groups = new HashSet<>();
         groups.add("consumer-group-one");
         groups.add("consumer-group-two");
         groupList.setGroupList(groups);
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
-        when(mQClientAPIImpl.queryTopicConsumeByWho(anyString(), anyString(), anyLong())).thenReturn(groupList);
+        when(mqClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
+        when(mqClientAPIImpl.queryTopicConsumeByWho(anyString(), anyString(), anyLong())).thenReturn(groupList);
 
         SubscriptionGroupWrapper subscriptionGroupWrapper = new SubscriptionGroupWrapper();
         ConcurrentHashMap<String, SubscriptionGroupConfig> subscriptions = new ConcurrentHashMap<>();
@@ -184,17 +184,17 @@ public class DefaultMQAdminExtTest {
         subscriptionGroupConfig.setGroupName("Consumer-group-one");
         subscriptions.put("Consumer-group-one", subscriptionGroupConfig);
         subscriptionGroupWrapper.setSubscriptionGroupTable(subscriptions);
-        when(mQClientAPIImpl.getAllSubscriptionGroup(anyString(), anyLong())).thenReturn(subscriptionGroupWrapper);
+        when(mqClientAPIImpl.getAllSubscriptionGroup(anyString(), anyLong())).thenReturn(subscriptionGroupWrapper);
 
         String topicListConfig = "topicListConfig";
-        when(mQClientAPIImpl.getKVConfigValue(anyString(), anyString(), anyLong())).thenReturn(topicListConfig);
+        when(mqClientAPIImpl.getKVConfigValue(anyString(), anyString(), anyLong())).thenReturn(topicListConfig);
 
         KVTable kvTable = new KVTable();
         HashMap<String, String> kv = new HashMap<>();
         kv.put("broker-name", "broker-one");
         kv.put("cluster-name", "default-cluster");
         kvTable.setTable(kv);
-        when(mQClientAPIImpl.getKVListByNamespace(anyString(), anyLong())).thenReturn(kvTable);
+        when(mqClientAPIImpl.getKVListByNamespace(anyString(), anyLong())).thenReturn(kvTable);
 
 //        ConsumeStats consumeStats = new ConsumeStats();
 //        consumeStats.setConsumeTps(1234);
@@ -203,7 +203,7 @@ public class DefaultMQAdminExtTest {
 //        HashMap<MessageQueue, OffsetWrapper> stats = new HashMap<>();
 //        stats.put(messageQueue, offsetWrapper);
 //        consumeStats.setOffsetTable(stats);
-//        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), anyString(), anyLong())).thenReturn(consumeStats);
+//        when(mqClientAPIImpl.getConsumeStats(anyString(), anyString(), anyString(), anyLong())).thenReturn(consumeStats);
 
         ConsumerConnection consumerConnection = new ConsumerConnection();
         consumerConnection.setConsumeType(ConsumeType.CONSUME_PASSIVELY);
@@ -213,7 +213,7 @@ public class DefaultMQAdminExtTest {
         consumerConnection.setConnectionSet(connections);
         consumerConnection.setSubscriptionTable(new ConcurrentHashMap<>());
         consumerConnection.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
-        when(mQClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(consumerConnection);
+        when(mqClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(consumerConnection);
 
         ProducerConnection producerConnection = new ProducerConnection();
         Connection connection = new Connection();
@@ -222,7 +222,7 @@ public class DefaultMQAdminExtTest {
         HashSet<Connection> connectionSet = new HashSet<>();
         connectionSet.add(connection);
         producerConnection.setConnectionSet(connectionSet);
-        when(mQClientAPIImpl.getProducerConnectionList(anyString(), anyString(), anyLong())).thenReturn(producerConnection);
+        when(mqClientAPIImpl.getProducerConnectionList(anyString(), anyString(), anyLong())).thenReturn(producerConnection);
 
         ProducerTableInfo producerTableInfo = new ProducerTableInfo(new HashMap<>());
         producerTableInfo.getData().put("test-producer-group", Arrays.asList(new ProducerInfo(
@@ -233,26 +233,26 @@ public class DefaultMQAdminExtTest {
                 System.currentTimeMillis()
 
         )));
-        when(mQClientAPIImpl.getAllProducerInfo(anyString(), anyLong())).thenReturn(producerTableInfo);
+        when(mqClientAPIImpl.getAllProducerInfo(anyString(), anyLong())).thenReturn(producerTableInfo);
 
-        when(mQClientAPIImpl.wipeWritePermOfBroker(anyString(), anyString(), anyLong())).thenReturn(6);
-        when(mQClientAPIImpl.addWritePermOfBroker(anyString(), anyString(), anyLong())).thenReturn(7);
+        when(mqClientAPIImpl.wipeWritePermOfBroker(anyString(), anyString(), anyLong())).thenReturn(6);
+        when(mqClientAPIImpl.addWritePermOfBroker(anyString(), anyString(), anyLong())).thenReturn(7);
 
         TopicStatsTable topicStatsTable = new TopicStatsTable();
         topicStatsTable.setOffsetTable(new HashMap<>());
 
         Map<String, Map<MessageQueue, Long>> consumerStatus = new HashMap<>();
-        when(mQClientAPIImpl.invokeBrokerToGetConsumerStatus(anyString(), anyString(), anyString(), anyString(), anyLong())).thenReturn(consumerStatus);
+        when(mqClientAPIImpl.invokeBrokerToGetConsumerStatus(anyString(), anyString(), anyString(), anyString(), anyLong())).thenReturn(consumerStatus);
 
         List<QueueTimeSpan> queueTimeSpanList = new ArrayList<>();
-        when(mQClientAPIImpl.queryConsumeTimeSpan(anyString(), anyString(), anyString(), anyLong())).thenReturn(queueTimeSpanList);
+        when(mqClientAPIImpl.queryConsumeTimeSpan(anyString(), anyString(), anyString(), anyLong())).thenReturn(queueTimeSpanList);
 
         ConsumerRunningInfo consumerRunningInfo = new ConsumerRunningInfo();
         consumerRunningInfo.setJstack("test");
         consumerRunningInfo.setMqTable(new TreeMap<>());
         consumerRunningInfo.setStatusTable(new TreeMap<>());
         consumerRunningInfo.setSubscriptionSet(new TreeSet<>());
-        when(mQClientAPIImpl.getConsumerRunningInfo(anyString(), anyString(), anyString(), anyBoolean(), anyLong())).thenReturn(consumerRunningInfo);
+        when(mqClientAPIImpl.getConsumerRunningInfo(anyString(), anyString(), anyString(), anyBoolean(), anyLong())).thenReturn(consumerRunningInfo);
 
         TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
         topicConfigSerializeWrapper.setTopicConfigTable(new ConcurrentHashMap<String, TopicConfig>() {
@@ -260,8 +260,8 @@ public class DefaultMQAdminExtTest {
                 put("topic_test_examine_topicConfig", new TopicConfig("topic_test_examine_topicConfig"));
             }
         });
-        //when(mQClientAPIImpl.getAllTopicConfig(anyString(),anyLong())).thenReturn(topicConfigSerializeWrapper);
-        when(mQClientAPIImpl.getTopicConfig(anyString(), anyString(), anyLong())).thenReturn(new TopicConfigAndQueueMapping(new TopicConfig("topic_test_examine_topicConfig"), null));
+        //when(mqClientAPIImpl.getAllTopicConfig(anyString(),anyLong())).thenReturn(topicConfigSerializeWrapper);
+        when(mqClientAPIImpl.getTopicConfig(anyString(), anyString(), anyLong())).thenReturn(new TopicConfigAndQueueMapping(new TopicConfig("topic_test_examine_topicConfig"), null));
     }
 
     @AfterClass
@@ -321,9 +321,9 @@ public class DefaultMQAdminExtTest {
         HashSet<Connection> connections = new HashSet<>();
         connections.add(new Connection());
         connection.setConnectionSet(connections);
-        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), anyString(), anyLong()))
+        when(mqClientAPIImpl.getConsumeStats(anyString(), anyString(), anyString(), anyLong()))
             .thenReturn(new ConsumeStats());
-        when(mQClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong()))
+        when(mqClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong()))
             .thenReturn(new ConsumerConnection()).thenReturn(connection);
         // CONSUMER_NOT_ONLINE
         try {
@@ -454,9 +454,9 @@ public class DefaultMQAdminExtTest {
         HashSet<Connection> connections = new HashSet<>();
         connections.add(new Connection());
         connection.setConnectionSet(connections);
-        when(mQClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(connection);
+        when(mqClientAPIImpl.getConsumerConnectionList(anyString(), anyString(), anyLong())).thenReturn(connection);
         ConsumeStats consumeStats = new ConsumeStats();
-        when(mQClientAPIImpl.getConsumeStats(anyString(), anyString(), isNull(), anyLong())).thenReturn(consumeStats);
+        when(mqClientAPIImpl.getConsumeStats(anyString(), anyString(), isNull(), anyLong())).thenReturn(consumeStats);
         List<MessageTrack> broadcastMessageTracks = defaultMQAdminExt.messageTrackDetail(messageExt);
         assertThat(broadcastMessageTracks.size()).isEqualTo(2);
         assertThat(broadcastMessageTracks.get(0).getTrackType()).isEqualTo(TrackType.CONSUME_BROADCASTING);
@@ -501,14 +501,14 @@ public class DefaultMQAdminExtTest {
     @Test
     @Ignore
     public void testMaxOffset() throws Exception {
-        when(mQClientAPIImpl.getMaxOffset(anyString(), any(MessageQueue.class), anyLong())).thenReturn(100L);
+        when(mqClientAPIImpl.getMaxOffset(anyString(), any(MessageQueue.class), anyLong())).thenReturn(100L);
         assertThat(defaultMQAdminExt.maxOffset(new MessageQueue(TOPIC1, BROKER1_NAME, 0))).isEqualTo(100L);
     }
 
     @Test
     @Ignore
     public void testSearchOffset() throws Exception {
-        when(mQClientAPIImpl.searchOffset(anyString(), any(MessageQueue.class), anyLong(), anyLong())).thenReturn(101L);
+        when(mqClientAPIImpl.searchOffset(anyString(), any(MessageQueue.class), anyLong(), anyLong())).thenReturn(101L);
         assertThat(defaultMQAdminExt.searchOffset(new MessageQueue(TOPIC1, BROKER1_NAME, 0), System.currentTimeMillis())).isEqualTo(101L);
     }
 

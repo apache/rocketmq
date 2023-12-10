@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class LocalFileOffsetStoreTest {
     @Mock
-    private MQClientInstance mQClientFactory;
+    private MQClientInstance mqClientFactory;
     private String group = "FooBarGroup";
     private String topic = "FooBar";
     private String brokerName = "DefaultBrokerName";
@@ -45,12 +45,12 @@ public class LocalFileOffsetStoreTest {
     public void init() {
         System.setProperty("rocketmq.client.localOffsetStoreDir", System.getProperty("java.io.tmpdir") + File.separator + ".rocketmq_offsets");
         String clientId = new ClientConfig().buildMQClientId() + "#TestNamespace" + System.currentTimeMillis();
-        when(mQClientFactory.getClientId()).thenReturn(clientId);
+        when(mqClientFactory.getClientId()).thenReturn(clientId);
     }
 
     @Test
     public void testUpdateOffset() throws Exception {
-        OffsetStore offsetStore = new LocalFileOffsetStore(mQClientFactory, group);
+        OffsetStore offsetStore = new LocalFileOffsetStore(mqClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 1);
         offsetStore.updateOffset(messageQueue, 1024, false);
 
@@ -65,7 +65,7 @@ public class LocalFileOffsetStoreTest {
 
     @Test
     public void testReadOffset_FromStore() throws Exception {
-        OffsetStore offsetStore = new LocalFileOffsetStore(mQClientFactory, group);
+        OffsetStore offsetStore = new LocalFileOffsetStore(mqClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 2);
 
         offsetStore.updateOffset(messageQueue, 1024, false);
@@ -77,7 +77,7 @@ public class LocalFileOffsetStoreTest {
 
     @Test
     public void testCloneOffset() throws Exception {
-        OffsetStore offsetStore = new LocalFileOffsetStore(mQClientFactory, group);
+        OffsetStore offsetStore = new LocalFileOffsetStore(mqClientFactory, group);
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 3);
         offsetStore.updateOffset(messageQueue, 1024, false);
         Map<MessageQueue, Long> cloneOffsetTable = offsetStore.cloneOffsetTable(topic);

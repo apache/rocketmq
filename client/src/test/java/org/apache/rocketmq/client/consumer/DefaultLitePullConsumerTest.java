@@ -81,14 +81,14 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultLitePullConsumerTest {
     @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mqClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
 
     private MQClientInstance mqClientInstance;
 
     @Mock
-    private MQClientAPIImpl mQClientAPIImpl;
+    private MQClientAPIImpl mqClientAPIImpl;
     @Mock
-    private MQAdminImpl mQAdminImpl;
+    private MQAdminImpl mqAdminImpl;
     @Mock
     private AssignedMessageQueue assignedMQ;
 
@@ -113,7 +113,7 @@ public class DefaultLitePullConsumerTest {
 
         Field field = MQClientInstance.class.getDeclaredField("rebalanceService");
         field.setAccessible(true);
-        RebalanceService rebalanceService = (RebalanceService) field.get(mQClientFactory);
+        RebalanceService rebalanceService = (RebalanceService) field.get(mqClientFactory);
         field = RebalanceService.class.getDeclaredField("waitInterval");
         field.setAccessible(true);
         field.set(rebalanceService, 100);
@@ -183,7 +183,7 @@ public class DefaultLitePullConsumerTest {
     public void testConsumerCommitSyncWithMQOffset() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
         try {
-            RemoteBrokerOffsetStore store = new RemoteBrokerOffsetStore(mQClientFactory, consumerGroup);
+            RemoteBrokerOffsetStore store = new RemoteBrokerOffsetStore(mqClientFactory, consumerGroup);
             litePullConsumer.setOffsetStore(store);
             litePullConsumer.start();
             initDefaultLitePullConsumer(litePullConsumer);
@@ -274,8 +274,8 @@ public class DefaultLitePullConsumerTest {
     @Test
     public void testSeek_SeekOffsetSuccess() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
-        when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
-        when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
+        when(mqAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mqAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
         MessageQueue messageQueue = createMessageQueue();
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
@@ -293,8 +293,8 @@ public class DefaultLitePullConsumerTest {
     @Test
     public void testSeek_SeekToBegin() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
-        when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
-        when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
+        when(mqAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mqAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
         MessageQueue messageQueue = createMessageQueue();
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
@@ -311,8 +311,8 @@ public class DefaultLitePullConsumerTest {
     @Test
     public void testSeek_SeekToEnd() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
-        when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
-        when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
+        when(mqAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mqAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(500L);
         MessageQueue messageQueue = createMessageQueue();
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
@@ -329,8 +329,8 @@ public class DefaultLitePullConsumerTest {
     @Test
     public void testSeek_SeekOffsetIllegal() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
-        when(mQAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
-        when(mQAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(100L);
+        when(mqAdminImpl.minOffset(any(MessageQueue.class))).thenReturn(0L);
+        when(mqAdminImpl.maxOffset(any(MessageQueue.class))).thenReturn(100L);
         MessageQueue messageQueue = createMessageQueue();
         List<MessageQueue> messageQueues = Collections.singletonList(messageQueue);
         litePullConsumer.assign(messageQueues);
@@ -387,7 +387,7 @@ public class DefaultLitePullConsumerTest {
         } finally {
             litePullConsumer.shutdown();
         }
-        doReturn(123L).when(mQAdminImpl).searchOffset(any(MessageQueue.class), anyLong());
+        doReturn(123L).when(mqAdminImpl).searchOffset(any(MessageQueue.class), anyLong());
         litePullConsumer = createStartLitePullConsumer();
         try {
             long offset = litePullConsumer.offsetForTimestamp(messageQueue, 123456L);
@@ -469,7 +469,7 @@ public class DefaultLitePullConsumerTest {
         flag = false;
         DefaultLitePullConsumer litePullConsumer = createStartLitePullConsumer();
         try {
-            doReturn(Collections.emptySet()).when(mQAdminImpl).fetchSubscribeMessageQueues(anyString());
+            doReturn(Collections.emptySet()).when(mqAdminImpl).fetchSubscribeMessageQueues(anyString());
             litePullConsumer.setTopicMetadataCheckIntervalMillis(10);
             litePullConsumer.registerTopicMessageQueueChangeListener(topic, new TopicMessageQueueChangeListener() {
                 @Override
@@ -479,7 +479,7 @@ public class DefaultLitePullConsumerTest {
             });
             Set<MessageQueue> set = new HashSet<>();
             set.add(createMessageQueue());
-            doReturn(set).when(mQAdminImpl).fetchSubscribeMessageQueues(anyString());
+            doReturn(set).when(mqAdminImpl).fetchSubscribeMessageQueues(anyString());
             Thread.sleep(11 * 1000);
             assertThat(flag).isTrue();
         } finally {
@@ -616,7 +616,7 @@ public class DefaultLitePullConsumerTest {
         defaultLitePullConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         MessageQueue messageQueue = createMessageQueue();
         when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
-        when(mQClientFactory.getMQAdminImpl().maxOffset(any(MessageQueue.class))).thenReturn(100L);
+        when(mqClientFactory.getMQAdminImpl().maxOffset(any(MessageQueue.class))).thenReturn(100L);
         long offset = rebalanceImpl.computePullFromWhere(messageQueue);
         assertThat(offset).isEqualTo(100);
         defaultLitePullConsumer.shutdown();
@@ -630,7 +630,7 @@ public class DefaultLitePullConsumerTest {
             defaultLitePullConsumer.setConsumeTimestamp("20191024171201");
             MessageQueue messageQueue = createMessageQueue();
             when(offsetStore.readOffset(any(MessageQueue.class), any(ReadOffsetType.class))).thenReturn(-1L);
-            when(mQClientFactory.getMQAdminImpl().searchOffset(any(MessageQueue.class), anyLong())).thenReturn(100L);
+            when(mqClientFactory.getMQAdminImpl().searchOffset(any(MessageQueue.class), anyLong())).thenReturn(100L);
             long offset = rebalanceImpl.computePullFromWhere(messageQueue);
             assertThat(offset).isEqualTo(100);
         } finally {
@@ -653,7 +653,7 @@ public class DefaultLitePullConsumerTest {
     public void testConsumerCommitWithMQ() throws Exception {
         DefaultLitePullConsumer litePullConsumer = createNotStartLitePullConsumer();
         try {
-            RemoteBrokerOffsetStore store = new RemoteBrokerOffsetStore(mQClientFactory, consumerGroup);
+            RemoteBrokerOffsetStore store = new RemoteBrokerOffsetStore(mqClientFactory, consumerGroup);
             litePullConsumer.setOffsetStore(store);
             litePullConsumer.start();
             initDefaultLitePullConsumer(litePullConsumer);
@@ -694,37 +694,37 @@ public class DefaultLitePullConsumerTest {
         Field field = DefaultLitePullConsumer.class.getDeclaredField("defaultLitePullConsumerImpl");
         field.setAccessible(true);
         litePullConsumerImpl = (DefaultLitePullConsumerImpl) field.get(litePullConsumer);
-        field = DefaultLitePullConsumerImpl.class.getDeclaredField("mQClientFactory");
+        field = DefaultLitePullConsumerImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
         mqClientInstance = (MQClientInstance) field.get(litePullConsumerImpl);
-        field.set(litePullConsumerImpl, mQClientFactory);
+        field.set(litePullConsumerImpl, mqClientFactory);
 
         PullAPIWrapper pullAPIWrapper = litePullConsumerImpl.getPullAPIWrapper();
-        field = PullAPIWrapper.class.getDeclaredField("mQClientFactory");
+        field = PullAPIWrapper.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(pullAPIWrapper, mQClientFactory);
+        field.set(pullAPIWrapper, mqClientFactory);
 
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
+        field.set(mqClientFactory, mqClientAPIImpl);
 
-        field = MQClientInstance.class.getDeclaredField("mQAdminImpl");
+        field = MQClientInstance.class.getDeclaredField("mqAdminImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQAdminImpl);
+        field.set(mqClientFactory, mqAdminImpl);
 
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
         rebalanceImpl = (RebalanceImpl) field.get(litePullConsumerImpl);
-        field = RebalanceImpl.class.getDeclaredField("mQClientFactory");
+        field = RebalanceImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(rebalanceImpl, mQClientFactory);
+        field.set(rebalanceImpl, mqClientFactory);
 
         offsetStore = spy(litePullConsumerImpl.getOffsetStore());
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("offsetStore");
         field.setAccessible(true);
         field.set(litePullConsumerImpl, offsetStore);
 
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mqClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<PullResult>() {
                 @Override
@@ -743,9 +743,9 @@ public class DefaultLitePullConsumerTest {
                 }
             });
 
-        when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
+        when(mqClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
 
-        doReturn(Collections.singletonList(mQClientFactory.getClientId())).when(mQClientFactory).findConsumerIdList(anyString(), anyString());
+        doReturn(Collections.singletonList(mqClientFactory.getClientId())).when(mqClientFactory).findConsumerIdList(anyString(), anyString());
 
         doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
     }
@@ -755,36 +755,36 @@ public class DefaultLitePullConsumerTest {
         Field field = DefaultLitePullConsumer.class.getDeclaredField("defaultLitePullConsumerImpl");
         field.setAccessible(true);
         litePullConsumerImpl = (DefaultLitePullConsumerImpl) field.get(litePullConsumer);
-        field = DefaultLitePullConsumerImpl.class.getDeclaredField("mQClientFactory");
+        field = DefaultLitePullConsumerImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(litePullConsumerImpl, mQClientFactory);
+        field.set(litePullConsumerImpl, mqClientFactory);
 
         PullAPIWrapper pullAPIWrapper = litePullConsumerImpl.getPullAPIWrapper();
-        field = PullAPIWrapper.class.getDeclaredField("mQClientFactory");
+        field = PullAPIWrapper.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(pullAPIWrapper, mQClientFactory);
+        field.set(pullAPIWrapper, mqClientFactory);
 
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
+        field.set(mqClientFactory, mqClientAPIImpl);
 
-        field = MQClientInstance.class.getDeclaredField("mQAdminImpl");
+        field = MQClientInstance.class.getDeclaredField("mqAdminImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQAdminImpl);
+        field.set(mqClientFactory, mqAdminImpl);
 
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("rebalanceImpl");
         field.setAccessible(true);
         rebalanceImpl = (RebalanceImpl) field.get(litePullConsumerImpl);
-        field = RebalanceImpl.class.getDeclaredField("mQClientFactory");
+        field = RebalanceImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(rebalanceImpl, mQClientFactory);
+        field.set(rebalanceImpl, mqClientFactory);
 
         offsetStore = spy(litePullConsumerImpl.getOffsetStore());
         field = DefaultLitePullConsumerImpl.class.getDeclaredField("offsetStore");
         field.setAccessible(true);
         field.set(litePullConsumerImpl, offsetStore);
 
-        when(mQClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
+        when(mqClientFactory.getMQClientAPIImpl().pullMessage(anyString(), any(PullMessageRequestHeader.class),
             anyLong(), any(CommunicationMode.class), nullable(PullCallback.class)))
             .thenAnswer(new Answer<PullResult>() {
                 @Override
@@ -804,7 +804,7 @@ public class DefaultLitePullConsumerTest {
                 }
             });
 
-        when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
+        when(mqClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
 
         doReturn(123L).when(offsetStore).readOffset(any(MessageQueue.class), any(ReadOffsetType.class));
     }
@@ -895,7 +895,7 @@ public class DefaultLitePullConsumerTest {
         }
 
         ConcurrentMap<String, MQClientInstance> factoryTable = (ConcurrentMap<String, MQClientInstance>) FieldUtils.readDeclaredField(MQClientManager.getInstance(), "factoryTable", true);
-        factoryTable.put(litePullConsumer.buildMQClientId(), mQClientFactory);
-        doReturn(false).when(mQClientFactory).updateTopicRouteInfoFromNameServer(anyString());
+        factoryTable.put(litePullConsumer.buildMQClientId(), mqClientFactory);
+        doReturn(false).when(mqClientFactory).updateTopicRouteInfoFromNameServer(anyString());
     }
 }

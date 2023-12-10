@@ -54,9 +54,9 @@ import static org.mockito.Mockito.when;
 @RunWith(MockitoJUnitRunner.class)
 public class DefaultMQPullConsumerTest {
     @Spy
-    private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mqClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     @Mock
-    private MQClientAPIImpl mQClientAPIImpl;
+    private MQClientAPIImpl mqClientAPIImpl;
     private DefaultMQPullConsumer pullConsumer;
     private String consumerGroup = "FooBarGroup";
     private String topic = "FooBar";
@@ -68,15 +68,15 @@ public class DefaultMQPullConsumerTest {
         pullConsumer.setNamesrvAddr("127.0.0.1:9876");
         pullConsumer.start();
         PullAPIWrapper pullAPIWrapper = pullConsumer.getDefaultMQPullConsumerImpl().getPullAPIWrapper();
-        Field field = PullAPIWrapper.class.getDeclaredField("mQClientFactory");
+        Field field = PullAPIWrapper.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
-        field.set(pullAPIWrapper, mQClientFactory);
+        field.set(pullAPIWrapper, mqClientFactory);
 
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mQClientFactory, mQClientAPIImpl);
+        field.set(mqClientFactory, mqClientAPIImpl);
 
-        when(mQClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
+        when(mqClientFactory.findBrokerAddressInSubscribe(anyString(), anyLong(), anyBoolean())).thenReturn(new FindBrokerResult("127.0.0.1:10911", false));
     }
 
     @After
@@ -97,7 +97,7 @@ public class DefaultMQPullConsumerTest {
                 PullMessageRequestHeader requestHeader = mock.getArgument(1);
                 return createPullResult(requestHeader, PullStatus.FOUND, Collections.singletonList(new MessageExt()));
             }
-        }).when(mQClientAPIImpl).pullMessage(anyString(), any(PullMessageRequestHeader.class), anyLong(), any(CommunicationMode.class), nullable(PullCallback.class));
+        }).when(mqClientAPIImpl).pullMessage(anyString(), any(PullMessageRequestHeader.class), anyLong(), any(CommunicationMode.class), nullable(PullCallback.class));
 
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 0);
         PullResult pullResult = pullConsumer.pull(messageQueue, "*", 1024, 3);
@@ -117,7 +117,7 @@ public class DefaultMQPullConsumerTest {
                 PullMessageRequestHeader requestHeader = mock.getArgument(1);
                 return createPullResult(requestHeader, PullStatus.NO_NEW_MSG, new ArrayList<>());
             }
-        }).when(mQClientAPIImpl).pullMessage(anyString(), any(PullMessageRequestHeader.class), anyLong(), any(CommunicationMode.class), nullable(PullCallback.class));
+        }).when(mqClientAPIImpl).pullMessage(anyString(), any(PullMessageRequestHeader.class), anyLong(), any(CommunicationMode.class), nullable(PullCallback.class));
 
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 0);
         PullResult pullResult = pullConsumer.pull(messageQueue, "*", 1024, 3);
@@ -136,7 +136,7 @@ public class DefaultMQPullConsumerTest {
                 pullCallback.onSuccess(pullResult);
                 return null;
             }
-        }).when(mQClientAPIImpl).pullMessage(anyString(), any(PullMessageRequestHeader.class), anyLong(), any(CommunicationMode.class), nullable(PullCallback.class));
+        }).when(mqClientAPIImpl).pullMessage(anyString(), any(PullMessageRequestHeader.class), anyLong(), any(CommunicationMode.class), nullable(PullCallback.class));
 
         MessageQueue messageQueue = new MessageQueue(topic, brokerName, 0);
         pullConsumer.pull(messageQueue, "*", 1024, 3, new PullCallback() {

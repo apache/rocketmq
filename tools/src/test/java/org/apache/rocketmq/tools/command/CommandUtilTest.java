@@ -49,20 +49,20 @@ public class CommandUtilTest {
     private DefaultMQAdminExt defaultMQAdminExt;
     private DefaultMQAdminExtImpl defaultMQAdminExtImpl;
     private MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
-    private MQClientAPIImpl mQClientAPIImpl;
+    private MQClientAPIImpl mqClientAPIImpl;
 
     @Before
     public void setup() throws MQClientException, NoSuchFieldException, IllegalAccessException, InterruptedException, MQBrokerException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException {
         defaultMQAdminExt = mock(DefaultMQAdminExt.class);
-        MQClientAPIImpl mQClientAPIImpl = mock(MQClientAPIImpl.class);
+        MQClientAPIImpl mqClientAPIImpl = mock(MQClientAPIImpl.class);
         defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(defaultMQAdminExt, 3000);
 
         Field field = DefaultMQAdminExtImpl.class.getDeclaredField("mqClientInstance");
         field.setAccessible(true);
         field.set(defaultMQAdminExtImpl, mqClientInstance);
-        field = MQClientInstance.class.getDeclaredField("mQClientAPIImpl");
+        field = MQClientInstance.class.getDeclaredField("mqClientAPIImpl");
         field.setAccessible(true);
-        field.set(mqClientInstance, mQClientAPIImpl);
+        field.set(mqClientInstance, mqClientAPIImpl);
 
         ClusterInfo clusterInfo = new ClusterInfo();
         HashMap<String, BrokerData> brokerAddrTable = new HashMap<>();
@@ -81,8 +81,8 @@ public class CommandUtilTest {
         clusterAddrTable.put("default-cluster", brokerSet);
         clusterInfo.setBrokerAddrTable(brokerAddrTable);
         clusterInfo.setClusterAddrTable(clusterAddrTable);
-        when(mQClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
-        when(mQClientAPIImpl.cleanExpiredConsumeQueue(anyString(), anyLong())).thenReturn(true);
+        when(mqClientAPIImpl.getBrokerClusterInfo(anyLong())).thenReturn(clusterInfo);
+        when(mqClientAPIImpl.cleanExpiredConsumeQueue(anyString(), anyLong())).thenReturn(true);
     }
 
     @After

@@ -297,14 +297,14 @@ public class StaticTopicIT extends BaseConf {
         while (System.currentTimeMillis() - start <= timeMs) {
             boolean allOk = true;
             if (producer != null) {
-                currentInstance = producer.getDefaultMQProducerImpl().getmQClientFactory();
+                currentInstance = producer.getDefaultMQProducerImpl().getMQClientFactory();
                 currentInstance.updateTopicRouteInfoFromNameServer(topic);
                 if (!MQAdminTestUtils.checkStaticTopic(topic, adminExt, currentInstance)) {
                     allOk = false;
                 }
             }
             if (consumer != null) {
-                currentInstance = consumer.getDefaultMQPushConsumerImpl().getmQClientFactory();
+                currentInstance = consumer.getDefaultMQPushConsumerImpl().getMQClientFactory();
                 currentInstance.updateTopicRouteInfoFromNameServer(topic);
                 if (!MQAdminTestUtils.checkStaticTopic(topic, adminExt, currentInstance)) {
                     allOk = false;

@@ -69,7 +69,7 @@ public class PullMultipleReplicasIT extends ContainerIntegrationTestBase {
         pullConsumer = createPullConsumer(PullMultipleReplicasIT.class.getSimpleName() + "_Consumer");
         pullConsumer.start();
 
-        Field field = DefaultMQPullConsumerImpl.class.getDeclaredField("mQClientFactory");
+        Field field = DefaultMQPullConsumerImpl.class.getDeclaredField("mqClientFactory");
         field.setAccessible(true);
         mqClientInstance = (MQClientInstance) field.get(pullConsumer.getDefaultMQPullConsumerImpl());
 

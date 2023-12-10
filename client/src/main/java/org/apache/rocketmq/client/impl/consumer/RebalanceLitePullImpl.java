@@ -40,8 +40,8 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
 
     public RebalanceLitePullImpl(String consumerGroup, MessageModel messageModel,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy,
-        MQClientInstance mQClientFactory, DefaultLitePullConsumerImpl litePullConsumerImpl) {
-        super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
+        MQClientInstance mqClientFactory, DefaultLitePullConsumerImpl litePullConsumerImpl) {
+        super(consumerGroup, messageModel, allocateMessageQueueStrategy, mqClientFactory);
         this.litePullConsumerImpl = litePullConsumerImpl;
     }
 
@@ -100,7 +100,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                         result = 0L;
                     } else {
                         try {
-                            result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+                            result = this.mqClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
                             log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
                             throw e;
@@ -129,7 +129,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                 } else if (-1 == lastOffset) {
                     if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         try {
-                            result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+                            result = this.mqClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
                             log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
                             throw e;
@@ -138,7 +138,7 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                         try {
                             long timestamp = UtilAll.parseDate(this.litePullConsumerImpl.getDefaultLitePullConsumer().getConsumeTimestamp(),
                                 UtilAll.YYYYMMDDHHMMSS).getTime();
-                            result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
+                            result = this.mqClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                         } catch (MQClientException e) {
                             log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
                             throw e;
