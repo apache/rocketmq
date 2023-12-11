@@ -1008,17 +1008,22 @@ public class MQClientInstance {
         this.rebalanceService.wakeup();
     }
 
-    public void doRebalance() {
+    public boolean doRebalance() {
+        boolean balanced = true;
         for (Map.Entry<String, MQConsumerInner> entry : this.consumerTable.entrySet()) {
             MQConsumerInner impl = entry.getValue();
             if (impl != null) {
                 try {
-                    impl.doRebalance();
+                    if (!impl.tryRebalance()) {
+                        balanced = false;
+                    }
                 } catch (Throwable e) {
                     log.error("doRebalance exception", e);
                 }
             }
         }
+
+        return balanced;
     }
 
     public MQProducerInner selectProducer(final String group) {

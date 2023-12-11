@@ -40,6 +40,8 @@ public interface MQConsumerInner {
 
     void doRebalance();
 
+    boolean tryRebalance();
+
     void persistConsumerOffset();
 
     void updateTopicSubscribeInfo(final String topic, final Set<MessageQueue> info);
