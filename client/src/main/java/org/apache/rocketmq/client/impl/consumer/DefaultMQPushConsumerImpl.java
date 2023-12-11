@@ -332,7 +332,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
         }
 
-        final SubscriptionData subscriptionData = this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
+        final String topic = pullRequest.getMessageQueue().getTopic();
+        final SubscriptionData subscriptionData = this.rebalanceImpl.getSubscriptionInner().get(topic);
         if (null == subscriptionData) {
             this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
             log.warn("find the consumer's subscription failed, {}", pullRequest);
@@ -432,7 +433,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             @Override
             public void onException(Throwable e) {
                 if (!pullRequest.getMessageQueue().getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                    log.warn("execute the pull request exception", e);
+                    if (e instanceof MQBrokerException && ((MQBrokerException) e).getResponseCode() == ResponseCode.SUBSCRIPTION_NOT_LATEST) {
+                        log.warn("the subscription is not latest, group={}, topic={}", groupName(), topic);
+                    } else {
+                        log.warn("execute the pull request exception, group={}, topic={}", groupName(), topic, e);
+                    }
                 }
 
                 if (e instanceof MQBrokerException && ((MQBrokerException) e).getResponseCode() == ResponseCode.FLOW_CONTROL) {
