@@ -37,6 +37,8 @@ public interface OffsetStore {
      */
     void updateOffset(final MessageQueue mq, final long offset, final boolean increaseOnly);
 
+    void updateAndFreezeOffset(final MessageQueue mq, final long offset);
+
     /**
      * Get offset from local storage
      *

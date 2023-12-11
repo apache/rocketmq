@@ -404,13 +404,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                             pullRequest.setNextOffset(pullResult.getNextBeginOffset());
 
                             pullRequest.getProcessQueue().setDropped(true);
-                            DefaultMQPushConsumerImpl.this.executeTaskLater(new Runnable() {
+                            DefaultMQPushConsumerImpl.this.executeTask(new Runnable() {
 
                                 @Override
                                 public void run() {
                                     try {
-                                        DefaultMQPushConsumerImpl.this.offsetStore.updateOffset(pullRequest.getMessageQueue(),
-                                            pullRequest.getNextOffset(), false);
+                                        DefaultMQPushConsumerImpl.this.offsetStore.updateAndFreezeOffset(pullRequest.getMessageQueue(),
+                                            pullRequest.getNextOffset());
 
                                         DefaultMQPushConsumerImpl.this.offsetStore.persist(pullRequest.getMessageQueue());
 
@@ -421,7 +421,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                                         log.error("executeTaskLater Exception", e);
                                     }
                                 }
-                            }, 10000);
+                            });
                             break;
                         default:
                             break;
@@ -703,6 +703,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void executeTaskLater(final Runnable r, final long timeDelay) {
         this.mQClientFactory.getPullMessageService().executeTaskLater(r, timeDelay);
+    }
+
+    public void executeTask(final Runnable r) {
+        this.mQClientFactory.getPullMessageService().executeTask(r);
     }
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
