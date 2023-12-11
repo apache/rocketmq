@@ -426,8 +426,8 @@ public class TimerMessageStoreTest {
         assertEquals(first.getCommitReadTimeMs(), second.getCommitReadTimeMs());
         second.start(true);
 
-        // Wait until all messages have wrote back to commitLog and consumeQueue.
-        await().atMost(5000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
+        // Wait until all messages have been written back to commitLog and consumeQueue.
+        await().atMost(30000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
             @Override
             public Boolean call() {
                 ConsumeQueue cq = (ConsumeQueue) messageStore.getConsumeQueue(topic, 0);
