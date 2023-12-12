@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.OffsetNotFoundException;
@@ -31,11 +30,11 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
  * Remote storage implementation
@@ -44,7 +43,7 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     private final static Logger log = LoggerFactory.getLogger(RemoteBrokerOffsetStore.class);
     private final MQClientInstance mQClientFactory;
     private final String groupName;
-    private ConcurrentMap<MessageQueue, AtomicLong> offsetTable =
+    private ConcurrentMap<MessageQueue, ControllableOffset> offsetTable =
         new ConcurrentHashMap<>();
 
     public RemoteBrokerOffsetStore(MQClientInstance mQClientFactory, String groupName) {
@@ -59,18 +58,26 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {
-            AtomicLong offsetOld = this.offsetTable.get(mq);
+            ControllableOffset offsetOld = this.offsetTable.get(mq);
             if (null == offsetOld) {
-                offsetOld = this.offsetTable.putIfAbsent(mq, new AtomicLong(offset));
+                offsetOld = this.offsetTable.putIfAbsent(mq, new ControllableOffset(offset));
             }
 
             if (null != offsetOld) {
                 if (increaseOnly) {
-                    MixAll.compareAndIncreaseOnly(offsetOld, offset);
+                    offsetOld.update(offset, true);
                 } else {
-                    offsetOld.set(offset);
+                    offsetOld.update(offset);
                 }
             }
+        }
+    }
+
+    @Override
+    public void updateAndFreezeOffset(MessageQueue mq, long offset) {
+        if (mq != null) {
+            this.offsetTable.computeIfAbsent(mq, k -> new ControllableOffset(offset))
+                .updateAndFreeze(offset);
         }
     }
 
@@ -80,9 +87,9 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
             switch (type) {
                 case MEMORY_FIRST_THEN_STORE:
                 case READ_FROM_MEMORY: {
-                    AtomicLong offset = this.offsetTable.get(mq);
+                    ControllableOffset offset = this.offsetTable.get(mq);
                     if (offset != null) {
-                        return offset.get();
+                        return offset.getOffset();
                     } else if (ReadOffsetType.READ_FROM_MEMORY == type) {
                         return -1;
                     }
@@ -118,18 +125,18 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
         final HashSet<MessageQueue> unusedMQ = new HashSet<>();
 
-        for (Map.Entry<MessageQueue, AtomicLong> entry : this.offsetTable.entrySet()) {
+        for (Map.Entry<MessageQueue, ControllableOffset> entry : this.offsetTable.entrySet()) {
             MessageQueue mq = entry.getKey();
-            AtomicLong offset = entry.getValue();
+            ControllableOffset offset = entry.getValue();
             if (offset != null) {
                 if (mqs.contains(mq)) {
                     try {
-                        this.updateConsumeOffsetToBroker(mq, offset.get());
+                        this.updateConsumeOffsetToBroker(mq, offset.getOffset());
                         log.info("[persistAll] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
                             this.groupName,
                             this.mQClientFactory.getClientId(),
                             mq,
-                            offset.get());
+                            offset.getOffset());
                     } catch (Exception e) {
                         log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
                     }
@@ -149,15 +156,15 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
 
     @Override
     public void persist(MessageQueue mq) {
-        AtomicLong offset = this.offsetTable.get(mq);
+        ControllableOffset offset = this.offsetTable.get(mq);
         if (offset != null) {
             try {
-                this.updateConsumeOffsetToBroker(mq, offset.get());
+                this.updateConsumeOffsetToBroker(mq, offset.getOffset());
                 log.info("[persist] Group: {} ClientId: {} updateConsumeOffsetToBroker {} {}",
                     this.groupName,
                     this.mQClientFactory.getClientId(),
                     mq,
-                    offset.get());
+                    offset.getOffset());
             } catch (Exception e) {
                 log.error("updateConsumeOffsetToBroker exception, " + mq.toString(), e);
             }
@@ -175,12 +182,12 @@ public class RemoteBrokerOffsetStore implements OffsetStore {
     @Override
     public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
         Map<MessageQueue, Long> cloneOffsetTable = new HashMap<>(this.offsetTable.size(), 1);
-        for (Map.Entry<MessageQueue, AtomicLong> entry : this.offsetTable.entrySet()) {
+        for (Map.Entry<MessageQueue, ControllableOffset> entry : this.offsetTable.entrySet()) {
             MessageQueue mq = entry.getKey();
             if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
                 continue;
             }
-            cloneOffsetTable.put(mq, entry.getValue().get());
+            cloneOffsetTable.put(mq, entry.getValue().getOffset());
         }
         return cloneOffsetTable;
     }

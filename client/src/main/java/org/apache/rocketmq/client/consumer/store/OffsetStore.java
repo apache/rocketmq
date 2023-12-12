@@ -38,6 +38,14 @@ public interface OffsetStore {
     void updateOffset(final MessageQueue mq, final long offset, final boolean increaseOnly);
 
     /**
+     * Update and freeze the message queue to prevent concurrent update action
+     *
+     * @param mq target message queue
+     * @param offset expect update offset
+     */
+    void updateAndFreezeOffset(final MessageQueue mq, final long offset);
+
+    /**
      * Get offset from local storage
      *
      * @return The fetched offset
