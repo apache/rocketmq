@@ -132,7 +132,7 @@
         <org.relection.version>0.9.11</org.relection.version>
         <caffeine.version>2.9.3</caffeine.version>
         <spring.version>5.3.27</spring.version>
-        <okio-jvm.version>3.0.0</okio-jvm.version>
+        <okio-jvm.version>3.4.0</okio-jvm.version>
         <opentelemetry.version>1.29.0</opentelemetry.version>
         <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
