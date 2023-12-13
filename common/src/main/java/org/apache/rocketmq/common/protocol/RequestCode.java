@@ -78,8 +78,6 @@ public class RequestCode {
 
     public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG = 53;
 
-    public static final int GET_BROKER_CLUSTER_ACL_CONFIG = 54;
-
     public static final int PUT_KV_CONFIG = 100;
 
     public static final int GET_KV_CONFIG = 101;
