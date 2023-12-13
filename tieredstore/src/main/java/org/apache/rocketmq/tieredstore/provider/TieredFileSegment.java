@@ -367,7 +367,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             if (fileSegmentInputStream != null) {
                 long fileSize = this.getSize();
                 if (fileSize == -1L) {
-                    logger.error("Get commit position error before commit, Commit: %d, Expect: %d, Current Max: %d, FileName: %s",
+                    logger.error("Get commit position error before commit, Commit: {}, Expect: {}, Current Max: {}, FileName: {}",
                         commitPosition, commitPosition + fileSegmentInputStream.getContentLength(), appendPosition, getPath());
                     releaseCommitLock();
                     return CompletableFuture.completedFuture(false);
