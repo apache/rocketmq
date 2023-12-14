@@ -139,7 +139,7 @@ public class UtilAllTest {
         assertEquals("groupA=DENY,groupB=PUB|SUB,groupC=SUB", UtilAll.join(list, comma));
         assertEquals(null, UtilAll.join(null, comma));
         List<String> objects = Collections.emptyList();
-        assertEquals("", UtilAll.join(objects, comma));
+        assertEquals(null, UtilAll.join(objects, comma));
     }
 
     static class DemoConfig {
