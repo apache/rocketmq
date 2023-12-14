@@ -16,11 +16,14 @@
  */
 package org.apache.rocketmq.controller.impl.heartbeat;
 
+import java.io.Serializable;
 import org.apache.rocketmq.common.UtilAll;
 
 import java.util.Objects;
 
-public class BrokerIdentityInfo {
+public class BrokerIdentityInfo implements Serializable {
+
+    private static final long serialVersionUID = 883597359635995567L;
     private final String clusterName;
 
     private final String brokerName;
