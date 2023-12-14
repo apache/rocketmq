@@ -293,8 +293,10 @@ public class RouteInfoManager {
             registerFirst = registerFirst || (StringUtils.isEmpty(oldAddr));
 
             boolean isMaster = MixAll.MASTER_ID == brokerId;
+
+            // isPrimeSlave < Slave Acting Master模式下，Namesrv将把brokerId最小的存活Slave视为“代理”Master，并将brokerPermission修改为4（Read-Only）>
             boolean isPrimeSlave = !isOldVersionBroker && !isMaster
-                && brokerId == Collections.min(brokerAddrsMap.keySet());
+                && brokerId == Collections.min(brokerAddrsMap.keySet()) && !brokerAddrsMap.containsKey(0L);
 
             if (null != topicConfigWrapper && (isMaster || isPrimeSlave)) {
 
