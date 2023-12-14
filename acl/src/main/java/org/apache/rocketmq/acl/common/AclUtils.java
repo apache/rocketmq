@@ -17,6 +17,7 @@
 package org.apache.rocketmq.acl.common;
 
 import com.alibaba.fastjson.JSONObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -25,13 +26,18 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Map;
 import java.util.SortedMap;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.inspector.TagInspector;
 
 import static org.apache.rocketmq.acl.common.SessionCredentials.CHARSET;
 
@@ -237,7 +243,7 @@ public class AclUtils {
     }
 
     public static <T> T getYamlDataObject(String path, Class<T> clazz) {
-        Yaml yaml = new Yaml();
+        Yaml yaml = getYaml();
         FileInputStream fis = null;
         try {
             fis = new FileInputStream(new File(path));
@@ -257,7 +263,7 @@ public class AclUtils {
     }
 
     public static boolean writeDataObject(String path, Map<String, Object> dataMap) {
-        Yaml yaml = new Yaml();
+        Yaml yaml = getYaml();
         PrintWriter pw = null;
         try {
             pw = new PrintWriter(new FileWriter(path));
@@ -272,6 +278,14 @@ public class AclUtils {
             }
         }
         return true;
+    }
+
+    private static Yaml getYaml() {
+        LoaderOptions loaderOptions = new LoaderOptions();
+        TagInspector tagInspector = tag -> tag.getClassName().equals(PlainAccessConfig.class.getName());
+        loaderOptions.setTagInspector(tagInspector);
+        Yaml yaml = new Yaml(new Constructor(loaderOptions));
+        return yaml;
     }
 
     public static RPCHook getAclRPCHook(String fileName) {
