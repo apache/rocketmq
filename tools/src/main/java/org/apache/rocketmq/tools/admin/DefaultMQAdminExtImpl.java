@@ -41,7 +41,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.admin.OffsetWrapper;
@@ -225,12 +224,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
         String addr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterAclInfo(addr, timeoutMillis);
-    }
-
-    @Override
-    public AclConfig examineBrokerClusterAclConfig(
-        String addr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterConfig(addr, timeoutMillis);
     }
 
     @Override
