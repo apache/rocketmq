@@ -294,9 +294,8 @@ public class RouteInfoManager {
 
             boolean isMaster = MixAll.MASTER_ID == brokerId;
 
-            // isPrimeSlave < Slave Acting Master模式下，Namesrv将把brokerId最小的存活Slave视为“代理”Master，并将brokerPermission修改为4（Read-Only）>
             boolean isPrimeSlave = !isOldVersionBroker && !isMaster
-                && brokerId == Collections.min(brokerAddrsMap.keySet()) && !brokerAddrsMap.containsKey(0L);
+                && brokerId == Collections.min(brokerAddrsMap.keySet());
 
             if (null != topicConfigWrapper && (isMaster || isPrimeSlave)) {
 
@@ -309,8 +308,11 @@ public class RouteInfoManager {
                             entry.getValue().getTopicName())) {
                             final TopicConfig topicConfig = entry.getValue();
                             if (isPrimeSlave) {
-                                // Wipe write perm for prime slave
-                                topicConfig.setPerm(topicConfig.getPerm() & (~PermName.PERM_WRITE));
+                                // In Slave Acting Master mode, Namesrv will regard the surviving Slave with the smallest brokerId as the "agent" Master, and modify the brokerPermission to read-only.
+                                if (brokerData.isEnableActingMaster()){
+                                    // Wipe write perm for prime slave
+                                    topicConfig.setPerm(topicConfig.getPerm() & (~PermName.PERM_WRITE));
+                                }
                             }
                             this.createAndUpdateQueueData(brokerName, topicConfig);
                         }
