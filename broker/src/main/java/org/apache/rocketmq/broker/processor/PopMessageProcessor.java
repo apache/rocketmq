@@ -372,9 +372,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     for (int i = 0; i < retryTopicConfigV1.getReadQueueNums(); i++) {
                         int queueId = (randomQ + i) % retryTopicConfigV1.getReadQueueNums();
                         getMessageFuture = getMessageFuture.thenCompose(restNum ->
-                            popMsgFromQueue(requestHeader.getAttemptId(), true, getMessageResult, requestHeader,
-                                queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
-                                startOffsetInfo, msgOffsetInfo, finalOrderCountInfo, false));
+                            popMsgFromQueue(retryTopicConfigV1.getTopicName(), requestHeader.getAttemptId(), true,
+                                getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                                startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
                     }
                 }
             } else {
@@ -383,8 +383,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 if (retryTopicConfig != null) {
                     for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
                         int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
-                        getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(requestHeader.getAttemptId(), true, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
-                            startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
+                        getMessageFuture = getMessageFuture.thenCompose(restNum ->
+                            popMsgFromQueue(retryTopicConfig.getTopicName(), requestHeader.getAttemptId(), true,
+                                getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                                startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
                     }
                 }
             }
@@ -393,13 +395,17 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             // read all queue
             for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
                 int queueId = (randomQ + i) % topicConfig.getReadQueueNums();
-                getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(requestHeader.getAttemptId(), false, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
-                    startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
+                getMessageFuture = getMessageFuture.thenCompose(restNum ->
+                    popMsgFromQueue(topicConfig.getTopicName(), requestHeader.getAttemptId(), false,
+                        getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                        startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
             }
         } else {
             int queueId = requestHeader.getQueueId();
-            getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(requestHeader.getAttemptId(), false, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
-                startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
+            getMessageFuture = getMessageFuture.thenCompose(restNum ->
+                popMsgFromQueue(topicConfig.getTopicName(), requestHeader.getAttemptId(), false,
+                    getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                    startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
         }
         // if not full , fetch retry again
         if (!needRetry && getMessageResult.getMessageMapedList().size() < requestHeader.getMaxMsgNums() && !requestHeader.isOrder()) {
@@ -410,9 +416,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     for (int i = 0; i < retryTopicConfigV1.getReadQueueNums(); i++) {
                         int queueId = (randomQ + i) % retryTopicConfigV1.getReadQueueNums();
                         getMessageFuture = getMessageFuture.thenCompose(restNum ->
-                            popMsgFromQueue(requestHeader.getAttemptId(), true, getMessageResult, requestHeader,
-                                queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
-                                startOffsetInfo, msgOffsetInfo, finalOrderCountInfo, false));
+                            popMsgFromQueue(retryTopicConfigV1.getTopicName(), requestHeader.getAttemptId(), true,
+                                getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                                startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
                     }
                 }
             } else {
@@ -421,8 +427,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 if (retryTopicConfig != null) {
                     for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
                         int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
-                        getMessageFuture = getMessageFuture.thenCompose(restNum -> popMsgFromQueue(requestHeader.getAttemptId(), true, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
-                            startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
+                        getMessageFuture = getMessageFuture.thenCompose(restNum ->
+                            popMsgFromQueue(retryTopicConfig.getTopicName(), requestHeader.getAttemptId(), true,
+                                getMessageResult, requestHeader, queueId, restNum, reviveQid, channel, popTime, finalMessageFilter,
+                                startOffsetInfo, msgOffsetInfo, finalOrderCountInfo));
                     }
                 }
             }
@@ -505,26 +513,11 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    private CompletableFuture<Long> popMsgFromQueue(String attemptId, boolean isRetry, GetMessageResult getMessageResult,
+    private CompletableFuture<Long> popMsgFromQueue(String targetTopic, String attemptId, boolean isRetry, GetMessageResult getMessageResult,
         PopMessageRequestHeader requestHeader, int queueId, long restNum, int reviveQid,
         Channel channel, long popTime, ExpressionMessageFilter messageFilter, StringBuilder startOffsetInfo,
         StringBuilder msgOffsetInfo, StringBuilder orderCountInfo) {
-        return popMsgFromQueue(attemptId, isRetry, getMessageResult, requestHeader, queueId, restNum, reviveQid, channel,
-            popTime, messageFilter, startOffsetInfo, msgOffsetInfo, orderCountInfo, true);
-    }
-
-    private CompletableFuture<Long> popMsgFromQueue(String attemptId, boolean isRetry, GetMessageResult getMessageResult,
-        PopMessageRequestHeader requestHeader, int queueId, long restNum, int reviveQid,
-        Channel channel, long popTime, ExpressionMessageFilter messageFilter, StringBuilder startOffsetInfo,
-        StringBuilder msgOffsetInfo, StringBuilder orderCountInfo, boolean isRetryV2) {
-        String topic;
-        if (isRetryV2) {
-            topic = isRetry ? KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(),
-                requestHeader.getConsumerGroup()) : requestHeader.getTopic();
-        } else {
-            topic = isRetry ? KeyBuilder.buildPopRetryTopicV1(requestHeader.getTopic(),
-                requestHeader.getConsumerGroup()) : requestHeader.getTopic();
-        }
+        String topic = targetTopic;
         String lockKey =
             topic + PopAckConstants.SPLIT + requestHeader.getConsumerGroup() + PopAckConstants.SPLIT + queueId;
         boolean isOrder = requestHeader.isOrder();
