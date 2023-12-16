@@ -83,7 +83,8 @@ public class UpdateBrokerConfigSubCommand implements SubCommand {
                 defaultMQAdminExt.start();
 
                 defaultMQAdminExt.updateBrokerConfig(brokerAddr, properties);
-                System.out.printf("update broker config success, %s\n", brokerAddr);
+                System.out.printf("update broker config success, %s, %s\n", brokerAddr,
+                        ConfigUpdateSupport.getUpdateSupportResEnumByKey(key));
                 return;
 
             } else if (commandLine.hasOption('c')) {
@@ -102,7 +103,8 @@ public class UpdateBrokerConfigSubCommand implements SubCommand {
                 for (String brokerAddr : brokerAddrSet) {
                     try {
                         defaultMQAdminExt.updateBrokerConfig(brokerAddr, properties);
-                        System.out.printf("update broker config success, %s\n", brokerAddr);
+                        System.out.printf("update broker config success, %s, %s\n", brokerAddr,
+                                ConfigUpdateSupport.getUpdateSupportResEnumByKey(key));
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
