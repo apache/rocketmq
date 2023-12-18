@@ -22,11 +22,13 @@ import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
@@ -194,17 +196,16 @@ public class ControllerManager {
 
     private void triggerElectMaster(String brokerName) {
         int maxRetryCount = controllerConfig.getElectMasterMaxRetryCount();
-        AtomicInteger retryCount = new AtomicInteger();
-        triggerElectMaster0(brokerName).thenAcceptAsync(result -> {
-            if (!result) {
-                retryCount.getAndIncrement();
-                if (retryCount.get() < maxRetryCount) {
-                    triggerElectMaster(brokerName);
-                } else {
-                    log.error("Failed to trigger elect-master in broker-set: {} after {} times retry", brokerName, maxRetryCount);
+        for (int i = 0; i < maxRetryCount; i++) {
+            try {
+                Boolean electResult = triggerElectMaster0(brokerName).get(3, TimeUnit.SECONDS);
+                if (electResult) {
+                    return;
                 }
+            } catch (Exception e) {
+                log.warn("Failed to trigger elect-master in broker-set: {}, retryCount: {}", brokerName, i, e);
             }
-        });
+        }
     }
 
     /**
