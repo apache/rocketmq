@@ -109,7 +109,7 @@
             <artifactId>rocketmq-logback-classic</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.github.aliyunmq</groupId>
+            <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-rocksdb</artifactId>
         </dependency>
     </dependencies>

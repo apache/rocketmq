@@ -94,9 +94,10 @@ public class ControllerStartup {
         }
 
         if (commandLine.hasOption('p')) {
-            MixAll.printObjectProperties(null, controllerConfig);
-            MixAll.printObjectProperties(null, nettyServerConfig);
-            MixAll.printObjectProperties(null, nettyClientConfig);
+            Logger console = LoggerFactory.getLogger(LoggerName.CONTROLLER_CONSOLE_NAME);
+            MixAll.printObjectProperties(console, controllerConfig);
+            MixAll.printObjectProperties(console, nettyServerConfig);
+            MixAll.printObjectProperties(console, nettyClientConfig);
             System.exit(0);
         }
 

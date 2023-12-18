@@ -47,7 +47,7 @@ public class MessageBufferUtilTest {
         + 8 //Prepared Transaction Offset
         + 4 + 0 //BODY
         + 2 + 0 //TOPIC
-        + 2 + 30 //properties
+        + 2 + 31 //properties
         + 0;
 
     public static ByteBuffer buildMockedMessageBuffer() {

@@ -87,4 +87,9 @@ public class ClientHousekeepingService implements ChannelEventListener {
         this.brokerController.getConsumerManager().doChannelCloseEvent(remoteAddr, channel);
         this.brokerController.getBrokerStatsManager().incChannelIdleNum();
     }
+
+    @Override
+    public void onChannelActive(String remoteAddr, Channel channel) {
+
+    }
 }
