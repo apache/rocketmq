@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker.metrics;
 
 import com.google.common.base.Splitter;
+import io.netty.channel.Channel;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.LongCounter;
@@ -45,10 +46,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
@@ -459,9 +462,14 @@ public class BrokerMetricsManager {
             .ofLongs()
             .buildWithCallback(measurement -> {
                 Map<ProducerAttr, Integer> metricsMap = new HashMap<>();
-                brokerController.getProducerManager()
-                    .getGroupChannelTable()
-                    .values()
+                ConcurrentHashMap<String, ConcurrentHashMap<Channel, ClientChannelInfo>> groupChannelTable = brokerController.getProducerManager().getGroupChannelTable();
+                ConcurrentHashMap<String, ConcurrentHashMap<Channel, ClientChannelInfo>> clone = new ConcurrentHashMap<>(groupChannelTable);
+                clone.forEach((group, map) -> {
+                    if (MixAll.CLIENT_INNER_PRODUCER_GROUP.equals(group)) {
+                        groupChannelTable.remove(group);
+                    }
+                });
+                clone.values()
                     .stream()
                     .flatMap(map -> map.values().stream())
                     .forEach(info -> {
