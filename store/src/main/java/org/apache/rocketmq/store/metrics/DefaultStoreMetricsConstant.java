@@ -39,4 +39,10 @@ public class DefaultStoreMetricsConstant {
     public static final String DEFAULT_STORAGE_MEDIUM = "disk";
     public static final String LABEL_TOPIC = "topic";
     public static final String LABEL_TIMING_BOUND = "timer_bound_s";
+    public static final String GAUGE_BYTES_ROCKSDB_WRITTEN = "rocketmq_rocksdb_bytes_written";
+    public static final String GAUGE_BYTES_ROCKSDB_READ = "rocketmq_rocksdb_bytes_read";
+
+    public static final String GAUGE_TIMES_ROCKSDB_WRITTEN_SELF = "rocketmq_rocksdb_times_written_self";
+    public static final String GAUGE_TIMES_ROCKSDB_WRITTEN_OTHER = "rocketmq_rocksdb_times_written_other";
+    public static final String GAUGE_RATE_ROCKSDB_CACHE_HIT = "rocketmq_rocksdb_rate_cache_hit";
 }
