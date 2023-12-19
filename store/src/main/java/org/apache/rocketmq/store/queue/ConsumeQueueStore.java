@@ -455,7 +455,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
         }
 
         // Correct unSubmit consumeOffset
-        if (messageStoreConfig.isDuplicationEnable()) {
+        if (messageStoreConfig.isDuplicationEnable() || messageStore.getBrokerConfig().isEnableControllerMode()) {
             SelectMappedBufferResult lastBuffer = null;
             long startReadOffset = messageStore.getCommitLog().getConfirmOffset() == -1 ? 0 : messageStore.getCommitLog().getConfirmOffset();
             while ((lastBuffer = messageStore.selectOneMessageByOffset(startReadOffset)) != null) {
