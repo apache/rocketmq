@@ -16,6 +16,21 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.attribute.CQType;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.common.utils.QueueTypeUtils;
+import org.apache.rocketmq.common.utils.ThreadUtils;
+import org.apache.rocketmq.store.CommitLog;
+import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.SelectMappedBufferResult;
+
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -33,20 +48,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.common.BoundaryType;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.attribute.CQType;
-import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.common.utils.QueueTypeUtils;
-import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.store.CommitLog;
-import org.apache.rocketmq.store.ConsumeQueue;
-import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.DispatchRequest;
-import org.apache.rocketmq.store.SelectMappedBufferResult;
 
 import static java.lang.String.format;
 import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathBatchConsumeQueue;
@@ -444,6 +445,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 String key = logic.getTopic() + "-" + logic.getQueueId();
 
                 long maxOffsetInQueue = logic.getMaxOffsetInQueue();
+                log.info("Recover offset table, key: {}, maxOffsetInQueue:{}", key, maxOffsetInQueue);
                 if (Objects.equals(CQType.BatchCQ, logic.getCQType())) {
                     bcqOffsetTable.put(key, maxOffsetInQueue);
                 } else {
@@ -458,6 +460,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
         if (messageStoreConfig.isDuplicationEnable() || messageStore.getBrokerConfig().isEnableControllerMode()) {
             SelectMappedBufferResult lastBuffer = null;
             long startReadOffset = messageStore.getCommitLog().getConfirmOffset() == -1 ? 0 : messageStore.getCommitLog().getConfirmOffset();
+            log.info("Correct unsubmitted offset...StartReadOffset = {}", startReadOffset);
             while ((lastBuffer = messageStore.selectOneMessageByOffset(startReadOffset)) != null) {
                 try {
                     if (lastBuffer.getStartOffset() > startReadOffset) {
@@ -487,6 +490,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                     String key = msg.getTopic() + "-" + msg.getQueueId();
                     cqOffsetTable.put(key, msg.getQueueOffset() + 1);
                     startReadOffset += msg.getStoreSize();
+                    log.info("Correcting. Key:{}, start read Offset: {}", key, startReadOffset);
                 } finally {
                     if (lastBuffer != null)
                         lastBuffer.release();
