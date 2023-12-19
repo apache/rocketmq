@@ -63,13 +63,13 @@ public class RocksDBStoreMetricsManager {
     public static ObservableLongGauge timesRocksdbCompressed = new NopObservableLongGauge();
 
     // The ratio of the amount of data actually written to the storage medium to the amount of data written by the application.
-    public static ObservableLongGauge rocksdbWriteAmplificationRatio = new NopObservableLongGauge();
+    public static ObservableDoubleGauge bytesRocksdbAmplificationRead = new NopObservableDoubleGauge();
 
     // The rate at which cache lookups were served from the cache rather than needing to be fetched from disk.
     public static ObservableDoubleGauge rocksdbCacheHitRate = new NopObservableDoubleGauge();
 
-    public static long blockCacheHitTimes = 0;
-    public static long blockCacheMissTimes = 0;
+    public static volatile long blockCacheHitTimes = 0;
+    public static volatile long blockCacheMissTimes = 0;
 
 
 
@@ -108,6 +108,13 @@ public class RocksDBStoreMetricsManager {
                     measurement.record(((RocksDBConsumeQueueStore)messageStore.getQueueStore())
                             .getStatistics().getTickerCount(TickerType.WRITE_DONE_BY_OTHER), newAttributesBuilder().put("type", "consume_queue").build());
                 });
+        timesRocksdbRead = meter.gaugeBuilder(DefaultStoreMetricsConstant.GAUGE_TIMES_ROCKSDB_READ)
+                .setDescription("The cumulative number of write operations performed by other.")
+                .ofLongs()
+                .buildWithCallback(measurement -> {
+                    measurement.record(((RocksDBConsumeQueueStore)messageStore.getQueueStore())
+                            .getStatistics().getTickerCount(TickerType.NUMBER_KEYS_READ), newAttributesBuilder().put("type", "consume_queue").build());
+                });
         rocksdbCacheHitRate = meter.gaugeBuilder(DefaultStoreMetricsConstant.GAUGE_RATE_ROCKSDB_CACHE_HIT)
                 .setDescription("The rate at which cache lookups were served from the cache rather than needing to be fetched from disk.")
                 .buildWithCallback(measurement -> {
@@ -119,6 +126,19 @@ public class RocksDBStoreMetricsManager {
                     blockCacheHitTimes = newHitTimes;
                     blockCacheMissTimes = newMissTimes;
                     measurement.record(hitRate, newAttributesBuilder().put("type", "consume_queue").build());
+                });
+        timesRocksdbCompressed = meter.gaugeBuilder(DefaultStoreMetricsConstant.GAUGE_TIMES_ROCKSDB_COMPRESSED)
+                .setDescription("The cumulative number of compressions that have occurred.")
+                .ofLongs()
+                .buildWithCallback(measurement -> {
+                    measurement.record(((RocksDBConsumeQueueStore)messageStore.getQueueStore())
+                            .getStatistics().getTickerCount(TickerType.NUMBER_BLOCK_COMPRESSED), newAttributesBuilder().put("type", "consume_queue").build());
+                });
+        bytesRocksdbAmplificationRead = meter.gaugeBuilder(DefaultStoreMetricsConstant.GAUGE_BYTES_READ_AMPLIFICATION)
+                .setDescription("The rate at which cache lookups were served from the cache rather than needing to be fetched from disk.")
+                .buildWithCallback(measurement -> {
+                    measurement.record(((RocksDBConsumeQueueStore)messageStore.getQueueStore())
+                            .getStatistics().getTickerCount(TickerType.READ_AMP_TOTAL_READ_BYTES), newAttributesBuilder().put("type", "consume_queue").build());
                 });
     }
 

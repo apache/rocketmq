@@ -45,4 +45,7 @@ public class DefaultStoreMetricsConstant {
     public static final String GAUGE_TIMES_ROCKSDB_WRITTEN_SELF = "rocketmq_rocksdb_times_written_self";
     public static final String GAUGE_TIMES_ROCKSDB_WRITTEN_OTHER = "rocketmq_rocksdb_times_written_other";
     public static final String GAUGE_RATE_ROCKSDB_CACHE_HIT = "rocketmq_rocksdb_rate_cache_hit";
+    public static final String GAUGE_TIMES_ROCKSDB_COMPRESSED = "rocketmq_rocksdb_times_compressed";
+    public static final String GAUGE_BYTES_READ_AMPLIFICATION = "rocketmq_rocksdb_read_amplification_bytes";
+    public static final String GAUGE_TIMES_ROCKSDB_READ = "rocketmq_rocksdb_times_read";
 }
