@@ -108,7 +108,7 @@
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
         <commons-lang3.version>3.4</commons-lang3.version>
-        <guava.version>31.0.1-jre</guava.version>
+        <guava.version>32.0.1-jre</guava.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
         <log4j.version>1.2.17</log4j.version>
         <snakeyaml.version>2.0</snakeyaml.version>
