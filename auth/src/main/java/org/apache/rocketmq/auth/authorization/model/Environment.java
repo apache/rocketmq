@@ -3,6 +3,8 @@ package org.apache.rocketmq.auth.authorization.model;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.utils.IPAddressUtils;
 
 public class Environment {
 
@@ -22,8 +24,20 @@ public class Environment {
         if (CollectionUtils.isEmpty(this.sourceIps)) {
             return true;
         }
-        // TODO 需要校验IP是否在IP段中
-        return true;
+        if (CollectionUtils.isEmpty(environment.getSourceIps())) {
+            return false;
+        }
+        String targetIp = environment.getSourceIps().get(0);
+        for (String sourceIp : this.sourceIps) {
+            if (IPAddressUtils.isValidCidr(sourceIp)
+                && IPAddressUtils.isIPInRange(targetIp, sourceIp)) {
+                return true;
+            }
+            if (StringUtils.equals(targetIp, sourceIp)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public List<String> getSourceIps() {

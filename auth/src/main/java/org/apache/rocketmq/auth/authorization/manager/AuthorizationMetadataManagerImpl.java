@@ -3,6 +3,7 @@ package org.apache.rocketmq.auth.authorization.manager;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.enums.SubjectType;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
@@ -13,6 +14,7 @@ import org.apache.rocketmq.auth.authorization.enums.PolicyType;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.authorization.model.Acl;
+import org.apache.rocketmq.auth.authorization.model.Environment;
 import org.apache.rocketmq.auth.authorization.model.Policy;
 import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.authorization.model.Resource;
@@ -20,6 +22,7 @@ import org.apache.rocketmq.auth.authorization.provider.AuthorizationMetadataProv
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.utils.ExceptionUtils;
+import org.apache.rocketmq.common.utils.IPAddressUtils;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataManager {
@@ -228,7 +231,17 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
         if (entry.getActions().contains(Action.ANY)) {
             throw new AuthorizationException("The actions can not be Any");
         }
-        // TODO validate sourceIp
+        Environment environment = entry.getEnvironment();
+        if (environment != null && CollectionUtils.isNotEmpty(environment.getSourceIps())) {
+            for (String sourceIp : environment.getSourceIps()) {
+                if (StringUtils.isBlank(sourceIp)) {
+                    throw new AuthorizationException("The source ip is empty");
+                }
+                if (!IPAddressUtils.isValidIPOrCidr(sourceIp)) {
+                    throw new AuthorizationException("The source ip is invalid");
+                }
+            }
+        }
         if (entry.getDecision() == null) {
             throw new AuthorizationException("The decision is null");
         }
