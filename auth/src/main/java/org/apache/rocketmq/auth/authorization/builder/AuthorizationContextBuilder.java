@@ -84,7 +84,7 @@ public class AuthorizationContextBuilder {
         }
         if (message instanceof ReceiveMessageRequest) {
             ReceiveMessageRequest request = (ReceiveMessageRequest) message;
-            if (request.hasMessageQueue()) {
+            if (!request.hasMessageQueue()) {
                 throw new AuthorizationException("messageQueue is null");
             }
             return newSubContexts(metadata, request.getGroup(), request.getMessageQueue().getTopic());

@@ -6,7 +6,6 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.auth.authorization.AuthorizationEvaluator;
 import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
-import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.proxy.common.ProxyContext;
@@ -30,7 +29,7 @@ public class AuthorizationPipeline implements RequestPipeline {
         if (authConfig.isAuthenticationEnabled()) {
             List<AuthorizationContext> contexts = AuthorizationFactory.newContexts(authConfig, headers, request);
             if (CollectionUtils.isEmpty(contexts)) {
-                throw new AuthorizationException("the request api is null");
+                return;
             }
             authorizationEvaluator.evaluate(contexts);
         }
