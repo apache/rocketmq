@@ -444,7 +444,6 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 String key = logic.getTopic() + "-" + logic.getQueueId();
 
                 long maxOffsetInQueue = logic.getMaxOffsetInQueue();
-                log.info("Recover offset table, key: {}, maxOffsetInQueue:{}", key, maxOffsetInQueue);
                 if (Objects.equals(CQType.BatchCQ, logic.getCQType())) {
                     bcqOffsetTable.put(key, maxOffsetInQueue);
                 } else {
@@ -496,6 +495,7 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 String key = msg.getTopic() + "-" + msg.getQueueId();
                 cqOffsetTable.put(key, msg.getQueueOffset() + 1);
                 startReadOffset += msg.getStoreSize();
+                log.info("Correcting. Key:{}, start read Offset: {}", key, startReadOffset);
             } finally {
                 if (lastBuffer != null)
                     lastBuffer.release();
