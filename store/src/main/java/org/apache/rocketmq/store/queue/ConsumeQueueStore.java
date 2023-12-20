@@ -496,7 +496,6 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
                 String key = msg.getTopic() + "-" + msg.getQueueId();
                 cqOffsetTable.put(key, msg.getQueueOffset() + 1);
                 startReadOffset += msg.getStoreSize();
-                log.info("Correcting. Key:{}, start read Offset: {}", key, startReadOffset);
             } finally {
                 if (lastBuffer != null)
                     lastBuffer.release();
