@@ -20,6 +20,8 @@ public class AuthConfig implements Cloneable {
 
     private String authorizationMetadataProvider;
 
+    private boolean migrateFromAclV1Enabled = false;
+
     @Override
     public AuthConfig clone() {
         try {
@@ -99,5 +101,13 @@ public class AuthConfig implements Cloneable {
 
     public void setAuthorizationMetadataProvider(String authorizationMetadataProvider) {
         this.authorizationMetadataProvider = authorizationMetadataProvider;
+    }
+
+    public boolean isMigrateFromAclV1Enabled() {
+        return migrateFromAclV1Enabled;
+    }
+
+    public void setMigrateFromAclV1Enabled(boolean migrateFromAclV1Enabled) {
+        this.migrateFromAclV1Enabled = migrateFromAclV1Enabled;
     }
 }

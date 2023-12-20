@@ -1,12 +1,11 @@
 package org.apache.rocketmq.common.utils;
 
-import java.net.UnknownHostException;
 import org.junit.Test;
 
 public class IPAddressUtilsTest {
 
     @Test
-    public void isIPInRange() throws UnknownHostException {
+    public void isIPInRange() {
 
         // IPv4 test
         String ipv4Address = "192.168.1.10";

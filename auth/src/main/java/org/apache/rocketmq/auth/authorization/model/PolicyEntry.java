@@ -40,8 +40,12 @@ public class PolicyEntry implements Comparable<PolicyEntry> {
         if (CollectionUtils.isEmpty(this.actions)) {
             return false;
         }
+        if (actions.contains(Action.ANY)) {
+            return true;
+        }
         return actions.stream()
-            .anyMatch(action -> this.actions.contains(action));
+            .anyMatch(action -> this.actions.contains(action)
+                || this.actions.contains(Action.ALL));
     }
 
     public boolean isMatchEnvironment(Environment environment) {
@@ -62,7 +66,7 @@ public class PolicyEntry implements Comparable<PolicyEntry> {
         if (CollectionUtils.isEmpty(actions)) {
             return null;
         }
-        return actions.stream().map(Action::getCode)
+        return actions.stream().map(Action::getName)
             .collect(Collectors.toList());
     }
 

@@ -1,27 +1,36 @@
 package org.apache.rocketmq.auth.authorization.enums;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+
 public enum Decision {
 
-    GRANT("Grant"),
+    GRANT((byte) 1, "Grant"),
 
-    DENY("Deny");
+    DENY((byte) 2, "Deny");
 
-    private final String code;
+    @JSONField(value = true)
+    private final byte code;
+    private final String name;
 
-    Decision(String code) {
+    Decision(byte code, String name) {
         this.code = code;
+        this.name = name;
     }
 
-    public static Decision getByCode(String decision) {
+    public static Decision getByName(String name) {
         for (Decision d : Decision.values()) {
-            if (d.code.equals(decision)) {
+            if (d.name.equals(name)) {
                 return d;
             }
         }
         return null;
     }
 
-    public String getCode() {
+    public byte getCode() {
         return code;
+    }
+
+    public String getName() {
+        return name;
     }
 }

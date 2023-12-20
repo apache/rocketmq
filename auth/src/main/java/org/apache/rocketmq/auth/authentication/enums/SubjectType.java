@@ -1,25 +1,34 @@
 package org.apache.rocketmq.auth.authentication.enums;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+
 public enum SubjectType {
 
-    USER("User");
+    USER((byte) 1, "User");
 
-    private String code;
+    @JSONField(value = true)
+    private final byte code;
+    private final String name;
 
-    SubjectType(String code) {
+    SubjectType(byte code, String name) {
         this.code = code;
+        this.name = name;
     }
 
-    public static SubjectType getByCode(String code) {
+    public static SubjectType getByName(String name) {
         for (SubjectType subjectType : SubjectType.values()) {
-            if (subjectType.getCode().equals(code)) {
+            if (subjectType.getName().equals(name)) {
                 return subjectType;
             }
         }
         return null;
     }
 
-    public String getCode() {
+    public byte getCode() {
         return code;
+    }
+
+    public String getName() {
+        return name;
     }
 }

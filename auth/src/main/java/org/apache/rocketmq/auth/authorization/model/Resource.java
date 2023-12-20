@@ -54,11 +54,11 @@ public class Resource implements Comparable<Resource> {
         }
         switch (resourcePattern) {
             case ANY:
-                return resourceType.getCode() + CommonConstants.COLON + CommonConstants.ASTERISK;
+                return resourceType.getName() + CommonConstants.COLON + CommonConstants.ASTERISK;
             case LITERAL:
-                return resourceType.getCode() + CommonConstants.COLON + resourceName;
+                return resourceType.getName() + CommonConstants.COLON + resourceName;
             case PREFIXED:
-                return resourceType.getCode() + CommonConstants.COLON + resourceName + CommonConstants.ASTERISK;
+                return resourceType.getName() + CommonConstants.COLON + resourceName + CommonConstants.ASTERISK;
             default:
                 return null;
         }
@@ -69,7 +69,7 @@ public class Resource implements Comparable<Resource> {
             return of(ResourceType.ANY, null, ResourcePattern.ANY);
         }
         String type = StringUtils.substringBefore(resourceKey, CommonConstants.COLON);
-        ResourceType resourceType = ResourceType.getByCode(type);
+        ResourceType resourceType = ResourceType.getByName(type);
         if (resourceType == null) {
             return null;
         }
@@ -126,13 +126,7 @@ public class Resource implements Comparable<Resource> {
                 || this.resourcePattern == ResourcePattern.ANY) {
                 return 0;
             }
-            if (this.resourceName.length() > o.resourceName.length()) {
-                return 1;
-            } else if (this.resourceName.length() == o.resourceName.length()) {
-                return 0;
-            } else {
-                return -1;
-            }
+            return Integer.compare(this.resourceName.length(), o.resourceName.length());
         } else {
             if (this.resourcePattern == ResourcePattern.LITERAL) {
                 return 1;

@@ -1,43 +1,52 @@
 package org.apache.rocketmq.common.action;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+
 public enum Action {
 
-    UNKNOWN("Unknown"),
+    UNKNOWN((byte) 0, "Unknown"),
 
-    ALL("All"),
+    ALL((byte) 1, "All"),
 
-    ANY("Any"),
+    ANY((byte) 2, "Any"),
 
-    PUB("Pub"),
+    PUB((byte) 3, "Pub"),
 
-    SUB("Sub"),
+    SUB((byte) 4, "Sub"),
 
-    CREATE("Create"),
+    CREATE((byte) 5, "Create"),
 
-    UPDATE("Update"),
+    UPDATE((byte) 6, "Update"),
 
-    DELETE("Delete"),
+    DELETE((byte) 7, "Delete"),
 
-    GET("Get"),
+    GET((byte) 8, "Get"),
 
-    LIST("List");
+    LIST((byte) 9, "List");
 
-    private final String code;
+    @JSONField(value = true)
+    private final byte code;
+    private final String name;
 
-    Action(String code) {
+    Action(byte code, String name) {
         this.code = code;
+        this.name = name;
     }
 
-    public static Action getByCode(String code) {
+    public static Action getByName(String name) {
         for (Action action : Action.values()) {
-            if (action.code.equals(code)) {
+            if (action.name.equals(name)) {
                 return action;
             }
         }
         return null;
     }
 
-    public String getCode() {
+    public byte getCode() {
         return code;
+    }
+
+    public String getName() {
+        return name;
     }
 }

@@ -17,15 +17,13 @@ public interface Subject {
     @SuppressWarnings("unchecked")
     static <T extends Subject> T parseSubject(String subjectKey) {
         String type = StringUtils.substringBefore(subjectKey, CommonConstants.COLON);
-        SubjectType subjectType = SubjectType.getByCode(type);
+        SubjectType subjectType = SubjectType.getByName(type);
         if (subjectType == null) {
             return null;
         }
-        switch (subjectType) {
-            case USER:
-                return (T) User.of(StringUtils.substringAfter(subjectKey, CommonConstants.COLON));
-            default:
-                return null;
+        if (subjectType == SubjectType.USER) {
+            return (T) User.of(StringUtils.substringAfter(subjectKey, CommonConstants.COLON));
         }
+        return null;
     }
 }

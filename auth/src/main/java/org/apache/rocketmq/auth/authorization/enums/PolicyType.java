@@ -1,27 +1,36 @@
 package org.apache.rocketmq.auth.authorization.enums;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+
 public enum PolicyType {
 
-    CUSTOM("CUSTOM"),
+    CUSTOM((byte) 1, "CUSTOM"),
 
-    DEFAULT("DEFAULT");
+    DEFAULT((byte) 2, "DEFAULT");
 
-    private String code;
+    @JSONField(value = true)
+    private final byte code;
+    private final String name;
 
-    PolicyType(String code) {
+    PolicyType(byte code, String name) {
         this.code = code;
+        this.name = name;
     }
 
-    public static PolicyType getByCode(String type) {
+    public static PolicyType getByName(String name) {
         for (PolicyType policyType : PolicyType.values()) {
-            if (policyType.getCode().equals(type)) {
+            if (policyType.getName().equals(name)) {
                 return policyType;
             }
         }
         return null;
     }
 
-    public String getCode() {
+    public byte getCode() {
         return code;
+    }
+
+    public String getName() {
+        return name;
     }
 }

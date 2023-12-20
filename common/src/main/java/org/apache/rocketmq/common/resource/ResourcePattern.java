@@ -1,20 +1,29 @@
 package org.apache.rocketmq.common.resource;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+
 public enum ResourcePattern {
 
-    ANY("ANY"),
+    ANY((byte) 1, "ANY"),
 
-    LITERAL("LITERAL"),
+    LITERAL((byte) 2, "LITERAL"),
 
-    PREFIXED("PREFIXED");
+    PREFIXED((byte) 3, "PREFIXED");
 
-    private final String code;
+    @JSONField(value = true)
+    private final byte code;
+    private final String name;
 
-    ResourcePattern(String code) {
+    ResourcePattern(byte code, String name) {
         this.code = code;
+        this.name = name;
     }
 
-    public String getCode() {
+    public byte getCode() {
         return code;
+    }
+
+    public String getName() {
+        return name;
     }
 }

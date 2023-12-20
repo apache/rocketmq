@@ -1,7 +1,6 @@
 package org.apache.rocketmq.auth.authentication.provider;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSON;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -32,7 +31,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
     public CompletableFuture<Void> createUser(User user) {
         try {
             byte[] keyBytes = user.getUsername().getBytes(StandardCharsets.UTF_8);
-            byte[] valueBytes = JSON.toJSONBytes(user, SerializerFeature.BrowserCompatible);
+            byte[] valueBytes = JSON.toJSONBytes(user);
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
         } catch (Exception e) {
             throw new AuthenticationException("create user to RocksDB failed", e);
@@ -54,7 +53,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
     public CompletableFuture<Void> updateUser(User user) {
         try {
             byte[] keyBytes = user.getUsername().getBytes(StandardCharsets.UTF_8);
-            byte[] valueBytes = JSON.toJSONBytes(user, SerializerFeature.BrowserCompatible);
+            byte[] valueBytes = JSON.toJSONBytes(user);
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
         } catch (Exception e) {
             throw new AuthenticationException("update user to RocksDB failed", e);

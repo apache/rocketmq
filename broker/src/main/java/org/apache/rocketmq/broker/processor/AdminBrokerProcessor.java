@@ -3021,7 +3021,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         Subject subject = Subject.parseSubject(requestHeader.getSubject());
 
-        PolicyType policyType = PolicyType.getByCode(requestHeader.getPolicyType());
+        PolicyType policyType = PolicyType.getByName(requestHeader.getPolicyType());
 
         List<Resource> resources = Resource.parseResources(requestHeader.getResources());
 

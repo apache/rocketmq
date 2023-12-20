@@ -1,47 +1,56 @@
 package org.apache.rocketmq.common.resource;
 
+import com.alibaba.fastjson2.annotation.JSONField;
+
 public enum ResourceType {
 
-    UNKNOWN("Unknown"),
+    UNKNOWN((byte) 0, "Unknown"),
 
-    ANY("Any"),
+    ANY((byte) 1, "Any"),
 
-    CLUSTER("Cluster"),
+    CLUSTER((byte) 2, "Cluster"),
 
-    NAMESPACE("Namespace"),
+    NAMESPACE((byte) 3, "Namespace"),
 
-    TOPIC("Topic"),
+    TOPIC((byte) 4, "Topic"),
 
-    GROUP("Group"),
+    GROUP((byte) 5, "Group"),
 
     /**
      * Only support resource with prefix, such as Topic:test
      */
-    Resource("Resource"),
+    Resource((byte) 6, "Resource"),
 
     /**
      * Only support subject with prefix, such as User:test
      */
-    Subject("Subject"),
+    Subject((byte) 7, "Subject"),
 
-    USER("User");
+    USER((byte) 8, "User");
 
-    private final String code;
+    @JSONField(value = true)
+    private final byte code;
+    private final String name;
 
-    ResourceType(String code) {
+    ResourceType(byte code, String name) {
         this.code = code;
+        this.name = name;
     }
 
-    public static ResourceType getByCode(String type) {
+    public static ResourceType getByName(String name) {
         for (ResourceType resourceType : ResourceType.values()) {
-            if (resourceType.getCode().equals(type)) {
+            if (resourceType.getName().equals(name)) {
                 return resourceType;
             }
         }
         return null;
     }
 
-    public String getCode() {
+    public byte getCode() {
         return code;
+    }
+
+    public String getName() {
+        return name;
     }
 }

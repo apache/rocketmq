@@ -28,7 +28,7 @@ public class User implements Subject {
 
     @Override
     public String toSubjectKey() {
-        return this.getSubjectType().getCode() + CommonConstants.COLON + this.username;
+        return this.getSubjectType().getName() + CommonConstants.COLON + this.username;
     }
 
     @Override

@@ -1,7 +1,6 @@
 package org.apache.rocketmq.auth.authorization.provider;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
+import com.alibaba.fastjson2.JSON;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -38,7 +37,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
         try {
             Subject subject = acl.getSubject();
             byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
-            byte[] valueBytes = JSON.toJSONBytes(acl.getPolicies(), SerializerFeature.BrowserCompatible);
+            byte[] valueBytes = JSON.toJSONBytes(acl.getPolicies());
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
         } catch (Exception e) {
             throw new AuthorizationException("create Acl to RocksDB failed", e);
@@ -62,7 +61,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
         try {
             Subject subject = acl.getSubject();
             byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
-            byte[] valueBytes = JSON.toJSONBytes(acl.getPolicies(), SerializerFeature.BrowserCompatible);
+            byte[] valueBytes = JSON.toJSONBytes(acl.getPolicies());
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
         } catch (Exception e) {
             throw new AuthorizationException("update Acl to RocksDB failed", e);
@@ -105,12 +104,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                         if (CollectionUtils.isEmpty(entries)) {
                             continue;
                         }
-                        entries.removeIf(entry -> {
-                            if (!entry.toResourceStr().contains(resourceFilter)) {
-                                return true;
-                            }
-                            return false;
-                        });
+                        entries.removeIf(entry -> !entry.toResourceStr().contains(resourceFilter));
                         if (CollectionUtils.isEmpty(entries)) {
                             policyIterator.remove();
                         }

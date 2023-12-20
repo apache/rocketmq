@@ -24,7 +24,7 @@ public class AclConverter {
         Subject subject = Subject.parseSubject(aclInfo.getSubject());
         List<Policy> policies = new ArrayList<>();
         for (AclInfo.PolicyInfo policy : aclInfo.getPolicies()) {
-            PolicyType policyType = PolicyType.getByCode(policy.getPolicyType());
+            PolicyType policyType = PolicyType.getByName(policy.getPolicyType());
 
             List<AclInfo.PolicyEntryInfo> entryInfos = policy.getEntries();
             if (CollectionUtils.isEmpty(entryInfos)) {
@@ -36,7 +36,7 @@ public class AclConverter {
 
                 List<Action> actions = new ArrayList<>();
                 for (String a : entryInfo.getActions()) {
-                    Action action = Action.getByCode(a);
+                    Action action = Action.getByName(a);
                     if (action == null) {
                         continue;
                     }
@@ -48,7 +48,7 @@ public class AclConverter {
                     environment.setSourceIps(entryInfo.getSourceIps());
                 }
 
-                Decision decision = Decision.getByCode(entryInfo.getDecision());
+                Decision decision = Decision.getByName(entryInfo.getDecision());
 
                 entries.add(PolicyEntry.of(resource, actions, environment, decision));
             }
@@ -86,7 +86,7 @@ public class AclConverter {
     private static AclInfo.PolicyInfo convertPolicy(Policy policy) {
         AclInfo.PolicyInfo policyInfo = new AclInfo.PolicyInfo();
         if (policy.getPolicyType() != null) {
-            policyInfo.setPolicyType(policy.getPolicyType().getCode());
+            policyInfo.setPolicyType(policy.getPolicyType().getName());
         }
         if (CollectionUtils.isEmpty(policy.getEntries())) {
             return policyInfo;
@@ -104,7 +104,7 @@ public class AclConverter {
         if (entry.getEnvironment() != null) {
             entryInfo.setSourceIps(entry.getEnvironment().getSourceIps());
         }
-        entryInfo.setDecision(entry.getDecision().getCode());
+        entryInfo.setDecision(entry.getDecision().getName());
         return entryInfo;
     }
 }

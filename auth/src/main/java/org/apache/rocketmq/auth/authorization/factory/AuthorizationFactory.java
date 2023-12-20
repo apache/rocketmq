@@ -25,6 +25,9 @@ public class AuthorizationFactory {
     private static final String EVALUATOR_PREFIX = "EVALUATOR_";
 
     public static AuthorizationProvider getProvider(AuthConfig config) {
+        if (config == null) {
+            return null;
+        }
         return computeIfAbsent(PROVIDER_PREFIX + config.getConfigName(), key -> {
             String clazzName = config.getAuthorizationProvider();
             if (config.isAuthorizationEnabled() && StringUtils.isEmpty(clazzName)) {
@@ -53,6 +56,9 @@ public class AuthorizationFactory {
     }
 
     public static AuthorizationMetadataProvider getMetadataProvider(AuthConfig config, Supplier<?> metadataService) {
+        if (config == null) {
+            return null;
+        }
         return computeIfAbsent(METADATA_PROVIDER_PREFIX + config.getConfigName(), key -> {
             String clazzName = config.getAuthorizationMetadataProvider();
             if (config.isAuthorizationEnabled() && StringUtils.isEmpty(clazzName)) {

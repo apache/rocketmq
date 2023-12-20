@@ -24,6 +24,9 @@ public class AuthenticationFactory {
 
     @SuppressWarnings("unchecked")
     public static AuthenticationProvider<AuthenticationContext> getProvider(AuthConfig config) {
+        if (config == null) {
+            return null;
+        }
         return computeIfAbsent(PROVIDER_PREFIX + config.getConfigName(), key -> {
             String clazzName = config.getAuthenticationProvider();
             if (config.isAuthenticationEnabled() && StringUtils.isEmpty(clazzName)) {
@@ -52,6 +55,9 @@ public class AuthenticationFactory {
     }
 
     public static AuthenticationMetadataProvider getMetadataProvider(AuthConfig config, Supplier<?> metadataService) {
+        if (config == null) {
+            return null;
+        }
         return computeIfAbsent(METADATA_PROVIDER_PREFIX + config.getConfigName(), key -> {
             String clazzName = config.getAuthenticationMetadataProvider();
             if (config.isAuthenticationEnabled() && StringUtils.isEmpty(clazzName)) {

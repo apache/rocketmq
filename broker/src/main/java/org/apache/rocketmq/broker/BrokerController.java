@@ -48,6 +48,7 @@ import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataMan
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
 import org.apache.rocketmq.auth.config.AuthConfig;
+import org.apache.rocketmq.auth.migration.AuthMigrator;
 import org.apache.rocketmq.broker.auth.rpchook.AuthenticationRPCHook;
 import org.apache.rocketmq.broker.auth.rpchook.AuthorizationRPCHook;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
@@ -284,8 +285,8 @@ public class BrokerController {
     private BrokerMetricsManager brokerMetricsManager;
     private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
     private ColdDataCgCtrService coldDataCgCtrService;
-    private AuthenticationMetadataManager authenticationMetadataManager;
-    private AuthorizationMetadataManager authorizationMetadataManager;
+    private final AuthenticationMetadataManager authenticationMetadataManager;
+    private final AuthorizationMetadataManager authorizationMetadataManager;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -425,6 +426,10 @@ public class BrokerController {
 
         if (this.brokerConfig.isEnableSlaveActingMaster() && !this.brokerConfig.isSkipPreOnline()) {
             this.brokerPreOnlineService = new BrokerPreOnlineService(this);
+        }
+
+        if (this.authConfig != null && this.authConfig.isMigrateFromAclV1Enabled()) {
+            new AuthMigrator(this.authConfig).migrate();
         }
     }
 

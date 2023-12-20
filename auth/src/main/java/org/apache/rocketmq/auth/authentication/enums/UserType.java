@@ -1,6 +1,6 @@
 package org.apache.rocketmq.auth.authentication.enums;
 
-import java.util.Arrays;
+import com.alibaba.fastjson2.annotation.JSONField;
 
 public enum UserType {
 
@@ -8,6 +8,7 @@ public enum UserType {
 
     CUSTOM((byte) 2, "Custom");
 
+    @JSONField(value = true)
     private final byte code;
 
     private final String name;
@@ -24,12 +25,6 @@ public enum UserType {
             }
         }
         return null;
-    }
-
-    public static UserType getByCode(byte code) {
-        return Arrays.stream(UserType.values())
-            .filter(type -> type.getCode() == code)
-            .findAny().orElse(null);
     }
 
     public byte getCode() {
