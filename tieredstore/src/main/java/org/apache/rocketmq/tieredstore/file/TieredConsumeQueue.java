@@ -20,9 +20,9 @@ import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
-import org.apache.rocketmq.common.BoundaryType;
 
 public class TieredConsumeQueue {
 

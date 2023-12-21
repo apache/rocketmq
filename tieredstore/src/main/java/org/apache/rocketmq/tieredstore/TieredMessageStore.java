@@ -213,8 +213,10 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 // so there is no need to update the maximum offset to the local cq offset here,
                 // otherwise it will cause repeated consumption after next begin offset over commit offset.
 
-                logger.trace("GetMessageAsync result, group: {}, topic: {}, queueId: {}, offset: {}, count:{}, {}",
-                    group, topic, queueId, offset, maxMsgNums, result);
+                if (storeConfig.isRecordGetMessageResult()) {
+                    logger.info("GetMessageAsync result, {}, group: {}, topic: {}, queueId: {}, offset: {}, count:{}",
+                        result, group, topic, queueId, offset, maxMsgNums);
+                }
 
                 return result;
             }).exceptionally(e -> {

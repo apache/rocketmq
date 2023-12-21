@@ -14,14 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.producer;
+package org.apache.rocketmq.tieredstore.common;
 
-import org.apache.rocketmq.common.message.Message;
+import java.nio.ByteBuffer;
+import org.junit.Assert;
+import org.junit.Test;
 
-/**
- * @deprecated This interface will be removed in the version 5.0.0, interface {@link TransactionListener} is recommended.
- */
-@Deprecated
-public interface LocalTransactionExecuter {
-    LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg);
+public class SelectBufferResultTest {
+    @Test
+    public void testSelectBufferResult() {
+        ByteBuffer buffer = ByteBuffer.allocate(10);
+        long startOffset = 5L;
+        int size = 10;
+        long tagCode = 1L;
+
+        SelectBufferResult result = new SelectBufferResult(buffer, startOffset, size, tagCode);
+        Assert.assertEquals(buffer, result.getByteBuffer());
+        Assert.assertEquals(startOffset, result.getStartOffset());
+        Assert.assertEquals(size, result.getSize());
+        Assert.assertEquals(tagCode, result.getTagCode());
+    }
 }

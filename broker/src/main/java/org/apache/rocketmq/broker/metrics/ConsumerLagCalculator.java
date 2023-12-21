@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SimpleSubscriptionData;
@@ -182,6 +183,17 @@ public class ConsumerLagCalculator {
                         if (PermName.isReadable(retryTopicPerm) || PermName.isWriteable(retryTopicPerm)) {
                             consumer.accept(new ProcessGroupInfo(group, topic, true, retryTopic));
                             continue;
+                        }
+                    }
+                    if (brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
+                        String retryTopicV1 = KeyBuilder.buildPopRetryTopicV1(topic, group);
+                        TopicConfig retryTopicConfigV1 = topicConfigManager.selectTopicConfig(retryTopicV1);
+                        if (retryTopicConfigV1 != null) {
+                            int retryTopicPerm = retryTopicConfigV1.getPerm() & brokerConfig.getBrokerPermission();
+                            if (PermName.isReadable(retryTopicPerm) || PermName.isWriteable(retryTopicPerm)) {
+                                consumer.accept(new ProcessGroupInfo(group, topic, true, retryTopicV1));
+                                continue;
+                            }
                         }
                     }
                     consumer.accept(new ProcessGroupInfo(group, topic, true, null));
@@ -435,10 +447,12 @@ public class ConsumerLagCalculator {
                 if (subscriptionGroupConfig != null) {
                     for (SimpleSubscriptionData simpleSubscriptionData : subscriptionGroupConfig.getSubscriptionDataSet()) {
                         if (topic.equals(simpleSubscriptionData.getTopic())) {
-                            subscriptionData = new SubscriptionData();
-                            subscriptionData.setTopic(simpleSubscriptionData.getTopic());
-                            subscriptionData.setExpressionType(simpleSubscriptionData.getExpressionType());
-                            subscriptionData.setSubString(simpleSubscriptionData.getExpression());
+                            try {
+                                subscriptionData = FilterAPI.buildSubscriptionData(simpleSubscriptionData.getTopic(),
+                                    simpleSubscriptionData.getExpression(), simpleSubscriptionData.getExpressionType());
+                            } catch (Exception e) {
+                                LOGGER.error("Try to build subscription for group:{}, topic:{} exception.", group, topic, e);
+                            }
                             break;
                         }
                     }

@@ -82,6 +82,7 @@ public class TieredMessageStoreConfig {
 
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
     private boolean messageIndexEnable = true;
+    private boolean recordGetMessageResult = false;
 
     // CommitLog file size, default is 1G
     private long tieredStoreCommitLogMaxSize = 1024 * 1024 * 1024;
@@ -180,6 +181,14 @@ public class TieredMessageStoreConfig {
 
     public void setMessageIndexEnable(boolean messageIndexEnable) {
         this.messageIndexEnable = messageIndexEnable;
+    }
+
+    public boolean isRecordGetMessageResult() {
+        return recordGetMessageResult;
+    }
+
+    public void setRecordGetMessageResult(boolean recordGetMessageResult) {
+        this.recordGetMessageResult = recordGetMessageResult;
     }
 
     public long getTieredStoreCommitLogMaxSize() {

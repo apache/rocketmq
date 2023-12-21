@@ -223,6 +223,8 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean enablePopBatchAck = false;
     private boolean enableNotifyAfterPopOrderLockRelease = true;
     private boolean initPopOffsetByCheckMsgInMem = true;
+    // read message from pop retry topic v1, for the compatibility, will be removed in the future version
+    private boolean retrieveMessageFromPopRetryTopicV1 = true;
 
     private boolean realTimeNotifyConsumerChange = true;
 
@@ -403,6 +405,21 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean enableSplitRegistration = false;
 
     private int splitRegistrationSize = 800;
+
+    /**
+     * Config in this black list will be not allowed to update by command.
+     * Try to update this config black list by restart process.
+     * Try to update configures in black list by restart process.
+     */
+    private String configBlackList = "configBlackList;brokerConfigPath";
+
+    public String getConfigBlackList() {
+        return configBlackList;
+    }
+
+    public void setConfigBlackList(String configBlackList) {
+        this.configBlackList = configBlackList;
+    }
 
     public long getMaxPopPollingSize() {
         return maxPopPollingSize;
@@ -1282,6 +1299,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setInitPopOffsetByCheckMsgInMem(boolean initPopOffsetByCheckMsgInMem) {
         this.initPopOffsetByCheckMsgInMem = initPopOffsetByCheckMsgInMem;
+    }
+
+    public boolean isRetrieveMessageFromPopRetryTopicV1() {
+        return retrieveMessageFromPopRetryTopicV1;
+    }
+
+    public void setRetrieveMessageFromPopRetryTopicV1(boolean retrieveMessageFromPopRetryTopicV1) {
+        this.retrieveMessageFromPopRetryTopicV1 = retrieveMessageFromPopRetryTopicV1;
     }
 
     public boolean isRealTimeNotifyConsumerChange() {

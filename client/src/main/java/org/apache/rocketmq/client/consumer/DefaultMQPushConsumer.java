@@ -151,6 +151,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private MessageListener messageListener;
 
     /**
+     * Listener to call if message queue assignment is changed.
+     */
+    private MessageQueueListener messageQueueListener;
+
+    /**
      * Offset Storage
      */
     private OffsetStore offsetStore;
@@ -986,5 +991,13 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setClientRebalance(boolean clientRebalance) {
         this.clientRebalance = clientRebalance;
+    }
+
+    public MessageQueueListener getMessageQueueListener() {
+        return messageQueueListener;
+    }
+
+    public void setMessageQueueListener(MessageQueueListener messageQueueListener) {
+        this.messageQueueListener = messageQueueListener;
     }
 }

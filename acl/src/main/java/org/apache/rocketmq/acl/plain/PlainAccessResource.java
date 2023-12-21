@@ -48,6 +48,7 @@ import org.apache.rocketmq.acl.common.AuthenticationHeader;
 import org.apache.rocketmq.acl.common.AuthorizationHeader;
 import org.apache.rocketmq.acl.common.Permission;
 import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
@@ -341,7 +342,7 @@ public class PlainAccessResource implements AccessResource {
         if (retryTopic == null) {
             return null;
         }
-        return retryTopic.substring(MixAll.RETRY_GROUP_TOPIC_PREFIX.length());
+        return KeyBuilder.parseGroup(retryTopic);
     }
 
     public static String getRetryTopic(String group) {
