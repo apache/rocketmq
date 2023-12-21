@@ -54,7 +54,6 @@ import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.client.latency.Resolver;
 import org.apache.rocketmq.client.latency.ServiceDetector;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.RequestCallback;
@@ -262,6 +261,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 if (startFactory) {
                     mQClientFactory.start();
                 }
+
+                this.initTopicRoute();
 
                 this.mqFaultStrategy.startDetector();
 
@@ -1379,10 +1380,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public TransactionSendResult sendMessageInTransaction(final Message msg,
-        final LocalTransactionExecuter localTransactionExecuter, final Object arg)
+        final TransactionListener localTransactionListener, final Object arg)
         throws MQClientException {
         TransactionListener transactionListener = getCheckListener();
-        if (null == localTransactionExecuter && null == transactionListener) {
+        if (null == localTransactionListener && null == transactionListener) {
             throw new MQClientException("tranExecutor is null", null);
         }
 
@@ -1414,8 +1415,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     if (null != transactionId && !"".equals(transactionId)) {
                         msg.setTransactionId(transactionId);
                     }
-                    if (null != localTransactionExecuter) {
-                        localTransactionState = localTransactionExecuter.executeLocalTransactionBranch(msg, arg);
+                    if (null != localTransactionListener) {
+                        localTransactionState = localTransactionListener.executeLocalTransaction(msg, arg);
                     } else {
                         log.debug("Used new transaction API");
                         localTransactionState = transactionListener.executeLocalTransaction(msg, arg);
@@ -1738,6 +1739,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             if (cost > 500) {
                 log.warn("prepare send request for <{}> cost {} ms", msg.getTopic(), cost);
             }
+        }
+    }
+
+    private void initTopicRoute() {
+        List<String> topics = this.defaultMQProducer.getTopics();
+        if (topics != null && topics.size() > 0) {
+            topics.forEach(topic -> {
+                String newTopic = NamespaceUtil.wrapNamespace(this.defaultMQProducer.getNamespace(), topic);
+                TopicPublishInfo topicPublishInfo = tryToFindTopicPublishInfo(newTopic);
+                if (topicPublishInfo == null || !topicPublishInfo.ok()) {
+                    log.warn("No route info of this topic: " + newTopic + FAQUrl.suggestTodo(FAQUrl.NO_TOPIC_ROUTE_INFO));
+                }
+            });
         }
     }
 

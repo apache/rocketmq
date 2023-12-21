@@ -376,6 +376,7 @@ public class MixAll {
                             } else if (cn.equals("float") || cn.equals("Float")) {
                                 arg = Float.parseFloat(property);
                             } else if (cn.equals("String")) {
+                                property = property.trim();
                                 arg = property;
                             } else {
                                 continue;

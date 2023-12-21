@@ -31,11 +31,13 @@ import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
 import org.apache.rocketmq.tieredstore.file.TieredCommitLog;
 import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
-import org.apache.rocketmq.tieredstore.file.TieredIndexFile;
 import org.apache.rocketmq.tieredstore.provider.stream.FileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.provider.stream.FileSegmentInputStreamFactory;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+
+import static org.apache.rocketmq.tieredstore.index.IndexStoreFile.INDEX_BEGIN_TIME_STAMP;
+import static org.apache.rocketmq.tieredstore.index.IndexStoreFile.INDEX_END_TIME_STAMP;
 
 public abstract class TieredFileSegment implements Comparable<TieredFileSegment>, TieredStoreProvider {
 
@@ -198,8 +200,9 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             }
 
             if (fileType == FileSegmentType.INDEX) {
-                minTimestamp = byteBuf.getLong(TieredIndexFile.INDEX_FILE_HEADER_BEGIN_TIME_STAMP_POSITION);
-                maxTimestamp = byteBuf.getLong(TieredIndexFile.INDEX_FILE_HEADER_END_TIME_STAMP_POSITION);
+                minTimestamp = byteBuf.getLong(INDEX_BEGIN_TIME_STAMP);
+                maxTimestamp = byteBuf.getLong(INDEX_END_TIME_STAMP);
+
                 appendPosition += byteBuf.remaining();
                 // IndexFile is large and not change after compaction, no need deep copy
                 bufferList.add(byteBuf);
@@ -292,7 +295,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             return future;
         }
         if (position + length > commitPosition) {
-            logger.warn("TieredFileSegment#readAsync request position + length is greater than commit position," +
+            logger.debug("TieredFileSegment#readAsync request position + length is greater than commit position," +
                     " correct length using commit position, file: {}, request position: {}, commit position:{}, change length from {} to {}",
                 getPath(), position, commitPosition, length, commitPosition - position);
             length = (int) (commitPosition - position);
@@ -364,7 +367,7 @@ public abstract class TieredFileSegment implements Comparable<TieredFileSegment>
             if (fileSegmentInputStream != null) {
                 long fileSize = this.getSize();
                 if (fileSize == -1L) {
-                    logger.error("Get commit position error before commit, Commit: %d, Expect: %d, Current Max: %d, FileName: %s",
+                    logger.error("Get commit position error before commit, Commit: {}, Expect: {}, Current Max: {}, FileName: {}",
                         commitPosition, commitPosition + fileSegmentInputStream.getContentLength(), appendPosition, getPath());
                     releaseCommitLock();
                     return CompletableFuture.completedFuture(false);
