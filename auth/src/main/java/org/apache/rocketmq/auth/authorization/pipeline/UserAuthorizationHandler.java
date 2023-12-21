@@ -11,26 +11,27 @@ import org.apache.rocketmq.auth.authentication.provider.AuthenticationMetadataPr
 import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.config.AuthConfig;
-import org.apache.rocketmq.common.pipeline.DefaultPipe;
+import org.apache.rocketmq.common.chain.Handler;
+import org.apache.rocketmq.common.chain.HandlerChain;
 
-public class UserAuthorizationPipe extends DefaultPipe<AuthorizationContext, CompletableFuture<Void>> {
+public class UserAuthorizationHandler implements Handler<AuthorizationContext, CompletableFuture<Void>> {
 
     private final AuthenticationMetadataProvider authenticationMetadataProvider;
 
-    public UserAuthorizationPipe(AuthConfig config, Supplier<?> metadataService) {
+    public UserAuthorizationHandler(AuthConfig config, Supplier<?> metadataService) {
         this.authenticationMetadataProvider = AuthenticationFactory.getMetadataProvider(config, metadataService);
     }
 
     @Override
-    public CompletableFuture<Void> doProcess(AuthorizationContext context) {
+    public CompletableFuture<Void> handle(AuthorizationContext context, HandlerChain<AuthorizationContext, CompletableFuture<Void>> chain) {
         if (!context.getSubject().isSubject(SubjectType.USER)) {
-            return this.doNext(context);
+            return chain.handle(context);
         }
         return this.getUser(context.getSubject()).thenCompose(user -> {
             if (user.getUserType() == UserType.SUPER) {
                 return CompletableFuture.completedFuture(null);
             }
-            return this.doNext(context);
+            return chain.handle(context);
         });
     }
 

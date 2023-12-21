@@ -23,15 +23,17 @@ public class AuthorizationPipeline implements RequestPipeline {
 
     @Override
     public void execute(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {
-        if (this.authorizationEvaluator == null) {
+        if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
-        if (authConfig.isAuthenticationEnabled()) {
-            List<AuthorizationContext> contexts = AuthorizationFactory.newContexts(authConfig, headers, request);
-            if (CollectionUtils.isEmpty(contexts)) {
-                return;
-            }
-            authorizationEvaluator.evaluate(contexts);
+        List<AuthorizationContext> contexts = newContexts(context, headers, request);
+        if (CollectionUtils.isEmpty(contexts)) {
+            return;
         }
+        authorizationEvaluator.evaluate(contexts);
+    }
+
+    protected List<AuthorizationContext> newContexts(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {
+        return AuthorizationFactory.newContexts(authConfig, headers, request);
     }
 }

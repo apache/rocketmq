@@ -2,6 +2,7 @@ package org.apache.rocketmq.common.utils;
 
 import java.math.BigInteger;
 import java.net.InetAddress;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 
 public class IPAddressUtils {
@@ -59,6 +60,12 @@ public class IPAddressUtils {
     public static boolean isIPInRange(String ip, String cidr) {
         try {
             String[] parts = cidr.split(SLASH);
+            if (parts.length == 1) {
+                return StringUtils.equals(ip, cidr);
+            }
+            if (parts.length != 2) {
+                return false;
+            }
             InetAddress cidrIp = InetAddress.getByName(parts[0]);
             int prefixLength = Integer.parseInt(parts[1]);
 

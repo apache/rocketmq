@@ -1,7 +1,9 @@
 package org.apache.rocketmq.auth.authorization.context;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.auth.authorization.model.Resource;
@@ -15,6 +17,27 @@ public class AuthorizationContext {
     private List<Action> actions;
 
     private String sourceIp;
+
+    private Map<String, Object> extInfo;
+
+    @SuppressWarnings("unchecked")
+    public <T> T getExtInfo(String key) {
+        if (this.extInfo == null) {
+            return null;
+        }
+        Object value = this.extInfo.get(key);
+        if (value == null) {
+            return null;
+        }
+        return (T) value;
+    }
+
+    public void setExtInfo(String key, Object value) {
+        if (this.extInfo == null) {
+            this.extInfo = new HashMap<>();
+        }
+        this.extInfo.put(key, value);
+    }
 
     public static AuthorizationContext of(Subject subject, Resource resource, Action action, String sourceIp) {
         AuthorizationContext context = new AuthorizationContext();
@@ -68,5 +91,13 @@ public class AuthorizationContext {
 
     public void setSourceIp(String sourceIp) {
         this.sourceIp = sourceIp;
+    }
+
+    public Map<String, Object> getExtInfo() {
+        return extInfo;
+    }
+
+    public void setExtInfo(Map<String, Object> extInfo) {
+        this.extInfo = extInfo;
     }
 }

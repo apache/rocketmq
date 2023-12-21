@@ -6,26 +6,26 @@ import java.util.function.Supplier;
 import org.apache.rocketmq.auth.authentication.builder.AuthenticationContextBuilder;
 import org.apache.rocketmq.auth.authentication.builder.DefaultAuthenticationContextBuilder;
 import org.apache.rocketmq.auth.authentication.context.DefaultAuthenticationContext;
-import org.apache.rocketmq.auth.authentication.pipeline.DefaultAuthenticationPipe;
+import org.apache.rocketmq.auth.authentication.pipeline.DefaultAuthenticationHandler;
 import org.apache.rocketmq.auth.config.AuthConfig;
-import org.apache.rocketmq.common.pipeline.DefaultPipeline;
+import org.apache.rocketmq.common.chain.HandlerChain;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class DefaultAuthenticationProvider implements AuthenticationProvider<DefaultAuthenticationContext> {
 
-    protected DefaultPipeline<DefaultAuthenticationContext, CompletableFuture<Void>> pipeline;
+    protected HandlerChain<DefaultAuthenticationContext, CompletableFuture<Void>> handlerChain;
 
     protected AuthenticationContextBuilder<DefaultAuthenticationContext> authenticationContextBuilder;
 
     @Override
     public void initialize(AuthConfig config, Supplier<?> metadataService) {
-        this.pipeline = DefaultPipeline.of(new DefaultAuthenticationPipe(config, metadataService));
+        this.handlerChain = HandlerChain.of(new DefaultAuthenticationHandler(config, metadataService));
         this.authenticationContextBuilder = new DefaultAuthenticationContextBuilder();
     }
 
     @Override
     public CompletableFuture<Void> authenticate(DefaultAuthenticationContext context) {
-        return this.pipeline.process(context);
+        return this.handlerChain.handle(context);
     }
 
     @Override

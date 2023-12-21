@@ -10,18 +10,20 @@ import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.authentication.provider.AuthenticationMetadataProvider;
 import org.apache.rocketmq.auth.config.AuthConfig;
-import org.apache.rocketmq.common.pipeline.DefaultPipe;
+import org.apache.rocketmq.common.chain.Handler;
+import org.apache.rocketmq.common.chain.HandlerChain;
 
-public class DefaultAuthenticationPipe extends DefaultPipe<DefaultAuthenticationContext, CompletableFuture<Void>> {
+public class DefaultAuthenticationHandler implements Handler<DefaultAuthenticationContext, CompletableFuture<Void>> {
 
     private final AuthenticationMetadataProvider authenticationMetadataProvider;
 
-    public DefaultAuthenticationPipe(AuthConfig config, Supplier<?> metadataService) {
+    public DefaultAuthenticationHandler(AuthConfig config, Supplier<?> metadataService) {
         this.authenticationMetadataProvider = AuthenticationFactory.getMetadataProvider(config, metadataService);
     }
 
     @Override
-    public CompletableFuture<Void> doProcess(DefaultAuthenticationContext context) {
+    public CompletableFuture<Void> handle(DefaultAuthenticationContext context,
+        HandlerChain<DefaultAuthenticationContext, CompletableFuture<Void>> chain) {
         return getUser(context).thenAccept(user -> doAuthenticate(context, user));
     }
 

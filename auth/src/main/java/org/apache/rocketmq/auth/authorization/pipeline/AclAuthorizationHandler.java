@@ -18,23 +18,25 @@ import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationMetadataProvider;
 import org.apache.rocketmq.auth.config.AuthConfig;
-import org.apache.rocketmq.common.pipeline.DefaultPipe;
+import org.apache.rocketmq.common.chain.Handler;
+import org.apache.rocketmq.common.chain.HandlerChain;
 import org.apache.rocketmq.common.resource.ResourcePattern;
 
-public class AclAuthorizationPipe extends DefaultPipe<AuthorizationContext, CompletableFuture<Void>> {
+public class AclAuthorizationHandler implements Handler<AuthorizationContext, CompletableFuture<Void>> {
 
     private final AuthorizationMetadataProvider authorizationMetadataProvider;
 
-    public AclAuthorizationPipe(AuthConfig config) {
+    public AclAuthorizationHandler(AuthConfig config) {
         this.authorizationMetadataProvider = AuthorizationFactory.getMetadataProvider(config);
     }
 
-    public AclAuthorizationPipe(AuthConfig config, Supplier<?> metadataService) {
+    public AclAuthorizationHandler(AuthConfig config, Supplier<?> metadataService) {
         this.authorizationMetadataProvider = AuthorizationFactory.getMetadataProvider(config, metadataService);
     }
 
     @Override
-    public CompletableFuture<Void> doProcess(AuthorizationContext context) {
+    public CompletableFuture<Void> handle(AuthorizationContext context,
+        HandlerChain<AuthorizationContext, CompletableFuture<Void>> chain) {
         return authorizationMetadataProvider.getAcl(context.getSubject())
             .thenAccept(acl -> {
                 if (acl == null) {

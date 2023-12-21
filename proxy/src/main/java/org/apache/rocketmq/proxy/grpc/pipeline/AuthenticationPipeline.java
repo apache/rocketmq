@@ -25,13 +25,28 @@ public class AuthenticationPipeline implements RequestPipeline {
 
     @Override
     public void execute(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {
-        if (authConfig.isAuthenticationEnabled()) {
-            Metadata metadata = GrpcConstants.METADATA.get(Context.current());
-            AuthenticationContext authenticationContext = AuthenticationFactory.newContext(authConfig, metadata);
-            authenticationEvaluator.evaluate(authenticationContext);
-            if (authenticationContext instanceof DefaultAuthenticationContext) {
-                headers.put(GrpcConstants.AUTHORIZATION_AK, ((DefaultAuthenticationContext) authenticationContext).getUsername());
-            }
+        if (!authConfig.isAuthenticationEnabled()) {
+            return;
         }
+        Metadata metadata = GrpcConstants.METADATA.get(Context.current());
+        AuthenticationContext authenticationContext = newContext(context, metadata);
+        if (authenticationContext == null) {
+            return;
+        }
+        authenticationEvaluator.evaluate(authenticationContext);
+        if (authenticationContext instanceof DefaultAuthenticationContext) {
+            headers.put(GrpcConstants.AUTHORIZATION_AK, ((DefaultAuthenticationContext) authenticationContext).getUsername());
+        }
+    }
+
+    /**
+     * Create Context, for extension
+     *
+     * @param context for extension
+     * @param headers gRPC headers
+     * @return
+     */
+    protected AuthenticationContext newContext(ProxyContext context, Metadata headers) {
+        return AuthenticationFactory.newContext(authConfig, headers);
     }
 }

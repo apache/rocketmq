@@ -1,5 +1,8 @@
 package org.apache.rocketmq.auth.authentication.context;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class DefaultAuthenticationContext implements AuthenticationContext {
 
     private String username;
@@ -7,6 +10,27 @@ public class DefaultAuthenticationContext implements AuthenticationContext {
     private byte[] content;
 
     private String signature;
+
+    private Map<String, Object> extInfo;
+
+    @SuppressWarnings("unchecked")
+    public <T> T getExtInfo(String key) {
+        if (this.extInfo == null) {
+            return null;
+        }
+        Object value = this.extInfo.get(key);
+        if (value == null) {
+            return null;
+        }
+        return (T) value;
+    }
+
+    public void setExtInfo(String key, Object value) {
+        if (this.extInfo == null) {
+            this.extInfo = new HashMap<>();
+        }
+        this.extInfo.put(key, value);
+    }
 
     public String getUsername() {
         return username;
@@ -30,5 +54,13 @@ public class DefaultAuthenticationContext implements AuthenticationContext {
 
     public void setSignature(String signature) {
         this.signature = signature;
+    }
+
+    public Map<String, Object> getExtInfo() {
+        return extInfo;
+    }
+
+    public void setExtInfo(Map<String, Object> extInfo) {
+        this.extInfo = extInfo;
     }
 }
