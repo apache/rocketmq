@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.proxy.remoting.pipeline;
 
-import io.grpc.Context;
-import io.grpc.Metadata;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
 import org.apache.rocketmq.acl.AccessResource;
@@ -27,7 +25,6 @@ import org.apache.rocketmq.auth.authentication.AuthenticationEvaluator;
 import org.apache.rocketmq.auth.authentication.context.AuthenticationContext;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
-import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -58,13 +55,19 @@ public class AuthenticationPipeline implements RequestPipeline {
             }
         }
 
-        if (this.authenticationEvaluator == null) {
+        if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
-        if (authConfig.isAuthenticationEnabled()) {
-            Metadata metadata = GrpcConstants.METADATA.get(Context.current());
-            AuthenticationContext authenticationContext = AuthenticationFactory.newContext(authConfig, metadata);
-            authenticationEvaluator.evaluate(authenticationContext);
+
+        AuthenticationContext authenticationContext = newContext(context, request);
+        if (authenticationContext == null) {
+            return;
         }
+        
+        authenticationEvaluator.evaluate(authenticationContext);
+    }
+
+    protected AuthenticationContext newContext(ProxyContext context, RemotingCommand request) {
+        return AuthenticationFactory.newContext(authConfig, request);
     }
 }

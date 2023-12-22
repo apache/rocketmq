@@ -41,15 +41,19 @@ public class AuthorizationPipeline implements RequestPipeline {
 
     @Override
     public void execute(ChannelHandlerContext ctx, RemotingCommand request, ProxyContext context) throws Exception {
-        if (this.authorizationEvaluator == null) {
+        if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
-        if (authConfig.isAuthenticationEnabled()) {
-            List<AuthorizationContext> contexts = AuthorizationFactory.newContexts(authConfig, request, context.getRemoteAddress());
-            if (CollectionUtils.isEmpty(contexts)) {
-                throw new AuthorizationException("the request api is null");
-            }
-            authorizationEvaluator.evaluate(contexts);
+
+        List<AuthorizationContext> contexts = newContexts(request, context);
+        if (CollectionUtils.isEmpty(contexts)) {
+            throw new AuthorizationException("the request api is null");
         }
+
+        authorizationEvaluator.evaluate(contexts);
+    }
+
+    protected List<AuthorizationContext> newContexts(RemotingCommand request, ProxyContext context) {
+        return AuthorizationFactory.newContexts(authConfig, request, context.getRemoteAddress());
     }
 }

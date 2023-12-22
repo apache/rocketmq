@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -268,10 +269,11 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         MessagingProcessor messagingProcessor) {
         RequestPipeline pipeline = (ctx, request, context) -> {
         };
+        AuthConfig authConfig = ConfigurationManager.getAuthConfig();
         // add pipeline
         // the last pipe add will execute at the first
-        return pipeline.pipe(new AuthorizationPipeline(ConfigurationManager.getAuthConfig(), messagingProcessor))
-            .pipe(new AuthenticationPipeline(accessValidators, ConfigurationManager.getAuthConfig(), messagingProcessor))
+        return pipeline.pipe(new AuthorizationPipeline(authConfig, messagingProcessor))
+            .pipe(new AuthenticationPipeline(accessValidators, authConfig, messagingProcessor))
             .pipe(new ContextInitPipeline());
     }
 
