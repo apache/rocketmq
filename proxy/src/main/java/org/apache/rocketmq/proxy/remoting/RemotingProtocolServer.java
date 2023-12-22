@@ -49,6 +49,7 @@ import org.apache.rocketmq.proxy.remoting.activity.TransactionActivity;
 import org.apache.rocketmq.proxy.remoting.channel.RemotingChannelManager;
 import org.apache.rocketmq.proxy.remoting.pipeline.AuthenticationPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.AuthorizationPipeline;
+import org.apache.rocketmq.proxy.remoting.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
@@ -270,7 +271,8 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         // add pipeline
         // the last pipe add will execute at the first
         return pipeline.pipe(new AuthorizationPipeline(ConfigurationManager.getAuthConfig(), messagingProcessor))
-            .pipe(new AuthenticationPipeline(accessValidators, ConfigurationManager.getAuthConfig(), messagingProcessor));
+            .pipe(new AuthenticationPipeline(accessValidators, ConfigurationManager.getAuthConfig(), messagingProcessor))
+            .pipe(new ContextInitPipeline());
     }
 
     protected class ThreadPoolHeadSlowTimeMillsMonitor implements ThreadPoolStatusMonitor {

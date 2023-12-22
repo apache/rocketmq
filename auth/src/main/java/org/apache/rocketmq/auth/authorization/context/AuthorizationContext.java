@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.auth.authorization.model.Resource;
@@ -22,6 +23,9 @@ public class AuthorizationContext {
 
     @SuppressWarnings("unchecked")
     public <T> T getExtInfo(String key) {
+        if (StringUtils.isBlank(key)) {
+            return null;
+        }
         if (this.extInfo == null) {
             return null;
         }
@@ -33,10 +37,18 @@ public class AuthorizationContext {
     }
 
     public void setExtInfo(String key, Object value) {
+        if (StringUtils.isBlank(key) || value == null) {
+            return;
+        }
         if (this.extInfo == null) {
             this.extInfo = new HashMap<>();
         }
         this.extInfo.put(key, value);
+    }
+
+    public boolean hasExtInfo(String key) {
+        Object value = getExtInfo(key);
+        return value != null;
     }
 
     public static AuthorizationContext of(Subject subject, Resource resource, Action action, String sourceIp) {

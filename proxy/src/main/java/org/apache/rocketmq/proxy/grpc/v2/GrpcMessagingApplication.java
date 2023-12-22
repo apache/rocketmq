@@ -43,7 +43,6 @@ import apache.rocketmq.v2.Status;
 import apache.rocketmq.v2.TelemetryCommand;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Context;
-import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionHandler;
@@ -62,12 +61,12 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.pipeline.AuthenticationPipeline;
 import org.apache.rocketmq.proxy.grpc.pipeline.AuthorizationPipeline;
+import org.apache.rocketmq.proxy.grpc.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseWriter;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
 
 public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServiceImplBase implements StartAndShutdown {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -149,7 +148,8 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         // the last pipe add will execute at the first
         pipeline = pipeline
             .pipe(new AuthorizationPipeline(ConfigurationManager.getAuthConfig(), messagingProcessor))
-            .pipe(new AuthenticationPipeline(ConfigurationManager.getAuthConfig(), messagingProcessor));
+            .pipe(new AuthenticationPipeline(ConfigurationManager.getAuthConfig(), messagingProcessor))
+            .pipe(new ContextInitPipeline());
         return new GrpcMessagingApplication(new DefaultGrpcMessingActivity(messagingProcessor), pipeline);
     }
 
@@ -184,30 +184,13 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
     }
 
     protected ProxyContext createContext() {
-        Context ctx = Context.current();
-        Metadata headers = GrpcConstants.METADATA.get(ctx);
-        ProxyContext context = ProxyContext.create()
-            .setLocalAddress(getDefaultStringMetadataInfo(headers, GrpcConstants.LOCAL_ADDRESS))
-            .setRemoteAddress(getDefaultStringMetadataInfo(headers, GrpcConstants.REMOTE_ADDRESS))
-            .setClientID(getDefaultStringMetadataInfo(headers, GrpcConstants.CLIENT_ID))
-            .setProtocolType(ChannelProtocolType.GRPC_V2.getName())
-            .setLanguage(getDefaultStringMetadataInfo(headers, GrpcConstants.LANGUAGE))
-            .setClientVersion(getDefaultStringMetadataInfo(headers, GrpcConstants.CLIENT_VERSION))
-            .setAction(getDefaultStringMetadataInfo(headers, GrpcConstants.SIMPLE_RPC_NAME));
-        if (ctx.getDeadline() != null) {
-            context.setRemainingMs(ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS));
-        }
-        return context;
+        return ProxyContext.create();
     }
 
     protected void validateContext(ProxyContext context) {
         if (StringUtils.isBlank(context.getClientID())) {
             throw new GrpcProxyException(Code.CLIENT_ID_REQUIRED, "client id cannot be empty");
         }
-    }
-
-    protected String getDefaultStringMetadataInfo(Metadata headers, Metadata.Key<String> key) {
-        return StringUtils.defaultString(headers.get(key));
     }
 
     @Override

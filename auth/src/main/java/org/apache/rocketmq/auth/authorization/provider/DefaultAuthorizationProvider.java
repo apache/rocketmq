@@ -26,7 +26,8 @@ public class DefaultAuthorizationProvider implements AuthorizationProvider {
 
     @Override
     public void initialize(AuthConfig config, Supplier<?> metadataService) {
-        handlerChain = HandlerChain.of(new UserAuthorizationHandler(config, metadataService))
+        handlerChain = HandlerChain.<AuthorizationContext, CompletableFuture<Void>>create()
+            .addNext(new UserAuthorizationHandler(config, metadataService))
             .addNext(new AclAuthorizationHandler(config, metadataService));
         this.authorizationContextBuilder = new AuthorizationContextBuilder(config);
     }

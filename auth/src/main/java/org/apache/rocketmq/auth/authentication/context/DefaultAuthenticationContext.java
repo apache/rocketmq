@@ -2,6 +2,7 @@ package org.apache.rocketmq.auth.authentication.context;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 
 public class DefaultAuthenticationContext implements AuthenticationContext {
 
@@ -15,6 +16,9 @@ public class DefaultAuthenticationContext implements AuthenticationContext {
 
     @SuppressWarnings("unchecked")
     public <T> T getExtInfo(String key) {
+        if (StringUtils.isBlank(key)) {
+            return null;
+        }
         if (this.extInfo == null) {
             return null;
         }
@@ -26,10 +30,18 @@ public class DefaultAuthenticationContext implements AuthenticationContext {
     }
 
     public void setExtInfo(String key, Object value) {
+        if (StringUtils.isBlank(key) || value == null) {
+            return;
+        }
         if (this.extInfo == null) {
             this.extInfo = new HashMap<>();
         }
         this.extInfo.put(key, value);
+    }
+
+    public boolean hasExtInfo(String key) {
+        Object value = getExtInfo(key);
+        return value != null;
     }
 
     public String getUsername() {

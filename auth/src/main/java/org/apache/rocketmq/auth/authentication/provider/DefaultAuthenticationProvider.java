@@ -19,7 +19,8 @@ public class DefaultAuthenticationProvider implements AuthenticationProvider<Def
 
     @Override
     public void initialize(AuthConfig config, Supplier<?> metadataService) {
-        this.handlerChain = HandlerChain.of(new DefaultAuthenticationHandler(config, metadataService));
+        this.handlerChain = HandlerChain.<DefaultAuthenticationContext, CompletableFuture<Void>>create()
+            .addNext(new DefaultAuthenticationHandler(config, metadataService));
         this.authenticationContextBuilder = new DefaultAuthenticationContextBuilder();
     }
 

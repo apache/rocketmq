@@ -2,7 +2,6 @@ package org.apache.rocketmq.common.chain;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 public class HandlerChain<T, R> {
@@ -10,11 +9,8 @@ public class HandlerChain<T, R> {
     private List<Handler<T, R>> handlers;
     private Iterator<Handler<T, R>> iterator;
 
-    public static <T, R> HandlerChain<T, R> of(Handler<T, R> handler) {
-        HandlerChain<T, R> chain = new HandlerChain<>();
-        chain.handlers = new LinkedList<>();
-        chain.handlers.add(handler);
-        return chain;
+    public static <T, R> HandlerChain<T, R> create() {
+        return new HandlerChain<>();
     }
 
     public HandlerChain<T, R> addNext(Handler<T, R> handler) {
