@@ -1,4 +1,4 @@
-package org.apache.rocketmq.auth.authorization.pipeline;
+package org.apache.rocketmq.auth.authorization.handler;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;

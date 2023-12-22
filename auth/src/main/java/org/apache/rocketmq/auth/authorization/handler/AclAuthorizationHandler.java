@@ -1,4 +1,4 @@
-package org.apache.rocketmq.auth.authorization.pipeline;
+package org.apache.rocketmq.auth.authorization.handler;
 
 import java.util.ArrayList;
 import java.util.List;
