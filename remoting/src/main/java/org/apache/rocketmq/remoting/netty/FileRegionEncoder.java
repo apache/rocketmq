@@ -53,7 +53,7 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
     protected void encode(ChannelHandlerContext ctx, FileRegion msg, final ByteBuf out) throws Exception {
         WritableByteChannel writableByteChannel = new WritableByteChannel() {
             @Override
-            public int write(ByteBuffer src) throws IOException {
+            public int write(ByteBuffer src) {
                 // To prevent mem_copy.
                 CompositeByteBuf b = (CompositeByteBuf) out;
                 // Have to increase writerIndex manually.
