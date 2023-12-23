@@ -18,6 +18,9 @@
 package org.apache.rocketmq.remoting.netty;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.FileRegion;
 import io.netty.handler.codec.MessageToByteEncoder;
@@ -50,10 +53,12 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
     protected void encode(ChannelHandlerContext ctx, FileRegion msg, final ByteBuf out) throws Exception {
         WritableByteChannel writableByteChannel = new WritableByteChannel() {
             @Override
-            public int write(ByteBuffer src) {
-                int prev = out.writerIndex();
-                out.writeBytes(src);
-                return out.writerIndex() - prev;
+            public int write(ByteBuffer src) throws IOException {
+                // To prevent mem_copy.
+                CompositeByteBuf b = (CompositeByteBuf) out;
+                // Have to increase writerIndex manually.
+                b.addComponent(true, Unpooled.wrappedBuffer(src));
+                return out.capacity();
             }
 
             @Override
@@ -75,5 +80,11 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
             }
             msg.transferTo(writableByteChannel, transferred);
         }
+    }
+
+    @Override
+    protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, FileRegion msg, boolean preferDirect) throws Exception {
+        ByteBufAllocator allocator = ctx.alloc();
+        return preferDirect ? allocator.compositeDirectBuffer() : allocator.compositeHeapBuffer();
     }
 }
