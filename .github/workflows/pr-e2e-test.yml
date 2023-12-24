@@ -13,11 +13,11 @@ env:
 
 jobs:
   docker:
-    runs-on: ubuntu-latest
     if: >
       github.repository == 'apache/rocketmq' &&
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       matrix:
