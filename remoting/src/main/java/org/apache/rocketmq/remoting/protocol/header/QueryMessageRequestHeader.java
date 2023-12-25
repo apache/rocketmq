@@ -29,7 +29,7 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-@RocketMQAction(value = RequestCode.QUERY_MESSAGE, action = Action.GET)
+@RocketMQAction(value = RequestCode.QUERY_MESSAGE, action = {Action.SUB, Action.GET})
 public class QueryMessageRequestHeader implements CommandCustomHeader {
     @CFNotNull
     @RocketMQResource(ResourceType.TOPIC)

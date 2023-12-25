@@ -30,7 +30,7 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
-@RocketMQAction(value = RequestCode.UPDATE_CONSUMER_OFFSET, action = Action.UPDATE)
+@RocketMQAction(value = RequestCode.UPDATE_CONSUMER_OFFSET, action = Action.SUB)
 public class UpdateConsumerOffsetRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     @RocketMQResource(ResourceType.GROUP)

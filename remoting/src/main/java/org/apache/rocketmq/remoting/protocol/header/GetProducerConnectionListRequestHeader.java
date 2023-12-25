@@ -26,7 +26,6 @@ import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 @RocketMQAction(value = RequestCode.GET_PRODUCER_CONNECTION_LIST, resource = ResourceType.CLUSTER, action = Action.GET)
-
 public class GetProducerConnectionListRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String producerGroup;

@@ -27,7 +27,7 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-@RocketMQAction(value = RequestCode.GET_CONSUMER_LIST_BY_GROUP, action = Action.GET)
+@RocketMQAction(value = RequestCode.GET_CONSUMER_LIST_BY_GROUP, action = Action.SUB)
 public class GetConsumerListByGroupRequestHeader implements CommandCustomHeader {
     @CFNotNull
     @RocketMQResource(ResourceType.GROUP)

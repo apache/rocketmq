@@ -132,7 +132,7 @@ public class AuthorizationContextBuilder {
             switch (request.getCode()) {
                 case RequestCode.GET_ROUTEINFO_BY_TOPIC:
                     topic = Resource.ofTopic(fields.get("topic"));
-                    contexts.add(AuthorizationContext.of(subject, topic, Action.ANY, sourceIp));
+                    contexts.add(AuthorizationContext.of(subject, topic, Arrays.asList(Action.PUB, Action.SUB, Action.GET), sourceIp));
                     break;
                 case RequestCode.SEND_MESSAGE:
                     if (NamespaceUtil.isRetryTopic(fields.get("topic"))) {
@@ -167,7 +167,7 @@ public class AuthorizationContextBuilder {
                     break;
                 case RequestCode.QUERY_MESSAGE:
                     topic = Resource.ofTopic(fields.get("topic"));
-                    contexts.add(AuthorizationContext.of(subject, topic, Action.SUB, sourceIp));
+                    contexts.add(AuthorizationContext.of(subject, topic, Arrays.asList(Action.SUB, Action.GET), sourceIp));
                     break;
                 case RequestCode.HEART_BEAT:
                     HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
@@ -187,33 +187,33 @@ public class AuthorizationContextBuilder {
                     final UnregisterClientRequestHeader unregisterClientRequestHeader =
                         request.decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
                     group = Resource.ofGroup(unregisterClientRequestHeader.getConsumerGroup());
-                    contexts.add(AuthorizationContext.of(subject, group, Action.SUB, sourceIp));
+                    contexts.add(AuthorizationContext.of(subject, group, Arrays.asList(Action.PUB, Action.SUB), sourceIp));
                     break;
                 case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
                     final GetConsumerListByGroupRequestHeader getConsumerListByGroupRequestHeader =
                         request.decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
                     group = Resource.ofGroup(getConsumerListByGroupRequestHeader.getConsumerGroup());
-                    contexts.add(AuthorizationContext.of(subject, group, Action.SUB, sourceIp));
+                    contexts.add(AuthorizationContext.of(subject, group, Arrays.asList(Action.SUB, Action.GET), sourceIp));
                     break;
                 case RequestCode.QUERY_CONSUMER_OFFSET:
                     final QueryConsumerOffsetRequestHeader queryConsumerOffsetRequestHeader =
                         request.decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
                     if (!NamespaceUtil.isRetryTopic(queryConsumerOffsetRequestHeader.getTopic())) {
                         topic = Resource.ofTopic(queryConsumerOffsetRequestHeader.getTopic());
-                        contexts.add(AuthorizationContext.of(subject, topic, Action.SUB, sourceIp));
+                        contexts.add(AuthorizationContext.of(subject, topic, Arrays.asList(Action.SUB, Action.GET), sourceIp));
                     }
                     group = Resource.ofTopic(queryConsumerOffsetRequestHeader.getConsumerGroup());
-                    contexts.add(AuthorizationContext.of(subject, group, Action.SUB, sourceIp));
+                    contexts.add(AuthorizationContext.of(subject, group, Arrays.asList(Action.SUB, Action.GET), sourceIp));
                     break;
                 case RequestCode.UPDATE_CONSUMER_OFFSET:
                     final UpdateConsumerOffsetRequestHeader updateConsumerOffsetRequestHeader =
                         request.decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
                     if (!NamespaceUtil.isRetryTopic(updateConsumerOffsetRequestHeader.getTopic())) {
                         topic = Resource.ofTopic(updateConsumerOffsetRequestHeader.getTopic());
-                        contexts.add(AuthorizationContext.of(subject, topic, Action.SUB, sourceIp));
+                        contexts.add(AuthorizationContext.of(subject, topic, Arrays.asList(Action.SUB, Action.UPDATE), sourceIp));
                     }
                     group = Resource.ofTopic(updateConsumerOffsetRequestHeader.getConsumerGroup());
-                    contexts.add(AuthorizationContext.of(subject, group, Action.SUB, sourceIp));
+                    contexts.add(AuthorizationContext.of(subject, group, Arrays.asList(Action.SUB, Action.UPDATE), sourceIp));
                     break;
                 default:
                     contexts = buildContextByAnnotation(subject, request, remoteAddr);
@@ -239,7 +239,7 @@ public class AuthorizationContextBuilder {
 
         RocketMQAction rocketMQAction = clazz.getAnnotation(RocketMQAction.class);
         ResourceType resourceType = rocketMQAction.resource();
-        Action action = rocketMQAction.action();
+        Action[] actions = rocketMQAction.action();
         Resource resource = null;
         if (resourceType == ResourceType.CLUSTER) {
             resource = Resource.ofCluster(authConfig.getClusterName());
@@ -269,10 +269,10 @@ public class AuthorizationContextBuilder {
                     for (String resourceValue : resourceValues) {
                         if (resourceType == ResourceType.TOPIC && NamespaceUtil.isRetryTopic(resourceValue)) {
                             resource = Resource.ofGroup(resourceValue);
-                            result.add(AuthorizationContext.of(subject, resource, action, sourceIp));
+                            result.add(AuthorizationContext.of(subject, resource, Arrays.asList(actions), sourceIp));
                         } else {
                             resource = Resource.of(resourceType, resourceValue, ResourcePattern.LITERAL);
-                            result.add(AuthorizationContext.of(subject, resource, action, sourceIp));
+                            result.add(AuthorizationContext.of(subject, resource, Arrays.asList(actions), sourceIp));
                         }
                     }
                 } finally {
@@ -282,7 +282,7 @@ public class AuthorizationContextBuilder {
         }
 
         if (CollectionUtils.isEmpty(result) && resource != null) {
-            result.add(AuthorizationContext.of(subject, resource, action, sourceIp));
+            result.add(AuthorizationContext.of(subject, resource, Arrays.asList(actions), sourceIp));
         }
 
         return result;

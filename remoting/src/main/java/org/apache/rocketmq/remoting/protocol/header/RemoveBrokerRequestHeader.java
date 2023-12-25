@@ -26,7 +26,7 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-@RocketMQAction(value = RequestCode.REMOVE_BROKER, resource = ResourceType.CLUSTER,action = Action.GET)
+@RocketMQAction(value = RequestCode.REMOVE_BROKER, resource = ResourceType.CLUSTER,action = Action.UPDATE)
 public class RemoveBrokerRequestHeader implements CommandCustomHeader {
     @CFNotNull
     private String brokerName;

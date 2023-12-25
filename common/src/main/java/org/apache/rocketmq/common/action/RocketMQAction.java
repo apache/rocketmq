@@ -11,5 +11,5 @@ public @interface RocketMQAction {
 
     ResourceType resource() default ResourceType.UNKNOWN;
 
-    Action action();
+    Action[] action();
 }
