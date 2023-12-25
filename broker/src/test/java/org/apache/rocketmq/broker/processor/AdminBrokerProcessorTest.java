@@ -674,6 +674,7 @@ public class AdminBrokerProcessorTest {
 
     private ResumeCheckHalfMessageRequestHeader createResumeCheckHalfMessageRequestHeader() {
         ResumeCheckHalfMessageRequestHeader header = new ResumeCheckHalfMessageRequestHeader();
+        header.setTopic("topic");
         header.setMsgId("C0A803CA00002A9F0000000000031367");
         return header;
     }

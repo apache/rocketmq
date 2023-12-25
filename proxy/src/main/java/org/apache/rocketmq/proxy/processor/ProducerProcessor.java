@@ -135,6 +135,7 @@ public class ProducerProcessor extends AbstractProcessor {
             this.serviceManager.getTransactionService().addTransactionDataByBrokerName(
                 ctx,
                 messageQueue.getBrokerName(),
+                messageList.get(0).getTopic(),
                 producerGroup,
                 sendResult.getQueueOffset(),
                 id.getOffset(),

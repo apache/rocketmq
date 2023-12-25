@@ -355,7 +355,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        boolean result = mqClientAPI.resumeCheckHalfMessage(brokerAddr, "test", 3000);
+        boolean result = mqClientAPI.resumeCheckHalfMessage(brokerAddr, "topic,", "test", 3000);
         assertThat(result).isEqualTo(false);
     }
 
@@ -369,7 +369,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        boolean result = mqClientAPI.resumeCheckHalfMessage(brokerAddr, "test", 3000);
+        boolean result = mqClientAPI.resumeCheckHalfMessage(brokerAddr, "topic", "test", 3000);
 
         assertThat(result).isEqualTo(true);
     }
@@ -726,7 +726,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        MessageExt messageExt = mqClientAPI.viewMessage(brokerAddr, 100L, 10000);
+        MessageExt messageExt = mqClientAPI.viewMessage(brokerAddr, "topic", 100L, 10000);
         assertThat(messageExt.getTopic()).isEqualTo(topic);
     }
 

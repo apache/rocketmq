@@ -123,6 +123,7 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
         CompletableFuture<Void> writeFuture = new CompletableFuture<>();
         try {
             CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
+            requestHeader.setTopic(messageExt.getTopic());
             requestHeader.setCommitLogOffset(transactionData.getCommitLogOffset());
             requestHeader.setTranStateTableOffset(transactionData.getTranStateTableOffset());
             requestHeader.setTransactionId(transactionData.getTransactionId());

@@ -164,10 +164,10 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
-    public CompletableFuture<Void> endTransaction(ProxyContext ctx, String transactionId, String messageId, String producerGroup,
+    public CompletableFuture<Void> endTransaction(ProxyContext ctx, String topic, String transactionId, String messageId, String producerGroup,
         TransactionStatus transactionStatus, boolean fromTransactionCheck,
         long timeoutMillis) {
-        return this.transactionProcessor.endTransaction(ctx, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, timeoutMillis);
+        return this.transactionProcessor.endTransaction(ctx, topic, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, timeoutMillis);
     }
 
     @Override

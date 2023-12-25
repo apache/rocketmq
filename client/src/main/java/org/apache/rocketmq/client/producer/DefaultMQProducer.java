@@ -1016,25 +1016,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Query message of the given offset message ID.
-     * <p>
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     *
-     * @param offsetMsgId message id
-     * @return Message specified.
-     * @throws MQBrokerException    if there is any broker error.
-     * @throws MQClientException    if there is any client error.
-     * @throws RemotingException    if there is any network-tier error.
-     * @throws InterruptedException if the sending thread is interrupted.
-     */
-    @Deprecated
-    @Override
-    public MessageExt viewMessage(
-        String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.defaultMQProducerImpl.viewMessage(offsetMsgId);
-    }
-
-    /**
      * Query message by key.
      * <p>
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
@@ -1073,7 +1054,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public MessageExt viewMessage(String topic,
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            return this.viewMessage(msgId);
+            return this.defaultMQProducerImpl.viewMessage(topic, msgId);
         } catch (Exception ignored) {
         }
         return this.defaultMQProducerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);

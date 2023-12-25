@@ -1235,9 +1235,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         return sortMap;
     }
 
-    public MessageExt viewMessage(final String addr, final long phyoffset, final long timeoutMillis)
+    public MessageExt viewMessage(final String addr, final String topic, final long phyoffset, final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException {
         ViewMessageRequestHeader requestHeader = new ViewMessageRequestHeader();
+        requestHeader.setTopic(topic);
         requestHeader.setOffset(phyoffset);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.VIEW_MESSAGE_BY_ID, requestHeader);
 
@@ -2991,9 +2992,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         }
     }
 
-    public boolean resumeCheckHalfMessage(final String addr, String msgId,
+    public boolean resumeCheckHalfMessage(final String addr, String topic, String msgId,
         final long timeoutMillis) throws RemotingException, InterruptedException {
         ResumeCheckHalfMessageRequestHeader requestHeader = new ResumeCheckHalfMessageRequestHeader();
+        requestHeader.setTopic(topic);
         requestHeader.setMsgId(msgId);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RESUME_CHECK_HALF_MESSAGE, requestHeader);

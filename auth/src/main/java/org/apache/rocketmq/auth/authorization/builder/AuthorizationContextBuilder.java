@@ -153,6 +153,10 @@ public class AuthorizationContextBuilder {
                         contexts.add(AuthorizationContext.of(subject, topic, Action.PUB, sourceIp));
                     }
                     break;
+                case RequestCode.END_TRANSACTION:
+                    topic = Resource.ofTopic(fields.get("topic"));
+                    contexts.add(AuthorizationContext.of(subject, topic, Action.PUB, sourceIp));
+                    break;
                 case RequestCode.CONSUMER_SEND_MSG_BACK:
                     group = Resource.ofGroup(fields.get("group"));
                     contexts.add(AuthorizationContext.of(subject, group, Action.SUB, sourceIp));
