@@ -1,12 +1,17 @@
 package org.apache.rocketmq.auth.authorization.provider;
 
 import com.alibaba.fastjson2.JSON;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -18,11 +23,15 @@ import org.apache.rocketmq.auth.authorization.model.Policy;
 import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
+import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.rocksdb.RocksIterator;
 
 public class LocalAuthorizationMetadataProvider implements AuthorizationMetadataProvider {
 
     private ConfigRocksDBStorage storage;
+
+    private LoadingCache<String, Acl> aclCache;
 
     @Override
     public void initialize(AuthConfig authConfig, Supplier<?> metadataService) {
@@ -30,6 +39,21 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
         if (!this.storage.start()) {
             throw new RuntimeException("Failed to load rocksdb for auth_acl, please check whether it is occupied");
         }
+        ThreadPoolExecutor cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
+            1,
+            1,
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            "AclCacheRefresh",
+            100000
+        );
+
+        this.aclCache = Caffeine.newBuilder()
+            .maximumSize(authConfig.getAclCacheMaxNum())
+            .expireAfterAccess(authConfig.getAclCacheExpiredSecond(), TimeUnit.SECONDS)
+            .refreshAfterWrite(authConfig.getAclCacheRefreshSecond(), TimeUnit.SECONDS)
+            .executor(cacheRefreshExecutor)
+            .build(new AclCacheLoader(this.storage));
     }
 
     @Override
@@ -39,6 +63,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
             byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(acl.getPolicies());
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
+            this.aclCache.put(subject.toSubjectKey(), acl);
         } catch (Exception e) {
             throw new AuthorizationException("create Acl to RocksDB failed", e);
         }
@@ -50,6 +75,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
         try {
             byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
             this.storage.delete(keyBytes);
+            this.aclCache.invalidate(subject.toSubjectKey());
         } catch (Exception e) {
             throw new AuthorizationException("delete Acl from RocksDB failed", e);
         }
@@ -63,6 +89,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
             byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(acl.getPolicies());
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
+            this.aclCache.put(subject.toSubjectKey(), acl);
         } catch (Exception e) {
             throw new AuthorizationException("update Acl to RocksDB failed", e);
         }
@@ -71,17 +98,11 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
 
     @Override
     public CompletableFuture<Acl> getAcl(Subject subject) {
-        try {
-            byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
-            byte[] valueBytes = this.storage.get(keyBytes);
-            if (ArrayUtils.isEmpty(valueBytes)) {
-                return CompletableFuture.completedFuture(null);
-            }
-            List<Policy> policies = JSON.parseArray(new String(valueBytes, StandardCharsets.UTF_8), Policy.class);
-            return CompletableFuture.completedFuture(Acl.of(subject, policies));
-        } catch (Exception e) {
-            throw new AuthorizationException("get Acl from RocksDB failed", e);
+        Acl acl = aclCache.get(subject.toSubjectKey());
+        if (acl == AclCacheLoader.EMPTY_ACL) {
+            return CompletableFuture.completedFuture(null);
         }
+        return CompletableFuture.completedFuture(acl);
     }
 
     @Override
@@ -124,6 +145,31 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
     public void shutdown() {
         if (this.storage != null) {
             this.storage.shutdown();
+        }
+    }
+
+    private static class AclCacheLoader implements CacheLoader<String, Acl> {
+        private final ConfigRocksDBStorage storage;
+        public static final Acl EMPTY_ACL = new Acl();
+        public AclCacheLoader(ConfigRocksDBStorage storage) {
+            this.storage = storage;
+        }
+
+        @Override
+        public Acl load(@NonNull String subjectKey) {
+            try {
+                byte[] keyBytes = subjectKey.getBytes(StandardCharsets.UTF_8);
+                Subject subject = Subject.parseSubject(subjectKey);
+
+                byte[] valueBytes = this.storage.get(keyBytes);
+                if (ArrayUtils.isEmpty(valueBytes)) {
+                    return EMPTY_ACL;
+                }
+                List<Policy> policies = JSON.parseArray(new String(valueBytes, StandardCharsets.UTF_8), Policy.class);
+                return Acl.of(subject, policies);
+            } catch (Exception e) {
+                throw new AuthorizationException("get Acl from RocksDB failed", e);
+            }
         }
     }
 }

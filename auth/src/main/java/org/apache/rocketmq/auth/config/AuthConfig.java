@@ -24,6 +24,18 @@ public class AuthConfig implements Cloneable {
 
     private boolean migrateFromAclV1Enabled = false;
 
+    private int userCacheMaxNum = 1000;
+
+    private int userCacheExpiredSecond = 600;
+
+    private int userCacheRefreshSecond = 60;
+
+    private int aclCacheMaxNum = 1000;
+
+    private int aclCacheExpiredSecond = 600;
+
+    private int aclCacheRefreshSecond = 60;
+
     @Override
     public AuthConfig clone() {
         try {
@@ -119,5 +131,53 @@ public class AuthConfig implements Cloneable {
 
     public void setMigrateFromAclV1Enabled(boolean migrateFromAclV1Enabled) {
         this.migrateFromAclV1Enabled = migrateFromAclV1Enabled;
+    }
+
+    public int getUserCacheMaxNum() {
+        return userCacheMaxNum;
+    }
+
+    public void setUserCacheMaxNum(int userCacheMaxNum) {
+        this.userCacheMaxNum = userCacheMaxNum;
+    }
+
+    public int getUserCacheExpiredSecond() {
+        return userCacheExpiredSecond;
+    }
+
+    public void setUserCacheExpiredSecond(int userCacheExpiredSecond) {
+        this.userCacheExpiredSecond = userCacheExpiredSecond;
+    }
+
+    public int getUserCacheRefreshSecond() {
+        return userCacheRefreshSecond;
+    }
+
+    public void setUserCacheRefreshSecond(int userCacheRefreshSecond) {
+        this.userCacheRefreshSecond = userCacheRefreshSecond;
+    }
+
+    public int getAclCacheMaxNum() {
+        return aclCacheMaxNum;
+    }
+
+    public void setAclCacheMaxNum(int aclCacheMaxNum) {
+        this.aclCacheMaxNum = aclCacheMaxNum;
+    }
+
+    public int getAclCacheExpiredSecond() {
+        return aclCacheExpiredSecond;
+    }
+
+    public void setAclCacheExpiredSecond(int aclCacheExpiredSecond) {
+        this.aclCacheExpiredSecond = aclCacheExpiredSecond;
+    }
+
+    public int getAclCacheRefreshSecond() {
+        return aclCacheRefreshSecond;
+    }
+
+    public void setAclCacheRefreshSecond(int aclCacheRefreshSecond) {
+        this.aclCacheRefreshSecond = aclCacheRefreshSecond;
     }
 }
