@@ -483,6 +483,8 @@ public interface MQAdminExt extends MQAdmin {
     String setCommitLogReadAheadMode(final String brokerAddr, String mode)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
 
+    void initUser(String brokerAddr, String username, String password) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
     void createUser(String brokerAddr, String username, String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 
     void updateUser(String brokerAddr, String username, String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
@@ -491,7 +493,7 @@ public interface MQAdminExt extends MQAdmin {
 
     UserInfo getUser(String brokerAddr, String username) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 
-    List<UserInfo> listUsers(String brokerAddr, String filter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+    List<UserInfo> listUser(String brokerAddr, String filter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 
     void createAcl(String brokerAddr, String subject, List<String> resources, List<String> actions, List<String> sourceIps, String decision) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 
@@ -501,5 +503,5 @@ public interface MQAdminExt extends MQAdmin {
 
     AclInfo getAcl(String brokerAddr, String subject) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 
-    List<AclInfo> listAcls(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+    List<AclInfo> listAcl(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 }

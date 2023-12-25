@@ -8,6 +8,8 @@ public interface AuthenticationMetadataManager {
 
     void shutdown();
 
+    CompletableFuture<Void> initUser(User user);
+
     CompletableFuture<Void> createUser(User user);
 
     CompletableFuture<Void> updateUser(User user);

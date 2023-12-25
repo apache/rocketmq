@@ -13,20 +13,20 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class DefaultAuthenticationProvider implements AuthenticationProvider<DefaultAuthenticationContext> {
 
-    protected HandlerChain<DefaultAuthenticationContext, CompletableFuture<Void>> handlerChain;
-
+    protected AuthConfig authConfig;
+    protected Supplier<?> metadataService;
     protected AuthenticationContextBuilder<DefaultAuthenticationContext> authenticationContextBuilder;
 
     @Override
     public void initialize(AuthConfig config, Supplier<?> metadataService) {
-        this.handlerChain = HandlerChain.<DefaultAuthenticationContext, CompletableFuture<Void>>create()
-            .addNext(new DefaultAuthenticationHandler(config, metadataService));
+        this.authConfig = config;
+        this.metadataService = metadataService;
         this.authenticationContextBuilder = new DefaultAuthenticationContextBuilder();
     }
 
     @Override
     public CompletableFuture<Void> authenticate(DefaultAuthenticationContext context) {
-        return this.handlerChain.handle(context);
+        return this.newHandlerChain().handle(context);
     }
 
     @Override
@@ -37,5 +37,10 @@ public class DefaultAuthenticationProvider implements AuthenticationProvider<Def
     @Override
     public DefaultAuthenticationContext newContext(RemotingCommand command) {
         return this.authenticationContextBuilder.build(command);
+    }
+
+    protected HandlerChain<DefaultAuthenticationContext, CompletableFuture<Void>> newHandlerChain() {
+        return HandlerChain.<DefaultAuthenticationContext, CompletableFuture<Void>>create()
+            .addNext(new DefaultAuthenticationHandler(this.authConfig, metadataService));
     }
 }

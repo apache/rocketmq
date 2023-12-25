@@ -96,18 +96,21 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                 }
                 Subject subject = Subject.parseSubject(subjectKey);
                 List<Policy> policies = JSON.parseArray(new String(iterator.value(), StandardCharsets.UTF_8), Policy.class);
-                if (CollectionUtils.isNotEmpty(policies)) {
-                    Iterator<Policy> policyIterator = policies.iterator();
-                    while (policyIterator.hasNext()) {
-                        Policy policy = policyIterator.next();
-                        List<PolicyEntry> entries = policy.getEntries();
-                        if (CollectionUtils.isEmpty(entries)) {
-                            continue;
-                        }
+                if (!CollectionUtils.isNotEmpty(policies)) {
+                    continue;
+                }
+                Iterator<Policy> policyIterator = policies.iterator();
+                while (policyIterator.hasNext()) {
+                    Policy policy = policyIterator.next();
+                    List<PolicyEntry> entries = policy.getEntries();
+                    if (CollectionUtils.isEmpty(entries)) {
+                        continue;
+                    }
+                    if (StringUtils.isNotBlank(resourceFilter) && !subjectKey.contains(resourceFilter)) {
                         entries.removeIf(entry -> !entry.toResourceStr().contains(resourceFilter));
-                        if (CollectionUtils.isEmpty(entries)) {
-                            policyIterator.remove();
-                        }
+                    }
+                    if (CollectionUtils.isEmpty(entries)) {
+                        policyIterator.remove();
                     }
                 }
                 result.add(Acl.of(subject, policies));

@@ -83,7 +83,7 @@ public class ListAclSubCommand implements SubCommand {
                 String addr = commandLine.getOptionValue('b').trim();
                 defaultMQAdminExt.start();
 
-                List<AclInfo> aclInfos = defaultMQAdminExt.listAcls(addr, subjectFilter, resourceFilter);
+                List<AclInfo> aclInfos = defaultMQAdminExt.listAcl(addr, subjectFilter, resourceFilter);
                 if (CollectionUtils.isNotEmpty(aclInfos)) {
                     printAcl(aclInfos);
                     System.out.printf("list acls from %s success.%n", addr);
@@ -104,7 +104,7 @@ public class ListAclSubCommand implements SubCommand {
                     throw new SubCommandException(this.getClass().getSimpleName() + " command failed, there is no broker in cluster.");
                 }
                 for (String masterAddr : masterSet) {
-                    List<AclInfo> aclInfos = defaultMQAdminExt.listAcls(masterAddr, subjectFilter, resourceFilter);
+                    List<AclInfo> aclInfos = defaultMQAdminExt.listAcl(masterAddr, subjectFilter, resourceFilter);
                     if (CollectionUtils.isNotEmpty(aclInfos)) {
                         printAcl(aclInfos);
                         System.out.printf("list acls from %s success.%n", masterAddr);

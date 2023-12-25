@@ -6,6 +6,7 @@ import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 public class AuthenticationRPCHook implements RPCHook {
 
@@ -20,6 +21,9 @@ public class AuthenticationRPCHook implements RPCHook {
     @Override
     public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
         if (this.evaluator == null) {
+            return;
+        }
+        if (request.getCode() == RequestCode.INIT_USER) {
             return;
         }
         if (authConfig.isAuthenticationEnabled()) {

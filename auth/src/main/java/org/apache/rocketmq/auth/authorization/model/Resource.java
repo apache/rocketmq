@@ -89,10 +89,9 @@ public class Resource implements Comparable<Resource> {
         if (this.resourceType != resource.resourceType) {
             return false;
         }
-        if (StringUtils.equals(this.resourceName, "*")) {
-            return true;
-        }
         switch (resourcePattern) {
+            case ANY:
+                return true;
             case LITERAL:
                 return StringUtils.equals(resource.resourceName, this.resourceName);
             case PREFIXED:

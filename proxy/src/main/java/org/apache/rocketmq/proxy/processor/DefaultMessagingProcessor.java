@@ -16,13 +16,18 @@
  */
 package org.apache.rocketmq.proxy.processor;
 
+import com.alibaba.fastjson2.JSON;
 import io.netty.channel.Channel;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.AclUtils;
+import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -113,7 +118,14 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     public static DefaultMessagingProcessor createForClusterMode() {
         RPCHook rpcHook = null;
         if (ConfigurationManager.getProxyConfig().isEnableAclRpcHookForClusterMode()) {
-            rpcHook = AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE);
+            AuthConfig authConfig = ConfigurationManager.getAuthConfig();
+            if (StringUtils.isNotBlank(authConfig.getInnerClientAuthenticationCredentials())) {
+                SessionCredentials sessionCredentials =
+                    JSON.parseObject(authConfig.getInnerClientAuthenticationCredentials(), SessionCredentials.class);
+                rpcHook = new AclClientRPCHook(sessionCredentials);
+            } else {
+                rpcHook = AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE);
+            }
         }
         return createForClusterMode(rpcHook);
     }

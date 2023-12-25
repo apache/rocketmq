@@ -16,49 +16,49 @@
  */
 package org.apache.rocketmq.tools.command.auth;
 
-import java.util.List;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class ListUserSubCommand implements SubCommand {
-
-    private static final String FORMAT = "%-16s  %-22s  %-22s%n";
+public class InitUserSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "getUser";
+        return "initUser";
     }
 
     @Override
     public String commandDesc() {
-        return "Get user from cluster.";
+        return "Init user to cluster.";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("b", "brokerAddr", true, "get user for which broker");
+        Option opt = new Option("c", "clusterName", true, "update acl config file to which cluster");
         optionGroup.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "get user for specified cluster");
+        opt = new Option("b", "brokerAddr", true, "init user to which broker");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
         options.addOptionGroup(optionGroup);
 
-        opt = new Option("f", "filter", true, "the filter to list users");
+        opt = new Option("u", "username", true, "the username of user to init.");
+        opt.setRequired(true);
+        options.addOption(opt);
+
+        opt = new Option("p", "password", true, "the password of user to init");
+        opt.setRequired(true);
         options.addOption(opt);
 
         return options;
@@ -72,41 +72,28 @@ public class ListUserSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String filter = commandLine.getOptionValue('f').trim();
+            String username = commandLine.getOptionValue('u').trim();
+            String password = commandLine.getOptionValue('p').trim();
 
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
+
                 defaultMQAdminExt.start();
+                defaultMQAdminExt.initUser(addr, username, password);
 
-                List<UserInfo> userInfos = defaultMQAdminExt.listUser(addr, filter);
-                if (CollectionUtils.isEmpty(userInfos)) {
-                    printUsers(userInfos);
-                    System.out.printf("get user from %s success.%n", addr);
-                } else {
-                    System.out.println("there is no user found.");
-                }
-
+                System.out.printf("init user to %s success.%n", addr);
                 return;
 
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
 
                 defaultMQAdminExt.start();
-
-                Set<String> masterSet =
-                    CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
-                if (CollectionUtils.isEmpty(masterSet)) {
-                    throw new SubCommandException(this.getClass().getSimpleName() + " command failed, there is no broker in cluster.");
+                Set<String> brokerAddrSet =
+                    CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
+                for (String addr : brokerAddrSet) {
+                    defaultMQAdminExt.initUser(addr, username, password);
+                    System.out.printf("init user to %s success.%n", addr);
                 }
-                for (String masterAddr : masterSet) {
-                    List<UserInfo> userInfos = defaultMQAdminExt.listUser(masterAddr, filter);
-                    if (CollectionUtils.isEmpty(userInfos)) {
-                        printUsers(userInfos);
-                        System.out.printf("get user from %s success.%n", masterAddr);
-                        break;
-                    }
-                }
-
                 return;
             }
 
@@ -116,13 +103,5 @@ public class ListUserSubCommand implements SubCommand {
         } finally {
             defaultMQAdminExt.shutdown();
         }
-    }
-
-    private void printUsers(List<UserInfo> users) {
-        if (CollectionUtils.isEmpty(users)) {
-            return;
-        }
-        System.out.printf(FORMAT, "#UserName", "#Password", "#UserType");
-        users.forEach(user -> System.out.printf(FORMAT, user.getUsername(), user.getPassword(), user.getUserType()));
     }
 }

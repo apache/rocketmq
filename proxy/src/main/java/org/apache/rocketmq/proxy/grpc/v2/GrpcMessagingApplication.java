@@ -165,6 +165,7 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         StreamObserver<T> responseObserver, Function<Status, T> statusResponseCreator) {
         if (request instanceof GeneratedMessageV3) {
             requestPipeline.execute(context, GrpcConstants.METADATA.get(Context.current()), (GeneratedMessageV3) request);
+            validateContext(context);
         } else {
             log.error("[BUG]grpc request pipe is not been executed");
         }
@@ -198,7 +199,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Function<Status, QueryRouteResponse> statusResponseCreator = status -> QueryRouteResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            validateContext(context);
             this.addExecutor(this.routeThreadPoolExecutor,
                 context,
                 request,
@@ -216,7 +216,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Function<Status, HeartbeatResponse> statusResponseCreator = status -> HeartbeatResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            validateContext(context);
             this.addExecutor(this.clientManagerThreadPoolExecutor,
                 context,
                 request,
@@ -234,7 +233,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Function<Status, SendMessageResponse> statusResponseCreator = status -> SendMessageResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            validateContext(context);
             this.addExecutor(this.producerThreadPoolExecutor,
                 context,
                 request,
@@ -253,7 +251,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Function<Status, QueryAssignmentResponse> statusResponseCreator = status -> QueryAssignmentResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            validateContext(context);
             this.addExecutor(this.routeThreadPoolExecutor,
                 context,
                 request,
@@ -271,7 +268,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Function<Status, ReceiveMessageResponse> statusResponseCreator = status -> ReceiveMessageResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            validateContext(context);
             this.addExecutor(this.consumerThreadPoolExecutor,
                 context,
                 request,
@@ -288,7 +284,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Function<Status, AckMessageResponse> statusResponseCreator = status -> AckMessageResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            validateContext(context);
             this.addExecutor(this.consumerThreadPoolExecutor,
                 context,
                 request,
@@ -307,7 +302,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Function<Status, ForwardMessageToDeadLetterQueueResponse> statusResponseCreator = status -> ForwardMessageToDeadLetterQueueResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            validateContext(context);
             this.addExecutor(this.producerThreadPoolExecutor,
                 context,
                 request,
@@ -325,7 +319,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Function<Status, EndTransactionResponse> statusResponseCreator = status -> EndTransactionResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            validateContext(context);
             this.addExecutor(this.transactionThreadPoolExecutor,
                 context,
                 request,
@@ -344,7 +337,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Function<Status, NotifyClientTerminationResponse> statusResponseCreator = status -> NotifyClientTerminationResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            validateContext(context);
             this.addExecutor(this.clientManagerThreadPoolExecutor,
                 context,
                 request,
@@ -363,7 +355,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Function<Status, ChangeInvisibleDurationResponse> statusResponseCreator = status -> ChangeInvisibleDurationResponse.newBuilder().setStatus(status).build();
         ProxyContext context = createContext();
         try {
-            validateContext(context);
             this.addExecutor(this.consumerThreadPoolExecutor,
                 context,
                 request,
@@ -385,7 +376,6 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             public void onNext(TelemetryCommand value) {
                 ProxyContext context = createContext();
                 try {
-                    validateContext(context);
                     addExecutor(clientManagerThreadPoolExecutor,
                         context,
                         value,

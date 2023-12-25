@@ -15,8 +15,8 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class DefaultAuthorizationProvider implements AuthorizationProvider {
 
-    protected HandlerChain<AuthorizationContext, CompletableFuture<Void>> handlerChain;
-
+    protected AuthConfig authConfig;
+    protected Supplier<?> metadataService;
     protected AuthorizationContextBuilder authorizationContextBuilder;
 
     @Override
@@ -26,15 +26,14 @@ public class DefaultAuthorizationProvider implements AuthorizationProvider {
 
     @Override
     public void initialize(AuthConfig config, Supplier<?> metadataService) {
-        handlerChain = HandlerChain.<AuthorizationContext, CompletableFuture<Void>>create()
-            .addNext(new UserAuthorizationHandler(config, metadataService))
-            .addNext(new AclAuthorizationHandler(config, metadataService));
+        this.authConfig = config;
+        this.metadataService = metadataService;
         this.authorizationContextBuilder = new AuthorizationContextBuilder(config);
     }
 
     @Override
     public CompletableFuture<Void> authorize(AuthorizationContext context) {
-        return handlerChain.handle(context);
+        return this.newHandlerChain().handle(context);
     }
 
     @Override
@@ -45,5 +44,11 @@ public class DefaultAuthorizationProvider implements AuthorizationProvider {
     @Override
     public List<AuthorizationContext> newContexts(RemotingCommand command, String remoteAddr) {
         return this.authorizationContextBuilder.build(command, remoteAddr);
+    }
+
+    protected HandlerChain<AuthorizationContext, CompletableFuture<Void>> newHandlerChain() {
+        return HandlerChain.<AuthorizationContext, CompletableFuture<Void>>create()
+            .addNext(new UserAuthorizationHandler(authConfig, metadataService))
+            .addNext(new AclAuthorizationHandler(authConfig, metadataService));
     }
 }

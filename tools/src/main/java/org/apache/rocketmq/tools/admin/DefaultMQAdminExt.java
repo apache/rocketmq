@@ -878,6 +878,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public void initUser(String brokerAddr, String username, String password) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.initUser(brokerAddr, username, password);
+    }
+
+    @Override
     public void createUser(String brokerAddr, String username, String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         defaultMQAdminExtImpl.createUser(brokerAddr, username, password, userType);
     }
@@ -901,9 +906,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public List<UserInfo> listUsers(String brokerAddr,
+    public List<UserInfo> listUser(String brokerAddr,
         String filter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
-        return defaultMQAdminExtImpl.listUsers(brokerAddr, filter);
+        return defaultMQAdminExtImpl.listUser(brokerAddr, filter);
     }
 
     @Override
@@ -929,7 +934,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public List<AclInfo> listAcls(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
-        return defaultMQAdminExtImpl.listAcls(brokerAddr, subjectFilter, resourceFilter);
+    public List<AclInfo> listAcl(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return defaultMQAdminExtImpl.listAcl(brokerAddr, subjectFilter, resourceFilter);
     }
 }

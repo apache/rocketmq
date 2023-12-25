@@ -179,6 +179,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicStatsInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicsByClusterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetUserRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.InitUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListAclsRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListUsersRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
@@ -3305,6 +3306,22 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
+    public void initUser(String addr, UserInfo userInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        InitUserRequestHeader requestHeader = new InitUserRequestHeader(userInfo.getUsername());
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.INIT_USER, requestHeader);
+        request.setBody(RemotingSerializable.encode(userInfo));
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return;
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
     public void createUser(String addr, UserInfo userInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         CreateUserRequestHeader requestHeader = new CreateUserRequestHeader(userInfo.getUsername());
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CREATE_USER, requestHeader);
@@ -3367,7 +3384,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
 
-    public List<UserInfo> listUsers(String addr, String filter, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+    public List<UserInfo> listUser(String addr, String filter, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         ListUsersRequestHeader requestHeader = new ListUsersRequestHeader(filter);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LIST_USER, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);

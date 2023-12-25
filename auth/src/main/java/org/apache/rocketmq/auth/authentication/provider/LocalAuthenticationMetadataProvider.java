@@ -95,6 +95,17 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
     }
 
     @Override
+    public CompletableFuture<Boolean> hasUser() {
+        try (RocksIterator iterator = this.storage.iterator()) {
+            iterator.seekToFirst();
+            if (iterator.isValid()) {
+                return CompletableFuture.completedFuture(true);
+            }
+        }
+        return CompletableFuture.completedFuture(false);
+    }
+
+    @Override
     public void shutdown() {
         if (this.storage != null) {
             this.storage.shutdown();

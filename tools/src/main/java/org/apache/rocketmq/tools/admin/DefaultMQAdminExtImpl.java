@@ -1935,6 +1935,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public void initUser(String brokerAddr, String username, String password) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        UserInfo userInfo = UserInfo.of(username, password, null);
+        this.mqClientInstance.getMQClientAPIImpl().initUser(brokerAddr, userInfo, timeoutMillis);
+    }
+
+    @Override
     public void createUser(String brokerAddr, String username, String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         UserInfo userInfo = UserInfo.of(username, password, userType);
         this.mqClientInstance.getMQClientAPIImpl().createUser(brokerAddr, userInfo, timeoutMillis);
@@ -1960,9 +1966,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public List<UserInfo> listUsers(String brokerAddr,
+    public List<UserInfo> listUser(String brokerAddr,
         String filter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
-        return this.mqClientInstance.getMQClientAPIImpl().listUsers(brokerAddr, filter, timeoutMillis);
+        return this.mqClientInstance.getMQClientAPIImpl().listUser(brokerAddr, filter, timeoutMillis);
     }
 
     @Override
@@ -1990,7 +1996,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public List<AclInfo> listAcls(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+    public List<AclInfo> listAcl(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         return this.mqClientInstance.getMQClientAPIImpl().listAcl(brokerAddr, subjectFilter, resourceFilter, timeoutMillis);
     }
 }

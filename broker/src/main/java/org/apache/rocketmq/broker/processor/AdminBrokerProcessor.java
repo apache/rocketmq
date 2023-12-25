@@ -166,6 +166,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetSubscriptionGroupConfigRe
 import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicStatsInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetUserRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.InitUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListAclsRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListUsersRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotifyBrokerRoleChangedRequestHeader;
@@ -359,6 +360,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getBrokerEpochCache(ctx, request);
             case RequestCode.NOTIFY_BROKER_ROLE_CHANGED:
                 return this.notifyBrokerRoleChanged(ctx, request);
+            case RequestCode.INIT_USER:
+                return this.initUser(ctx, request);
             case RequestCode.CREATE_USER:
                 return this.createUser(ctx, request);
             case RequestCode.UPDATE_USER:
@@ -378,7 +381,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             case RequestCode.GET_ACL:
                 return this.getAcl(ctx, request);
             case RequestCode.LIST_ACL:
-                return this.listAcls(ctx, request);
+                return this.listAcl(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -2841,6 +2844,32 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    private RemotingCommand initUser(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        InitUserRequestHeader requestHeader = request.decodeCommandCustomHeader(InitUserRequestHeader.class);
+        if (StringUtils.isEmpty(requestHeader.getUsername())) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The username is blank");
+            return response;
+        }
+
+        UserInfo userInfo = RemotingSerializable.decode(request.getBody(), UserInfo.class);
+        userInfo.setUsername(requestHeader.getUsername());
+        User user = UserConverter.convertUser(userInfo);
+
+        this.brokerController.getAuthenticationMetadataManager().initUser(user)
+            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .exceptionally(ex -> {
+                LOGGER.error("init user {} error", user.getUsername(), ex);
+                return handleAuthException(response, ex);
+            })
+            .join();
+
+        return response;
+    }
+
     private RemotingCommand createUser(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
@@ -3075,7 +3104,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand listAcls(ChannelHandlerContext ctx,
+    private RemotingCommand listAcl(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 

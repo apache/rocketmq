@@ -14,6 +14,8 @@ public class AuthConfig implements Cloneable {
 
     private String authenticationMetadataProvider;
 
+    private String innerClientAuthenticationCredentials;
+
     private boolean authorizationEnabled = false;
 
     private String authorizationProvider;
@@ -77,6 +79,14 @@ public class AuthConfig implements Cloneable {
 
     public void setAuthenticationMetadataProvider(String authenticationMetadataProvider) {
         this.authenticationMetadataProvider = authenticationMetadataProvider;
+    }
+
+    public String getInnerClientAuthenticationCredentials() {
+        return innerClientAuthenticationCredentials;
+    }
+
+    public void setInnerClientAuthenticationCredentials(String innerClientAuthenticationCredentials) {
+        this.innerClientAuthenticationCredentials = innerClientAuthenticationCredentials;
     }
 
     public boolean isAuthorizationEnabled() {

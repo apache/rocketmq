@@ -36,6 +36,24 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
     }
 
     @Override
+    public CompletableFuture<Void> initUser(User user) {
+        CompletableFuture<Void> result = new CompletableFuture<>();
+        try {
+            this.validate(user, true);
+            user.setUserType(UserType.SUPER);
+            result = this.getAuthenticationMetadataProvider().hasUser().thenCompose(hasUser -> {
+                if (hasUser) {
+                    throw new AuthenticationException("The broker has initialized users");
+                }
+                return this.getAuthenticationMetadataProvider().createUser(user);
+            });
+        } catch (Exception e) {
+            this.handleException(e, result);
+        }
+        return result;
+    }
+
+    @Override
     public CompletableFuture<Void> createUser(User user) {
         CompletableFuture<Void> result = new CompletableFuture<>();
         try {
@@ -70,7 +88,7 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
                 if (user.getUserType() != null) {
                     old.setUserType(user.getUserType());
                 }
-                return this.getAuthenticationMetadataProvider().createUser(old);
+                return this.getAuthenticationMetadataProvider().updateUser(old);
             });
         } catch (Exception e) {
             this.handleException(e, result);
