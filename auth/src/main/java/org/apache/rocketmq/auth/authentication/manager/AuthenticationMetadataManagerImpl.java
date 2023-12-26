@@ -59,7 +59,7 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
         try {
             this.validate(user, true);
             if (user.getUserType() == null) {
-                user.setUserType(UserType.CUSTOM);
+                user.setUserType(UserType.NORMAL);
             }
             result = this.getAuthenticationMetadataProvider().getUser(user.getUsername()).thenCompose(old -> {
                 if (old != null) {

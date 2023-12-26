@@ -4,9 +4,9 @@ import com.alibaba.fastjson2.annotation.JSONField;
 
 public enum PolicyType {
 
-    CUSTOM((byte) 1, "CUSTOM"),
+    CUSTOM((byte) 1, "Custom"),
 
-    DEFAULT((byte) 2, "DEFAULT");
+    DEFAULT((byte) 2, "Default");
 
     @JSONField(value = true)
     private final byte code;

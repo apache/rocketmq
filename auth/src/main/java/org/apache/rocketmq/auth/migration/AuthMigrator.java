@@ -89,7 +89,7 @@ public class AuthMigrator {
         if (accessConfig.isAdmin()) {
             user.setUserType(UserType.SUPER);
         } else {
-            user.setUserType(UserType.CUSTOM);
+            user.setUserType(UserType.NORMAL);
         }
         return this.authenticationMetadataManager.createUser(user);
     }

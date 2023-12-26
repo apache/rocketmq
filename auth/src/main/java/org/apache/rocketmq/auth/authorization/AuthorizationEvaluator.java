@@ -15,7 +15,7 @@ import org.apache.rocketmq.common.utils.ExceptionUtils;
 public class AuthorizationEvaluator {
 
     private final List<String> authorizationWhitelist = new ArrayList<>();
-    private final AuthorizationProvider authorizationProvider;
+    private final AuthorizationProvider<AuthorizationContext> authorizationProvider;
 
     public AuthorizationEvaluator(AuthConfig authConfig) {
         this(authConfig, null);

@@ -37,25 +37,24 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
     @Override
     public CompletableFuture<Void> handle(DefaultAuthorizationContext context,
         HandlerChain<DefaultAuthorizationContext, CompletableFuture<Void>> chain) {
-        return authorizationMetadataProvider.getAcl(context.getSubject())
-            .thenAccept(acl -> {
-                if (acl == null) {
-                    throwException(context, "no matched acl policies");
-                }
+        return authorizationMetadataProvider.getAcl(context.getSubject()).thenAccept(acl -> {
+            if (acl == null) {
+                throwException(context, "no matched acl policies");
+            }
 
-                // 1. get the defined acl entries which match the request.
-                PolicyEntry matchedEntry = matchPolicyEntries(context, acl);
+            // 1. get the defined acl entries which match the request.
+            PolicyEntry matchedEntry = matchPolicyEntries(context, acl);
 
-                // 2. if no matched acl entries, return deny
-                if (matchedEntry == null) {
-                    throwException(context, "no matched acl policies");
-                }
+            // 2. if no matched acl entries, return deny
+            if (matchedEntry == null) {
+                throwException(context, "no matched acl policies");
+            }
 
-                // 3. judge is the entries has denied decision.
-                if (matchedEntry.getDecision() == Decision.DENY) {
-                    throwException(context, "the acl policy's decision is deny");
-                }
-            });
+            // 3. judge is the entries has denied decision.
+            if (matchedEntry.getDecision() == Decision.DENY) {
+                throwException(context, "the acl policy's decision is deny");
+            }
+        });
     }
 
     private PolicyEntry matchPolicyEntries(DefaultAuthorizationContext context, Acl acl) {
@@ -83,40 +82,7 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
             return null;
         }
 
-        policyEntries.sort((o1, o2) -> {
-            int compare = 0;
-            Resource r1 = o1.getResource();
-            Resource r2 = o2.getResource();
-            if (r1.getResourcePattern() == r2.getResourcePattern()) {
-                if (r1.getResourcePattern() == ResourcePattern.PREFIXED) {
-                    String n1 = r1.getResourceName();
-                    String n2 = r2.getResourceName();
-                    compare = Integer.compare(n1.length(), n2.length());
-                }
-            } else {
-                if (r1.getResourcePattern() == ResourcePattern.LITERAL) {
-                    compare = 1;
-                }
-                if (r1.getResourcePattern() == ResourcePattern.LITERAL) {
-                    compare = -1;
-                }
-                if (r1.getResourcePattern() == ResourcePattern.PREFIXED) {
-                    compare = 1;
-                }
-                if (r1.getResourcePattern() == ResourcePattern.PREFIXED) {
-                    compare = -1;
-                }
-            }
-
-            if (compare != 0) {
-                return compare;
-            }
-
-            // the decision deny has higher priority
-            Decision d1 = o1.getDecision();
-            Decision d2 = o2.getDecision();
-            return d1 == Decision.DENY ? 1 : d2 == Decision.DENY ? -1 : 0;
-        });
+        policyEntries.sort(this::comparePolicyEntries);
 
         return policyEntries.get(0);
     }
@@ -130,6 +96,41 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
             .filter(entry -> entry.isMatchAction(context.getActions()))
             .filter(entry -> entry.isMatchEnvironment(Environment.of(context.getSourceIp())))
             .collect(Collectors.toList());
+    }
+
+    private int comparePolicyEntries(PolicyEntry o1, PolicyEntry o2) {
+        int compare = 0;
+        Resource r1 = o1.getResource();
+        Resource r2 = o2.getResource();
+        if (r1.getResourcePattern() == r2.getResourcePattern()) {
+            if (r1.getResourcePattern() == ResourcePattern.PREFIXED) {
+                String n1 = r1.getResourceName();
+                String n2 = r2.getResourceName();
+                compare = Integer.compare(n1.length(), n2.length());
+            }
+        } else {
+            if (r1.getResourcePattern() == ResourcePattern.LITERAL) {
+                compare = 1;
+            }
+            if (r1.getResourcePattern() == ResourcePattern.LITERAL) {
+                compare = -1;
+            }
+            if (r1.getResourcePattern() == ResourcePattern.PREFIXED) {
+                compare = 1;
+            }
+            if (r1.getResourcePattern() == ResourcePattern.PREFIXED) {
+                compare = -1;
+            }
+        }
+
+        if (compare != 0) {
+            return compare;
+        }
+
+        // the decision deny has higher priority
+        Decision d1 = o1.getDecision();
+        Decision d2 = o2.getDecision();
+        return d1 == Decision.DENY ? 1 : d2 == Decision.DENY ? -1 : 0;
     }
 
     private static void throwException(DefaultAuthorizationContext context, String detail) {

@@ -6,7 +6,7 @@ public enum UserType {
 
     SUPER((byte) 1, "Super"),
 
-    CUSTOM((byte) 2, "Custom");
+    NORMAL((byte) 2, "Normal");
 
     @JSONField(value = true)
     private final byte code;
