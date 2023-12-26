@@ -20,11 +20,11 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
 
-public class QueryCorrectionOffsetHeader implements CommandCustomHeader {
+public class QueryCorrectionOffsetHeader extends TopicRequestHeader {
     private String filterGroups;
     @CFNotNull
     private String compareGroup;

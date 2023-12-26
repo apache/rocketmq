@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import com.google.common.base.MoreObjects;
 import io.netty.buffer.ByteBuf;
 import java.util.HashMap;
@@ -25,11 +26,12 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
+import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
 /**
  * Use short variable name to speed up FastJson deserialization process.
  */
-public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCodesHeader {
+public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
     private String a; // producerGroup;
     @CFNotNull
@@ -316,5 +318,27 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
             .add("m", m)
             .add("n", n)
             .toString();
+    }
+
+    @Override
+    @JSONField(serialize = false)
+    public Integer getQueueId() {
+        return e;
+    }
+
+    @Override
+    public void setQueueId(Integer queueId) {
+        this.e = queueId;
+    }
+
+    @Override
+    @JSONField(serialize = false)
+    public String getTopic() {
+        return b;
+    }
+
+    @Override
+    public void setTopic(String topic) {
+        this.b = topic;
     }
 }
