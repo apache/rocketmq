@@ -24,7 +24,8 @@ public class AuthorizationFactory {
     private static final String METADATA_PROVIDER_PREFIX = "METADATA_PROVIDER_";
     private static final String EVALUATOR_PREFIX = "EVALUATOR_";
 
-    public static AuthorizationProvider getProvider(AuthConfig config) {
+    @SuppressWarnings("unchecked")
+    public static AuthorizationProvider<AuthorizationContext> getProvider(AuthConfig config) {
         if (config == null) {
             return null;
         }
@@ -36,9 +37,9 @@ public class AuthorizationFactory {
             if (StringUtils.isEmpty(clazzName)) {
                 return null;
             }
-            AuthorizationProvider result;
+            AuthorizationProvider<AuthorizationContext> result;
             try {
-                result = (AuthorizationProvider) Class.forName(clazzName)
+                result = (AuthorizationProvider<AuthorizationContext>) Class.forName(clazzName)
                     .getDeclaredConstructor().newInstance();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to load the authorization provider", e);
@@ -90,7 +91,7 @@ public class AuthorizationFactory {
 
     public static List<AuthorizationContext> newContexts(AuthConfig config, Metadata metadata,
         GeneratedMessageV3 message) {
-        AuthorizationProvider authorizationProvider = getProvider(config);
+        AuthorizationProvider<AuthorizationContext> authorizationProvider = getProvider(config);
         if (authorizationProvider == null) {
             return null;
         }
@@ -99,7 +100,7 @@ public class AuthorizationFactory {
 
     public static List<AuthorizationContext> newContexts(AuthConfig config, RemotingCommand command,
         String remoteAddr) {
-        AuthorizationProvider authorizationProvider = getProvider(config);
+        AuthorizationProvider<AuthorizationContext> authorizationProvider = getProvider(config);
         if (authorizationProvider == null) {
             return null;
         }

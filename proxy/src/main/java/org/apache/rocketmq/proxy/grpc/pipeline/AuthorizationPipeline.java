@@ -3,7 +3,6 @@ package org.apache.rocketmq.proxy.grpc.pipeline;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
 import java.util.List;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.auth.authorization.AuthorizationEvaluator;
 import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
@@ -27,9 +26,6 @@ public class AuthorizationPipeline implements RequestPipeline {
             return;
         }
         List<AuthorizationContext> contexts = newContexts(context, headers, request);
-        if (CollectionUtils.isEmpty(contexts)) {
-            return;
-        }
         authorizationEvaluator.evaluate(contexts);
     }
 

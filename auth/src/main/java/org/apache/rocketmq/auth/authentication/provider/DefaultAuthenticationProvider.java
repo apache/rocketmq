@@ -1,5 +1,6 @@
 package org.apache.rocketmq.auth.authentication.provider;
 
+import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -30,8 +31,8 @@ public class DefaultAuthenticationProvider implements AuthenticationProvider<Def
     }
 
     @Override
-    public DefaultAuthenticationContext newContext(Metadata metadata) {
-        return this.authenticationContextBuilder.build(metadata);
+    public DefaultAuthenticationContext newContext(Metadata metadata, GeneratedMessageV3 request) {
+        return this.authenticationContextBuilder.build(metadata, request);
     }
 
     @Override

@@ -1,7 +1,10 @@
 package org.apache.rocketmq.auth.authorization;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
@@ -11,20 +14,30 @@ import org.apache.rocketmq.common.utils.ExceptionUtils;
 
 public class AuthorizationEvaluator {
 
+    private final List<String> authorizationWhitelist = new ArrayList<>();
     private final AuthorizationProvider authorizationProvider;
 
     public AuthorizationEvaluator(AuthConfig authConfig) {
         this(authConfig, null);
     }
 
-    public AuthorizationEvaluator(AuthConfig config, Supplier<?> metadataService) {
-        this.authorizationProvider = AuthorizationFactory.getProvider(config);
-        if (this.authorizationProvider!= null) {
-            this.authorizationProvider.initialize(config, metadataService);
+    public AuthorizationEvaluator(AuthConfig authConfig, Supplier<?> metadataService) {
+        this.authorizationProvider = AuthorizationFactory.getProvider(authConfig);
+        if (this.authorizationProvider != null) {
+            this.authorizationProvider.initialize(authConfig, metadataService);
+        }
+        if (StringUtils.isNotBlank(authConfig.getAuthorizationWhitelist())) {
+            String[] whitelist = StringUtils.split(authConfig.getAuthenticationWhitelist(), ",");
+            for (String rpcCode : whitelist) {
+                this.authorizationWhitelist.add(StringUtils.trim(rpcCode));
+            }
         }
     }
 
     public void evaluate(List<AuthorizationContext> contexts) {
+        if (CollectionUtils.isEmpty(contexts)) {
+            return;
+        }
         if (this.authorizationProvider == null) {
             return;
         }
@@ -32,7 +45,13 @@ public class AuthorizationEvaluator {
     }
 
     public void evaluate(AuthorizationContext context) {
+        if (context == null) {
+            return;
+        }
         if (this.authorizationProvider == null) {
+            return;
+        }
+        if (this.authorizationWhitelist.contains(context.getRpcCode())) {
             return;
         }
         try {
@@ -43,9 +62,8 @@ public class AuthorizationEvaluator {
             Throwable exception = ExceptionUtils.getRealException(ex);
             if (exception instanceof AuthorizationException) {
                 throw (AuthorizationException) exception;
-            } else {
-                throw new AuthorizationException("failed to authorization the request", exception);
             }
+            throw new AuthorizationException("failed to authorization the request", exception);
         }
     }
 }

@@ -1,9 +1,9 @@
 package org.apache.rocketmq.broker.auth.rpchook;
 
 import java.util.List;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.auth.authorization.AuthorizationEvaluator;
 import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
+import org.apache.rocketmq.auth.authorization.context.DefaultAuthorizationContext;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -31,10 +31,7 @@ public class AuthorizationRPCHook implements RPCHook {
         }
         if (authConfig.isAuthorizationEnabled()) {
             List<AuthorizationContext> contexts = AuthorizationFactory.newContexts(this.authConfig, request, remoteAddr);
-            if (CollectionUtils.isEmpty(contexts)) {
-                return;
-            }
-            contexts.forEach(this.evaluator::evaluate);
+            this.evaluator.evaluate(contexts);
         }
     }
 

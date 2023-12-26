@@ -1,5 +1,6 @@
 package org.apache.rocketmq.auth.authentication.builder;
 
+import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -23,9 +24,10 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 public class DefaultAuthenticationContextBuilder implements AuthenticationContextBuilder<DefaultAuthenticationContext> {
 
     @Override
-    public DefaultAuthenticationContext build(Metadata metadata) {
+    public DefaultAuthenticationContext build(Metadata metadata, GeneratedMessageV3 request) {
         try {
             DefaultAuthenticationContext context = new DefaultAuthenticationContext();
+            context.setRpcCode(request.getDescriptorForType().getFullName());
             String authorization = metadata.get(GrpcConstants.AUTHORIZATION);
             if (StringUtils.isEmpty(authorization)) {
                 throw new AuthenticationException("authentication header is null");
@@ -78,6 +80,7 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
             throw new AuthenticationException("authentication field is null");
         }
         DefaultAuthenticationContext context = new DefaultAuthenticationContext();
+        context.setRpcCode(String.valueOf(request.getCode()));
         context.setUsername(fields.get(SessionCredentials.ACCESS_KEY));
         context.setSignature(fields.get(SessionCredentials.SIGNATURE));
         // Content

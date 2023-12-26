@@ -29,10 +29,7 @@ public class AuthenticationPipeline implements RequestPipeline {
             return;
         }
         Metadata metadata = GrpcConstants.METADATA.get(Context.current());
-        AuthenticationContext authenticationContext = newContext(context, metadata);
-        if (authenticationContext == null) {
-            return;
-        }
+        AuthenticationContext authenticationContext = newContext(context, metadata, request);
         authenticationEvaluator.evaluate(authenticationContext);
         if (authenticationContext instanceof DefaultAuthenticationContext) {
             headers.put(GrpcConstants.AUTHORIZATION_AK, ((DefaultAuthenticationContext) authenticationContext).getUsername());
@@ -44,9 +41,10 @@ public class AuthenticationPipeline implements RequestPipeline {
      *
      * @param context for extension
      * @param headers gRPC headers
+     * @param request
      * @return
      */
-    protected AuthenticationContext newContext(ProxyContext context, Metadata headers) {
-        return AuthenticationFactory.newContext(authConfig, headers);
+    protected AuthenticationContext newContext(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {
+        return AuthenticationFactory.newContext(authConfig, headers, request);
     }
 }

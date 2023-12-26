@@ -8,13 +8,13 @@ import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.authentication.provider.AuthenticationMetadataProvider;
-import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
+import org.apache.rocketmq.auth.authorization.context.DefaultAuthorizationContext;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.chain.Handler;
 import org.apache.rocketmq.common.chain.HandlerChain;
 
-public class UserAuthorizationHandler implements Handler<AuthorizationContext, CompletableFuture<Void>> {
+public class UserAuthorizationHandler implements Handler<DefaultAuthorizationContext, CompletableFuture<Void>> {
 
     private final AuthenticationMetadataProvider authenticationMetadataProvider;
 
@@ -23,7 +23,7 @@ public class UserAuthorizationHandler implements Handler<AuthorizationContext, C
     }
 
     @Override
-    public CompletableFuture<Void> handle(AuthorizationContext context, HandlerChain<AuthorizationContext, CompletableFuture<Void>> chain) {
+    public CompletableFuture<Void> handle(DefaultAuthorizationContext context, HandlerChain<DefaultAuthorizationContext, CompletableFuture<Void>> chain) {
         if (!context.getSubject().isSubject(SubjectType.USER)) {
             return chain.handle(context);
         }

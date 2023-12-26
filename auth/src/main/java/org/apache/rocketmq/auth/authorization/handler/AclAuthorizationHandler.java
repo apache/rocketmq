@@ -6,7 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
+import org.apache.rocketmq.auth.authorization.context.DefaultAuthorizationContext;
 import org.apache.rocketmq.auth.authorization.enums.Decision;
 import org.apache.rocketmq.auth.authorization.enums.PolicyType;
 import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
@@ -22,7 +22,7 @@ import org.apache.rocketmq.common.chain.Handler;
 import org.apache.rocketmq.common.chain.HandlerChain;
 import org.apache.rocketmq.common.resource.ResourcePattern;
 
-public class AclAuthorizationHandler implements Handler<AuthorizationContext, CompletableFuture<Void>> {
+public class AclAuthorizationHandler implements Handler<DefaultAuthorizationContext, CompletableFuture<Void>> {
 
     private final AuthorizationMetadataProvider authorizationMetadataProvider;
 
@@ -35,8 +35,8 @@ public class AclAuthorizationHandler implements Handler<AuthorizationContext, Co
     }
 
     @Override
-    public CompletableFuture<Void> handle(AuthorizationContext context,
-        HandlerChain<AuthorizationContext, CompletableFuture<Void>> chain) {
+    public CompletableFuture<Void> handle(DefaultAuthorizationContext context,
+        HandlerChain<DefaultAuthorizationContext, CompletableFuture<Void>> chain) {
         return authorizationMetadataProvider.getAcl(context.getSubject())
             .thenAccept(acl -> {
                 if (acl == null) {
@@ -58,7 +58,7 @@ public class AclAuthorizationHandler implements Handler<AuthorizationContext, Co
             });
     }
 
-    private PolicyEntry matchPolicyEntries(AuthorizationContext context, Acl acl) {
+    private PolicyEntry matchPolicyEntries(DefaultAuthorizationContext context, Acl acl) {
         List<PolicyEntry> policyEntries = new ArrayList<>();
 
         Policy policy = acl.getPolicy(PolicyType.CUSTOM);
@@ -121,7 +121,7 @@ public class AclAuthorizationHandler implements Handler<AuthorizationContext, Co
         return policyEntries.get(0);
     }
 
-    private List<PolicyEntry> matchPolicyEntries(AuthorizationContext context, List<PolicyEntry> entries) {
+    private List<PolicyEntry> matchPolicyEntries(DefaultAuthorizationContext context, List<PolicyEntry> entries) {
         if (CollectionUtils.isEmpty(entries)) {
             return null;
         }
@@ -132,7 +132,7 @@ public class AclAuthorizationHandler implements Handler<AuthorizationContext, Co
             .collect(Collectors.toList());
     }
 
-    private static void throwException(AuthorizationContext context, String detail) {
+    private static void throwException(DefaultAuthorizationContext context, String detail) {
         throw new AuthorizationException("The {} does not have permission to access the resource {}, " + detail,
             context.getSubject().toSubjectKey(), context.getResource().toResourceKey());
     }

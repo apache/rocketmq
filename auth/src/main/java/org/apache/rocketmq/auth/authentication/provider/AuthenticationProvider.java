@@ -1,5 +1,6 @@
 package org.apache.rocketmq.auth.authentication.provider;
 
+import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -12,7 +13,7 @@ public interface AuthenticationProvider<AuthenticationContext> {
 
     CompletableFuture<Void> authenticate(AuthenticationContext context);
 
-    AuthenticationContext newContext(Metadata metadata);
+    AuthenticationContext newContext(Metadata metadata, GeneratedMessageV3 request);
 
     AuthenticationContext newContext(RemotingCommand command);
 }

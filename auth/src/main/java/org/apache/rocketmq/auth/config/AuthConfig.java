@@ -14,6 +14,8 @@ public class AuthConfig implements Cloneable {
 
     private String authenticationMetadataProvider;
 
+    private String authenticationWhitelist;
+
     private String innerClientAuthenticationCredentials;
 
     private boolean authorizationEnabled = false;
@@ -21,6 +23,8 @@ public class AuthConfig implements Cloneable {
     private String authorizationProvider;
 
     private String authorizationMetadataProvider;
+
+    private String authorizationWhitelist;
 
     private boolean migrateFromAclV1Enabled = false;
 
@@ -93,6 +97,14 @@ public class AuthConfig implements Cloneable {
         this.authenticationMetadataProvider = authenticationMetadataProvider;
     }
 
+    public String getAuthenticationWhitelist() {
+        return authenticationWhitelist;
+    }
+
+    public void setAuthenticationWhitelist(String authenticationWhitelist) {
+        this.authenticationWhitelist = authenticationWhitelist;
+    }
+
     public String getInnerClientAuthenticationCredentials() {
         return innerClientAuthenticationCredentials;
     }
@@ -123,6 +135,14 @@ public class AuthConfig implements Cloneable {
 
     public void setAuthorizationMetadataProvider(String authorizationMetadataProvider) {
         this.authorizationMetadataProvider = authorizationMetadataProvider;
+    }
+
+    public String getAuthorizationWhitelist() {
+        return authorizationWhitelist;
+    }
+
+    public void setAuthorizationWhitelist(String authorizationWhitelist) {
+        this.authorizationWhitelist = authorizationWhitelist;
     }
 
     public boolean isMigrateFromAclV1Enabled() {

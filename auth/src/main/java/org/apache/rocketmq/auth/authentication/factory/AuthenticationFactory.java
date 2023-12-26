@@ -1,5 +1,6 @@
 package org.apache.rocketmq.auth.authentication.factory;
 
+import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -86,12 +87,12 @@ public class AuthenticationFactory {
         return computeIfAbsent(EVALUATOR_PREFIX + config.getConfigName(), key -> new AuthenticationEvaluator(config, metadataService));
     }
 
-    public static AuthenticationContext newContext(AuthConfig config, Metadata metadata) {
+    public static AuthenticationContext newContext(AuthConfig config, Metadata metadata, GeneratedMessageV3 request) {
         AuthenticationProvider<AuthenticationContext> authenticationProvider = getProvider(config);
         if (authenticationProvider == null) {
             return null;
         }
-        return authenticationProvider.newContext(metadata);
+        return authenticationProvider.newContext(metadata, request);
     }
 
     public static AuthenticationContext newContext(AuthConfig config, RemotingCommand command) {

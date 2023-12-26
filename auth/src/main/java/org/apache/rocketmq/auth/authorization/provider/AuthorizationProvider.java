@@ -5,11 +5,10 @@ import io.grpc.Metadata;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
-import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public interface AuthorizationProvider {
+public interface AuthorizationProvider<AuthorizationContext> {
 
     void initialize(AuthConfig config);
 
