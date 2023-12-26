@@ -37,33 +37,31 @@ public class TransactionMQProducer extends DefaultMQProducer {
     }
 
     public TransactionMQProducer(final String producerGroup) {
-        this(null, producerGroup, null, null);
+        super(producerGroup);
     }
 
     public TransactionMQProducer(final String producerGroup, final List<String> topics) {
-        this(null, producerGroup, topics, null);
-    }
-
-    public TransactionMQProducer(final String namespace, final String producerGroup) {
-        this(namespace, producerGroup, null, null);
-    }
-
-    public TransactionMQProducer(final String namespace, final String producerGroup, final List<String> topics) {
-        this(namespace, producerGroup, topics, null);
+        super(producerGroup, null, topics);
     }
 
     public TransactionMQProducer(final String producerGroup, RPCHook rpcHook) {
-        this(null, producerGroup, null, rpcHook);
+        super(producerGroup, rpcHook, null);
     }
 
-    public TransactionMQProducer(final String producerGroup, final List<String> topics, RPCHook rpcHook) {
-        this(null, producerGroup, topics, rpcHook);
+    public TransactionMQProducer(final String producerGroup, RPCHook rpcHook, final List<String> topics) {
+        super(producerGroup, rpcHook, topics);
     }
 
-    public TransactionMQProducer(final String namespace, final String producerGroup, final List<String> topics, RPCHook rpcHook) {
-        super(namespace, producerGroup, topics, rpcHook);
+    public TransactionMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace, final String customizedTraceTopic) {
+        super(producerGroup, rpcHook, enableMsgTrace, customizedTraceTopic);
     }
 
+    @Deprecated
+    public TransactionMQProducer(final String namespace, final String producerGroup) {
+        super(namespace, producerGroup);
+    }
+
+    @Deprecated
     public TransactionMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace, final String customizedTraceTopic) {
         super(namespace, producerGroup, rpcHook, enableMsgTrace, customizedTraceTopic);
     }
