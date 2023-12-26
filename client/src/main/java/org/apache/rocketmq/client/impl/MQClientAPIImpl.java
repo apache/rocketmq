@@ -53,6 +53,7 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.client.rpchook.NamespaceRpcHook;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -257,6 +258,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig, channelEventListener);
         this.clientRemotingProcessor = clientRemotingProcessor;
 
+        this.remotingClient.registerRPCHook(new NamespaceRpcHook(clientConfig));
         // Inject stream rpc hook first to make reserve field signature
         if (clientConfig.isEnableStreamRequestType()) {
             this.remotingClient.registerRPCHook(new StreamTypeRPCHook());
