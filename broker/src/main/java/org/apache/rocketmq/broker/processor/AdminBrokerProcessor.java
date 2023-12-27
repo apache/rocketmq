@@ -3005,7 +3005,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         CreateAclRequestHeader requestHeader = request.decodeCommandCustomHeader(CreateAclRequestHeader.class);
-        Subject subject = Subject.parseSubject(requestHeader.getSubject());
+        Subject subject = Subject.of(requestHeader.getSubject());
 
         AclInfo aclInfo = RemotingSerializable.decode(request.getBody(), AclInfo.class);
         if (aclInfo == null || CollectionUtils.isEmpty(aclInfo.getPolicies())) {
@@ -3033,7 +3033,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         UpdateAclRequestHeader requestHeader = request.decodeCommandCustomHeader(UpdateAclRequestHeader.class);
-        Subject subject = Subject.parseSubject(requestHeader.getSubject());
+        Subject subject = Subject.of(requestHeader.getSubject());
 
         AclInfo aclInfo = RemotingSerializable.decode(request.getBody(), AclInfo.class);
         if (aclInfo == null || CollectionUtils.isEmpty(aclInfo.getPolicies())) {
@@ -3062,7 +3062,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         DeleteAclRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteAclRequestHeader.class);
 
-        Subject subject = Subject.parseSubject(requestHeader.getSubject());
+        Subject subject = Subject.of(requestHeader.getSubject());
 
         PolicyType policyType = PolicyType.getByName(requestHeader.getPolicyType());
 
@@ -3084,7 +3084,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         GetAclRequestHeader requestHeader = request.decodeCommandCustomHeader(GetAclRequestHeader.class);
 
-        Subject subject = Subject.parseSubject(requestHeader.getSubject());
+        Subject subject = Subject.of(requestHeader.getSubject());
 
         this.brokerController.getAuthorizationMetadataManager().getAcl(subject)
             .thenAccept((acl) -> {

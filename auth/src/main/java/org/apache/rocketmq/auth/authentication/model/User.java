@@ -18,6 +18,13 @@ public class User implements Subject {
         return user;
     }
 
+    public static User of(String username, String password) {
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        return user;
+    }
+
     public static User of(String username, String password, UserType userType) {
         User user = new User();
         user.setUsername(username);

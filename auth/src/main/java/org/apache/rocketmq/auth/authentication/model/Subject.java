@@ -15,7 +15,7 @@ public interface Subject {
     }
 
     @SuppressWarnings("unchecked")
-    static <T extends Subject> T parseSubject(String subjectKey) {
+    static <T extends Subject> T of(String subjectKey) {
         String type = StringUtils.substringBefore(subjectKey, CommonConstants.COLON);
         SubjectType subjectType = SubjectType.getByName(type);
         if (subjectType == null) {

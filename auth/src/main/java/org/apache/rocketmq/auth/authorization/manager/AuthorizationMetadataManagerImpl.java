@@ -5,7 +5,6 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.enums.SubjectType;
-import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authentication.model.User;
@@ -65,10 +64,10 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
 
             return subjectFuture.thenCombine(aclFuture, (subject, oldAcl) -> {
                 if (subject == null) {
-                    throw new AuthenticationException("The subject is not exist");
+                    throw new AuthorizationException("The subject is not exist");
                 }
                 if (oldAcl != null) {
-                    throw new AuthenticationException("The acl is existed");
+                    throw new AuthorizationException("The acl is existed");
                 }
                 return acl;
             }).thenCompose(this.getAuthorizationMetadataProvider()::createAcl);
@@ -98,10 +97,10 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
 
             return subjectFuture.thenCombine(aclFuture, (subject, oldAcl) -> {
                 if (subject == null) {
-                    throw new AuthenticationException("The subject is not exist");
+                    throw new AuthorizationException("The subject is not exist");
                 }
                 if (oldAcl == null) {
-                    throw new AuthenticationException("The acl is not exist");
+                    throw new AuthorizationException("The acl is not exist");
                 }
                 return oldAcl;
             }).thenCompose(oldAcl -> {
@@ -128,7 +127,7 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
         CompletableFuture<Void> result = new CompletableFuture<>();
         try {
             if (subject == null) {
-                throw new AuthenticationException("The subject is null");
+                throw new AuthorizationException("The subject is null");
             }
             if (policyType == null) {
                 policyType = PolicyType.CUSTOM;
@@ -146,10 +145,10 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
             PolicyType finalPolicyType = policyType;
             return subjectFuture.thenCombine(aclFuture, (sub, oldAcl) -> {
                 if (sub == null) {
-                    throw new AuthenticationException("The subject is not exist");
+                    throw new AuthorizationException("The subject is not exist");
                 }
                 if (oldAcl == null) {
-                    throw new AuthenticationException("The acl is not exist");
+                    throw new AuthorizationException("The acl is not exist");
                 }
                 return oldAcl;
             }).thenCompose(oldAcl -> {
@@ -179,7 +178,7 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
         }
         return subjectFuture.thenCompose(sub -> {
             if (sub == null) {
-                throw new AuthenticationException("The subject is not exist");
+                throw new AuthorizationException("The subject is not exist");
             }
             return this.getAuthorizationMetadataProvider().getAcl(subject);
         });

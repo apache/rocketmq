@@ -113,11 +113,13 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
             while (iterator.isValid()) {
                 String subjectKey = new String(iterator.key(), StandardCharsets.UTF_8);
                 if (StringUtils.isNotBlank(subjectFilter) && !subjectKey.contains(subjectFilter)) {
+                    iterator.next();
                     continue;
                 }
-                Subject subject = Subject.parseSubject(subjectKey);
+                Subject subject = Subject.of(subjectKey);
                 List<Policy> policies = JSON.parseArray(new String(iterator.value(), StandardCharsets.UTF_8), Policy.class);
                 if (!CollectionUtils.isNotEmpty(policies)) {
+                    iterator.next();
                     continue;
                 }
                 Iterator<Policy> policyIterator = policies.iterator();
@@ -159,7 +161,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
         public Acl load(@NonNull String subjectKey) {
             try {
                 byte[] keyBytes = subjectKey.getBytes(StandardCharsets.UTF_8);
-                Subject subject = Subject.parseSubject(subjectKey);
+                Subject subject = Subject.of(subjectKey);
 
                 byte[] valueBytes = this.storage.get(keyBytes);
                 if (ArrayUtils.isEmpty(valueBytes)) {

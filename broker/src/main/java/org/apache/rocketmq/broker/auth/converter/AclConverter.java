@@ -21,7 +21,7 @@ public class AclConverter {
         if (aclInfo == null) {
             return null;
         }
-        Subject subject = Subject.parseSubject(aclInfo.getSubject());
+        Subject subject = Subject.of(aclInfo.getSubject());
         List<Policy> policies = new ArrayList<>();
         for (AclInfo.PolicyInfo policy : aclInfo.getPolicies()) {
             PolicyType policyType = PolicyType.getByName(policy.getPolicyType());

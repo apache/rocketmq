@@ -105,7 +105,8 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
             iterator.seekToFirst();
             while (iterator.isValid()) {
                 String username = new String(iterator.key(), StandardCharsets.UTF_8);
-                if (StringUtils.isNotBlank(filter) && !filter.contains(username)) {
+                if (StringUtils.isNotBlank(filter) && !username.contains(filter)) {
+                    iterator.next();
                     continue;
                 }
                 User user = JSON.parseObject(new String(iterator.value(), StandardCharsets.UTF_8), User.class);
