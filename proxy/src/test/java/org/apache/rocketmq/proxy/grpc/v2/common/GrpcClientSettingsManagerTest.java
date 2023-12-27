@@ -25,7 +25,7 @@ import apache.rocketmq.v2.RetryPolicy;
 import apache.rocketmq.v2.Settings;
 import apache.rocketmq.v2.Subscription;
 import com.google.protobuf.util.Durations;
-import org.apache.rocketmq.proxy.common.ContextVariable;
+import org.apache.rocketmq.proxy.common.context.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.BaseActivityTest;
 import org.apache.rocketmq.remoting.protocol.subscription.CustomizedRetryPolicy;
@@ -52,7 +52,7 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
 
     @Test
     public void testGetProducerData() {
-        ProxyContext context = ProxyContext.create().withVal(ContextVariable.CLIENT_ID, CLIENT_ID);
+        ProxyContext context = ProxyContext.create().withValue(ContextVariable.CLIENT_ID, CLIENT_ID);
 
         this.grpcClientSettingsManager.updateClientSettings(context, CLIENT_ID, Settings.newBuilder()
             .setBackoffPolicy(RetryPolicy.getDefaultInstance())
@@ -65,7 +65,7 @@ public class GrpcClientSettingsManagerTest extends BaseActivityTest {
 
     @Test
     public void testGetSubscriptionData() {
-        ProxyContext context = ProxyContext.create().withVal(ContextVariable.CLIENT_ID, CLIENT_ID);
+        ProxyContext context = ProxyContext.create().withValue(ContextVariable.CLIENT_ID, CLIENT_ID);
 
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         when(this.messagingProcessor.getSubscriptionGroupConfig(any(), any()))
