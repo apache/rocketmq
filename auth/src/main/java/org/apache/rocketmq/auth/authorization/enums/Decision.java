@@ -1,6 +1,7 @@
 package org.apache.rocketmq.auth.authorization.enums;
 
 import com.alibaba.fastjson2.annotation.JSONField;
+import org.apache.commons.lang3.StringUtils;
 
 public enum Decision {
 
@@ -18,9 +19,9 @@ public enum Decision {
     }
 
     public static Decision getByName(String name) {
-        for (Decision d : Decision.values()) {
-            if (d.name.equals(name)) {
-                return d;
+        for (Decision decision : Decision.values()) {
+            if (StringUtils.equalsIgnoreCase(decision.getName(), name)) {
+                return decision;
             }
         }
         return null;

@@ -41,30 +41,14 @@ public class Resource implements Comparable<Resource> {
         return resource;
     }
 
-    public static List<Resource> parseResources(List<String> resourceKeys) {
+    public static List<Resource> of(List<String> resourceKeys) {
         if (CollectionUtils.isEmpty(resourceKeys)) {
             return null;
         }
-        return resourceKeys.stream().map(Resource::parseResource).collect(Collectors.toList());
+        return resourceKeys.stream().map(Resource::of).collect(Collectors.toList());
     }
 
-    public String toResourceKey() {
-        if (resourceType == ResourceType.ANY) {
-            return CommonConstants.ASTERISK;
-        }
-        switch (resourcePattern) {
-            case ANY:
-                return resourceType.getName() + CommonConstants.COLON + CommonConstants.ASTERISK;
-            case LITERAL:
-                return resourceType.getName() + CommonConstants.COLON + resourceName;
-            case PREFIXED:
-                return resourceType.getName() + CommonConstants.COLON + resourceName + CommonConstants.ASTERISK;
-            default:
-                return null;
-        }
-    }
-
-    public static Resource parseResource(String resourceKey) {
+    public static Resource of(String resourceKey) {
         if (StringUtils.equals(resourceKey, CommonConstants.ASTERISK)) {
             return of(ResourceType.ANY, null, ResourcePattern.ANY);
         }
@@ -85,7 +69,26 @@ public class Resource implements Comparable<Resource> {
         return of(resourceType, resourceName, resourcePattern);
     }
 
+    public String toResourceKey() {
+        if (resourceType == ResourceType.ANY) {
+            return CommonConstants.ASTERISK;
+        }
+        switch (resourcePattern) {
+            case ANY:
+                return resourceType.getName() + CommonConstants.COLON + CommonConstants.ASTERISK;
+            case LITERAL:
+                return resourceType.getName() + CommonConstants.COLON + resourceName;
+            case PREFIXED:
+                return resourceType.getName() + CommonConstants.COLON + resourceName + CommonConstants.ASTERISK;
+            default:
+                return null;
+        }
+    }
+
     public boolean isMatch(Resource resource) {
+        if (this.resourceType == ResourceType.ANY) {
+            return true;
+        }
         if (this.resourceType != resource.resourceType) {
             return false;
         }

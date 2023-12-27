@@ -1,6 +1,7 @@
 package org.apache.rocketmq.auth.authentication.enums;
 
 import com.alibaba.fastjson2.annotation.JSONField;
+import org.apache.commons.lang3.StringUtils;
 
 public enum SubjectType {
 
@@ -17,7 +18,7 @@ public enum SubjectType {
 
     public static SubjectType getByName(String name) {
         for (SubjectType subjectType : SubjectType.values()) {
-            if (subjectType.getName().equals(name)) {
+            if (StringUtils.equalsIgnoreCase(subjectType.getName(), name)) {
                 return subjectType;
             }
         }

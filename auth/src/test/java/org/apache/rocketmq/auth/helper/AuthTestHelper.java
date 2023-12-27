@@ -61,7 +61,7 @@ public class AuthTestHelper {
     public static Policy buildPolicy(PolicyType policyType, String resources, String actions, String sourceIps,
         Decision decision) {
         List<Resource> resourceList = Arrays.stream(StringUtils.split(resources, ","))
-            .map(Resource::parseResource).collect(Collectors.toList());
+            .map(Resource::of).collect(Collectors.toList());
         List<Action> actionList = Arrays.stream(StringUtils.split(actions, ","))
             .map(Action::getByName).collect(Collectors.toList());
         Environment environment = null;

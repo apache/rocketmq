@@ -1,6 +1,7 @@
 package org.apache.rocketmq.common.resource;
 
 import com.alibaba.fastjson2.annotation.JSONField;
+import org.apache.commons.lang3.StringUtils;
 
 public enum ResourceType {
 
@@ -39,7 +40,7 @@ public enum ResourceType {
 
     public static ResourceType getByName(String name) {
         for (ResourceType resourceType : ResourceType.values()) {
-            if (resourceType.getName().equals(name)) {
+            if (StringUtils.equalsIgnoreCase(resourceType.getName(), name)) {
                 return resourceType;
             }
         }

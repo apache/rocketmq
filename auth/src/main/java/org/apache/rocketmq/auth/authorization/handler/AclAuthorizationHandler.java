@@ -21,6 +21,7 @@ import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.chain.Handler;
 import org.apache.rocketmq.common.chain.HandlerChain;
 import org.apache.rocketmq.common.resource.ResourcePattern;
+import org.apache.rocketmq.common.resource.ResourceType;
 
 public class AclAuthorizationHandler implements Handler<DefaultAuthorizationContext, CompletableFuture<Void>> {
 
@@ -102,7 +103,14 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
         int compare = 0;
         Resource r1 = o1.getResource();
         Resource r2 = o2.getResource();
-        if (r1.getResourcePattern() == r2.getResourcePattern()) {
+        if (r1.getResourceType() != r2.getResourceType()) {
+            if (r1.getResourceType() == ResourceType.ANY) {
+                compare = 1;
+            }
+            if (r2.getResourceType() == ResourceType.ANY) {
+                compare = -1;
+            }
+        } else if (r1.getResourcePattern() == r2.getResourcePattern()) {
             if (r1.getResourcePattern() == ResourcePattern.PREFIXED) {
                 String n1 = r1.getResourceName();
                 String n2 = r2.getResourceName();

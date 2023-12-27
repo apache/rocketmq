@@ -14,6 +14,7 @@ import org.apache.rocketmq.common.utils.ExceptionUtils;
 
 public class AuthorizationEvaluator {
 
+    private final AuthConfig authConfig;
     private final List<String> authorizationWhitelist = new ArrayList<>();
     private final AuthorizationProvider<AuthorizationContext> authorizationProvider;
 
@@ -22,12 +23,13 @@ public class AuthorizationEvaluator {
     }
 
     public AuthorizationEvaluator(AuthConfig authConfig, Supplier<?> metadataService) {
+        this.authConfig = authConfig;
         this.authorizationProvider = AuthorizationFactory.getProvider(authConfig);
         if (this.authorizationProvider != null) {
             this.authorizationProvider.initialize(authConfig, metadataService);
         }
         if (StringUtils.isNotBlank(authConfig.getAuthorizationWhitelist())) {
-            String[] whitelist = StringUtils.split(authConfig.getAuthenticationWhitelist(), ",");
+            String[] whitelist = StringUtils.split(authConfig.getAuthorizationWhitelist(), ",");
             for (String rpcCode : whitelist) {
                 this.authorizationWhitelist.add(StringUtils.trim(rpcCode));
             }
@@ -38,14 +40,14 @@ public class AuthorizationEvaluator {
         if (CollectionUtils.isEmpty(contexts)) {
             return;
         }
-        if (this.authorizationProvider == null) {
-            return;
-        }
         contexts.forEach(this::evaluate);
     }
 
     public void evaluate(AuthorizationContext context) {
         if (context == null) {
+            return;
+        }
+        if (!this.authConfig.isAuthorizationEnabled()) {
             return;
         }
         if (this.authorizationProvider == null) {

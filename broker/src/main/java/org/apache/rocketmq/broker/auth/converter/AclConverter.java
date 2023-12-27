@@ -32,7 +32,7 @@ public class AclConverter {
             }
             List<PolicyEntry> entries = new ArrayList<>();
             for (AclInfo.PolicyEntryInfo entryInfo : entryInfos) {
-                Resource resource = Resource.parseResource(entryInfo.getResource());
+                Resource resource = Resource.of(entryInfo.getResource());
 
                 List<Action> actions = new ArrayList<>();
                 for (String a : entryInfo.getActions()) {

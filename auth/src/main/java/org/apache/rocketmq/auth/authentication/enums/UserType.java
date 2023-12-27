@@ -1,6 +1,7 @@
 package org.apache.rocketmq.auth.authentication.enums;
 
 import com.alibaba.fastjson2.annotation.JSONField;
+import org.apache.commons.lang3.StringUtils;
 
 public enum UserType {
 
@@ -20,7 +21,7 @@ public enum UserType {
 
     public static UserType getByName(String name) {
         for (UserType subjectType : UserType.values()) {
-            if (subjectType.getName().equals(name)) {
+            if (StringUtils.equalsIgnoreCase(subjectType.getName(), name)) {
                 return subjectType;
             }
         }

@@ -1,6 +1,7 @@
 package org.apache.rocketmq.common.action;
 
 import com.alibaba.fastjson2.annotation.JSONField;
+import org.apache.commons.lang3.StringUtils;
 
 public enum Action {
 
@@ -35,7 +36,7 @@ public enum Action {
 
     public static Action getByName(String name) {
         for (Action action : Action.values()) {
-            if (action.name.equals(name)) {
+            if (StringUtils.equalsIgnoreCase(action.getName(), name)) {
                 return action;
             }
         }

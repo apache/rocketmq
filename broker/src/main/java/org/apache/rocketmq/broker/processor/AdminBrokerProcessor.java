@@ -3066,7 +3066,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         PolicyType policyType = PolicyType.getByName(requestHeader.getPolicyType());
 
-        List<Resource> resources = Resource.parseResources(requestHeader.getResources());
+        List<Resource> resources = Resource.of(requestHeader.getResources());
 
         this.brokerController.getAuthorizationMetadataManager().deleteAcl(subject, policyType, resources)
             .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))

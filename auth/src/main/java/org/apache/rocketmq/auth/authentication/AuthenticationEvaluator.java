@@ -13,6 +13,7 @@ import org.apache.rocketmq.common.utils.ExceptionUtils;
 
 public class AuthenticationEvaluator {
 
+    private final AuthConfig authConfig;
     private final List<String> authenticationWhitelist = new ArrayList<>();
     private final AuthenticationProvider<AuthenticationContext> authenticationProvider;
 
@@ -21,9 +22,10 @@ public class AuthenticationEvaluator {
     }
 
     public AuthenticationEvaluator(AuthConfig authConfig, Supplier<?> metadataService) {
-        authenticationProvider = AuthenticationFactory.getProvider(authConfig);
-        if (authenticationProvider != null) {
-            authenticationProvider.initialize(authConfig, metadataService);
+        this.authConfig = authConfig;
+        this.authenticationProvider = AuthenticationFactory.getProvider(authConfig);
+        if (this.authenticationProvider != null) {
+            this.authenticationProvider.initialize(authConfig, metadataService);
         }
         if (StringUtils.isNotBlank(authConfig.getAuthenticationWhitelist())) {
             String[] whitelist = StringUtils.split(authConfig.getAuthenticationWhitelist(), ",");
@@ -35,6 +37,9 @@ public class AuthenticationEvaluator {
 
     public void evaluate(AuthenticationContext context) {
         if (context == null) {
+            return;
+        }
+        if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
         if (this.authenticationProvider == null) {

@@ -1,6 +1,7 @@
 package org.apache.rocketmq.auth.authorization.enums;
 
 import com.alibaba.fastjson2.annotation.JSONField;
+import org.apache.commons.lang3.StringUtils;
 
 public enum PolicyType {
 
@@ -19,7 +20,7 @@ public enum PolicyType {
 
     public static PolicyType getByName(String name) {
         for (PolicyType policyType : PolicyType.values()) {
-            if (policyType.getName().equals(name)) {
+            if (StringUtils.equalsIgnoreCase(policyType.getName(), name)) {
                 return policyType;
             }
         }
