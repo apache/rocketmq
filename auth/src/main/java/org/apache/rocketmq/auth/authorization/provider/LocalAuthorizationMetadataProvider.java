@@ -61,7 +61,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
         try {
             Subject subject = acl.getSubject();
             byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
-            byte[] valueBytes = JSON.toJSONBytes(acl.getPolicies());
+            byte[] valueBytes = JSON.toJSONBytes(acl);
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
             this.aclCache.put(subject.toSubjectKey(), acl);
         } catch (Exception e) {
@@ -87,7 +87,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
         try {
             Subject subject = acl.getSubject();
             byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
-            byte[] valueBytes = JSON.toJSONBytes(acl.getPolicies());
+            byte[] valueBytes = JSON.toJSONBytes(acl);
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
             this.aclCache.put(subject.toSubjectKey(), acl);
         } catch (Exception e) {
@@ -117,7 +117,8 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                     continue;
                 }
                 Subject subject = Subject.of(subjectKey);
-                List<Policy> policies = JSON.parseArray(new String(iterator.value(), StandardCharsets.UTF_8), Policy.class);
+                Acl acl = JSON.parseObject(new String(iterator.value(), StandardCharsets.UTF_8), Acl.class);
+                List<Policy> policies = acl.getPolicies();
                 if (!CollectionUtils.isNotEmpty(policies)) {
                     iterator.next();
                     continue;
@@ -136,7 +137,9 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                         policyIterator.remove();
                     }
                 }
-                result.add(Acl.of(subject, policies));
+                if (CollectionUtils.isNotEmpty(policies)) {
+                    result.add(Acl.of(subject, policies));
+                }
                 iterator.next();
             }
         }
@@ -153,6 +156,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
     private static class AclCacheLoader implements CacheLoader<String, Acl> {
         private final ConfigRocksDBStorage storage;
         public static final Acl EMPTY_ACL = new Acl();
+
         public AclCacheLoader(ConfigRocksDBStorage storage) {
             this.storage = storage;
         }
@@ -167,8 +171,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                 if (ArrayUtils.isEmpty(valueBytes)) {
                     return EMPTY_ACL;
                 }
-                List<Policy> policies = JSON.parseArray(new String(valueBytes, StandardCharsets.UTF_8), Policy.class);
-                return Acl.of(subject, policies);
+                return JSON.parseObject(new String(valueBytes, StandardCharsets.UTF_8), Acl.class);
             } catch (Exception e) {
                 throw new AuthorizationException("get Acl from RocksDB failed", e);
             }

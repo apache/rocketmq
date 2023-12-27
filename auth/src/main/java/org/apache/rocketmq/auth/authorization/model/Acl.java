@@ -1,19 +1,23 @@
 package org.apache.rocketmq.auth.authorization.model;
 
+import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.auth.authentication.model.Subject;
-import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.auth.authorization.enums.Decision;
 import org.apache.rocketmq.auth.authorization.enums.PolicyType;
+import org.apache.rocketmq.common.action.Action;
 
 public class Acl {
 
     private Subject subject;
 
     private List<Policy> policies;
+
+    public static Acl of(Subject subject, Policy policy) {
+        return of(subject, Lists.newArrayList(policy));
+    }
 
     public static Acl of(Subject subject, List<Policy> policies) {
         Acl acl = new Acl();
@@ -27,8 +31,12 @@ public class Acl {
         Acl acl = new Acl();
         acl.setSubject(subject);
         Policy policy = Policy.of(resources, actions, environment, decision);
-        acl.setPolicies(Collections.singletonList(policy));
+        acl.setPolicies(Lists.newArrayList(policy));
         return acl;
+    }
+
+    public void updatePolicy(Policy policy) {
+        this.updatePolicy(Lists.newArrayList(policy));
     }
 
     public void updatePolicy(List<Policy> policies) {

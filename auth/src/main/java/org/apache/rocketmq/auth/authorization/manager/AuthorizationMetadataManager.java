@@ -15,6 +15,8 @@ public interface AuthorizationMetadataManager {
 
     CompletableFuture<Void> updateAcl(Acl acl);
 
+    CompletableFuture<Void> deleteAcl(Subject subject);
+
     CompletableFuture<Void> deleteAcl(Subject subject, PolicyType policyType, List<Resource> resources);
 
     CompletableFuture<Acl> getAcl(Subject subject);

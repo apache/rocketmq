@@ -114,12 +114,9 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
         return result;
     }
 
-    private static void initAcl(Acl acl) {
-        acl.getPolicies().forEach(policy -> {
-            if (policy.getPolicyType() == null) {
-                policy.setPolicyType(PolicyType.CUSTOM);
-            }
-        });
+    @Override
+    public CompletableFuture<Void> deleteAcl(Subject subject) {
+        return this.deleteAcl(subject, null, null);
     }
 
     @Override
@@ -187,6 +184,14 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
     @Override
     public CompletableFuture<List<Acl>> listAcl(String subjectFilter, String resourceFilter) {
         return this.getAuthorizationMetadataProvider().listAcl(subjectFilter, resourceFilter);
+    }
+
+    private static void initAcl(Acl acl) {
+        acl.getPolicies().forEach(policy -> {
+            if (policy.getPolicyType() == null) {
+                policy.setPolicyType(PolicyType.CUSTOM);
+            }
+        });
     }
 
     private void validate(Acl acl, boolean isCreate) {

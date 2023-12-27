@@ -43,14 +43,33 @@ public class AuthTestHelper {
 
     public static Acl buildAcl(String subjectKey, String resources, String actions, String sourceIps,
         Decision decision) {
+        return buildAcl(subjectKey, null, resources, actions, sourceIps, decision);
+    }
+
+    public static Acl buildAcl(String subjectKey, PolicyType policyType, String resources, String actions,
+        String sourceIps, Decision decision) {
         Subject subject = Subject.of(subjectKey);
-        List<Resource> resourceList = Arrays.stream(StringUtils.split(resources, ",")).map(Resource::parseResource).collect(Collectors.toList());
-        List<Action> actionList = Arrays.stream(StringUtils.split(actions, ",")).map(Action::getByName).collect(Collectors.toList());
+        Policy policy = buildPolicy(policyType, resources, actions, sourceIps, decision);
+        return Acl.of(subject, policy);
+    }
+
+    public static Policy buildPolicy(String resources, String actions, String sourceIps,
+        Decision decision) {
+        return buildPolicy(null, resources, actions, sourceIps, decision);
+    }
+
+    public static Policy buildPolicy(PolicyType policyType, String resources, String actions, String sourceIps,
+        Decision decision) {
+        List<Resource> resourceList = Arrays.stream(StringUtils.split(resources, ","))
+            .map(Resource::parseResource).collect(Collectors.toList());
+        List<Action> actionList = Arrays.stream(StringUtils.split(actions, ","))
+            .map(Action::getByName).collect(Collectors.toList());
         Environment environment = null;
         if (StringUtils.isNotBlank(sourceIps)) {
-            environment = Environment.of(Arrays.stream(StringUtils.split(sourceIps, ",")).collect(Collectors.toList()));
+            environment = Environment.of(Arrays.stream(StringUtils.split(sourceIps, ","))
+                .collect(Collectors.toList()));
         }
-        return Acl.of(subject, resourceList, actionList, environment, decision);
+        return Policy.of(policyType, resourceList, actionList, environment, decision);
     }
 
     public static boolean isEquals(Acl acl1, Acl acl2) {
@@ -143,13 +162,63 @@ public class AuthTestHelper {
     }
 
     private static boolean isEquals(PolicyEntry entry1, PolicyEntry entry2) {
-        Resource resource1 = entry1.getResource();
-        Resource resource2 = entry2.getResource();
-        if (!Objects.equals(resource1, resource2)) {
+        if (entry1 == null && entry2 == null) {
+            return true;
+        }
+        if (entry1 == null || entry2 == null) {
             return false;
         }
-        CollectionUtils.isEqualCollection(entry1.getActions(), entry2.getActions());
-        return true;
+        Resource resource1 = entry1.getResource();
+        Resource resource2 = entry2.getResource();
+        if (!isEquals(resource1, resource2)) {
+            return false;
+        }
+        List<Action> actions1 = entry1.getActions();
+        List<Action> actions2 = entry2.getActions();
+        if (CollectionUtils.isEmpty(actions1) && CollectionUtils.isNotEmpty(actions2)) {
+            return false;
+        }
+        if (CollectionUtils.isNotEmpty(actions1) && CollectionUtils.isEmpty(actions2)) {
+            return false;
+        }
+        if (CollectionUtils.isNotEmpty(actions1) && CollectionUtils.isNotEmpty(actions2)
+            && !CollectionUtils.isEqualCollection(actions1, actions2)) {
+            return false;
+        }
+        Environment environment1 = entry1.getEnvironment();
+        Environment environment2 = entry2.getEnvironment();
+        if (!isEquals(environment1, environment2)) {
+            return false;
+        }
+        return entry1.getDecision() == entry2.getDecision();
+    }
+
+    private static boolean isEquals(Resource resource1, Resource resource2) {
+        if (resource1 == null && resource2 == null) {
+            return true;
+        }
+        if (resource1 == null || resource2 == null) {
+            return false;
+        }
+        return Objects.equals(resource1, resource2);
+    }
+
+    private static boolean isEquals(Environment environment1, Environment environment2) {
+        if (environment1 == null && environment2 == null) {
+            return true;
+        }
+        if (environment1 == null || environment2 == null) {
+            return false;
+        }
+        List<String> sourceIp1 = environment1.getSourceIps();
+        List<String> sourceIp2 = environment2.getSourceIps();
+        if (CollectionUtils.isEmpty(sourceIp1) && CollectionUtils.isEmpty(sourceIp2)) {
+            return true;
+        }
+        if (CollectionUtils.isEmpty(sourceIp1) || CollectionUtils.isEmpty(sourceIp2)) {
+            return false;
+        }
+        return CollectionUtils.isEqualCollection(sourceIp1, sourceIp2);
     }
 
     private static boolean isEquals(Subject subject1, Subject subject2) {
