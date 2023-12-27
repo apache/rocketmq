@@ -999,8 +999,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
         this.mQClientFactory.checkClientInBroker();
-        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
-        this.mQClientFactory.rebalanceImmediately();
+        if (this.mQClientFactory.sendHeartbeatToAllBrokerWithLock()) {
+            this.mQClientFactory.rebalanceImmediately();
+        }
     }
 
     private void checkConfig() throws MQClientException {
