@@ -18,6 +18,9 @@
 package org.apache.rocketmq.remoting.netty;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.CompositeByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.channel.FileRegion;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -25,10 +28,12 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Random;
 import java.util.UUID;
 import org.junit.Assert;
 import org.junit.Test;
+import sun.nio.ch.DirectBuffer;
 
 public class FileRegionEncoderTest {
 
@@ -75,6 +80,53 @@ public class FileRegionEncoderTest {
             if (null != bufferedOutputStream) {
                 bufferedOutputStream.close();
             }
+        }
+    }
+
+    @Test
+    public void testUnpooledByteBuffer() {
+        ByteBuffer buffer = ByteBuffer.allocateDirect(128);
+        try {
+            int value = Integer.MAX_VALUE;
+            for (int i = 0; i < 128 / 4; i++) {
+                buffer.putInt(value);
+            }
+            buffer.flip();
+            ByteBuf buf1 = Unpooled.wrappedBuffer(buffer);
+            Assert.assertEquals(buf1.readableBytes(), 128);
+            Assert.assertEquals(buf1.readerIndex(), 0);
+            Assert.assertEquals(buf1.writerIndex(), 128);
+
+            for (int i = 0; i < 128 / 4; i++) {
+                Assert.assertEquals(buf1.readInt(), value);
+            }
+        } finally {
+            ((DirectBuffer) buffer).cleaner().clean();
+        }
+    }
+
+    @Test
+    public void testCompositeByteBuffer() {
+        ByteBuffer buffer = ByteBuffer.allocateDirect(128);
+        try {
+            int value = Integer.MAX_VALUE;
+            for (int i = 0; i < 128 / 4; i++) {
+                buffer.putInt(value);
+            }
+            buffer.flip();
+            ByteBuf buf = Unpooled.wrappedBuffer(buffer);
+            CompositeByteBuf cbuf = ByteBufAllocator.DEFAULT.compositeBuffer();
+            cbuf.addComponent(true, buf);
+            Assert.assertEquals(cbuf.readerIndex(), 0);
+            Assert.assertEquals(cbuf.writerIndex(), 128);
+            Assert.assertEquals(cbuf.readableBytes(), 128);
+            Assert.assertEquals(cbuf.refCnt(), 1);
+            Assert.assertEquals(buf.refCnt(), 1);
+            cbuf.release();
+            Assert.assertEquals(cbuf.refCnt(), 0);
+            Assert.assertEquals(buf.refCnt(), 0);
+        } finally {
+            ((DirectBuffer) buffer).cleaner().clean();
         }
     }
 }

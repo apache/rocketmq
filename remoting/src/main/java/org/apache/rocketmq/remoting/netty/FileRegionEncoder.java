@@ -57,8 +57,9 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
                 // To prevent mem_copy.
                 CompositeByteBuf b = (CompositeByteBuf) out;
                 // Have to increase writerIndex manually.
-                b.addComponent(true, Unpooled.wrappedBuffer(src));
-                return out.capacity();
+                ByteBuf unpooled = Unpooled.wrappedBuffer(src);
+                b.addComponent(true, unpooled);
+                return unpooled.readableBytes();
             }
 
             @Override
