@@ -53,12 +53,12 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
     @CFNullable
     private Integer j; // reconsumeTimes;
     @CFNullable
-    private boolean k; // unitMode = false;
+    private Boolean k; // unitMode = false;
 
     private Integer l; // consumeRetryTimes
 
     @CFNullable
-    private boolean m; //batch
+    private Boolean m; //batch
     @CFNullable
     private String n; // brokerName
 
@@ -276,11 +276,11 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
         this.j = j;
     }
 
-    public boolean isK() {
+    public Boolean isK() {
         return k;
     }
 
-    public void setK(boolean k) {
+    public void setK(Boolean k) {
         this.k = k;
     }
 
@@ -292,11 +292,11 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
         this.l = l;
     }
 
-    public boolean isM() {
+    public Boolean isM() {
         return m;
     }
 
-    public void setM(boolean m) {
+    public void setM(Boolean m) {
         this.m = m;
     }
 
