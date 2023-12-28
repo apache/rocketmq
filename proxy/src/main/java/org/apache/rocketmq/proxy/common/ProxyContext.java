@@ -33,6 +33,10 @@ public class ProxyContext {
         this.contextNode = parent;
     }
 
+    ProxyContext(ProxyContext that) {
+        this.contextNode = that.contextNode;
+    }
+
     public static ProxyContext create() {
         return new ProxyContext();
     }
