@@ -25,11 +25,11 @@ public class ProxyContext {
     public static final String INNER_ACTION_PREFIX = "Inner";
     private final ContextNode contextNode;
 
-    private ProxyContext() {
+    ProxyContext() {
         this.contextNode = new ContextNode();
     }
 
-    private ProxyContext(ContextNode parent) {
+    ProxyContext(ContextNode parent) {
         this.contextNode = parent;
     }
 
