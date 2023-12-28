@@ -224,6 +224,14 @@ public class ControllerConfig {
         this.metricsExporterType = metricsExporterType;
     }
 
+    public void setMetricsExporterType(int metricsExporterType) {
+        this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
+    }
+
+    public void setMetricsExporterType(String metricsExporterType) {
+        this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
+    }
+
     public String getMetricsGrpcExporterTarget() {
         return metricsGrpcExporterTarget;
     }
