@@ -859,19 +859,14 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public void initUser(String brokerAddr, String username, String password) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
-        defaultMQAdminExtImpl.initUser(brokerAddr, username, password);
-    }
-
-    @Override
     public void createUser(String brokerAddr, String username, String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         defaultMQAdminExtImpl.createUser(brokerAddr, username, password, userType);
     }
 
     @Override
     public void updateUser(String brokerAddr, String username,
-        String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
-        defaultMQAdminExtImpl.updateUser(brokerAddr, username, password, userType);
+        String password, String userType, String userStatus) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.updateUser(brokerAddr, username, password, userType, userStatus);
     }
 
     @Override

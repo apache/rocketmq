@@ -8,11 +8,22 @@ public class UserInfo {
 
     private String userType;
 
+    private String userStatus;
+
     public static UserInfo of(String username, String password, String userType) {
         UserInfo userInfo = new UserInfo();
         userInfo.setUsername(username);
         userInfo.setPassword(password);
         userInfo.setUserType(userType);
+        return userInfo;
+    }
+
+    public static UserInfo of(String username, String password, String userType, String userStatus) {
+        UserInfo userInfo = new UserInfo();
+        userInfo.setUsername(username);
+        userInfo.setPassword(password);
+        userInfo.setUserType(userType);
+        userInfo.setUserStatus(userStatus);
         return userInfo;
     }
 
@@ -38,5 +49,13 @@ public class UserInfo {
 
     public void setUserType(String userType) {
         this.userType = userType;
+    }
+
+    public String getUserStatus() {
+        return userStatus;
+    }
+
+    public void setUserStatus(String userStatus) {
+        this.userStatus = userStatus;
     }
 }

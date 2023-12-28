@@ -61,6 +61,10 @@ public class CreateUserSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("t", "userType", true, "the userType of user to create");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 

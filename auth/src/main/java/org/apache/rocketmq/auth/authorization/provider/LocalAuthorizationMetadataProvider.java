@@ -63,7 +63,8 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
             byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(acl);
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
-            this.aclCache.put(subject.toSubjectKey(), acl);
+            this.storage.flushWAL();
+            this.aclCache.invalidate(subject.toSubjectKey());
         } catch (Exception e) {
             throw new AuthorizationException("create Acl to RocksDB failed", e);
         }
@@ -75,6 +76,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
         try {
             byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
             this.storage.delete(keyBytes);
+            this.storage.flushWAL();
             this.aclCache.invalidate(subject.toSubjectKey());
         } catch (Exception e) {
             throw new AuthorizationException("delete Acl from RocksDB failed", e);
@@ -89,7 +91,8 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
             byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(acl);
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
-            this.aclCache.put(subject.toSubjectKey(), acl);
+            this.storage.flushWAL();
+            this.aclCache.invalidate(subject.toSubjectKey());
         } catch (Exception e) {
             throw new AuthorizationException("update Acl to RocksDB failed", e);
         }

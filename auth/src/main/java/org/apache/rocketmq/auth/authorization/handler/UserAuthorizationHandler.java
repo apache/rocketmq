@@ -3,7 +3,9 @@ package org.apache.rocketmq.auth.authorization.handler;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import org.apache.rocketmq.auth.authentication.enums.SubjectType;
+import org.apache.rocketmq.auth.authentication.enums.UserStatus;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.model.Subject;
 import org.apache.rocketmq.auth.authentication.model.User;
@@ -39,7 +41,10 @@ public class UserAuthorizationHandler implements Handler<DefaultAuthorizationCon
         User user = (User) subject;
         return authenticationMetadataProvider.getUser(user.getUsername()).thenApply(result -> {
             if (result == null) {
-                throw new AuthorizationException("user not found");
+                throw new AuthorizationException("User:{} not found", user.getUsername());
+            }
+            if (user.getUserStatus() == UserStatus.DISABLE) {
+                throw new AuthenticationException("User:{} is disabled", user.getUsername());
             }
             return result;
         });

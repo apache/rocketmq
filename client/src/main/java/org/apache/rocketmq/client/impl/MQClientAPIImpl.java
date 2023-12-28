@@ -179,7 +179,6 @@ import org.apache.rocketmq.remoting.protocol.header.GetTopicConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicStatsInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetTopicsByClusterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetUserRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.InitUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListAclsRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListUsersRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
@@ -3297,22 +3296,6 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CLEAN_BROKER_DATA, cleanHeader);
 
         final RemotingCommand response = this.remotingClient.invokeSync(leaderAddress, request, 3000);
-        assert response != null;
-        switch (response.getCode()) {
-            case ResponseCode.SUCCESS: {
-                return;
-            }
-            default:
-                break;
-        }
-        throw new MQBrokerException(response.getCode(), response.getRemark());
-    }
-
-    public void initUser(String addr, UserInfo userInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
-        InitUserRequestHeader requestHeader = new InitUserRequestHeader(userInfo.getUsername());
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.INIT_USER, requestHeader);
-        request.setBody(RemotingSerializable.encode(userInfo));
-        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {

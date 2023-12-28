@@ -16,6 +16,8 @@ public class AuthConfig implements Cloneable {
 
     private String authenticationWhitelist;
 
+    private String initAuthenticationUser;
+
     private String innerClientAuthenticationCredentials;
 
     private boolean authorizationEnabled = false;
@@ -103,6 +105,14 @@ public class AuthConfig implements Cloneable {
 
     public void setAuthenticationWhitelist(String authenticationWhitelist) {
         this.authenticationWhitelist = authenticationWhitelist;
+    }
+
+    public String getInitAuthenticationUser() {
+        return initAuthenticationUser;
+    }
+
+    public void setInitAuthenticationUser(String initAuthenticationUser) {
+        this.initAuthenticationUser = initAuthenticationUser;
     }
 
     public String getInnerClientAuthenticationCredentials() {

@@ -1,8 +1,11 @@
 package org.apache.rocketmq.auth.authentication.manager;
 
+import com.alibaba.fastjson.JSON;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.auth.authentication.enums.UserStatus;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
@@ -23,6 +26,7 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
     public AuthenticationMetadataManagerImpl(AuthConfig authConfig) {
         this.authenticationMetadataProvider = AuthenticationFactory.getMetadataProvider(authConfig);
         this.authorizationMetadataProvider = AuthorizationFactory.getMetadataProvider(authConfig);
+        this.initUser(authConfig);
     }
 
     @Override
@@ -36,21 +40,35 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
     }
 
     @Override
-    public CompletableFuture<Void> initUser(User user) {
-        CompletableFuture<Void> result = new CompletableFuture<>();
-        try {
-            this.validate(user, true);
-            user.setUserType(UserType.SUPER);
-            result = this.getAuthenticationMetadataProvider().hasUser().thenCompose(hasUser -> {
-                if (hasUser) {
-                    throw new AuthenticationException("The broker has initialized users");
-                }
-                return this.getAuthenticationMetadataProvider().createUser(user);
-            });
-        } catch (Exception e) {
-            this.handleException(e, result);
+    public void initUser(AuthConfig authConfig) {
+        if (StringUtils.isNotBlank(authConfig.getInitAuthenticationUser())) {
+            try {
+                User initUser = JSON.parseObject(authConfig.getInitAuthenticationUser(), User.class);
+                initUser.setUserType(UserType.SUPER);
+                this.getUser(initUser.getUsername()).thenCompose(user -> {
+                    if (user != null) {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                    return this.createUser(initUser);
+                }).join();
+            } catch (Exception e) {
+                throw new AuthenticationException("Init authentication user error", e);
+            }
         }
-        return result;
+        if (StringUtils.isNotBlank(authConfig.getInnerClientAuthenticationCredentials())) {
+            try {
+                SessionCredentials credentials = JSON.parseObject(authConfig.getInnerClientAuthenticationCredentials(), SessionCredentials.class);
+                User innerUser = User.of(credentials.getAccessKey(), credentials.getSecretKey(), UserType.SUPER);
+                this.getUser(innerUser.getUsername()).thenCompose(user -> {
+                    if (user!= null) {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                    return this.createUser(innerUser);
+                }).join();
+            } catch (Exception e) {
+                throw new AuthenticationException("Init inner client authentication credentials error", e);
+            }
+        }
     }
 
     @Override
@@ -60,6 +78,9 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
             this.validate(user, true);
             if (user.getUserType() == null) {
                 user.setUserType(UserType.NORMAL);
+            }
+            if (user.getUserStatus() == null) {
+                user.setUserStatus(UserStatus.ENABLE);
             }
             result = this.getAuthenticationMetadataProvider().getUser(user.getUsername()).thenCompose(old -> {
                 if (old != null) {
@@ -87,6 +108,9 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
                 }
                 if (user.getUserType() != null) {
                     old.setUserType(user.getUserType());
+                }
+                if (user.getUserStatus() != null) {
+                    old.setUserStatus(user.getUserStatus());
                 }
                 return this.getAuthenticationMetadataProvider().updateUser(old);
             });
@@ -141,7 +165,7 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
     public CompletableFuture<Boolean> isSuperUser(String username) {
         return this.getUser(username).thenApply(user -> {
             if (user == null) {
-                throw new AuthenticationException("user not found. username:{}", username);
+                throw new AuthenticationException("User:{} is not found", username);
             }
             return user.getUserType() == UserType.SUPER;
         });

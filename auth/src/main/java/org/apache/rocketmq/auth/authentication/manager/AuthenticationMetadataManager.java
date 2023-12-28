@@ -3,12 +3,13 @@ package org.apache.rocketmq.auth.authentication.manager;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.auth.authentication.model.User;
+import org.apache.rocketmq.auth.config.AuthConfig;
 
 public interface AuthenticationMetadataManager {
 
     void shutdown();
 
-    CompletableFuture<Void> initUser(User user);
+    void initUser(AuthConfig authConfig);
 
     CompletableFuture<Void> createUser(User user);
 

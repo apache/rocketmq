@@ -57,9 +57,18 @@ public class UpdateUserSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        optionGroup = new OptionGroup();
         opt = new Option("p", "password", true, "the password of user to update");
-        opt.setRequired(true);
-        options.addOption(opt);
+        optionGroup.addOption(opt);
+
+        opt = new Option("t", "userType", true, "the userType of user to update");
+        optionGroup.addOption(opt);
+
+        opt = new Option("s", "userStatus", true, "the userStatus of user to update");
+        optionGroup.addOption(opt);
+        optionGroup.setRequired(true);
+
+        options.addOptionGroup(optionGroup);
 
         return options;
     }
@@ -75,12 +84,13 @@ public class UpdateUserSubCommand implements SubCommand {
             String username = commandLine.getOptionValue('u').trim();
             String password = commandLine.getOptionValue('p').trim();
             String userType = commandLine.getOptionValue('t').trim();
+            String userStatus = commandLine.getOptionValue('s').trim();
 
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
 
                 defaultMQAdminExt.start();
-                defaultMQAdminExt.updateUser(addr, username, password, userType);
+                defaultMQAdminExt.updateUser(addr, username, password, userType, userStatus);
 
                 System.out.printf("update user to %s success.%n", addr);
                 return;
@@ -92,7 +102,7 @@ public class UpdateUserSubCommand implements SubCommand {
                 Set<String> brokerAddrSet =
                     CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : brokerAddrSet) {
-                    defaultMQAdminExt.updateUser(addr, username, password, userType);
+                    defaultMQAdminExt.updateUser(addr, username, password, userType, userStatus);
                     System.out.printf("update user to %s success.%n", addr);
                 }
 

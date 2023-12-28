@@ -58,7 +58,8 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
             byte[] keyBytes = user.getUsername().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(user);
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
-            this.userCache.put(user.getUsername(), user);
+            this.storage.flushWAL();
+            this.userCache.invalidate(user.getUsername());
         } catch (Exception e) {
             throw new AuthenticationException("create user to RocksDB failed", e);
         }
@@ -69,6 +70,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
     public CompletableFuture<Void> deleteUser(String username) {
         try {
             this.storage.delete(username.getBytes(StandardCharsets.UTF_8));
+            this.storage.flushWAL();
             this.userCache.invalidate(username);
         } catch (Exception e) {
             throw new AuthenticationException("delete user from RocksDB failed", e);
@@ -82,7 +84,8 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
             byte[] keyBytes = user.getUsername().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(user);
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
-            this.userCache.put(user.getUsername(), user);
+            this.storage.flushWAL();
+            this.userCache.invalidate(user.getUsername());
         } catch (Exception e) {
             throw new AuthenticationException("update user to RocksDB failed", e);
         }

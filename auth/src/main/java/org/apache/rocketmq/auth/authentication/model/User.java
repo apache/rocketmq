@@ -1,6 +1,7 @@
 package org.apache.rocketmq.auth.authentication.model;
 
 import org.apache.rocketmq.auth.authentication.enums.SubjectType;
+import org.apache.rocketmq.auth.authentication.enums.UserStatus;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.common.constant.CommonConstants;
 
@@ -11,6 +12,8 @@ public class User implements Subject {
     private String password;
 
     private UserType userType;
+
+    private UserStatus userStatus;
 
     public static User of(String username) {
         User user = new User();
@@ -65,5 +68,13 @@ public class User implements Subject {
 
     public void setUserType(UserType userType) {
         this.userType = userType;
+    }
+
+    public UserStatus getUserStatus() {
+        return userStatus;
+    }
+
+    public void setUserStatus(UserStatus userStatus) {
+        this.userStatus = userStatus;
     }
 }

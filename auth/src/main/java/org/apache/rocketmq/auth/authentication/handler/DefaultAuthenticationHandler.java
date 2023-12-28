@@ -5,6 +5,7 @@ import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclSigner;
 import org.apache.rocketmq.auth.authentication.context.DefaultAuthenticationContext;
+import org.apache.rocketmq.auth.authentication.enums.UserStatus;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.authentication.model.User;
@@ -36,7 +37,10 @@ public class DefaultAuthenticationHandler implements Handler<DefaultAuthenticati
 
     protected void doAuthenticate(DefaultAuthenticationContext context, User user) {
         if (user == null) {
-            throw new AuthenticationException("user not found");
+            throw new AuthenticationException("User:{} is not found", context.getUsername());
+        }
+        if (user.getUserStatus() == UserStatus.DISABLE) {
+            throw new AuthenticationException("User:{} is disabled", context.getUsername());
         }
         String signature = AclSigner.calSignature(context.getContent(), user.getPassword());
         if (!StringUtils.equals(signature, context.getSignature())) {

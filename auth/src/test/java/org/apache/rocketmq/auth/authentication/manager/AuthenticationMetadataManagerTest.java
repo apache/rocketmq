@@ -32,26 +32,6 @@ public class AuthenticationMetadataManagerTest {
     }
 
     @Test
-    public void initUser() {
-        User user = User.of("test", "test");
-        this.authenticationMetadataManager.initUser(user).join();
-        user = this.authenticationMetadataManager.getUser("test").join();
-        Assert.assertNotNull(user);
-        Assert.assertEquals(user.getUsername(), "test");
-        Assert.assertEquals(user.getPassword(), "test");
-        Assert.assertEquals(user.getUserType(), UserType.SUPER);
-
-        Assert.assertThrows(AuthenticationException.class, () -> {
-            try {
-                User user2 = User.of("abc", "abc");
-                this.authenticationMetadataManager.initUser(user2).join();
-            } catch (Exception e) {
-                AuthTestHelper.handleException(e);
-            }
-        });
-    }
-
-    @Test
     public void createUser() {
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();

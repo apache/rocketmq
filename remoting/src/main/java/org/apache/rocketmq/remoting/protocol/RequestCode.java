@@ -286,8 +286,6 @@ public class RequestCode {
 
     public static final int CONTROLLER_APPLY_BROKER_ID = 1013;
 
-    public static final int INIT_USER = 3000;
-
     public static final int CREATE_USER = 3001;
 
     public static final int UPDATE_USER = 3002;
