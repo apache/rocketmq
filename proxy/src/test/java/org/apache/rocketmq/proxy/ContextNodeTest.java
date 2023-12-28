@@ -36,4 +36,34 @@ public class ContextNodeTest {
 
         assertThat(contextNode.getValue(key, String.class)).isNull();
     }
+
+    @Test
+    public void testRepeatedKeyForTwoContext() {
+        String key1 = "key1";
+        String value1 = "value1";
+        String value2 = "value2";
+        contextNode = new ContextNode();
+        ContextNode newContextNode1 = contextNode.withValue(key1, value1);
+        ContextNode newContextNode2 = contextNode.withValue(key1, value2);
+        assertThat(newContextNode1.getValue(key1, String.class)).isEqualTo(value1);
+        assertThat(newContextNode1.getValue(key1)).isEqualTo(value1);
+        assertThat(newContextNode2.getValue(key1, String.class)).isEqualTo(value2);
+        assertThat(newContextNode2.getValue(key1)).isEqualTo(value2);
+
+        assertThat(contextNode.getValue(key1, String.class)).isNull();
+    }
+
+    @Test
+    public void testRepeatedKeyForContextChain() {
+        String key1 = "key1";
+        String value1 = "value1";
+        String value2 = "value2";
+        contextNode = new ContextNode();
+        ContextNode newContextNode1 = contextNode.withValue(key1, value1);
+        ContextNode newContextNode2 = newContextNode1.withValue(key1, value2);
+        assertThat(newContextNode1.getValue(key1, String.class)).isEqualTo(value1);
+        assertThat(newContextNode2.getValue(key1, String.class)).isEqualTo(value2);
+
+        assertThat(contextNode.getValue(key1, String.class)).isNull();
+    }
 }
