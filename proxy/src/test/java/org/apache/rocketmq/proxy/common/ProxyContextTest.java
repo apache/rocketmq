@@ -36,4 +36,13 @@ public class ProxyContextTest {
 
         assertThat(proxyContext.getValue(key, String.class)).isNull();
     }
+
+    @Test
+    public void testSetLocalAddress() {
+        String address = "address";
+        proxyContext = ProxyContext.create();
+        ProxyContext newProxyContext = proxyContext.withLocalAddress(address);
+        assertThat(proxyContext.getLocalAddress()).isNull();
+        assertThat(newProxyContext.getLocalAddress()).isEqualTo(address);
+    }
 }
