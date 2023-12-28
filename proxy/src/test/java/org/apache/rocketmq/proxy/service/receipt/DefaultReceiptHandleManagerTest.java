@@ -71,7 +71,7 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     @Mock
     protected ConsumerManager consumerManager;
 
-    private static final ProxyContext PROXY_CONTEXT = ProxyContext.create();
+    private static ProxyContext PROXY_CONTEXT = ProxyContext.create();
     private static final String GROUP = "group";
     private static final String TOPIC = "topic";
     private static final String BROKER_NAME = "broker";
@@ -115,8 +115,8 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
             .offset(OFFSET)
             .commitLogOffset(0L)
             .build().encode();
-        PROXY_CONTEXT.withValue(ContextVariable.CLIENT_ID, "channel-id");
-        PROXY_CONTEXT.withValue(ContextVariable.CHANNEL, new LocalChannel());
+        PROXY_CONTEXT = PROXY_CONTEXT.withValue(ContextVariable.CLIENT_ID, "channel-id");
+        PROXY_CONTEXT = PROXY_CONTEXT.withValue(ContextVariable.CHANNEL, new LocalChannel());
         Mockito.doNothing().when(consumerManager).appendConsumerIdsChangeListener(Mockito.any(ConsumerIdsChangeListener.class));
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, receiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES);
