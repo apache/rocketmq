@@ -94,8 +94,8 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
             }
 
             validateTopicAndConsumerGroup(request.getMessageQueue().getTopic(), request.getGroup());
-            String topic = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getMessageQueue().getTopic());
-            String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
+            String topic = request.getMessageQueue().getTopic().getName();
+            String group = request.getGroup().getName();
 
             long actualInvisibleTime = Durations.toMillis(request.getInvisibleDuration());
             ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
