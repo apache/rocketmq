@@ -17,7 +17,10 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.alibaba.fastjson.JSON;
+import java.nio.ByteBuffer;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,16 +31,21 @@ public class SendMessageRequestHeaderV2Test {
     int queueId = 5;
 
     @Test
-    public void testEncode() {
+    public void testEncodeDecode() throws RemotingCommandException {
         header.setQueueId(queueId);
         header.setTopic(topic);
-        assertThat(JSON.toJSONString(header)).isEqualTo("{\"b\":\"test\",\"e\":5}");
-    }
 
-    @Test
-    public void testDecode() {
-        header.setQueueId(queueId);
-        header.setTopic(topic);
-        assertThat(header).isEqualTo(JSON.parseObject("{\"b\":\"test\",\"e\":5}", SendMessageRequestHeaderV2.class));
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, header);
+        ByteBuffer buffer = remotingCommand.encode();
+
+        //Simulate buffer being read in NettyDecoder
+        buffer.getInt();
+        byte[] bytes = new byte[buffer.limit() - 4];
+        buffer.get(bytes, 0, buffer.limit() - 4);
+        buffer = ByteBuffer.wrap(bytes);
+
+        RemotingCommand decodeRequest = RemotingCommand.decode(buffer);
+        assertThat(decodeRequest.getExtFields().get("e")).isEqualTo(String.valueOf(queueId));
+        assertThat(decodeRequest.getExtFields().get("b")).isEqualTo(topic);
     }
 }

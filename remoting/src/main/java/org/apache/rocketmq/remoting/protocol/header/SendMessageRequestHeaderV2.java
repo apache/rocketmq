@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
-import com.alibaba.fastjson.annotation.JSONField;
 import com.google.common.base.MoreObjects;
 import io.netty.buffer.ByteBuf;
 import java.util.HashMap;
@@ -321,7 +320,6 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
     }
 
     @Override
-    @JSONField(serialize = false)
     public Integer getQueueId() {
         return e;
     }
@@ -332,7 +330,6 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
     }
 
     @Override
-    @JSONField(serialize = false)
     public String getTopic() {
         return b;
     }
