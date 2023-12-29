@@ -76,7 +76,7 @@ public class PopMessageProcessorTest {
         brokerController.getBrokerConfig().setEnablePopBufferMerge(true);
         popMessageProcessor = new PopMessageProcessor(brokerController);
         when(handlerContext.channel()).thenReturn(embeddedChannel);
-        brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig());
+        brokerController.getTopicConfigManager().getTopicConfigTable().put(topic, new TopicConfig(topic));
         clientChannelInfo = new ClientChannelInfo(embeddedChannel);
         ConsumerData consumerData = createConsumerData(group, topic);
         brokerController.getConsumerManager().registerConsumer(

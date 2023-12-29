@@ -95,7 +95,7 @@ public class RemotingCommand {
 
     private transient byte[] body;
     private boolean suspended;
-    private Stopwatch processTimer;
+    private transient Stopwatch processTimer;
 
     protected RemotingCommand() {
     }

@@ -332,7 +332,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             }
         }
 
-        final SubscriptionData subscriptionData = this.rebalanceImpl.getSubscriptionInner().get(pullRequest.getMessageQueue().getTopic());
+        final MessageQueue messageQueue = pullRequest.getMessageQueue();
+        final SubscriptionData subscriptionData = this.rebalanceImpl.getSubscriptionInner().get(messageQueue.getTopic());
         if (null == subscriptionData) {
             this.executePullRequestLater(pullRequest, pullTimeDelayMillsWhenException);
             log.warn("find the consumer's subscription failed, {}", pullRequest);
@@ -416,6 +417,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                                         // removeProcessQueue will also remove offset to cancel the frozen status.
                                         DefaultMQPushConsumerImpl.this.rebalanceImpl.removeProcessQueue(pullRequest.getMessageQueue());
+                                        DefaultMQPushConsumerImpl.this.rebalanceImpl.getmQClientFactory().rebalanceImmediately();
 
                                         log.warn("fix the pull request offset, {}", pullRequest);
                                     } catch (Throwable e) {
@@ -433,7 +435,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             @Override
             public void onException(Throwable e) {
                 if (!pullRequest.getMessageQueue().getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                    log.warn("execute the pull request exception", e);
+                    if (e instanceof MQBrokerException && ((MQBrokerException) e).getResponseCode() == ResponseCode.SUBSCRIPTION_NOT_LATEST) {
+                        log.warn("the subscription is not latest, group={}, messageQueue={}", groupName(), messageQueue);
+                    } else {
+                        log.warn("execute the pull request exception, group={}, messageQueue={}", groupName(), messageQueue, e);
+                    }
                 }
 
                 if (e instanceof MQBrokerException && ((MQBrokerException) e).getResponseCode() == ResponseCode.FLOW_CONTROL) {
@@ -994,8 +1000,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
         this.mQClientFactory.checkClientInBroker();
-        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
-        this.mQClientFactory.rebalanceImmediately();
+        if (this.mQClientFactory.sendHeartbeatToAllBrokerWithLock()) {
+            this.mQClientFactory.rebalanceImmediately();
+        }
     }
 
     private void checkConfig() throws MQClientException {
@@ -1367,6 +1374,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         if (!this.pause) {
             this.rebalanceImpl.doRebalance(this.isConsumeOrderly());
         }
+    }
+
+    @Override
+    public boolean tryRebalance() {
+        if (!this.pause) {
+            return this.rebalanceImpl.doRebalance(this.isConsumeOrderly());
+        }
+        return false;
     }
 
     @Override
