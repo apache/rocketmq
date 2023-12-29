@@ -77,7 +77,7 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
         v1.setUnitMode(v2.k);
         v1.setMaxReconsumeTimes(v2.l);
         v1.setBatch(v2.m);
-        v1.setBname(v2.n);
+        v1.setBrokerName(v2.n);
         return v1;
     }
 
@@ -96,7 +96,7 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
         v2.k = v1.isUnitMode();
         v2.l = v1.getMaxReconsumeTimes();
         v2.m = v1.isBatch();
-        v2.n = v1.getBname();
+        v2.n = v1.getBrokerName();
         return v2;
     }
 
