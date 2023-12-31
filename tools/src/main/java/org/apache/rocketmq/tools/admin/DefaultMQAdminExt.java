@@ -859,6 +859,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public void createUser(String brokerAddr,
+        UserInfo userInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.createUser(brokerAddr, userInfo);
+    }
+
+    @Override
     public void createUser(String brokerAddr, String username, String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         defaultMQAdminExtImpl.createUser(brokerAddr, username, password, userType);
     }
@@ -867,6 +873,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public void updateUser(String brokerAddr, String username,
         String password, String userType, String userStatus) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         defaultMQAdminExtImpl.updateUser(brokerAddr, username, password, userType, userStatus);
+    }
+
+    @Override
+    public void updateUser(String brokerAddr,
+        UserInfo userInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.updateUser(brokerAddr, userInfo);
     }
 
     @Override
@@ -894,9 +906,19 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public void createAcl(String brokerAddr, AclInfo aclInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.createAcl(brokerAddr, aclInfo);
+    }
+
+    @Override
     public void updateAcl(String brokerAddr, String subject, List<String> resources, List<String> actions,
         List<String> sourceIps, String decision) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         defaultMQAdminExtImpl.updateAcl(brokerAddr, subject, resources, actions, sourceIps, decision);
+    }
+
+    @Override
+    public void updateAcl(String brokerAddr, AclInfo aclInfo) {
+        defaultMQAdminExtImpl.updateAcl(brokerAddr, aclInfo);
     }
 
     @Override

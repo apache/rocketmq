@@ -117,15 +117,18 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
 
     public static DefaultMessagingProcessor createForClusterMode() {
         RPCHook rpcHook = null;
-        if (ConfigurationManager.getProxyConfig().isEnableAclRpcHookForClusterMode()) {
-            AuthConfig authConfig = ConfigurationManager.getAuthConfig();
-            if (StringUtils.isNotBlank(authConfig.getInnerClientAuthenticationCredentials())) {
-                SessionCredentials sessionCredentials =
-                    JSON.parseObject(authConfig.getInnerClientAuthenticationCredentials(), SessionCredentials.class);
+        if (!ConfigurationManager.getProxyConfig().isEnableAclRpcHookForClusterMode()) {
+            return createForClusterMode(rpcHook);
+        }
+        AuthConfig authConfig = ConfigurationManager.getAuthConfig();
+        if (StringUtils.isNotBlank(authConfig.getInnerClientAuthenticationCredentials())) {
+            SessionCredentials sessionCredentials =
+                JSON.parseObject(authConfig.getInnerClientAuthenticationCredentials(), SessionCredentials.class);
+            if (StringUtils.isNotBlank(sessionCredentials.getAccessKey()) && StringUtils.isNotBlank(sessionCredentials.getSecretKey())) {
                 rpcHook = new AclClientRPCHook(sessionCredentials);
-            } else {
-                rpcHook = AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE);
             }
+        } else {
+            rpcHook = AclUtils.getAclRPCHook(ROCKETMQ_HOME + MixAll.ACL_CONF_TOOLS_FILE);
         }
         return createForClusterMode(rpcHook);
     }

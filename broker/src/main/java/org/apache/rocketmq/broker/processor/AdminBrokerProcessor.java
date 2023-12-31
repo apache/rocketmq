@@ -2863,7 +2863,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         this.brokerController.getAuthenticationMetadataManager().createUser(user)
-            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
             .exceptionally(ex -> {
                 LOGGER.error("create user {} error", user.getUsername(), ex);
                 return handleAuthException(response, ex);
@@ -2895,7 +2895,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         this.brokerController.getAuthenticationMetadataManager().updateUser(user)
-                    .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+                    .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
             .exceptionally(ex -> handleAuthException(response, ex))
             .join();
 
@@ -2909,7 +2909,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         DeleteUserRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteUserRequestHeader.class);
 
         this.brokerController.getAuthenticationMetadataManager().deleteUser(requestHeader.getUsername())
-            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
             .exceptionally(ex -> {
                 LOGGER.error("delete user {} error", requestHeader.getUsername(), ex);
                 return handleAuthException(response, ex);
@@ -2932,7 +2932,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         this.brokerController.getAuthenticationMetadataManager().getUser(requestHeader.getUsername())
-            .thenAccept((user) -> {
+            .thenAccept(user -> {
                 response.setCode(ResponseCode.SUCCESS);
                 if (user != null) {
                     UserInfo userInfo = UserConverter.convertUser(user);
@@ -2955,7 +2955,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         ListUsersRequestHeader requestHeader = request.decodeCommandCustomHeader(ListUsersRequestHeader.class);
 
         this.brokerController.getAuthenticationMetadataManager().listUser(requestHeader.getFilter())
-            .thenAccept((users) -> {
+            .thenAccept(users -> {
                 response.setCode(ResponseCode.SUCCESS);
                 if (CollectionUtils.isNotEmpty(users)) {
                     List<UserInfo> userInfos = UserConverter.convertUsers(users);
@@ -2989,7 +2989,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         this.brokerController.getAuthorizationMetadataManager().createAcl(acl)
-            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
             .exceptionally(ex -> {
                 LOGGER.error("create acl for {} error", requestHeader.getSubject(), ex);
                 return handleAuthException(response, ex);
@@ -3017,7 +3017,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         this.brokerController.getAuthorizationMetadataManager().updateAcl(acl)
-            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
             .exceptionally(ex -> {
                 LOGGER.error("update acl for {} error", requestHeader.getSubject(), ex);
                 return handleAuthException(response, ex);
@@ -3040,7 +3040,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         List<Resource> resources = Resource.of(requestHeader.getResources());
 
         this.brokerController.getAuthorizationMetadataManager().deleteAcl(subject, policyType, resources)
-            .thenAccept((nil) -> response.setCode(ResponseCode.SUCCESS))
+            .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
             .exceptionally(ex -> {
                 LOGGER.error("delete acl for {} error", requestHeader.getSubject(), ex);
                 return handleAuthException(response, ex);
@@ -3058,7 +3058,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         Subject subject = Subject.of(requestHeader.getSubject());
 
         this.brokerController.getAuthorizationMetadataManager().getAcl(subject)
-            .thenAccept((acl) -> {
+            .thenAccept(acl -> {
                 response.setCode(ResponseCode.SUCCESS);
                 if (acl != null) {
                     AclInfo aclInfo = AclConverter.convertAcl(acl);
@@ -3083,7 +3083,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         this.brokerController.getAuthorizationMetadataManager()
             .listAcl(requestHeader.getSubjectFilter(), requestHeader.getResourceFilter())
-            .thenAccept((acls) -> {
+            .thenAccept(acls -> {
                 response.setCode(ResponseCode.SUCCESS);
                 if (CollectionUtils.isNotEmpty(acls)) {
                     List<AclInfo> aclInfos = AclConverter.convertAcls(acls);

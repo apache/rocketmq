@@ -311,6 +311,15 @@ public class BrokerController {
         final BrokerConfig brokerConfig,
         final NettyServerConfig nettyServerConfig,
         final NettyClientConfig nettyClientConfig,
+        final MessageStoreConfig messageStoreConfig
+    ) {
+        this(brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig, null);
+    }
+
+    public BrokerController(
+        final BrokerConfig brokerConfig,
+        final NettyServerConfig nettyServerConfig,
+        final NettyClientConfig nettyClientConfig,
         final MessageStoreConfig messageStoreConfig,
         final AuthConfig authConfig
     ) {
@@ -358,7 +367,7 @@ public class BrokerController {
         this.coldDataCgCtrService = new ColdDataCgCtrService(this);
 
         if (nettyClientConfig != null) {
-            this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
+            this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig, authConfig);
         }
 
         this.queryAssignmentProcessor = new QueryAssignmentProcessor(this);

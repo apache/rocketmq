@@ -16,52 +16,44 @@
  */
 package org.apache.rocketmq.tools.command.auth;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
-import org.apache.rocketmq.tools.command.CommandUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class CreateUserSubCommand implements SubCommand {
+public class CopyAclsSubCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "createUser";
+        return "copyAcl";
     }
 
     @Override
     public String commandDesc() {
-        return "Create user to cluster.";
+        return "Copy acl to cluster.";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("c", "clusterName", true, "create user to which cluster");
-        optionGroup.addOption(opt);
-
-        opt = new Option("b", "brokerAddr", true, "create user to which broker");
-        optionGroup.addOption(opt);
-
-        optionGroup.setRequired(true);
-        options.addOptionGroup(optionGroup);
-
-        opt = new Option("u", "username", true, "the username of user to create.");
+        Option opt = new Option("f", "fromBroker", true, "the source broker that the acls copy from");
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("p", "password", true, "the password of user to create");
+        opt = new Option("t", "toBroker", true, "the target broker that the acls copy to");
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("t", "userType", true, "the userType of user to create");
+        opt = new Option("s", "subject", true, "the subject of acl to copy.");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -76,30 +68,35 @@ public class CreateUserSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String username = commandLine.getOptionValue('u').trim();
-            String password = commandLine.getOptionValue('p').trim();
-            String userType = commandLine.getOptionValue('t').trim();
+            String sourceBroker = StringUtils.trim(commandLine.getOptionValue("f"));
+            String targetBroker = StringUtils.trim(commandLine.getOptionValue("t"));
+            String subjects = StringUtils.trim(commandLine.getOptionValue('s'));
 
-            if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b').trim();
+            defaultMQAdminExt.start();
 
-                defaultMQAdminExt.start();
-                defaultMQAdminExt.createUser(addr, username, password, userType);
-
-                System.out.printf("create user to %s success.%n", addr);
-                return;
-
-            } else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c').trim();
-
-                defaultMQAdminExt.start();
-                Set<String> brokerAddrSet =
-                    CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
-                for (String addr : brokerAddrSet) {
-                    defaultMQAdminExt.createUser(addr, username, password, userType);
-                    System.out.printf("create user to %s success.%n", addr);
+            List<AclInfo> aclInfos = new ArrayList<>();
+            if (StringUtils.isNotBlank(subjects)) {
+                for (String subject : StringUtils.split(subjects, ",")) {
+                    AclInfo aclInfo = defaultMQAdminExt.getAcl(sourceBroker, subject);
+                    if (aclInfo != null) {
+                        aclInfos.add(aclInfo);
+                    }
                 }
+            } else {
+                aclInfos = defaultMQAdminExt.listAcl(sourceBroker, null, null);
+            }
+
+            if (CollectionUtils.isEmpty(aclInfos)) {
                 return;
+            }
+
+            for (AclInfo aclInfo : aclInfos) {
+                if (defaultMQAdminExt.getAcl(targetBroker, aclInfo.getSubject()) == null) {
+                    defaultMQAdminExt.createAcl(targetBroker, aclInfo);
+                } else {
+                    defaultMQAdminExt.updateAcl(targetBroker, aclInfo);
+                }
+                System.out.printf("copy acl of %s from %s to %s success.%n", aclInfo.getSubject(), sourceBroker, targetBroker);
             }
 
             ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);

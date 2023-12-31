@@ -1912,15 +1912,26 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public void createUser(String brokerAddr,
+        UserInfo userInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        this.mqClientInstance.getMQClientAPIImpl().createUser(brokerAddr, userInfo, timeoutMillis);
+    }
+
+    @Override
     public void createUser(String brokerAddr, String username, String password, String userType) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         UserInfo userInfo = UserInfo.of(username, password, userType);
-        this.mqClientInstance.getMQClientAPIImpl().createUser(brokerAddr, userInfo, timeoutMillis);
+        this.createUser(brokerAddr, userInfo);
     }
 
     @Override
     public void updateUser(String brokerAddr, String username,
         String password, String userType, String userStatus) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         UserInfo userInfo = UserInfo.of(username, password, userType, userStatus);
+        this.mqClientInstance.getMQClientAPIImpl().updateUser(brokerAddr, userInfo, timeoutMillis);
+    }
+
+    @Override
+    public void updateUser(String brokerAddr, UserInfo userInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         this.mqClientInstance.getMQClientAPIImpl().updateUser(brokerAddr, userInfo, timeoutMillis);
     }
 
@@ -1946,6 +1957,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public void createAcl(String brokerAddr, String subject, List<String> resources, List<String> actions,
         List<String> sourceIps, String decision) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         AclInfo aclInfo = AclInfo.of(subject, resources, actions, sourceIps, decision);
+        this.createAcl(brokerAddr, aclInfo);
+    }
+
+    @Override
+    public void createAcl(String brokerAddr, AclInfo aclInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         this.mqClientInstance.getMQClientAPIImpl().createAcl(brokerAddr, aclInfo, timeoutMillis);
     }
 
@@ -1954,6 +1970,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         List<String> sourceIps, String decision) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         AclInfo aclInfo = AclInfo.of(subject, resources, actions, sourceIps, decision);
         this.mqClientInstance.getMQClientAPIImpl().updateAcl(brokerAddr, aclInfo, timeoutMillis);
+    }
+
+    @Override
+    public void updateAcl(String brokerAddr, AclInfo aclInfo) {
+
     }
 
     @Override

@@ -80,9 +80,6 @@ public class GetUserSubCommand implements SubCommand {
                 UserInfo userInfo = defaultMQAdminExt.getUser(addr, username);
                 if (userInfo != null) {
                     printUser(userInfo);
-                    System.out.printf("get user from %s success.%n", addr);
-                } else {
-                    System.out.println("there is no user found.");
                 }
 
                 return;

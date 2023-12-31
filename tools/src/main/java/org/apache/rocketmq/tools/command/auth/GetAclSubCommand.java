@@ -81,9 +81,6 @@ public class GetAclSubCommand implements SubCommand {
                 AclInfo aclInfo = defaultMQAdminExt.getAcl(addr, subject);
                 if (aclInfo != null) {
                     printAcl(aclInfo);
-                    System.out.printf("get acl from %s success.%n", addr);
-                } else {
-                    System.out.println("there is no acl found.");
                 }
 
                 return;
@@ -102,9 +99,6 @@ public class GetAclSubCommand implements SubCommand {
                     AclInfo aclInfo = defaultMQAdminExt.getAcl(masterAddr, subject);
                     if (aclInfo != null) {
                         printAcl(aclInfo);
-                        System.out.printf("get acl from %s success.%n", masterAddr);
-                    } else {
-                        System.out.println("there is no acl found.");
                     }
                 }
 

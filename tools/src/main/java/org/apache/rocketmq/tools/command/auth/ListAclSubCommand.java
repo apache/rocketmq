@@ -86,9 +86,6 @@ public class ListAclSubCommand implements SubCommand {
                 List<AclInfo> aclInfos = defaultMQAdminExt.listAcl(addr, subjectFilter, resourceFilter);
                 if (CollectionUtils.isNotEmpty(aclInfos)) {
                     printAcl(aclInfos);
-                    System.out.printf("list acls from %s success.%n", addr);
-                } else {
-                    System.out.println("there is no acl found.");
                 }
 
                 return;
@@ -107,9 +104,6 @@ public class ListAclSubCommand implements SubCommand {
                     List<AclInfo> aclInfos = defaultMQAdminExt.listAcl(masterAddr, subjectFilter, resourceFilter);
                     if (CollectionUtils.isNotEmpty(aclInfos)) {
                         printAcl(aclInfos);
-                        System.out.printf("list acls from %s success.%n", masterAddr);
-                    } else {
-                        System.out.println("there is no acl found.");
                     }
                 }
 

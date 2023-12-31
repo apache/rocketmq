@@ -29,7 +29,7 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-    @RocketMQAction(value = RequestCode.DELETE_TOPIC_IN_BROKER, action = Action.DELETE)
+@RocketMQAction(value = RequestCode.DELETE_TOPIC_IN_BROKER, action = Action.DELETE)
 public class DeleteTopicRequestHeader implements CommandCustomHeader {
     @CFNotNull
     @RocketMQResource(ResourceType.TOPIC)

@@ -81,9 +81,6 @@ public class ListUserSubCommand implements SubCommand {
                 List<UserInfo> userInfos = defaultMQAdminExt.listUser(addr, filter);
                 if (CollectionUtils.isEmpty(userInfos)) {
                     printUsers(userInfos);
-                    System.out.printf("get user from %s success.%n", addr);
-                } else {
-                    System.out.println("there is no user found.");
                 }
 
                 return;
