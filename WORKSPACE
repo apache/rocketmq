@@ -119,33 +119,26 @@ maven_install(
 
 http_archive(
     name = "io_buildbuddy_buildbuddy_toolchain",
-    sha256 = "a2a5cccec251211e2221b1587af2ce43c36d32a42f5d881737db3b546a536510",
-    strip_prefix = "buildbuddy-toolchain-829c8a574f706de5c96c54ca310f139f4acda7dd",
-    urls = ["https://github.com/buildbuddy-io/buildbuddy-toolchain/archive/829c8a574f706de5c96c54ca310f139f4acda7dd.tar.gz"],
+    sha256 = "b12273608db627eb14051eb75f8a2134590172cd69392086d392e25f3954ea6e",
+    strip_prefix = "buildbuddy-toolchain-8d5d18373adfca9d8e33b4812915abc9b132f1ee",
+    urls = ["https://github.com/buildbuddy-io/buildbuddy-toolchain/archive/8d5d18373adfca9d8e33b4812915abc9b132f1ee.tar.gz"],
 )
-
 load("@io_buildbuddy_buildbuddy_toolchain//:deps.bzl", "buildbuddy_deps")
-
 buildbuddy_deps()
-
 load("@io_buildbuddy_buildbuddy_toolchain//:rules.bzl", "buildbuddy")
-
 buildbuddy(name = "buildbuddy_toolchain")
 
 http_archive(
-    name = "rbe_default",
-    # The sha256 digest of the tarball might change without notice. So it's not
-    # included here.
-    urls = ["https://storage.googleapis.com/rbe-toolchain/bazel-configs/rbe-ubuntu1604/latest/rbe_default.tar"],
-)
-
-http_archive(
     name = "bazel_toolchains",
-    sha256 = "56d5370eb99559b4c74f334f81bc8a298f728bd16d5a4333c865c2ad10fae3bc",
-    strip_prefix = "bazel-toolchains-dac71231098d891e5c4b74a2078fe9343feef510",
-    urls = ["https://github.com/bazelbuild/bazel-toolchains/archive/dac71231098d891e5c4b74a2078fe9343feef510.tar.gz"],
+    sha256 = "4fb3ceea08101ec41208e3df9e56ec72b69f3d11c56629d6477c0ff88d711cf7",
+    strip_prefix = "bazel-toolchains-3.6.0",
+    urls = [
+        "https://github.com/bazelbuild/bazel-toolchains/releases/download/3.6.0/bazel-toolchains-3.6.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-toolchains/releases/download/3.6.0/bazel-toolchains-3.6.0.tar.gz",
+    ],
 )
-
-load("@bazel_toolchains//repositories:repositories.bzl", bazel_toolchains_repositories = "repositories")
-
-bazel_toolchains_repositories()
+load("@bazel_toolchains//rules:rbe_repo.bzl", "rbe_autoconfig")
+# Creates a default toolchain config for RBE.
+# Use this as is if you are using the rbe_ubuntu16_04 container,
+# otherwise refer to RBE docs.
+rbe_autoconfig(name = "rbe_default")

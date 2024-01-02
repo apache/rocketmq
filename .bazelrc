@@ -45,10 +45,10 @@ build:remote --jobs=150
 # properties.
 # These flags should only be used as is for the rbe-ubuntu16-04 container
 # and need to be adapted to work with other toolchain containers.
-build:remote --java_runtime_version=rbe_jdk
-build:remote --tool_java_runtime_version=rbe_jdk
-build:remote --extra_toolchains=@rbe_default//java:all
-
+build:remote --host_javabase=@rbe_default//java:jdk
+build:remote --javabase=@rbe_default//java:jdk
+build:remote --host_java_toolchain=@bazel_tools//tools/jdk:toolchain_hostjdk8
+build:remote --java_toolchain=@bazel_tools//tools/jdk:toolchain_hostjdk8
 build:remote --crosstool_top=@rbe_default//cc:toolchain
 build:remote --action_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
 # Platform flags:
