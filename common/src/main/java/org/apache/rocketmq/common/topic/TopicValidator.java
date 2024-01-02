@@ -37,7 +37,7 @@ public class TopicValidator {
     public static final String SYNC_BROKER_MEMBER_GROUP_PREFIX = SYSTEM_TOPIC_PREFIX + "SYNC_BROKER_MEMBER_";
 
     public static final boolean[] VALID_CHAR_BIT_MAP = new boolean[128];
-    private static final int TOPIC_MAX_LENGTH = 127;
+    public static final int TOPIC_MAX_LENGTH = 127;
 
     private static final Set<String> SYSTEM_TOPIC_SET = new HashSet<>();
 
@@ -90,8 +90,8 @@ public class TopicValidator {
 
     public static boolean isTopicOrGroupIllegal(String str) {
         int strLen = str.length();
-        int len = VALID_CHAR_BIT_MAP.length;
         boolean[] bitMap = VALID_CHAR_BIT_MAP;
+        int len = bitMap.length;
         for (int i = 0; i < strLen; i++) {
             char ch = str.charAt(i);
             if (ch >= len || !bitMap[ch]) {
@@ -108,7 +108,7 @@ public class TopicValidator {
         }
 
         if (isTopicOrGroupIllegal(topic)) {
-            return new ValidateTopicResult(false, "The specified topic contains illegal characters, allowing only ^[%|a-zA-Z0-9_-]+$");
+            return new ValidateTopicResult(false, String.format("The specified topic[%s] contains illegal characters, allowing only %s", topic, "^[%|a-zA-Z0-9_-]+$"));
         }
 
         if (topic.length() > TOPIC_MAX_LENGTH) {

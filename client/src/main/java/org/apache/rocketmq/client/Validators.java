@@ -37,7 +37,6 @@ import static org.apache.rocketmq.common.topic.TopicValidator.isTopicOrGroupIlle
  */
 public class Validators {
     public static final int CHARACTER_MAX_LENGTH = 255;
-    public static final int TOPIC_MAX_LENGTH = 127;
 
     /**
      * Validate group
@@ -89,19 +88,9 @@ public class Validators {
     }
 
     public static void checkTopic(String topic) throws MQClientException {
-        if (UtilAll.isBlank(topic)) {
-            throw new MQClientException("The specified topic is blank", null);
-        }
-
-        if (topic.length() > TOPIC_MAX_LENGTH) {
-            throw new MQClientException(
-                String.format("The specified topic is longer than topic max length %d.", TOPIC_MAX_LENGTH), null);
-        }
-
-        if (isTopicOrGroupIllegal(topic)) {
-            throw new MQClientException(String.format(
-                    "The specified topic[%s] contains illegal characters, allowing only %s", topic,
-                    "^[%|a-zA-Z0-9_-]+$"), null);
+        TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
+        if (!result.isValid()) {
+            throw new MQClientException(result.getRemark(), null);
         }
     }
 
