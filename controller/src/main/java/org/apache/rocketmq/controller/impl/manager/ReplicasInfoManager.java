@@ -533,7 +533,7 @@ public class ReplicasInfoManager {
             } else {
                 // If new master was not elected, which means old master was shutdown and the newSyncStateSet list had no more replicas
                 // So we should delete old master, but retain newSyncStateSet list.
-                syncStateInfo.updateMasterInfo(null);
+                syncStateInfo.cleanMasterInfo();
             }
             return;
         }
