@@ -22,6 +22,7 @@ import java.util.Properties;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.PermName;
@@ -127,9 +128,7 @@ public class Validators {
     }
 
     public static void checkBrokerConfig(final Properties brokerConfig) throws MQClientException {
-        // TODO: use MixAll.isPropertyValid() when jdk upgrade to 1.8
-        if (brokerConfig.containsKey("brokerPermission")
-            && !PermName.isValid(brokerConfig.getProperty("brokerPermission"))) {
+        if (!MixAll.isPropertyValid(brokerConfig,"brokerPermission", PermName::isValid)) {
             throw new MQClientException(ResponseCode.NO_PERMISSION,
                 String.format("brokerPermission value: %s is invalid.", brokerConfig.getProperty("brokerPermission")));
         }
