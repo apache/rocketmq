@@ -16,19 +16,6 @@
  */
 package org.apache.rocketmq.example.benchmark.timer;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.srvutil.ServerUtil;
-
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,6 +25,21 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
+import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
+import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.example.benchmark.AclClient;
+import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class TimerConsumer {
     private final String topic;
@@ -56,12 +58,23 @@ public class TimerConsumer {
             System.exit(-1);
         }
 
-        final String namesrvAddr = commandLine.hasOption('n') ? commandLine.getOptionValue('t').trim() : "localhost:9876";
+        final String namesrvAddr = commandLine.hasOption('n') ? commandLine.getOptionValue('n').trim() : "localhost:9876";
+        final int threadCount = commandLine.hasOption('w') ? Integer.parseInt(commandLine.getOptionValue('w')) : 20;
+        final boolean msgTraceEnable = commandLine.hasOption('m') && Boolean.parseBoolean(commandLine.getOptionValue('m'));
+        final boolean aclEnable = commandLine.hasOption('a');
         topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
-        System.out.printf("namesrvAddr: %s, topic: %s%n", namesrvAddr, topic);
+        System.out.printf("namesrvAddr: %s, topic: %s, threadCount: %d, aclEnable: %s%n", namesrvAddr, topic, threadCount, aclEnable);
 
-        consumer = new DefaultMQPushConsumer("benchmark_consumer");
+        RPCHook rpcHook = null;
+        if (aclEnable) {
+            String ak = commandLine.hasOption("ak") ? String.valueOf(commandLine.getOptionValue("ak")) : AclClient.ACL_ACCESS_KEY;
+            String sk = commandLine.hasOption("sk") ? String.valueOf(commandLine.getOptionValue("sk")) : AclClient.ACL_SECRET_KEY;
+            rpcHook = AclClient.getAclRPCHook(ak, sk);
+        }
+        consumer = new DefaultMQPushConsumer("benchmark_consumer", rpcHook, new AllocateMessageQueueAveragely(), msgTraceEnable, null);
         consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
+        consumer.setConsumeThreadMin(threadCount);
+        consumer.setConsumeThreadMax(threadCount);
         consumer.setNamesrvAddr(namesrvAddr);
     }
 
@@ -151,6 +164,26 @@ public class TimerConsumer {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("w", "threadCount", true, "Thread count, Default: 20");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("m", "msgTraceEnable", true, "Message Trace Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("a", "aclEnable", false, "Acl Enable");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ak", "accessKey", true, "Acl access key, Default: 12345678");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("sk", "secretKey", true, "Acl secret key, Default: rocketmq2");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -160,7 +193,6 @@ public class TimerConsumer {
         timerConsumer.start();
     }
 
-
     public static class StatsBenchmarkConsumer {
         private final AtomicLong receiveMessageTotalCount = new AtomicLong(0L);
 
@@ -168,10 +200,10 @@ public class TimerConsumer {
         private final ConcurrentSkipListSet<Long> delayedDurationMsSet = new ConcurrentSkipListSet<>();
 
         public Long[] createSnapshot() {
-            return new Long[]{
-                    System.currentTimeMillis(),
-                    this.receiveMessageTotalCount.get(),
-                    this.delayedDurationMsTotal.get(),
+            return new Long[] {
+                System.currentTimeMillis(),
+                this.receiveMessageTotalCount.get(),
+                this.delayedDurationMsTotal.get(),
             };
         }
 

@@ -16,23 +16,6 @@
  */
 package org.apache.rocketmq.example.benchmark.timer;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.exception.MQBrokerException;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
-import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.srvutil.ServerUtil;
-
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,6 +29,24 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.example.benchmark.AclClient;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.srvutil.ServerUtil;
 
 public class TimerProducer {
     private static final Logger log = LoggerFactory.getLogger(TimerProducer.class);
@@ -74,7 +75,8 @@ public class TimerProducer {
             System.exit(-1);
         }
 
-        final String namesrvAddr = commandLine.hasOption('n') ? commandLine.getOptionValue('t').trim() : "localhost:9876";
+        final String namesrvAddr = commandLine.hasOption('n') ? commandLine.getOptionValue('n').trim() : "localhost:9876";
+        final boolean aclEnable = commandLine.hasOption('a');
         topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "BenchmarkTest";
         threadCount = commandLine.hasOption("tc") ? Integer.parseInt(commandLine.getOptionValue("tc")) : 16;
         messageSize = commandLine.hasOption("ms") ? Integer.parseInt(commandLine.getOptionValue("ms")) : 1024;
@@ -82,8 +84,8 @@ public class TimerProducer {
         slotsTotal = commandLine.hasOption("st") ? Integer.parseInt(commandLine.getOptionValue("st")) : 100;
         msgsTotalPerSlotThread = commandLine.hasOption("mt") ? Integer.parseInt(commandLine.getOptionValue("mt")) : 5000;
         slotDis = commandLine.hasOption("sd") ? Integer.parseInt(commandLine.getOptionValue("sd")) : 1000;
-        System.out.printf("namesrvAddr: %s, topic: %s, threadCount: %d, messageSize: %d, precisionMs: %d, slotsTotal: %d, msgsTotalPerSlotThread: %d, slotDis: %d%n",
-                namesrvAddr, topic, threadCount, messageSize, precisionMs, slotsTotal, msgsTotalPerSlotThread, slotDis);
+        System.out.printf("namesrvAddr: %s, topic: %s, aclEnable: %s, threadCount: %d, messageSize: %d, precisionMs: %d, slotsTotal: %d, msgsTotalPerSlotThread: %d, slotDis: %d%n",
+            namesrvAddr, topic, aclEnable, threadCount, messageSize, precisionMs, slotsTotal, msgsTotalPerSlotThread, slotDis);
 
         sendThreadPool = new ThreadPoolExecutor(
                 threadCount,
@@ -93,7 +95,14 @@ public class TimerProducer {
             new LinkedBlockingQueue<>(),
                 new ThreadFactoryImpl("ProducerSendMessageThread_"));
 
-        producer = new DefaultMQProducer("benchmark_producer");
+        RPCHook rpcHook = null;
+        if (aclEnable) {
+            String ak = commandLine.hasOption("ak") ? String.valueOf(commandLine.getOptionValue("ak")) : AclClient.ACL_ACCESS_KEY;
+            String sk = commandLine.hasOption("sk") ? String.valueOf(commandLine.getOptionValue("sk")) : AclClient.ACL_SECRET_KEY;
+            rpcHook = AclClient.getAclRPCHook(ak, sk);
+        }
+
+        producer = new DefaultMQProducer("benchmark_producer", rpcHook);
         producer.setInstanceName(Long.toString(System.currentTimeMillis()));
         producer.setNamesrvAddr(namesrvAddr);
         producer.setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);
@@ -239,6 +248,18 @@ public class TimerProducer {
         options.addOption(opt);
 
         opt = new Option("sd", "slotDis", true, "Time distance between two slots, default: 1000");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("a", "aclEnable", false, "Acl Enable");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ak", "accessKey", true, "Acl access key, Default: 12345678");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("sk", "secretKey", true, "Acl secret key, Default: rocketmq2");
         opt.setRequired(false);
         options.addOption(opt);
 
