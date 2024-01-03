@@ -73,7 +73,7 @@ java_library(
 GenTestRules(
     name = "GeneratedTestRules",
     test_files = glob(["src/test/java/**/*Test.java"]),
-    deps = [
+        deps = [
         ":tests",
     ],
 )

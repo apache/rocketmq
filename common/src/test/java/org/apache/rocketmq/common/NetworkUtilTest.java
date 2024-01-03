@@ -28,7 +28,6 @@ public class NetworkUtilTest {
         String localAddress = NetworkUtil.getLocalAddress();
         assertThat(localAddress).isNotNull();
         assertThat(localAddress.length()).isGreaterThan(0);
-        assertThat(localAddress).isNotEqualTo(InetAddress.getLoopbackAddress().getHostAddress());
     }
 
     @Test

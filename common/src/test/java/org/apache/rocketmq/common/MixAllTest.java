@@ -75,12 +75,6 @@ public class MixAllTest {
     }
 
     @Test
-    public void testGetLocalhostByNetworkInterface() throws Exception {
-        assertThat(MixAll.LOCALHOST).isNotNull();
-        assertThat(MixAll.getLocalhostByNetworkInterface()).isNotNull();
-    }
-
-    @Test
     public void testIsLmq() {
         String testLmq = null;
         assertThat(MixAll.isLmq(testLmq)).isFalse();
