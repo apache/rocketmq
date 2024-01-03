@@ -18,6 +18,7 @@ package org.apache.rocketmq.auth.authorization.factory;
 
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
+import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -114,13 +115,13 @@ public class AuthorizationFactory {
         return authorizationProvider.newContexts(metadata, message);
     }
 
-    public static List<AuthorizationContext> newContexts(AuthConfig config, RemotingCommand command,
-        String remoteAddr) {
+    public static List<AuthorizationContext> newContexts(AuthConfig config, ChannelHandlerContext context,
+        RemotingCommand command) {
         AuthorizationProvider<AuthorizationContext> authorizationProvider = getProvider(config);
         if (authorizationProvider == null) {
             return null;
         }
-        return authorizationProvider.newContexts(command, remoteAddr);
+        return authorizationProvider.newContexts(context, command);
     }
 
     @SuppressWarnings("unchecked")

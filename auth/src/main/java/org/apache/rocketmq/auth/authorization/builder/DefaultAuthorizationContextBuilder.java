@@ -32,6 +32,7 @@ import apache.rocketmq.v2.SubscriptionEntry;
 import apache.rocketmq.v2.TelemetryCommand;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
+import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,6 +57,7 @@ import org.apache.rocketmq.common.resource.ResourcePattern;
 import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
@@ -142,16 +144,17 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
     }
 
     @Override
-    public List<DefaultAuthorizationContext> build(RemotingCommand request, String remoteAddr) {
+    public List<DefaultAuthorizationContext> build(ChannelHandlerContext context, RemotingCommand command) {
         List<DefaultAuthorizationContext> result = new ArrayList<>();
         try {
-            HashMap<String, String> fields = request.getExtFields();
+            HashMap<String, String> fields = command.getExtFields();
             Subject subject = User.of(fields.get(SessionCredentials.ACCESS_KEY));
+            String remoteAddr = RemotingHelper.parseChannelRemoteAddr(context.channel());
             String sourceIp = StringUtils.substringBefore(remoteAddr, ":");
 
             Resource topic;
             Resource group;
-            switch (request.getCode()) {
+            switch (command.getCode()) {
                 case RequestCode.GET_ROUTEINFO_BY_TOPIC:
                     topic = Resource.ofTopic(fields.get("topic"));
                     result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.PUB, Action.SUB, Action.GET), sourceIp));
@@ -196,7 +199,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.SUB, Action.GET), sourceIp));
                     break;
                 case RequestCode.HEART_BEAT:
-                    HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);
+                    HeartbeatData heartbeatData = HeartbeatData.decode(command.getBody(), HeartbeatData.class);
                     for (ConsumerData data : heartbeatData.getConsumerDataSet()) {
                         group = Resource.ofGroup(data.getGroupName());
                         result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
@@ -211,19 +214,19 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     break;
                 case RequestCode.UNREGISTER_CLIENT:
                     final UnregisterClientRequestHeader unregisterClientRequestHeader =
-                        request.decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
+                        command.decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
                     group = Resource.ofGroup(unregisterClientRequestHeader.getConsumerGroup());
                     result.add(DefaultAuthorizationContext.of(subject, group, Arrays.asList(Action.PUB, Action.SUB), sourceIp));
                     break;
                 case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
                     final GetConsumerListByGroupRequestHeader getConsumerListByGroupRequestHeader =
-                        request.decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
+                        command.decodeCommandCustomHeader(GetConsumerListByGroupRequestHeader.class);
                     group = Resource.ofGroup(getConsumerListByGroupRequestHeader.getConsumerGroup());
                     result.add(DefaultAuthorizationContext.of(subject, group, Arrays.asList(Action.SUB, Action.GET), sourceIp));
                     break;
                 case RequestCode.QUERY_CONSUMER_OFFSET:
                     final QueryConsumerOffsetRequestHeader queryConsumerOffsetRequestHeader =
-                        request.decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
+                        command.decodeCommandCustomHeader(QueryConsumerOffsetRequestHeader.class);
                     if (!NamespaceUtil.isRetryTopic(queryConsumerOffsetRequestHeader.getTopic())) {
                         topic = Resource.ofTopic(queryConsumerOffsetRequestHeader.getTopic());
                         result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.SUB, Action.GET), sourceIp));
@@ -233,7 +236,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     break;
                 case RequestCode.UPDATE_CONSUMER_OFFSET:
                     final UpdateConsumerOffsetRequestHeader updateConsumerOffsetRequestHeader =
-                        request.decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
+                        command.decodeCommandCustomHeader(UpdateConsumerOffsetRequestHeader.class);
                     if (!NamespaceUtil.isRetryTopic(updateConsumerOffsetRequestHeader.getTopic())) {
                         topic = Resource.ofTopic(updateConsumerOffsetRequestHeader.getTopic());
                         result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.SUB, Action.UPDATE), sourceIp));
@@ -242,11 +245,11 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     result.add(DefaultAuthorizationContext.of(subject, group, Arrays.asList(Action.SUB, Action.UPDATE), sourceIp));
                     break;
                 default:
-                    result = buildContextByAnnotation(subject, request, remoteAddr);
+                    result = buildContextByAnnotation(subject, command, sourceIp);
                     break;
             }
             if (CollectionUtils.isNotEmpty(result)) {
-                result.forEach(context -> context.setRpcCode(String.valueOf(request.getCode())));
+                result.forEach(r -> r.setRpcCode(String.valueOf(command.getCode())));
             }
         } catch (AuthorizationException ex) {
             throw ex;

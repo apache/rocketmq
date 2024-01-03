@@ -14,39 +14,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.auth.rpchook;
 
+package org.apache.rocketmq.broker.auth.pipeline;
+
+import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.auth.authentication.AuthenticationEvaluator;
 import org.apache.rocketmq.auth.authentication.context.AuthenticationContext;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
-import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class AuthenticationRPCHook implements RPCHook {
+public class AuthenticationPipeline implements RequestPipeline {
 
     private final AuthConfig authConfig;
     private final AuthenticationEvaluator evaluator;
 
-    public AuthenticationRPCHook(AuthConfig authConfig) {
+    public AuthenticationPipeline(AuthConfig authConfig) {
         this.authConfig = authConfig;
         this.evaluator = AuthenticationFactory.getEvaluator(authConfig);
     }
 
     @Override
-    public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-        if (this.evaluator == null) {
+    public void execute(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
-        if (authConfig.isAuthenticationEnabled()) {
-            AuthenticationContext context = AuthenticationFactory.newContext(this.authConfig, request);
-            this.evaluator.evaluate(context);
+
+        AuthenticationContext authenticationContext = newContext(request);
+        if (authenticationContext == null) {
+            return;
         }
+        
+        evaluator.evaluate(authenticationContext);
     }
 
-    @Override
-    public void doAfterResponse(String remoteAddr, RemotingCommand request,
-        RemotingCommand response) {
-
+    protected AuthenticationContext newContext(RemotingCommand request) {
+        return AuthenticationFactory.newContext(authConfig, request);
     }
 }

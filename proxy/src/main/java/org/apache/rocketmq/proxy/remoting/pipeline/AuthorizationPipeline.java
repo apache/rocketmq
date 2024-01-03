@@ -45,7 +45,7 @@ public class AuthorizationPipeline implements RequestPipeline {
             return;
         }
 
-        List<AuthorizationContext> contexts = newContexts(request, context);
+        List<AuthorizationContext> contexts = newContexts(request, ctx);
         if (CollectionUtils.isEmpty(contexts)) {
             throw new AuthorizationException("the request api is null");
         }
@@ -53,7 +53,7 @@ public class AuthorizationPipeline implements RequestPipeline {
         authorizationEvaluator.evaluate(contexts);
     }
 
-    protected List<AuthorizationContext> newContexts(RemotingCommand request, ProxyContext context) {
-        return AuthorizationFactory.newContexts(authConfig, request, context.getRemoteAddress());
+    protected List<AuthorizationContext> newContexts(RemotingCommand request, ChannelHandlerContext ctx) {
+        return AuthorizationFactory.newContexts(authConfig, ctx, request);
     }
 }

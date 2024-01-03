@@ -14,41 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.auth.rpchook;
 
+package org.apache.rocketmq.broker.auth.pipeline;
+
+import io.netty.channel.ChannelHandlerContext;
 import java.util.List;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.auth.authorization.AuthorizationEvaluator;
 import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
-import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
-public class AuthorizationRPCHook implements RPCHook {
+public class AuthorizationPipeline implements RequestPipeline {
 
     private final AuthConfig authConfig;
-
     private final AuthorizationEvaluator evaluator;
 
-    public AuthorizationRPCHook(AuthConfig authConfig) {
+    public AuthorizationPipeline(AuthConfig authConfig) {
         this.authConfig = authConfig;
         this.evaluator = AuthorizationFactory.getEvaluator(authConfig);
     }
 
     @Override
-    public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-        if (this.evaluator == null) {
+    public void execute(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+        if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
-        if (authConfig.isAuthorizationEnabled()) {
-            List<AuthorizationContext> contexts = AuthorizationFactory.newContexts(this.authConfig, request, remoteAddr);
-            this.evaluator.evaluate(contexts);
+
+        List<AuthorizationContext> contexts = newContexts(ctx, request);
+        if (CollectionUtils.isEmpty(contexts)) {
+            throw new AuthorizationException("the request api is null");
         }
+
+        evaluator.evaluate(contexts);
     }
 
-    @Override
-    public void doAfterResponse(String remoteAddr, RemotingCommand request,
-        RemotingCommand response) {
-
+    protected List<AuthorizationContext> newContexts(ChannelHandlerContext ctx, RemotingCommand request) {
+        return AuthorizationFactory.newContexts(authConfig, ctx, request);
     }
 }

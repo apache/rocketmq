@@ -49,8 +49,8 @@ import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.migration.AuthMigrator;
-import org.apache.rocketmq.broker.auth.rpchook.AuthenticationRPCHook;
-import org.apache.rocketmq.broker.auth.rpchook.AuthorizationRPCHook;
+import org.apache.rocketmq.broker.auth.pipeline.AuthenticationPipeline;
+import org.apache.rocketmq.broker.auth.pipeline.AuthorizationPipeline;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -142,6 +142,7 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
+import org.apache.rocketmq.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.BrokerSyncInfo;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
@@ -875,6 +876,8 @@ public class BrokerController {
 
             initialRpcHooks();
 
+            initialRequestPipeline();
+
             if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
                 // Register a listener to reload SslContext
                 try {
@@ -998,17 +1001,6 @@ public class BrokerController {
     }
 
     private void initialAcl() {
-        try {
-            if (this.authConfig.isAuthenticationEnabled()) {
-                this.registerServerRPCHook(new AuthenticationRPCHook(this.authConfig));
-            }
-            if (this.authConfig.isAuthorizationEnabled()) {
-                this.registerServerRPCHook(new AuthorizationRPCHook(this.authConfig));
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
         if (!this.brokerConfig.isAclEnable()) {
             LOG.info("The broker dose not enable acl");
             return;
@@ -1047,6 +1039,25 @@ public class BrokerController {
         }
         for (RPCHook rpcHook : rpcHooks) {
             this.registerServerRPCHook(rpcHook);
+        }
+    }
+
+    private void initialRequestPipeline() {
+        RequestPipeline pipeline = (ctx, request) -> {
+        };
+        // add pipeline
+        // the last pipe add will execute at the first
+        try {
+            if (this.authConfig.isAuthorizationEnabled()) {
+                pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig));
+            }
+            if (this.authConfig.isAuthenticationEnabled()) {
+                pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig))
+                    .pipe(new AuthenticationPipeline(authConfig));
+            }
+            this.setRequestPipeline(pipeline);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -2270,6 +2281,11 @@ public class BrokerController {
     public void registerServerRPCHook(RPCHook rpcHook) {
         getRemotingServer().registerRPCHook(rpcHook);
         this.fastRemotingServer.registerRPCHook(rpcHook);
+    }
+
+    public void setRequestPipeline(RequestPipeline pipeline) {
+        this.getRemotingServer().setRequestPipeline(pipeline);
+        this.fastRemotingServer.setRequestPipeline(pipeline);
     }
 
     public RemotingServer getRemotingServer() {
