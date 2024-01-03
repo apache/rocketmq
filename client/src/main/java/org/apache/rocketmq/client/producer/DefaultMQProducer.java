@@ -410,7 +410,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             return false;
         }
         // delay message do not support batch processing
-        if (msg.getDelayTimeLevel() > 0) {
+        if (msg.getDelayTimeLevel() > 0 || msg.getDelayTimeMs() > 0 || msg.getDelayTimeSec() > 0 || msg.getDeliverTimeMs() > 0) {
             return false;
         }
         // retry message do not support batch processing
