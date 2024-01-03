@@ -136,7 +136,7 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
     }
 
     @Override
-    public CompletableFuture<Void> deleteAcl(Subject subject, PolicyType policyType, List<Resource> resources) {
+    public CompletableFuture<Void> deleteAcl(Subject subject, PolicyType policyType, Resource resource) {
         CompletableFuture<Void> result = new CompletableFuture<>();
         try {
             if (subject == null) {
@@ -165,10 +165,10 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
                 }
                 return oldAcl;
             }).thenCompose(oldAcl -> {
-                if (CollectionUtils.isNotEmpty(resources)) {
-                    oldAcl.deletePolicy(finalPolicyType, resources);
+                if (resource != null) {
+                    oldAcl.deletePolicy(finalPolicyType, resource);
                 }
-                if (CollectionUtils.isEmpty(resources) || CollectionUtils.isEmpty(oldAcl.getPolicies())) {
+                if (resource == null || CollectionUtils.isEmpty(oldAcl.getPolicies())) {
                     return this.getAuthorizationMetadataProvider().deleteAcl(subject);
                 }
                 return this.getAuthorizationMetadataProvider().updateAcl(oldAcl);

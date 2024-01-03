@@ -69,12 +69,12 @@ public class Acl {
         });
     }
 
-    public void deletePolicy(PolicyType policyType, List<Resource> resources) {
+    public void deletePolicy(PolicyType policyType, Resource resource) {
         Policy policy = getPolicy(policyType);
         if (policy == null) {
             return;
         }
-        policy.deleteEntry(resources);
+        policy.deleteEntry(resource);
         if (CollectionUtils.isEmpty(policy.getEntries())) {
             this.policies.remove(policy);
         }

@@ -69,13 +69,11 @@ public class Policy {
         });
     }
 
-    public void deleteEntry(List<Resource> resources) {
-        resources.forEach(resource -> {
-            PolicyEntry entry = getEntry(resource);
-            if (entry != null) {
-                this.entries.remove(entry);
-            }
-        });
+    public void deleteEntry(Resource resources) {
+        PolicyEntry entry = getEntry(resources);
+        if (entry != null) {
+            this.entries.remove(entry);
+        }
     }
 
     private PolicyEntry getEntry(Resource resource) {

@@ -33,7 +33,7 @@ public interface AuthorizationMetadataManager {
 
     CompletableFuture<Void> deleteAcl(Subject subject);
 
-    CompletableFuture<Void> deleteAcl(Subject subject, PolicyType policyType, List<Resource> resources);
+    CompletableFuture<Void> deleteAcl(Subject subject, PolicyType policyType, Resource resource);
 
     CompletableFuture<Acl> getAcl(Subject subject);
 

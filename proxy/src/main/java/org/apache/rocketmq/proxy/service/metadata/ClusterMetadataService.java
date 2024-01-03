@@ -159,7 +159,7 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
     public CompletableFuture<Acl> getAcl(ProxyContext ctx, Subject subject) {
         CompletableFuture<Acl> result = new CompletableFuture<>();
         try {
-            Acl acl = this.aclCache.get(subject.toSubjectKey());
+            Acl acl = this.aclCache.get(subject.getSubjectKey());
             if (acl == EMPTY_ACL) {
                 acl = null;
             }

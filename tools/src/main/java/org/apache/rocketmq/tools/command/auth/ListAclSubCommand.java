@@ -23,6 +23,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -33,36 +34,37 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ListAclSubCommand implements SubCommand {
 
-    private static final String FORMAT = "%-16s  %-22s  %-22s  %-22s  %-22s  %-22s%n";
+    private static final String FORMAT = "%-16s  %-10s  %-22s  %-20s  %-24s  %-10s%n";
 
     @Override
     public String commandName() {
-        return "getAcl";
+        return "listAcl";
     }
 
     @Override
     public String commandDesc() {
-        return "Get acl from cluster.";
+        return "List acl from cluster.";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("b", "brokerAddr", true, "get acl for which broker.");
+        Option opt = new Option("b", "brokerAddr", true, "list acl for which broker.");
         optionGroup.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "get acl for specified cluster.");
+        opt = new Option("c", "clusterName", true, "list acl for specified cluster.");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
         options.addOptionGroup(optionGroup);
 
         opt = new Option("s", "subject", true, "the subject of acl to filter.");
-        opt.setRequired(true);
+        opt.setRequired(false);
         options.addOption(opt);
 
         opt = new Option("r", "resource", true, "the resource of acl to filter.");
+        opt.setRequired(false);
         options.addOption(opt);
 
         return options;
@@ -76,22 +78,20 @@ public class ListAclSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String subjectFilter = commandLine.getOptionValue('s').trim();
-            String resourceFilter = commandLine.getOptionValue('r').trim();
+            String subjectFilter = StringUtils.trim(commandLine.getOptionValue('s'));
+            String resourceFilter = StringUtils.trim(commandLine.getOptionValue('r'));
 
             if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b').trim();
+                String addr = StringUtils.trim(commandLine.getOptionValue('b'));
                 defaultMQAdminExt.start();
 
                 List<AclInfo> aclInfos = defaultMQAdminExt.listAcl(addr, subjectFilter, resourceFilter);
                 if (CollectionUtils.isNotEmpty(aclInfos)) {
                     printAcl(aclInfos);
                 }
-
                 return;
-
             } else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c').trim();
+                String clusterName = StringUtils.trim(commandLine.getOptionValue('c'));
 
                 defaultMQAdminExt.start();
 
@@ -106,7 +106,6 @@ public class ListAclSubCommand implements SubCommand {
                         printAcl(aclInfos);
                     }
                 }
-
                 return;
             }
 
@@ -119,9 +118,6 @@ public class ListAclSubCommand implements SubCommand {
     }
 
     private void printAcl(List<AclInfo> acls) {
-        if (CollectionUtils.isEmpty(acls)) {
-            return;
-        }
         System.out.printf(FORMAT, "#Subject", "#PolicyType", "#Resource", "#Actions", "#SourceIp", "#Decision");
         acls.forEach(acl -> {
             List<AclInfo.PolicyInfo> policyInfos = acl.getPolicies();
@@ -133,10 +129,8 @@ public class ListAclSubCommand implements SubCommand {
                 if (CollectionUtils.isEmpty(entries)) {
                     return;
                 }
-                entries.forEach(entry -> {
-                    System.out.printf(FORMAT, acl.getSubject(), policy.getPolicyType(), entry.getResource(),
-                        entry.getActions(), entry.getSourceIps(), entry.getDecision());
-                });
+                entries.forEach(entry -> System.out.printf(FORMAT, acl.getSubject(), policy.getPolicyType(), entry.getResource(),
+                    entry.getActions(), entry.getSourceIps(), entry.getDecision()));
             });
         });
     }

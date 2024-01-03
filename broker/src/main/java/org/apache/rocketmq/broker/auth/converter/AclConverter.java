@@ -88,7 +88,7 @@ public class AclConverter {
             return null;
         }
         AclInfo aclInfo = new AclInfo();
-        aclInfo.setSubject(acl.getSubject().toSubjectKey());
+        aclInfo.setSubject(acl.getSubject().getSubjectKey());
         if (CollectionUtils.isEmpty(acl.getPolicies())) {
             return aclInfo;
         }

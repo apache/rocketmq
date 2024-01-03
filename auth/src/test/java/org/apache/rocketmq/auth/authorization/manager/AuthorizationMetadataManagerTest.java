@@ -31,7 +31,6 @@ import org.apache.rocketmq.auth.authorization.model.Policy;
 import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
-import org.assertj.core.util.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -149,11 +148,11 @@ public class AuthorizationMetadataManagerTest {
             "192.168.0.0/24,10.10.0.0/24", Decision.GRANT);
         this.authorizationMetadataManager.createAcl(acl1).join();
 
-        this.authorizationMetadataManager.deleteAcl(Subject.of("User:test"), PolicyType.CUSTOM, Lists.newArrayList(Resource.ofTopic("abc"))).join();
+        this.authorizationMetadataManager.deleteAcl(Subject.of("User:test"), PolicyType.CUSTOM, Resource.ofTopic("abc")).join();
         Acl acl2 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
         Assert.assertTrue(AuthTestHelper.isEquals(acl1, acl2));
 
-        this.authorizationMetadataManager.deleteAcl(Subject.of("User:test"), PolicyType.CUSTOM, Lists.newArrayList(Resource.ofTopic("test"))).join();
+        this.authorizationMetadataManager.deleteAcl(Subject.of("User:test"), PolicyType.CUSTOM, Resource.ofTopic("test")).join();
         Acl acl3 = AuthTestHelper.buildAcl("User:test", "Group:test", "PUB,SUB",
             "192.168.0.0/24,10.10.0.0/24", Decision.GRANT);
         Acl acl4 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();

@@ -245,7 +245,7 @@ public class AuthTestHelper {
             return false;
         }
         return subject1.getSubjectType() == subject2.getSubjectType()
-            && StringUtils.equals(subject1.toSubjectKey(), subject2.toSubjectKey());
+            && StringUtils.equals(subject1.getSubjectKey(), subject2.getSubjectKey());
     }
 
     public static void handleException(Throwable e) {

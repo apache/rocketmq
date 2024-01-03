@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import java.util.List;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -31,20 +30,14 @@ public class DeleteAclRequestHeader implements CommandCustomHeader {
 
     private String policyType;
 
-    private List<String> resources;
+    private String resource;
 
     public DeleteAclRequestHeader() {
     }
 
-    public DeleteAclRequestHeader(String subject, List<String> resources) {
+    public DeleteAclRequestHeader(String subject, String resource) {
         this.subject = subject;
-        this.resources = resources;
-    }
-
-    public DeleteAclRequestHeader(String subject, String policyType, List<String> resources) {
-        this.subject = subject;
-        this.policyType = policyType;
-        this.resources = resources;
+        this.resource = resource;
     }
 
     @Override
@@ -68,11 +61,11 @@ public class DeleteAclRequestHeader implements CommandCustomHeader {
         this.policyType = policyType;
     }
 
-    public List<String> getResources() {
-        return resources;
+    public String getResource() {
+        return resource;
     }
 
-    public void setResources(List<String> resources) {
-        this.resources = resources;
+    public void setResource(String resource) {
+        this.resource = resource;
     }
 }

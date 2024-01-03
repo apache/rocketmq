@@ -498,7 +498,7 @@ public interface MQAdminExt extends MQAdmin {
 
     void updateAcl(String brokerAddr, AclInfo aclInfo);
 
-    void deleteAcl(String brokerAddr, String subject, List<String> resources) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+    void deleteAcl(String brokerAddr, String subject, String resource) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 
     AclInfo getAcl(String brokerAddr, String subject) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 

@@ -21,6 +21,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -44,7 +45,7 @@ public class UpdateUserSubCommand implements SubCommand {
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("c", "clusterName", true, "update acl config file to which cluster");
+        Option opt = new Option("c", "clusterName", true, "update user to which cluster");
         optionGroup.addOption(opt);
 
         opt = new Option("b", "brokerAddr", true, "update user to which broker");
@@ -81,10 +82,10 @@ public class UpdateUserSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String username = commandLine.getOptionValue('u').trim();
-            String password = commandLine.getOptionValue('p').trim();
-            String userType = commandLine.getOptionValue('t').trim();
-            String userStatus = commandLine.getOptionValue('s').trim();
+            String username = StringUtils.trim(commandLine.getOptionValue('u'));
+            String password = StringUtils.trim(commandLine.getOptionValue('p'));
+            String userType = StringUtils.trim(commandLine.getOptionValue('t'));
+            String userStatus = StringUtils.trim(commandLine.getOptionValue('s'));
 
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
@@ -94,7 +95,6 @@ public class UpdateUserSubCommand implements SubCommand {
 
                 System.out.printf("update user to %s success.%n", addr);
                 return;
-
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
 
@@ -105,7 +105,6 @@ public class UpdateUserSubCommand implements SubCommand {
                     defaultMQAdminExt.updateUser(addr, username, password, userType, userStatus);
                     System.out.printf("update user to %s success.%n", addr);
                 }
-
                 return;
             }
 

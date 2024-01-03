@@ -76,11 +76,11 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
     public CompletableFuture<Void> createAcl(Acl acl) {
         try {
             Subject subject = acl.getSubject();
-            byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
+            byte[] keyBytes = subject.getSubjectKey().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(acl);
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
             this.storage.flushWAL();
-            this.aclCache.invalidate(subject.toSubjectKey());
+            this.aclCache.invalidate(subject.getSubjectKey());
         } catch (Exception e) {
             throw new AuthorizationException("create Acl to RocksDB failed", e);
         }
@@ -90,10 +90,10 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
     @Override
     public CompletableFuture<Void> deleteAcl(Subject subject) {
         try {
-            byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
+            byte[] keyBytes = subject.getSubjectKey().getBytes(StandardCharsets.UTF_8);
             this.storage.delete(keyBytes);
             this.storage.flushWAL();
-            this.aclCache.invalidate(subject.toSubjectKey());
+            this.aclCache.invalidate(subject.getSubjectKey());
         } catch (Exception e) {
             throw new AuthorizationException("delete Acl from RocksDB failed", e);
         }
@@ -104,11 +104,11 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
     public CompletableFuture<Void> updateAcl(Acl acl) {
         try {
             Subject subject = acl.getSubject();
-            byte[] keyBytes = subject.toSubjectKey().getBytes(StandardCharsets.UTF_8);
+            byte[] keyBytes = subject.getSubjectKey().getBytes(StandardCharsets.UTF_8);
             byte[] valueBytes = JSON.toJSONBytes(acl);
             this.storage.put(keyBytes, keyBytes.length, valueBytes);
             this.storage.flushWAL();
-            this.aclCache.invalidate(subject.toSubjectKey());
+            this.aclCache.invalidate(subject.getSubjectKey());
         } catch (Exception e) {
             throw new AuthorizationException("update Acl to RocksDB failed", e);
         }
@@ -117,7 +117,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
 
     @Override
     public CompletableFuture<Acl> getAcl(Subject subject) {
-        Acl acl = aclCache.get(subject.toSubjectKey());
+        Acl acl = aclCache.get(subject.getSubjectKey());
         if (acl == AclCacheLoader.EMPTY_ACL) {
             return CompletableFuture.completedFuture(null);
         }
@@ -190,7 +190,8 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                 if (ArrayUtils.isEmpty(valueBytes)) {
                     return EMPTY_ACL;
                 }
-                return JSON.parseObject(new String(valueBytes, StandardCharsets.UTF_8), Acl.class);
+                Acl acl = JSON.parseObject(valueBytes, Acl.class);
+                return Acl.of(subject, acl.getPolicies());
             } catch (Exception e) {
                 throw new AuthorizationException("get Acl from RocksDB failed", e);
             }

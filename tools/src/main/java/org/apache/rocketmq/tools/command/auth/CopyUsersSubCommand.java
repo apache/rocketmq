@@ -53,7 +53,7 @@ public class CopyUsersSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("u", "username", true, "the username of user to copy.");
+        opt = new Option("u", "usernames", true, "the username list of user to copy.");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -68,35 +68,39 @@ public class CopyUsersSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String sourceBroker = StringUtils.trim(commandLine.getOptionValue("f"));
-            String targetBroker = StringUtils.trim(commandLine.getOptionValue("t"));
-            String usernames = StringUtils.trim(commandLine.getOptionValue('u'));
+            if (commandLine.hasOption("f") && commandLine.hasOption("t")) {
+                String sourceBroker = StringUtils.trim(commandLine.getOptionValue("f"));
+                String targetBroker = StringUtils.trim(commandLine.getOptionValue("t"));
+                String usernames = StringUtils.trim(commandLine.getOptionValue('u'));
 
-            defaultMQAdminExt.start();
+                defaultMQAdminExt.start();
 
-            List<UserInfo> userInfos = new ArrayList<>();
-            if (StringUtils.isNotBlank(usernames)) {
-                for (String username : StringUtils.split(usernames, ",")) {
-                    UserInfo userInfo = defaultMQAdminExt.getUser(sourceBroker, username);
-                    if (userInfo != null) {
-                        userInfos.add(userInfo);
+                List<UserInfo> userInfos = new ArrayList<>();
+                if (StringUtils.isNotBlank(usernames)) {
+                    for (String username : StringUtils.split(usernames, ",")) {
+                        UserInfo userInfo = defaultMQAdminExt.getUser(sourceBroker, username);
+                        if (userInfo != null) {
+                            userInfos.add(userInfo);
+                        }
                     }
-                }
-            } else {
-                userInfos = defaultMQAdminExt.listUser(sourceBroker, null);
-            }
-
-            if (CollectionUtils.isEmpty(userInfos)) {
-                return;
-            }
-
-            for (UserInfo userInfo : userInfos) {
-                if (defaultMQAdminExt.getUser(targetBroker, userInfo.getUsername()) == null) {
-                    defaultMQAdminExt.createUser(targetBroker, userInfo);
                 } else {
-                    defaultMQAdminExt.updateUser(targetBroker, userInfo);
+                    userInfos = defaultMQAdminExt.listUser(sourceBroker, null);
                 }
-                System.out.printf("copy user of %s from %s to %s success.%n", userInfo.getUsername(), sourceBroker, targetBroker);
+
+                if (CollectionUtils.isEmpty(userInfos)) {
+                    return;
+                }
+
+                for (UserInfo userInfo : userInfos) {
+                    if (defaultMQAdminExt.getUser(targetBroker, userInfo.getUsername()) == null) {
+                        defaultMQAdminExt.createUser(targetBroker, userInfo);
+                    } else {
+                        defaultMQAdminExt.updateUser(targetBroker, userInfo);
+                    }
+                    System.out.printf("copy user of %s from %s to %s success.%n", userInfo.getUsername(), sourceBroker, targetBroker);
+                }
+
+                return;
             }
 
             ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);

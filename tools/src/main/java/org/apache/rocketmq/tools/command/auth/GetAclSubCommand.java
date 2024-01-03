@@ -23,6 +23,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -33,7 +34,7 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class GetAclSubCommand implements SubCommand {
 
-    private static final String FORMAT = "%-16s  %-22s  %-22s  %-22s  %-22s  %-22s%n";
+    private static final String FORMAT = "%-16s  %-10s  %-22s  %-20s  %-24s  %-10s%n";
 
     @Override
     public String commandName() {
@@ -72,21 +73,19 @@ public class GetAclSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String subject = commandLine.getOptionValue('s').trim();
+            String subject = StringUtils.trim(commandLine.getOptionValue('s'));
 
             if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b').trim();
+                String addr = StringUtils.trim(commandLine.getOptionValue('b'));
                 defaultMQAdminExt.start();
 
                 AclInfo aclInfo = defaultMQAdminExt.getAcl(addr, subject);
                 if (aclInfo != null) {
                     printAcl(aclInfo);
                 }
-
                 return;
-
             } else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c').trim();
+                String clusterName = StringUtils.trim(commandLine.getOptionValue('c'));
 
                 defaultMQAdminExt.start();
 
@@ -101,7 +100,6 @@ public class GetAclSubCommand implements SubCommand {
                         printAcl(aclInfo);
                     }
                 }
-
                 return;
             }
 

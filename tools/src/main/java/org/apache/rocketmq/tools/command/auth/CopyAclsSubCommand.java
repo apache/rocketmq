@@ -53,7 +53,7 @@ public class CopyAclsSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("s", "subject", true, "the subject of acl to copy.");
+        opt = new Option("s", "subjects", true, "the subject list of acl to copy.");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -68,35 +68,39 @@ public class CopyAclsSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String sourceBroker = StringUtils.trim(commandLine.getOptionValue("f"));
-            String targetBroker = StringUtils.trim(commandLine.getOptionValue("t"));
-            String subjects = StringUtils.trim(commandLine.getOptionValue('s'));
+            if (commandLine.hasOption("f") && commandLine.hasOption("t")) {
+                String sourceBroker = StringUtils.trim(commandLine.getOptionValue("f"));
+                String targetBroker = StringUtils.trim(commandLine.getOptionValue("t"));
+                String subjects = StringUtils.trim(commandLine.getOptionValue('s'));
 
-            defaultMQAdminExt.start();
+                defaultMQAdminExt.start();
 
-            List<AclInfo> aclInfos = new ArrayList<>();
-            if (StringUtils.isNotBlank(subjects)) {
-                for (String subject : StringUtils.split(subjects, ",")) {
-                    AclInfo aclInfo = defaultMQAdminExt.getAcl(sourceBroker, subject);
-                    if (aclInfo != null) {
-                        aclInfos.add(aclInfo);
+                List<AclInfo> aclInfos = new ArrayList<>();
+                if (StringUtils.isNotBlank(subjects)) {
+                    for (String subject : StringUtils.split(subjects, ",")) {
+                        AclInfo aclInfo = defaultMQAdminExt.getAcl(sourceBroker, subject);
+                        if (aclInfo != null) {
+                            aclInfos.add(aclInfo);
+                        }
                     }
-                }
-            } else {
-                aclInfos = defaultMQAdminExt.listAcl(sourceBroker, null, null);
-            }
-
-            if (CollectionUtils.isEmpty(aclInfos)) {
-                return;
-            }
-
-            for (AclInfo aclInfo : aclInfos) {
-                if (defaultMQAdminExt.getAcl(targetBroker, aclInfo.getSubject()) == null) {
-                    defaultMQAdminExt.createAcl(targetBroker, aclInfo);
                 } else {
-                    defaultMQAdminExt.updateAcl(targetBroker, aclInfo);
+                    aclInfos = defaultMQAdminExt.listAcl(sourceBroker, null, null);
                 }
-                System.out.printf("copy acl of %s from %s to %s success.%n", aclInfo.getSubject(), sourceBroker, targetBroker);
+
+                if (CollectionUtils.isEmpty(aclInfos)) {
+                    return;
+                }
+
+                for (AclInfo aclInfo : aclInfos) {
+                    if (defaultMQAdminExt.getAcl(targetBroker, aclInfo.getSubject()) == null) {
+                        defaultMQAdminExt.createAcl(targetBroker, aclInfo);
+                    } else {
+                        defaultMQAdminExt.updateAcl(targetBroker, aclInfo);
+                    }
+                    System.out.printf("copy acl of %s from %s to %s success.%n", aclInfo.getSubject(), sourceBroker, targetBroker);
+                }
+
+                return;
             }
 
             ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);

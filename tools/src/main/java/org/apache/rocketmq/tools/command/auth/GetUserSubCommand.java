@@ -22,6 +22,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -32,7 +33,7 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class GetUserSubCommand implements SubCommand {
 
-    private static final String FORMAT = "%-16s  %-22s  %-22s%n";
+    private static final String FORMAT = "%-16s  %-22s  %-22s  %-22s%n";
 
     @Override
     public String commandName() {
@@ -58,6 +59,7 @@ public class GetUserSubCommand implements SubCommand {
         options.addOptionGroup(optionGroup);
 
         opt = new Option("u", "username", true, "the username of user to get");
+        opt.setRequired(false);
         options.addOption(opt);
 
         return options;
@@ -71,21 +73,19 @@ public class GetUserSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String username = commandLine.getOptionValue('u').trim();
+            String username = StringUtils.trim(commandLine.getOptionValue('u'));
 
             if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b').trim();
+                String addr = StringUtils.trim(commandLine.getOptionValue('b'));
                 defaultMQAdminExt.start();
 
                 UserInfo userInfo = defaultMQAdminExt.getUser(addr, username);
                 if (userInfo != null) {
                     printUser(userInfo);
                 }
-
                 return;
-
             } else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c').trim();
+                String clusterName = StringUtils.trim(commandLine.getOptionValue('c'));
 
                 defaultMQAdminExt.start();
 
@@ -101,7 +101,6 @@ public class GetUserSubCommand implements SubCommand {
                         break;
                     }
                 }
-
                 return;
             }
 
@@ -117,7 +116,7 @@ public class GetUserSubCommand implements SubCommand {
         if (user == null) {
             return;
         }
-        System.out.printf(FORMAT, "#UserName", "#Password", "#UserType");
-        System.out.printf(FORMAT, user.getUsername(), user.getPassword(), user.getUserType());
+        System.out.printf(FORMAT, "#UserName", "#Password", "#UserType", "#UserStatus");
+        System.out.printf(FORMAT, user.getUsername(), user.getPassword(), user.getUserType(), user.getUserStatus());
     }
 }

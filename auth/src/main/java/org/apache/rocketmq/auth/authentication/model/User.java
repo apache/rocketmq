@@ -53,7 +53,7 @@ public class User implements Subject {
     }
 
     @Override
-    public String toSubjectKey() {
+    public String getSubjectKey() {
         return this.getSubjectType().getName() + CommonConstants.COLON + this.username;
     }
 

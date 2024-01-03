@@ -22,7 +22,7 @@ import org.apache.rocketmq.common.constant.CommonConstants;
 
 public interface Subject {
 
-    String toSubjectKey();
+    String getSubjectKey();
 
     SubjectType getSubjectType();
 

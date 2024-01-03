@@ -23,6 +23,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -33,32 +34,33 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ListUserSubCommand implements SubCommand {
 
-    private static final String FORMAT = "%-16s  %-22s  %-22s%n";
+    private static final String FORMAT = "%-16s  %-22s  %-22s  %-22s%n";
 
     @Override
     public String commandName() {
-        return "getUser";
+        return "listUser";
     }
 
     @Override
     public String commandDesc() {
-        return "Get user from cluster.";
+        return "List user from cluster.";
     }
 
     @Override
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("b", "brokerAddr", true, "get user for which broker");
+        Option opt = new Option("b", "brokerAddr", true, "list user for which broker");
         optionGroup.addOption(opt);
 
-        opt = new Option("c", "clusterName", true, "get user for specified cluster");
+        opt = new Option("c", "clusterName", true, "list user for specified cluster");
         optionGroup.addOption(opt);
 
         optionGroup.setRequired(true);
         options.addOptionGroup(optionGroup);
 
         opt = new Option("f", "filter", true, "the filter to list users");
+        opt.setRequired(false);
         options.addOption(opt);
 
         return options;
@@ -72,21 +74,19 @@ public class ListUserSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String filter = commandLine.getOptionValue('f').trim();
+            String filter = StringUtils.trim(commandLine.getOptionValue('f'));
 
             if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b').trim();
+                String addr = StringUtils.trim(commandLine.getOptionValue('b'));
                 defaultMQAdminExt.start();
 
                 List<UserInfo> userInfos = defaultMQAdminExt.listUser(addr, filter);
-                if (CollectionUtils.isEmpty(userInfos)) {
+                if (CollectionUtils.isNotEmpty(userInfos)) {
                     printUsers(userInfos);
                 }
-
                 return;
-
             } else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c').trim();
+                String clusterName = StringUtils.trim(commandLine.getOptionValue('c'));
 
                 defaultMQAdminExt.start();
 
@@ -97,13 +97,12 @@ public class ListUserSubCommand implements SubCommand {
                 }
                 for (String masterAddr : masterSet) {
                     List<UserInfo> userInfos = defaultMQAdminExt.listUser(masterAddr, filter);
-                    if (CollectionUtils.isEmpty(userInfos)) {
+                    if (CollectionUtils.isNotEmpty(userInfos)) {
                         printUsers(userInfos);
                         System.out.printf("get user from %s success.%n", masterAddr);
                         break;
                     }
                 }
-
                 return;
             }
 
@@ -116,10 +115,7 @@ public class ListUserSubCommand implements SubCommand {
     }
 
     private void printUsers(List<UserInfo> users) {
-        if (CollectionUtils.isEmpty(users)) {
-            return;
-        }
-        System.out.printf(FORMAT, "#UserName", "#Password", "#UserType");
-        users.forEach(user -> System.out.printf(FORMAT, user.getUsername(), user.getPassword(), user.getUserType()));
+        System.out.printf(FORMAT, "#UserName", "#Password", "#UserType", "#UserStatus");
+        users.forEach(user -> System.out.printf(FORMAT, user.getUsername(), user.getPassword(), user.getUserType(), user.getUserStatus()));
     }
 }

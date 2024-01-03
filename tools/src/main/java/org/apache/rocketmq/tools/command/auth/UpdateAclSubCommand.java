@@ -19,13 +19,13 @@ package org.apache.rocketmq.tools.command.auth;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -48,7 +48,7 @@ public class UpdateAclSubCommand implements SubCommand {
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("c", "clusterName", true, "update acl config file to which cluster");
+        Option opt = new Option("c", "clusterName", true, "update acl to which cluster");
         optionGroup.addOption(opt);
 
         opt = new Option("b", "brokerAddr", true, "update acl to which broker");
@@ -74,6 +74,7 @@ public class UpdateAclSubCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("i", "sourceIp", true, "the sourceIps of acl to update");
+        opt.setRequired(false);
         options.addOption(opt);
 
         return options;
@@ -87,28 +88,43 @@ public class UpdateAclSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            UpdateAclRequestHeader requestHeader = new UpdateAclRequestHeader();
-            String subject = commandLine.getOptionValue('s').trim();
-            List<String> resources = Arrays.asList(commandLine.getOptionValue('r').trim().split("[;,]"));
-            List<String> actions = Arrays.asList(commandLine.getOptionValue('a').trim().split("[;,]"));
-            List<String> sourceIps = null;
-            if (StringUtils.isNotBlank(commandLine.getOptionValue('i'))) {
-                sourceIps = Arrays.asList(commandLine.getOptionValue('i').trim().split("[;,]"));
+            String subject = null;
+            if (commandLine.hasOption('s')) {
+                subject = StringUtils.trim(commandLine.getOptionValue('s'));
             }
-            String decision = commandLine.getOptionValue('d').trim();
+            List<String> resources = null;
+            if (commandLine.hasOption('r')) {
+                resources = Arrays.stream(StringUtils.split(commandLine.getOptionValue('r'), ','))
+                    .map(StringUtils::trim).collect(Collectors.toList());
+            }
+            List<String> actions = null;
+            if (commandLine.hasOption('a')) {
+                actions = Arrays.stream(StringUtils.split(commandLine.getOptionValue('a'), ','))
+                    .map(StringUtils::trim).collect(Collectors.toList());
+            }
+
+            List<String> sourceIps = null;
+            if (commandLine.hasOption('i')) {
+                sourceIps = Arrays.stream(StringUtils.split(commandLine.getOptionValue('i'), ','))
+                    .map(StringUtils::trim).collect(Collectors.toList());
+            }
+
+            String decision = null;
+            if (commandLine.hasOption('d')) {
+                decision = StringUtils.trim(commandLine.getOptionValue('d'));
+            }
 
             if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b').trim();
+                String addr = StringUtils.trim(commandLine.getOptionValue('b'));
 
                 defaultMQAdminExt.start();
                 defaultMQAdminExt.updateAcl(addr, subject, resources, actions, sourceIps, decision);
 
                 System.out.printf("update acl to %s success.%n", addr);
-                System.out.printf("%s", requestHeader);
                 return;
 
             } else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c').trim();
+                String clusterName = StringUtils.trim(commandLine.getOptionValue('c'));
 
                 defaultMQAdminExt.start();
                 Set<String> brokerAddrSet =
@@ -117,8 +133,6 @@ public class UpdateAclSubCommand implements SubCommand {
                     defaultMQAdminExt.updateAcl(addr, subject, resources, actions, sourceIps, decision);
                     System.out.printf("update acl to %s success.%n", addr);
                 }
-
-                System.out.printf("%s", requestHeader);
                 return;
             }
 

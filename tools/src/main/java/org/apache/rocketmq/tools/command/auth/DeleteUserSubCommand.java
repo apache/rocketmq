@@ -21,6 +21,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -44,7 +45,7 @@ public class DeleteUserSubCommand implements SubCommand {
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("c", "clusterName", true, "delete acl config file from which cluster");
+        Option opt = new Option("c", "clusterName", true, "delete acl from which cluster");
         optionGroup.addOption(opt);
 
         opt = new Option("b", "brokerAddr", true, "delete user from which broker");
@@ -68,19 +69,18 @@ public class DeleteUserSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            String username = commandLine.getOptionValue('u').trim();
+            String username = StringUtils.trim(commandLine.getOptionValue('u'));
 
             if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b').trim();
+                String addr = StringUtils.trim(commandLine.getOptionValue('b'));
 
                 defaultMQAdminExt.start();
                 defaultMQAdminExt.deleteUser(addr, username);
 
                 System.out.printf("delete user to %s success.%n", addr);
                 return;
-
             } else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c').trim();
+                String clusterName = StringUtils.trim(commandLine.getOptionValue('c'));
 
                 defaultMQAdminExt.start();
                 Set<String> brokerAddrSet =
@@ -89,7 +89,6 @@ public class DeleteUserSubCommand implements SubCommand {
                     defaultMQAdminExt.deleteUser(addr, username);
                     System.out.printf("delete user to %s success.%n", addr);
                 }
-
                 return;
             }
 

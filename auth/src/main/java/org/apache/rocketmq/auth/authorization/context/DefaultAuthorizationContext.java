@@ -52,7 +52,7 @@ public class DefaultAuthorizationContext extends AuthorizationContext {
     }
 
     public String getSubjectKey() {
-        return this.subject != null ? this.subject.toSubjectKey() : null;
+        return this.subject != null ? this.subject.getSubjectKey() : null;
     }
 
     public Subject getSubject() {

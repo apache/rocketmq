@@ -31,19 +31,7 @@ public enum ResourceType {
 
     TOPIC((byte) 4, "Topic"),
 
-    GROUP((byte) 5, "Group"),
-
-    /**
-     * Only support resource with prefix, such as Topic:test
-     */
-    Resource((byte) 6, "Resource"),
-
-    /**
-     * Only support subject with prefix, such as User:test
-     */
-    Subject((byte) 7, "Subject"),
-
-    USER((byte) 8, "User");
+    GROUP((byte) 5, "Group");
 
     @JSONField(value = true)
     private final byte code;

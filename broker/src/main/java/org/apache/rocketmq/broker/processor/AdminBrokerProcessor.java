@@ -3037,9 +3037,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         PolicyType policyType = PolicyType.getByName(requestHeader.getPolicyType());
 
-        List<Resource> resources = Resource.of(requestHeader.getResources());
+        Resource resource = Resource.of(requestHeader.getResource());
 
-        this.brokerController.getAuthorizationMetadataManager().deleteAcl(subject, policyType, resources)
+        this.brokerController.getAuthorizationMetadataManager().deleteAcl(subject, policyType, resource)
             .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
             .exceptionally(ex -> {
                 LOGGER.error("delete acl for {} error", requestHeader.getSubject(), ex);
@@ -3130,7 +3130,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setRemark(throwable.getMessage());
         } else {
             response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("An system error occurred, please have a check.");
+            response.setRemark("An system error occurred, please try again later.");
+            LOGGER.error("An system error occurred when processing auth admin request.", ex);
         }
         return null;
     }

@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.auth;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -25,7 +23,6 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.protocol.header.DeleteAclRequestHeader;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -48,7 +45,7 @@ public class DeleteAclSubCommand implements SubCommand {
     public Options buildCommandlineOptions(Options options) {
         OptionGroup optionGroup = new OptionGroup();
 
-        Option opt = new Option("c", "clusterName", true, "delete acl config file from which cluster");
+        Option opt = new Option("c", "clusterName", true, "delete acl from which cluster");
         optionGroup.addOption(opt);
 
         opt = new Option("b", "brokerAddr", true, "delete acl from which broker");
@@ -62,6 +59,7 @@ public class DeleteAclSubCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("r", "resources", true, "the resources of acl to delete");
+        opt.setRequired(false);
         options.addOption(opt);
 
         return options;
@@ -75,35 +73,33 @@ public class DeleteAclSubCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
         try {
-            DeleteAclRequestHeader requestHeader = new DeleteAclRequestHeader();
-            String subject = commandLine.getOptionValue('s').trim();
-            List<String> resources = null;
-            if (StringUtils.isNotBlank(commandLine.getOptionValue('r'))) {
-                resources = Arrays.asList(commandLine.getOptionValue('r').trim().split("[;,]"));
+            String subject = null;
+            if (commandLine.hasOption("s")) {
+                subject = StringUtils.trim(commandLine.getOptionValue("s"));
+            }
+            String resource = null;
+            if (commandLine.hasOption('r')) {
+                resource = StringUtils.trim(commandLine.getOptionValue("r"));
             }
 
             if (commandLine.hasOption('b')) {
-                String addr = commandLine.getOptionValue('b').trim();
+                String addr = StringUtils.trim(commandLine.getOptionValue('b'));
 
                 defaultMQAdminExt.start();
-                defaultMQAdminExt.deleteAcl(addr, subject, resources);
+                defaultMQAdminExt.deleteAcl(addr, subject, resource);
 
                 System.out.printf("delete acl to %s success.%n", addr);
-                System.out.printf("%s", requestHeader);
                 return;
-
             } else if (commandLine.hasOption('c')) {
-                String clusterName = commandLine.getOptionValue('c').trim();
+                String clusterName = StringUtils.trim(commandLine.getOptionValue('c'));
 
                 defaultMQAdminExt.start();
                 Set<String> brokerAddrSet =
                     CommandUtil.fetchMasterAndSlaveAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : brokerAddrSet) {
-                    defaultMQAdminExt.deleteAcl(addr, subject, resources);
+                    defaultMQAdminExt.deleteAcl(addr, subject, resource);
                     System.out.printf("delete acl to %s success.%n", addr);
                 }
-
-                System.out.printf("%s", requestHeader);
                 return;
             }
 

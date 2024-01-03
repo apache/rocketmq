@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.auth.converter;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.rocketmq.auth.authentication.enums.UserStatus;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
@@ -36,6 +37,9 @@ public class UserConverter {
         if (user.getUserType() != null) {
             result.setUserType(user.getUserType().getName());
         }
+        if (user.getUserStatus() != null) {
+            result.setUserStatus(user.getUserStatus().getName());
+        }
         return result;
     }
 
@@ -44,6 +48,7 @@ public class UserConverter {
         result.setUsername(userInfo.getUsername());
         result.setPassword(userInfo.getPassword());
         result.setUserType(UserType.getByName(userInfo.getUserType()));
+        result.setUserStatus(UserStatus.getByName(userInfo.getUserStatus()));
         return result;
     }
 }
