@@ -34,10 +34,14 @@ import org.apache.rocketmq.auth.authentication.context.DefaultAuthenticationCont
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class DefaultAuthenticationContextBuilder implements AuthenticationContextBuilder<DefaultAuthenticationContext> {
+
+    private static final String CREDENTIAL = "Credential";
+    private static final String SIGNATURE = "Signature";
 
     @Override
     public DefaultAuthenticationContext build(Metadata metadata, GeneratedMessageV3 request) {
@@ -53,20 +57,20 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
                 throw new AuthenticationException("datetime is null");
             }
 
-            String[] result = authorization.split(" ", 2);
+            String[] result = authorization.split(CommonConstants.SPACE, 2);
             if (result.length != 2) {
                 throw new AuthenticationException("authentication header is incorrect");
             }
-            String[] keyValues = result[1].split(",");
+            String[] keyValues = result[1].split(CommonConstants.COMMA);
             for (String keyValue : keyValues) {
-                String[] kv = keyValue.trim().split("=", 2);
+                String[] kv = keyValue.trim().split(CommonConstants.EQUAL, 2);
                 int kvLength = kv.length;
                 if (kv.length != 2) {
                     throw new AuthenticationException("authentication keyValues length is incorrect, actual length=" + kvLength);
                 }
                 String authItem = kv[0];
-                if ("Credential".equals(authItem)) {
-                    String[] credential = kv[1].split("/");
+                if (CREDENTIAL.equals(authItem)) {
+                    String[] credential = kv[1].split(CommonConstants.SLASH);
                     int credentialActualLength = credential.length;
                     if (credentialActualLength == 0) {
                         throw new AuthenticationException("authentication credential length is incorrect, actual length=" + credentialActualLength);
@@ -74,7 +78,7 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
                     context.setUsername(credential[0]);
                     continue;
                 }
-                if ("Signature".equals(authItem)) {
+                if (SIGNATURE.equals(authItem)) {
                     context.setSignature(this.hexToBase64(kv[1]));
                 }
             }

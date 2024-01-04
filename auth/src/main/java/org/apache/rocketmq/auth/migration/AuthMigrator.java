@@ -41,6 +41,7 @@ import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.resource.ResourcePattern;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -117,7 +118,7 @@ public class AuthMigrator {
         Policy customPolicy = null;
         if (CollectionUtils.isNotEmpty(config.getTopicPerms())) {
             for (String topicPerm : config.getTopicPerms()) {
-                String[] temp = StringUtils.split(topicPerm, "=");
+                String[] temp = StringUtils.split(topicPerm, CommonConstants.EQUAL);
                 if (temp.length != 2) {
                     continue;
                 }
@@ -135,7 +136,7 @@ public class AuthMigrator {
         }
         if (CollectionUtils.isNotEmpty(config.getGroupPerms())) {
             for (String groupPerm : config.getGroupPerms()) {
-                String[] temp = StringUtils.split(groupPerm, "=");
+                String[] temp = StringUtils.split(groupPerm, CommonConstants.EQUAL);
                 if (temp.length != 2) {
                     continue;
                 }

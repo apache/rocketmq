@@ -52,6 +52,7 @@ import org.apache.rocketmq.auth.authorization.model.Resource;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.common.resource.ResourcePattern;
 import org.apache.rocketmq.common.resource.ResourceType;
@@ -150,7 +151,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
             HashMap<String, String> fields = command.getExtFields();
             Subject subject = User.of(fields.get(SessionCredentials.ACCESS_KEY));
             String remoteAddr = RemotingHelper.parseChannelRemoteAddr(context.channel());
-            String sourceIp = StringUtils.substringBefore(remoteAddr, ":");
+            String sourceIp = StringUtils.substringBefore(remoteAddr, CommonConstants.COLON);
 
             Resource topic;
             Resource group;
