@@ -1969,12 +1969,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public void updateAcl(String brokerAddr, String subject, List<String> resources, List<String> actions,
         List<String> sourceIps, String decision) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         AclInfo aclInfo = AclInfo.of(subject, resources, actions, sourceIps, decision);
-        this.mqClientInstance.getMQClientAPIImpl().updateAcl(brokerAddr, aclInfo, timeoutMillis);
+        this.updateAcl(brokerAddr, aclInfo);
     }
 
     @Override
-    public void updateAcl(String brokerAddr, AclInfo aclInfo) {
-
+    public void updateAcl(String brokerAddr, AclInfo aclInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        this.mqClientInstance.getMQClientAPIImpl().updateAcl(brokerAddr, aclInfo, timeoutMillis);
     }
 
     @Override

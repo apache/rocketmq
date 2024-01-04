@@ -917,7 +917,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public void updateAcl(String brokerAddr, AclInfo aclInfo) {
+    public void updateAcl(String brokerAddr, AclInfo aclInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         defaultMQAdminExtImpl.updateAcl(brokerAddr, aclInfo);
     }
 
