@@ -91,6 +91,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     protected volatile long storeTimestamp = 0;
     protected boolean firstCreateInQueue = false;
     private long lastFlushTime = -1L;
+    private AtomicLong activeAccessTs = new AtomicLong(0);
 
     protected MappedByteBuffer mappedByteBufferWaitToClean = null;
     protected long swapMapTime = 0L;
@@ -162,6 +163,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         boolean ok = false;
 
         UtilAll.ensureDirOK(this.file.getParent());
+        this.activeAccessTs.set(0);
 
         try {
             this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
@@ -205,6 +207,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         int readPosition = getReadPosition();
         if ((pos + size) <= readPosition) {
+            this.activeAccessTs.set(System.currentTimeMillis());
 
             if (this.hold()) {
                 try {
@@ -363,6 +366,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public int flush(final int flushLeastPages) {
         if (this.isAbleToFlush(flushLeastPages)) {
+            this.activeAccessTs.set(System.currentTimeMillis());
             if (this.hold()) {
                 int value = getReadPosition();
 
@@ -396,7 +400,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
             //no need to commit data to file channel, so just regard wrotePosition as committedPosition.
             return WROTE_POSITION_UPDATER.get(this);
         }
-
+        this.activeAccessTs.set(System.currentTimeMillis());
         //no need to commit data to file channel, so just set committedPosition to wrotePosition.
         if (transientStorePool != null && !transientStorePool.isRealCommit()) {
             COMMITTED_POSITION_UPDATER.set(this, WROTE_POSITION_UPDATER.get(this));
@@ -485,6 +489,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     public SelectMappedBufferResult selectMappedBuffer(int pos, int size) {
         int readPosition = getReadPosition();
         if ((pos + size) <= readPosition) {
+            this.activeAccessTs.set(System.currentTimeMillis());
             if (this.hold()) {
                 this.mappedByteBufferAccessCountSinceLastSwap++;
 
@@ -509,6 +514,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     public SelectMappedBufferResult selectMappedBuffer(int pos) {
         int readPosition = getReadPosition();
         if (pos < readPosition && pos >= 0) {
+            this.activeAccessTs.set(System.currentTimeMillis());
             if (this.hold()) {
                 this.mappedByteBufferAccessCountSinceLastSwap++;
                 ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
@@ -548,6 +554,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     @Override
     public boolean destroy(final long intervalForcibly) {
+        this.activeAccessTs.set(System.currentTimeMillis());
         this.shutdown(intervalForcibly);
 
         if (this.isCleanupOver()) {
@@ -601,6 +608,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
     @Override
     public void warmMappedFile(FlushDiskType type, int pages) {
+        this.activeAccessTs.set(System.currentTimeMillis());
         this.mappedByteBufferAccessCountSinceLastSwap++;
 
         long beginTime = System.currentTimeMillis();
@@ -736,6 +744,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public void mlock() {
         final long beginTime = System.currentTimeMillis();
+        this.activeAccessTs.set(beginTime);
         final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
         Pointer pointer = new Pointer(address);
         {
@@ -752,10 +761,82 @@ public class DefaultMappedFile extends AbstractMappedFile {
     @Override
     public void munlock() {
         final long beginTime = System.currentTimeMillis();
+        this.activeAccessTs.set(beginTime);
         final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
         Pointer pointer = new Pointer(address);
         int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
+    }
+
+    private boolean doRemmap() {
+        log.info("cleanup done, try reopen inactive mmap file {} , last active {}, total mmapped {}, refcount {} ",
+                fileName,
+                activeAccessTs.get(),
+                getTotalMappedFiles(), getRefCount());
+        try {
+            this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);
+            TOTAL_MAPPED_VIRTUAL_MEMORY.addAndGet(fileSize);
+            TOTAL_MAPPED_FILES.incrementAndGet();
+            activeAccessTs.set(0);
+            this.refCount.getAndIncrement();
+            this.cleanupOver = false;
+            this.available = true;
+            return true;
+        } catch (Exception e) {
+            log.error("try refresh inactive mmap file {} failed, last active {}", fileName, activeAccessTs.get(), e);
+            return false;
+        }
+    }
+
+    public boolean checkInactiveAndRefresh(boolean force, int inActiveCheckMs) {
+        if (!isFull()) {
+            return false;
+        }
+        if (activeAccessTs.get() == 0) {
+            // Since last refreshed or opened, no any read operation happened we no need refresh again
+            return false;
+        }
+        if (!force && System.currentTimeMillis() - activeAccessTs.get() < inActiveCheckMs) {
+            return false;
+        }
+        if (getRefCount() > 1) {
+            return false;
+        }
+        if (this.refCount.get() == 0 && this.mappedByteBuffer == null && !this.available) {
+            // last refresh failed, we should try again
+            return doRemmap();
+        }
+        if (!this.available) {
+            return false;
+        }
+        if (this.isCleanupOver()) {
+            return false;
+        }
+        try {
+            log.info("try refresh inactive mmap file {} , last active {}, total mmapped {}, refcount {} ", fileName, activeAccessTs.get(),
+                    getTotalMappedFiles(), getRefCount());
+            // reopen mmap to release the pte memory in kernel for inactive mmap file.
+            synchronized (this) {
+                if (!this.available) {
+                    return false;
+                }
+                this.available = false;
+                long value = this.refCount.decrementAndGet();
+                if (value > 0) {
+                    // some other reference it, abort reopend
+                    this.refCount.getAndIncrement();
+                    this.available = true;
+                    return false;
+                }
+                this.cleanupOver = this.cleanup(value);
+                this.mappedByteBuffer = null;
+                
+                return doRemmap();
+            }
+        } catch (Exception e) {
+            log.warn("try refresh inactive mmap file {} failed, last active {}", fileName, activeAccessTs.get(), e);
+            return false;
+        }
     }
 
     @Override

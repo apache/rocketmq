@@ -228,6 +228,10 @@ public class CommitLog implements Swappable {
         return this.mappedFileQueue.deleteExpiredFileByTime(expiredTime, deleteFilesInterval, intervalForcibly, cleanImmediately, deleteFileBatchMax);
     }
 
+    public void checkInactiveAndRefresh() {
+        this.mappedFileQueue.checkInactiveAndRefresh(this.defaultMessageStore.getMessageStoreConfig().getInactiveMmapCheckMs());
+    }
+
     /**
      * Read CommitLog data, use data replication
      */

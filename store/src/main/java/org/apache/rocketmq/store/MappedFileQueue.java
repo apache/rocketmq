@@ -40,6 +40,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 public class MappedFileQueue implements Swappable {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger LOG_ERROR = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
+    private static final int IN_ACTIVE_CHECK_COUNT = 512;
 
     protected final String storePath;
 
@@ -767,6 +768,19 @@ public class MappedFileQueue implements Swappable {
         }
 
         return false;
+    }
+
+    public void checkInactiveAndRefresh(int inActiveCheckMs) {
+        if (this.mappedFiles.size() <= IN_ACTIVE_CHECK_COUNT) {
+            return;
+        }
+        if (DefaultMappedFile.getTotalMappedFiles() <= IN_ACTIVE_CHECK_COUNT) {
+            // no need release memory if mapped files are small
+            return;
+        }
+        for (int i = 0; i < this.mappedFiles.size() - IN_ACTIVE_CHECK_COUNT; i++) {
+            this.mappedFiles.get(i).checkInactiveAndRefresh(false,  inActiveCheckMs);
+        }
     }
 
     public void shutdown(final long intervalForcibly) {

@@ -411,6 +411,10 @@ public class MessageStoreConfig {
 
     private int topicQueueLockNum = 32;
 
+    // this can be used to reduce the pte memory for large data size
+    private boolean reopenInactiveMmap = false;
+    private int inactiveMmapCheckMs = 1000 * 3600 * 4;
+
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
     }
@@ -1804,5 +1808,21 @@ public class MessageStoreConfig {
 
     public void setTopicQueueLockNum(int topicQueueLockNum) {
         this.topicQueueLockNum = topicQueueLockNum;
+    }
+
+    public boolean isReopenInactiveMmap() {
+        return this.reopenInactiveMmap;
+    }
+
+    public void setReopenInactiveMmap(boolean reopen) {
+        this.reopenInactiveMmap = reopen;
+    }
+
+    public int getInactiveMmapCheckMs() {
+        return this.inactiveMmapCheckMs;
+    }
+
+    public void setInactiveMmapCheckMs(int ms) {
+        this.inactiveMmapCheckMs = ms;
     }
 }
