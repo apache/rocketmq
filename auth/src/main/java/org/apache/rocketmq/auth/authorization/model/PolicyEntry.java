@@ -75,7 +75,7 @@ public class PolicyEntry implements Comparable<PolicyEntry> {
         if (resource == null) {
             return null;
         }
-        return resource.toResourceKey();
+        return resource.getResourceKey();
     }
 
     public List<String> toActionsStr() {

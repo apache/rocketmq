@@ -150,12 +150,12 @@ public class AuthTestHelper {
         Map<String, PolicyEntry> policyEntryMap2 = new HashMap<>();
         if (CollectionUtils.isNotEmpty(policy1.getEntries())) {
             policy1.getEntries().forEach(policyEntry -> {
-                policyEntryMap1.put(policyEntry.getResource().toResourceKey(), policyEntry);
+                policyEntryMap1.put(policyEntry.getResource().getResourceKey(), policyEntry);
             });
         }
         if (CollectionUtils.isNotEmpty(policy2.getEntries())) {
             policy2.getEntries().forEach(policyEntry -> {
-                policyEntryMap2.put(policyEntry.getResource().toResourceKey(), policyEntry);
+                policyEntryMap2.put(policyEntry.getResource().getResourceKey(), policyEntry);
             });
         }
         if (policyEntryMap1.size() != policyEntryMap2.size()) {

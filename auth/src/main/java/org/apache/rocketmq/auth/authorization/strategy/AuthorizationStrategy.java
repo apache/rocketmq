@@ -14,16 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.auth.authentication.builder;
+package org.apache.rocketmq.auth.authorization.strategy;
 
-import com.google.protobuf.GeneratedMessageV3;
-import io.grpc.Metadata;
-import io.netty.channel.ChannelHandlerContext;
-import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
 
-public interface AuthenticationContextBuilder<AuthenticationContext> {
+public interface AuthorizationStrategy {
 
-    AuthenticationContext build(Metadata metadata, GeneratedMessageV3 request);
-
-    AuthenticationContext build(ChannelHandlerContext context, RemotingCommand request);
+    void evaluate(AuthorizationContext context);
 }

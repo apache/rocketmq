@@ -18,6 +18,7 @@ package org.apache.rocketmq.auth.authentication.provider;
 
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
+import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import org.apache.rocketmq.auth.authentication.builder.AuthenticationContextBuilder;
@@ -52,8 +53,8 @@ public class DefaultAuthenticationProvider implements AuthenticationProvider<Def
     }
 
     @Override
-    public DefaultAuthenticationContext newContext(RemotingCommand command) {
-        return this.authenticationContextBuilder.build(command);
+    public DefaultAuthenticationContext newContext(ChannelHandlerContext context, RemotingCommand command) {
+        return this.authenticationContextBuilder.build(context, command);
     }
 
     protected HandlerChain<DefaultAuthenticationContext, CompletableFuture<Void>> newHandlerChain() {

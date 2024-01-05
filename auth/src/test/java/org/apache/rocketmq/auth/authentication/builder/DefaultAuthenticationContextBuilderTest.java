@@ -71,7 +71,7 @@ public class DefaultAuthenticationContextBuilderTest {
         request.addExtField("AccessKey", "abc");
         request.addExtField("Signature", "ZG26exJ5u9q1fwZlO4DCmz2Rs88=");
         request.makeCustomHeaderToNet();
-        DefaultAuthenticationContext context = builder.build(request);
+        DefaultAuthenticationContext context = builder.build(context, request);
         Assert.assertNotNull(context);
         Assert.assertEquals("abc", context.getUsername());
         Assert.assertEquals("ZG26exJ5u9q1fwZlO4DCmz2Rs88=", context.getSignature());

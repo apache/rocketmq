@@ -18,6 +18,7 @@ package org.apache.rocketmq.auth.authentication.provider;
 
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
+import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import org.apache.rocketmq.auth.config.AuthConfig;
@@ -31,5 +32,5 @@ public interface AuthenticationProvider<AuthenticationContext> {
 
     AuthenticationContext newContext(Metadata metadata, GeneratedMessageV3 request);
 
-    AuthenticationContext newContext(RemotingCommand command);
+    AuthenticationContext newContext(ChannelHandlerContext context, RemotingCommand command);
 }

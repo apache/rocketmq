@@ -68,7 +68,7 @@ public class AuthMigrator {
     }
 
     public void migrate() {
-        if (!authConfig.isMigrateFromAclV1Enabled()) {
+        if (!authConfig.isMigrateAuthFromV1Enabled()) {
             return;
         }
 

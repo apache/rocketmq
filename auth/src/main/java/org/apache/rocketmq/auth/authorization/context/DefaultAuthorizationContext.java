@@ -55,6 +55,10 @@ public class DefaultAuthorizationContext extends AuthorizationContext {
         return this.subject != null ? this.subject.getSubjectKey() : null;
     }
 
+    public String getResourceKey() {
+        return this.resource != null ? this.resource.getResourceKey() : null;
+    }
+
     public Subject getSubject() {
         return subject;
     }

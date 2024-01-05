@@ -18,6 +18,7 @@ package org.apache.rocketmq.auth.authentication.builder;
 
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
+import io.netty.channel.ChannelHandlerContext;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
     public DefaultAuthenticationContext build(Metadata metadata, GeneratedMessageV3 request) {
         try {
             DefaultAuthenticationContext context = new DefaultAuthenticationContext();
+            context.setChannelId(metadata.get(GrpcConstants.CHANNEL_ID));
             context.setRpcCode(request.getDescriptorForType().getFullName());
             String authorization = metadata.get(GrpcConstants.AUTHORIZATION);
             if (StringUtils.isEmpty(authorization)) {
@@ -94,15 +96,16 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
     }
 
     @Override
-    public DefaultAuthenticationContext build(RemotingCommand request) {
+    public DefaultAuthenticationContext build(ChannelHandlerContext context, RemotingCommand request) {
         HashMap<String, String> fields = request.getExtFields();
         if (MapUtils.isEmpty(fields)) {
             throw new AuthenticationException("authentication field is null");
         }
-        DefaultAuthenticationContext context = new DefaultAuthenticationContext();
-        context.setRpcCode(String.valueOf(request.getCode()));
-        context.setUsername(fields.get(SessionCredentials.ACCESS_KEY));
-        context.setSignature(fields.get(SessionCredentials.SIGNATURE));
+        DefaultAuthenticationContext result = new DefaultAuthenticationContext();
+        result.setChannelId(context.channel().id().asLongText());
+        result.setRpcCode(String.valueOf(request.getCode()));
+        result.setUsername(fields.get(SessionCredentials.ACCESS_KEY));
+        result.setSignature(fields.get(SessionCredentials.SIGNATURE));
         // Content
         SortedMap<String, String> map = new TreeMap<>();
         for (Map.Entry<String, String> entry : fields.entrySet()) {
@@ -114,8 +117,8 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
                 map.put(entry.getKey(), entry.getValue());
             }
         }
-        context.setContent(AclUtils.combineRequestContent(request, map));
-        return context;
+        result.setContent(AclUtils.combineRequestContent(request, map));
+        return result;
     }
 
     public String hexToBase64(String input) throws DecoderException {

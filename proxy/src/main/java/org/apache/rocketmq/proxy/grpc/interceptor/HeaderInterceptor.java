@@ -60,6 +60,11 @@ public class HeaderInterceptor implements ServerInterceptor {
             headers.put(headerKey, headerValue);
         }
 
+        String channelId = call.getAttributes().get(AttributeKeys.CHANNEL_ID);
+        if (StringUtils.isNotBlank(channelId)) {
+            headers.put(GrpcConstants.CHANNEL_ID, channelId);
+        }
+
         return next.startCall(call, headers);
     }
 

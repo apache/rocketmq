@@ -59,7 +59,7 @@ public class AuthenticationPipeline implements RequestPipeline {
             return;
         }
 
-        AuthenticationContext authenticationContext = newContext(context, request);
+        AuthenticationContext authenticationContext = newContext(ctx, request, context);
         if (authenticationContext == null) {
             return;
         }
@@ -67,7 +67,7 @@ public class AuthenticationPipeline implements RequestPipeline {
         authenticationEvaluator.evaluate(authenticationContext);
     }
 
-    protected AuthenticationContext newContext(ProxyContext context, RemotingCommand request) {
-        return AuthenticationFactory.newContext(authConfig, request);
+    protected AuthenticationContext newContext(ChannelHandlerContext ctx, RemotingCommand request, ProxyContext context) {
+        return AuthenticationFactory.newContext(authConfig, ctx, request);
     }
 }

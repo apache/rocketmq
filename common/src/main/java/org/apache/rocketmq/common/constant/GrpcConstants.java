@@ -70,4 +70,7 @@ public class GrpcConstants {
 
     public static final Metadata.Key<String> AUTHORIZATION_AK
         = Metadata.Key.of("x-mq-authorization-ak", Metadata.ASCII_STRING_MARSHALLER);
+
+    public static final Metadata.Key<String> CHANNEL_ID
+        = Metadata.Key.of("x-mq-channel-id", Metadata.ASCII_STRING_MARSHALLER);
 }

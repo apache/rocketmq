@@ -22,6 +22,8 @@ import org.apache.commons.lang3.StringUtils;
 
 public abstract class AuthorizationContext {
 
+    private String channelId;
+
     private String rpcCode;
 
     private Map<String, Object> extInfo;
@@ -54,6 +56,14 @@ public abstract class AuthorizationContext {
     public boolean hasExtInfo(String key) {
         Object value = getExtInfo(key);
         return value != null;
+    }
+
+    public String getChannelId() {
+        return channelId;
+    }
+
+    public void setChannelId(String channelId) {
+        this.channelId = channelId;
     }
 
     public String getRpcCode() {

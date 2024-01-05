@@ -438,7 +438,7 @@ public class BrokerController {
             this.brokerPreOnlineService = new BrokerPreOnlineService(this);
         }
 
-        if (this.authConfig != null && this.authConfig.isMigrateFromAclV1Enabled()) {
+        if (this.authConfig != null && this.authConfig.isMigrateAuthFromV1Enabled()) {
             new AuthMigrator(this.authConfig).migrate();
         }
     }

@@ -30,6 +30,8 @@ public class AuthConfig implements Cloneable {
 
     private String authenticationMetadataProvider;
 
+    private String authenticationStrategy;
+
     private String authenticationWhitelist;
 
     private String initAuthenticationUser;
@@ -42,9 +44,11 @@ public class AuthConfig implements Cloneable {
 
     private String authorizationMetadataProvider;
 
+    private String authorizationStrategy;
+
     private String authorizationWhitelist;
 
-    private boolean migrateFromAclV1Enabled = false;
+    private boolean migrateAuthFromV1Enabled = false;
 
     private int userCacheMaxNum = 1000;
 
@@ -57,6 +61,14 @@ public class AuthConfig implements Cloneable {
     private int aclCacheExpiredSecond = 600;
 
     private int aclCacheRefreshSecond = 60;
+
+    private int statefulAuthenticationCacheMaxNum = 10000;
+
+    private int statefulAuthenticationCacheExpiredSecond = 60;
+
+    private int statefulAuthorizationCacheMaxNum = 10000;
+
+    private int statefulAuthorizationCacheExpiredSecond = 60;
 
     @Override
     public AuthConfig clone() {
@@ -115,6 +127,14 @@ public class AuthConfig implements Cloneable {
         this.authenticationMetadataProvider = authenticationMetadataProvider;
     }
 
+    public String getAuthenticationStrategy() {
+        return authenticationStrategy;
+    }
+
+    public void setAuthenticationStrategy(String authenticationStrategy) {
+        this.authenticationStrategy = authenticationStrategy;
+    }
+
     public String getAuthenticationWhitelist() {
         return authenticationWhitelist;
     }
@@ -163,6 +183,14 @@ public class AuthConfig implements Cloneable {
         this.authorizationMetadataProvider = authorizationMetadataProvider;
     }
 
+    public String getAuthorizationStrategy() {
+        return authorizationStrategy;
+    }
+
+    public void setAuthorizationStrategy(String authorizationStrategy) {
+        this.authorizationStrategy = authorizationStrategy;
+    }
+
     public String getAuthorizationWhitelist() {
         return authorizationWhitelist;
     }
@@ -171,12 +199,12 @@ public class AuthConfig implements Cloneable {
         this.authorizationWhitelist = authorizationWhitelist;
     }
 
-    public boolean isMigrateFromAclV1Enabled() {
-        return migrateFromAclV1Enabled;
+    public boolean isMigrateAuthFromV1Enabled() {
+        return migrateAuthFromV1Enabled;
     }
 
-    public void setMigrateFromAclV1Enabled(boolean migrateFromAclV1Enabled) {
-        this.migrateFromAclV1Enabled = migrateFromAclV1Enabled;
+    public void setMigrateAuthFromV1Enabled(boolean migrateAuthFromV1Enabled) {
+        this.migrateAuthFromV1Enabled = migrateAuthFromV1Enabled;
     }
 
     public int getUserCacheMaxNum() {
@@ -225,5 +253,37 @@ public class AuthConfig implements Cloneable {
 
     public void setAclCacheRefreshSecond(int aclCacheRefreshSecond) {
         this.aclCacheRefreshSecond = aclCacheRefreshSecond;
+    }
+
+    public int getStatefulAuthenticationCacheMaxNum() {
+        return statefulAuthenticationCacheMaxNum;
+    }
+
+    public void setStatefulAuthenticationCacheMaxNum(int statefulAuthenticationCacheMaxNum) {
+        this.statefulAuthenticationCacheMaxNum = statefulAuthenticationCacheMaxNum;
+    }
+
+    public int getStatefulAuthenticationCacheExpiredSecond() {
+        return statefulAuthenticationCacheExpiredSecond;
+    }
+
+    public void setStatefulAuthenticationCacheExpiredSecond(int statefulAuthenticationCacheExpiredSecond) {
+        this.statefulAuthenticationCacheExpiredSecond = statefulAuthenticationCacheExpiredSecond;
+    }
+
+    public int getStatefulAuthorizationCacheMaxNum() {
+        return statefulAuthorizationCacheMaxNum;
+    }
+
+    public void setStatefulAuthorizationCacheMaxNum(int statefulAuthorizationCacheMaxNum) {
+        this.statefulAuthorizationCacheMaxNum = statefulAuthorizationCacheMaxNum;
+    }
+
+    public int getStatefulAuthorizationCacheExpiredSecond() {
+        return statefulAuthorizationCacheExpiredSecond;
+    }
+
+    public void setStatefulAuthorizationCacheExpiredSecond(int statefulAuthorizationCacheExpiredSecond) {
+        this.statefulAuthorizationCacheExpiredSecond = statefulAuthorizationCacheExpiredSecond;
     }
 }

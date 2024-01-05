@@ -126,6 +126,8 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
 
         private final GrpcHttp2ConnectionHandler grpcHandler;
 
+        private ProtocolNegotiationEvent pne = InternalProtocolNegotiationEvent.getDefault();
+
         public ProxyAndTlsProtocolHandler(GrpcHttp2ConnectionHandler grpcHandler) {
             this.grpcHandler = grpcHandler;
         }
@@ -146,11 +148,23 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                     ctx.pipeline().addAfter(ctx.name(), TLS_MODE_HANDLER, new TlsModeHandler(grpcHandler));
                 }
 
-                ctx.fireUserEventTriggered(InternalProtocolNegotiationEvent.getDefault());
+                Attributes.Builder builder = InternalProtocolNegotiationEvent.getAttributes(pne).toBuilder();
+                builder.set(AttributeKeys.CHANNEL_ID, ctx.channel().id().asLongText());
+
+                ctx.fireUserEventTriggered(InternalProtocolNegotiationEvent.withAttributes(pne, builder.build()));
                 ctx.pipeline().remove(this);
             } catch (Exception e) {
                 log.error("process proxy protocol negotiator failed.", e);
                 throw e;
+            }
+        }
+
+        @Override
+        public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+            if (evt instanceof ProtocolNegotiationEvent) {
+                pne = (ProtocolNegotiationEvent) evt;
+            } else {
+                super.userEventTriggered(ctx, evt);
             }
         }
     }
@@ -207,6 +221,15 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                         .withAttributes(InternalProtocolNegotiationEvent.getDefault(), builder.build());
             } finally {
                 msg.release();
+            }
+        }
+
+        @Override
+        public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+            if (evt instanceof ProtocolNegotiationEvent) {
+                pne = (ProtocolNegotiationEvent) evt;
+            } else {
+                super.userEventTriggered(ctx, evt);
             }
         }
     }

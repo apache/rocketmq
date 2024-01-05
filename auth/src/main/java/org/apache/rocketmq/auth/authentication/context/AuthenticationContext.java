@@ -22,9 +22,19 @@ import org.apache.commons.lang3.StringUtils;
 
 public abstract class AuthenticationContext {
 
+    private String channelId;
+
     private String rpcCode;
 
     private Map<String, Object> extInfo;
+
+    public String getChannelId() {
+        return channelId;
+    }
+
+    public void setChannelId(String channelId) {
+        this.channelId = channelId;
+    }
 
     public String getRpcCode() {
         return rpcCode;

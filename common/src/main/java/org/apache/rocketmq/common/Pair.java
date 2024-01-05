@@ -25,6 +25,10 @@ public class Pair<T1, T2> {
         this.object2 = object2;
     }
 
+    public static <T1, T2> Pair<T1, T2> of(T1 object1, T2 object2) {
+        return new Pair<>(object1, object2);
+    }
+
     public T1 getObject1() {
         return object1;
     }

@@ -18,6 +18,7 @@ package org.apache.rocketmq.auth.authentication.factory;
 
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
+import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -29,6 +30,8 @@ import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataMan
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManagerImpl;
 import org.apache.rocketmq.auth.authentication.provider.AuthenticationMetadataProvider;
 import org.apache.rocketmq.auth.authentication.provider.AuthenticationProvider;
+import org.apache.rocketmq.auth.authentication.strategy.AuthenticationStrategy;
+import org.apache.rocketmq.auth.authentication.strategy.StatefulAuthenticationStrategy;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -103,6 +106,19 @@ public class AuthenticationFactory {
         return computeIfAbsent(EVALUATOR_PREFIX + config.getConfigName(), key -> new AuthenticationEvaluator(config, metadataService));
     }
 
+    @SuppressWarnings("unchecked")
+    public static AuthenticationStrategy getStrategy(AuthConfig config, Supplier<?> metadataService) {
+        try {
+            Class<? extends AuthenticationStrategy> clazz = StatefulAuthenticationStrategy.class;
+            if (StringUtils.isNotBlank(config.getAuthenticationStrategy())) {
+                clazz = (Class<? extends AuthenticationStrategy>) Class.forName(config.getAuthenticationStrategy());
+            }
+            return clazz.getDeclaredConstructor(AuthConfig.class, Supplier.class).newInstance(config, metadataService);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static AuthenticationContext newContext(AuthConfig config, Metadata metadata, GeneratedMessageV3 request) {
         AuthenticationProvider<AuthenticationContext> authenticationProvider = getProvider(config);
         if (authenticationProvider == null) {
@@ -111,12 +127,12 @@ public class AuthenticationFactory {
         return authenticationProvider.newContext(metadata, request);
     }
 
-    public static AuthenticationContext newContext(AuthConfig config, RemotingCommand command) {
+    public static AuthenticationContext newContext(AuthConfig config, ChannelHandlerContext context, RemotingCommand command) {
         AuthenticationProvider<AuthenticationContext> authenticationProvider = getProvider(config);
         if (authenticationProvider == null) {
             return null;
         }
-        return authenticationProvider.newContext(command);
+        return authenticationProvider.newContext(context, command);
     }
 
     @SuppressWarnings("unchecked")

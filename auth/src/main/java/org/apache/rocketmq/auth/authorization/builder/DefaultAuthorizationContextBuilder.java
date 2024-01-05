@@ -73,6 +73,11 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 public class DefaultAuthorizationContextBuilder implements AuthorizationContextBuilder {
 
+    private static final String TOPIC = "topic";
+    private static final String GROUP = "group";
+    private static final String A = "a";
+    private static final String B = "b";
+    private static final String CONSUMER_GROUP = "consumerGroup";
     private final AuthConfig authConfig;
 
     private final RequestHeaderRegistry requestHeaderRegistry;
@@ -139,7 +144,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
             result = newContext(metadata, request);
         }
         if (CollectionUtils.isNotEmpty(result)) {
-            result.forEach(context -> context.setRpcCode(message.getDescriptorForType().getFullName()));
+            result.forEach(context -> {
+                context.setChannelId(metadata.get(GrpcConstants.CHANNEL_ID));
+                context.setRpcCode(message.getDescriptorForType().getFullName());
+            });
         }
         return result;
     }
@@ -157,46 +165,48 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
             Resource group;
             switch (command.getCode()) {
                 case RequestCode.GET_ROUTEINFO_BY_TOPIC:
-                    topic = Resource.ofTopic(fields.get("topic"));
+                    topic = Resource.ofTopic(fields.get(TOPIC));
                     result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.PUB, Action.SUB, Action.GET), sourceIp));
                     break;
                 case RequestCode.SEND_MESSAGE:
-                    if (NamespaceUtil.isRetryTopic(fields.get("topic"))) {
-                        group = Resource.ofGroup(fields.get("group"));
+                    if (NamespaceUtil.isRetryTopic(fields.get(TOPIC))) {
+                        group = Resource.ofGroup(fields.get(GROUP));
                         result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
                     } else {
-                        topic = Resource.ofTopic(fields.get("topic"));
+                        topic = Resource.ofTopic(fields.get(TOPIC));
                         result.add(DefaultAuthorizationContext.of(subject, topic, Action.PUB, sourceIp));
                     }
                     break;
                 case RequestCode.SEND_MESSAGE_V2:
                 case RequestCode.SEND_BATCH_MESSAGE:
-                    if (NamespaceUtil.isRetryTopic(fields.get("b"))) {
-                        group = Resource.ofGroup(fields.get("a"));
+                    if (NamespaceUtil.isRetryTopic(fields.get(B))) {
+                        group = Resource.ofGroup(fields.get(A));
                         result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
                     } else {
-                        topic = Resource.ofTopic(fields.get("b"));
+                        topic = Resource.ofTopic(fields.get(B));
                         result.add(DefaultAuthorizationContext.of(subject, topic, Action.PUB, sourceIp));
                     }
                     break;
                 case RequestCode.END_TRANSACTION:
-                    topic = Resource.ofTopic(fields.get("topic"));
-                    result.add(DefaultAuthorizationContext.of(subject, topic, Action.PUB, sourceIp));
+                    if (StringUtils.isNotBlank(fields.get(TOPIC))) {
+                        topic = Resource.ofTopic(fields.get(TOPIC));
+                        result.add(DefaultAuthorizationContext.of(subject, topic, Action.PUB, sourceIp));
+                    }
                     break;
                 case RequestCode.CONSUMER_SEND_MSG_BACK:
-                    group = Resource.ofGroup(fields.get("group"));
+                    group = Resource.ofGroup(fields.get(GROUP));
                     result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
                     break;
                 case RequestCode.PULL_MESSAGE:
-                    if (!NamespaceUtil.isRetryTopic(fields.get("topic"))) {
-                        topic = Resource.ofTopic(fields.get("topic"));
+                    if (!NamespaceUtil.isRetryTopic(fields.get(TOPIC))) {
+                        topic = Resource.ofTopic(fields.get(TOPIC));
                         result.add(DefaultAuthorizationContext.of(subject, topic, Action.SUB, sourceIp));
                     }
-                    group = Resource.ofGroup(fields.get("consumerGroup"));
+                    group = Resource.ofGroup(fields.get(CONSUMER_GROUP));
                     result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
                     break;
                 case RequestCode.QUERY_MESSAGE:
-                    topic = Resource.ofTopic(fields.get("topic"));
+                    topic = Resource.ofTopic(fields.get(TOPIC));
                     result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.SUB, Action.GET), sourceIp));
                     break;
                 case RequestCode.HEART_BEAT:
@@ -216,8 +226,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                 case RequestCode.UNREGISTER_CLIENT:
                     final UnregisterClientRequestHeader unregisterClientRequestHeader =
                         command.decodeCommandCustomHeader(UnregisterClientRequestHeader.class);
-                    group = Resource.ofGroup(unregisterClientRequestHeader.getConsumerGroup());
-                    result.add(DefaultAuthorizationContext.of(subject, group, Arrays.asList(Action.PUB, Action.SUB), sourceIp));
+                    if (StringUtils.isNotBlank(unregisterClientRequestHeader.getConsumerGroup())) {
+                        group = Resource.ofGroup(unregisterClientRequestHeader.getConsumerGroup());
+                        result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
+                    }
                     break;
                 case RequestCode.GET_CONSUMER_LIST_BY_GROUP:
                     final GetConsumerListByGroupRequestHeader getConsumerListByGroupRequestHeader =
@@ -250,7 +262,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     break;
             }
             if (CollectionUtils.isNotEmpty(result)) {
-                result.forEach(r -> r.setRpcCode(String.valueOf(command.getCode())));
+                result.forEach(r -> {
+                    r.setChannelId(context.channel().id().asLongText());
+                    r.setRpcCode(String.valueOf(command.getCode()));
+                });
             }
         } catch (AuthorizationException ex) {
             throw ex;

@@ -31,6 +31,8 @@ import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManag
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManagerImpl;
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationMetadataProvider;
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationProvider;
+import org.apache.rocketmq.auth.authorization.strategy.AuthorizationStrategy;
+import org.apache.rocketmq.auth.authorization.strategy.StatefulAuthorizationStrategy;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -104,6 +106,19 @@ public class AuthorizationFactory {
 
     public static AuthorizationEvaluator getEvaluator(AuthConfig config, Supplier<?> metadataService) {
         return computeIfAbsent(EVALUATOR_PREFIX + config.getConfigName(), key -> new AuthorizationEvaluator(config, metadataService));
+    }
+
+    @SuppressWarnings("unchecked")
+    public static AuthorizationStrategy getStrategy(AuthConfig config, Supplier<?> metadataService) {
+        try {
+            Class<? extends AuthorizationStrategy> clazz = StatefulAuthorizationStrategy.class;
+            if (StringUtils.isNotBlank(config.getAuthenticationStrategy())) {
+                clazz = (Class<? extends AuthorizationStrategy>) Class.forName(config.getAuthorizationStrategy());
+            }
+            return clazz.getDeclaredConstructor(AuthConfig.class, Supplier.class).newInstance(config, metadataService);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static List<AuthorizationContext> newContexts(AuthConfig config, Metadata metadata,

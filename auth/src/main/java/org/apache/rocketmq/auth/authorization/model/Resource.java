@@ -85,7 +85,7 @@ public class Resource implements Comparable<Resource> {
         return of(resourceType, resourceName, resourcePattern);
     }
 
-    public String toResourceKey() {
+    public String getResourceKey() {
         if (resourceType == ResourceType.ANY) {
             return CommonConstants.ASTERISK;
         }
