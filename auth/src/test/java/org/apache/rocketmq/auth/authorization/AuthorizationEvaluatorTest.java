@@ -17,6 +17,7 @@
 package org.apache.rocketmq.auth.authorization;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
@@ -78,7 +79,7 @@ public class AuthorizationEvaluatorTest {
         String sourceIp = "192.168.0.1";
         DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
         context.setRpcCode("10");
-        this.evaluator.evaluate(context);
+        this.evaluator.evaluate(Collections.singletonList(context));
 
         // acl sourceIp is null
         acl = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub", null, Decision.GRANT);
@@ -90,7 +91,7 @@ public class AuthorizationEvaluatorTest {
         sourceIp = "192.168.0.1";
         context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
         context.setRpcCode("10");
-        this.evaluator.evaluate(context);
+        this.evaluator.evaluate(Collections.singletonList(context));
     }
 
     @Test
@@ -138,7 +139,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         });
 
         // resource not match
@@ -149,7 +150,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         });
 
         // action not match
@@ -160,7 +161,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         });
 
         // sourceIp not match
@@ -171,7 +172,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "10.10.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         });
 
         // decision is deny
@@ -184,7 +185,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         });
     }
 
@@ -212,7 +213,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         });
 
         {
@@ -222,7 +223,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         }
 
         Assert.assertThrows(AuthorizationException.class, () -> {
@@ -232,7 +233,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         });
 
         {
@@ -242,7 +243,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         }
     }
 
@@ -257,7 +258,7 @@ public class AuthorizationEvaluatorTest {
         String sourceIp = "192.168.0.1";
         DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
         context.setRpcCode("10");
-        this.evaluator.evaluate(context);
+        this.evaluator.evaluate(Collections.singletonList(context));
     }
 
     @Test
@@ -271,7 +272,7 @@ public class AuthorizationEvaluatorTest {
         String sourceIp = "192.168.0.1";
         DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
         context.setRpcCode("10");
-        this.evaluator.evaluate(context);
+        this.evaluator.evaluate(Collections.singletonList(context));
     }
 
     @Test
@@ -290,7 +291,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         });
 
         Assert.assertThrows(AuthorizationException.class, () -> {
@@ -300,7 +301,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         });
 
         acl = AuthTestHelper.buildAcl("User:test", PolicyType.DEFAULT, "Topic:*", "Pub", null, Decision.GRANT);
@@ -312,7 +313,7 @@ public class AuthorizationEvaluatorTest {
             String sourceIp = "192.168.0.1";
             DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, action, sourceIp);
             context.setRpcCode("10");
-            this.evaluator.evaluate(context);
+            this.evaluator.evaluate(Collections.singletonList(context));
         }
     }
 

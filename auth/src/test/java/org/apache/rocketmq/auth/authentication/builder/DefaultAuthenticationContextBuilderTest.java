@@ -21,18 +21,34 @@ import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
 import com.google.protobuf.ByteString;
 import io.grpc.Metadata;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelId;
 import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.auth.authentication.context.DefaultAuthenticationContext;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import static org.mockito.Mockito.when;
+
+@RunWith(MockitoJUnitRunner.Silent.class)
 public class DefaultAuthenticationContextBuilderTest {
 
     private DefaultAuthenticationContextBuilder builder;
+
+    @Mock
+    private ChannelHandlerContext channelHandlerContext;
+
+    @Mock
+    private Channel channel;
 
     @Before
     public void setUp() throws Exception {
@@ -61,6 +77,8 @@ public class DefaultAuthenticationContextBuilderTest {
 
     @Test
     public void build2() {
+        when(channel.id()).thenReturn(mockChannelId("channel-id"));
+        when(channelHandlerContext.channel()).thenReturn(channel);
         SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
         requestHeader.setTopic("topic-test");
         requestHeader.setQueueId(0);
@@ -71,10 +89,29 @@ public class DefaultAuthenticationContextBuilderTest {
         request.addExtField("AccessKey", "abc");
         request.addExtField("Signature", "ZG26exJ5u9q1fwZlO4DCmz2Rs88=");
         request.makeCustomHeaderToNet();
-        DefaultAuthenticationContext context = builder.build(context, request);
+        DefaultAuthenticationContext context = builder.build(channelHandlerContext, request);
         Assert.assertNotNull(context);
         Assert.assertEquals("abc", context.getUsername());
         Assert.assertEquals("ZG26exJ5u9q1fwZlO4DCmz2Rs88=", context.getSignature());
         Assert.assertEquals("abcfalsebrokerName-11170367864413300topic-testfalse", new String(context.getContent(), StandardCharsets.UTF_8));
+    }
+
+    private ChannelId mockChannelId(String channelId) {
+        return new ChannelId() {
+            @Override
+            public String asShortText() {
+                return channelId;
+            }
+
+            @Override
+            public String asLongText() {
+                return channelId;
+            }
+
+            @Override
+            public int compareTo(@NotNull ChannelId o) {
+                return 0;
+            }
+        };
     }
 }
