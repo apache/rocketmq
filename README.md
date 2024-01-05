@@ -125,7 +125,7 @@ $ docker run -it --net=host apache/rocketmq ./mqnamesrv
 **2) Start Broker**
 
 ```shell
-$ docker run -it --net=host --mount source=/tmp/store,target=/home/rocketmq/store apache/rocketmq ./mqbroker -n localhost:9876
+$ docker run -it --net=host --mount type=bind,source=/tmp/,target=/home/rocketmq/store apache/rocketmq ./mqbroker
 ```
 
 ### Run RocketMQ in Kubernetes
