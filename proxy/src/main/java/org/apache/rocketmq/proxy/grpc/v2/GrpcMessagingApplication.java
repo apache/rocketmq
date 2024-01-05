@@ -50,6 +50,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -146,10 +147,13 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         };
         // add pipeline
         // the last pipe add will execute at the first
-        pipeline = pipeline
-            .pipe(new AuthorizationPipeline(ConfigurationManager.getAuthConfig(), messagingProcessor))
-            .pipe(new AuthenticationPipeline(ConfigurationManager.getAuthConfig(), messagingProcessor))
-            .pipe(new ContextInitPipeline());
+        AuthConfig authConfig = ConfigurationManager.getAuthConfig();
+        if (authConfig != null) {
+            pipeline = pipeline
+                .pipe(new AuthorizationPipeline(authConfig, messagingProcessor))
+                .pipe(new AuthenticationPipeline(authConfig, messagingProcessor));
+        }
+        pipeline = pipeline.pipe(new ContextInitPipeline());
         return new GrpcMessagingApplication(new DefaultGrpcMessingActivity(messagingProcessor), pipeline);
     }
 

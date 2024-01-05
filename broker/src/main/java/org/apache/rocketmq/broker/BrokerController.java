@@ -1043,18 +1043,16 @@ public class BrokerController {
     }
 
     private void initialRequestPipeline() {
+        if (this.authConfig == null) {
+            return;
+        }
         RequestPipeline pipeline = (ctx, request) -> {
         };
         // add pipeline
         // the last pipe add will execute at the first
         try {
-            if (this.authConfig.isAuthorizationEnabled()) {
-                pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig));
-            }
-            if (this.authConfig.isAuthenticationEnabled()) {
-                pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig))
-                    .pipe(new AuthenticationPipeline(authConfig));
-            }
+            pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig))
+                .pipe(new AuthenticationPipeline(authConfig));
             this.setRequestPipeline(pipeline);
         } catch (Exception e) {
             throw new RuntimeException(e);
