@@ -43,6 +43,7 @@ import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+import java.util.Collections;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -679,6 +680,10 @@ public class UtilAll {
     public static List<String> split(String str, String splitter) {
         if (str == null) {
             return null;
+        }
+
+        if (StringUtils.isBlank(str)) {
+            return Collections.EMPTY_LIST;
         }
 
         String[] addrArray = str.split(splitter);
