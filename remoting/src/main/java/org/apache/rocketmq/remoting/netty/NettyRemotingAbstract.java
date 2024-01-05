@@ -330,7 +330,9 @@ public abstract class NettyRemotingAbstract {
                     exception = e;
                 }
 
-                this.requestPipeline.execute(ctx, cmd);
+                if (this.requestPipeline != null) {
+                    this.requestPipeline.execute(ctx, cmd);
+                }
 
                 if (exception == null) {
                     response = pair.getObject1().processRequest(ctx, cmd);
