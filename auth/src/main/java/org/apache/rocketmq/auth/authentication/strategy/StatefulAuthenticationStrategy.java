@@ -49,7 +49,6 @@ public class StatefulAuthenticationStrategy extends AbstractAuthenticationStrate
         Pair<Boolean, AuthenticationException> result = this.authCache.get(buildKey(context), key -> {
             try {
                 this.doEvaluate(context);
-                System.out.println("AuthenticationContext executed for " + key);
                 return Pair.of(true, null);
             } catch (AuthenticationException ex) {
                 return Pair.of(false, ex);
