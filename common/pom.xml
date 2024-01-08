@@ -33,6 +33,12 @@
     </properties>
 
     <dependencies>
+        <!-- Compile time only (annotations) -->
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+        </dependency>
+        <!-- Compile and runtime -->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
