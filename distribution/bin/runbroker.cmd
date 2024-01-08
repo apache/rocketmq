@@ -36,6 +36,6 @@ set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
 set "JAVA_OPT=%JAVA_OPT% -XX:+AlwaysPreTouch"
 set "JAVA_OPT=%JAVA_OPT% -XX:MaxDirectMemorySize=15g"
 set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages -XX:-UseBiasedLocking"
-set "JAVA_OPT=%JAVA_OPT% %JAVA_OPT_EXT% -cp %CLASSPATH%"
+set "JAVA_OPT=%JAVA_OPT% %JAVA_OPT_EXT% -cp "%CLASSPATH%""
 
 "%JAVA%" %JAVA_OPT% %*
