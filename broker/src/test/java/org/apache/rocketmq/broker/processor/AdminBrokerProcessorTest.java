@@ -283,10 +283,10 @@ public class AdminBrokerProcessorTest {
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         final ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
         topicConfigTable.put(topic, new TopicConfig());
-        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(topic, "cid1"), new TopicConfig());
+        topicConfigTable.put(KeyBuilder.buildPopRetryTopicV2(topic, "cid1"), new TopicConfig());
 
         topicConfigTable.put(anotherTopic, new TopicConfig());
-        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(anotherTopic, "cid2"), new TopicConfig());
+        topicConfigTable.put(KeyBuilder.buildPopRetryTopicV2(anotherTopic, "cid2"), new TopicConfig());
         when(topicConfigManager.getTopicConfigTable()).thenReturn(topicConfigTable);
         when(topicConfigManager.selectTopicConfig(anyString())).thenAnswer(invocation -> {
             final String selectTopic = invocation.getArgument(0);
@@ -301,7 +301,7 @@ public class AdminBrokerProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
         verify(topicConfigManager).deleteTopicConfig(topic);
-        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1"));
+        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopicV2(topic, "cid1"));
         verify(messageStore, times(2)).deleteTopics(anySet());
     }
 

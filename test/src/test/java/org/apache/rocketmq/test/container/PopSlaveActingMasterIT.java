@@ -87,7 +87,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
     public void testLocalActing_ackSlave() throws Exception {
         String topic = PopSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
         createTopic(topic);
-        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP);
+        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topic, CONSUME_GROUP);
         createTopic(retryTopic);
 
         this.switchPop(topic);
@@ -151,7 +151,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
     public void testLocalActing_notAckSlave() throws Exception {
         String topic = PopSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
         createTopic(topic);
-        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP);
+        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topic, CONSUME_GROUP);
         createTopic(retryTopic);
 
         this.switchPop(topic);
@@ -231,7 +231,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
     public void testRemoteActing_ackSlave() throws Exception {
         String topic = PopSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
         createTopic(topic);
-        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP);
+        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topic, CONSUME_GROUP);
         createTopic(retryTopic);
 
         switchPop(topic);
@@ -312,7 +312,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         createTopic(topic);
         this.switchPop(topic);
 
-        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP);
+        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topic, CONSUME_GROUP);
         createTopic(retryTopic);
 
         producer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
@@ -399,7 +399,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         String topic = PopSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
         createTopic(topic);
         this.switchPop(topic);
-        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP);
+        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topic, CONSUME_GROUP);
         createTopic(retryTopic);
 
         producer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);

@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -555,12 +556,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         // delete pop retry topics first
         try {
             for (String group : groups) {
-                final String popRetryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
+                final String popRetryTopic = KeyBuilder.buildPopRetryTopic(topic, group, brokerController.getBrokerConfig().isEnableRetryTopicV2());
                 if (brokerController.getTopicConfigManager().selectTopicConfig(popRetryTopic) != null) {
                     deleteTopicInBroker(popRetryTopic);
                 }
                 final String popRetryTopicV1 = KeyBuilder.buildPopRetryTopicV1(topic, group);
-                if (brokerController.getTopicConfigManager().selectTopicConfig(popRetryTopicV1) != null) {
+                if (!Objects.equals(popRetryTopic, popRetryTopicV1) && brokerController.getTopicConfigManager().selectTopicConfig(popRetryTopicV1) != null) {
                     deleteTopicInBroker(popRetryTopicV1);
                 }
             }

@@ -185,7 +185,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         when(this.messageService.sendMessageBack(any(), any(), anyString(), requestHeaderArgumentCaptor.capture(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(mock(RemotingCommand.class)));
 
-        MessageExt messageExt = createMessageExt(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP), "", 16, 3000);
+        MessageExt messageExt = createMessageExt(KeyBuilder.buildPopRetryTopicV2(TOPIC, CONSUMER_GROUP), "", 16, 3000);
         RemotingCommand remotingCommand = this.producerProcessor.forwardMessageToDeadLetterQueue(
             createContext(),
             create(messageExt),

@@ -169,7 +169,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             CONSUMER_GROUP, TOPIC, 3000).get();
 
         assertEquals(AckStatus.OK, ackResult.getStatus());
-        assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP), requestHeaderArgumentCaptor.getValue().getTopic());
+        assertEquals(KeyBuilder.buildPopRetryTopicV2(TOPIC, CONSUMER_GROUP), requestHeaderArgumentCaptor.getValue().getTopic());
         assertEquals(CONSUMER_GROUP, requestHeaderArgumentCaptor.getValue().getConsumerGroup());
         assertEquals(handle.getReceiptHandle(), requestHeaderArgumentCaptor.getValue().getExtraInfo());
     }
@@ -292,7 +292,7 @@ public class ConsumerProcessorTest extends BaseProcessorTest {
             CONSUMER_GROUP, TOPIC, 1000, 3000).get();
 
         assertEquals(AckStatus.OK, ackResult.getStatus());
-        assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, CONSUMER_GROUP), requestHeaderArgumentCaptor.getValue().getTopic());
+        assertEquals(KeyBuilder.buildPopRetryTopicV2(TOPIC, CONSUMER_GROUP), requestHeaderArgumentCaptor.getValue().getTopic());
         assertEquals(CONSUMER_GROUP, requestHeaderArgumentCaptor.getValue().getConsumerGroup());
         assertEquals(1000, requestHeaderArgumentCaptor.getValue().getInvisibleTime().longValue());
         assertEquals(handle.getReceiptHandle(), requestHeaderArgumentCaptor.getValue().getExtraInfo());
