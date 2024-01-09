@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.common;
+package org.apache.rocketmq.proxy.common.context;
 
 public class ContextVariable {
     public static final String REMOTE_ADDRESS = "remote-address";

@@ -94,9 +94,8 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
 
         ProxyContext context = createContext();
-        context.setRemainingMs(1L);
         this.receiveMessageActivity.receiveMessage(
-            context,
+            context.withRemainingMs(1L),
             ReceiveMessageRequest.newBuilder()
                 .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
                 .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
@@ -121,9 +120,9 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
 
         when(this.grpcClientSettingsManager.getClientSettings(any())).thenReturn(Settings.newBuilder().getDefaultInstanceForType());
 
-        final ProxyContext context = createContext();
-        context.setClientVersion("5.0.2");
-        context.setRemainingMs(-1L);
+        final ProxyContext context = createContext()
+            .withClientVersion("5.0.2")
+            .withRemainingMs(-1L);
         final ReceiveMessageRequest request = ReceiveMessageRequest.newBuilder()
             .setGroup(Resource.newBuilder().setName(CONSUMER_GROUP).build())
             .setMessageQueue(MessageQueue.newBuilder().setTopic(Resource.newBuilder().setName(TOPIC).build()).build())
@@ -144,9 +143,8 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         ArgumentCaptor<ReceiveMessageResponse> responseArgumentCaptor1 =
             ArgumentCaptor.forClass(ReceiveMessageResponse.class);
         doNothing().when(receiveStreamObserver).onNext(responseArgumentCaptor1.capture());
-        context.setClientVersion("5.0.3");
         this.receiveMessageActivity.receiveMessage(
-            context,
+            context.withClientVersion("5.0.3"),
             request,
             receiveStreamObserver
         );

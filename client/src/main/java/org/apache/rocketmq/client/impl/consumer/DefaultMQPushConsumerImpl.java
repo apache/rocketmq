@@ -417,6 +417,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
                                         // removeProcessQueue will also remove offset to cancel the frozen status.
                                         DefaultMQPushConsumerImpl.this.rebalanceImpl.removeProcessQueue(pullRequest.getMessageQueue());
+                                        DefaultMQPushConsumerImpl.this.rebalanceImpl.getmQClientFactory().rebalanceImmediately();
 
                                         log.warn("fix the pull request offset, {}", pullRequest);
                                     } catch (Throwable e) {
@@ -999,8 +1000,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
         this.mQClientFactory.checkClientInBroker();
-        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
-        this.mQClientFactory.rebalanceImmediately();
+        if (this.mQClientFactory.sendHeartbeatToAllBrokerWithLock()) {
+            this.mQClientFactory.rebalanceImmediately();
+        }
     }
 
     private void checkConfig() throws MQClientException {
@@ -1372,6 +1374,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         if (!this.pause) {
             this.rebalanceImpl.doRebalance(this.isConsumeOrderly());
         }
+    }
+
+    @Override
+    public boolean tryRebalance() {
+        if (!this.pause) {
+            return this.rebalanceImpl.doRebalance(this.isConsumeOrderly());
+        }
+        return false;
     }
 
     @Override

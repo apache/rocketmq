@@ -21,7 +21,7 @@ import io.grpc.Metadata;
 import java.time.Duration;
 import java.util.Random;
 import java.util.UUID;
-import org.apache.rocketmq.proxy.common.ContextVariable;
+import org.apache.rocketmq.proxy.common.context.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
 import org.apache.rocketmq.common.constant.GrpcConstants;
@@ -76,11 +76,11 @@ public class BaseActivityTest extends InitConfigTest {
 
     protected ProxyContext createContext() {
         return ProxyContext.create()
-            .withVal(ContextVariable.CLIENT_ID, CLIENT_ID)
-            .withVal(ContextVariable.LANGUAGE, JAVA)
-            .withVal(ContextVariable.REMOTE_ADDRESS, REMOTE_ADDR)
-            .withVal(ContextVariable.LOCAL_ADDRESS, LOCAL_ADDR)
-            .withVal(ContextVariable.REMAINING_MS, Duration.ofSeconds(10).toMillis());
+            .withValue(ContextVariable.CLIENT_ID, CLIENT_ID)
+            .withValue(ContextVariable.LANGUAGE, JAVA)
+            .withValue(ContextVariable.REMOTE_ADDRESS, REMOTE_ADDR)
+            .withValue(ContextVariable.LOCAL_ADDRESS, LOCAL_ADDR)
+            .withValue(ContextVariable.REMAINING_MS, Duration.ofSeconds(10).toMillis());
     }
 
     protected static String buildReceiptHandle(String topic, long popTime, long invisibleTime) {

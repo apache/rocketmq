@@ -387,6 +387,14 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
     @Override
+    public boolean tryRebalance() {
+        if (this.rebalanceImpl != null) {
+            return this.rebalanceImpl.doRebalance(false);
+        }
+        return false;
+    }
+
+    @Override
     public void persistConsumerOffset() {
         try {
             this.isRunning();

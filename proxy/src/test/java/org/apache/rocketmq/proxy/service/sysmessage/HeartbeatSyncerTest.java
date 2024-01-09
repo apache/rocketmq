@@ -146,7 +146,7 @@ public class HeartbeatSyncerTest extends InitConfigTest {
         GrpcChannelManager grpcChannelManager = mock(GrpcChannelManager.class);
         GrpcClientChannel grpcClientChannel = new GrpcClientChannel(
             proxyRelayService, grpcClientSettingsManager, grpcChannelManager,
-            ProxyContext.create().setRemoteAddress(remoteAddress).setLocalAddress(localAddress),
+            ProxyContext.create().withRemoteAddress(remoteAddress).withLocalAddress(localAddress),
             clientId);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
             grpcClientChannel,
@@ -345,7 +345,7 @@ public class HeartbeatSyncerTest extends InitConfigTest {
         GrpcChannelManager grpcChannelManager = mock(GrpcChannelManager.class);
         GrpcClientChannel grpcClientChannel = new GrpcClientChannel(
             proxyRelayService, grpcClientSettingsManager, grpcChannelManager,
-            ProxyContext.create().setRemoteAddress(remoteAddress).setLocalAddress(localAddress),
+            ProxyContext.create().withRemoteAddress(remoteAddress).withLocalAddress(localAddress),
             clientId);
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
             grpcClientChannel,
