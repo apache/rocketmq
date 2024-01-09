@@ -18,117 +18,118 @@
 package org.apache.rocketmq.proxy.common;
 
 import io.netty.channel.Channel;
-import java.util.HashMap;
-import java.util.Map;
+import org.apache.rocketmq.proxy.common.context.ContextNode;
+import org.apache.rocketmq.proxy.common.context.ContextVariable;
 
 public class ProxyContext {
     public static final String INNER_ACTION_PREFIX = "Inner";
-    private final Map<String, Object> value = new HashMap<>();
+    private final ContextNode contextNode;
+
+    ProxyContext() {
+        this.contextNode = new ContextNode();
+    }
+
+    ProxyContext(ContextNode parent) {
+        this.contextNode = parent;
+    }
+
+    ProxyContext(ProxyContext that) {
+        this.contextNode = that.contextNode;
+    }
 
     public static ProxyContext create() {
         return new ProxyContext();
     }
 
     public static ProxyContext createForInner(String actionName) {
-        return create().setAction(INNER_ACTION_PREFIX + actionName);
+        return create().withAction(INNER_ACTION_PREFIX + actionName);
     }
 
     public static ProxyContext createForInner(Class<?> clazz) {
         return createForInner(clazz.getSimpleName());
     }
 
-    public Map<String, Object> getValue() {
-        return this.value;
+    public ProxyContext withValue(String key, Object val) {
+        return new ProxyContext(contextNode.withValue(key, val));
     }
 
-    public ProxyContext withVal(String key, Object val) {
-        this.value.put(key, val);
-        return this;
+    public <T> T getValue(String key) {
+        return (T) contextNode.getValue(key);
     }
 
-    public <T> T getVal(String key) {
-        return (T) this.value.get(key);
+    public <T> T getValue(String key, Class<T> classType) {
+        return (T) contextNode.getValue(key, classType);
     }
 
-    public ProxyContext setLocalAddress(String localAddress) {
-        this.withVal(ContextVariable.LOCAL_ADDRESS, localAddress);
-        return this;
+    public ProxyContext withLocalAddress(String localAddress) {
+        return this.withValue(ContextVariable.LOCAL_ADDRESS, localAddress);
     }
 
     public String getLocalAddress() {
-        return this.getVal(ContextVariable.LOCAL_ADDRESS);
+        return contextNode.getValue(ContextVariable.LOCAL_ADDRESS, String.class);
     }
 
-    public ProxyContext setRemoteAddress(String remoteAddress) {
-        this.withVal(ContextVariable.REMOTE_ADDRESS, remoteAddress);
-        return this;
+    public ProxyContext withRemoteAddress(String remoteAddress) {
+        return this.withValue(ContextVariable.REMOTE_ADDRESS, remoteAddress);
     }
 
     public String getRemoteAddress() {
-        return this.getVal(ContextVariable.REMOTE_ADDRESS);
+        return contextNode.getValue(ContextVariable.REMOTE_ADDRESS, String.class);
     }
 
-    public ProxyContext setClientID(String clientID) {
-        this.withVal(ContextVariable.CLIENT_ID, clientID);
-        return this;
+    public ProxyContext withClientID(String clientID) {
+        return this.withValue(ContextVariable.CLIENT_ID, clientID);
     }
 
     public String getClientID() {
-        return this.getVal(ContextVariable.CLIENT_ID);
+        return contextNode.getValue(ContextVariable.CLIENT_ID, String.class);
     }
 
-    public ProxyContext setChannel(Channel channel) {
-        this.withVal(ContextVariable.CHANNEL, channel);
-        return this;
+    public ProxyContext withChannel(Channel channel) {
+        return this.withValue(ContextVariable.CHANNEL, channel);
     }
 
     public Channel getChannel() {
-        return this.getVal(ContextVariable.CHANNEL);
+        return contextNode.getValue(ContextVariable.CHANNEL, Channel.class);
     }
 
-    public ProxyContext setLanguage(String language) {
-        this.withVal(ContextVariable.LANGUAGE, language);
-        return this;
+    public ProxyContext withLanguage(String language) {
+        return this.withValue(ContextVariable.LANGUAGE, language);
     }
 
     public String getLanguage() {
-        return this.getVal(ContextVariable.LANGUAGE);
+        return contextNode.getValue(ContextVariable.LANGUAGE, String.class);
     }
 
-    public ProxyContext setClientVersion(String clientVersion) {
-        this.withVal(ContextVariable.CLIENT_VERSION, clientVersion);
-        return this;
+    public ProxyContext withClientVersion(String clientVersion) {
+        return this.withValue(ContextVariable.CLIENT_VERSION, clientVersion);
     }
 
     public String getClientVersion() {
-        return this.getVal(ContextVariable.CLIENT_VERSION);
+        return contextNode.getValue(ContextVariable.CLIENT_VERSION, String.class);
     }
 
-    public ProxyContext setRemainingMs(Long remainingMs) {
-        this.withVal(ContextVariable.REMAINING_MS, remainingMs);
-        return this;
+    public ProxyContext withRemainingMs(Long remainingMs) {
+        return this.withValue(ContextVariable.REMAINING_MS, remainingMs);
     }
 
     public Long getRemainingMs() {
-        return this.getVal(ContextVariable.REMAINING_MS);
+        return contextNode.getValue(ContextVariable.REMAINING_MS, Long.class);
     }
 
-    public ProxyContext setAction(String action) {
-        this.withVal(ContextVariable.ACTION, action);
-        return this;
+    public ProxyContext withAction(String action) {
+        return this.withValue(ContextVariable.ACTION, action);
     }
 
     public String getAction() {
-        return this.getVal(ContextVariable.ACTION);
+        return contextNode.getValue(ContextVariable.ACTION, String.class);
     }
 
-    public ProxyContext setProtocolType(String protocol) {
-        this.withVal(ContextVariable.PROTOCOL_TYPE, protocol);
-        return this;
+    public ProxyContext withProtocolType(String protocol) {
+        return this.withValue(ContextVariable.PROTOCOL_TYPE, protocol);
     }
 
     public String getProtocolType() {
-        return this.getVal(ContextVariable.PROTOCOL_TYPE);
+        return contextNode.getValue(ContextVariable.PROTOCOL_TYPE, String.class);
     }
-
 }

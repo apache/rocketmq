@@ -35,7 +35,7 @@ import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.state.StateEventListener;
 import org.apache.rocketmq.proxy.common.RenewEvent;
-import org.apache.rocketmq.proxy.common.ContextVariable;
+import org.apache.rocketmq.proxy.common.context.ContextVariable;
 import org.apache.rocketmq.proxy.common.MessageReceiptHandle;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
@@ -71,7 +71,7 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     @Mock
     protected ConsumerManager consumerManager;
 
-    private static final ProxyContext PROXY_CONTEXT = ProxyContext.create();
+    private static ProxyContext proxyContext = ProxyContext.create();
     private static final String GROUP = "group";
     private static final String TOPIC = "topic";
     private static final String BROKER_NAME = "broker";
@@ -92,7 +92,7 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
             public void fireEvent(RenewEvent event) {
                 MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
                 ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
-                messagingProcessor.changeInvisibleTime(PROXY_CONTEXT, handle, messageReceiptHandle.getMessageId(),
+                messagingProcessor.changeInvisibleTime(proxyContext, handle, messageReceiptHandle.getMessageId(),
                         messageReceiptHandle.getGroup(), messageReceiptHandle.getTopic(), event.getRenewTime())
                     .whenComplete((v, t) -> {
                         if (t != null) {
@@ -115,8 +115,8 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
             .offset(OFFSET)
             .commitLogOffset(0L)
             .build().encode();
-        PROXY_CONTEXT.withVal(ContextVariable.CLIENT_ID, "channel-id");
-        PROXY_CONTEXT.withVal(ContextVariable.CHANNEL, new LocalChannel());
+        proxyContext = proxyContext.withValue(ContextVariable.CLIENT_ID, "channel-id");
+        proxyContext = proxyContext.withValue(ContextVariable.CHANNEL, new LocalChannel());
         Mockito.doNothing().when(consumerManager).appendConsumerIdsChangeListener(Mockito.any(ConsumerIdsChangeListener.class));
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, receiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES);
@@ -125,7 +125,7 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     @Test
     public void testAddReceiptHandle() {
         Channel channel = new LocalChannel();
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(GROUP))).thenReturn(new SubscriptionGroupConfig());
         Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         receiptHandleManager.scheduleRenewTask();
@@ -137,7 +137,7 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     @Test
     public void testAddDuplicationMessage() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
         {
             String receiptHandle = ReceiptHandle.builder()
                 .startOffset(0L)
@@ -152,9 +152,9 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
                 .build().encode();
             MessageReceiptHandle messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, receiptHandle, MESSAGE_ID, OFFSET,
                 RECONSUME_TIMES);
-            receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+            receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
         }
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(GROUP))).thenReturn(new SubscriptionGroupConfig());
         Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         receiptHandleManager.scheduleRenewTask();
@@ -169,8 +169,8 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     @Test
     public void testRenewReceiptHandle() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(GROUP))).thenReturn(groupConfig);
         Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
@@ -214,9 +214,9 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
 
     @Test
     public void testRenewExceedMaxRenewTimes() {
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
         Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
 
         CompletableFuture<AckResult> ackResultFuture = new CompletableFuture<>();
         ackResultFuture.completeExceptionally(new MQClientException(0, "error"));
@@ -244,9 +244,9 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
 
     @Test
     public void testRenewWithInvalidHandle() {
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
         Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
 
         CompletableFuture<AckResult> ackResultFuture = new CompletableFuture<>();
         ackResultFuture.completeExceptionally(new ProxyException(ProxyExceptionCode.INVALID_RECEIPT_HANDLE, "error"));
@@ -268,9 +268,9 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     @Test
     public void testRenewWithErrorThenOK() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
         Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
 
         AtomicInteger count = new AtomicInteger(0);
         List<CompletableFuture<AckResult>> futureList = new ArrayList<>();
@@ -347,8 +347,8 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
             .build().encode();
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, newReceiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES);
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
         Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(GROUP))).thenReturn(groupConfig);
@@ -381,8 +381,8 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
             .build().encode();
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, newReceiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES);
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
         Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(GROUP))).thenReturn(null);
         Mockito.when(messagingProcessor.changeInvisibleTime(Mockito.any(), Mockito.any(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong()))
@@ -417,8 +417,8 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
             .build().encode();
         messageReceiptHandle = new MessageReceiptHandle(GROUP, TOPIC, QUEUE_ID, newReceiptHandle, MESSAGE_ID, OFFSET,
             RECONSUME_TIMES);
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(GROUP))).thenReturn(groupConfig);
         Mockito.when(consumerManager.findChannel(Mockito.eq(GROUP), Mockito.eq(channel))).thenReturn(Mockito.mock(ClientChannelInfo.class));
@@ -430,9 +430,9 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
 
     @Test
     public void testRemoveReceiptHandle() {
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
-        receiptHandleManager.removeReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, receiptHandle);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
+        receiptHandleManager.removeReceiptHandle(proxyContext, channel, GROUP, MSG_ID, receiptHandle);
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(GROUP))).thenReturn(groupConfig);
         receiptHandleManager.scheduleRenewTask();
@@ -443,8 +443,8 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
 
     @Test
     public void testClearGroup() {
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
         receiptHandleManager.clearGroup(new ReceiptHandleGroupKey(channel, GROUP));
         SubscriptionGroupConfig groupConfig = new SubscriptionGroupConfig();
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(GROUP))).thenReturn(groupConfig);
@@ -458,8 +458,8 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
     public void testClientOffline() {
         ArgumentCaptor<ConsumerIdsChangeListener> listenerArgumentCaptor = ArgumentCaptor.forClass(ConsumerIdsChangeListener.class);
         Mockito.verify(consumerManager, Mockito.times(1)).appendConsumerIdsChangeListener(listenerArgumentCaptor.capture());
-        Channel channel = PROXY_CONTEXT.getVal(ContextVariable.CHANNEL);
-        receiptHandleManager.addReceiptHandle(PROXY_CONTEXT, channel, GROUP, MSG_ID, messageReceiptHandle);
+        Channel channel = proxyContext.getValue(ContextVariable.CHANNEL);
+        receiptHandleManager.addReceiptHandle(proxyContext, channel, GROUP, MSG_ID, messageReceiptHandle);
         listenerArgumentCaptor.getValue().handle(ConsumerGroupEvent.CLIENT_UNREGISTER, GROUP, new ClientChannelInfo(channel, "", LanguageCode.JAVA, 0));
         assertTrue(receiptHandleManager.receiptHandleGroupMap.isEmpty());
     }
