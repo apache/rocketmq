@@ -541,6 +541,12 @@ public class PopReviveService extends ServiceThread {
 
                         }
                     }
+                    // skip if message of the specified offset is not alive
+                    if (message.getQueueOffset() != msgOffset) {
+                        POP_LOGGER.warn("reviveQueueId={}, topic={}, returned msg offset is {}, required offset is {}, then continue",
+                            queueId, popCheckPoint.getTopic(), message.getQueueOffset(), msgOffset);
+                        return new Pair<>(msgOffset, true);
+                    }
                     //skip ck from last epoch
                     if (popCheckPoint.getPopTime() < message.getStoreTimestamp()) {
                         POP_LOGGER.warn("reviveQueueId={}, skip ck from last epoch {}", queueId, popCheckPoint);
