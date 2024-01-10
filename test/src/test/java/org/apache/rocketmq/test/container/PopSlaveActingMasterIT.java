@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -60,6 +61,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
     private static DefaultMQProducer producer;
     private final static String MESSAGE_STRING = RandomStringUtils.random(1024);
     private static final byte[] MESSAGE_BODY = MESSAGE_STRING.getBytes(StandardCharsets.UTF_8);
+    private final BrokerConfig brokerConfig = new BrokerConfig();
 
     public PopSlaveActingMasterIT() {
     }
@@ -87,7 +89,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
     public void testLocalActing_ackSlave() throws Exception {
         String topic = PopSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
         createTopic(topic);
-        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topic, CONSUME_GROUP);
+        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP, brokerConfig.isEnableRetryTopicV2());
         createTopic(retryTopic);
 
         this.switchPop(topic);
@@ -151,7 +153,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
     public void testLocalActing_notAckSlave() throws Exception {
         String topic = PopSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
         createTopic(topic);
-        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topic, CONSUME_GROUP);
+        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP, brokerConfig.isEnableRetryTopicV2());
         createTopic(retryTopic);
 
         this.switchPop(topic);
@@ -231,7 +233,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
     public void testRemoteActing_ackSlave() throws Exception {
         String topic = PopSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
         createTopic(topic);
-        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topic, CONSUME_GROUP);
+        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP, brokerConfig.isEnableRetryTopicV2());
         createTopic(retryTopic);
 
         switchPop(topic);
@@ -312,7 +314,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         createTopic(topic);
         this.switchPop(topic);
 
-        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topic, CONSUME_GROUP);
+        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP, brokerConfig.isEnableRetryTopicV2());
         createTopic(retryTopic);
 
         producer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
@@ -399,7 +401,7 @@ public class PopSlaveActingMasterIT extends ContainerIntegrationTestBase {
         String topic = PopSlaveActingMasterIT.class.getSimpleName() + random.nextInt(65535);
         createTopic(topic);
         this.switchPop(topic);
-        String retryTopic = KeyBuilder.buildPopRetryTopicV2(topic, CONSUME_GROUP);
+        String retryTopic = KeyBuilder.buildPopRetryTopic(topic, CONSUME_GROUP, brokerConfig.isEnableRetryTopicV2());
         createTopic(retryTopic);
 
         producer.getDefaultMQProducerImpl().getmQClientFactory().updateTopicRouteInfoFromNameServer(topic);
