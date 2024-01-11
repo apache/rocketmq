@@ -169,15 +169,15 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
         Context ctx = Context.current();
         Metadata headers = InterceptorConstants.METADATA.get(ctx);
         ProxyContext context = ProxyContext.create()
-            .withLocalAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.LOCAL_ADDRESS))
-            .withRemoteAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.REMOTE_ADDRESS))
-            .withClientID(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_ID))
-            .withProtocolType(ChannelProtocolType.GRPC_V2.getName())
-            .withLanguage(getDefaultStringMetadataInfo(headers, InterceptorConstants.LANGUAGE))
-            .withClientVersion(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_VERSION))
-            .withAction(getDefaultStringMetadataInfo(headers, InterceptorConstants.SIMPLE_RPC_NAME));
+            .setLocalAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.LOCAL_ADDRESS))
+            .setRemoteAddress(getDefaultStringMetadataInfo(headers, InterceptorConstants.REMOTE_ADDRESS))
+            .setClientID(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_ID))
+            .setProtocolType(ChannelProtocolType.GRPC_V2.getName())
+            .setLanguage(getDefaultStringMetadataInfo(headers, InterceptorConstants.LANGUAGE))
+            .setClientVersion(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_VERSION))
+            .setAction(getDefaultStringMetadataInfo(headers, InterceptorConstants.SIMPLE_RPC_NAME));
         if (ctx.getDeadline() != null) {
-            context = context.withRemainingMs(ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS));
+            context.setRemainingMs(ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS));
         }
         return context;
     }

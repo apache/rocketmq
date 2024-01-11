@@ -19,8 +19,6 @@ package org.apache.rocketmq.proxy.remoting.activity;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -42,10 +40,13 @@ import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.netty.AttributeKeys;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
-import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 public abstract class AbstractRemotingActivity implements NettyRequestProcessor {
     protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -123,23 +124,18 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
     protected ProxyContext createContext(ChannelHandlerContext ctx, RemotingCommand request) {
         ProxyContext context = ProxyContext.create();
         Channel channel = ctx.channel();
-        LanguageCode languageCode = RemotingHelper.getAttributeValue(AttributeKeys.LANGUAGE_CODE_KEY, channel);
-        String clientId = RemotingHelper.getAttributeValue(AttributeKeys.CLIENT_ID_KEY, channel);
-        Integer version = RemotingHelper.getAttributeValue(AttributeKeys.VERSION_KEY, channel);
-        context = context.withAction(RemotingHelper.getRequestCodeDesc(request.getCode()))
-            .withProtocolType(ChannelProtocolType.REMOTING.getName())
-            .withChannel(channel)
-            .withLocalAddress(NetworkUtil.socketAddress2String(ctx.channel().localAddress()))
-            .withRemoteAddress(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-        if (languageCode != null) {
-            context = context.withLanguage(languageCode.name());
-        }
-        if (clientId != null) {
-            context = context.withClientID(clientId);
-        }
-        if (version != null) {
-            context = context.withClientVersion(MQVersion.getVersionDesc(version));
-        }
+        context.setAction(RemotingHelper.getRequestCodeDesc(request.getCode()))
+            .setProtocolType(ChannelProtocolType.REMOTING.getName())
+            .setChannel(channel)
+            .setLocalAddress(NetworkUtil.socketAddress2String(ctx.channel().localAddress()))
+            .setRemoteAddress(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        Optional.ofNullable(RemotingHelper.getAttributeValue(AttributeKeys.LANGUAGE_CODE_KEY, channel))
+            .ifPresent(language -> context.setLanguage(language.name()));
+        Optional.ofNullable(RemotingHelper.getAttributeValue(AttributeKeys.CLIENT_ID_KEY, channel))
+            .ifPresent(context::setClientID);
+        Optional.ofNullable(RemotingHelper.getAttributeValue(AttributeKeys.VERSION_KEY, channel))
+            .ifPresent(version -> context.setClientVersion(MQVersion.getVersionDesc(version)));
 
         return context;
     }
