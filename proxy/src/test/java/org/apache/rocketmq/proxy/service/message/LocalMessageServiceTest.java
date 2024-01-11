@@ -286,8 +286,8 @@ public class LocalMessageServiceTest extends InitConfigTest {
         MessageExt message2 = buildMessageExt(topic, 0, startOffset + 1);
         messageExtList.add(message2);
         messageOffsetList.add(startOffset + 1);
-        ExtraInfoUtil.buildStartOffsetInfo(startOffsetStringBuilder, false, queueId, startOffset);
-        ExtraInfoUtil.buildMsgOffsetInfo(messageOffsetStringBuilder, false, queueId, messageOffsetList);
+        ExtraInfoUtil.buildStartOffsetInfo(startOffsetStringBuilder, topic, queueId, startOffset);
+        ExtraInfoUtil.buildMsgOffsetInfo(messageOffsetStringBuilder, topic, queueId, messageOffsetList);
         byte[] body2 = MessageDecoder.encode(message2, false);
         ByteBuffer byteBuffer1 = ByteBuffer.wrap(body1);
         ByteBuffer byteBuffer2 = ByteBuffer.wrap(body2);

@@ -555,9 +555,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         // delete pop retry topics first
         try {
             for (String group : groups) {
-                final String popRetryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
-                if (brokerController.getTopicConfigManager().selectTopicConfig(popRetryTopic) != null) {
-                    deleteTopicInBroker(popRetryTopic);
+                final String popRetryTopicV2 = KeyBuilder.buildPopRetryTopic(topic, group, true);
+                if (brokerController.getTopicConfigManager().selectTopicConfig(popRetryTopicV2) != null) {
+                    deleteTopicInBroker(popRetryTopicV2);
                 }
                 final String popRetryTopicV1 = KeyBuilder.buildPopRetryTopicV1(topic, group);
                 if (brokerController.getTopicConfigManager().selectTopicConfig(popRetryTopicV1) != null) {
