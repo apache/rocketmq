@@ -119,4 +119,15 @@ public class LocalFileOffsetStoreTest {
         assertThat(offsetStore.readOffset(messageQueue1, ReadOffsetType.READ_FROM_STORE)).isEqualTo(1025);
         assertThat(offsetStore.readOffset(messageQueue2, ReadOffsetType.READ_FROM_STORE)).isEqualTo(1026);
     }
+
+    @Test
+    public void testRemoveOffset() throws Exception {
+        OffsetStore offsetStore = new LocalFileOffsetStore(mQClientFactory, group);
+        MessageQueue messageQueue = new MessageQueue(topic, brokerName, 0);
+        offsetStore.updateOffset(messageQueue, 1024, false);
+        assertThat(offsetStore.readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY)).isEqualTo(1024);
+
+        offsetStore.removeOffset(messageQueue);
+        assertThat(offsetStore.readOffset(messageQueue, ReadOffsetType.READ_FROM_MEMORY)).isEqualTo(-1);
+    }
 }
