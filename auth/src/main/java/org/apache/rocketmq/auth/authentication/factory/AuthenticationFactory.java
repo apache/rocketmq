@@ -30,6 +30,8 @@ import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataMan
 import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManagerImpl;
 import org.apache.rocketmq.auth.authentication.provider.AuthenticationMetadataProvider;
 import org.apache.rocketmq.auth.authentication.provider.AuthenticationProvider;
+import org.apache.rocketmq.auth.authentication.provider.DefaultAuthenticationProvider;
+import org.apache.rocketmq.auth.authentication.provider.LocalAuthenticationMetadataProvider;
 import org.apache.rocketmq.auth.authentication.strategy.AuthenticationStrategy;
 import org.apache.rocketmq.auth.authentication.strategy.StatefulAuthenticationStrategy;
 import org.apache.rocketmq.auth.config.AuthConfig;
@@ -48,21 +50,16 @@ public class AuthenticationFactory {
             return null;
         }
         return computeIfAbsent(PROVIDER_PREFIX + config.getConfigName(), key -> {
-            String clazzName = config.getAuthenticationProvider();
-            if (config.isAuthenticationEnabled() && StringUtils.isEmpty(clazzName)) {
-                throw new RuntimeException("The authentication provider can not be null");
-            }
-            if (StringUtils.isEmpty(clazzName)) {
-                return null;
-            }
-            AuthenticationProvider<AuthenticationContext> result;
             try {
-                result = (AuthenticationProvider<AuthenticationContext>) Class.forName(clazzName)
-                    .getDeclaredConstructor().newInstance();
+                Class<? extends AuthenticationProvider<? extends AuthenticationContext>> clazz =
+                    DefaultAuthenticationProvider.class;
+                if (StringUtils.isNotBlank(config.getAuthenticationProvider())) {
+                    clazz = (Class<? extends AuthenticationProvider<? extends AuthenticationContext>>) Class.forName(config.getAuthenticationProvider());
+                }
+                return (AuthenticationProvider<AuthenticationContext>) clazz.getDeclaredConstructor().newInstance();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to load the authentication provider", e);
             }
-            return result;
         });
     }
 
@@ -74,27 +71,23 @@ public class AuthenticationFactory {
         return new AuthenticationMetadataManagerImpl(config);
     }
 
+    @SuppressWarnings("unchecked")
     public static AuthenticationMetadataProvider getMetadataProvider(AuthConfig config, Supplier<?> metadataService) {
         if (config == null) {
             return null;
         }
         return computeIfAbsent(METADATA_PROVIDER_PREFIX + config.getConfigName(), key -> {
-            String clazzName = config.getAuthenticationMetadataProvider();
-            if (config.isAuthenticationEnabled() && StringUtils.isEmpty(clazzName)) {
-                throw new RuntimeException("The authentication metadata provider can not be null");
-            }
-            if (StringUtils.isEmpty(clazzName)) {
-                return null;
-            }
-            AuthenticationMetadataProvider result;
             try {
-                result = (AuthenticationMetadataProvider) Class.forName(clazzName)
-                    .getDeclaredConstructor().newInstance();
+                Class<? extends AuthenticationMetadataProvider> clazz = LocalAuthenticationMetadataProvider.class;
+                if (StringUtils.isNotBlank(config.getAuthenticationMetadataProvider())) {
+                    clazz = (Class<? extends AuthenticationMetadataProvider>) Class.forName(config.getAuthenticationMetadataProvider());
+                }
+                AuthenticationMetadataProvider result = clazz.getDeclaredConstructor().newInstance();
                 result.initialize(config, metadataService);
+                return result;
             } catch (Exception e) {
                 throw new RuntimeException("Failed to load the authentication metadata provider", e);
             }
-            return result;
         });
     }
 
@@ -127,7 +120,8 @@ public class AuthenticationFactory {
         return authenticationProvider.newContext(metadata, request);
     }
 
-    public static AuthenticationContext newContext(AuthConfig config, ChannelHandlerContext context, RemotingCommand command) {
+    public static AuthenticationContext newContext(AuthConfig config, ChannelHandlerContext context,
+        RemotingCommand command) {
         AuthenticationProvider<AuthenticationContext> authenticationProvider = getProvider(config);
         if (authenticationProvider == null) {
             return null;

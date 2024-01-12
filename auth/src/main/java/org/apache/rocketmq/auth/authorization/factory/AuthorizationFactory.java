@@ -31,6 +31,8 @@ import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManag
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManagerImpl;
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationMetadataProvider;
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationProvider;
+import org.apache.rocketmq.auth.authorization.provider.DefaultAuthorizationProvider;
+import org.apache.rocketmq.auth.authorization.provider.LocalAuthorizationMetadataProvider;
 import org.apache.rocketmq.auth.authorization.strategy.AuthorizationStrategy;
 import org.apache.rocketmq.auth.authorization.strategy.StatefulAuthorizationStrategy;
 import org.apache.rocketmq.auth.config.AuthConfig;
@@ -49,21 +51,17 @@ public class AuthorizationFactory {
             return null;
         }
         return computeIfAbsent(PROVIDER_PREFIX + config.getConfigName(), key -> {
-            String clazzName = config.getAuthorizationProvider();
-            if (config.isAuthorizationEnabled() && StringUtils.isEmpty(clazzName)) {
-                throw new RuntimeException("The authorization provider can not be null");
-            }
-            if (StringUtils.isEmpty(clazzName)) {
-                return null;
-            }
-            AuthorizationProvider<AuthorizationContext> result;
             try {
-                result = (AuthorizationProvider<AuthorizationContext>) Class.forName(clazzName)
+                Class<? extends AuthorizationProvider<? extends AuthorizationContext>> clazz =
+                    DefaultAuthorizationProvider.class;
+                if (StringUtils.isNotBlank(config.getAuthorizationProvider())) {
+                    clazz = (Class<? extends AuthorizationProvider<? extends AuthorizationContext>>) Class.forName(config.getAuthorizationProvider());
+                }
+                return (AuthorizationProvider<AuthorizationContext>) clazz
                     .getDeclaredConstructor().newInstance();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to load the authorization provider", e);
             }
-            return result;
         });
     }
 
@@ -75,28 +73,23 @@ public class AuthorizationFactory {
         return new AuthorizationMetadataManagerImpl(config);
     }
 
+    @SuppressWarnings("unchecked")
     public static AuthorizationMetadataProvider getMetadataProvider(AuthConfig config, Supplier<?> metadataService) {
         if (config == null) {
             return null;
         }
         return computeIfAbsent(METADATA_PROVIDER_PREFIX + config.getConfigName(), key -> {
-            String clazzName = config.getAuthorizationMetadataProvider();
-            if (config.isAuthorizationEnabled() && StringUtils.isEmpty(clazzName)) {
-                throw new RuntimeException("The authorization metadata provider can not be null");
-            }
-            if (StringUtils.isEmpty(clazzName)) {
-                return null;
-            }
-
-            AuthorizationMetadataProvider result;
             try {
-                result = (AuthorizationMetadataProvider) Class.forName(clazzName)
-                    .getDeclaredConstructor().newInstance();
+                Class<? extends AuthorizationMetadataProvider> clazz = LocalAuthorizationMetadataProvider.class;
+                if (StringUtils.isNotBlank(config.getAuthorizationMetadataProvider())) {
+                    clazz = (Class<? extends AuthorizationMetadataProvider>) Class.forName(config.getAuthorizationMetadataProvider());
+                }
+                AuthorizationMetadataProvider result = clazz.getDeclaredConstructor().newInstance();
                 result.initialize(config, metadataService);
+                return result;
             } catch (Exception e) {
                 throw new RuntimeException("Failed to load the authorization metadata provider", e);
             }
-            return result;
         });
     }
 
