@@ -824,7 +824,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             requestHeader.setOffset(queueOffset);
             requestHeader.setConsumerGroup(consumerGroup);
             requestHeader.setExtraInfo(extraInfo);
-            requestHeader.setBname(brokerName);
+            requestHeader.setBrokerName(brokerName);
             this.mQClientFactory.getMQClientAPIImpl().ackMessageAsync(findBrokerResult.getBrokerAddr(), ASYNC_TIMEOUT, new AckCallback() {
                 @Override
                 public void onSuccess(AckResult ackResult) {
@@ -868,7 +868,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             requestHeader.setConsumerGroup(consumerGroup);
             requestHeader.setExtraInfo(extraInfo);
             requestHeader.setInvisibleTime(invisibleTime);
-            requestHeader.setBname(brokerName);
+            requestHeader.setBrokerName(brokerName);
             //here the broker should be polished
             this.mQClientFactory.getMQClientAPIImpl().changeInvisibleTimeAsync(brokerName, findBrokerResult.getBrokerAddr(), requestHeader, ASYNC_TIMEOUT, callback);
             return;

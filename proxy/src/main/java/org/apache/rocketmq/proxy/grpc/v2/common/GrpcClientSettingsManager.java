@@ -74,8 +74,7 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
         if (settings.hasPublishing()) {
             settings = mergeProducerData(settings);
         } else if (settings.hasSubscription()) {
-            settings = mergeSubscriptionData(ctx, settings,
-                GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup()));
+            settings = mergeSubscriptionData(ctx, settings, settings.getSubscription().getGroup().getName());
         }
         return mergeMetric(settings);
     }
@@ -204,8 +203,7 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
             return null;
         }
         if (settings.hasSubscription()) {
-            settings = mergeSubscriptionData(ctx, settings,
-                GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup()));
+            settings = mergeSubscriptionData(ctx, settings, settings.getSubscription().getGroup().getName());
         }
         return mergeMetric(settings);
     }
@@ -231,7 +229,7 @@ public class GrpcClientSettingsManager extends ServiceThread implements StartAnd
                     if (!settings.getClientType().equals(ClientType.PUSH_CONSUMER) && !settings.getClientType().equals(ClientType.SIMPLE_CONSUMER)) {
                         return settings;
                     }
-                    String consumerGroup = GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup());
+                    String consumerGroup = settings.getSubscription().getGroup().getName();
                     ConsumerGroupInfo consumerGroupInfo = this.messagingProcessor.getConsumerGroupInfo(
                         ProxyContext.createForInner(this.getClass()),
                         consumerGroup

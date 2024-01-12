@@ -15,38 +15,15 @@
  * limitations under the License.
  */
 
-/**
- * $Id: QueryMessageRequestHeader.java 1835 2013-05-16 02:00:50Z vintagewang@apache.org $
- */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
+import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
-public class QuerySubscriptionByConsumerRequestHeader extends TopicRequestHeader {
-    @CFNotNull
-    private String group;
-    private String topic;
-
+public class HeartbeatRequestHeader extends RpcRequestHeader {
+    // for namespace
     @Override
     public void checkFields() throws RemotingCommandException {
 
-    }
-
-    public String getGroup() {
-        return group;
-    }
-
-    public void setGroup(String group) {
-        this.group = group;
-    }
-
-    public String getTopic() {
-        return topic;
-    }
-
-    public void setTopic(String topic) {
-        this.topic = topic;
     }
 }
