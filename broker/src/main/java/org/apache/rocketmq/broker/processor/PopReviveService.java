@@ -525,6 +525,8 @@ public class PopReviveService extends ServiceThread {
             long msgOffset = popCheckPoint.ackOffsetByIndex((byte) j);
             CompletableFuture<Pair<Long, Boolean>> future = getBizMessage(popCheckPoint.getTopic(), msgOffset, popCheckPoint.getQueueId(), popCheckPoint.getBrokerName())
                 .thenApply(resultPair -> {
+                    // Handle getBizMessage result and revive message.
+                    // Return Pair<Long, Boolean>, the second represents the revival result, false means failure and rePutCK is needed.
                     GetMessageStatus getMessageStatus = resultPair.getObject1();
                     MessageExt message = resultPair.getObject2();
                     if (message == null) {
