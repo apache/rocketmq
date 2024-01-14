@@ -297,7 +297,6 @@ public abstract class NettyRemotingAbstract {
             if (responseFuture.getInvokeCallback() != null) {
                 executeInvokeCallback(responseFuture);
             } else {
-                responseFuture.putResponse(cmd);
                 responseFuture.release();
             }
         } else {
@@ -420,6 +419,7 @@ public abstract class NettyRemotingAbstract {
                 public void operationComplete(ChannelFuture f) throws Exception {
                     if (f.isSuccess()) {
                         responseFuture.setSendRequestOK(true);
+                        responseFuture.countDown();
                         return;
                     } else {
                         responseFuture.setSendRequestOK(false);
@@ -427,7 +427,8 @@ public abstract class NettyRemotingAbstract {
 
                     responseTable.remove(opaque);
                     responseFuture.setCause(f.cause());
-                    responseFuture.putResponse(null);
+                    responseFuture.setResponseCommand(null);
+                    responseFuture.countDown();
                     log.warn("send a request command to channel <" + addr + "> failed.");
                 }
             });
@@ -501,7 +502,7 @@ public abstract class NettyRemotingAbstract {
         ResponseFuture responseFuture = responseTable.remove(opaque);
         if (responseFuture != null) {
             responseFuture.setSendRequestOK(false);
-            responseFuture.putResponse(null);
+            responseFuture.setResponseCommand(null);
             try {
                 executeInvokeCallback(responseFuture);
             } catch (Throwable e) {
