@@ -34,6 +34,8 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
+import org.apache.rocketmq.tieredstore.index.IndexService;
+import org.apache.rocketmq.tieredstore.index.IndexStoreService;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
@@ -43,7 +45,7 @@ public class TieredFlatFileManager {
     private static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     private static volatile TieredFlatFileManager instance;
-    private static volatile TieredIndexFile indexFile;
+    private static volatile IndexStoreService indexStoreService;
 
     private final TieredMetadataStore metadataStore;
     private final TieredMessageStoreConfig storeConfig;
@@ -76,25 +78,26 @@ public class TieredFlatFileManager {
         return instance;
     }
 
-    public static TieredIndexFile getIndexFile(TieredMessageStoreConfig storeConfig) {
+    public static IndexService getTieredIndexService(TieredMessageStoreConfig storeConfig) {
         if (storeConfig == null) {
-            return indexFile;
+            return indexStoreService;
         }
 
-        if (indexFile == null) {
+        if (indexStoreService == null) {
             synchronized (TieredFlatFileManager.class) {
-                if (indexFile == null) {
+                if (indexStoreService == null) {
                     try {
                         String filePath = TieredStoreUtil.toPath(new MessageQueue(
                             TieredStoreUtil.RMQ_SYS_TIERED_STORE_INDEX_TOPIC, storeConfig.getBrokerName(), 0));
-                        indexFile = new TieredIndexFile(new TieredFileAllocator(storeConfig), filePath);
+                        indexStoreService = new IndexStoreService(new TieredFileAllocator(storeConfig), filePath);
+                        indexStoreService.start();
                     } catch (Exception e) {
                         logger.error("Construct FlatFileManager indexFile error", e);
                     }
                 }
             }
         }
-        return indexFile;
+        return indexStoreService;
     }
 
     public void doCommit() {
@@ -120,15 +123,6 @@ public class TieredFlatFileManager {
                 }
             }, delay, TimeUnit.MILLISECONDS);
         }
-        TieredStoreExecutor.commitExecutor.schedule(() -> {
-            try {
-                if (indexFile != null) {
-                    indexFile.commit(true);
-                }
-            } catch (Throwable e) {
-                logger.error("Commit indexFile periodically failed", e);
-            }
-        }, 0, TimeUnit.MILLISECONDS);
     }
 
     public void doCleanExpiredFile() {
@@ -147,10 +141,6 @@ public class TieredFlatFileManager {
                     flatFile.getCompositeFlatFileLock().unlock();
                 }
             });
-        }
-        if (indexFile != null) {
-            indexFile.cleanExpiredFile(expiredTimeStamp);
-            indexFile.destroyExpiredFile();
         }
     }
 
@@ -244,7 +234,7 @@ public class TieredFlatFileManager {
 
     private static void cleanStaticReference() {
         instance = null;
-        indexFile = null;
+        indexStoreService = null;
     }
 
     @Nullable
@@ -271,8 +261,8 @@ public class TieredFlatFileManager {
     }
 
     public void shutdown() {
-        if (indexFile != null) {
-            indexFile.commit(true);
+        if (indexStoreService != null) {
+            indexStoreService.shutdown();
         }
         for (CompositeFlatFile flatFile : deepCopyFlatFileToList()) {
             flatFile.shutdown();
@@ -280,8 +270,8 @@ public class TieredFlatFileManager {
     }
 
     public void destroy() {
-        if (indexFile != null) {
-            indexFile.destroy();
+        if (indexStoreService != null) {
+            indexStoreService.destroy();
         }
         ImmutableList<CompositeQueueFlatFile> flatFileList = deepCopyFlatFileToList();
         cleanup();

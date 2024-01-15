@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.producer;
 
-import org.apache.rocketmq.common.message.Message;
+package org.apache.rocketmq.remoting.protocol.header;
 
-/**
- * @deprecated This interface will be removed in the version 5.0.0, interface {@link TransactionListener} is recommended.
- */
-@Deprecated
-public interface LocalTransactionExecuter {
-    LocalTransactionState executeLocalTransactionBranch(final Message msg, final Object arg);
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
+
+public class HeartbeatRequestHeader extends RpcRequestHeader {
+    // for namespace
+    @Override
+    public void checkFields() throws RemotingCommandException {
+
+    }
 }

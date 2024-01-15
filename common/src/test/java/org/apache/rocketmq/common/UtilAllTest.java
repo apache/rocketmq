@@ -142,6 +142,15 @@ public class UtilAllTest {
         assertEquals("", UtilAll.join(objects, comma));
     }
 
+    @Test
+    public void testSplit() {
+        List<String> list = Arrays.asList("groupA=DENY", "groupB=PUB|SUB", "groupC=SUB");
+        String comma = ",";
+        assertEquals(list, UtilAll.split("groupA=DENY,groupB=PUB|SUB,groupC=SUB", comma));
+        assertEquals(null, UtilAll.split(null, comma));
+        assertEquals(Collections.EMPTY_LIST, UtilAll.split("", comma));
+    }
+
     static class DemoConfig {
         private int demoWidth = 0;
         private int demoLength = 0;
@@ -215,8 +224,9 @@ public class UtilAllTest {
     @Test
     public void testCleanBuffer() {
         UtilAll.cleanBuffer(null);
+        UtilAll.cleanBuffer(ByteBuffer.allocateDirect(10));
+        UtilAll.cleanBuffer(ByteBuffer.allocateDirect(0));
         UtilAll.cleanBuffer(ByteBuffer.allocate(10));
-        UtilAll.cleanBuffer(ByteBuffer.allocate(0));
     }
 
     @Test

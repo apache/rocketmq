@@ -22,9 +22,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.tieredstore.common.SelectBufferResult;
 import org.apache.rocketmq.tieredstore.file.TieredCommitLog;
 import org.apache.rocketmq.tieredstore.file.TieredConsumeQueue;
 import org.junit.Assert;
@@ -135,7 +135,6 @@ public class MessageBufferUtilTest {
         Assert.assertEquals("uservalue0", properties.get("userkey"));
     }
 
-
     @Test
     public void testGetTotalSize() {
         ByteBuffer buffer = buildMockedMessageBuffer();
@@ -207,10 +206,12 @@ public class MessageBufferUtilTest {
         cqBuffer.flip();
         cqBuffer1.rewind();
         cqBuffer2.rewind();
-        List<Pair<Integer, Integer>> msgList = MessageBufferUtil.splitMessageBuffer(cqBuffer, msgBuffer);
+        List<SelectBufferResult> msgList = MessageBufferUtil.splitMessageBuffer(cqBuffer, msgBuffer);
         Assert.assertEquals(2, msgList.size());
-        Assert.assertEquals(Pair.of(0, MSG_LEN), msgList.get(0));
-        Assert.assertEquals(Pair.of(MSG_LEN + TieredCommitLog.CODA_SIZE, MSG_LEN), msgList.get(1));
+        Assert.assertEquals(0, msgList.get(0).getStartOffset());
+        Assert.assertEquals(MSG_LEN, msgList.get(0).getSize());
+        Assert.assertEquals(MSG_LEN + TieredCommitLog.CODA_SIZE, msgList.get(1).getStartOffset());
+        Assert.assertEquals(MSG_LEN, msgList.get(1).getSize());
 
         cqBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE * 2);
         cqBuffer.put(cqBuffer1);
@@ -220,7 +221,8 @@ public class MessageBufferUtilTest {
         cqBuffer4.rewind();
         msgList = MessageBufferUtil.splitMessageBuffer(cqBuffer, msgBuffer);
         Assert.assertEquals(1, msgList.size());
-        Assert.assertEquals(Pair.of(0, MSG_LEN), msgList.get(0));
+        Assert.assertEquals(0, msgList.get(0).getStartOffset());
+        Assert.assertEquals(MSG_LEN, msgList.get(0).getSize());
 
         cqBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE * 3);
         cqBuffer.put(cqBuffer1);
@@ -228,8 +230,10 @@ public class MessageBufferUtilTest {
         cqBuffer.flip();
         msgList = MessageBufferUtil.splitMessageBuffer(cqBuffer, msgBuffer);
         Assert.assertEquals(2, msgList.size());
-        Assert.assertEquals(Pair.of(0, MSG_LEN), msgList.get(0));
-        Assert.assertEquals(Pair.of(MSG_LEN + TieredCommitLog.CODA_SIZE, MSG_LEN), msgList.get(1));
+        Assert.assertEquals(0, msgList.get(0).getStartOffset());
+        Assert.assertEquals(MSG_LEN, msgList.get(0).getSize());
+        Assert.assertEquals(MSG_LEN + TieredCommitLog.CODA_SIZE, msgList.get(1).getStartOffset());
+        Assert.assertEquals(MSG_LEN, msgList.get(1).getSize());
 
         cqBuffer = ByteBuffer.allocate(TieredConsumeQueue.CONSUME_QUEUE_STORE_UNIT_SIZE);
         cqBuffer.put(cqBuffer5);

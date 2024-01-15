@@ -31,13 +31,12 @@ import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.common.SelectMappedBufferResultWrapper;
+import org.apache.rocketmq.tieredstore.common.SelectBufferResultWrapper;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
 import org.apache.rocketmq.tieredstore.file.CompositeFlatFile;
 import org.apache.rocketmq.tieredstore.file.CompositeQueueFlatFile;
 import org.apache.rocketmq.tieredstore.file.TieredFlatFileManager;
-import org.apache.rocketmq.tieredstore.file.TieredIndexFile;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtil;
 import org.apache.rocketmq.tieredstore.util.MessageBufferUtilTest;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
@@ -83,6 +82,7 @@ public class TieredMessageFetcherTest {
         Assert.assertEquals(GetMessageStatus.NO_MATCHED_LOGIC_QUEUE, getMessageResult.getStatus());
 
         CompositeFlatFile flatFile = flatFileManager.getOrCreateFlatFileIfAbsent(mq);
+        Assert.assertNotNull(flatFile);
         flatFile.initOffset(0);
 
         getMessageResult = fetcher.getMessageAsync("group", mq.getTopic(), mq.getQueueId(), 0, 32, null).join();
@@ -143,17 +143,18 @@ public class TieredMessageFetcherTest {
 
         fetcher.recordCacheAccess(flatFile, "prevent-invalid-cache", 0, new ArrayList<>());
         Assert.assertEquals(0, fetcher.getMessageCache().estimatedSize());
-        fetcher.putMessageToCache(flatFile, 0, new SelectMappedBufferResult(0, msg1, msg1.remaining(), null), 0, 0, 1);
+        SelectMappedBufferResult bufferResult = new SelectMappedBufferResult(0, msg1, msg1.remaining(), null);
+        fetcher.putMessageToCache(flatFile, new SelectBufferResultWrapper(bufferResult, 0, 0, false));
         Assert.assertEquals(1, fetcher.getMessageCache().estimatedSize());
 
-        GetMessageResult getMessageResult = fetcher.getMessageFromCacheAsync(flatFile, "group", 0, 32).join();
+        GetMessageResult getMessageResult = fetcher.getMessageFromCacheAsync(flatFile, "group", 0, 32, true).join();
         Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
         Assert.assertEquals(1, getMessageResult.getMessageBufferList().size());
         Assert.assertEquals(msg1, getMessageResult.getMessageBufferList().get(0));
 
         Awaitility.waitAtMost(3, TimeUnit.SECONDS)
             .until(() -> fetcher.getMessageCache().estimatedSize() == 2);
-        ArrayList<SelectMappedBufferResultWrapper> wrapperList = new ArrayList<>();
+        ArrayList<SelectBufferResultWrapper> wrapperList = new ArrayList<>();
         wrapperList.add(fetcher.getMessageFromCache(flatFile, 0));
         fetcher.recordCacheAccess(flatFile, "prevent-invalid-cache", 0, wrapperList);
         Assert.assertEquals(1, fetcher.getMessageCache().estimatedSize());
@@ -197,6 +198,7 @@ public class TieredMessageFetcherTest {
     public void testGetMessageStoreTimeStampAsync() {
         TieredMessageFetcher fetcher = new TieredMessageFetcher(storeConfig);
         CompositeFlatFile flatFile = TieredFlatFileManager.getInstance(storeConfig).getOrCreateFlatFileIfAbsent(mq);
+        Assert.assertNotNull(flatFile);
         flatFile.initOffset(0);
 
         ByteBuffer msg1 = MessageBufferUtilTest.buildMockedMessageBuffer();
@@ -270,6 +272,7 @@ public class TieredMessageFetcherTest {
         CompositeQueueFlatFile flatFile = TieredFlatFileManager.getInstance(storeConfig).getOrCreateFlatFileIfAbsent(mq);
         Assert.assertEquals(0, fetcher.queryMessageAsync(mq.getTopic(), "key", 32, 0, Long.MAX_VALUE).join().getMessageMapedList().size());
 
+        Assert.assertNotNull(flatFile);
         flatFile.initOffset(0);
         ByteBuffer buffer = MessageBufferUtilTest.buildMockedMessageBuffer();
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 0);
@@ -281,20 +284,19 @@ public class TieredMessageFetcherTest {
         buffer.putLong(MessageBufferUtil.QUEUE_OFFSET_POSITION, 2);
         flatFile.appendCommitLog(buffer);
 
-        DispatchRequest request = new DispatchRequest(mq.getTopic(), mq.getQueueId(), 0, MessageBufferUtilTest.MSG_LEN, 0, 0, 0, "", "key", 0, 0, null);
+        long timestamp = System.currentTimeMillis();
+        DispatchRequest request = new DispatchRequest(mq.getTopic(), mq.getQueueId(), 0, MessageBufferUtilTest.MSG_LEN, 0, timestamp, 0, "", "key", 0, 0, null);
         flatFile.appendIndexFile(request);
-        request = new DispatchRequest(mq.getTopic(), mq.getQueueId(), MessageBufferUtilTest.MSG_LEN, MessageBufferUtilTest.MSG_LEN, 0, 0, 0, "", "key", 0, 0, null);
+        request = new DispatchRequest(mq.getTopic(), mq.getQueueId(), MessageBufferUtilTest.MSG_LEN, MessageBufferUtilTest.MSG_LEN, 0, timestamp + 1, 0, "", "key", 0, 0, null);
         flatFile.appendIndexFile(request);
-        request = new DispatchRequest(mq.getTopic(), mq.getQueueId(), MessageBufferUtilTest.MSG_LEN * 2, MessageBufferUtilTest.MSG_LEN, 0, 0, 0, "", "another-key", 0, 0, null);
+        request = new DispatchRequest(mq.getTopic(), mq.getQueueId(), MessageBufferUtilTest.MSG_LEN * 2, MessageBufferUtilTest.MSG_LEN, 0, timestamp + 2, 0, "", "another-key", 0, 0, null);
         flatFile.appendIndexFile(request);
         flatFile.commit(true);
-        TieredIndexFile indexFile = TieredFlatFileManager.getIndexFile(storeConfig);
-        indexFile.commit(true);
         Assert.assertEquals(1, fetcher.queryMessageAsync(mq.getTopic(), "key", 1, 0, Long.MAX_VALUE).join().getMessageMapedList().size());
 
         QueryMessageResult result = fetcher.queryMessageAsync(mq.getTopic(), "key", 32, 0, Long.MAX_VALUE).join();
         Assert.assertEquals(2, result.getMessageMapedList().size());
-        Assert.assertEquals(1, result.getMessageMapedList().get(0).getByteBuffer().getLong(MessageBufferUtil.QUEUE_OFFSET_POSITION));
-        Assert.assertEquals(0, result.getMessageMapedList().get(1).getByteBuffer().getLong(MessageBufferUtil.QUEUE_OFFSET_POSITION));
+        Assert.assertEquals(0, result.getMessageMapedList().get(0).getByteBuffer().getLong(MessageBufferUtil.QUEUE_OFFSET_POSITION));
+        Assert.assertEquals(1, result.getMessageMapedList().get(1).getByteBuffer().getLong(MessageBufferUtil.QUEUE_OFFSET_POSITION));
     }
 }

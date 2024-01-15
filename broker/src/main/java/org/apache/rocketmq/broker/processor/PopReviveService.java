@@ -103,7 +103,7 @@ public class PopReviveService extends ServiceThread {
     private boolean reviveRetry(PopCheckPoint popCheckPoint, MessageExt messageExt) {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         if (!popCheckPoint.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-            msgInner.setTopic(KeyBuilder.buildPopRetryTopic(popCheckPoint.getTopic(), popCheckPoint.getCId()));
+            msgInner.setTopic(KeyBuilder.buildPopRetryTopic(popCheckPoint.getTopic(), popCheckPoint.getCId(), brokerController.getBrokerConfig().isEnableRetryTopicV2()));
         } else {
             msgInner.setTopic(popCheckPoint.getTopic());
         }
@@ -142,15 +142,6 @@ public class PopReviveService extends ServiceThread {
         this.brokerController.getBrokerStatsManager().incBrokerPutNums(popCheckPoint.getTopic(), 1);
         this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic());
         this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
-        if (brokerController.getPopMessageProcessor() != null) {
-            brokerController.getPopMessageProcessor().notifyMessageArriving(
-                KeyBuilder.parseNormalTopic(popCheckPoint.getTopic(), popCheckPoint.getCId()),
-                popCheckPoint.getCId(),
-                -1
-            );
-            brokerController.getNotificationProcessor().notifyMessageArriving(
-                KeyBuilder.parseNormalTopic(popCheckPoint.getTopic(), popCheckPoint.getCId()), -1);
-        }
         return true;
     }
 
