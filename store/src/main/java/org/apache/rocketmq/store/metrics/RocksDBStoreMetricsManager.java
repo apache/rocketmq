@@ -122,7 +122,8 @@ public class RocksDBStoreMetricsManager {
                             .getStatistics().getTickerCount(TickerType.BLOCK_CACHE_HIT);
                     long newMissTimes = ((RocksDBConsumeQueueStore)messageStore.getQueueStore())
                             .getStatistics().getTickerCount(TickerType.BLOCK_CACHE_MISS);
-                    double hitRate = (double)(newHitTimes - blockCacheHitTimes) / (double)(newHitTimes - blockCacheHitTimes + newMissTimes - blockCacheMissTimes);
+                    long totalPeriod = newHitTimes - blockCacheHitTimes + newMissTimes - blockCacheMissTimes;
+                    double hitRate = totalPeriod == 0 ? 0 : (double)(newHitTimes - blockCacheHitTimes) / totalPeriod;
                     blockCacheHitTimes = newHitTimes;
                     blockCacheMissTimes = newMissTimes;
                     measurement.record(hitRate, newAttributesBuilder().put("type", "consume_queue").build());
