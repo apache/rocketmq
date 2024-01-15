@@ -21,7 +21,9 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -92,6 +94,7 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.body.ProducerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -459,6 +462,61 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public boolean isUnitMode() {
         return this.defaultMQProducer.isUnitMode();
     }
+
+    @Override
+    public ProducerRunningInfo producerRunningInfo() throws MQClientException {
+        ProducerRunningInfo info = new ProducerRunningInfo();
+      
+        Properties prop = MixAll.object2Properties(this.defaultMQProducer);
+
+        prop.put(ProducerRunningInfo.PROP_COMPRESS_LEVEL, String.valueOf(this.compressLevel));
+        prop.put(ProducerRunningInfo.PROP_COMPRESS_TYPE, String.valueOf(this.compressType.getValue()));
+        prop.put(ProducerRunningInfo.PROPS_SERVICE_STATE, String.valueOf(this.serviceState));
+
+        info.setProperties(prop);
+
+        Set<String> pubishTopicList = this.getPublishTopicList();
+
+        info.setPublishTopicList(pubishTopicList);
+
+        ConcurrentHashMap<String, List<MessageQueue>> producerTopicsMq = new ConcurrentHashMap<>();
+
+        ConcurrentHashMap<MessageQueue, ConcurrentHashMap<String, Long>> mqOffsetData = new ConcurrentHashMap<>();
+
+        ConcurrentHashMap<MessageQueue, Long> mqEarliestMsgStoreTime = new ConcurrentHashMap<>();
+
+
+        Iterator<String> iterator = pubishTopicList.iterator();
+
+        while (iterator.hasNext()) {
+
+            String topic = iterator.next();
+            List<MessageQueue> mqList = fetchPublishMessageQueues(topic);
+            producerTopicsMq.put(topic, mqList);
+
+            Iterator<MessageQueue> it = mqList.iterator();
+            while (it.hasNext()) {
+
+                ConcurrentHashMap<String, Long> offsetData = new ConcurrentHashMap<>();
+                MessageQueue mq = it.next();
+                offsetData.put("searchOffset", this.searchOffset(mq, System.currentTimeMillis()));
+                offsetData.put("maxOffset", this.maxOffset(mq));
+                offsetData.put("minOffset", this.minOffset(mq));
+                mqOffsetData.put(mq, offsetData);
+                mqEarliestMsgStoreTime.put(mq, this.earliestMsgStoreTime(mq));
+
+
+            }
+        
+        }
+
+        info.setProducerTopicsMessageOueue(producerTopicsMq);
+        info.setMqOffsetData(mqOffsetData);
+        info.setMqEarliestMsgStoreTime(mqEarliestMsgStoreTime);
+    
+        return info;
+    }
+
 
     public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
         createTopic(key, newTopic, queueNum, 0);
