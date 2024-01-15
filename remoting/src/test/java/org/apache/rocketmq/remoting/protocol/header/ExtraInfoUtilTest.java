@@ -36,8 +36,8 @@ public class ExtraInfoUtilTest {
         String queueOffsetKey = ExtraInfoUtil.getQueueOffsetMapKey(topic, queueId, queueOffset);
 
         StringBuilder sb = new StringBuilder();
-        ExtraInfoUtil.buildQueueIdOrderCountInfo(sb, false, queueId, queueIdCount);
-        ExtraInfoUtil.buildQueueOffsetOrderCountInfo(sb, false, queueId, queueOffset, queueOffsetCount);
+        ExtraInfoUtil.buildQueueIdOrderCountInfo(sb, topic, queueId, queueIdCount);
+        ExtraInfoUtil.buildQueueOffsetOrderCountInfo(sb, topic, queueId, queueOffset, queueOffsetCount);
         Map<String, Integer> orderCountInfo = ExtraInfoUtil.parseOrderCountInfo(sb.toString());
 
         assertEquals(queueIdCount, orderCountInfo.get(queueIdKey));

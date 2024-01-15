@@ -66,6 +66,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.HeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
@@ -113,7 +114,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
     ) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
-            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, new HeartbeatRequestHeader());
             request.setLanguage(clientConfig.getLanguage());
             request.setBody(heartbeatData.encode());
             this.getRemotingClient().invokeOneway(brokerAddr, request, timeoutMillis);
@@ -129,7 +130,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         HeartbeatData heartbeatData,
         long timeoutMillis
     ) {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, new HeartbeatRequestHeader());
         request.setLanguage(clientConfig.getLanguage());
         request.setBody(heartbeatData.encode());
 

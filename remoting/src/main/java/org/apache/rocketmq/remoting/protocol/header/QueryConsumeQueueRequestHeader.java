@@ -17,10 +17,10 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
-public class QueryConsumeQueueRequestHeader implements CommandCustomHeader {
+public class QueryConsumeQueueRequestHeader extends TopicQueueRequestHeader {
 
     private String topic;
     private int queueId;
@@ -36,11 +36,11 @@ public class QueryConsumeQueueRequestHeader implements CommandCustomHeader {
         this.topic = topic;
     }
 
-    public int getQueueId() {
+    public Integer getQueueId() {
         return queueId;
     }
 
-    public void setQueueId(int queueId) {
+    public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
 

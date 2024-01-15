@@ -142,7 +142,7 @@ public abstract class AbstractSystemMessageSyncer implements StartAndShutdown, M
     public void start() throws Exception {
         this.createSysTopic();
         RPCHook rpcHook = this.getRpcHook();
-        this.defaultMQPushConsumer = new DefaultMQPushConsumer(null, this.getSystemMessageConsumerId(), rpcHook);
+        this.defaultMQPushConsumer = new DefaultMQPushConsumer(this.getSystemMessageConsumerId(), rpcHook);
 
         this.defaultMQPushConsumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
         this.defaultMQPushConsumer.setMessageModel(MessageModel.BROADCASTING);

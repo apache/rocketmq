@@ -183,7 +183,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Default constructor.
      */
     public DefaultLitePullConsumer() {
-        this(null, MixAll.DEFAULT_CONSUMER_GROUP, null);
+        this(MixAll.DEFAULT_CONSUMER_GROUP, null);
     }
 
     /**
@@ -192,7 +192,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * @param consumerGroup Consumer group.
      */
     public DefaultLitePullConsumer(final String consumerGroup) {
-        this(null, consumerGroup, null);
+        this(consumerGroup, null);
     }
 
     /**
@@ -201,7 +201,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * @param rpcHook RPC hook to execute before each remoting command.
      */
     public DefaultLitePullConsumer(RPCHook rpcHook) {
-        this(null, MixAll.DEFAULT_CONSUMER_GROUP, rpcHook);
+        this(MixAll.DEFAULT_CONSUMER_GROUP, rpcHook);
     }
 
     /**
@@ -211,7 +211,9 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * @param rpcHook RPC hook to execute before each remoting command.
      */
     public DefaultLitePullConsumer(final String consumerGroup, RPCHook rpcHook) {
-        this(null, consumerGroup, rpcHook);
+        this.consumerGroup = consumerGroup;
+        this.enableStreamRequestType = true;
+        defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
     }
 
     /**
@@ -220,6 +222,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * @param consumerGroup Consumer group.
      * @param rpcHook RPC hook to execute before each remoting command.
      */
+    @Deprecated
     public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.consumerGroup = consumerGroup;

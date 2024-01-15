@@ -242,7 +242,7 @@ public class DefaultMQConsumerWithTraceTest {
 
     @Test
     public void testPushConsumerWithTraceTLS() {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("consumerGroup", true);
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("consumerGroup", true, null);
         consumer.setUseTLS(true);
         AsyncTraceDispatcher asyncTraceDispatcher = (AsyncTraceDispatcher) consumer.getTraceDispatcher();
         Assert.assertTrue(asyncTraceDispatcher.getTraceProducer().isUseTLS());
