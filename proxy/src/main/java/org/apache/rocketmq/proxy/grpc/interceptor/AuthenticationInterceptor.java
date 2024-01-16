@@ -49,6 +49,7 @@ public class AuthenticationInterceptor implements ServerInterceptor {
             public void onMessage(R message) {
                 GeneratedMessageV3 messageV3 = (GeneratedMessageV3) message;
                 headers.put(InterceptorConstants.RPC_NAME, messageV3.getDescriptorForType().getFullName());
+                headers.put(InterceptorConstants.SIMPLE_RPC_NAME, messageV3.getDescriptorForType().getName());
                 if (ConfigurationManager.getProxyConfig().isEnableACL()) {
                     try {
                         AuthenticationHeader authenticationHeader = AuthenticationHeader.builder()

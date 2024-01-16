@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
@@ -148,7 +149,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
             ByteBuffer byteBuffer = sbr.getByteBuffer();
             int left = minOffset.getIndexPos();
             int right = maxOffset.getIndexPos();
-            int mid = binarySearchRight(byteBuffer, left, right, CQ_STORE_UNIT_SIZE, MSG_BASE_OFFSET_INDEX, msgOffset);
+            int mid = binarySearchRight(byteBuffer, left, right, CQ_STORE_UNIT_SIZE, MSG_BASE_OFFSET_INDEX, msgOffset, BoundaryType.LOWER);
             if (mid != -1) {
                 return minOffset.getMappedFile().selectMappedBuffer(mid);
             }
@@ -330,7 +331,7 @@ public class SparseConsumeQueue extends BatchConsumeQueue {
             short batchSize = byteBuffer.getShort();
             if (offset >= 0 && size > 0 && msgBaseOffset >= 0 && batchSize > 0) {
                 byteBuffer.position(i);     //reset position
-                return function.apply(byteBuffer);
+                return function.apply(byteBuffer.slice());
             }
         }
 

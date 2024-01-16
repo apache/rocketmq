@@ -79,6 +79,7 @@ public class TransactionProducer {
         config.sendInterval = commandLine.hasOption("i") ? Integer.parseInt(commandLine.getOptionValue("i")) : 0;
         config.aclEnable = commandLine.hasOption('a') && Boolean.parseBoolean(commandLine.getOptionValue('a'));
         config.msgTraceEnable = commandLine.hasOption('m') && Boolean.parseBoolean(commandLine.getOptionValue('m'));
+        config.reportInterval = commandLine.hasOption("ri") ? Integer.parseInt(commandLine.getOptionValue("ri")) : 10000;
 
         final ExecutorService sendThreadPool = Executors.newFixedThreadPool(config.threadCount);
 
@@ -105,8 +106,7 @@ public class TransactionProducer {
                     Snapshot begin = snapshotList.getFirst();
                     Snapshot end = snapshotList.getLast();
 
-                    final long sendCount = (end.sendRequestSuccessCount - begin.sendRequestSuccessCount)
-                        + (end.sendRequestFailedCount - begin.sendRequestFailedCount);
+                    final long sendCount = end.sendRequestSuccessCount - begin.sendRequestSuccessCount;
                     final long sendTps = (sendCount * 1000L) / (end.endTime - begin.endTime);
                     final double averageRT = (end.sendMessageTimeTotal - begin.sendMessageTimeTotal) / (double) (end.sendRequestSuccessCount - begin.sendRequestSuccessCount);
 
@@ -131,7 +131,7 @@ public class TransactionProducer {
                     e.printStackTrace();
                 }
             }
-        }, 10000, 10000, TimeUnit.MILLISECONDS);
+        }, config.reportInterval, config.reportInterval, TimeUnit.MILLISECONDS);
 
         RPCHook rpcHook = null;
         if (config.aclEnable) {
@@ -141,7 +141,6 @@ public class TransactionProducer {
         }
         final TransactionListener transactionCheckListener = new TransactionListenerImpl(statsBenchmark, config);
         final TransactionMQProducer producer = new TransactionMQProducer(
-            null,
             "benchmark_transaction_producer",
             rpcHook,
             config.msgTraceEnable,
@@ -288,6 +287,10 @@ public class TransactionProducer {
         options.addOption(opt);
 
         opt = new Option("m", "msgTraceEnable", true, "Message Trace Enable, Default: false");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("ri", "reportInterval", true, "The number of ms between reports, Default: 10000");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -475,6 +478,7 @@ class TxSendConfig {
     int sendInterval;
     boolean aclEnable;
     boolean msgTraceEnable;
+    int reportInterval;
 }
 
 class LRUMap<K, V> extends LinkedHashMap<K, V> {

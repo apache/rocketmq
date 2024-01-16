@@ -16,19 +16,20 @@
  */
 package org.apache.rocketmq.tieredstore;
 
-import com.google.common.base.Stopwatch;
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
-import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+
+import com.google.common.base.Stopwatch;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.PopAckConstants;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -37,29 +38,37 @@ import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
 import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
-import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
-import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
-import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
+import org.apache.rocketmq.tieredstore.file.CompositeFlatFile;
+import org.apache.rocketmq.tieredstore.file.TieredFlatFileManager;
 import org.apache.rocketmq.tieredstore.metadata.TieredMetadataStore;
-import org.apache.rocketmq.tieredstore.metadata.TopicMetadata;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsConstant;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
 
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
+import io.opentelemetry.sdk.metrics.InstrumentSelector;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
+
 public class TieredMessageStore extends AbstractPluginMessageStore {
+
     protected static final Logger logger = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
-    protected final TieredMessageFetcher fetcher;
-    protected final TieredDispatcher dispatcher;
+
     protected final String brokerName;
     protected final TieredMessageStoreConfig storeConfig;
-    protected final TieredContainerManager containerManager;
     protected final TieredMetadataStore metadataStore;
+
+    protected final TieredDispatcher dispatcher;
+    protected final TieredMessageFetcher fetcher;
+    protected final TieredFlatFileManager flatFileManager;
 
     public TieredMessageStore(MessageStorePluginContext context, MessageStore next) {
         super(context, next);
@@ -74,16 +83,17 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         this.fetcher = new TieredMessageFetcher(storeConfig);
         this.dispatcher = new TieredDispatcher(next, storeConfig);
 
-        this.containerManager = TieredContainerManager.getInstance(storeConfig);
+        this.flatFileManager = TieredFlatFileManager.getInstance(storeConfig);
         next.addDispatcher(dispatcher);
     }
 
     @Override
     public boolean load() {
-        boolean loadContainer = containerManager.load();
+        boolean loadFlatFile = flatFileManager.load();
         boolean loadNextStore = next.load();
-        boolean result = loadContainer && loadNextStore;
+        boolean result = loadFlatFile && loadNextStore;
         if (result) {
+            dispatcher.initScheduleTask();
             dispatcher.start();
         }
         return result;
@@ -93,22 +103,27 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         return storeConfig;
     }
 
-    public boolean viaTieredStorage(String topic, int queueId, long offset) {
-        return viaTieredStorage(topic, queueId, offset, 1);
+    public boolean fetchFromCurrentStore(String topic, int queueId, long offset) {
+        return fetchFromCurrentStore(topic, queueId, offset, 1);
     }
 
-    public boolean viaTieredStorage(String topic, int queueId, long offset, int batchSize) {
+    public boolean fetchFromCurrentStore(String topic, int queueId, long offset, int batchSize) {
         TieredMessageStoreConfig.TieredStorageLevel deepStorageLevel = storeConfig.getTieredStorageLevel();
+
+        if (deepStorageLevel.check(TieredMessageStoreConfig.TieredStorageLevel.FORCE)) {
+            return true;
+        }
+
         if (!deepStorageLevel.isEnable()) {
             return false;
         }
 
-        TieredMessageQueueContainer container = containerManager.getMQContainer(new MessageQueue(topic, brokerName, queueId));
-        if (container == null) {
+        CompositeFlatFile flatFile = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
+        if (flatFile == null) {
             return false;
         }
 
-        if (offset >= container.getConsumeQueueCommitOffset()) {
+        if (offset >= flatFile.getConsumeQueueCommitOffset()) {
             return false;
         }
 
@@ -122,7 +137,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
             && !next.checkInMemByConsumeOffset(topic, queueId, offset, batchSize)) {
             return true;
         }
-        return deepStorageLevel.check(TieredMessageStoreConfig.TieredStorageLevel.FORCE);
+        return false;
     }
 
     @Override
@@ -134,67 +149,95 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     @Override
     public CompletableFuture<GetMessageResult> getMessageAsync(String group, String topic,
         int queueId, long offset, int maxMsgNums, MessageFilter messageFilter) {
-        if (viaTieredStorage(topic, queueId, offset, maxMsgNums)) {
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            return fetcher.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter)
-                .thenApply(result -> {
-                    Attributes latencyAttributes = TieredStoreMetricsManager.newAttributesBuilder()
-                        .put(TieredStoreMetricsConstant.LABEL_OPERATION, TieredStoreMetricsConstant.OPERATION_API_GET_MESSAGE)
+
+        // For system topic, force reading from local store
+        if (TieredStoreUtil.isSystemTopic(topic) || PopAckConstants.isStartWithRevivePrefix(topic)) {
+            return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
+        }
+
+        if (fetchFromCurrentStore(topic, queueId, offset, maxMsgNums)) {
+            logger.trace("GetMessageAsync from current store, topic: {}, queue: {}, offset: {}", topic, queueId, offset);
+        } else {
+            logger.trace("GetMessageAsync from next store, topic: {}, queue: {}, offset: {}", topic, queueId, offset);
+            return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
+        }
+
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        return fetcher
+            .getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter)
+            .thenApply(result -> {
+
+                Attributes latencyAttributes = TieredStoreMetricsManager.newAttributesBuilder()
+                    .put(TieredStoreMetricsConstant.LABEL_OPERATION, TieredStoreMetricsConstant.OPERATION_API_GET_MESSAGE)
+                    .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
+                    .put(TieredStoreMetricsConstant.LABEL_GROUP, group)
+                    .build();
+                TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
+
+                if (result.getStatus() == GetMessageStatus.OFFSET_FOUND_NULL ||
+                    result.getStatus() == GetMessageStatus.NO_MATCHED_LOGIC_QUEUE) {
+
+                    if (next.checkInStoreByConsumeOffset(topic, queueId, offset)) {
+                        TieredStoreMetricsManager.fallbackTotal.add(1, latencyAttributes);
+                        logger.debug("GetMessageAsync not found, then back to next store, result: {}, " +
+                                "topic: {}, queue: {}, queue offset: {}, offset range: {}-{}",
+                            result.getStatus(), topic, queueId, offset, result.getMinOffset(), result.getMaxOffset());
+                        return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
+                    }
+                }
+
+                if (result.getStatus() != GetMessageStatus.FOUND &&
+                    result.getStatus() != GetMessageStatus.NO_MATCHED_LOGIC_QUEUE &&
+                    result.getStatus() != GetMessageStatus.OFFSET_OVERFLOW_ONE &&
+                    result.getStatus() != GetMessageStatus.OFFSET_OVERFLOW_BADLY) {
+                    logger.warn("GetMessageAsync not found and message is not in next store, result: {}, " +
+                            "topic: {}, queue: {}, queue offset: {}, offset range: {}-{}",
+                        result.getStatus(), topic, queueId, offset, result.getMinOffset(), result.getMaxOffset());
+                }
+
+                if (result.getStatus() == GetMessageStatus.FOUND) {
+                    Attributes messagesOutAttributes = TieredStoreMetricsManager.newAttributesBuilder()
                         .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
                         .put(TieredStoreMetricsConstant.LABEL_GROUP, group)
                         .build();
-                    TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
+                    TieredStoreMetricsManager.messagesOutTotal.add(result.getMessageCount(), messagesOutAttributes);
+                }
 
-                    if (result.getStatus() == GetMessageStatus.OFFSET_FOUND_NULL ||
-                        result.getStatus() == GetMessageStatus.OFFSET_OVERFLOW_ONE ||
-                        result.getStatus() == GetMessageStatus.OFFSET_OVERFLOW_BADLY) {
-                        if (next.checkInDiskByConsumeOffset(topic, queueId, offset)) {
-                            logger.debug("TieredMessageStore#getMessageAsync: not found message, try to get message from next store: topic: {}, queue: {}, queue offset: {}, tiered store result: {}, min offset: {}, max offset: {}",
-                                topic, queueId, offset, result.getStatus(), result.getMinOffset(), result.getMaxOffset());
-                            TieredStoreMetricsManager.fallbackTotal.add(1, latencyAttributes);
-                            return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
-                        }
-                    }
-                    if (result.getStatus() != GetMessageStatus.FOUND &&
-                        result.getStatus() != GetMessageStatus.OFFSET_OVERFLOW_ONE &&
-                        result.getStatus() != GetMessageStatus.OFFSET_OVERFLOW_BADLY) {
-                        logger.warn("TieredMessageStore#getMessageAsync: not found message, and message is not in next store: topic: {}, queue: {}, queue offset: {}, result: {}, min offset: {}, max offset: {}",
-                            topic, queueId, offset, result.getStatus(), result.getMinOffset(), result.getMaxOffset());
-                    }
-                    if (result.getStatus() == GetMessageStatus.FOUND) {
-                        Attributes messagesOutAttributes = TieredStoreMetricsManager.newAttributesBuilder()
-                            .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
-                            .put(TieredStoreMetricsConstant.LABEL_GROUP, group)
-                            .build();
-                        TieredStoreMetricsManager.messagesOutTotal.add(result.getMessageCount(), messagesOutAttributes);
-                    }
+                // Fix min or max offset according next store at last
+                long minOffsetInQueue = next.getMinOffsetInQueue(topic, queueId);
+                if (minOffsetInQueue >= 0 && minOffsetInQueue < result.getMinOffset()) {
+                    result.setMinOffset(minOffsetInQueue);
+                }
 
-                    // fix min or max offset using next store
-                    long minOffsetInQueue = next.getMinOffsetInQueue(topic, queueId);
-                    if (minOffsetInQueue >= 0 && minOffsetInQueue < result.getMinOffset()) {
-                        result.setMinOffset(minOffsetInQueue);
-                    }
-                    long maxOffsetInQueue = next.getMaxOffsetInQueue(topic, queueId);
-                    if (maxOffsetInQueue >= 0 && maxOffsetInQueue > result.getMaxOffset()) {
-                        result.setMaxOffset(maxOffsetInQueue);
-                    }
-                    return result;
-                }).exceptionally(e -> {
-                    logger.error("TieredMessageStore#getMessageAsync: get message from tiered store failed: ", e);
-                    return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
-                });
-        }
-        return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
+                // In general, the local cq offset is slightly greater than the commit offset in read message,
+                // so there is no need to update the maximum offset to the local cq offset here,
+                // otherwise it will cause repeated consumption after next begin offset over commit offset.
+
+                if (storeConfig.isRecordGetMessageResult()) {
+                    logger.info("GetMessageAsync result, {}, group: {}, topic: {}, queueId: {}, offset: {}, count:{}",
+                        result, group, topic, queueId, offset, maxMsgNums);
+                }
+
+                return result;
+            }).exceptionally(e -> {
+                logger.error("GetMessageAsync from tiered store failed", e);
+                return next.getMessage(group, topic, queueId, offset, maxMsgNums, messageFilter);
+            });
+    }
+
+    @Override
+    public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
+        return super.asyncPutMessage(msg);
     }
 
     @Override
     public long getMinOffsetInQueue(String topic, int queueId) {
         long minOffsetInNextStore = next.getMinOffsetInQueue(topic, queueId);
-        TieredMessageQueueContainer container = containerManager.getMQContainer(new MessageQueue(topic, brokerName, queueId));
-        if (container == null) {
+        CompositeFlatFile flatFile = flatFileManager.getFlatFile(new MessageQueue(topic, brokerName, queueId));
+        if (flatFile == null) {
             return minOffsetInNextStore;
         }
-        long minOffsetInTieredStore = container.getConsumeQueueMinOffset();
+        long minOffsetInTieredStore = flatFile.getConsumeQueueMinOffset();
         if (minOffsetInTieredStore < 0) {
             return minOffsetInNextStore;
         }
@@ -219,7 +262,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                     .build();
                 TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
                 if (time < 0) {
-                    logger.debug("TieredMessageStore#getEarliestMessageTimeAsync: get earliest message time failed, try to get earliest message time from next store: topic: {}, queue: {}",
+                    logger.debug("GetEarliestMessageTimeAsync failed, try to get earliest message time from next store: topic: {}, queue: {}",
                         topic, queueId);
                     return finalNextEarliestMessageTime != Long.MAX_VALUE ? finalNextEarliestMessageTime : -1;
                 }
@@ -230,7 +273,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     @Override
     public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
         long consumeQueueOffset) {
-        if (viaTieredStorage(topic, queueId, consumeQueueOffset)) {
+        if (fetchFromCurrentStore(topic, queueId, consumeQueueOffset)) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             return fetcher.getMessageStoreTimeStampAsync(topic, queueId, consumeQueueOffset)
                 .thenApply(time -> {
@@ -240,7 +283,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                         .build();
                     TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
                     if (time == -1) {
-                        logger.debug("TieredMessageStore#getMessageStoreTimeStampAsync: get message time failed, try to get message time from next store: topic: {}, queue: {}, queue offset: {}",
+                        logger.debug("GetEarliestMessageTimeAsync failed, try to get message time from next store, topic: {}, queue: {}, queue offset: {}",
                             topic, queueId, consumeQueueOffset);
                         return next.getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset);
                     }
@@ -255,6 +298,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         return getOffsetInQueueByTime(topic, queueId, timestamp, BoundaryType.LOWER);
     }
 
+    @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
         long earliestTimeInNextStore = next.getEarliestMessageTime();
         if (earliestTimeInNextStore <= 0) {
@@ -319,8 +363,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     }
 
     @Override
-    public List<Pair<InstrumentSelector, View>> getMetricsView() {
-        List<Pair<InstrumentSelector, View>> res = super.getMetricsView();
+    public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
+        List<Pair<InstrumentSelector, ViewBuilder>> res = super.getMetricsView();
         res.addAll(TieredStoreMetricsManager.getMetricsView());
         return res;
     }
@@ -336,7 +380,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         next.shutdown();
 
         dispatcher.shutdown();
-        TieredContainerManager.getInstance(storeConfig).shutdown();
+        TieredFlatFileManager.getInstance(storeConfig).shutdown();
         TieredStoreExecutor.shutdown();
     }
 
@@ -344,7 +388,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     public void destroy() {
         next.destroy();
 
-        TieredContainerManager.getInstance(storeConfig).destroy();
+        TieredFlatFileManager.getInstance(storeConfig).destroy();
         try {
             metadataStore.destroy();
         } catch (Exception e) {
@@ -362,12 +406,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                     MixAll.isLmq(topic)) {
                     return;
                 }
-                logger.info("TieredMessageStore#cleanUnusedTopic: start deleting topic {}", topic);
-                try {
-                    destroyContainer(topicMetadata);
-                } catch (Exception e) {
-                    logger.error("TieredMessageStore#cleanUnusedTopic: delete topic {} failed", topic, e);
-                }
+                this.destroyCompositeFlatFile(topicMetadata.getTopic());
             });
         } catch (Exception e) {
             logger.error("TieredMessageStore#cleanUnusedTopic: iterate topic metadata failed", e);
@@ -378,38 +417,24 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     @Override
     public int deleteTopics(Set<String> deleteTopics) {
         for (String topic : deleteTopics) {
-            logger.info("TieredMessageStore#deleteTopics: start deleting topic {}", topic);
-            try {
-                TopicMetadata topicMetadata = metadataStore.getTopic(topic);
-                if (topicMetadata != null) {
-                    destroyContainer(topicMetadata);
-                } else {
-                    logger.error("TieredMessageStore#deleteTopics: delete topic {} failed, can not obtain metadata", topic);
-                }
-            } catch (Exception e) {
-                logger.error("TieredMessageStore#deleteTopics: delete topic {} failed", topic, e);
-            }
+            this.destroyCompositeFlatFile(topic);
         }
-
         return next.deleteTopics(deleteTopics);
     }
 
-    public void destroyContainer(TopicMetadata topicMetadata) {
-        String topic = topicMetadata.getTopic();
-        metadataStore.iterateQueue(topic, queueMetadata -> {
-            MessageQueue mq = queueMetadata.getQueue();
-            TieredMessageQueueContainer container = containerManager.getMQContainer(mq);
-            if (container != null) {
-                containerManager.destroyContainer(mq);
-                try {
-                    metadataStore.deleteQueue(mq);
-                    metadataStore.deleteFileSegment(mq);
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-                logger.info("TieredMessageStore#destroyContainer: destroy container success: topic: {}, queueId: {}", mq.getTopic(), mq.getQueueId());
+    public void destroyCompositeFlatFile(String topic) {
+        try {
+            if (StringUtils.isBlank(topic)) {
+                return;
             }
-        });
-        metadataStore.deleteTopic(topicMetadata.getTopic());
+            metadataStore.iterateQueue(topic, queueMetadata -> {
+                flatFileManager.destroyCompositeFile(queueMetadata.getQueue());
+            });
+            // delete topic metadata
+            metadataStore.deleteTopic(topic);
+            logger.info("Destroy composite flat file in message store, topic={}", topic);
+        } catch (Exception e) {
+            logger.error("Destroy composite flat file in message store failed, topic={}", topic, e);
+        }
     }
 }

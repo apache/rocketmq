@@ -43,4 +43,21 @@ public class BinaryUtil {
         byte[] bytes = calculateMd5(content);
         return Hex.encodeHexString(bytes, false);
     }
+
+    /**
+     * Returns true if subject contains only bytes that are spec-compliant ASCII characters.
+     * @param subject
+     * @return
+     */
+    public static boolean isAscii(byte[] subject) {
+        if (subject == null) {
+            return false;
+        }
+        for (byte b : subject) {
+            if (b < 32 || b > 126) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

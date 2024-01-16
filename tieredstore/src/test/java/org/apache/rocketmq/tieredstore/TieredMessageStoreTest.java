@@ -18,15 +18,12 @@ package org.apache.rocketmq.tieredstore;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.sdk.OpenTelemetrySdk;
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import org.apache.commons.io.FileUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -40,11 +37,11 @@ import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.plugin.MessageStorePluginContext;
-import org.apache.rocketmq.tieredstore.common.BoundaryType;
 import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
-import org.apache.rocketmq.tieredstore.container.TieredContainerManager;
-import org.apache.rocketmq.tieredstore.container.TieredMessageQueueContainer;
+import org.apache.rocketmq.tieredstore.file.CompositeQueueFlatFile;
+import org.apache.rocketmq.tieredstore.file.TieredFlatFileManager;
 import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+import org.apache.rocketmq.common.BoundaryType;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -60,15 +57,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TieredMessageStoreTest {
+
+    private final String storePath = TieredStoreTestUtil.getRandomStorePath();
+
     private MessageStoreConfig storeConfig;
     private MessageQueue mq;
     private MessageStore nextStore;
     private TieredMessageStore store;
     private TieredMessageFetcher fetcher;
     private Configuration configuration;
-    private TieredContainerManager containerManager;
-
-    private final String storePath = FileUtils.getTempDirectory() + File.separator + "tiered_store_unit_test" + UUID.randomUUID();
+    private TieredFlatFileManager flatFileManager;
 
     @Before
     public void setUp() {
@@ -85,7 +83,7 @@ public class TieredMessageStoreTest {
         brokerConfig.setBrokerName("broker");
         configuration = new Configuration(LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME), "/tmp/rmqut/config", storeConfig, brokerConfig);
         Properties properties = new Properties();
-        properties.setProperty("tieredBackendServiceProvider", "org.apache.rocketmq.tieredstore.mock.MemoryFileSegment");
+        properties.setProperty("tieredBackendServiceProvider", "org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment");
         configuration.registerConfig(properties);
         MessageStorePluginContext context = new MessageStorePluginContext(new MessageStoreConfig(), null, null, brokerConfig, configuration);
 
@@ -100,26 +98,26 @@ public class TieredMessageStoreTest {
             Assert.fail(e.getClass().getCanonicalName() + ": " + e.getMessage());
         }
 
-        TieredContainerManager.getInstance(store.getStoreConfig()).getOrCreateMQContainer(mq);
+        TieredFlatFileManager.getInstance(store.getStoreConfig()).getOrCreateFlatFileIfAbsent(mq);
     }
 
     @After
     public void tearDown() throws IOException {
         TieredStoreExecutor.shutdown();
-        TieredStoreTestUtil.destroyContainerManager();
+        TieredStoreTestUtil.destroyCompositeFlatFileManager();
         TieredStoreTestUtil.destroyMetadataStore();
         TieredStoreTestUtil.destroyTempDir(storePath);
     }
 
-    private void mockContainer() {
-        containerManager = Mockito.mock(TieredContainerManager.class);
-        TieredMessageQueueContainer container = Mockito.mock(TieredMessageQueueContainer.class);
-        when(container.getConsumeQueueCommitOffset()).thenReturn(Long.MAX_VALUE);
-        when(containerManager.getMQContainer(mq)).thenReturn(container);
+    private void mockCompositeFlatFile() {
+        flatFileManager = Mockito.mock(TieredFlatFileManager.class);
+        CompositeQueueFlatFile flatFile = Mockito.mock(CompositeQueueFlatFile.class);
+        when(flatFile.getConsumeQueueCommitOffset()).thenReturn(Long.MAX_VALUE);
+        when(flatFileManager.getFlatFile(mq)).thenReturn(flatFile);
         try {
-            Field field = store.getClass().getDeclaredField("containerManager");
+            Field field = store.getClass().getDeclaredField("flatFileManager");
             field.setAccessible(true);
-            field.set(store, containerManager);
+            field.set(store, flatFileManager);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             Assert.fail(e.getClass().getCanonicalName() + ": " + e.getMessage());
         }
@@ -127,50 +125,50 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testViaTieredStorage() {
-        mockContainer();
+        mockCompositeFlatFile();
         Properties properties = new Properties();
         // TieredStorageLevel.DISABLE
         properties.setProperty("tieredStorageLevel", "0");
         configuration.update(properties);
-        Assert.assertFalse(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertFalse(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         // TieredStorageLevel.NOT_IN_DISK
         properties.setProperty("tieredStorageLevel", "1");
         configuration.update(properties);
         when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(false);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertTrue(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
-        Assert.assertFalse(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertFalse(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         // TieredStorageLevel.NOT_IN_MEM
         properties.setProperty("tieredStorageLevel", "2");
         configuration.update(properties);
         Mockito.when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(false);
         Mockito.when(nextStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(true);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertTrue(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         Mockito.when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
         Mockito.when(nextStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(false);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertTrue(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         Mockito.when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
         Mockito.when(nextStore.checkInMemByConsumeOffset(anyString(), anyInt(), anyLong(), anyInt())).thenReturn(true);
-        Assert.assertFalse(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertFalse(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
 
         // TieredStorageLevel.FORCE
         properties.setProperty("tieredStorageLevel", "3");
         configuration.update(properties);
-        Assert.assertTrue(store.viaTieredStorage(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertTrue(store.fetchFromCurrentStore(mq.getTopic(), mq.getQueueId(), 0));
     }
 
     @Test
     public void testGetMessageAsync() {
-        mockContainer();
+        mockCompositeFlatFile();
         GetMessageResult result1 = new GetMessageResult();
         result1.setStatus(GetMessageStatus.FOUND);
         GetMessageResult result2 = new GetMessageResult();
-        result2.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
+        result2.setStatus(GetMessageStatus.OFFSET_OVERFLOW_BADLY);
 
         when(fetcher.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(CompletableFuture.completedFuture(result1));
         when(nextStore.getMessage(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any())).thenReturn(result2);
@@ -189,8 +187,9 @@ public class TieredMessageStoreTest {
         Properties properties = new Properties();
         properties.setProperty("tieredStorageLevel", "3");
         configuration.update(properties);
-        when(nextStore.checkInDiskByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
-        Assert.assertSame(result2, store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null));
+        when(nextStore.checkInStoreByConsumeOffset(anyString(), anyInt(), anyLong())).thenReturn(true);
+        Assert.assertEquals(result2.getStatus(),
+            store.getMessage("group", mq.getTopic(), mq.getQueueId(), 0, 0, null).getStatus());
     }
 
     @Test
@@ -205,7 +204,7 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testGetMessageStoreTimeStampAsync() {
-        mockContainer();
+        mockCompositeFlatFile();
         // TieredStorageLevel.DISABLE
         Properties properties = new Properties();
         properties.setProperty("tieredStorageLevel", "DISABLE");
@@ -253,14 +252,14 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testGetMinOffsetInQueue() {
-        mockContainer();
-        TieredMessageQueueContainer container = containerManager.getMQContainer(mq);
+        mockCompositeFlatFile();
+        CompositeQueueFlatFile flatFile = flatFileManager.getFlatFile(mq);
         when(nextStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
-        when(containerManager.getMQContainer(mq)).thenReturn(null);
+        when(flatFileManager.getFlatFile(mq)).thenReturn(null);
         Assert.assertEquals(100L, store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
 
-        when(containerManager.getMQContainer(mq)).thenReturn(container);
-        when(container.getConsumeQueueMinOffset()).thenReturn(10L);
+        when(flatFileManager.getFlatFile(mq)).thenReturn(flatFile);
+        when(flatFile.getConsumeQueueMinOffset()).thenReturn(10L);
         Assert.assertEquals(10L, store.getMinOffsetInQueue(mq.getTopic(), mq.getQueueId()));
     }
 
@@ -268,7 +267,7 @@ public class TieredMessageStoreTest {
     public void testCleanUnusedTopics() {
         Set<String> topicSet = new HashSet<>();
         store.cleanUnusedTopic(topicSet);
-        Assert.assertNull(TieredContainerManager.getInstance(store.getStoreConfig()).getMQContainer(mq));
+        Assert.assertNull(TieredFlatFileManager.getInstance(store.getStoreConfig()).getFlatFile(mq));
         Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getTopic(mq.getTopic()));
         Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getQueue(mq));
     }
@@ -278,7 +277,7 @@ public class TieredMessageStoreTest {
         Set<String> topicSet = new HashSet<>();
         topicSet.add(mq.getTopic());
         store.deleteTopics(topicSet);
-        Assert.assertNull(TieredContainerManager.getInstance(store.getStoreConfig()).getMQContainer(mq));
+        Assert.assertNull(TieredFlatFileManager.getInstance(store.getStoreConfig()).getFlatFile(mq));
         Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getTopic(mq.getTopic()));
         Assert.assertNull(TieredStoreUtil.getMetadataStore(store.getStoreConfig()).getQueue(mq));
     }

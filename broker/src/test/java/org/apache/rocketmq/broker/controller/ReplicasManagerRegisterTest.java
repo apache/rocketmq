@@ -30,6 +30,7 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBro
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.RunningFlags;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.ha.autoswitch.BrokerMetadata;
@@ -103,6 +104,8 @@ public class ReplicasManagerRegisterTest {
 
     private AutoSwitchHAService mockedAutoSwitchHAService;
 
+    private RunningFlags runningFlags = new RunningFlags();
+
     @Before
     public void setUp() throws Exception {
         UtilAll.deleteFile(new File(STORE_BASE_PATH));
@@ -116,8 +119,8 @@ public class ReplicasManagerRegisterTest {
         when(mockedBrokerController.getBrokerConfig()).thenReturn(BROKER_CONFIG);
         when(mockedBrokerController.getTopicConfigManager()).thenReturn(mockedTopicConfigManager);
         when(mockedMessageStore.getHaService()).thenReturn(mockedAutoSwitchHAService);
+        when(mockedMessageStore.getRunningFlags()).thenReturn(runningFlags);
         when(mockedBrokerController.getSlaveSynchronize()).thenReturn(new SlaveSynchronize(mockedBrokerController));
-
         when(mockedBrokerOuterAPI.getControllerMetaData(any())).thenReturn(
                 new GetMetaDataResponseHeader("default-group", "dledger-a", CONTROLLER_ADDR, true, CONTROLLER_ADDR));
         when(mockedBrokerOuterAPI.checkAddressReachable(any())).thenReturn(true);

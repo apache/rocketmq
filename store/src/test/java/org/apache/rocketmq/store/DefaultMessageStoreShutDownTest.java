@@ -18,6 +18,7 @@
 package org.apache.rocketmq.store;
 
 import java.io.File;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.store.config.FlushDiskType;
@@ -74,7 +75,7 @@ public class DefaultMessageStoreShutDownTest {
         String storeRootPath = System.getProperty("java.io.tmpdir") + File.separator + "store";
         messageStoreConfig.setStorePathRootDir(storeRootPath);
         messageStoreConfig.setHaListenPort(0);
-        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), null, new BrokerConfig());
+        return new DefaultMessageStore(messageStoreConfig, new BrokerStatsManager("simpleTest", true), null, new BrokerConfig(), new ConcurrentHashMap<>());
     }
 
 }

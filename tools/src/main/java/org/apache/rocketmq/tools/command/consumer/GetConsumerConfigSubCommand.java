@@ -43,7 +43,7 @@ public class GetConsumerConfigSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Get consumer config by subscription group name!";
+        return "Get consumer config by subscription group name.";
     }
 
     @Override

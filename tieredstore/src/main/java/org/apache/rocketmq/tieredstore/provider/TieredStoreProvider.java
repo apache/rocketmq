@@ -18,8 +18,10 @@ package org.apache.rocketmq.tieredstore.provider;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.tieredstore.provider.stream.FileSegmentInputStream;
 
 public interface TieredStoreProvider {
+
     /**
      * Get file path in backend file system
      *
@@ -28,7 +30,9 @@ public interface TieredStoreProvider {
     String getPath();
 
     /**
-     * Get file size in backend file system
+     * Get the real length of the file.
+     * Return 0 if the file does not exist,
+     * Return -1 if system get size failed.
      *
      * @return file real size
      */
@@ -55,7 +59,7 @@ public interface TieredStoreProvider {
      * Get data from backend file system
      *
      * @param position the index from where the file will be read
-     * @param length the data size will be read
+     * @param length   the data size will be read
      * @return data to be read
      */
     CompletableFuture<ByteBuffer> read0(long position, int length);
@@ -64,11 +68,10 @@ public interface TieredStoreProvider {
      * Put data to backend file system
      *
      * @param inputStream data stream
-     * @param position backend file position to put, used in append mode
-     * @param length data size in stream
-     * @param append try to append or create a new file
+     * @param position    backend file position to put, used in append mode
+     * @param length      data size in stream
+     * @param append      try to append or create a new file
      * @return put result, <code>true</code> if data successfully write; <code>false</code> otherwise
      */
-    CompletableFuture<Boolean> commit0(TieredFileSegment.TieredFileSegmentInputStream inputStream,
-        long position, int length, boolean append);
+    CompletableFuture<Boolean> commit0(FileSegmentInputStream inputStream, long position, int length, boolean append);
 }

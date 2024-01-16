@@ -59,7 +59,7 @@ public class RpcClientImpl implements RpcClient {
     @Override
     public Future<RpcResponse>  invoke(MessageQueue mq, RpcRequest request, long timeoutMs) throws RpcException {
         String bname =  clientMetadata.getBrokerNameFromMessageQueue(mq);
-        request.getHeader().setBname(bname);
+        request.getHeader().setBrokerName(bname);
         return invoke(request, timeoutMs);
     }
 
@@ -160,30 +160,37 @@ public class RpcClientImpl implements RpcClient {
         InvokeCallback callback = new InvokeCallback() {
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
-                RemotingCommand responseCommand = responseFuture.getResponseCommand();
-                if (responseCommand == null) {
-                    processFailedResponse(addr, requestCommand, responseFuture, rpcResponsePromise);
-                    return;
-                }
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 try {
-                    switch (responseCommand.getCode()) {
+                    switch (response.getCode()) {
                         case ResponseCode.SUCCESS:
                         case ResponseCode.PULL_NOT_FOUND:
                         case ResponseCode.PULL_RETRY_IMMEDIATELY:
                         case ResponseCode.PULL_OFFSET_MOVED:
                             PullMessageResponseHeader responseHeader =
-                                    (PullMessageResponseHeader) responseCommand.decodeCommandCustomHeader(PullMessageResponseHeader.class);
-                            rpcResponsePromise.setSuccess(new RpcResponse(responseCommand.getCode(), responseHeader, responseCommand.getBody()));
+                                (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
+                            rpcResponsePromise.setSuccess(new RpcResponse(response.getCode(), responseHeader, response.getBody()));
                         default:
-                            RpcResponse rpcResponse = new RpcResponse(new RpcException(responseCommand.getCode(), "unexpected remote response code"));
+                            RpcResponse rpcResponse = new RpcResponse(new RpcException(response.getCode(), "unexpected remote response code"));
                             rpcResponsePromise.setSuccess(rpcResponse);
 
                     }
                 } catch (Exception e) {
-                    String errorMessage = "process failed. addr: " + addr + ", timeoutMillis: " + responseFuture.getTimeoutMillis() + ". Request: " + requestCommand;
-                    RpcResponse  rpcResponse = new RpcResponse(new RpcException(ResponseCode.RPC_UNKNOWN, errorMessage, e));
+                    String errorMessage = "process failed. addr: " + addr + ", timeoutMillis: " + timeoutMillis + ". Request: " + requestCommand;
+                    RpcResponse rpcResponse = new RpcResponse(new RpcException(ResponseCode.RPC_UNKNOWN, errorMessage, e));
                     rpcResponsePromise.setSuccess(rpcResponse);
                 }
+            }
+
+            @Override
+            public void operationFail(Throwable throwable) {
+                String errorMessage = "process failed. addr: " + addr + ". Request: " + requestCommand;
+                RpcResponse rpcResponse = new RpcResponse(new RpcException(ResponseCode.RPC_UNKNOWN, errorMessage, throwable));
+                rpcResponsePromise.setSuccess(rpcResponse);
             }
         };
 

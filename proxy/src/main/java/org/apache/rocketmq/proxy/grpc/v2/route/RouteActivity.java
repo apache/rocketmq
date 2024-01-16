@@ -32,6 +32,8 @@ import apache.rocketmq.v2.QueryRouteResponse;
 import apache.rocketmq.v2.Resource;
 import com.google.common.net.HostAndPort;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,11 +46,11 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
-import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class RouteActivity extends AbstractMessingActivity {
 
@@ -63,14 +65,14 @@ public class RouteActivity extends AbstractMessingActivity {
             validateTopic(request.getTopic());
             List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
 
-            String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic());
+            String topicName = request.getTopic().getName();
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
                 ctx, addressList, topicName);
 
             List<MessageQueue> messageQueueList = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
 
-            TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(topicName);
+            TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(ctx, topicName);
             for (QueueData queueData : proxyTopicRouteData.getQueueDatas()) {
                 String brokerName = queueData.getBrokerName();
                 Map<Long, Broker> brokerIdMap = brokerMap.get(brokerName);
@@ -104,7 +106,14 @@ public class RouteActivity extends AbstractMessingActivity {
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
                 ctx,
                 addressList,
-                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()));
+                request.getTopic().getName());
+
+            boolean fifo = false;
+            SubscriptionGroupConfig config = this.messagingProcessor.getSubscriptionGroupConfig(ctx,
+                request.getGroup().getName());
+            if (config != null && config.isConsumeMessageOrderly()) {
+                fifo = true;
+            }
 
             List<Assignment> assignments = new ArrayList<>();
             Map<String, Map<Long, Broker>> brokerMap = buildBrokerMap(proxyTopicRouteData.getBrokerDatas());
@@ -113,16 +122,30 @@ public class RouteActivity extends AbstractMessingActivity {
                     Map<Long, Broker> brokerIdMap = brokerMap.get(queueData.getBrokerName());
                     if (brokerIdMap != null) {
                         Broker broker = brokerIdMap.get(MixAll.MASTER_ID);
-                        MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
-                            .setTopic(request.getTopic())
-                            .setId(-1)
-                            .setPermission(this.convertToPermission(queueData.getPerm()))
-                            .setBroker(broker)
-                            .build();
-
-                        assignments.add(Assignment.newBuilder()
-                            .setMessageQueue(defaultMessageQueue)
-                            .build());
+                        Permission permission = this.convertToPermission(queueData.getPerm());
+                        if (fifo) {
+                            for (int i = 0; i < queueData.getReadQueueNums(); i++) {
+                                MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
+                                    .setTopic(request.getTopic())
+                                    .setId(i)
+                                    .setPermission(permission)
+                                    .setBroker(broker)
+                                    .build();
+                                assignments.add(Assignment.newBuilder()
+                                    .setMessageQueue(defaultMessageQueue)
+                                    .build());
+                            }
+                        } else {
+                            MessageQueue defaultMessageQueue = MessageQueue.newBuilder()
+                                .setTopic(request.getTopic())
+                                .setId(-1)
+                                .setPermission(permission)
+                                .setBroker(broker)
+                                .build();
+                            assignments.add(Assignment.newBuilder()
+                                .setMessageQueue(defaultMessageQueue)
+                                .build());
+                        }
 
                     }
                 }
@@ -237,7 +260,7 @@ public class RouteActivity extends AbstractMessingActivity {
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.READ)
-                .addAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);
         }
@@ -246,7 +269,7 @@ public class RouteActivity extends AbstractMessingActivity {
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.WRITE)
-                .addAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);
         }
@@ -255,7 +278,7 @@ public class RouteActivity extends AbstractMessingActivity {
             MessageQueue messageQueue = MessageQueue.newBuilder().setBroker(broker).setTopic(topic)
                 .setId(queueIdIndex++)
                 .setPermission(Permission.READ_WRITE)
-                .addAcceptMessageTypes(parseTopicMessageType(topicMessageType))
+                .addAllAcceptMessageTypes(parseTopicMessageType(topicMessageType))
                 .build();
             messageQueueList.add(messageQueue);
         }
@@ -263,18 +286,20 @@ public class RouteActivity extends AbstractMessingActivity {
         return messageQueueList;
     }
 
-    private MessageType parseTopicMessageType(TopicMessageType topicMessageType) {
+    private List<MessageType> parseTopicMessageType(TopicMessageType topicMessageType) {
         switch (topicMessageType) {
             case NORMAL:
-                return MessageType.NORMAL;
+                return Collections.singletonList(MessageType.NORMAL);
             case FIFO:
-                return MessageType.FIFO;
+                return Collections.singletonList(MessageType.FIFO);
             case TRANSACTION:
-                return MessageType.TRANSACTION;
+                return Collections.singletonList(MessageType.TRANSACTION);
             case DELAY:
-                return MessageType.DELAY;
+                return Collections.singletonList(MessageType.DELAY);
+            case MIXED:
+                return Arrays.asList(MessageType.NORMAL, MessageType.FIFO, MessageType.DELAY, MessageType.TRANSACTION);
             default:
-                return MessageType.MESSAGE_TYPE_UNSPECIFIED;
+                return Collections.singletonList(MessageType.MESSAGE_TYPE_UNSPECIFIED);
         }
     }
 }

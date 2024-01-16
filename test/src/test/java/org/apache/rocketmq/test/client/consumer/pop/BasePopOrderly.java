@@ -95,6 +95,19 @@ public class BasePopOrderly extends BasePop {
         }
     }
 
+    protected void assertMsgRecv(int seqId, int expectNum, List<Integer> expectReconsumeTimes) {
+        String msgId = msgRecvSequence.get(seqId);
+        List<MsgRcv> msgRcvList = msgRecv.get(msgId);
+        assertEquals(expectNum, msgRcvList.size());
+        assertConsumeTimes(msgRcvList, expectReconsumeTimes);
+    }
+
+    protected void assertConsumeTimes(List<MsgRcv> msgRcvList, List<Integer> expectReconsumeTimes) {
+        for (int i = 0; i < msgRcvList.size(); i++) {
+            assertEquals(expectReconsumeTimes.get(i).intValue(), msgRcvList.get(i).messageExt.getReconsumeTimes());
+        }
+    }
+
     protected void onRecvNewMessage(MessageExt messageExt) {
         msgDataRecv.add(new String(messageExt.getBody()));
         msgRecvSequence.add(messageExt.getMsgId());
@@ -108,9 +121,13 @@ public class BasePopOrderly extends BasePop {
     }
 
     protected CompletableFuture<PopResult> popMessageOrderlyAsync(long invisibleTime, int maxNums, long timeout) {
+        return popMessageOrderlyAsync(invisibleTime, maxNums, timeout, null);
+    }
+
+    protected CompletableFuture<PopResult> popMessageOrderlyAsync(long invisibleTime, int maxNums, long timeout, String attemptId) {
         return client.popMessageAsync(
             brokerAddr, messageQueue, invisibleTime, maxNums, group, timeout, true,
-            ConsumeInitMode.MIN, true, ExpressionType.TAG, "*");
+            ConsumeInitMode.MIN, true, ExpressionType.TAG, "*", attemptId);
     }
 
     protected CompletableFuture<AckResult> ackMessageAsync(MessageExt messageExt) {

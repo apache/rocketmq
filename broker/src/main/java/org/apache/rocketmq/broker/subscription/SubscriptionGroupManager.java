@@ -16,7 +16,10 @@
  */
 package org.apache.rocketmq.broker.subscription;
 
+import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -26,92 +29,127 @@ import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.SubscriptionGroupAttributes;
+import org.apache.rocketmq.common.attribute.AttributeUtil;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
-import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 
 public class SubscriptionGroupManager extends ConfigManager {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
+    protected ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable =
         new ConcurrentHashMap<>(1024);
 
     private ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable =
         new ConcurrentHashMap<>(4);
 
     private final DataVersion dataVersion = new DataVersion();
-    private transient BrokerController brokerController;
+    protected transient BrokerController brokerController;
 
     public SubscriptionGroupManager() {
         this.init();
     }
 
     public SubscriptionGroupManager(BrokerController brokerController) {
-        this.brokerController = brokerController;
-        this.init();
+        this(brokerController, true);
     }
 
-    private void init() {
+    public SubscriptionGroupManager(BrokerController brokerController, boolean init) {
+        this.brokerController = brokerController;
+        if (init) {
+            init();
+        }
+    }
+
+    protected void init() {
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.TOOLS_CONSUMER_GROUP);
-            this.subscriptionGroupTable.put(MixAll.TOOLS_CONSUMER_GROUP, subscriptionGroupConfig);
+            putSubscriptionGroupConfig(subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.FILTERSRV_CONSUMER_GROUP);
-            this.subscriptionGroupTable.put(MixAll.FILTERSRV_CONSUMER_GROUP, subscriptionGroupConfig);
+            putSubscriptionGroupConfig(subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.SELF_TEST_CONSUMER_GROUP);
-            this.subscriptionGroupTable.put(MixAll.SELF_TEST_CONSUMER_GROUP, subscriptionGroupConfig);
+            putSubscriptionGroupConfig(subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.ONS_HTTP_PROXY_GROUP);
             subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            this.subscriptionGroupTable.put(MixAll.ONS_HTTP_PROXY_GROUP, subscriptionGroupConfig);
+            putSubscriptionGroupConfig(subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.CID_ONSAPI_PULL_GROUP);
             subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            this.subscriptionGroupTable.put(MixAll.CID_ONSAPI_PULL_GROUP, subscriptionGroupConfig);
+            putSubscriptionGroupConfig(subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.CID_ONSAPI_PERMISSION_GROUP);
             subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            this.subscriptionGroupTable.put(MixAll.CID_ONSAPI_PERMISSION_GROUP, subscriptionGroupConfig);
+            putSubscriptionGroupConfig(subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.CID_ONSAPI_OWNER_GROUP);
             subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            this.subscriptionGroupTable.put(MixAll.CID_ONSAPI_OWNER_GROUP, subscriptionGroupConfig);
+            putSubscriptionGroupConfig(subscriptionGroupConfig);
         }
 
         {
             SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
             subscriptionGroupConfig.setGroupName(MixAll.CID_SYS_RMQ_TRANS);
             subscriptionGroupConfig.setConsumeBroadcastEnable(true);
-            this.subscriptionGroupTable.put(MixAll.CID_SYS_RMQ_TRANS, subscriptionGroupConfig);
+            putSubscriptionGroupConfig(subscriptionGroupConfig);
         }
     }
 
+    protected SubscriptionGroupConfig putSubscriptionGroupConfig(SubscriptionGroupConfig subscriptionGroupConfig) {
+        return this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
+    }
+
+    protected SubscriptionGroupConfig putSubscriptionGroupConfigIfAbsent(SubscriptionGroupConfig subscriptionGroupConfig) {
+        return this.subscriptionGroupTable.putIfAbsent(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
+    }
+
+    protected SubscriptionGroupConfig getSubscriptionGroupConfig(String groupName) {
+        return this.subscriptionGroupTable.get(groupName);
+    }
+
+    protected SubscriptionGroupConfig removeSubscriptionGroupConfig(String groupName) {
+        return this.subscriptionGroupTable.remove(groupName);
+    }
+
     public void updateSubscriptionGroupConfig(final SubscriptionGroupConfig config) {
-        SubscriptionGroupConfig old = this.subscriptionGroupTable.put(config.getGroupName(), config);
+        Map<String, String> newAttributes = request(config);
+        Map<String, String> currentAttributes = current(config.getGroupName());
+
+        Map<String, String> finalAttributes = AttributeUtil.alterCurrentAttributes(
+            this.subscriptionGroupTable.get(config.getGroupName()) == null,
+            SubscriptionGroupAttributes.ALL,
+            ImmutableMap.copyOf(currentAttributes),
+            ImmutableMap.copyOf(newAttributes));
+
+        config.setAttributes(finalAttributes);
+
+        SubscriptionGroupConfig old = putSubscriptionGroupConfig(config);
         if (old != null) {
             log.info("update subscription group config, old: {} new: {}", old, config);
         } else {
@@ -202,7 +240,7 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
     public void disableConsume(final String groupName) {
-        SubscriptionGroupConfig old = this.subscriptionGroupTable.get(groupName);
+        SubscriptionGroupConfig old = getSubscriptionGroupConfig(groupName);
         if (old != null) {
             old.setConsumeEnable(false);
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
@@ -211,7 +249,7 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
     public SubscriptionGroupConfig findSubscriptionGroupConfig(final String group) {
-        SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(group);
+        SubscriptionGroupConfig subscriptionGroupConfig = getSubscriptionGroupConfig(group);
         if (null == subscriptionGroupConfig) {
             if (brokerController.getBrokerConfig().isAutoCreateSubscriptionGroup() || MixAll.isSysConsumerGroup(group)) {
                 if (group.length() > Validators.CHARACTER_MAX_LENGTH || TopicValidator.isTopicOrGroupIllegal(group)) {
@@ -219,7 +257,7 @@ public class SubscriptionGroupManager extends ConfigManager {
                 }
                 subscriptionGroupConfig = new SubscriptionGroupConfig();
                 subscriptionGroupConfig.setGroupName(group);
-                SubscriptionGroupConfig preConfig = this.subscriptionGroupTable.putIfAbsent(group, subscriptionGroupConfig);
+                SubscriptionGroupConfig preConfig = putSubscriptionGroupConfigIfAbsent(subscriptionGroupConfig);
                 if (null == preConfig) {
                     log.info("auto create a subscription group, {}", subscriptionGroupConfig.toString());
                 }
@@ -289,7 +327,7 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
     public void deleteSubscriptionGroupConfig(final String groupName) {
-        SubscriptionGroupConfig old = this.subscriptionGroupTable.remove(groupName);
+        SubscriptionGroupConfig old = removeSubscriptionGroupConfig(groupName);
         this.forbiddenTable.remove(groupName);
         if (old != null) {
             log.info("delete subscription group OK, subscription group:{}", old);
@@ -301,11 +339,9 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
-    public void setSubscriptionGroupTable(ConcurrentMap<String, SubscriptionGroupConfig> otherSubscriptionGroupTable) {
-        this.subscriptionGroupTable.clear();
-        for (String key : otherSubscriptionGroupTable.keySet()) {
-            this.subscriptionGroupTable.put(key, otherSubscriptionGroupTable.get(key));
-        }
+
+    public void setSubscriptionGroupTable(ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupTable) {
+        this.subscriptionGroupTable = subscriptionGroupTable;
     }
 
     public boolean containsSubscriptionGroup(String group) {
@@ -314,5 +350,23 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
 
         return subscriptionGroupTable.containsKey(group);
+    }
+
+    private Map<String, String> request(SubscriptionGroupConfig subscriptionGroupConfig) {
+        return subscriptionGroupConfig.getAttributes() == null ? new HashMap<>() : subscriptionGroupConfig.getAttributes();
+    }
+
+    private Map<String, String> current(String groupName) {
+        SubscriptionGroupConfig subscriptionGroupConfig = this.subscriptionGroupTable.get(groupName);
+        if (subscriptionGroupConfig == null) {
+            return new HashMap<>();
+        } else {
+            Map<String, String> attributes = subscriptionGroupConfig.getAttributes();
+            if (attributes == null) {
+                return new HashMap<>();
+            } else {
+                return attributes;
+            }
+        }
     }
 }

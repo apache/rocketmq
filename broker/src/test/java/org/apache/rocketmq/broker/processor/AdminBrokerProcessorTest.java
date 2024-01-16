@@ -24,9 +24,12 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.LongAdder;
 import org.apache.rocketmq.broker.BrokerController;
@@ -34,8 +37,12 @@ import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
+import org.apache.rocketmq.broker.subscription.RocksDBSubscriptionGroupManager;
+import org.apache.rocketmq.broker.topic.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
@@ -69,10 +76,10 @@ import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfi
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
-import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.stats.BrokerStats;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,8 +91,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -111,7 +121,7 @@ public class AdminBrokerProcessorTest {
     private SendMessageProcessor sendMessageProcessor;
 
     @Mock
-    private ConcurrentMap<TopicQueueId, LongAdder> inFlyWritingCouterMap;
+    private ConcurrentMap<TopicQueueId, LongAdder> inFlyWritingCounterMap;
 
     private Set<String> systemTopicSet;
     private String topic;
@@ -159,6 +169,40 @@ public class AdminBrokerProcessorTest {
         brokerController.getMessageStoreConfig().setTimerWheelEnable(false);
     }
 
+    @After
+    public void destroy() {
+        if (notToBeExecuted()) {
+            return;
+        }
+        if (brokerController.getSubscriptionGroupManager() != null) {
+            brokerController.getSubscriptionGroupManager().stop();
+        }
+        if (brokerController.getTopicConfigManager() != null) {
+            brokerController.getTopicConfigManager().stop();
+        }
+        if (brokerController.getConsumerOffsetManager() != null) {
+            brokerController.getConsumerOffsetManager().stop();
+        }
+    }
+
+    private void initRocksdbTopicManager() {
+        if (notToBeExecuted()) {
+            return;
+        }
+        RocksDBTopicConfigManager rocksDBTopicConfigManager = new RocksDBTopicConfigManager(brokerController);
+        brokerController.setTopicConfigManager(rocksDBTopicConfigManager);
+        rocksDBTopicConfigManager.load();
+    }
+
+    private void initRocksdbSubscriptionManager() {
+        if (notToBeExecuted()) {
+            return;
+        }
+        RocksDBSubscriptionGroupManager rocksDBSubscriptionGroupManager = new RocksDBSubscriptionGroupManager(brokerController);
+        brokerController.setSubscriptionGroupManager(rocksDBSubscriptionGroupManager);
+        rocksDBSubscriptionGroupManager.load();
+    }
+
     @Test
     public void testProcessRequest_success() throws RemotingCommandException, UnknownHostException {
         RemotingCommand request = createUpdateBrokerConfigCommand();
@@ -172,6 +216,15 @@ public class AdminBrokerProcessorTest {
         when(messageStore.selectOneMessageByOffset(any(Long.class))).thenReturn(createSelectMappedBufferResult());
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+    }
+
+    @Test
+    public void testUpdateAndCreateTopicInRocksdb() throws Exception {
+        if (notToBeExecuted()) {
+            return;
+        }
+        initRocksdbTopicManager();
+        testUpdateAndCreateTopic();
     }
 
     @Test
@@ -194,24 +247,15 @@ public class AdminBrokerProcessorTest {
         request = buildCreateTopicRequest(topic);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
-
     }
 
     @Test
-    public void testUpdateAndCreateTopicOnSlave() throws Exception {
-        // setup
-        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
-        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
-        defaultMessageStore = mock(DefaultMessageStore.class);
-        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-
-        // test on slave
-        String topic = "TEST_CREATE_TOPIC";
-        RemotingCommand request = buildCreateTopicRequest(topic);
-        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
-            "please execute it from master broker.");
+    public void testDeleteTopicInRocksdb() throws Exception {
+        if (notToBeExecuted()) {
+            return;
+        }
+        initRocksdbTopicManager();
+        testDeleteTopic();
     }
 
     @Test
@@ -231,19 +275,44 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
-    public void testDeleteTopicOnSlave() throws Exception {
-        // setup
-        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
-        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
-        defaultMessageStore = mock(DefaultMessageStore.class);
-        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
+    public void testDeleteWithPopRetryTopic() throws Exception {
+        String topic = "topicA";
+        String anotherTopic = "another_topicA";
+        BrokerConfig brokerConfig = new BrokerConfig();
 
-        String topic = "TEST_DELETE_TOPIC";
+        topicConfigManager = mock(TopicConfigManager.class);
+        when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
+        final ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
+        topicConfigTable.put(topic, new TopicConfig());
+        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(topic, "cid1", brokerConfig.isEnableRetryTopicV2()), new TopicConfig());
+
+        topicConfigTable.put(anotherTopic, new TopicConfig());
+        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(anotherTopic, "cid2", brokerConfig.isEnableRetryTopicV2()), new TopicConfig());
+        when(topicConfigManager.getTopicConfigTable()).thenReturn(topicConfigTable);
+        when(topicConfigManager.selectTopicConfig(anyString())).thenAnswer(invocation -> {
+            final String selectTopic = invocation.getArgument(0);
+            return topicConfigManager.getTopicConfigTable().get(selectTopic);
+        });
+
+        when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
+        when(consumerOffsetManager.whichGroupByTopic(topic)).thenReturn(Sets.newHashSet("cid1"));
+
         RemotingCommand request = buildDeleteTopicRequest(topic);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
-            "please execute it from master broker.");
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        verify(topicConfigManager).deleteTopicConfig(topic);
+        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1", brokerConfig.isEnableRetryTopicV2()));
+        verify(messageStore, times(2)).deleteTopics(anySet());
+    }
+
+    @Test
+    public void testGetAllTopicConfigInRocksdb() throws Exception {
+        if (notToBeExecuted()) {
+            return;
+        }
+        initRocksdbTopicManager();
+        testGetAllTopicConfig();
     }
 
     @Test
@@ -277,9 +346,49 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testProcessRequest_UpdateConfigPath() throws RemotingCommandException {
+        final RemotingCommand updateConfigRequest = RemotingCommand.createRequestCommand(RequestCode.UPDATE_BROKER_CONFIG, null);
+        Properties properties = new Properties();
+
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+
+        // Update allowed value
+        properties.setProperty("allAckInSyncStateSet", "true");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        RemotingCommand response = adminBrokerProcessor.processRequest(ctx, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        //update disallowed value
+        properties.clear();
+        properties.setProperty("brokerConfigPath", "test/path");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        response = adminBrokerProcessor.processRequest(ctx, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).contains("Can not update config in black list.");
+
+        //update disallowed value
+        properties.clear();
+        properties.setProperty("configBlackList", "test;path");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        response = adminBrokerProcessor.processRequest(ctx, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).contains("Can not update config in black list.");
+    }
+
+    @Test
     public void testSearchOffsetByTimestamp() throws Exception {
         messageStore = mock(MessageStore.class);
-        when(messageStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong())).thenReturn(Long.MIN_VALUE);
+        when(messageStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), any(BoundaryType.class))).thenReturn(Long.MIN_VALUE);
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         SearchOffsetRequestHeader searchOffsetRequestHeader = new SearchOffsetRequestHeader();
         searchOffsetRequestHeader.setTopic("topic");
@@ -368,6 +477,12 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testUpdateAndCreateSubscriptionGroupInRocksdb() throws Exception {
+        initRocksdbSubscriptionManager();
+        testUpdateAndCreateSubscriptionGroup();
+    }
+
+    @Test
     public void testUpdateAndCreateSubscriptionGroup() throws RemotingCommandException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
@@ -383,27 +498,9 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
-    public void testUpdateAndCreateSubscriptionGroupOnSlave() throws RemotingCommandException {
-        // Setup
-        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
-        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
-        defaultMessageStore = mock(DefaultMessageStore.class);
-        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-
-        // Test
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP, null);
-        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-        subscriptionGroupConfig.setBrokerId(1);
-        subscriptionGroupConfig.setGroupName("groupId");
-        subscriptionGroupConfig.setConsumeEnable(Boolean.TRUE);
-        subscriptionGroupConfig.setConsumeBroadcastEnable(Boolean.TRUE);
-        subscriptionGroupConfig.setRetryMaxTimes(111);
-        subscriptionGroupConfig.setConsumeFromMinEnable(Boolean.TRUE);
-        request.setBody(JSON.toJSON(subscriptionGroupConfig).toString().getBytes());
-        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
-            "please execute it from master broker.");
+    public void testGetAllSubscriptionGroupInRocksdb() throws Exception {
+        initRocksdbSubscriptionManager();
+        testGetAllSubscriptionGroup();
     }
 
     @Test
@@ -414,30 +511,18 @@ public class AdminBrokerProcessorTest {
     }
 
     @Test
+    public void testDeleteSubscriptionGroupInRocksdb() throws Exception {
+        initRocksdbSubscriptionManager();
+        testDeleteSubscriptionGroup();
+    }
+
+    @Test
     public void testDeleteSubscriptionGroup() throws RemotingCommandException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTIONGROUP, null);
         request.addExtField("groupName", "GID-Group-Name");
         request.addExtField("removeOffset", "true");
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
-    }
-
-    @Test
-    public void testDeleteSubscriptionGroupOnSlave() throws RemotingCommandException {
-        // Setup
-        MessageStoreConfig messageStoreConfig = mock(MessageStoreConfig.class);
-        when(messageStoreConfig.getBrokerRole()).thenReturn(BrokerRole.SLAVE);
-        defaultMessageStore = mock(DefaultMessageStore.class);
-        when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-
-        // Test
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_SUBSCRIPTIONGROUP, null);
-        request.addExtField("groupName", "GID-Group-Name");
-        request.addExtField("removeOffset", "true");
-        RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
-        assertThat(response.getRemark()).isEqualTo("Can't modify topic or subscription group from slave broker, " +
-            "please execute it from master broker.");
     }
 
     @Test
@@ -512,6 +597,15 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_DELAY_OFFSET, null);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetTopicConfigInRocksdb() throws Exception {
+        if (notToBeExecuted()) {
+            return;
+        }
+        initRocksdbTopicManager();
+        testGetTopicConfig();
     }
 
     @Test
@@ -596,5 +690,9 @@ public class AdminBrokerProcessorTest {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_BROKER_CONFIG, null);
         request.makeCustomHeaderToNet();
         return request;
+    }
+
+    private boolean notToBeExecuted() {
+        return MixAll.isMac();
     }
 }

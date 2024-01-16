@@ -76,7 +76,7 @@ public class SendMessageActivityTest extends InitConfigTest {
 
     @Test
     public void testSendMessage() throws Exception {
-        when(metadataServiceMock.getTopicMessageType(eq(topic))).thenReturn(TopicMessageType.NORMAL);
+        when(metadataServiceMock.getTopicMessageType(any(), eq(topic))).thenReturn(TopicMessageType.NORMAL);
         Message message = new Message(topic, "123".getBytes());
         message.putUserProperty("a", "b");
         SendMessageRequestHeader sendMessageRequestHeader = new SendMessageRequestHeader();
@@ -86,7 +86,7 @@ public class SendMessageActivityTest extends InitConfigTest {
         sendMessageRequestHeader.setDefaultTopicQueueNums(0);
         sendMessageRequestHeader.setQueueId(0);
         sendMessageRequestHeader.setSysFlag(0);
-        sendMessageRequestHeader.setBname(brokerName);
+        sendMessageRequestHeader.setBrokerName(brokerName);
         sendMessageRequestHeader.setProperties(MessageDecoder.messageProperties2String(message.getProperties()));
         RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, sendMessageRequestHeader);
         remotingCommand.setBody(message.getBody());

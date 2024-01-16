@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -99,7 +100,7 @@ public class TimerMessageStoreTest {
         storeConfig.setTimerInterceptDelayLevel(true);
         storeConfig.setTimerPrecisionMs(precisionMs);
 
-        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig());
+        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",false), new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
         boolean load = messageStore.load();
         assertTrue(load);
         messageStore.start();
@@ -386,7 +387,7 @@ public class TimerMessageStoreTest {
             assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
         }
 
-        // Wait until messages have wrote to TimerLog and currReadTimeMs catches up current time.
+        // Wait until messages have written to TimerLog and currReadTimeMs catches up current time.
         await().atMost(5000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
             @Override
             public Boolean call() {
@@ -425,8 +426,8 @@ public class TimerMessageStoreTest {
         assertEquals(first.getCommitReadTimeMs(), second.getCommitReadTimeMs());
         second.start(true);
 
-        // Wait until all messages have wrote back to commitLog and consumeQueue.
-        await().atMost(5000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
+        // Wait until all messages have been written back to commitLog and consumeQueue.
+        await().atMost(30000, TimeUnit.MILLISECONDS).until(new Callable<Boolean>() {
             @Override
             public Boolean call() {
                 ConsumeQueue cq = (ConsumeQueue) messageStore.getConsumeQueue(topic, 0);

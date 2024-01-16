@@ -77,7 +77,7 @@ public class PullMessageActivityTest extends InitConfigTest {
 
     @Test
     public void testPullMessageWithoutSub() throws Exception {
-        when(messagingProcessorMock.getConsumerGroupInfo(eq(group)))
+        when(messagingProcessorMock.getConsumerGroupInfo(any(), eq(group)))
             .thenReturn(consumerGroupInfoMock);
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setSubString(subString);
@@ -95,7 +95,7 @@ public class PullMessageActivityTest extends InitConfigTest {
         header.setCommitOffset(0L);
         header.setSuspendTimeoutMillis(1000L);
         header.setSubVersion(0L);
-        header.setBname(brokerName);
+        header.setBrokerName(brokerName);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, header);
         request.makeCustomHeaderToNet();
@@ -110,7 +110,7 @@ public class PullMessageActivityTest extends InitConfigTest {
         newHeader.setCommitOffset(0L);
         newHeader.setSuspendTimeoutMillis(1000L);
         newHeader.setSubVersion(0L);
-        newHeader.setBname(brokerName);
+        newHeader.setBrokerName(brokerName);
         newHeader.setSubscription(subString);
         newHeader.setExpressionType(type);
         RemotingCommand matchRequest = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, newHeader);
@@ -128,7 +128,7 @@ public class PullMessageActivityTest extends InitConfigTest {
 
     @Test
     public void testPullMessageWithSub() throws Exception {
-        when(messagingProcessorMock.getConsumerGroupInfo(eq(group)))
+        when(messagingProcessorMock.getConsumerGroupInfo(any(), eq(group)))
             .thenReturn(consumerGroupInfoMock);
         SubscriptionData subscriptionData = new SubscriptionData();
         subscriptionData.setSubString(subString);
@@ -146,7 +146,7 @@ public class PullMessageActivityTest extends InitConfigTest {
         header.setCommitOffset(0L);
         header.setSuspendTimeoutMillis(1000L);
         header.setSubVersion(0L);
-        header.setBname(brokerName);
+        header.setBrokerName(brokerName);
         header.setSubscription(subString);
         header.setExpressionType(type);
 

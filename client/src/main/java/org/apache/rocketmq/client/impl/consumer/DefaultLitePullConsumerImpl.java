@@ -632,6 +632,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     this.executeHookBefore(consumeMessageContext);
                     consumeMessageContext.setStatus(ConsumeConcurrentlyStatus.CONSUME_SUCCESS.toString());
                     consumeMessageContext.setSuccess(true);
+                    consumeMessageContext.setAccessChannel(defaultLitePullConsumer.getAccessChannel());
                     this.executeHookAfter(consumeMessageContext);
                 }
                 consumeRequest.getProcessQueue().setLastConsumeTimestamp(System.currentTimeMillis());
@@ -1118,6 +1119,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         if (this.rebalanceImpl != null) {
             this.rebalanceImpl.doRebalance(false);
         }
+    }
+
+    @Override
+    public boolean tryRebalance() {
+        if (this.rebalanceImpl != null) {
+            return this.rebalanceImpl.doRebalance(false);
+        }
+        return false;
     }
 
     @Override

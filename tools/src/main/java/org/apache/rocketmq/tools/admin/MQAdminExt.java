@@ -24,7 +24,6 @@ import java.util.Set;
 import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
@@ -108,9 +107,6 @@ public interface MQAdminExt extends MQAdmin {
 
     ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
         final String addr) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    AclConfig examineBrokerClusterAclConfig(final String addr) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
     void createAndUpdateSubscriptionGroupConfig(final String addr,
@@ -472,5 +468,17 @@ public interface MQAdminExt extends MQAdmin {
     void cleanControllerBrokerData(String controllerAddr, String clusterName, String brokerName,
         String brokerControllerIdsToClean,
         boolean isCleanLivingBroker) throws RemotingException, InterruptedException, MQBrokerException;
+
+    void updateColdDataFlowCtrGroupConfig(final String brokerAddr, final Properties properties)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    void removeColdDataFlowCtrGroupConfig(final String brokerAddr, final String consumerGroup)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    String getColdDataFlowCtrInfo(final String brokerAddr)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
+
+    String setCommitLogReadAheadMode(final String brokerAddr, String mode)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, UnsupportedEncodingException, InterruptedException, MQBrokerException;
 
 }

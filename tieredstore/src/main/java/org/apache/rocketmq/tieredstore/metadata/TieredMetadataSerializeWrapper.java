@@ -16,69 +16,82 @@
  */
 package org.apache.rocketmq.tieredstore.metadata;
 
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.common.message.MessageQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class TieredMetadataSerializeWrapper extends RemotingSerializable {
-    private AtomicInteger maxTopicId;
-    private Map<String /*topic*/, TopicMetadata> topicMetadataTable;
-    private Map<String /*topic*/, Map<Integer /*queueId*/, QueueMetadata>> queueMetadataTable;
-    private Map<MessageQueue, Map<Long /*baseOffset*/, FileSegmentMetadata>> commitLogFileSegmentTable;
-    private Map<MessageQueue, Map<Long /*baseOffset*/, FileSegmentMetadata>> consumeQueueFileSegmentTable;
-    private Map<MessageQueue, Map<Long /*baseOffset*/, FileSegmentMetadata>> indexFileSegmentTable;
 
-    public AtomicInteger getMaxTopicId() {
-        return maxTopicId;
+    private AtomicLong topicSerialNumber = new AtomicLong(0L);
+
+    private ConcurrentMap<String /* topic */, TopicMetadata> topicMetadataTable;
+    private ConcurrentMap<String /* topic */, ConcurrentMap<Integer /* queueId */, QueueMetadata>> queueMetadataTable;
+
+    // Declare concurrent mapping tables to store file segment metadata for different types of files
+    // Key: filePath -> Value: <baseOffset, metadata>
+    private ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> commitLogFileSegmentTable;
+    private ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> consumeQueueFileSegmentTable;
+    private ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> indexFileSegmentTable;
+
+    public TieredMetadataSerializeWrapper() {
+        this.topicMetadataTable = new ConcurrentHashMap<>(1024);
+        this.queueMetadataTable = new ConcurrentHashMap<>(1024);
+        this.commitLogFileSegmentTable = new ConcurrentHashMap<>(1024);
+        this.consumeQueueFileSegmentTable = new ConcurrentHashMap<>(1024);
+        this.indexFileSegmentTable = new ConcurrentHashMap<>(1024);
     }
 
-    public void setMaxTopicId(AtomicInteger maxTopicId) {
-        this.maxTopicId = maxTopicId;
+    public AtomicLong getTopicSerialNumber() {
+        return topicSerialNumber;
     }
 
-    public Map<String, TopicMetadata> getTopicMetadataTable() {
+    public void setTopicSerialNumber(AtomicLong topicSerialNumber) {
+        this.topicSerialNumber = topicSerialNumber;
+    }
+
+    public ConcurrentMap<String, TopicMetadata> getTopicMetadataTable() {
         return topicMetadataTable;
     }
 
     public void setTopicMetadataTable(
-        Map<String, TopicMetadata> topicMetadataTable) {
+        ConcurrentMap<String, TopicMetadata> topicMetadataTable) {
         this.topicMetadataTable = topicMetadataTable;
     }
 
-    public Map<String, Map<Integer, QueueMetadata>> getQueueMetadataTable() {
+    public ConcurrentMap<String, ConcurrentMap<Integer, QueueMetadata>> getQueueMetadataTable() {
         return queueMetadataTable;
     }
 
     public void setQueueMetadataTable(
-        Map<String, Map<Integer, QueueMetadata>> queueMetadataTable) {
+        ConcurrentMap<String, ConcurrentMap<Integer, QueueMetadata>> queueMetadataTable) {
         this.queueMetadataTable = queueMetadataTable;
     }
 
-    public Map<MessageQueue, Map<Long, FileSegmentMetadata>> getCommitLogFileSegmentTable() {
+    public ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> getCommitLogFileSegmentTable() {
         return commitLogFileSegmentTable;
     }
 
     public void setCommitLogFileSegmentTable(
-        Map<MessageQueue, Map<Long, FileSegmentMetadata>> commitLogFileSegmentTable) {
+        ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> commitLogFileSegmentTable) {
         this.commitLogFileSegmentTable = commitLogFileSegmentTable;
     }
 
-    public Map<MessageQueue, Map<Long, FileSegmentMetadata>> getConsumeQueueFileSegmentTable() {
+    public ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> getConsumeQueueFileSegmentTable() {
         return consumeQueueFileSegmentTable;
     }
 
     public void setConsumeQueueFileSegmentTable(
-        Map<MessageQueue, Map<Long, FileSegmentMetadata>> consumeQueueFileSegmentTable) {
+        ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> consumeQueueFileSegmentTable) {
         this.consumeQueueFileSegmentTable = consumeQueueFileSegmentTable;
     }
 
-    public Map<MessageQueue, Map<Long, FileSegmentMetadata>> getIndexFileSegmentTable() {
+    public ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> getIndexFileSegmentTable() {
         return indexFileSegmentTable;
     }
 
     public void setIndexFileSegmentTable(
-        Map<MessageQueue, Map<Long, FileSegmentMetadata>> indexFileSegmentTable) {
+        ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> indexFileSegmentTable) {
         this.indexFileSegmentTable = indexFileSegmentTable;
     }
 }

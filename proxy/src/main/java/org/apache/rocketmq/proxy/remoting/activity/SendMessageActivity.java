@@ -70,7 +70,7 @@ public class SendMessageActivity extends AbstractRemotingActivity {
             if (topicMessageTypeValidator != null) {
                 // Do not check retry or dlq topic
                 if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
-                    TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(topic);
+                    TopicMessageType topicMessageType = messagingProcessor.getMetadataService().getTopicMessageType(context, topic);
                     topicMessageTypeValidator.validate(topicMessageType, messageType);
                 }
             }

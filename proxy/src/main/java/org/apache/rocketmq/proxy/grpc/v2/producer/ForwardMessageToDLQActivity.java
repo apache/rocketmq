@@ -25,19 +25,15 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
-import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-import org.apache.rocketmq.proxy.processor.ReceiptHandleProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ForwardMessageToDLQActivity extends AbstractMessingActivity {
-    protected ReceiptHandleProcessor receiptHandleProcessor;
 
-    public ForwardMessageToDLQActivity(MessagingProcessor messagingProcessor, ReceiptHandleProcessor receiptHandleProcessor,
+    public ForwardMessageToDLQActivity(MessagingProcessor messagingProcessor,
         GrpcClientSettingsManager grpcClientSettingsManager, GrpcChannelManager grpcChannelManager) {
         super(messagingProcessor, grpcClientSettingsManager, grpcChannelManager);
-        this.receiptHandleProcessor = receiptHandleProcessor;
     }
 
     public CompletableFuture<ForwardMessageToDeadLetterQueueResponse> forwardMessageToDeadLetterQueue(ProxyContext ctx,
@@ -46,9 +42,9 @@ public class ForwardMessageToDLQActivity extends AbstractMessingActivity {
         try {
             validateTopicAndConsumerGroup(request.getTopic(), request.getGroup());
 
-            String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
+            String group = request.getGroup().getName();
             String handleString = request.getReceiptHandle();
-            MessageReceiptHandle messageReceiptHandle = receiptHandleProcessor.removeReceiptHandle(grpcChannelManager.getChannel(ctx.getClientID()), group, request.getMessageId(), request.getReceiptHandle());
+            MessageReceiptHandle messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, grpcChannelManager.getChannel(ctx.getClientID()), group, request.getMessageId(), request.getReceiptHandle());
             if (messageReceiptHandle != null) {
                 handleString = messageReceiptHandle.getReceiptHandleStr();
             }
@@ -58,8 +54,8 @@ public class ForwardMessageToDLQActivity extends AbstractMessingActivity {
                 ctx,
                 receiptHandle,
                 request.getMessageId(),
-                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup()),
-                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic())
+                request.getGroup().getName(),
+                request.getTopic().getName()
             ).thenApply(result -> convertToForwardMessageToDeadLetterQueueResponse(ctx, result));
         } catch (Throwable t) {
             future.completeExceptionally(t);

@@ -16,19 +16,20 @@
  */
 package org.apache.rocketmq.tieredstore.metadata;
 
-import org.apache.rocketmq.common.message.MessageQueue;
+import java.util.Objects;
 
 public class FileSegmentMetadata {
+
     public static final int STATUS_NEW = 0;
     public static final int STATUS_SEALED = 1;
     public static final int STATUS_DELETED = 2;
 
-    private MessageQueue queue;
-    private int status;
     private int type;
-    private long baseOffset;
     private String path;
+    private long baseOffset;
+    private int status;
     private long size;
+
     private long createTimestamp;
     private long beginTimestamp;
     private long endTimestamp;
@@ -39,21 +40,16 @@ public class FileSegmentMetadata {
 
     }
 
-    public FileSegmentMetadata(MessageQueue queue, int type, long baseOffset, String path) {
-        this.queue = queue;
-        this.status = STATUS_NEW;
-        this.type = type;
-        this.baseOffset = baseOffset;
+    public FileSegmentMetadata(String path, long baseOffset, int type) {
         this.path = path;
-        this.createTimestamp = System.currentTimeMillis();
+        this.baseOffset = baseOffset;
+        this.type = type;
+        this.status = STATUS_NEW;
     }
 
-    public MessageQueue getQueue() {
-        return queue;
-    }
-
-    public void setQueue(MessageQueue queue) {
-        this.queue = queue;
+    public void markSealed() {
+        this.status = STATUS_SEALED;
+        this.sealTimestamp = System.currentTimeMillis();
     }
 
     public int getStatus() {
@@ -126,5 +122,28 @@ public class FileSegmentMetadata {
 
     public void setSealTimestamp(long sealTimestamp) {
         this.sealTimestamp = sealTimestamp;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        FileSegmentMetadata metadata = (FileSegmentMetadata) o;
+        return size == metadata.size
+            && baseOffset == metadata.baseOffset
+            && status == metadata.status
+            && path.equals(metadata.path)
+            && type == metadata.type
+            && createTimestamp == metadata.createTimestamp
+            && beginTimestamp == metadata.beginTimestamp
+            && endTimestamp == metadata.endTimestamp
+            && sealTimestamp == metadata.sealTimestamp;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(type, path, baseOffset, status, size, createTimestamp, beginTimestamp, endTimestamp, sealTimestamp);
     }
 }

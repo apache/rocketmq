@@ -33,7 +33,7 @@ public class AddBrokerSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Add a broker to specified container";
+        return "Add a broker to specified container.";
     }
 
     @Override

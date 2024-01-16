@@ -27,6 +27,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 public class ExtraInfoUtil {
     private static final String NORMAL_TOPIC = "0";
     private static final String RETRY_TOPIC = "1";
+    private static final String RETRY_TOPIC_V2 = "2";
     private static final String QUEUE_OFFSET = "qo";
 
     public static String[] split(String extraInfo) {
@@ -69,10 +70,31 @@ public class ExtraInfoUtil {
             throw new IllegalArgumentException("getRealTopic fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
         }
         if (RETRY_TOPIC.equals(extraInfoStrs[4])) {
-            return KeyBuilder.buildPopRetryTopic(topic, cid);
+            return KeyBuilder.buildPopRetryTopicV1(topic, cid);
+        } else if (RETRY_TOPIC_V2.equals(extraInfoStrs[4])) {
+            return KeyBuilder.buildPopRetryTopicV2(topic, cid);
         } else {
             return topic;
         }
+    }
+
+    public static String getRealTopic(String topic, String cid, String retry) {
+        if (retry.equals(NORMAL_TOPIC)) {
+            return topic;
+        } else if (retry.equals(RETRY_TOPIC)) {
+            return KeyBuilder.buildPopRetryTopicV1(topic, cid);
+        } else if (retry.equals(RETRY_TOPIC_V2)) {
+            return KeyBuilder.buildPopRetryTopicV2(topic, cid);
+        } else {
+            throw new IllegalArgumentException("getRetry fail, format is wrong");
+        }
+    }
+
+    public static String getRetry(String[] extraInfoStrs) {
+        if (extraInfoStrs == null || extraInfoStrs.length < 5) {
+            throw new IllegalArgumentException("getRetry fail, extraInfoStrs length " + (extraInfoStrs == null ? 0 : extraInfoStrs.length));
+        }
+        return extraInfoStrs[4];
     }
 
     public static String getBrokerName(String[] extraInfoStrs) {
@@ -97,20 +119,14 @@ public class ExtraInfoUtil {
     }
 
     public static String buildExtraInfo(long ckQueueOffset, long popTime, long invisibleTime, int reviveQid, String topic, String brokerName, int queueId) {
-        String t = NORMAL_TOPIC;
-        if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-            t = RETRY_TOPIC;
-        }
+        String t = getRetry(topic);
         return ckQueueOffset + MessageConst.KEY_SEPARATOR + popTime + MessageConst.KEY_SEPARATOR + invisibleTime + MessageConst.KEY_SEPARATOR + reviveQid + MessageConst.KEY_SEPARATOR + t
             + MessageConst.KEY_SEPARATOR + brokerName + MessageConst.KEY_SEPARATOR + queueId;
     }
 
     public static String buildExtraInfo(long ckQueueOffset, long popTime, long invisibleTime, int reviveQid, String topic, String brokerName, int queueId,
                                         long msgQueueOffset) {
-        String t = NORMAL_TOPIC;
-        if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-            t = RETRY_TOPIC;
-        }
+        String t = getRetry(topic);
         return ckQueueOffset
             + MessageConst.KEY_SEPARATOR + popTime + MessageConst.KEY_SEPARATOR + invisibleTime
             + MessageConst.KEY_SEPARATOR + reviveQid + MessageConst.KEY_SEPARATOR + t
@@ -118,7 +134,7 @@ public class ExtraInfoUtil {
             + MessageConst.KEY_SEPARATOR + msgQueueOffset;
     }
 
-    public static void buildStartOffsetInfo(StringBuilder stringBuilder, boolean retry, int queueId, long startOffset) {
+    public static void buildStartOffsetInfo(StringBuilder stringBuilder, String topic, int queueId, long startOffset) {
         if (stringBuilder == null) {
             stringBuilder = new StringBuilder(64);
         }
@@ -127,12 +143,12 @@ public class ExtraInfoUtil {
             stringBuilder.append(";");
         }
 
-        stringBuilder.append(retry ? RETRY_TOPIC : NORMAL_TOPIC)
+        stringBuilder.append(getRetry(topic))
             .append(MessageConst.KEY_SEPARATOR).append(queueId)
             .append(MessageConst.KEY_SEPARATOR).append(startOffset);
     }
 
-    public static void buildQueueIdOrderCountInfo(StringBuilder stringBuilder, boolean retry, int queueId, int orderCount) {
+    public static void buildQueueIdOrderCountInfo(StringBuilder stringBuilder, String topic, int queueId, int orderCount) {
         if (stringBuilder == null) {
             stringBuilder = new StringBuilder(64);
         }
@@ -141,12 +157,12 @@ public class ExtraInfoUtil {
             stringBuilder.append(";");
         }
 
-        stringBuilder.append(retry ? RETRY_TOPIC : NORMAL_TOPIC)
+        stringBuilder.append(getRetry(topic))
                 .append(MessageConst.KEY_SEPARATOR).append(queueId)
                 .append(MessageConst.KEY_SEPARATOR).append(orderCount);
     }
 
-    public static void buildQueueOffsetOrderCountInfo(StringBuilder stringBuilder, boolean retry, long queueId, long queueOffset, int orderCount) {
+    public static void buildQueueOffsetOrderCountInfo(StringBuilder stringBuilder, String topic, long queueId, long queueOffset, int orderCount) {
         if (stringBuilder == null) {
             stringBuilder = new StringBuilder(64);
         }
@@ -155,12 +171,12 @@ public class ExtraInfoUtil {
             stringBuilder.append(";");
         }
 
-        stringBuilder.append(retry ? RETRY_TOPIC : NORMAL_TOPIC)
+        stringBuilder.append(getRetry(topic))
             .append(MessageConst.KEY_SEPARATOR).append(getQueueOffsetKeyValueKey(queueId, queueOffset))
             .append(MessageConst.KEY_SEPARATOR).append(orderCount);
     }
 
-    public static void buildMsgOffsetInfo(StringBuilder stringBuilder, boolean retry, int queueId, List<Long> msgOffsets) {
+    public static void buildMsgOffsetInfo(StringBuilder stringBuilder, String topic, int queueId, List<Long> msgOffsets) {
         if (stringBuilder == null) {
             stringBuilder = new StringBuilder(64);
         }
@@ -169,7 +185,7 @@ public class ExtraInfoUtil {
             stringBuilder.append(";");
         }
 
-        stringBuilder.append(retry ? RETRY_TOPIC : NORMAL_TOPIC)
+        stringBuilder.append(getRetry(topic))
             .append(MessageConst.KEY_SEPARATOR).append(queueId)
             .append(MessageConst.KEY_SEPARATOR);
 
@@ -268,7 +284,11 @@ public class ExtraInfoUtil {
     }
 
     public static String getStartOffsetInfoMapKey(String topic, long key) {
-        return (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) ? RETRY_TOPIC : NORMAL_TOPIC) + "@" + key;
+        return getRetry(topic) + "@" + key;
+    }
+
+    public static String getStartOffsetInfoMapKey(String topic, String popCk, long key) {
+        return getRetry(topic, popCk) + "@" + key;
     }
 
     public static String getQueueOffsetKeyValueKey(long queueId, long queueOffset) {
@@ -276,10 +296,27 @@ public class ExtraInfoUtil {
     }
 
     public static String getQueueOffsetMapKey(String topic, long queueId, long queueOffset) {
-        return (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) ? RETRY_TOPIC : NORMAL_TOPIC) + "@" + getQueueOffsetKeyValueKey(queueId, queueOffset);
+        return getRetry(topic) + "@" + getQueueOffsetKeyValueKey(queueId, queueOffset);
     }
 
     public static boolean isOrder(String[] extraInfo) {
         return ExtraInfoUtil.getReviveQid(extraInfo) == KeyBuilder.POP_ORDER_REVIVE_QUEUE;
+    }
+
+    private static String getRetry(String topic) {
+        String t = NORMAL_TOPIC;
+        if (KeyBuilder.isPopRetryTopicV2(topic)) {
+            t = RETRY_TOPIC_V2;
+        } else if (topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+            t = RETRY_TOPIC;
+        }
+        return t;
+    }
+
+    private static String getRetry(String topic, String popCk) {
+        if (popCk != null) {
+            return getRetry(split(popCk));
+        }
+        return getRetry(topic);
     }
 }

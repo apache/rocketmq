@@ -17,11 +17,44 @@
 package org.apache.rocketmq.tieredstore.exception;
 
 public enum TieredStoreErrorCode {
+
+    /**
+     * Error code for an invalid offset.
+     */
     ILLEGAL_OFFSET,
+
+    /**
+     * Error code for an invalid parameter.
+     */
     ILLEGAL_PARAM,
+
+    /**
+     * Error code for an incorrect download length.
+     */
     DOWNLOAD_LENGTH_NOT_CORRECT,
+
+    /**
+     * Error code for no new data found in the storage system.
+     */
     NO_NEW_DATA,
+
+    /**
+     * Error code for a storage provider error.
+     */
     STORAGE_PROVIDER_ERROR,
+
+    /**
+     * Error code for an input/output error.
+     */
     IO_ERROR,
+
+    /**
+     * Segment has been sealed
+     */
+    SEGMENT_SEALED,
+
+    /**
+     * Error code for an unknown error.
+     */
     UNKNOWN
 }

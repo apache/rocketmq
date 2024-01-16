@@ -21,24 +21,26 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
 
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.rocksdb.RocksDBException;
 
-import static org.apache.rocketmq.store.config.StorePathConfigHelper.getStorePathConsumeQueue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MultiDispatchTest {
 
-    private ConsumeQueue consumeQueue;
+    private MultiDispatch multiDispatch;
 
     private DefaultMessageStore messageStore;
 
@@ -57,9 +59,8 @@ public class MultiDispatchTest {
         messageStoreConfig.setEnableMultiDispatch(true);
         BrokerConfig brokerConfig = new BrokerConfig();
         //too much reference
-        messageStore = new DefaultMessageStore(messageStoreConfig, null, null, brokerConfig);
-        consumeQueue = new ConsumeQueue("xxx", 0,
-            getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir()), messageStoreConfig.getMappedFileSizeConsumeQueue(), messageStore);
+        messageStore = new DefaultMessageStore(messageStoreConfig, null, null, brokerConfig, new ConcurrentHashMap<>());
+        multiDispatch = new MultiDispatch(messageStore);
     }
 
     @After
@@ -68,17 +69,17 @@ public class MultiDispatchTest {
     }
 
     @Test
-    public void queueKey() {
+    public void lmqQueueKey() {
         MessageExtBrokerInner messageExtBrokerInner = mock(MessageExtBrokerInner.class);
         when(messageExtBrokerInner.getQueueId()).thenReturn(2);
-        String ret = consumeQueue.queueKey("%LMQ%lmq123", messageExtBrokerInner);
+        String ret = MultiDispatchUtils.lmqQueueKey("%LMQ%lmq123");
         assertEquals(ret, "%LMQ%lmq123-0");
     }
 
     @Test
-    public void wrapMultiDispatch() {
+    public void wrapMultiDispatch() throws RocksDBException {
         MessageExtBrokerInner messageExtBrokerInner = buildMessageMultiQueue();
-        messageStore.assignOffset(messageExtBrokerInner, (short) 1);
+        multiDispatch.wrapMultiDispatch(messageExtBrokerInner);
         assertEquals(messageExtBrokerInner.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET), "0,0");
     }
 

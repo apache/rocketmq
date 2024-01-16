@@ -99,6 +99,7 @@ public class ConsumeMessageTraceHookImpl implements ConsumeMessageHook {
         subAfterContext.setRegionId(subBeforeContext.getRegionId());//
         subAfterContext.setGroupName(NamespaceUtil.withoutNamespace(subBeforeContext.getGroupName()));//
         subAfterContext.setRequestId(subBeforeContext.getRequestId());//
+        subAfterContext.setAccessChannel(context.getAccessChannel());
         subAfterContext.setSuccess(context.isSuccess());//
 
         // Calculate the cost time for processing messages

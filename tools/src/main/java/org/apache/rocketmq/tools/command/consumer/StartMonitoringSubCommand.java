@@ -34,7 +34,7 @@ public class StartMonitoringSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Start Monitoring";
+        return "Start Monitoring.";
     }
 
     @Override

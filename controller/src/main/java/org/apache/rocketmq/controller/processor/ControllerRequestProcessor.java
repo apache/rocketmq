@@ -16,17 +16,25 @@
  */
 package org.apache.rocketmq.controller.processor;
 
+import com.google.common.base.Stopwatch;
 import io.netty.channel.ChannelHandlerContext;
+import io.opentelemetry.api.common.Attributes;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import java.util.concurrent.TimeoutException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.controller.BrokerHeartbeatManager;
 import org.apache.rocketmq.controller.ControllerManager;
+import org.apache.rocketmq.controller.metrics.ControllerMetricsConstant;
+import org.apache.rocketmq.controller.metrics.ControllerMetricsManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -45,6 +53,8 @@ import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanContro
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 
+import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_REQUEST_HANDLE_STATUS;
+import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_REQUEST_TYPE;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CONTROLLER_APPLY_BROKER_ID;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.BROKER_HEARTBEAT;
 import static org.apache.rocketmq.remoting.protocol.RequestCode.CLEAN_BROKER_DATA;
@@ -66,12 +76,20 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     private static final int WAIT_TIMEOUT_OUT = 5;
     private final ControllerManager controllerManager;
     private final BrokerHeartbeatManager heartbeatManager;
+    protected Set<String> configBlackList = new HashSet<>();
 
     public ControllerRequestProcessor(final ControllerManager controllerManager) {
         this.controllerManager = controllerManager;
         this.heartbeatManager = controllerManager.getHeartbeatManager();
+        initConfigBlackList();
     }
-
+    private void initConfigBlackList() {
+        configBlackList.add("configBlackList");
+        configBlackList.add("configStorePath");
+        configBlackList.add("rocketmqHome");
+        String[] configArray = controllerManager.getControllerConfig().getConfigBlackList().split(";");
+        configBlackList.addAll(Arrays.asList(configArray));
+    }
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
         if (ctx != null) {
@@ -80,6 +98,39 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 RemotingHelper.parseChannelRemoteAddr(ctx.channel()),
                 request);
         }
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        try {
+            RemotingCommand resp = handleRequest(ctx, request);
+            Attributes attributes = ControllerMetricsManager.newAttributesBuilder()
+                .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.SUCCESS.getLowerCaseName())
+                .build();
+            ControllerMetricsManager.requestTotal.add(1, attributes);
+            attributes = ControllerMetricsManager.newAttributesBuilder()
+                .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                .build();
+            ControllerMetricsManager.requestLatency.record(stopwatch.elapsed(TimeUnit.MICROSECONDS), attributes);
+            return resp;
+        } catch (Exception e) {
+            log.error("process request: {} error, ", request, e);
+            Attributes attributes;
+            if (e instanceof TimeoutException) {
+                attributes = ControllerMetricsManager.newAttributesBuilder()
+                    .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                    .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.TIMEOUT.getLowerCaseName())
+                    .build();
+            } else {
+                attributes = ControllerMetricsManager.newAttributesBuilder()
+                    .put(LABEL_REQUEST_TYPE, ControllerMetricsConstant.RequestType.getLowerCaseNameByCode(request.getCode()))
+                    .put(LABEL_REQUEST_HANDLE_STATUS, ControllerMetricsConstant.RequestHandleStatus.FAILED.getLowerCaseName())
+                    .build();
+            }
+            ControllerMetricsManager.requestTotal.add(1, attributes);
+            throw e;
+        }
+    }
+
+    private RemotingCommand handleRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
         switch (request.getCode()) {
             case CONTROLLER_ALTER_SYNC_STATE_SET:
                 return this.handleAlterSyncStateSet(ctx, request);
@@ -240,6 +291,11 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 response.setRemark("string2Properties error");
                 return response;
             }
+            if (validateBlackListConfigExist(properties)) {
+                response.setCode(ResponseCode.NO_PERMISSION);
+                response.setRemark("Can not update config in black list.");
+                return response;
+            }
 
             this.controllerManager.getConfiguration().update(properties);
         }
@@ -273,5 +329,12 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     public boolean rejectRequest() {
         return false;
     }
-
+    private boolean validateBlackListConfigExist(Properties properties) {
+        for (String blackConfig : configBlackList) {
+            if (properties.containsKey(blackConfig)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

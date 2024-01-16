@@ -52,6 +52,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
+import org.apache.rocketmq.proxy.grpc.v2.ContextStreamObserver;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
@@ -100,7 +101,7 @@ public class ClientActivity extends AbstractMessingActivity {
             switch (clientSettings.getClientType()) {
                 case PRODUCER: {
                     for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
-                        String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
+                        String topicName = topic.getName();
                         this.registerProducer(ctx, topicName);
                     }
                     break;
@@ -108,7 +109,7 @@ public class ClientActivity extends AbstractMessingActivity {
                 case PUSH_CONSUMER:
                 case SIMPLE_CONSUMER: {
                     validateConsumerGroup(request.getGroup());
-                    String consumerGroup = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
+                    String consumerGroup = request.getGroup().getName();
                     this.registerConsumer(ctx, consumerGroup, clientSettings.getClientType(), clientSettings.getSubscription().getSubscriptionsList(), false);
                     break;
                 }
@@ -141,7 +142,7 @@ public class ClientActivity extends AbstractMessingActivity {
             switch (clientSettings.getClientType()) {
                 case PRODUCER:
                     for (Resource topic : clientSettings.getPublishing().getTopicsList()) {
-                        String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
+                        String topicName = topic.getName();
                         GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
                         if (channel != null) {
                             ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
@@ -152,7 +153,7 @@ public class ClientActivity extends AbstractMessingActivity {
                 case PUSH_CONSUMER:
                 case SIMPLE_CONSUMER:
                     validateConsumerGroup(request.getGroup());
-                    String consumerGroup = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
+                    String consumerGroup = request.getGroup().getName();
                     GrpcClientChannel channel = this.grpcChannelManager.removeChannel(clientId);
                     if (channel != null) {
                         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, MQVersion.Version.V5_0_0.ordinal());
@@ -174,11 +175,10 @@ public class ClientActivity extends AbstractMessingActivity {
         return future;
     }
 
-    public StreamObserver<TelemetryCommand> telemetry(ProxyContext ctx,
-        StreamObserver<TelemetryCommand> responseObserver) {
-        return new StreamObserver<TelemetryCommand>() {
+    public ContextStreamObserver<TelemetryCommand> telemetry(StreamObserver<TelemetryCommand> responseObserver) {
+        return new ContextStreamObserver<TelemetryCommand>() {
             @Override
-            public void onNext(TelemetryCommand request) {
+            public void onNext(ProxyContext ctx, TelemetryCommand request) {
                 try {
                     switch (request.getCommandCase()) {
                         case SETTINGS: {
@@ -241,14 +241,14 @@ public class ClientActivity extends AbstractMessingActivity {
             case PUBLISHING:
                 for (Resource topic : settings.getPublishing().getTopicsList()) {
                     validateTopic(topic);
-                    String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(topic);
+                    String topicName = topic.getName();
                     grpcClientChannel = registerProducer(ctx, topicName);
                     grpcClientChannel.setClientObserver(responseObserver);
                 }
                 break;
             case SUBSCRIPTION:
                 validateConsumerGroup(settings.getSubscription().getGroup());
-                String groupName = GrpcConverter.getInstance().wrapResourceWithNamespace(settings.getSubscription().getGroup());
+                String groupName = settings.getSubscription().getGroup().getName();
                 grpcClientChannel = registerConsumer(ctx, groupName, settings.getClientType(), settings.getSubscription().getSubscriptionsList(), true);
                 grpcClientChannel.setClientObserver(responseObserver);
                 break;
@@ -271,7 +271,7 @@ public class ClientActivity extends AbstractMessingActivity {
 
     protected TelemetryCommand processClientSettings(ProxyContext ctx, TelemetryCommand request) {
         String clientId = ctx.getClientID();
-        grpcClientSettingsManager.updateClientSettings(clientId, request.getSettings());
+        grpcClientSettingsManager.updateClientSettings(ctx, clientId, request.getSettings());
         Settings settings = grpcClientSettingsManager.getClientSettings(ctx);
         return TelemetryCommand.newBuilder()
             .setStatus(ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()))
@@ -287,7 +287,7 @@ public class ClientActivity extends AbstractMessingActivity {
         // use topic name as producer group
         ClientChannelInfo clientChannelInfo = new ClientChannelInfo(channel, clientId, languageCode, parseClientVersion(ctx.getClientVersion()));
         this.messagingProcessor.registerProducer(ctx, topicName, clientChannelInfo);
-        TopicMessageType topicMessageType = this.messagingProcessor.getMetadataService().getTopicMessageType(topicName);
+        TopicMessageType topicMessageType = this.messagingProcessor.getMetadataService().getTopicMessageType(ctx, topicName);
         if (TopicMessageType.TRANSACTION.equals(topicMessageType)) {
             this.messagingProcessor.addTransactionSubscription(ctx, topicName, topicName);
         }
@@ -396,7 +396,7 @@ public class ClientActivity extends AbstractMessingActivity {
     protected Set<SubscriptionData> buildSubscriptionDataSet(List<SubscriptionEntry> subscriptionEntryList) {
         Set<SubscriptionData> subscriptionDataSet = new HashSet<>();
         for (SubscriptionEntry sub : subscriptionEntryList) {
-            String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(sub.getTopic());
+            String topicName = sub.getTopic().getName();
             FilterExpression filterExpression = sub.getExpression();
             subscriptionDataSet.add(buildSubscriptionData(topicName, filterExpression));
         }
@@ -458,7 +458,11 @@ public class ClientActivity extends AbstractMessingActivity {
                     if (settings == null) {
                         return;
                     }
-                    grpcClientSettingsManager.updateClientSettings(clientChannelInfo.getClientId(), settings);
+                    grpcClientSettingsManager.updateClientSettings(
+                        ProxyContext.createForInner(this.getClass()),
+                        clientChannelInfo.getClientId(),
+                        settings
+                    );
                 }
             }
         }
@@ -475,7 +479,7 @@ public class ClientActivity extends AbstractMessingActivity {
         public void handle(ProducerGroupEvent event, String group, ClientChannelInfo clientChannelInfo) {
             if (event == ProducerGroupEvent.CLIENT_UNREGISTER) {
                 grpcChannelManager.removeChannel(clientChannelInfo.getClientId());
-                grpcClientSettingsManager.removeClientSettings(clientChannelInfo.getClientId());
+                grpcClientSettingsManager.removeAndGetRawClientSettings(clientChannelInfo.getClientId());
             }
         }
     }

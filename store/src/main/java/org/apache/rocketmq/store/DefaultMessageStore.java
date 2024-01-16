@@ -22,7 +22,7 @@ import io.openmessaging.storage.dledger.entry.DLedgerEntry;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.sdk.metrics.InstrumentSelector;
-import io.opentelemetry.sdk.metrics.View;
+import io.opentelemetry.sdk.metrics.ViewBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -42,23 +42,24 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
@@ -82,6 +83,7 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.CleanupPolicyUtils;
 import org.apache.rocketmq.common.utils.QueueTypeUtils;
 import org.apache.rocketmq.common.utils.ServiceProvider;
+import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
@@ -104,32 +106,35 @@ import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStore;
+import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.PerfCounter;
+import org.rocksdb.RocksDBException;
 
 public class DefaultMessageStore implements MessageStore {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    protected static final Logger ERROR_LOG = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
 
     public final PerfCounter.Ticks perfs = new PerfCounter.Ticks(LOGGER);
 
     private final MessageStoreConfig messageStoreConfig;
     // CommitLog
-    private final CommitLog commitLog;
+    protected final CommitLog commitLog;
 
-    private final ConsumeQueueStore consumeQueueStore;
+    protected final ConsumeQueueStoreInterface consumeQueueStore;
 
     private final FlushConsumeQueueService flushConsumeQueueService;
 
-    private final CleanCommitLogService cleanCommitLogService;
+    protected final CleanCommitLogService cleanCommitLogService;
 
     private final CleanConsumeQueueService cleanConsumeQueueService;
 
     private final CorrectLogicOffsetService correctLogicOffsetService;
 
-    private final IndexService indexService;
+    protected final IndexService indexService;
 
     private final AllocateMappedFileService allocateMappedFileService;
 
@@ -146,7 +151,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private final TransientStorePool transientStorePool;
 
-    private final RunningFlags runningFlags = new RunningFlags();
+    protected final RunningFlags runningFlags = new RunningFlags();
     private final SystemClock systemClock = new SystemClock();
 
     private final ScheduledExecutorService scheduledExecutorService;
@@ -155,6 +160,7 @@ public class DefaultMessageStore implements MessageStore {
     private final BrokerConfig brokerConfig;
 
     private volatile boolean shutdown = true;
+    protected boolean notifyMessageArriveInBatch = false;
 
     private StoreCheckpoint storeCheckpoint;
     private TimerMessageStore timerMessageStore;
@@ -181,12 +187,12 @@ public class DefaultMessageStore implements MessageStore {
 
     private volatile long brokerInitMaxOffset = -1L;
 
-    protected List<PutMessageHook> putMessageHookList = new ArrayList<>();
+    private List<PutMessageHook> putMessageHookList = new ArrayList<>();
 
     private SendMessageBackHook sendMessageBackHook;
 
-    private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
-        new ConcurrentHashMap<>(32);
+    private final ConcurrentSkipListMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
+        new ConcurrentSkipListMap<>();
 
     private int maxDelayLevel;
 
@@ -200,16 +206,20 @@ public class DefaultMessageStore implements MessageStore {
 
     private long stateMachineVersion = 0L;
 
+    // this is a unmodifiableMap
+    private ConcurrentMap<String, TopicConfig> topicConfigTable;
+
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
-        Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
+        ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
-        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig) throws IOException {
+        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
         this.aliveReplicasNum = messageStoreConfig.getTotalReplicas();
         this.brokerStatsManager = brokerStatsManager;
+        this.topicConfigTable = topicConfigTable;
         this.allocateMappedFileService = new AllocateMappedFileService(this);
         if (messageStoreConfig.isEnableDLegerCommitLog()) {
             this.commitLog = new DLedgerCommitLog(this);
@@ -217,12 +227,12 @@ public class DefaultMessageStore implements MessageStore {
             this.commitLog = new CommitLog(this);
         }
 
-        this.consumeQueueStore = new ConsumeQueueStore(this, this.messageStoreConfig);
+        this.consumeQueueStore = createConsumeQueueStore();
 
-        this.flushConsumeQueueService = new FlushConsumeQueueService();
+        this.flushConsumeQueueService = createFlushConsumeQueueService();
         this.cleanCommitLogService = new CleanCommitLogService();
-        this.cleanConsumeQueueService = new CleanConsumeQueueService();
-        this.correctLogicOffsetService = new CorrectLogicOffsetService();
+        this.cleanConsumeQueueService = createCleanConsumeQueueService();
+        this.correctLogicOffsetService = createCorrectLogicOffsetService();
         this.storeStatsService = new StoreStatsService(getBrokerIdentity());
         this.indexService = new IndexService(this);
 
@@ -245,10 +255,10 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService = new ConcurrentReputMessageService();
         }
 
-        this.transientStorePool = new TransientStorePool(this);
+        this.transientStorePool = new TransientStorePool(messageStoreConfig.getTransientStorePoolSize(), messageStoreConfig.getMappedFileSizeCommitLog());
 
         this.scheduledExecutorService =
-            Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
+            ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreScheduledThread", getBrokerIdentity()));
 
         this.dispatcherList = new LinkedList<>();
         this.dispatcherList.addLast(new CommitLogDispatcherBuildConsumeQueue());
@@ -266,6 +276,22 @@ public class DefaultMessageStore implements MessageStore {
         lockFile = new RandomAccessFile(file, "rw");
 
         parseDelayLevel();
+    }
+
+    public ConsumeQueueStoreInterface createConsumeQueueStore() {
+        return new ConsumeQueueStore(this);
+    }
+
+    public CleanConsumeQueueService createCleanConsumeQueueService() {
+        return new CleanConsumeQueueService();
+    }
+
+    public FlushConsumeQueueService createFlushConsumeQueueService() {
+        return new FlushConsumeQueueService();
+    }
+
+    public CorrectLogicOffsetService createCorrectLogicOffsetService() {
+        return new CorrectLogicOffsetService();
     }
 
     public boolean parseDelayLevel() {
@@ -300,7 +326,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public void truncateDirtyLogicFiles(long phyOffset) {
+    public void truncateDirtyLogicFiles(long phyOffset) throws RocksDBException {
         this.consumeQueueStore.truncateDirty(phyOffset);
     }
 
@@ -331,10 +357,13 @@ public class DefaultMessageStore implements MessageStore {
                     new StoreCheckpoint(
                         StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
                 this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
+                setConfirmOffset(this.storeCheckpoint.getConfirmPhyOffset());
+
                 result = this.indexService.load(lastExitOK);
                 this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
             }
+
 
             long maxOffset = this.getMaxPhyOffset();
             this.setBrokerInitMaxOffset(maxOffset);
@@ -385,9 +414,7 @@ public class DefaultMessageStore implements MessageStore {
 
         this.flushConsumeQueueService.start();
         this.commitLog.start();
-        if (messageStoreConfig.isEnableCompaction() && this.compactionService != null) {
-            this.compactionService.start();
-        }
+        this.consumeQueueStore.start();
         this.storeStatsService.start();
 
         if (this.haService != null) {
@@ -474,12 +501,14 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             this.storeStatsService.shutdown();
+            this.commitLog.shutdown();
+            this.reputMessageService.shutdown();
+            this.consumeQueueStore.shutdown();
+            // dispatch-related services must be shut down after reputMessageService
             this.indexService.shutdown();
             if (this.compactionService != null) {
                 this.compactionService.shutdown();
             }
-            this.commitLog.shutdown();
-            this.reputMessageService.shutdown();
 
             this.flushConsumeQueueService.shutdown();
             this.allocateMappedFileService.shutdown();
@@ -509,7 +538,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void destroy() {
-        this.destroyLogics();
+        this.consumeQueueStore.destroy();
         this.commitLog.destroy();
         this.indexService.destroy();
         this.deleteFile(StorePathConfigHelper.getAbortFile(this.messageStoreConfig.getStorePathRootDir()));
@@ -533,11 +562,6 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return commitLogSize + consumeQueueSize + indexFileSize;
-    }
-
-    @Override
-    public void destroyLogics() {
-        this.consumeQueueStore.destroy();
     }
 
     @Override
@@ -681,8 +705,12 @@ public class DefaultMessageStore implements MessageStore {
         return commitLog;
     }
 
-    public void truncateDirtyFiles(long offsetToTruncate) {
+    public void truncateDirtyFiles(long offsetToTruncate) throws RocksDBException {
+
+        LOGGER.info("truncate dirty files to {}", offsetToTruncate);
+
         if (offsetToTruncate >= this.getMaxPhyOffset()) {
+            LOGGER.info("no need to truncate files, truncate offset is {}, max physical offset is {}", offsetToTruncate, this.getMaxPhyOffset());
             return;
         }
 
@@ -690,11 +718,11 @@ public class DefaultMessageStore implements MessageStore {
 
         long oldReputFromOffset = this.reputMessageService.getReputFromOffset();
 
-        // truncate commitLog
-        this.commitLog.truncateDirtyFiles(offsetToTruncate);
-
         // truncate consume queue
         this.truncateDirtyLogicFiles(offsetToTruncate);
+
+        // truncate commitLog
+        this.commitLog.truncateDirtyFiles(offsetToTruncate);
 
         this.recoverTopicQueueTable();
 
@@ -704,18 +732,23 @@ public class DefaultMessageStore implements MessageStore {
             this.reputMessageService = new ConcurrentReputMessageService();
         }
 
-        this.reputMessageService.setReputFromOffset(Math.min(oldReputFromOffset, offsetToTruncate));
+        long resetReputOffset = Math.min(oldReputFromOffset, offsetToTruncate);
+
+        LOGGER.info("oldReputFromOffset is {}, reset reput from offset to {}", oldReputFromOffset, resetReputOffset);
+
+        this.reputMessageService.setReputFromOffset(resetReputOffset);
         this.reputMessageService.start();
     }
 
     @Override
-    public boolean truncateFiles(long offsetToTruncate) {
+    public boolean truncateFiles(long offsetToTruncate) throws RocksDBException {
         if (offsetToTruncate >= this.getMaxPhyOffset()) {
+            LOGGER.info("no need to truncate files, truncate offset is {}, max physical offset is {}", offsetToTruncate, this.getMaxPhyOffset());
             return true;
         }
 
         if (!isOffsetAligned(offsetToTruncate)) {
-            LOGGER.error("Offset {} not align, truncate failed, need manual fix");
+            LOGGER.error("offset {} is not align, truncate failed, need manual fix", offsetToTruncate);
             return false;
         }
         truncateDirtyFiles(offsetToTruncate);
@@ -810,17 +843,19 @@ public class DefaultMessageStore implements MessageStore {
                 while (getResult.getBufferTotalSize() <= 0
                     && nextBeginOffset < maxOffset
                     && cqFileNum++ < this.messageStoreConfig.getTravelCqFileNumWhenGetMessage()) {
-                    ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(nextBeginOffset);
-
-                    if (bufferConsumeQueue == null) {
-                        status = GetMessageStatus.OFFSET_FOUND_NULL;
-                        nextBeginOffset = nextOffsetCorrection(nextBeginOffset, this.consumeQueueStore.rollNextFile(consumeQueue, nextBeginOffset));
-                        LOGGER.warn("consumer request topic: " + topic + "offset: " + offset + " minOffset: " + minOffset + " maxOffset: "
-                            + maxOffset + ", but access logic queue failed. Correct nextBeginOffset to " + nextBeginOffset);
-                        break;
-                    }
+                    ReferredIterator<CqUnit> bufferConsumeQueue = null;
 
                     try {
+                        bufferConsumeQueue = consumeQueue.iterateFrom(nextBeginOffset, maxMsgNums);
+
+                        if (bufferConsumeQueue == null) {
+                            status = GetMessageStatus.OFFSET_FOUND_NULL;
+                            nextBeginOffset = nextOffsetCorrection(nextBeginOffset, this.consumeQueueStore.rollNextFile(consumeQueue, nextBeginOffset));
+                            LOGGER.warn("consumer request topic: " + topic + ", offset: " + offset + ", minOffset: " + minOffset + ", maxOffset: "
+                                + maxOffset + ", but access logic queue failed. Correct nextBeginOffset to " + nextBeginOffset);
+                            break;
+                        }
+
                         long nextPhyFileStartOffset = Long.MIN_VALUE;
                         while (bufferConsumeQueue.hasNext()
                             && nextBeginOffset < maxOffset) {
@@ -872,6 +907,10 @@ public class DefaultMessageStore implements MessageStore {
                                 continue;
                             }
 
+                            if (messageStoreConfig.isColdDataFlowControlEnable() && !MixAll.isSysConsumerGroupForNoColdReadLimit(group) && !selectResult.isInCache()) {
+                                getResult.setColdDataSum(getResult.getColdDataSum() + sizePy);
+                            }
+
                             if (messageFilter != null
                                 && !messageFilter.isMatchedByCommitLog(selectResult.getByteBuffer().slice(), null)) {
                                 if (getResult.getBufferTotalSize() == 0) {
@@ -886,8 +925,13 @@ public class DefaultMessageStore implements MessageStore {
                             status = GetMessageStatus.FOUND;
                             nextPhyFileStartOffset = Long.MIN_VALUE;
                         }
+                    } catch (RocksDBException e) {
+                        ERROR_LOG.error("getMessage Failed. cid: {}, topic: {}, queueId: {}, offset: {}, minOffset: {}, maxOffset: {}, {}",
+                            group, topic, queueId, offset, minOffset, maxOffset, e.getMessage());
                     } finally {
-                        bufferConsumeQueue.release();
+                        if (bufferConsumeQueue != null) {
+                            bufferConsumeQueue.release();
+                        }
                     }
                 }
 
@@ -956,12 +1000,12 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getMinOffsetInQueue(String topic, int queueId) {
-        ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
-        if (logic != null) {
-            return logic.getMinOffsetInQueue();
+        try {
+            return this.consumeQueueStore.getMinOffsetInQueue(topic, queueId);
+        } catch (RocksDBException e) {
+            ERROR_LOG.error("getMinOffsetInQueue Failed. topic: {}, queueId: {}", topic, queueId, e);
+            return -1;
         }
-
-        return -1;
     }
 
     @Override
@@ -978,34 +1022,27 @@ public class DefaultMessageStore implements MessageStore {
     public long getCommitLogOffsetInQueue(String topic, int queueId, long consumeQueueOffset) {
         ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
-
-            ReferredIterator<CqUnit> bufferConsumeQueue = consumeQueue.iterateFrom(consumeQueueOffset);
-            if (bufferConsumeQueue != null) {
-                try {
-                    if (bufferConsumeQueue.hasNext()) {
-                        long offsetPy = bufferConsumeQueue.next().getPos();
-                        return offsetPy;
-                    }
-                } finally {
-                    bufferConsumeQueue.release();
-                }
+            CqUnit cqUnit = consumeQueue.get(consumeQueueOffset);
+            if (cqUnit != null) {
+                return cqUnit.getPos();
             }
         }
-
         return 0;
     }
 
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp) {
-        ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
-        if (logic != null) {
-            long resultOffset = logic.getOffsetInQueueByTime(timestamp);
-            // Make sure the result offset is in valid range.
-            resultOffset = Math.max(resultOffset, logic.getMinOffsetInQueue());
-            resultOffset = Math.min(resultOffset, logic.getMaxOffsetInQueue());
-            return resultOffset;
-        }
+        return this.getOffsetInQueueByTime(topic, queueId, timestamp, BoundaryType.LOWER);
+    }
 
+    @Override
+    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
+        try {
+            return this.consumeQueueStore.getOffsetInQueueByTime(topic, queueId, timestamp, boundaryType);
+        } catch (RocksDBException e) {
+            ERROR_LOG.error("getOffsetInQueueByTime Failed. topic: {}, queueId: {}, timestamp: {} boundaryType: {}, {}",
+                topic, queueId, timestamp, boundaryType, e.getMessage());
+        }
         return 0;
     }
 
@@ -1065,6 +1102,10 @@ public class DefaultMessageStore implements MessageStore {
         return StorePathConfigHelper.getStorePathConsumeQueue(this.messageStoreConfig.getStorePathRootDir());
     }
 
+    public MessageArrivingListener getMessageArrivingListener() {
+        return messageArrivingListener;
+    }
+
     @Override
     public HashMap<String, String> getRuntimeInfo() {
         HashMap<String, String> result = this.storeStatsService.getRuntimeInfo();
@@ -1098,7 +1139,6 @@ public class DefaultMessageStore implements MessageStore {
         return this.commitLog.getMaxOffset();
     }
 
-
     @Override
     public long getMinPhyOffset() {
         return this.commitLog.getMinOffset();
@@ -1118,7 +1158,10 @@ public class DefaultMessageStore implements MessageStore {
     public long getEarliestMessageTime(String topic, int queueId) {
         ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {
-            return getStoreTime(logicQueue.getEarliestUnit());
+            Pair<CqUnit, Long> pair = logicQueue.getEarliestUnitAndStoreTime();
+            if (pair != null && pair.getObject2() != null) {
+                return pair.getObject2();
+            }
         }
 
         return -1;
@@ -1127,19 +1170,6 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public CompletableFuture<Long> getEarliestMessageTimeAsync(String topic, int queueId) {
         return CompletableFuture.completedFuture(getEarliestMessageTime(topic, queueId));
-    }
-
-    protected long getStoreTime(CqUnit result) {
-        if (result != null) {
-            try {
-                final long phyOffset = result.getPos();
-                final int size = result.getSize();
-                long storeTime = this.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                return storeTime;
-            } catch (Exception e) {
-            }
-        }
-        return -1;
     }
 
     @Override
@@ -1156,13 +1186,16 @@ public class DefaultMessageStore implements MessageStore {
     public long getMessageStoreTimeStamp(String topic, int queueId, long consumeQueueOffset) {
         ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
         if (logicQueue != null) {
-            return getStoreTime(logicQueue.get(consumeQueueOffset));
+            Pair<CqUnit, Long> pair = logicQueue.getCqUnitAndStoreTime(consumeQueueOffset);
+            if (pair != null && pair.getObject2() != null) {
+                return pair.getObject2();
+            }
         }
-
         return -1;
     }
 
-    @Override public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
+    @Override
+    public CompletableFuture<Long> getMessageStoreTimeStampAsync(String topic, int queueId,
         long consumeQueueOffset) {
         return CompletableFuture.completedFuture(getMessageStoreTimeStamp(topic, queueId, consumeQueueOffset));
     }
@@ -1331,6 +1364,7 @@ public class DefaultMessageStore implements MessageStore {
      * If offset table is cleaned, and old messages are dispatching after the old consume queue is cleaned,
      * consume queue will be created with old offset, then later message with new offset table can not be
      * dispatched to consume queue.
+     * @throws RocksDBException only in rocksdb mode
      */
     @Override
     public int deleteTopics(final Set<String> deleteTopics) {
@@ -1340,17 +1374,19 @@ public class DefaultMessageStore implements MessageStore {
 
         int deleteCount = 0;
         for (String topic : deleteTopics) {
-            ConcurrentMap<Integer, ConsumeQueueInterface> queueTable =
-                this.consumeQueueStore.getConsumeQueueTable().get(topic);
+            ConcurrentMap<Integer, ConsumeQueueInterface> queueTable = this.consumeQueueStore.findConsumeQueueMap(topic);
 
             if (queueTable == null || queueTable.isEmpty()) {
                 continue;
             }
 
             for (ConsumeQueueInterface cq : queueTable.values()) {
-                this.consumeQueueStore.destroy(cq);
-                LOGGER.info("DeleteTopic: ConsumeQueue has been cleaned, topic={}, queueId={}",
-                    cq.getTopic(), cq.getQueueId());
+                try {
+                    this.consumeQueueStore.destroy(cq);
+                } catch (RocksDBException e) {
+                    LOGGER.error("DeleteTopic: ConsumeQueue cleans error!, topic={}, queueId={}", cq.getTopic(), cq.getQueueId(), e);
+                }
+                LOGGER.info("DeleteTopic: ConsumeQueue has been cleaned, topic={}, queueId={}", cq.getTopic(), cq.getQueueId());
                 this.consumeQueueStore.removeTopicQueueTable(cq.getTopic(), cq.getQueueId());
             }
 
@@ -1575,12 +1611,17 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    // Fetch and compute the newest confirmOffset.
+    // Even if it is just inited.
     @Override
     public long getConfirmOffset() {
-        if (this.brokerConfig.isEnableControllerMode()) {
-            return ((AutoSwitchHAService) this.haService).getConfirmOffset();
-        }
         return this.commitLog.getConfirmOffset();
+    }
+
+    // Fetch the original confirmOffset's value.
+    // Without checking and re-computing.
+    public long getConfirmOffsetDirectly() {
+        return this.commitLog.getConfirmOffsetDirectly();
     }
 
     @Override
@@ -1684,6 +1725,16 @@ public class DefaultMessageStore implements MessageStore {
 
     public boolean checkInDiskByCommitOffset(long offsetPy) {
         return offsetPy >= commitLog.getMinOffset();
+    }
+
+    /**
+     * The ratio val is estimated by the experiment and experience
+     * so that the result is not high accurate for different business
+     * @return
+     */
+    public boolean checkInColdAreaByCommitOffset(long offsetPy, long maxOffsetPy) {
+        long memory = (long)(StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryHotRatio() / 100.0));
+        return (maxOffsetPy - offsetPy) > memory;
     }
 
     private boolean isTheBatchFull(int sizePy, int unitBatchNum, int maxMsgNums, long maxMsgSize, int bufferTotal,
@@ -1814,14 +1865,18 @@ public class DefaultMessageStore implements MessageStore {
         return file.exists();
     }
 
-    private void recover(final boolean lastExitOK) {
-        boolean recoverConcurrently = this.brokerConfig.isRecoverConcurrently();
+    private boolean isRecoverConcurrently() {
+        return this.brokerConfig.isRecoverConcurrently() && !this.messageStoreConfig.isEnableRocksDBStore();
+    }
+
+    private void recover(final boolean lastExitOK) throws RocksDBException {
+        boolean recoverConcurrently = this.isRecoverConcurrently();
         LOGGER.info("message store recover mode: {}", recoverConcurrently ? "concurrent" : "normal");
 
         // recover consume queue
         long recoverConsumeQueueStart = System.currentTimeMillis();
         this.recoverConsumeQueue();
-        long maxPhyOffsetOfConsumeQueue = this.getMaxOffsetInConsumeQueue();
+        long maxPhyOffsetOfConsumeQueue = this.consumeQueueStore.getMaxPhyOffsetInConsumeQueue();
         long recoverConsumeQueueEnd = System.currentTimeMillis();
 
         // recover commitlog
@@ -1857,22 +1912,24 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
+    public void finishCommitLogDispatch() {
+        // ignore
+    }
+
+    @Override
     public TransientStorePool getTransientStorePool() {
         return transientStorePool;
     }
 
     private void recoverConsumeQueue() {
-        if (!this.brokerConfig.isRecoverConcurrently()) {
+        if (!this.isRecoverConcurrently()) {
             this.consumeQueueStore.recover();
         } else {
             this.consumeQueueStore.recoverConcurrently();
         }
     }
 
-    private long getMaxOffsetInConsumeQueue() {
-        return this.consumeQueueStore.getMaxOffsetInConsumeQueue();
-    }
-
+    @Override
     public void recoverTopicQueueTable() {
         long minPhyOffset = this.commitLog.getMinOffset();
         this.consumeQueueStore.recoverOffsetTable(minPhyOffset);
@@ -1911,13 +1968,17 @@ public class DefaultMessageStore implements MessageStore {
         return runningFlags;
     }
 
-    public void doDispatch(DispatchRequest req) {
+    public void doDispatch(DispatchRequest req) throws RocksDBException {
         for (CommitLogDispatcher dispatcher : this.dispatcherList) {
             dispatcher.dispatch(req);
         }
     }
 
-    public void putMessagePositionInfo(DispatchRequest dispatchRequest) {
+    /**
+     * @param dispatchRequest
+     * @throws RocksDBException only in rocksdb mode
+     */
+    protected void putMessagePositionInfo(DispatchRequest dispatchRequest) throws RocksDBException {
         this.consumeQueueStore.putMessagePositionInfoWrapper(dispatchRequest);
     }
 
@@ -1945,7 +2006,10 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public int remainTransientStoreBufferNumbs() {
-        return this.transientStorePool.availableBufferNums();
+        if (this.isTransientStorePoolEnable()) {
+            return this.transientStorePool.availableBufferNums();
+        }
+        return Integer.MAX_VALUE;
     }
 
     @Override
@@ -2013,7 +2077,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public ConsumeQueueStore getQueueStore() {
+    public ConsumeQueueStoreInterface getQueueStore() {
         return consumeQueueStore;
     }
 
@@ -2024,7 +2088,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public void onCommitLogDispatch(DispatchRequest dispatchRequest, boolean doDispatch, MappedFile commitLogFile,
-        boolean isRecover, boolean isFileEnd) {
+        boolean isRecover, boolean isFileEnd) throws RocksDBException {
         if (doDispatch && !isFileEnd) {
             this.doDispatch(dispatchRequest);
         }
@@ -2041,26 +2105,33 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public void assignOffset(MessageExtBrokerInner msg, short messageNum) {
+    public void assignOffset(MessageExtBrokerInner msg) throws RocksDBException {
         final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
 
         if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-            this.consumeQueueStore.assignQueueOffset(msg, messageNum);
+            this.consumeQueueStore.assignQueueOffset(msg);
         }
     }
 
     @Override
+    public void increaseOffset(MessageExtBrokerInner msg, short messageNum) {
+        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
+
+        if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+            this.consumeQueueStore.increaseQueueOffset(msg, messageNum);
+        }
+    }
+
     public ConcurrentMap<String, TopicConfig> getTopicConfigs() {
-        return this.consumeQueueStore.getTopicConfigs();
+        return this.topicConfigTable;
     }
 
-    @Override
     public Optional<TopicConfig> getTopicConfig(String topic) {
-        return this.consumeQueueStore.getTopicConfig(topic);
-    }
+        if (this.topicConfigTable == null) {
+            return Optional.empty();
+        }
 
-    public void setTopicConfigTable(ConcurrentMap<String, TopicConfig> topicConfigTable) {
-        this.consumeQueueStore.setTopicConfigTable(topicConfigTable);
+        return Optional.ofNullable(this.topicConfigTable.get(topic));
     }
 
     public BrokerIdentity getBrokerIdentity() {
@@ -2078,12 +2149,12 @@ public class DefaultMessageStore implements MessageStore {
     class CommitLogDispatcherBuildConsumeQueue implements CommitLogDispatcher {
 
         @Override
-        public void dispatch(DispatchRequest request) {
+        public void dispatch(DispatchRequest request) throws RocksDBException {
             final int tranType = MessageSysFlag.getTransactionValue(request.getSysFlag());
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:
                 case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
-                    DefaultMessageStore.this.putMessagePositionInfo(request);
+                    putMessagePositionInfo(request);
                     break;
                 case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
                 case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
@@ -2229,7 +2300,7 @@ public class DefaultMessageStore implements MessageStore {
             return DefaultMessageStore.this.brokerConfig.getIdentifier() + CleanCommitLogService.class.getSimpleName();
         }
 
-        private boolean isTimeToDelete() {
+        protected boolean isTimeToDelete() {
             String when = DefaultMessageStore.this.getMessageStoreConfig().getDeleteWhen();
             if (UtilAll.isItTimeToDo(when)) {
                 DefaultMessageStore.LOGGER.info("it's time to reclaim disk space, " + when);
@@ -2387,7 +2458,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     class CleanConsumeQueueService {
-        private long lastPhysicalMinOffset = 0;
+        protected long lastPhysicalMinOffset = 0;
 
         public void run() {
             try {
@@ -2397,7 +2468,7 @@ public class DefaultMessageStore implements MessageStore {
             }
         }
 
-        private void deleteExpiredFiles() {
+        protected void deleteExpiredFiles() {
             int deleteLogicsFilesInterval = DefaultMessageStore.this.getMessageStoreConfig().getDeleteConsumeQueueFilesInterval();
 
             long minOffset = DefaultMessageStore.this.commitLog.getMinOffset();
@@ -2502,7 +2573,7 @@ public class DefaultMessageStore implements MessageStore {
 
                 if (cqUnit.getPos() >= minPhyOffset) {
 
-                    // Normal case, do not need correct.
+                    // Normal case, do not need to correct.
                     return false;
                 }
             }
@@ -2692,6 +2763,18 @@ public class DefaultMessageStore implements MessageStore {
 
     }
 
+    @Override
+    public void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest) {
+        if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
+            && DefaultMessageStore.this.messageArrivingListener != null) {
+            DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
+                dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
+                dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
+                dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
+            DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
+        }
+    }
+
     class ReputMessageService extends ServiceThread {
 
         protected volatile long reputFromOffset = 0;
@@ -2727,9 +2810,6 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         public boolean isCommitLogAvailable() {
-            if (DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable()) {
-                return this.reputFromOffset <= DefaultMessageStore.this.commitLog.getConfirmOffset();
-            }
             return this.reputFromOffset < DefaultMessageStore.this.getConfirmOffset();
         }
 
@@ -2764,13 +2844,8 @@ public class DefaultMessageStore implements MessageStore {
                             if (size > 0) {
                                 DefaultMessageStore.this.doDispatch(dispatchRequest);
 
-                                if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
-                                    && DefaultMessageStore.this.messageArrivingListener != null) {
-                                    DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
-                                        dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
-                                        dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
-                                        dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
-                                    notifyMessageArrive4MultiQueue(dispatchRequest);
+                                if (!notifyMessageArriveInBatch) {
+                                    notifyMessageArriveIfNecessary(dispatchRequest);
                                 }
 
                                 this.reputFromOffset += size;
@@ -2804,9 +2879,14 @@ public class DefaultMessageStore implements MessageStore {
                             }
                         }
                     }
+                } catch (RocksDBException e) {
+                    ERROR_LOG.info("dispatch message to cq exception. reputFromOffset: {}", this.reputFromOffset, e);
+                    return;
                 } finally {
                     result.release();
                 }
+
+                finishCommitLogDispatch();
             }
         }
 
@@ -2869,7 +2949,7 @@ public class DefaultMessageStore implements MessageStore {
         private final ExecutorService batchDispatchRequestExecutor;
 
         public MainBatchDispatchRequestService() {
-            batchDispatchRequestExecutor = new ThreadPoolExecutor(
+            batchDispatchRequestExecutor = ThreadUtils.newThreadPoolExecutor(
                     DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
                     DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
                     1000 * 60,
@@ -2885,7 +2965,7 @@ public class DefaultMessageStore implements MessageStore {
                     BatchDispatchRequest task = batchDispatchRequestQueue.peek();
                     batchDispatchRequestExecutor.execute(() -> {
                         try {
-                            ByteBuffer tmpByteBuffer = task.byteBuffer.duplicate();
+                            ByteBuffer tmpByteBuffer = task.byteBuffer;
                             tmpByteBuffer.position(task.position);
                             tmpByteBuffer.limit(task.position + task.size);
                             List<DispatchRequest> dispatchRequestList = new ArrayList<>();
@@ -2943,7 +3023,7 @@ public class DefaultMessageStore implements MessageStore {
         // dispatchRequestsList:[
         //      {dispatchRequests:[{dispatchRequest}, {dispatchRequest}]},
         //      {dispatchRequests:[{dispatchRequest}, {dispatchRequest}]}]
-        private void dispatch() {
+        private void dispatch() throws Exception {
             dispatchRequestsList.clear();
             dispatchRequestOrderlyQueue.get(dispatchRequestsList);
             if (!dispatchRequestsList.isEmpty()) {
@@ -2951,21 +3031,15 @@ public class DefaultMessageStore implements MessageStore {
                     for (DispatchRequest dispatchRequest : dispatchRequests) {
                         DefaultMessageStore.this.doDispatch(dispatchRequest);
                         // wake up long-polling
-                        if (DefaultMessageStore.this.brokerConfig.isLongPollingEnable()
-                                && DefaultMessageStore.this.messageArrivingListener != null) {
-                            DefaultMessageStore.this.messageArrivingListener.arriving(dispatchRequest.getTopic(),
-                                    dispatchRequest.getQueueId(), dispatchRequest.getConsumeQueueOffset() + 1,
-                                    dispatchRequest.getTagsCode(), dispatchRequest.getStoreTimestamp(),
-                                    dispatchRequest.getBitMap(), dispatchRequest.getPropertiesMap());
-                            DefaultMessageStore.this.reputMessageService.notifyMessageArrive4MultiQueue(dispatchRequest);
-                        }
+                        DefaultMessageStore.this.notifyMessageArriveIfNecessary(dispatchRequest);
+
                         if (!DefaultMessageStore.this.getMessageStoreConfig().isDuplicationEnable() &&
-                                DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
+                            DefaultMessageStore.this.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE) {
                             DefaultMessageStore.this.storeStatsService
-                                    .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(1);
+                                .getSinglePutMessageTopicTimesTotal(dispatchRequest.getTopic()).add(1);
                             DefaultMessageStore.this.storeStatsService
-                                    .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
-                                    .add(dispatchRequest.getMsgSize());
+                                .getSinglePutMessageTopicSizeTotal(dispatchRequest.getTopic())
+                                .add(dispatchRequest.getMsgSize());
                         }
                     }
                 }
@@ -3018,7 +3092,7 @@ public class DefaultMessageStore implements MessageStore {
                 return;
             }
             mappedPageHoldCount.getAndIncrement();
-            BatchDispatchRequest task = new BatchDispatchRequest(byteBuffer, position, size, batchId++);
+            BatchDispatchRequest task = new BatchDispatchRequest(byteBuffer.duplicate(), position, size, batchId++);
             batchDispatchRequestQueue.offer(task);
         }
 
@@ -3033,7 +3107,7 @@ public class DefaultMessageStore implements MessageStore {
         public void doReput() {
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
                 LOGGER.warn("The reputFromOffset={} is smaller than minPyOffset={}, this usually indicate that the dispatch behind too much and the commitlog has expired.",
-                        this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
+                    this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
                 this.reputFromOffset = DefaultMessageStore.this.commitLog.getMinOffset();
             }
             for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
@@ -3092,6 +3166,9 @@ public class DefaultMessageStore implements MessageStore {
                     result.release();
                 }
             }
+
+            // only for rocksdb mode
+            finishCommitLogDispatch();
         }
 
         /**
@@ -3134,8 +3211,8 @@ public class DefaultMessageStore implements MessageStore {
 
             if (this.isCommitLogAvailable()) {
                 LOGGER.warn("shutdown concurrentReputMessageService, but CommitLog have not finish to be dispatched, CommitLog max" +
-                                " offset={}, reputFromOffset={}", DefaultMessageStore.this.commitLog.getMaxOffset(),
-                        this.reputFromOffset);
+                        " offset={}, reputFromOffset={}", DefaultMessageStore.this.commitLog.getMaxOffset(),
+                    this.reputFromOffset);
             }
 
             this.mainBatchDispatchRequestService.shutdown();
@@ -3225,7 +3302,7 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public List<Pair<InstrumentSelector, View>> getMetricsView() {
+    public List<Pair<InstrumentSelector, ViewBuilder>> getMetricsView() {
         return DefaultStoreMetricsManager.getMetricsView();
     }
 
@@ -3245,5 +3322,7 @@ public class DefaultMessageStore implements MessageStore {
             (this.brokerConfig.isEnableControllerMode() || this.messageStoreConfig.getBrokerRole() != BrokerRole.SLAVE);
     }
 
-
+    public long getReputFromOffset() {
+        return this.reputMessageService.getReputFromOffset();
+    }
 }

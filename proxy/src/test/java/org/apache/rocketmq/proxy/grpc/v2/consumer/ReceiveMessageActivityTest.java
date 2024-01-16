@@ -57,6 +57,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -74,7 +75,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     public void before() throws Throwable {
         super.before();
         ConfigurationManager.getProxyConfig().setGrpcClientConsumerMinLongPollingTimeoutMillis(0);
-        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor, receiptHandleProcessor,
+        this.receiveMessageActivity = new ReceiveMessageActivity(messagingProcessor,
             grpcClientSettingsManager, grpcChannelManager);
     }
 
@@ -89,9 +90,8 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             .setRequestTimeout(Durations.fromSeconds(3))
             .build());
         when(this.messagingProcessor.popMessage(any(), any(), anyString(), anyString(), anyInt(), anyLong(),
-            pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), anyLong()))
+            pollTimeCaptor.capture(), anyInt(), any(), anyBoolean(), any(), isNull(), anyLong()))
             .thenReturn(CompletableFuture.completedFuture(new PopResult(PopStatus.NO_NEW_MSG, Collections.emptyList())));
-
 
         ProxyContext context = createContext();
         context.setRemainingMs(1L);
@@ -223,7 +223,6 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         assertEquals(Code.ILLEGAL_INVISIBLE_TIME, getResponseCodeFromReceiveMessageResponseList(responseArgumentCaptor.getAllValues()));
     }
 
-
     @Test
     public void testReceiveMessage() {
         StreamObserver<ReceiveMessageResponse> receiveStreamObserver = mock(ServerCallStreamObserver.class);
@@ -245,6 +244,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
             any(),
             anyBoolean(),
             any(),
+            isNull(),
             anyLong())).thenReturn(CompletableFuture.completedFuture(popResult));
 
         this.receiveMessageActivity.receiveMessage(
@@ -273,7 +273,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
     }
 
     @Test
-    public void testReceiveMessageQueueSelector() {
+    public void testReceiveMessageQueueSelector() throws Exception {
         TopicRouteData topicRouteData = new TopicRouteData();
         List<QueueData> queueDatas = new ArrayList<>();
         for (int i = 0; i < 2; i++) {
@@ -297,7 +297,7 @@ public class ReceiveMessageActivityTest extends BaseActivityTest {
         }
         topicRouteData.setBrokerDatas(brokerDatas);
 
-        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData);
+        MessageQueueView messageQueueView = new MessageQueueView(TOPIC, topicRouteData, null);
         ReceiveMessageActivity.ReceiveMessageQueueSelector selector = new ReceiveMessageActivity.ReceiveMessageQueueSelector("");
 
         AddressableMessageQueue firstSelect = selector.select(ProxyContext.create(), messageQueueView);

@@ -37,7 +37,7 @@ public class DeleteExpiredCommitLogSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Delete expired CommitLog files";
+        return "Delete expired CommitLog files.";
     }
 
     @Override
