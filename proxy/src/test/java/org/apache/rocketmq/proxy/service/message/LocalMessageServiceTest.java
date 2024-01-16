@@ -46,7 +46,7 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.proxy.common.context.ContextVariable;
+import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
@@ -123,8 +123,8 @@ public class LocalMessageServiceTest extends InitConfigTest {
         Mockito.when(brokerControllerMock.getEndTransactionProcessor()).thenReturn(endTransactionProcessorMock);
         Mockito.when(brokerControllerMock.getBrokerConfig()).thenReturn(new BrokerConfig());
         localMessageService = new LocalMessageService(brokerControllerMock, channelManager, null);
-        proxyContext = ProxyContext.create().withValue(ContextVariable.REMOTE_ADDRESS, "0.0.0.1")
-            .withValue(ContextVariable.LOCAL_ADDRESS, "0.0.0.2");
+        proxyContext = ProxyContext.create().withVal(ContextVariable.REMOTE_ADDRESS, "0.0.0.1")
+            .withVal(ContextVariable.LOCAL_ADDRESS, "0.0.0.2");
     }
 
     @Test
@@ -286,8 +286,8 @@ public class LocalMessageServiceTest extends InitConfigTest {
         MessageExt message2 = buildMessageExt(topic, 0, startOffset + 1);
         messageExtList.add(message2);
         messageOffsetList.add(startOffset + 1);
-        ExtraInfoUtil.buildStartOffsetInfo(startOffsetStringBuilder, false, queueId, startOffset);
-        ExtraInfoUtil.buildMsgOffsetInfo(messageOffsetStringBuilder, false, queueId, messageOffsetList);
+        ExtraInfoUtil.buildStartOffsetInfo(startOffsetStringBuilder, topic, queueId, startOffset);
+        ExtraInfoUtil.buildMsgOffsetInfo(messageOffsetStringBuilder, topic, queueId, messageOffsetList);
         byte[] body2 = MessageDecoder.encode(message2, false);
         ByteBuffer byteBuffer1 = ByteBuffer.wrap(body1);
         ByteBuffer byteBuffer2 = ByteBuffer.wrap(body2);

@@ -77,8 +77,8 @@ public abstract class ProxyChannel extends SimpleChannel {
         try {
             if (msg instanceof RemotingCommand) {
                 ProxyContext context = ProxyContext.createForInner(this.getClass())
-                    .withRemoteAddress(remoteAddress)
-                    .withLocalAddress(localAddress);
+                    .setRemoteAddress(remoteAddress)
+                    .setLocalAddress(localAddress);
                 RemotingCommand command = (RemotingCommand) msg;
                 if (command.getExtFields() == null) {
                     command.setExtFields(new HashMap<>());

@@ -22,7 +22,18 @@ public class KeyBuilder {
     private static final char POP_RETRY_SEPARATOR_V2 = '+';
     private static final String POP_RETRY_REGEX_SEPARATOR_V2 = "\\+";
 
+    public static String buildPopRetryTopic(String topic, String cid, boolean enableRetryV2) {
+        if (enableRetryV2) {
+            return buildPopRetryTopicV2(topic, cid);
+        }
+        return buildPopRetryTopicV1(topic, cid);
+    }
+
     public static String buildPopRetryTopic(String topic, String cid) {
+        return MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_SEPARATOR_V1 + topic;
+    }
+
+    public static String buildPopRetryTopicV2(String topic, String cid) {
         return MixAll.RETRY_GROUP_TOPIC_PREFIX + cid + POP_RETRY_SEPARATOR_V2 + topic;
     }
 

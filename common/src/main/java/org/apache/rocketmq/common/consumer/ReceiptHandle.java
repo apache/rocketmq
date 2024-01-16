@@ -26,6 +26,8 @@ public class ReceiptHandle {
     private static final String SEPARATOR = MessageConst.KEY_SEPARATOR;
     public static final String NORMAL_TOPIC = "0";
     public static final String RETRY_TOPIC = "1";
+
+    public static final String RETRY_TOPIC_V2 = "2";
     private final long startOffset;
     private final long retrieveTime;
     private final long invisibleTime;
@@ -220,12 +222,15 @@ public class ReceiptHandle {
     }
 
     public boolean isRetryTopic() {
-        return RETRY_TOPIC.equals(topicType);
+        return RETRY_TOPIC.equals(topicType) || RETRY_TOPIC_V2.equals(topicType);
     }
 
     public String getRealTopic(String topic, String groupName) {
-        if (isRetryTopic()) {
-            return KeyBuilder.buildPopRetryTopic(topic, groupName);
+        if (RETRY_TOPIC.equals(topicType)) {
+            return KeyBuilder.buildPopRetryTopicV1(topic, groupName);
+        }
+        if (RETRY_TOPIC_V2.equals(topicType)) {
+            return KeyBuilder.buildPopRetryTopicV2(topic, groupName);
         }
         return topic;
     }

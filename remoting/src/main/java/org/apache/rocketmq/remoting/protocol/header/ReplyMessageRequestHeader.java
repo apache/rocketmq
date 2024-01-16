@@ -25,10 +25,11 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 @RocketMQAction(value = RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT, action = Action.SUB)
-public class ReplyMessageRequestHeader implements CommandCustomHeader {
+public class ReplyMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     @RocketMQResource(ResourceType.GROUP)
     private String producerGroup;

@@ -53,6 +53,7 @@ import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
+import org.apache.rocketmq.client.rpchook.NamespaceRpcHook;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
@@ -181,6 +182,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetTopicsByClusterRequestHea
 import org.apache.rocketmq.remoting.protocol.header.GetUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListAclsRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ListUsersRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.HeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
@@ -269,6 +271,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig, channelEventListener);
         this.clientRemotingProcessor = clientRemotingProcessor;
 
+        this.remotingClient.registerRPCHook(new NamespaceRpcHook(clientConfig));
         // Inject stream rpc hook first to make reserve field signature
         if (clientConfig.isEnableStreamRequestType()) {
             this.remotingClient.registerRPCHook(new StreamTypeRPCHook());
@@ -1300,7 +1303,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         SearchOffsetRequestHeader requestHeader = new SearchOffsetRequestHeader();
         requestHeader.setTopic(messageQueue.getTopic());
         requestHeader.setQueueId(messageQueue.getQueueId());
-        requestHeader.setBname(messageQueue.getBrokerName());
+        requestHeader.setBrokerName(messageQueue.getBrokerName());
         requestHeader.setTimestamp(timestamp);
         requestHeader.setBoundaryType(boundaryType);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEARCH_OFFSET_BY_TIMESTAMP, requestHeader);
@@ -1325,7 +1328,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         GetMaxOffsetRequestHeader requestHeader = new GetMaxOffsetRequestHeader();
         requestHeader.setTopic(messageQueue.getTopic());
         requestHeader.setQueueId(messageQueue.getQueueId());
-        requestHeader.setBname(messageQueue.getBrokerName());
+        requestHeader.setBrokerName(messageQueue.getBrokerName());
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MAX_OFFSET, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
@@ -1377,7 +1380,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         GetMinOffsetRequestHeader requestHeader = new GetMinOffsetRequestHeader();
         requestHeader.setTopic(messageQueue.getTopic());
         requestHeader.setQueueId(messageQueue.getQueueId());
-        requestHeader.setBname(messageQueue.getBrokerName());
+        requestHeader.setBrokerName(messageQueue.getBrokerName());
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MIN_OFFSET, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
@@ -1402,7 +1405,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         GetEarliestMsgStoretimeRequestHeader requestHeader = new GetEarliestMsgStoretimeRequestHeader();
         requestHeader.setTopic(mq.getTopic());
         requestHeader.setQueueId(mq.getQueueId());
-        requestHeader.setBname(mq.getBrokerName());
+        requestHeader.setBrokerName(mq.getBrokerName());
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_EARLIEST_MSG_STORETIME, requestHeader);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
@@ -1485,7 +1488,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         final HeartbeatData heartbeatData,
         final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, new HeartbeatRequestHeader());
         request.setLanguage(clientConfig.getLanguage());
         request.setBody(heartbeatData.encode());
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
@@ -1506,7 +1509,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         final HeartbeatData heartbeatData,
         final long timeoutMillis
     ) throws RemotingException, MQBrokerException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, new HeartbeatRequestHeader());
         request.setLanguage(clientConfig.getLanguage());
         request.setBody(heartbeatData.encode());
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
@@ -1578,7 +1581,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public boolean registerClient(final String addr, final HeartbeatData heartbeat, final long timeoutMillis)
         throws RemotingException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.HEART_BEAT, new HeartbeatRequestHeader());
 
         request.setBody(heartbeat.encode());
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
@@ -1603,7 +1606,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         requestHeader.setDelayLevel(delayLevel);
         requestHeader.setOriginMsgId(msg.getMsgId());
         requestHeader.setMaxReconsumeTimes(maxConsumeRetryTimes);
-        requestHeader.setBname(brokerName);
+        requestHeader.setBrokerName(brokerName);
 
         RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), addr),
             request, timeoutMillis);

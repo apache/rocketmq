@@ -37,7 +37,7 @@ public class ReceiptHandleProcessor extends AbstractProcessor {
         super(messagingProcessor, serviceManager);
         StateEventListener<RenewEvent> eventListener = event -> {
             ProxyContext context = createContext(event.getEventType().name())
-                .withChannel(event.getKey().getChannel());
+                .setChannel(event.getKey().getChannel());
             MessageReceiptHandle messageReceiptHandle = event.getMessageReceiptHandle();
             ReceiptHandle handle = ReceiptHandle.decode(messageReceiptHandle.getReceiptHandleStr());
             messagingProcessor.changeInvisibleTime(context, handle, messageReceiptHandle.getMessageId(),

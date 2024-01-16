@@ -23,10 +23,11 @@ import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 @RocketMQAction(value = RequestCode.QUERY_CONSUME_QUEUE, action = Action.GET)
-public class QueryConsumeQueueRequestHeader implements CommandCustomHeader {
+public class QueryConsumeQueueRequestHeader extends TopicQueueRequestHeader {
 
     @RocketMQResource(ResourceType.TOPIC)
     private String topic;
@@ -44,11 +45,11 @@ public class QueryConsumeQueueRequestHeader implements CommandCustomHeader {
         this.topic = topic;
     }
 
-    public int getQueueId() {
+    public Integer getQueueId() {
         return queueId;
     }
 
-    public void setQueueId(int queueId) {
+    public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
 

@@ -210,7 +210,8 @@ public class BrokerMetricsManager {
         } else if (properties.get("__STARTDELIVERTIME") != null
             || properties.get(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
             || properties.get(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null
-            || properties.get(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
+            || properties.get(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null
+            || properties.get(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
             topicMessageType = TopicMessageType.DELAY;
         }
         return topicMessageType;

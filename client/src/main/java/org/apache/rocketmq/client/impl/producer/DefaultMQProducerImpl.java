@@ -406,7 +406,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 thisHeader.setProducerGroup(producerGroup);
                 thisHeader.setTranStateTableOffset(checkRequestHeader.getTranStateTableOffset());
                 thisHeader.setFromTransactionCheck(true);
-                thisHeader.setBname(checkRequestHeader.getBname());
+                thisHeader.setBrokerName(checkRequestHeader.getBrokerName());
 
                 String uniqueKey = message.getProperties().get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
                 if (uniqueKey == null) {
@@ -955,7 +955,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 requestHeader.setReconsumeTimes(0);
                 requestHeader.setUnitMode(this.isUnitMode());
                 requestHeader.setBatch(msg instanceof MessageBatch);
-                requestHeader.setBname(brokerName);
+                requestHeader.setBrokerName(brokerName);
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     String reconsumeTimes = MessageAccessor.getReconsumeTime(msg);
                     if (reconsumeTimes != null) {
@@ -1490,7 +1490,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         requestHeader.setTopic(msg.getTopic());
         requestHeader.setTransactionId(transactionId);
         requestHeader.setCommitLogOffset(id.getOffset());
-        requestHeader.setBname(destBrokerName);
+        requestHeader.setBrokerName(destBrokerName);
         switch (localTransactionState) {
             case COMMIT_MESSAGE:
                 requestHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_COMMIT_TYPE);

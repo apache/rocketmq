@@ -983,7 +983,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             requestHeader.setTopic(queue.getTopic());
             requestHeader.setQueueId(queue.getQueueId());
             requestHeader.setCommitOffset(resetOffset);
-            requestHeader.setBname(queue.getBrokerName());
+            requestHeader.setBrokerName(queue.getBrokerName());
             this.mqClientInstance.getMQClientAPIImpl().updateConsumerOffset(brokerAddr, requestHeader, timeoutMillis);
         }
         return rollbackStats;
@@ -1722,7 +1722,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         requestHeader.setTopic(mq.getTopic());
         requestHeader.setQueueId(mq.getQueueId());
         requestHeader.setCommitOffset(offset);
-        requestHeader.setBname(mq.getBrokerName());
+        requestHeader.setBrokerName(mq.getBrokerName());
         this.mqClientInstance.getMQClientAPIImpl().updateConsumerOffset(brokerAddr, requestHeader, timeoutMillis);
     }
 

@@ -21,13 +21,13 @@ import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.common.resource.RocketMQResource;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 @RocketMQAction(value = RequestCode.INVOKE_BROKER_TO_RESET_OFFSET, action = Action.UPDATE)
-public class ResetOffsetRequestHeader implements CommandCustomHeader {
+public class ResetOffsetRequestHeader extends TopicQueueRequestHeader {
 
     @CFNotNull
     @RocketMQResource(ResourceType.GROUP)
@@ -79,11 +79,11 @@ public class ResetOffsetRequestHeader implements CommandCustomHeader {
         this.isForce = isForce;
     }
 
-    public int getQueueId() {
+    public Integer getQueueId() {
         return queueId;
     }
 
-    public void setQueueId(int queueId) {
+    public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
 

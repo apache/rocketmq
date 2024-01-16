@@ -24,13 +24,13 @@ import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.common.resource.RocketMQResource;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 @RocketMQAction(value = RequestCode.QUERY_SUBSCRIPTION_BY_CONSUMER, action = Action.GET)
-public class QuerySubscriptionByConsumerRequestHeader implements CommandCustomHeader {
+public class QuerySubscriptionByConsumerRequestHeader extends TopicRequestHeader {
     @CFNotNull
     @RocketMQResource(ResourceType.GROUP)
     private String group;

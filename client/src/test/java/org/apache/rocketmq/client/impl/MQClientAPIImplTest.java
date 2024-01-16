@@ -446,10 +446,10 @@ public class MQClientAPIImplTest {
                 responseHeader.setReviveQid(0);
                 responseHeader.setRestNum(1);
                 StringBuilder startOffsetInfo = new StringBuilder(64);
-                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, false, 0, 0L);
+                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, topic, 0, 0L);
                 responseHeader.setStartOffsetInfo(startOffsetInfo.toString());
                 StringBuilder msgOffsetInfo = new StringBuilder(64);
-                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, false, 0, Collections.singletonList(0L));
+                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, topic, 0, Collections.singletonList(0L));
                 responseHeader.setMsgOffsetInfo(msgOffsetInfo.toString());
                 response.setRemark("FOUND");
                 response.makeCustomHeaderToNet();
@@ -515,10 +515,10 @@ public class MQClientAPIImplTest {
                 responseHeader.setReviveQid(0);
                 responseHeader.setRestNum(1);
                 StringBuilder startOffsetInfo = new StringBuilder(64);
-                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, false, 0, 0L);
+                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, topic, 0, 0L);
                 responseHeader.setStartOffsetInfo(startOffsetInfo.toString());
                 StringBuilder msgOffsetInfo = new StringBuilder(64);
-                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, false, 0, Collections.singletonList(0L));
+                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, topic, 0, Collections.singletonList(0L));
                 responseHeader.setMsgOffsetInfo(msgOffsetInfo.toString());
                 response.setRemark("FOUND");
                 response.makeCustomHeaderToNet();

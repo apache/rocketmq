@@ -27,10 +27,11 @@ import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 @RocketMQAction(value = RequestCode.QUERY_CORRECTION_OFFSET, action = Action.GET)
-public class QueryCorrectionOffsetHeader implements CommandCustomHeader {
+public class QueryCorrectionOffsetHeader extends TopicRequestHeader {
     @RocketMQResource(value = ResourceType.GROUP, splitter = ",")
     private String filterGroups;
     @CFNotNull

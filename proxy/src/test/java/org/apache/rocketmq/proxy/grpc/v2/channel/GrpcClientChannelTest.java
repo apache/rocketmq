@@ -58,7 +58,7 @@ public class GrpcClientChannelTest extends InitConfigTest {
         super.before();
         this.clientId = RandomStringUtils.randomAlphabetic(10);
         this.grpcClientChannel = new GrpcClientChannel(proxyRelayService, grpcClientSettingsManager, grpcChannelManager,
-            ProxyContext.create().withRemoteAddress("10.152.39.53:9768").withLocalAddress("11.193.0.1:1210"),
+            ProxyContext.create().setRemoteAddress("10.152.39.53:9768").setLocalAddress("11.193.0.1:1210"),
             this.clientId);
     }
 
