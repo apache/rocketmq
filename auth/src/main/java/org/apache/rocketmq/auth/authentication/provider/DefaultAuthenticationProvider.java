@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 import org.apache.rocketmq.auth.authentication.builder.AuthenticationContextBuilder;
 import org.apache.rocketmq.auth.authentication.builder.DefaultAuthenticationContextBuilder;
 import org.apache.rocketmq.auth.authentication.context.DefaultAuthenticationContext;
-import org.apache.rocketmq.auth.authentication.handler.DefaultAuthenticationHandler;
+import org.apache.rocketmq.auth.authentication.chain.DefaultAuthenticationHandler;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.chain.HandlerChain;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
