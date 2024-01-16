@@ -134,7 +134,21 @@ public class AuthorizationFactory {
 
     @SuppressWarnings("unchecked")
     private static <V> V computeIfAbsent(String key, Function<String, ? extends V> function) {
-        Object value = INSTANCE_MAP.computeIfAbsent(key, function);
-        return value != null ? (V) value : null;
+        Object result = null;
+        if (INSTANCE_MAP.containsKey(key)) {
+            result = INSTANCE_MAP.get(key);
+        }
+        if (result == null) {
+            synchronized (INSTANCE_MAP) {
+                if (INSTANCE_MAP.containsKey(key)) {
+                    result = INSTANCE_MAP.get(key);
+                }
+                if (result == null) {
+                    result = function.apply(key);
+                    INSTANCE_MAP.put(key, result);
+                }
+            }
+        }
+        return result != null ? (V) result : null;
     }
 }

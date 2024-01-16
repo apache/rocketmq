@@ -19,8 +19,8 @@ package org.apache.rocketmq.auth.authentication.factory;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
 import io.netty.channel.ChannelHandlerContext;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
@@ -39,7 +39,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class AuthenticationFactory {
 
-    private static final ConcurrentMap<String, Object> INSTANCE_MAP = new ConcurrentHashMap<>();
+    private static final Map<String, Object> INSTANCE_MAP = new HashMap<>();
     private static final String PROVIDER_PREFIX = "PROVIDER_";
     private static final String METADATA_PROVIDER_PREFIX = "METADATA_PROVIDER_";
     private static final String EVALUATOR_PREFIX = "EVALUATOR_";
@@ -131,7 +131,21 @@ public class AuthenticationFactory {
 
     @SuppressWarnings("unchecked")
     private static <V> V computeIfAbsent(String key, Function<String, ? extends V> function) {
-        Object value = INSTANCE_MAP.computeIfAbsent(key, function);
-        return value != null ? (V) value : null;
+        Object result = null;
+        if (INSTANCE_MAP.containsKey(key)) {
+            result = INSTANCE_MAP.get(key);
+        }
+        if (result == null) {
+            synchronized (INSTANCE_MAP) {
+                if (INSTANCE_MAP.containsKey(key)) {
+                    result = INSTANCE_MAP.get(key);
+                }
+                if (result == null) {
+                    result = function.apply(key);
+                    INSTANCE_MAP.put(key, result);
+                }
+            }
+        }
+        return result != null ? (V) result : null;
     }
 }
