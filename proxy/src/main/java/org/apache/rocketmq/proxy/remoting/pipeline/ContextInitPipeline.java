@@ -35,19 +35,19 @@ public class ContextInitPipeline implements RequestPipeline {
         LanguageCode languageCode = RemotingHelper.getAttributeValue(AttributeKeys.LANGUAGE_CODE_KEY, channel);
         String clientId = RemotingHelper.getAttributeValue(AttributeKeys.CLIENT_ID_KEY, channel);
         Integer version = RemotingHelper.getAttributeValue(AttributeKeys.VERSION_KEY, channel);
-        context = context.withAction(RemotingHelper.getRequestCodeDesc(request.getCode()))
-            .withProtocolType(ChannelProtocolType.REMOTING.getName())
-            .withChannel(channel)
-            .withLocalAddress(NetworkUtil.socketAddress2String(ctx.channel().localAddress()))
-            .withRemoteAddress(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+        context.setAction(RemotingHelper.getRequestCodeDesc(request.getCode()))
+            .setProtocolType(ChannelProtocolType.REMOTING.getName())
+            .setChannel(channel)
+            .setLocalAddress(NetworkUtil.socketAddress2String(ctx.channel().localAddress()))
+            .setRemoteAddress(RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
         if (languageCode != null) {
-            context.withLanguage(languageCode.name());
+            context.setLanguage(languageCode.name());
         }
         if (clientId != null) {
-            context.withClientID(clientId);
+            context.setClientID(clientId);
         }
         if (version != null) {
-            context.withClientVersion(MQVersion.getVersionDesc(version));
+            context.setClientVersion(MQVersion.getVersionDesc(version));
         }
     }
 }

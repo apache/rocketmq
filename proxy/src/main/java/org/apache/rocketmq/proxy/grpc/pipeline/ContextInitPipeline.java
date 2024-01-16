@@ -29,15 +29,15 @@ public class ContextInitPipeline implements RequestPipeline {
     @Override
     public void execute(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {
         Context ctx = Context.current();
-        context.withLocalAddress(getDefaultStringMetadataInfo(headers, GrpcConstants.LOCAL_ADDRESS))
-            .withRemoteAddress(getDefaultStringMetadataInfo(headers, GrpcConstants.REMOTE_ADDRESS))
-            .withClientID(getDefaultStringMetadataInfo(headers, GrpcConstants.CLIENT_ID))
-            .withProtocolType(ChannelProtocolType.GRPC_V2.getName())
-            .withLanguage(getDefaultStringMetadataInfo(headers, GrpcConstants.LANGUAGE))
-            .withClientVersion(getDefaultStringMetadataInfo(headers, GrpcConstants.CLIENT_VERSION))
-            .withAction(getDefaultStringMetadataInfo(headers, GrpcConstants.SIMPLE_RPC_NAME));
+        context.setLocalAddress(getDefaultStringMetadataInfo(headers, GrpcConstants.LOCAL_ADDRESS))
+            .setRemoteAddress(getDefaultStringMetadataInfo(headers, GrpcConstants.REMOTE_ADDRESS))
+            .setClientID(getDefaultStringMetadataInfo(headers, GrpcConstants.CLIENT_ID))
+            .setProtocolType(ChannelProtocolType.GRPC_V2.getName())
+            .setLanguage(getDefaultStringMetadataInfo(headers, GrpcConstants.LANGUAGE))
+            .setClientVersion(getDefaultStringMetadataInfo(headers, GrpcConstants.CLIENT_VERSION))
+            .setAction(getDefaultStringMetadataInfo(headers, GrpcConstants.SIMPLE_RPC_NAME));
         if (ctx.getDeadline() != null) {
-            context.withRemainingMs(ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS));
+            context.setRemainingMs(ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS));
         }
     }
 
