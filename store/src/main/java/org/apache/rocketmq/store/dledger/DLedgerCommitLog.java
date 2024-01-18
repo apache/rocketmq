@@ -436,7 +436,7 @@ public class DLedgerCommitLog extends CommitLog {
         }
 
         int storeTimestampPosition;
-        int sysFlag = byteBuffer.getInt(MessageDecoder.SYSFLAG_POSITION);
+        int sysFlag = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.SYSFLAG_POSITION);
         if ((sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0) {
             storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION;
         } else {
