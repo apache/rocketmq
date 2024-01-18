@@ -136,8 +136,7 @@ public class AdminBrokerProcessorTest {
     private Channel channel;
 
     @Spy
-    private BrokerController
-        brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(),
+    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(),
         new MessageStoreConfig(), null);
 
     @Mock
