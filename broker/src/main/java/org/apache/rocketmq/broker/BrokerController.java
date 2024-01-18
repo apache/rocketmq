@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -286,8 +287,8 @@ public class BrokerController {
     private BrokerMetricsManager brokerMetricsManager;
     private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
     private ColdDataCgCtrService coldDataCgCtrService;
-    private final AuthenticationMetadataManager authenticationMetadataManager;
-    private final AuthorizationMetadataManager authorizationMetadataManager;
+    private AuthenticationMetadataManager authenticationMetadataManager;
+    private AuthorizationMetadataManager authorizationMetadataManager;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -2214,8 +2215,20 @@ public class BrokerController {
         return authenticationMetadataManager;
     }
 
+    @VisibleForTesting
+    public void setAuthenticationMetadataManager(
+        AuthenticationMetadataManager authenticationMetadataManager) {
+        this.authenticationMetadataManager = authenticationMetadataManager;
+    }
+
     public AuthorizationMetadataManager getAuthorizationMetadataManager() {
         return authorizationMetadataManager;
+    }
+
+    @VisibleForTesting
+    public void setAuthorizationMetadataManager(
+        AuthorizationMetadataManager authorizationMetadataManager) {
+        this.authorizationMetadataManager = authorizationMetadataManager;
     }
 
     public String getHAServerAddr() {

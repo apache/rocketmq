@@ -65,6 +65,9 @@ public class Resource implements Comparable<Resource> {
     }
 
     public static Resource of(String resourceKey) {
+        if (StringUtils.isBlank(resourceKey)) {
+            return null;
+        }
         if (StringUtils.equals(resourceKey, CommonConstants.ASTERISK)) {
             return of(ResourceType.ANY, null, ResourcePattern.ANY);
         }

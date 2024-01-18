@@ -2894,11 +2894,21 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        this.brokerController.getAuthenticationMetadataManager().updateUser(user)
-                    .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
-            .exceptionally(ex -> handleAuthException(response, ex))
+        this.brokerController.getAuthenticationMetadataManager().getUser(requestHeader.getUsername())
+            .thenCompose(old -> {
+                if (old == null) {
+                    throw new AuthenticationException("The user is not exist");
+                }
+                if (old.getUserType() == UserType.SUPER && isNotSuperUserLogin(request)) {
+                    throw new AuthenticationException("The super user can only be update by super user");
+                }
+                return this.brokerController.getAuthenticationMetadataManager().updateUser(old);
+            }).thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
+            .exceptionally(ex -> {
+                LOGGER.error("delete user {} error", requestHeader.getUsername(), ex);
+                return handleAuthException(response, ex);
+            })
             .join();
-
         return response;
     }
 
@@ -2908,14 +2918,21 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         DeleteUserRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteUserRequestHeader.class);
 
-        this.brokerController.getAuthenticationMetadataManager().deleteUser(requestHeader.getUsername())
-            .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
+        this.brokerController.getAuthenticationMetadataManager().getUser(requestHeader.getUsername())
+            .thenCompose(user -> {
+                if (user == null) {
+                    return CompletableFuture.completedFuture(null);
+                }
+                if (user.getUserType() == UserType.SUPER && isNotSuperUserLogin(request)) {
+                    throw new AuthenticationException("The super user can only be update by super user");
+                }
+                return this.brokerController.getAuthenticationMetadataManager().deleteUser(requestHeader.getUsername());
+            }).thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
             .exceptionally(ex -> {
                 LOGGER.error("delete user {} error", requestHeader.getUsername(), ex);
                 return handleAuthException(response, ex);
             })
             .join();
-
         return response;
     }
 
@@ -2995,7 +3012,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return handleAuthException(response, ex);
             })
             .join();
-
         return response;
     }
 
@@ -3040,7 +3056,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         Resource resource = Resource.of(requestHeader.getResource());
 
         this.brokerController.getAuthorizationMetadataManager().deleteAcl(subject, policyType, resource)
-            .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
+            .thenAccept(nil -> {
+                response.setCode(ResponseCode.SUCCESS);
+            })
             .exceptionally(ex -> {
                 LOGGER.error("delete acl for {} error", requestHeader.getSubject(), ex);
                 return handleAuthException(response, ex);
