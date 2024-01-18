@@ -19,6 +19,8 @@ package org.apache.rocketmq.store.dledger;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import io.openmessaging.storage.dledger.store.file.DLedgerMmapFileStore;
 import io.openmessaging.storage.dledger.store.file.MmapFileList;
+
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -36,6 +38,8 @@ import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.StoreCheckpoint;
+import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.Assume;
@@ -145,6 +149,42 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
             doGetMessages(messageStore, topic, 0, 1000, 0);
             messageStore.shutdown();
         }
+    }
+    @Test
+    public void testDLedgerAbnormallyRecover() throws Exception {
+        String base = createBaseDir();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+        String topic = UUID.randomUUID().toString();
+
+        int messageNumPerQueue = 100;
+
+        DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
+        Thread.sleep(1000);
+        doPutMessages(messageStore, topic, 0, messageNumPerQueue, 0);
+        doPutMessages(messageStore, topic, 1, messageNumPerQueue, 0);
+        Thread.sleep(1000);
+        Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+        Assert.assertEquals(messageNumPerQueue, messageStore.getMaxOffsetInQueue(topic, 0));
+        Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+        doGetMessages(messageStore, topic, 0, messageNumPerQueue, 0);
+        StoreCheckpoint storeCheckpoint = messageStore.getStoreCheckpoint();
+        storeCheckpoint.setPhysicMsgTimestamp(0);
+        storeCheckpoint.setLogicsMsgTimestamp(0);
+        messageStore.shutdown();
+
+        String fileName = StorePathConfigHelper.getAbortFile(base);
+        makeSureFileExists(fileName);
+
+        File file = new File(base + File.separator + "consumequeue" + File.separator + topic + File.separator + "0" + File.separator + "00000000000000001040");
+        file.delete();
+//        truncateAllConsumeQueue(base + File.separator + "consumequeue" + File.separator + topic + File.separator);
+        messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
+        Thread.sleep(1000);
+        doGetMessages(messageStore, topic, 0, messageNumPerQueue, 0);
+        doGetMessages(messageStore, topic, 1, messageNumPerQueue, 0);
+        messageStore.shutdown();
+
     }
 
     @Test
