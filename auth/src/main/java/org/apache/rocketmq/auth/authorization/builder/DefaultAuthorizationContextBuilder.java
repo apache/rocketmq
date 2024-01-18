@@ -170,7 +170,11 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     break;
                 case RequestCode.SEND_MESSAGE:
                     if (NamespaceUtil.isRetryTopic(fields.get(TOPIC))) {
-                        group = Resource.ofGroup(fields.get(GROUP));
+                        if (StringUtils.isNotBlank(fields.get(GROUP))) {
+                            group = Resource.ofGroup(fields.get(GROUP));
+                        } else {
+                            group = Resource.ofGroup(fields.get(TOPIC));
+                        }
                         result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
                     } else {
                         topic = Resource.ofTopic(fields.get(TOPIC));
@@ -180,7 +184,11 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                 case RequestCode.SEND_MESSAGE_V2:
                 case RequestCode.SEND_BATCH_MESSAGE:
                     if (NamespaceUtil.isRetryTopic(fields.get(B))) {
-                        group = Resource.ofGroup(fields.get(A));
+                        if (StringUtils.isNotBlank(fields.get(A))) {
+                            group = Resource.ofGroup(fields.get(A));
+                        } else {
+                            group = Resource.ofGroup(fields.get(B));
+                        }
                         result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
                     } else {
                         topic = Resource.ofTopic(fields.get(B));
@@ -244,7 +252,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                         topic = Resource.ofTopic(queryConsumerOffsetRequestHeader.getTopic());
                         result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.SUB, Action.GET), sourceIp));
                     }
-                    group = Resource.ofTopic(queryConsumerOffsetRequestHeader.getConsumerGroup());
+                    group = Resource.ofGroup(queryConsumerOffsetRequestHeader.getConsumerGroup());
                     result.add(DefaultAuthorizationContext.of(subject, group, Arrays.asList(Action.SUB, Action.GET), sourceIp));
                     break;
                 case RequestCode.UPDATE_CONSUMER_OFFSET:
@@ -254,7 +262,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                         topic = Resource.ofTopic(updateConsumerOffsetRequestHeader.getTopic());
                         result.add(DefaultAuthorizationContext.of(subject, topic, Arrays.asList(Action.SUB, Action.UPDATE), sourceIp));
                     }
-                    group = Resource.ofTopic(updateConsumerOffsetRequestHeader.getConsumerGroup());
+                    group = Resource.ofGroup(updateConsumerOffsetRequestHeader.getConsumerGroup());
                     result.add(DefaultAuthorizationContext.of(subject, group, Arrays.asList(Action.SUB, Action.UPDATE), sourceIp));
                     break;
                 default:

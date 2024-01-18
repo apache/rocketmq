@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.auth.authentication.context.DefaultAuthenticationContext;
 import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
@@ -84,7 +85,7 @@ public class DefaultAuthenticationContextBuilderTest {
         requestHeader.setQueueId(0);
         requestHeader.setBornTimestamp(117036786441330L);
         requestHeader.setBname("brokerName-1");
-        RemotingCommand request = RemotingCommand.createRequestCommand(10, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "abc");
         request.addExtField("Signature", "ZG26exJ5u9q1fwZlO4DCmz2Rs88=");
