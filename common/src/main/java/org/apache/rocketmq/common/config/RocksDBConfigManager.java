@@ -16,14 +16,15 @@
  */
 package org.apache.rocketmq.common.config;
 
-import java.util.function.BiConsumer;
-
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.rocksdb.FlushOptions;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.Statistics;
 import org.rocksdb.WriteBatch;
+
+import java.util.function.BiConsumer;
 
 public class RocksDBConfigManager {
     protected static final Logger BROKER_LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -104,5 +105,13 @@ public class RocksDBConfigManager {
 
     public void batchPutWithWal(final WriteBatch batch) throws Exception {
         this.configRocksDBStorage.batchPutWithWal(batch);
+    }
+
+    public Statistics getStatistics() {
+        if (this.configRocksDBStorage == null) {
+            return null;
+        }
+
+        return configRocksDBStorage.getStatistics();
     }
 }
