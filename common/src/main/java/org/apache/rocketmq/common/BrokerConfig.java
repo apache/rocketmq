@@ -405,6 +405,9 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean enableSplitRegistration = false;
 
+    private long popInflightMessageThreadhold = 10000;
+    private boolean enablePopMessageThreadhold = false;
+
     private int splitRegistrationSize = 800;
 
     /**
@@ -1788,5 +1791,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setSplitRegistrationSize(int splitRegistrationSize) {
         this.splitRegistrationSize = splitRegistrationSize;
+    }
+
+    public long getPopInflightMessageThreadhold() {
+        return popInflightMessageThreadhold;
+    }
+
+    public void setPopInflightMessageThreadhold(long popInflightMessageThreadhold) {
+        this.popInflightMessageThreadhold = popInflightMessageThreadhold;
+    }
+
+    public boolean isEnablePopMessageThreadhold() {
+        return enablePopMessageThreadhold;
+    }
+
+    public void setEnablePopMessageThreadhold(boolean enablePopMessageThreadhold) {
+        this.enablePopMessageThreadhold = enablePopMessageThreadhold;
     }
 }
