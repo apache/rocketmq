@@ -49,6 +49,8 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
             if (putMessageResult != null && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
                 log.info("Put checked-too-many-time half message to TRANS_CHECK_MAXTIME_TOPIC OK. Restored in queueOffset={}, " +
                     "commitLogOffset={}, real topic={}", msgExt.getQueueOffset(), msgExt.getCommitLogOffset(), msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
+                // discarded, then the num of half-messages minus 1
+                this.getBrokerController().getTransactionalMessageService().getTransactionMetrics().addAndGet(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC), -1);
             } else {
                 log.error("Put checked-too-many-time half message to TRANS_CHECK_MAXTIME_TOPIC failed, real topic={}, msgId={}", msgExt.getTopic(), msgExt.getMsgId());
             }
