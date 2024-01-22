@@ -675,8 +675,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     }
 
     private boolean isPopShouldStop(String topic, String group, int queueId) {
-       return brokerController.getBrokerConfig().isEnablePopMessageThreshold() &&
-               brokerController.getPopInflightMessageCounter().getGroupPopInFlightMessageNum(topic, group, queueId) > brokerController.getBrokerConfig().getPopInflightMessageThreshold();
+        return brokerController.getBrokerConfig().isEnablePopMessageThreshold() &&
+                brokerController.getPopInflightMessageCounter().getGroupPopInFlightMessageNum(topic, group, queueId) > brokerController.getBrokerConfig().getPopInflightMessageThreshold();
     }
 
     private long getPopOffset(String topic, String group, int queueId, int initMode, boolean init, String lockKey,
