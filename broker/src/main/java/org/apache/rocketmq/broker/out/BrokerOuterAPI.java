@@ -1377,7 +1377,7 @@ public class BrokerOuterAPI {
         requestHeader.setSubVersion(System.currentTimeMillis());
         requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
         requestHeader.setExpressionType(ExpressionType.TAG);
-        requestHeader.setBname(brokerName);
+        requestHeader.setBrokerName(brokerName);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
         CompletableFuture<PullResult> pullResultFuture = new CompletableFuture<>();

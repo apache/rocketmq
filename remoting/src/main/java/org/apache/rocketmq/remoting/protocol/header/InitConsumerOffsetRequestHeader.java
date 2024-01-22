@@ -16,10 +16,10 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
 
-public class InitConsumerOffsetRequestHeader implements CommandCustomHeader {
+public class InitConsumerOffsetRequestHeader extends TopicRequestHeader {
 
     private String topic;
     // @see ConsumeInitMode

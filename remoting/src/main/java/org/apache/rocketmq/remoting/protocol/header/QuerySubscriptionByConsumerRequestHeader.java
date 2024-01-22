@@ -20,11 +20,11 @@
  */
 package org.apache.rocketmq.remoting.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicRequestHeader;
 
-public class QuerySubscriptionByConsumerRequestHeader implements CommandCustomHeader {
+public class QuerySubscriptionByConsumerRequestHeader extends TopicRequestHeader {
     @CFNotNull
     private String group;
     private String topic;

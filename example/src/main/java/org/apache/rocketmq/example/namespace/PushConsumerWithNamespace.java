@@ -27,7 +27,8 @@ public class PushConsumerWithNamespace {
     public static final String TOPIC = "NAMESPACE_TOPIC";
 
     public static void main(String[] args) throws Exception {
-        DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(NAMESPACE, CONSUMER_GROUP);
+        DefaultMQPushConsumer defaultMQPushConsumer = new DefaultMQPushConsumer(CONSUMER_GROUP);
+        defaultMQPushConsumer.setNamespaceV2(NAMESPACE);
         defaultMQPushConsumer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         defaultMQPushConsumer.subscribe(TOPIC, "*");
         defaultMQPushConsumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {

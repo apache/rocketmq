@@ -18,11 +18,11 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
-public class GetConsumerListByGroupRequestHeader implements CommandCustomHeader {
+public class GetConsumerListByGroupRequestHeader extends RpcRequestHeader {
     @CFNotNull
     private String consumerGroup;
 

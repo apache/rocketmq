@@ -17,11 +17,11 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
-public class ResetOffsetRequestHeader implements CommandCustomHeader {
+public class ResetOffsetRequestHeader extends TopicQueueRequestHeader {
 
     @CFNotNull
     private String topic;
@@ -71,11 +71,11 @@ public class ResetOffsetRequestHeader implements CommandCustomHeader {
         this.isForce = isForce;
     }
 
-    public int getQueueId() {
+    public Integer getQueueId() {
         return queueId;
     }
 
-    public void setQueueId(int queueId) {
+    public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
 

@@ -55,6 +55,7 @@ import io.netty.util.TimerTask;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.time.Duration;
 import java.util.List;
@@ -794,13 +795,13 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
                 if (CollectionUtils.isNotEmpty(msg.tlvs())) {
                     msg.tlvs().forEach(tlv -> {
+                        AttributeKey<String> key = AttributeKeys.valueOf(
+                            HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
                         byte[] valueBytes = ByteBufUtil.getBytes(tlv.content());
-                        if (!BinaryUtil.isAscii(valueBytes)) {
+                        String value = StringUtils.trim(new String(valueBytes, CharsetUtil.UTF_8));
+                        if (!BinaryUtil.isAscii(value.getBytes(StandardCharsets.UTF_8))) {
                             return;
                         }
-                        AttributeKey<String> key = AttributeKeys.valueOf(
-                                HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
-                        String value = StringUtils.trim(new String(valueBytes, CharsetUtil.UTF_8));
                         channel.attr(key).set(value);
                     });
                 }

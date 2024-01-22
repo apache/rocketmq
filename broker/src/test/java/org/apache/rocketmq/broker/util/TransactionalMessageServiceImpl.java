@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.util;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.OperationResult;
+import org.apache.rocketmq.broker.transaction.TransactionMetrics;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -68,6 +69,16 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     @Override
     public void close() {
+
+    }
+
+    @Override
+    public TransactionMetrics getTransactionMetrics() {
+        return null;
+    }
+
+    @Override
+    public void setTransactionMetrics(TransactionMetrics transactionMetrics) {
 
     }
 }
