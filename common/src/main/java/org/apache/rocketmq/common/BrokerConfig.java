@@ -407,8 +407,8 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private boolean enableSplitRegistration = false;
 
-    private long popInflightMessageThreadhold = 10000;
-    private boolean enablePopMessageThreadhold = false;
+    private long popInflightMessageThreshold = 10000;
+    private boolean enablePopMessageThreshold = false;
 
     private int splitRegistrationSize = 800;
 
@@ -1803,19 +1803,19 @@ public class BrokerConfig extends BrokerIdentity {
         this.transactionMetricFlushInterval = transactionMetricFlushInterval;
     }
 
-    public long getPopInflightMessageThreadhold() {
-        return popInflightMessageThreadhold;
+    public long getPopInflightMessageThreshold() {
+        return popInflightMessageThreshold;
     }
 
-    public void setPopInflightMessageThreadhold(long popInflightMessageThreadhold) {
-        this.popInflightMessageThreadhold = popInflightMessageThreadhold;
+    public void setPopInflightMessageThreshold(long popInflightMessageThreshold) {
+        this.popInflightMessageThreshold = popInflightMessageThreshold;
     }
 
-    public boolean isEnablePopMessageThreadhold() {
-        return enablePopMessageThreadhold;
+    public boolean isEnablePopMessageThreshold() {
+        return enablePopMessageThreshold;
     }
 
-    public void setEnablePopMessageThreadhold(boolean enablePopMessageThreadhold) {
-        this.enablePopMessageThreadhold = enablePopMessageThreadhold;
+    public void setEnablePopMessageThreshold(boolean enablePopMessageThreshold) {
+        this.enablePopMessageThreshold = enablePopMessageThreshold;
     }
 }
