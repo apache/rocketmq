@@ -18,6 +18,7 @@
 package org.apache.rocketmq.client.rpchook;
 
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
@@ -39,8 +40,8 @@ public class NamespaceRpcHookTest {
         PullMessageRequestHeader pullMessageRequestHeader = new PullMessageRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, pullMessageRequestHeader);
         namespaceRpcHook.doBeforeRequest("", request);
-        assertThat(pullMessageRequestHeader.getNamespaced()).isTrue();
-        assertThat(pullMessageRequestHeader.getNamespace()).isEqualTo(namespace);
+        assertThat(request.getExtFields().get(MixAll.RPC_REQUEST_HEADER_NAMESPACED_FIELD)).isEqualTo("true");
+        assertThat(request.getExtFields().get(MixAll.RPC_REQUEST_HEADER_NAMESPACE_FIELD)).isEqualTo(namespace);
     }
 
     @Test
@@ -50,7 +51,6 @@ public class NamespaceRpcHookTest {
         PullMessageRequestHeader pullMessageRequestHeader = new PullMessageRequestHeader();
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, pullMessageRequestHeader);
         namespaceRpcHook.doBeforeRequest("", request);
-        assertThat(pullMessageRequestHeader.getNamespaced()).isNull();
-        assertThat(pullMessageRequestHeader.getNamespace()).isNull();
+        assertThat(request.getExtFields()).isNull();
     }
 }
