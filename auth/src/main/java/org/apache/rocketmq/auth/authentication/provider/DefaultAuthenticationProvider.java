@@ -27,10 +27,14 @@ import org.apache.rocketmq.auth.authentication.context.DefaultAuthenticationCont
 import org.apache.rocketmq.auth.authentication.chain.DefaultAuthenticationHandler;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.chain.HandlerChain;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultAuthenticationProvider implements AuthenticationProvider<DefaultAuthenticationContext> {
 
+    protected final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_AUTH_AUDIT_LOGGER_NAME);
     protected AuthConfig authConfig;
     protected Supplier<?> metadataService;
     protected AuthenticationContextBuilder<DefaultAuthenticationContext> authenticationContextBuilder;
@@ -44,7 +48,8 @@ public class DefaultAuthenticationProvider implements AuthenticationProvider<Def
 
     @Override
     public CompletableFuture<Void> authenticate(DefaultAuthenticationContext context) {
-        return this.newHandlerChain().handle(context);
+        return this.newHandlerChain().handle(context)
+            .whenComplete((nil, ex) -> doAuditLog(context, ex));
     }
 
     @Override
@@ -60,5 +65,13 @@ public class DefaultAuthenticationProvider implements AuthenticationProvider<Def
     protected HandlerChain<DefaultAuthenticationContext, CompletableFuture<Void>> newHandlerChain() {
         return HandlerChain.<DefaultAuthenticationContext, CompletableFuture<Void>>create()
             .addNext(new DefaultAuthenticationHandler(this.authConfig, metadataService));
+    }
+
+    private void doAuditLog(DefaultAuthenticationContext context, Throwable ex) {
+        if (ex != null) {
+            log.info("[AUTHENTICATION] User:{} is authenticated failed with Signature = {}", context.getUsername(), context.getSignature());
+        } else {
+            log.debug("[AUTHENTICATION] User:{} is authenticated success with Signature = {}", context.getUsername(), context.getSignature());
+        }
     }
 }

@@ -70,7 +70,7 @@ public class AuthorizationEvaluatorTest {
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
 
-        Acl acl = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub", "192.168.0.0/24", Decision.GRANT);
+        Acl acl = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub", "192.168.0.0/24", Decision.ALLOW);
         this.authorizationMetadataManager.createAcl(acl).join();
 
         Subject subject = Subject.of("User:test");
@@ -82,7 +82,7 @@ public class AuthorizationEvaluatorTest {
         this.evaluator.evaluate(Collections.singletonList(context));
 
         // acl sourceIp is null
-        acl = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub", null, Decision.GRANT);
+        acl = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub", null, Decision.ALLOW);
         this.authorizationMetadataManager.updateAcl(acl).join();
 
         subject = Subject.of("User:test");
@@ -99,7 +99,7 @@ public class AuthorizationEvaluatorTest {
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
 
-        Acl acl = AuthTestHelper.buildAcl("User:test", "Topic:test*,Group:test*", "Sub", "192.168.0.0/24", Decision.GRANT);
+        Acl acl = AuthTestHelper.buildAcl("User:test", "Topic:test*,Group:test*", "Sub", "192.168.0.0/24", Decision.ALLOW);
         this.authorizationMetadataManager.createAcl(acl).join();
 
         List<AuthorizationContext> contexts = new ArrayList<>();
@@ -128,7 +128,7 @@ public class AuthorizationEvaluatorTest {
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
 
-        Acl acl = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub", "192.168.0.0/24", Decision.GRANT);
+        Acl acl = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub", "192.168.0.0/24", Decision.ALLOW);
         this.authorizationMetadataManager.createAcl(acl).join();
 
         // user not exist
@@ -194,13 +194,13 @@ public class AuthorizationEvaluatorTest {
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user).join();
 
-        Acl acl = AuthTestHelper.buildAcl("User:test", "*", "Pub,Sub", "192.168.0.0/24", Decision.GRANT);
+        Acl acl = AuthTestHelper.buildAcl("User:test", "*", "Pub,Sub", "192.168.0.0/24", Decision.ALLOW);
         this.authorizationMetadataManager.createAcl(acl).join();
 
         acl = AuthTestHelper.buildAcl("User:test", "Topic:*", "Pub,Sub", "192.168.0.0/24", Decision.DENY);
         this.authorizationMetadataManager.updateAcl(acl).join();
 
-        acl = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub,Sub", "192.168.0.0/24", Decision.GRANT);
+        acl = AuthTestHelper.buildAcl("User:test", "Topic:test*", "Pub,Sub", "192.168.0.0/24", Decision.ALLOW);
         this.authorizationMetadataManager.updateAcl(acl).join();
 
         acl = AuthTestHelper.buildAcl("User:test", "Topic:test-1", "Pub,Sub", "192.168.0.0/24", Decision.DENY);
@@ -304,7 +304,7 @@ public class AuthorizationEvaluatorTest {
             this.evaluator.evaluate(Collections.singletonList(context));
         });
 
-        acl = AuthTestHelper.buildAcl("User:test", PolicyType.DEFAULT, "Topic:*", "Pub", null, Decision.GRANT);
+        acl = AuthTestHelper.buildAcl("User:test", PolicyType.DEFAULT, "Topic:*", "Pub", null, Decision.ALLOW);
         this.authorizationMetadataManager.updateAcl(acl).join();
         {
             Subject subject = Subject.of("User:test");

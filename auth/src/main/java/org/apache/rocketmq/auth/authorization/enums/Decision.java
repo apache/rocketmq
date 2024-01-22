@@ -21,7 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public enum Decision {
 
-    GRANT((byte) 1, "Grant"),
+    ALLOW((byte) 1, "Allow"),
 
     DENY((byte) 2, "Deny");
 

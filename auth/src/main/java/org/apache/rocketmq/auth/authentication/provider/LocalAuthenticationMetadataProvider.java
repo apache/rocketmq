@@ -46,7 +46,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
 
     @Override
     public void initialize(AuthConfig authConfig, Supplier<?> metadataService) {
-        this.storage = new ConfigRocksDBStorage(authConfig.getAuthConfigPath() + File.separator + "auth_user");
+        this.storage = new ConfigRocksDBStorage(authConfig.getAuthConfigPath() + File.separator + "users");
         if (!this.storage.start()) {
             throw new RuntimeException("Failed to load rocksdb for auth_user, please check whether it is occupied");
         }

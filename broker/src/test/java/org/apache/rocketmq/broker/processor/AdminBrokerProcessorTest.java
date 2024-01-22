@@ -853,7 +853,7 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testGetAcl() throws RemotingCommandException {
-        Acl aclInfo = Acl.of(User.of("abc"), Arrays.asList(Resource.of("Topic:*")), Arrays.asList(Action.PUB), Environment.of("192.168.0.1"), Decision.GRANT);
+        Acl aclInfo = Acl.of(User.of("abc"), Arrays.asList(Resource.of("Topic:*")), Arrays.asList(Action.PUB), Environment.of("192.168.0.1"), Decision.ALLOW);
         when(authorizationMetadataManager.getAcl(any(Subject.class))).thenReturn(CompletableFuture.completedFuture(aclInfo));
 
         GetAclRequestHeader getAclRequestHeader = new GetAclRequestHeader();
@@ -874,7 +874,7 @@ public class AdminBrokerProcessorTest {
 
     @Test
     public void testListAcl() throws RemotingCommandException {
-        Acl aclInfo = Acl.of(User.of("abc"), Arrays.asList(Resource.of("Topic:*")), Arrays.asList(Action.PUB), Environment.of("192.168.0.1"), Decision.GRANT);
+        Acl aclInfo = Acl.of(User.of("abc"), Arrays.asList(Resource.of("Topic:*")), Arrays.asList(Action.PUB), Environment.of("192.168.0.1"), Decision.ALLOW);
         when(authorizationMetadataManager.listAcl(any(), any())).thenReturn(CompletableFuture.completedFuture(Arrays.asList(aclInfo)));
 
         ListAclsRequestHeader listAclRequestHeader = new ListAclsRequestHeader();

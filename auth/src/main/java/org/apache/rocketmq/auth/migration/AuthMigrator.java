@@ -193,7 +193,7 @@ public class AuthMigrator {
         if (StringUtils.isBlank(str)) {
             return Decision.DENY;
         }
-        return StringUtils.equals(str, AclConstants.DENY) ? Decision.DENY : Decision.GRANT;
+        return StringUtils.equals(str, AclConstants.DENY) ? Decision.DENY : Decision.ALLOW;
     }
 
     private List<Action> parseActions(String str) {

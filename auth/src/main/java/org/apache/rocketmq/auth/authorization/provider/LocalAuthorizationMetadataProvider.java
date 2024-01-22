@@ -51,7 +51,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
 
     @Override
     public void initialize(AuthConfig authConfig, Supplier<?> metadataService) {
-        this.storage = new ConfigRocksDBStorage(authConfig.getAuthConfigPath() + File.separator + "auth_acl");
+        this.storage = new ConfigRocksDBStorage(authConfig.getAuthConfigPath() + File.separator + "acls");
         if (!this.storage.start()) {
             throw new RuntimeException("Failed to load rocksdb for auth_acl, please check whether it is occupied");
         }
