@@ -34,6 +34,7 @@ import io.grpc.netty.shaded.io.netty.handler.codec.ProtocolDetectionState;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
+import io.grpc.netty.shaded.io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslHandler;
@@ -41,7 +42,10 @@ import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactor
 import io.grpc.netty.shaded.io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.grpc.netty.shaded.io.netty.util.AsciiString;
 import io.grpc.netty.shaded.io.netty.util.CharsetUtil;
-import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
@@ -54,11 +58,6 @@ import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.constant.AttributeKeys;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
-
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.List;
 
 public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator.ProtocolNegotiator {
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -123,7 +122,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         }
     }
 
-    private static class ProxyAndTlsProtocolHandler extends ByteToMessageDecoder {
+    private class ProxyAndTlsProtocolHandler extends ByteToMessageDecoder {
 
         private final GrpcHttp2ConnectionHandler grpcHandler;
 
@@ -156,7 +155,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         }
     }
 
-    private static class HAProxyMessageHandler extends ChannelInboundHandlerAdapter {
+    private class HAProxyMessageHandler extends ChannelInboundHandlerAdapter {
 
         private ProtocolNegotiationEvent pne = InternalProtocolNegotiationEvent.getDefault();
 
@@ -193,16 +192,7 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
                     builder.set(AttributeKeys.PROXY_PROTOCOL_SERVER_PORT, String.valueOf(msg.destinationPort()));
                 }
                 if (CollectionUtils.isNotEmpty(msg.tlvs())) {
-                    msg.tlvs().forEach(tlv -> {
-                        Attributes.Key<String> key = AttributeKeys.valueOf(
-                                HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
-                        byte[] valueBytes = ByteBufUtil.getBytes(tlv.content());
-                        String value = StringUtils.trim(new String(valueBytes, CharsetUtil.UTF_8));
-                        if (!BinaryUtil.isAscii(value.getBytes(StandardCharsets.UTF_8))) {
-                            return;
-                        }
-                        builder.set(key, value);
-                    });
+                    msg.tlvs().forEach(tlv -> handleHAProxyTLV(tlv, builder));
                 }
                 pne = InternalProtocolNegotiationEvent
                         .withAttributes(InternalProtocolNegotiationEvent.getDefault(), builder.build());
@@ -212,7 +202,17 @@ public class ProxyAndTlsProtocolNegotiator implements InternalProtocolNegotiator
         }
     }
 
-    private static class TlsModeHandler extends ByteToMessageDecoder {
+    protected void handleHAProxyTLV(HAProxyTLV tlv, Attributes.Builder builder) {
+        byte[] valueBytes = ByteBufUtil.getBytes(tlv.content());
+        if (!BinaryUtil.isAscii(valueBytes)) {
+            return;
+        }
+        Attributes.Key<String> key = AttributeKeys.valueOf(
+            HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
+        builder.set(key, new String(valueBytes, CharsetUtil.UTF_8));
+    }
+
+    private class TlsModeHandler extends ByteToMessageDecoder {
 
         private ProtocolNegotiationEvent pne = InternalProtocolNegotiationEvent.getDefault();
 
