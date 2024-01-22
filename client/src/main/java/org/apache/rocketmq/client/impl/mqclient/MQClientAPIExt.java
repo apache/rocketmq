@@ -67,6 +67,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.HeartbeatRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.LockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
@@ -77,6 +78,7 @@ import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
+import org.apache.rocketmq.remoting.protocol.header.UnlockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 
@@ -543,7 +545,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
 
     public CompletableFuture<Set<MessageQueue>> lockBatchMQWithFuture(String brokerAddr,
         LockBatchRequestBody requestBody, long timeoutMillis) {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, new LockBatchMqRequestHeader());
         request.setBody(requestBody.encode());
         return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
             CompletableFuture<Set<MessageQueue>> future0 = new CompletableFuture<>();
@@ -565,7 +567,7 @@ public class MQClientAPIExt extends MQClientAPIImpl {
     public CompletableFuture<Void> unlockBatchMQOneway(String brokerAddr,
         UnlockBatchRequestBody requestBody, long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, new UnlockBatchMqRequestHeader());
         request.setBody(requestBody.encode());
         try {
             this.getRemotingClient().invokeOneway(brokerAddr, request, timeoutMillis);
