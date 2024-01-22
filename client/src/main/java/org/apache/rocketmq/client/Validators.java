@@ -53,7 +53,7 @@ public class Validators {
         }
     }
 
-    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer) throws MQClientException {
+    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer, CompressMessageConsumer msgConsumer) throws MQClientException {
         if (null == msg) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
@@ -70,6 +70,8 @@ public class Validators {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body length is zero");
         }
 
+        msgConsumer.tryToCompressMessage(msg);
+        
         if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
                 "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
@@ -105,6 +107,11 @@ public class Validators {
             throw new MQClientException(
                     String.format("Sending message to topic[%s] is forbidden.", topic), null);
         }
+    }
+
+    public interface CompressMessageConsumer {
+
+        void tryToCompressMessage(Message message);
     }
 
 }

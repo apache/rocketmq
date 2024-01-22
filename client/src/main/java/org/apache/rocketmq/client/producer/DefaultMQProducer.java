@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.client.producer;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -25,6 +26,7 @@ import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
+import org.apache.rocketmq.client.Validators.CompressMessageConsumer;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
@@ -34,13 +36,18 @@ import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.EndTransactionTraceHookImpl;
 import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
+import org.apache.rocketmq.client.utils.SysFlagUtil;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.compression.CompressionType;
+import org.apache.rocketmq.common.compression.Compressor;
+import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -132,6 +139,11 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Interface of asynchronous transfer data
      */
     private TraceDispatcher traceDispatcher = null;
+
+    // compression related
+    private int compressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
+    private CompressionType compressType = CompressionType.of(System.getProperty(MixAll.MESSAGE_COMPRESS_TYPE, "ZLIB"));
+    private final Compressor compressor = CompressorFactory.getCompressor(compressType);
 
     /**
      * Default constructor.
@@ -981,7 +993,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         try {
             msgBatch = MessageBatch.generateFromList(msgs);
             for (Message message : msgBatch) {
-                Validators.checkMessage(message, this);
+                Validators.checkMessage(message, this, new CompressMessageConsumer() {
+                    @Override
+                    public void tryToCompressMessage(Message message) {
+                        tryToCompressMessage(message);
+                    }
+                });
                 MessageClientIDSetter.setUniqID(message);
                 message.setTopic(withNamespace(message.getTopic()));
             }
@@ -991,6 +1008,38 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         }
         msgBatch.setTopic(withNamespace(msgBatch.getTopic()));
         return msgBatch;
+    }
+
+    public boolean tryToCompressMessage(final Message msg) {
+        //return directly if it has been compressed
+        int flag = msg.getFlag();
+        if ((SysFlagUtil.getFlag(flag, MessageSysFlag.COMPRESSED_FLAG))) {
+            return false;
+        }
+        if (msg instanceof MessageBatch) {
+            //batch does not support compressing right now
+            return false;
+        }
+        byte[] body = msg.getBody();
+        if (body != null) {
+            if (body.length >= this.getCompressMsgBodyOverHowmuch()) {
+                try {
+                    byte[] data = compressor.compress(body, compressLevel);
+                    if (data != null) {
+                        msg.setBody(data);
+                        flag |= MessageSysFlag.COMPRESSED_FLAG;
+                        flag |= compressType.getCompressionFlag();
+                        msg.setFlag(flag);
+                        return true;
+                    }
+                } catch (IOException e) {
+                    log.error("tryToCompressMessage exception", e);
+                    log.warn(msg.toString());
+                }
+            }
+        }
+
+        return false;
     }
 
     public String getProducerGroup() {
@@ -1109,4 +1158,21 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public Set<Integer> getRetryResponseCodes() {
         return retryResponseCodes;
     }
+
+    public int getCompressLevel() {
+        return compressLevel;
+    }
+
+    public void setCompressLevel(int compressLevel) {
+        this.compressLevel = compressLevel;
+    }
+
+    public CompressionType getCompressType() {
+        return compressType;
+    }
+
+    public void setCompressType(CompressionType compressType) {
+        this.compressType = compressType;
+    }
+
 }
