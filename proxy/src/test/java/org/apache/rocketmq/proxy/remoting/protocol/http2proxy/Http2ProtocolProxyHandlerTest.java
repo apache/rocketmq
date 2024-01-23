@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2007 Mockito contributors
+ * This program is made available under the terms of the MIT License.
+ */
+
 package org.apache.rocketmq.proxy.remoting.protocol.http2proxy;
 
 import io.netty.channel.Channel;
