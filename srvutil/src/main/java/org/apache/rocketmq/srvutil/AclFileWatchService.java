@@ -19,6 +19,7 @@ package org.apache.rocketmq.srvutil;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.google.common.collect.Maps;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -112,7 +113,7 @@ public class AclFileWatchService extends ServiceThread {
                     log.info("aclFilesNum: " + aclFilesNum + "  realAclFilesNum: " + realAclFilesNum);
                     aclFilesNum = realAclFilesNum;
                     log.info("aclFilesNum: " + aclFilesNum + "  realAclFilesNum: " + realAclFilesNum);
-                    Map<String, Long> fileLastModifiedTime = new HashMap<>(realAclFilesNum);
+                    Map<String, Long> fileLastModifiedTime = Maps.newHashMapWithExpectedSize(realAclFilesNum);
                     for (int i = 0; i < realAclFilesNum; i++) {
                         String fileAbsolutePath = fileList.get(i);
                         fileLastModifiedTime.put(fileAbsolutePath, new File(fileAbsolutePath).lastModified());

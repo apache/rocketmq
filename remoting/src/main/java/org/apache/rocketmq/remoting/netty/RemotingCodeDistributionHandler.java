@@ -16,11 +16,11 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import com.google.common.collect.Maps;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -67,7 +67,7 @@ public class RemotingCodeDistributionHandler extends ChannelDuplexHandler {
     }
 
     private Map<Integer, Long> getDistributionSnapshot(Map<Integer, LongAdder> countMap) {
-        Map<Integer, Long> map = new HashMap<>(countMap.size());
+        Map<Integer, Long> map = Maps.newHashMapWithExpectedSize(countMap.size());
         for (Map.Entry<Integer, LongAdder> entry : countMap.entrySet()) {
             map.put(entry.getKey(), entry.getValue().sumThenReset());
         }

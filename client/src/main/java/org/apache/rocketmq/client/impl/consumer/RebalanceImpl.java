@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import com.google.common.collect.Maps;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
@@ -481,7 +482,7 @@ public abstract class RebalanceImpl {
         boolean changed = false;
 
         // drop process queues no longer belong me
-        HashMap<MessageQueue, ProcessQueue> removeQueueMap = new HashMap<>(this.processQueueTable.size());
+        HashMap<MessageQueue, ProcessQueue> removeQueueMap = Maps.newHashMapWithExpectedSize(this.processQueueTable.size());
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
@@ -601,7 +602,7 @@ public abstract class RebalanceImpl {
 
         {
             // drop process queues no longer belong me
-            HashMap<MessageQueue, ProcessQueue> removeQueueMap = new HashMap<>(this.processQueueTable.size());
+            HashMap<MessageQueue, ProcessQueue> removeQueueMap = Maps.newHashMapWithExpectedSize(this.processQueueTable.size());
             Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<MessageQueue, ProcessQueue> next = it.next();
@@ -634,7 +635,7 @@ public abstract class RebalanceImpl {
         }
 
         {
-            HashMap<MessageQueue, PopProcessQueue> removeQueueMap = new HashMap<>(this.popProcessQueueTable.size());
+            HashMap<MessageQueue, PopProcessQueue> removeQueueMap = Maps.newHashMapWithExpectedSize(this.popProcessQueueTable.size());
             Iterator<Entry<MessageQueue, PopProcessQueue>> it = this.popProcessQueueTable.entrySet().iterator();
             while (it.hasNext()) {
                 Entry<MessageQueue, PopProcessQueue> next = it.next();
