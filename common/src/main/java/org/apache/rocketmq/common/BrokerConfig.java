@@ -225,6 +225,7 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean initPopOffsetByCheckMsgInMem = true;
     // read message from pop retry topic v1, for the compatibility, will be removed in the future version
     private boolean retrieveMessageFromPopRetryTopicV1 = true;
+    private boolean enableRetryTopicV2 = false;
 
     private boolean realTimeNotifyConsumerChange = true;
 
@@ -267,6 +268,8 @@ public class BrokerConfig extends BrokerIdentity {
      */
     @ImportantField
     private long transactionCheckInterval = 30 * 1000;
+
+    private long transactionMetricFlushInterval = 3 * 1000;
 
     /**
      * transaction batch op message
@@ -1309,6 +1312,14 @@ public class BrokerConfig extends BrokerIdentity {
         this.retrieveMessageFromPopRetryTopicV1 = retrieveMessageFromPopRetryTopicV1;
     }
 
+    public boolean isEnableRetryTopicV2() {
+        return enableRetryTopicV2;
+    }
+
+    public void setEnableRetryTopicV2(boolean enableRetryTopicV2) {
+        this.enableRetryTopicV2 = enableRetryTopicV2;
+    }
+
     public boolean isRealTimeNotifyConsumerChange() {
         return realTimeNotifyConsumerChange;
     }
@@ -1779,5 +1790,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setSplitRegistrationSize(int splitRegistrationSize) {
         this.splitRegistrationSize = splitRegistrationSize;
+    }
+
+    public long getTransactionMetricFlushInterval() {
+        return transactionMetricFlushInterval;
+    }
+
+    public void setTransactionMetricFlushInterval(long transactionMetricFlushInterval) {
+        this.transactionMetricFlushInterval = transactionMetricFlushInterval;
     }
 }

@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.processor;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.transaction.OperationResult;
+import org.apache.rocketmq.broker.transaction.TransactionMetrics;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -71,8 +72,12 @@ public class EndTransactionProcessorTest {
     @Mock
     private TransactionalMessageService transactionMsgService;
 
+    @Mock
+    private TransactionMetrics transactionMetrics;
+
     @Before
     public void init() {
+        when(transactionMsgService.getTransactionMetrics()).thenReturn(transactionMetrics);
         brokerController.setMessageStore(messageStore);
         brokerController.setTransactionalMessageService(transactionMsgService);
         endTransactionProcessor = new EndTransactionProcessor(brokerController);

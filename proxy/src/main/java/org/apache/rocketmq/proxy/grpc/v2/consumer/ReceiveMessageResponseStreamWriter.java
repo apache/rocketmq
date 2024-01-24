@@ -121,8 +121,8 @@ public class ReceiveMessageResponseStreamWriter {
             ctx,
             ReceiptHandle.decode(handle),
             messageExt.getMsgId(),
-            GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup()),
-            GrpcConverter.getInstance().wrapResourceWithNamespace(request.getMessageQueue().getTopic()),
+            request.getGroup().getName(),
+            request.getMessageQueue().getTopic().getName(),
             NACK_INVISIBLE_TIME
         );
     }

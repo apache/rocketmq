@@ -25,11 +25,12 @@ import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
+import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
 /**
  * Use short variable name to speed up FastJson deserialization process.
  */
-public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCodesHeader {
+public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
     private String a; // producerGroup;
     @CFNotNull
@@ -51,12 +52,12 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
     @CFNullable
     private Integer j; // reconsumeTimes;
     @CFNullable
-    private boolean k; // unitMode = false;
+    private Boolean k; // unitMode = false;
 
     private Integer l; // consumeRetryTimes
 
     @CFNullable
-    private boolean m; //batch
+    private Boolean m; //batch
     @CFNullable
     private String n; // brokerName
 
@@ -75,7 +76,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         v1.setUnitMode(v2.k);
         v1.setMaxReconsumeTimes(v2.l);
         v1.setBatch(v2.m);
-        v1.setBname(v2.n);
+        v1.setBrokerName(v2.n);
         return v1;
     }
 
@@ -94,7 +95,7 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         v2.k = v1.isUnitMode();
         v2.l = v1.getMaxReconsumeTimes();
         v2.m = v1.isBatch();
-        v2.n = v1.getBname();
+        v2.n = v1.getBrokerName();
         return v2;
     }
 
@@ -274,11 +275,11 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         this.j = j;
     }
 
-    public boolean isK() {
+    public Boolean isK() {
         return k;
     }
 
-    public void setK(boolean k) {
+    public void setK(Boolean k) {
         this.k = k;
     }
 
@@ -290,11 +291,11 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
         this.l = l;
     }
 
-    public boolean isM() {
+    public Boolean isM() {
         return m;
     }
 
-    public void setM(boolean m) {
+    public void setM(Boolean m) {
         this.m = m;
     }
 
@@ -316,5 +317,25 @@ public class SendMessageRequestHeaderV2 implements CommandCustomHeader, FastCode
             .add("m", m)
             .add("n", n)
             .toString();
+    }
+
+    @Override
+    public Integer getQueueId() {
+        return e;
+    }
+
+    @Override
+    public void setQueueId(Integer queueId) {
+        this.e = queueId;
+    }
+
+    @Override
+    public String getTopic() {
+        return b;
+    }
+
+    @Override
+    public void setTopic(String topic) {
+        this.b = topic;
     }
 }
