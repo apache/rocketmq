@@ -29,6 +29,7 @@ import io.netty.handler.codec.haproxy.HAProxyProxiedProtocol;
 import io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.netty.util.Attribute;
 import io.netty.util.DefaultAttributeMap;
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -50,7 +51,7 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
 
     private static final Field FIELD_ATTRIBUTE =
-            FieldUtils.getField(DefaultAttributeMap.class, "attributes", true);
+        FieldUtils.getField(DefaultAttributeMap.class, "attributes", true);
 
     private final Channel outboundChannel;
 
@@ -111,19 +112,25 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
                 destinationPort = Integer.parseInt(attributeValue);
             }
             if (StringUtils.startsWith(attributeKey, HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX)) {
-                String typeString = StringUtils.substringAfter(attributeKey, HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX);
-                ByteBuf byteBuf = Unpooled.buffer();
-                byteBuf.writeBytes(attributeValue.getBytes(Charset.defaultCharset()));
-                HAProxyTLV haProxyTLV = new HAProxyTLV(Hex.decodeHex(typeString)[0], byteBuf);
-                haProxyTLVs.add(haProxyTLV);
+                HAProxyTLV haProxyTLV = buildHAProxyTLV(attributeKey, attributeValue);
+                if (haProxyTLV != null) {
+                    haProxyTLVs.add(haProxyTLV);
+                }
             }
         }
 
         HAProxyProxiedProtocol proxiedProtocol = AclUtils.isColon(sourceAddress) ? HAProxyProxiedProtocol.TCP6 :
-                HAProxyProxiedProtocol.TCP4;
+            HAProxyProxiedProtocol.TCP4;
 
         HAProxyMessage message = new HAProxyMessage(HAProxyProtocolVersion.V2, HAProxyCommand.PROXY,
-                proxiedProtocol, sourceAddress, destinationAddress, sourcePort, destinationPort, haProxyTLVs);
+            proxiedProtocol, sourceAddress, destinationAddress, sourcePort, destinationPort, haProxyTLVs);
         outboundChannel.writeAndFlush(message).sync();
+    }
+
+    protected HAProxyTLV buildHAProxyTLV(String attributeKey, String attributeValue) throws DecoderException {
+        String typeString = StringUtils.substringAfter(attributeKey, HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX);
+        ByteBuf byteBuf = Unpooled.buffer();
+        byteBuf.writeBytes(attributeValue.getBytes(Charset.defaultCharset()));
+        return new HAProxyTLV(Hex.decodeHex(typeString)[0], byteBuf);
     }
 }
