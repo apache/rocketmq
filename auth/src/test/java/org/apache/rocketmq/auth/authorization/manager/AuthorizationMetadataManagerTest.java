@@ -81,21 +81,17 @@ public class AuthorizationMetadataManagerTest {
         acl2 = this.authorizationMetadataManager.getAcl(Subject.of("User:abc")).join();
         Assert.assertTrue(AuthTestHelper.isEquals(acl1, acl2));
 
-        Assert.assertThrows(AuthorizationException.class, () -> {
-            try {
-                Acl acl3 = AuthTestHelper.buildAcl("User:test", "Topic:test,Group:test", "PUB,SUB",
-                    "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
-                this.authorizationMetadataManager.createAcl(acl3).join();
-            } catch (Exception e) {
-                AuthTestHelper.handleException(e);
-            }
-        });
+        Acl acl3 = AuthTestHelper.buildAcl("User:test", "Topic:test,Group:test", "PUB,SUB",
+            "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
+        this.authorizationMetadataManager.createAcl(acl3).join();
+        Acl acl4 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
+        Assert.assertTrue(AuthTestHelper.isEquals(acl3, acl4));
 
         Assert.assertThrows(AuthorizationException.class, () -> {
             try {
-                Acl acl3 = AuthTestHelper.buildAcl("User:ddd", "Topic:test,Group:test", "PUB,SUB",
+                Acl acl5 = AuthTestHelper.buildAcl("User:ddd", "Topic:test,Group:test", "PUB,SUB",
                     "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
-                this.authorizationMetadataManager.createAcl(acl3).join();
+                this.authorizationMetadataManager.createAcl(acl5).join();
             } catch (Exception e) {
                 AuthTestHelper.handleException(e);
             }
@@ -126,17 +122,13 @@ public class AuthorizationMetadataManagerTest {
         Acl acl5 = this.authorizationMetadataManager.getAcl(Subject.of("User:test")).join();
         Assert.assertTrue(AuthTestHelper.isEquals(acl4, acl5));
 
-        Assert.assertThrows(AuthorizationException.class, () -> {
-            try {
-                User user2 = User.of("abc", "abc");
-                this.authenticationMetadataManager.createUser(user2).join();
-                Acl acl6 = AuthTestHelper.buildAcl("User:abc", "Topic:test,Group:test", "PUB,SUB",
-                    "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
-                this.authorizationMetadataManager.updateAcl(acl6).join();
-            } catch (Exception e) {
-                AuthTestHelper.handleException(e);
-            }
-        });
+        User user2 = User.of("abc", "abc");
+        this.authenticationMetadataManager.createUser(user2).join();
+        Acl acl6 = AuthTestHelper.buildAcl("User:abc", "Topic:test,Group:test", "PUB,SUB",
+            "192.168.0.0/24,10.10.0.0/24", Decision.ALLOW);
+        this.authorizationMetadataManager.updateAcl(acl6).join();
+        Acl acl7 = this.authorizationMetadataManager.getAcl(Subject.of("User:abc")).join();
+        Assert.assertTrue(AuthTestHelper.isEquals(acl6, acl7));
     }
 
     @Test
@@ -214,7 +206,6 @@ public class AuthorizationMetadataManagerTest {
 
         List<Acl> acls3 = this.authorizationMetadataManager.listAcl("test", null).join();
         Assert.assertEquals(acls3.size(), 2);
-
 
         List<Acl> acls4 = this.authorizationMetadataManager.listAcl(null, "Topic:test-1").join();
         Assert.assertEquals(acls4.size(), 1);

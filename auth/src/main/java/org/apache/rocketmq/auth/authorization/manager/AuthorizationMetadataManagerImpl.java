@@ -63,9 +63,8 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
 
     @Override
     public CompletableFuture<Void> createAcl(Acl acl) {
-        CompletableFuture<Void> result = new CompletableFuture<>();
         try {
-            validate(acl, true);
+            validate(acl);
 
             initAcl(acl);
 
@@ -76,58 +75,56 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
             } else {
                 subjectFuture = CompletableFuture.completedFuture(acl.getSubject());
             }
-            CompletableFuture<Acl> aclFuture = this.getAuthorizationMetadataProvider().getAcl(acl.getSubject());
 
-            return subjectFuture.thenCombine(aclFuture, (subject, oldAcl) -> {
+            return subjectFuture.thenCompose(subject -> {
                 if (subject == null) {
-                    throw new AuthorizationException("The subject is not exist");
+                    throw new AuthorizationException("The subject of {} is not exist", acl.getSubject().getSubjectKey());
                 }
-                if (oldAcl != null) {
-                    throw new AuthorizationException("The acl is existed");
-                }
-                return acl;
-            }).thenCompose(this.getAuthorizationMetadataProvider()::createAcl);
-
-        } catch (Exception e) {
-            this.handleException(e, result);
-        }
-        return result;
-    }
-
-    @Override
-    public CompletableFuture<Void> updateAcl(Acl acl) {
-        CompletableFuture<Void> result = new CompletableFuture<>();
-        try {
-            validate(acl, false);
-
-            initAcl(acl);
-
-            CompletableFuture<? extends Subject> subjectFuture;
-            if (acl.getSubject().isSubject(SubjectType.USER)) {
-                User user = (User) acl.getSubject();
-                subjectFuture = this.getAuthenticationMetadataProvider().getUser(user.getUsername());
-            } else {
-                subjectFuture = CompletableFuture.completedFuture(acl.getSubject());
-            }
-            CompletableFuture<Acl> aclFuture = this.getAuthorizationMetadataProvider().getAcl(acl.getSubject());
-
-            return subjectFuture.thenCombine(aclFuture, (subject, oldAcl) -> {
-                if (subject == null) {
-                    throw new AuthorizationException("The subject is not exist");
-                }
-                if (oldAcl == null) {
-                    throw new AuthorizationException("The acl is not exist");
-                }
-                return oldAcl;
+                return this.getAuthorizationMetadataProvider().getAcl(acl.getSubject());
             }).thenCompose(oldAcl -> {
+                if (oldAcl == null) {
+                    return this.getAuthorizationMetadataProvider().createAcl(acl);
+                }
                 oldAcl.updatePolicy(acl.getPolicies());
                 return this.getAuthorizationMetadataProvider().updateAcl(oldAcl);
             });
 
         } catch (Exception e) {
-            this.handleException(e, result);
+            return this.handleException(e);
         }
-        return result;
+    }
+
+    @Override
+    public CompletableFuture<Void> updateAcl(Acl acl) {
+        try {
+            validate(acl);
+
+            initAcl(acl);
+
+            CompletableFuture<? extends Subject> subjectFuture;
+            if (acl.getSubject().isSubject(SubjectType.USER)) {
+                User user = (User) acl.getSubject();
+                subjectFuture = this.getAuthenticationMetadataProvider().getUser(user.getUsername());
+            } else {
+                subjectFuture = CompletableFuture.completedFuture(acl.getSubject());
+            }
+
+            return subjectFuture.thenCompose(subject -> {
+                if (subject == null) {
+                    throw new AuthorizationException("The subject of {} is not exist", acl.getSubject().getSubjectKey());
+                }
+                return this.getAuthorizationMetadataProvider().getAcl(acl.getSubject());
+            }).thenCompose(oldAcl -> {
+                if (oldAcl == null) {
+                    return this.getAuthorizationMetadataProvider().createAcl(acl);
+                }
+                oldAcl.updatePolicy(acl.getPolicies());
+                return this.getAuthorizationMetadataProvider().updateAcl(oldAcl);
+            });
+
+        } catch (Exception e) {
+            return this.handleException(e);
+        }
     }
 
     @Override
@@ -137,7 +134,6 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
 
     @Override
     public CompletableFuture<Void> deleteAcl(Subject subject, PolicyType policyType, Resource resource) {
-        CompletableFuture<Void> result = new CompletableFuture<>();
         try {
             if (subject == null) {
                 throw new AuthorizationException("The subject is null");
@@ -175,9 +171,8 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
             });
 
         } catch (Exception e) {
-            this.handleException(e, result);
+            return this.handleException(e);
         }
-        return result;
     }
 
     @Override
@@ -210,7 +205,7 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
         });
     }
 
-    private void validate(Acl acl, boolean isCreate) {
+    private void validate(Acl acl) {
         Subject subject = acl.getSubject();
         if (subject.getSubjectType() == null) {
             throw new AuthorizationException("The subject type is null");
@@ -220,21 +215,21 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
             throw new AuthorizationException("The policies is empty");
         }
         for (Policy policy : policies) {
-            this.validate(policy, isCreate);
+            this.validate(policy);
         }
     }
 
-    private void validate(Policy policy, boolean isCreate) {
+    private void validate(Policy policy) {
         List<PolicyEntry> policyEntries = policy.getEntries();
         if (CollectionUtils.isEmpty(policyEntries)) {
             throw new AuthorizationException("The policy entries is empty");
         }
         for (PolicyEntry policyEntry : policyEntries) {
-            this.validate(policyEntry, isCreate);
+            this.validate(policyEntry);
         }
     }
 
-    private void validate(PolicyEntry entry, boolean isCreate) {
+    private void validate(PolicyEntry entry) {
         Resource resource = entry.getResource();
         if (resource == null) {
             throw new AuthorizationException("The resource is null");
@@ -263,17 +258,19 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
             }
         }
         if (entry.getDecision() == null) {
-            throw new AuthorizationException("The decision is null");
+            throw new AuthorizationException("The decision is null or illegal;");
         }
     }
 
-    private void handleException(Exception e, CompletableFuture<?> result) {
+    private <T> CompletableFuture<T> handleException(Exception e) {
+        CompletableFuture<T> result = new CompletableFuture<>();
         Throwable throwable = ExceptionUtils.getRealException(e);
         if (throwable instanceof AuthorizationException) {
             result.completeExceptionally(throwable);
         } else {
             result.completeExceptionally(new AuthorizationException(ResponseCode.SYSTEM_ERROR, throwable));
         }
+        return result;
     }
 
     private AuthorizationMetadataProvider getAuthorizationMetadataProvider() {
