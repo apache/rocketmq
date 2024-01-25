@@ -26,7 +26,7 @@ import org.apache.rocketmq.common.resource.ResourcePattern;
 import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 
-public class Resource implements Comparable<Resource> {
+public class Resource {
 
     private ResourceType resourceType;
 
@@ -138,32 +138,6 @@ public class Resource implements Comparable<Resource> {
     @Override
     public int hashCode() {
         return Objects.hash(resourceType, resourceName, resourcePattern);
-    }
-
-    @Override
-    public int compareTo(Resource o) {
-        if (this.resourcePattern == o.resourcePattern) {
-            if (this.resourcePattern == ResourcePattern.LITERAL
-                || this.resourcePattern == ResourcePattern.ANY) {
-                return 0;
-            }
-            return Integer.compare(this.resourceName.length(), o.resourceName.length());
-        } else {
-            if (this.resourcePattern == ResourcePattern.LITERAL) {
-                return 1;
-            }
-            if (o.resourcePattern == ResourcePattern.LITERAL) {
-                return -1;
-            }
-            if (this.resourcePattern == ResourcePattern.PREFIXED) {
-                return 1;
-            }
-            if (o.resourcePattern == ResourcePattern.PREFIXED) {
-                return -1;
-            }
-        }
-
-        return 0;
     }
 
     public ResourceType getResourceType() {

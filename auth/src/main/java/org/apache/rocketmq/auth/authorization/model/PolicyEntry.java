@@ -22,7 +22,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.auth.authorization.enums.Decision;
 
-public class PolicyEntry implements Comparable<PolicyEntry> {
+public class PolicyEntry {
 
     private Resource resource;
 
@@ -84,16 +84,6 @@ public class PolicyEntry implements Comparable<PolicyEntry> {
         }
         return actions.stream().map(Action::getName)
             .collect(Collectors.toList());
-    }
-
-    @Override
-    public int compareTo(PolicyEntry o) {
-        int compare = this.resource.compareTo(o.getResource());
-        if (compare != 0) {
-            return compare;
-        }
-        // the decision deny has higher priority
-        return this.decision == Decision.DENY ? 1 : o.decision == Decision.DENY ? -1 : 0;
     }
 
     public Resource getResource() {
