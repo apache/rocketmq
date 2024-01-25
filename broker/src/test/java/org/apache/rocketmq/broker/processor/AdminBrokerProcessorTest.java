@@ -869,7 +869,7 @@ public class AdminBrokerProcessorTest {
         assertThat(aclInfoData.getPolicies().get(0).getEntries().get(0).getResource()).isEqualTo("Topic:*");
         assertThat(aclInfoData.getPolicies().get(0).getEntries().get(0).getActions()).containsAll(Arrays.asList(Action.PUB.getName()));
         assertThat(aclInfoData.getPolicies().get(0).getEntries().get(0).getSourceIps()).containsAll(Arrays.asList("192.168.0.1"));
-        assertThat(aclInfoData.getPolicies().get(0).getEntries().get(0).getDecision()).isEqualTo("Grant");
+        assertThat(aclInfoData.getPolicies().get(0).getEntries().get(0).getDecision()).isEqualTo("Allow");
     }
 
     @Test
@@ -890,7 +890,7 @@ public class AdminBrokerProcessorTest {
         assertThat(aclInfoData.get(0).getPolicies().get(0).getEntries().get(0).getResource()).isEqualTo("Topic:*");
         assertThat(aclInfoData.get(0).getPolicies().get(0).getEntries().get(0).getActions()).containsAll(Arrays.asList(Action.PUB.getName()));
         assertThat(aclInfoData.get(0).getPolicies().get(0).getEntries().get(0).getSourceIps()).containsAll(Arrays.asList("192.168.0.1"));
-        assertThat(aclInfoData.get(0).getPolicies().get(0).getEntries().get(0).getDecision()).isEqualTo("Grant");
+        assertThat(aclInfoData.get(0).getPolicies().get(0).getEntries().get(0).getDecision()).isEqualTo("Allow");
     }
 
     private RemotingCommand buildCreateTopicRequest(String topic) {
