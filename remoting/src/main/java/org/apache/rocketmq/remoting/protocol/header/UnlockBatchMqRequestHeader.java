@@ -15,17 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.common;
+package org.apache.rocketmq.remoting.protocol.header;
 
-public class ContextVariable {
-    public static final String REMOTE_ADDRESS = "remote-address";
-    public static final String LOCAL_ADDRESS = "local-address";
-    public static final String CLIENT_ID = "client-id";
-    public static final String CHANNEL = "channel";
-    public static final String LANGUAGE = "language";
-    public static final String CLIENT_VERSION = "client-version";
-    public static final String REMAINING_MS = "remaining-ms";
-    public static final String ACTION = "action";
-    public static final String PROTOCOL_TYPE = "protocol-type";
-    public static final String NAMESPACE = "namespace";
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
+
+public class UnlockBatchMqRequestHeader extends RpcRequestHeader {
+    @Override
+    public void checkFields() throws RemotingCommandException {
+
+    }
 }

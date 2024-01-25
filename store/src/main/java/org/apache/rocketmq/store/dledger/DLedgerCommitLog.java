@@ -290,9 +290,9 @@ public class DLedgerCommitLog extends CommitLog {
         return false;
     }
 
-    private void recover(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
+    private void dledgerRecoverNormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
         dLedgerFileStore.load();
-        if (dLedgerFileList.getMappedFiles().size() > 0) {
+        if (!dLedgerFileList.getMappedFiles().isEmpty()) {
             dLedgerFileStore.recover();
             dividedCommitlogOffset = dLedgerFileList.getFirstMappedFile().getFileFromOffset();
             MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
@@ -309,9 +309,93 @@ public class DLedgerCommitLog extends CommitLog {
         }
         //Indicate that, it is the first time to load mixed commitlog, need to recover the old commitlog
         isInrecoveringOldCommitlog = true;
-        //No need the abnormal recover
         super.recoverNormally(maxPhyOffsetOfConsumeQueue);
         isInrecoveringOldCommitlog = false;
+
+        setRecoverPosition();
+
+    }
+
+    private void dledgerRecoverAbnormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
+        boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
+        dLedgerFileStore.load();
+        if (!dLedgerFileList.getMappedFiles().isEmpty()) {
+            dLedgerFileStore.recover();
+            dividedCommitlogOffset = dLedgerFileList.getFirstMappedFile().getFileFromOffset();
+            MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
+            if (mappedFile != null) {
+                disableDeleteDledger();
+            }
+            List<MmapFile> mmapFiles = dLedgerFileList.getMappedFiles();
+            int index = mmapFiles.size() - 1;
+            MmapFile mmapFile = null;
+            for (; index >= 0; index--) {
+                mmapFile = mmapFiles.get(index);
+                if (isMmapFileMatchedRecover(mmapFile)) {
+                    log.info("dledger recover from this mappFile " + mmapFile.getFileName());
+                    break;
+                }
+            }
+
+            if (index < 0) {
+                index = 0;
+                mmapFile = mmapFiles.get(index);
+            }
+
+            ByteBuffer byteBuffer = mmapFile.sliceByteBuffer();
+            long processOffset = mmapFile.getFileFromOffset();
+            long mmapFileOffset = 0;
+            while (true) {
+                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, true);
+                int size = dispatchRequest.getMsgSize();
+
+                if (dispatchRequest.isSuccess()) {
+                    if (size > 0) {
+                        mmapFileOffset += size;
+                        if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
+                            if (dispatchRequest.getCommitLogOffset() < this.defaultMessageStore.getConfirmOffset()) {
+                                this.defaultMessageStore.doDispatch(dispatchRequest);
+                            }
+                        } else {
+                            this.defaultMessageStore.doDispatch(dispatchRequest);
+                        }
+                    } else if (size == 0) {
+                        index++;
+                        if (index >= mmapFiles.size()) {
+                            log.info("dledger recover physics file over, last mapped file " + mmapFile.getFileName());
+                            break;
+                        } else {
+                            mmapFile = mmapFiles.get(index);
+                            byteBuffer = mmapFile.sliceByteBuffer();
+                            processOffset = mmapFile.getFileFromOffset();
+                            mmapFileOffset = 0;
+                            log.info("dledger recover next physics file, " + mmapFile.getFileName());
+                        }
+                    }
+                } else {
+                    log.info("dledger recover physics file end, " + mmapFile.getFileName() + " pos=" + byteBuffer.position());
+                    break;
+                }
+            }
+
+            processOffset += mmapFileOffset;
+
+            if (maxPhyOffsetOfConsumeQueue >= processOffset) {
+                log.warn("dledger maxPhyOffsetOfConsumeQueue({}) >= processOffset({}), truncate dirty logic files", maxPhyOffsetOfConsumeQueue, processOffset);
+                this.defaultMessageStore.truncateDirtyLogicFiles(processOffset);
+            }
+            return;
+        }
+        isInrecoveringOldCommitlog = true;
+        super.recoverAbnormally(maxPhyOffsetOfConsumeQueue);
+
+        isInrecoveringOldCommitlog = false;
+
+        setRecoverPosition();
+
+    }
+
+    private void setRecoverPosition() {
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
         if (mappedFile == null) {
             return;
@@ -343,14 +427,57 @@ public class DLedgerCommitLog extends CommitLog {
         log.info("Will set the initial commitlog offset={} for dledger", dividedCommitlogOffset);
     }
 
+    private boolean isMmapFileMatchedRecover(final MmapFile mmapFile) {
+        ByteBuffer byteBuffer = mmapFile.sliceByteBuffer();
+
+        int magicCode = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.MESSAGE_MAGIC_CODE_POSITION);
+        if (magicCode != MESSAGE_MAGIC_CODE) {
+            return false;
+        }
+
+        int storeTimestampPosition;
+        int sysFlag = byteBuffer.getInt(DLedgerEntry.BODY_OFFSET + MessageDecoder.SYSFLAG_POSITION);
+        if ((sysFlag & MessageSysFlag.BORNHOST_V6_FLAG) == 0) {
+            storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION;
+        } else {
+            // v6 address is 12 byte larger than v4
+            storeTimestampPosition = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 12;
+        }
+
+        long storeTimestamp = byteBuffer.getLong(DLedgerEntry.BODY_OFFSET + storeTimestampPosition);
+        if (storeTimestamp == 0) {
+            return false;
+        }
+
+        if (this.defaultMessageStore.getMessageStoreConfig().isMessageIndexEnable()
+                && this.defaultMessageStore.getMessageStoreConfig().isMessageIndexSafe()) {
+            if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestampIndex()) {
+                log.info("dledger find check timestamp, {} {}",
+                    storeTimestamp,
+                    UtilAll.timeMillisToHumanString(storeTimestamp));
+                return true;
+            }
+        } else {
+            if (storeTimestamp <= this.defaultMessageStore.getStoreCheckpoint().getMinTimestamp()) {
+                log.info("dledger find check timestamp, {} {}",
+                    storeTimestamp,
+                    UtilAll.timeMillisToHumanString(storeTimestamp));
+                return true;
+            }
+        }
+
+        return false;
+
+    }
+
     @Override
     public void recoverNormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
-        recover(maxPhyOffsetOfConsumeQueue);
+        dledgerRecoverNormally(maxPhyOffsetOfConsumeQueue);
     }
 
     @Override
     public void recoverAbnormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
-        recover(maxPhyOffsetOfConsumeQueue);
+        dledgerRecoverAbnormally(maxPhyOffsetOfConsumeQueue);
     }
 
     @Override
