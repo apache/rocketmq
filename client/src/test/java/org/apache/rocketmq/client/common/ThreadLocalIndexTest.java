@@ -51,4 +51,11 @@ public class ThreadLocalIndexTest {
         assertThat(initialVal >= 0).isTrue();
     }
 
+    @Test
+    public void testResultOfResetIsGreaterThanOrEqualToZero() {
+        ThreadLocalIndex localIndex = new ThreadLocalIndex();
+        localIndex.reset();
+        assertThat(localIndex.incrementAndGet() > 0).isTrue();
+    }
+
 }
