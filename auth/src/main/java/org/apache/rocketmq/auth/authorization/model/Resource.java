@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.auth.authorization.model;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -88,6 +89,7 @@ public class Resource {
         return of(resourceType, resourceName, resourcePattern);
     }
 
+    @JSONField(serialize = false)
     public String getResourceKey() {
         if (resourceType == ResourceType.ANY) {
             return CommonConstants.ASTERISK;

@@ -16,14 +16,17 @@
  */
 package org.apache.rocketmq.auth.authentication.model;
 
+import com.alibaba.fastjson2.annotation.JSONField;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.enums.SubjectType;
 import org.apache.rocketmq.common.constant.CommonConstants;
 
 public interface Subject {
 
+    @JSONField(serialize = false)
     String getSubjectKey();
 
+    @JSONField(serialize = false)
     SubjectType getSubjectType();
 
     default boolean isSubject(SubjectType subjectType) {
