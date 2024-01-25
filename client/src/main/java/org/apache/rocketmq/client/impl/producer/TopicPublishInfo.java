@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.impl.producer;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
+import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.protocol.route.QueueData;
 import org.apache.rocketmq.common.protocol.route.TopicRouteData;
@@ -95,7 +96,7 @@ public class TopicPublishInfo {
     public int getQueueIdByBroker(final String brokerName) {
         for (int i = 0; i < topicRouteData.getQueueDatas().size(); i++) {
             final QueueData queueData = this.topicRouteData.getQueueDatas().get(i);
-            if (queueData.getBrokerName().equals(brokerName)) {
+            if (PermName.isWriteable(queueData.getPerm()) && queueData.getBrokerName().equals(brokerName)) {
                 return queueData.getWriteQueueNums();
             }
         }
