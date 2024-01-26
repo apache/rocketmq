@@ -592,13 +592,13 @@
         <appender-ref ref="RocketmqBrokerMetricsSiftingAppender_inner"/>
     </appender>
 
-    <appender name="RocketmqAuthAuditAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <appender name="RocketmqAuthAuditSiftingAppender_inner" class="ch.qos.logback.classic.sift.SiftingAppender">
         <discriminator>
             <key>brokerContainerLogDir</key>
             <defaultValue>${file.separator}</defaultValue>
         </discriminator>
         <sift>
-            <appender name="RocketmqBrokerMetricsAppender"
+            <appender name="RocketmqAuthAuditAppender"
                       class="ch.qos.logback.core.rolling.RollingFileAppender">
                 <file>
                     ${user.home}${file.separator}logs${file.separator}rocketmqlogs${brokerLogDir:-${file.separator}}${brokerContainerLogDir}${file.separator}auth_audit.log
@@ -621,8 +621,8 @@
             </appender>
         </sift>
     </appender>
-    <appender name="RocketmqAuthAuditAppender" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="RocketmqAuthAuditAppender_inner"/>
+    <appender name="RocketmqAuthAuditSiftingAppender" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="RocketmqAuthAuditSiftingAppender_inner"/>
     </appender>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -715,7 +715,7 @@
     </logger>
 
     <logger name="RocketmqAuthAudit" additivity="false" level="INFO">
-        <appender-ref ref="RocketmqAuthAuditAppender"/>
+        <appender-ref ref="RocketmqAuthAuditSiftingAppender"/>
     </logger>
 
     <root level="INFO">
