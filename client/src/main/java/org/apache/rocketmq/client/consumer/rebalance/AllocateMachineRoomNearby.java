@@ -17,6 +17,7 @@
 package org.apache.rocketmq.client.consumer.rebalance;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,6 +41,14 @@ public class AllocateMachineRoomNearby extends AbstractAllocateMessageQueueStrat
 
     public AllocateMachineRoomNearby(AllocateMessageQueueStrategy allocateMessageQueueStrategy,
         MachineRoomResolver machineRoomResolver) throws NullPointerException {
+        checkParams(allocateMessageQueueStrategy, machineRoomResolver);
+
+        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
+        this.machineRoomResolver = machineRoomResolver;
+    }
+
+    private static void checkParams(AllocateMessageQueueStrategy allocateMessageQueueStrategy,
+        MachineRoomResolver machineRoomResolver) {
         if (allocateMessageQueueStrategy == null) {
             throw new NullPointerException("allocateMessageQueueStrategy is null");
         }
@@ -47,21 +56,20 @@ public class AllocateMachineRoomNearby extends AbstractAllocateMessageQueueStrat
         if (machineRoomResolver == null) {
             throw new NullPointerException("machineRoomResolver is null");
         }
-
-        this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
-        this.machineRoomResolver = machineRoomResolver;
     }
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
 
-        List<MessageQueue> result = new ArrayList<>();
         if (!check(consumerGroup, currentCID, mqAll, cidAll)) {
-            return result;
+            return Collections.emptyList();
         }
 
-        //group mq by machine room
+        return allocateQueues(consumerGroup, currentCID, cidAll, mqAll);
+    }
+
+    private Map<String, List<MessageQueue>> groupMqByMachineRoom(List<MessageQueue> mqAll) {
         Map<String/*machine room */, List<MessageQueue>> mr2Mq = new TreeMap<>();
         for (MessageQueue mq : mqAll) {
             String brokerMachineRoom = machineRoomResolver.brokerDeployIn(mq);
@@ -74,8 +82,10 @@ public class AllocateMachineRoomNearby extends AbstractAllocateMessageQueueStrat
                 throw new IllegalArgumentException("Machine room is null for mq " + mq);
             }
         }
+        return mr2Mq;
+    }
 
-        //group consumer by machine room
+    private Map<String, List<String>> groupConsumerByMachineRoom(List<String> cidAll) {
         Map<String/*machine room */, List<String/*clientId*/>> mr2c = new TreeMap<>();
         for (String cid : cidAll) {
             String consumerMachineRoom = machineRoomResolver.consumerDeployIn(cid);
@@ -88,25 +98,48 @@ public class AllocateMachineRoomNearby extends AbstractAllocateMessageQueueStrat
                 throw new IllegalArgumentException("Machine room is null for consumer id " + cid);
             }
         }
+        return mr2c;
+    }
 
-        List<MessageQueue> allocateResults = new ArrayList<>();
+    private List<MessageQueue> allocateQueues(String consumerGroup, String currentCID, List<String> cidAll,
+        List<MessageQueue> mqAll) {
+        Map<String, List<MessageQueue>> mr2Mq = groupMqByMachineRoom(mqAll);
+        Map<String, List<String>> mr2c = groupConsumerByMachineRoom(cidAll);
+
+        List<MessageQueue> result = new ArrayList<>();
 
         //1.allocate the mq that deploy in the same machine room with the current consumer
+        result.addAll(allocateSameRoomQueues(consumerGroup, currentCID, mr2Mq, mr2c));
+
+        //2.allocate the rest mq to each machine room if there are no consumer alive in that machine room
+        result.addAll(allocateRestQueues(consumerGroup, currentCID, cidAll, mr2Mq, mr2c));
+        return result;
+    }
+
+    private List<MessageQueue> allocateSameRoomQueues(String consumerGroup, String currentCID, Map<String, List<MessageQueue>> mr2Mq,
+        Map<String, List<String>> mr2c) {
         String currentMachineRoom = machineRoomResolver.consumerDeployIn(currentCID);
         List<MessageQueue> mqInThisMachineRoom = mr2Mq.remove(currentMachineRoom);
         List<String> consumerInThisMachineRoom = mr2c.get(currentMachineRoom);
         if (mqInThisMachineRoom != null && !mqInThisMachineRoom.isEmpty()) {
-            allocateResults.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, mqInThisMachineRoom, consumerInThisMachineRoom));
+            return allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, mqInThisMachineRoom, consumerInThisMachineRoom);
         }
 
-        //2.allocate the rest mq to each machine room if there are no consumer alive in that machine room
+        return Collections.emptyList();
+    }
+
+    private List<MessageQueue> allocateRestQueues(String consumerGroup, String currentCID, List<String> cidAll,
+        Map<String, List<MessageQueue>> mr2Mq, Map<String, List<String>> mr2c) {
+        List<MessageQueue> result = new ArrayList<>();
+
         for (Entry<String, List<MessageQueue>> machineRoomEntry : mr2Mq.entrySet()) {
-            if (!mr2c.containsKey(machineRoomEntry.getKey())) { // no alive consumer in the corresponding machine room, so all consumers share these queues
-                allocateResults.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, machineRoomEntry.getValue(), cidAll));
+            if (!mr2c.containsKey(machineRoomEntry.getKey())) {
+                // no alive consumer in the corresponding machine room, so all consumers share these queues
+                result.addAll(allocateMessageQueueStrategy.allocate(consumerGroup, currentCID, machineRoomEntry.getValue(), cidAll));
             }
         }
 
-        return allocateResults;
+        return result;
     }
 
     @Override
