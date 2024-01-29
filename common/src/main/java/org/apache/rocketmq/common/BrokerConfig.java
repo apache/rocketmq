@@ -148,7 +148,7 @@ public class BrokerConfig extends BrokerIdentity {
     private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
     private long waitTimeMillsInTransactionQueue = 3 * 1000;
     private long waitTimeMillsInAckQueue = 3000;
-
+    private long waitTimeMillsInAdminBrokerQueue = 5 * 1000;
     private long startAcceptSendRequestTimeStamp = 0L;
 
     private boolean traceOn = true;
@@ -1160,6 +1160,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public String getMsgTraceTopicName() {
         return msgTraceTopicName;
+    }
+
+    public long getWaitTimeMillsInAdminBrokerQueue() {
+        return waitTimeMillsInAdminBrokerQueue;
+    }
+
+    public void setWaitTimeMillsInAdminBrokerQueue(long waitTimeMillsInAdminBrokerQueue) {
+        this.waitTimeMillsInAdminBrokerQueue = waitTimeMillsInAdminBrokerQueue;
     }
 
     public void setMsgTraceTopicName(String msgTraceTopicName) {
