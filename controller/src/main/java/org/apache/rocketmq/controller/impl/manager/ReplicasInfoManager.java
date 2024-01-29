@@ -16,17 +16,11 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+import com.caucho.hessian.io.Hessian2Input;
+import com.caucho.hessian.io.Hessian2Output;
+import com.caucho.hessian.io.SerializerFactory;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -50,11 +44,11 @@ import org.apache.rocketmq.remoting.protocol.body.ElectMasterResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
@@ -62,6 +56,18 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextB
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The manager that manages the replicas info for all brokers. We can think of this class as the controller's memory
@@ -69,9 +75,31 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.Register
  */
 public class ReplicasInfoManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
-    private final ControllerConfig controllerConfig;
+
+    protected static final SerializerFactory SERIALIZER_FACTORY = new SerializerFactory();
+    protected final ControllerConfig controllerConfig;
     private final Map<String/* brokerName */, BrokerReplicaInfo> replicaInfoTable;
     private final Map<String/* brokerName */, SyncStateInfo> syncStateSetInfoTable;
+
+    protected static byte[] hessianSerialize(Object object) throws IOException {
+        try (ByteArrayOutputStream bout = new ByteArrayOutputStream()) {
+            Hessian2Output hessianOut = new Hessian2Output(bout);
+            hessianOut.setSerializerFactory(SERIALIZER_FACTORY);
+            hessianOut.writeObject(object);
+            hessianOut.close();
+            return bout.toByteArray();
+        }
+    }
+
+    protected static Object hessianDeserialize(byte[] data) throws IOException {
+        try (ByteArrayInputStream bin = new ByteArrayInputStream(data, 0, data.length)) {
+            Hessian2Input hin = new Hessian2Input(bin);
+            hin.setSerializerFactory(new SerializerFactory());
+            Object o =  hin.readObject();
+            hin.close();
+            return o;
+        }
+    }
 
     public ReplicasInfoManager(final ControllerConfig config) {
         this.controllerConfig = config;
@@ -80,8 +108,8 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<AlterSyncStateSetResponseHeader> alterSyncStateSet(
-            final AlterSyncStateSetRequestHeader request, final SyncStateSet syncStateSet,
-            final BrokerValidPredicate brokerAlivePredicate) {
+        final AlterSyncStateSetRequestHeader request, final SyncStateSet syncStateSet,
+        final BrokerValidPredicate brokerAlivePredicate) {
         final String brokerName = request.getBrokerName();
         final ControllerResult<AlterSyncStateSetResponseHeader> result = new ControllerResult<>(new AlterSyncStateSetResponseHeader());
         final AlterSyncStateSetResponseHeader response = result.getResponse();
@@ -106,7 +134,7 @@ public class ReplicasInfoManager {
         // Check master
         if (syncStateInfo.getMasterBrokerId() == null || !syncStateInfo.getMasterBrokerId().equals(request.getMasterBrokerId())) {
             String err = String.format("Rejecting alter syncStateSet request because the current leader is:{%s}, not {%s}",
-                    syncStateInfo.getMasterBrokerId(), request.getMasterBrokerId());
+                syncStateInfo.getMasterBrokerId(), request.getMasterBrokerId());
             LOGGER.error("{}", err);
             result.setCodeAndRemark(ResponseCode.CONTROLLER_INVALID_MASTER, err);
             return result;
@@ -115,7 +143,7 @@ public class ReplicasInfoManager {
         // Check master epoch
         if (request.getMasterEpoch() != syncStateInfo.getMasterEpoch()) {
             String err = String.format("Rejecting alter syncStateSet request because the current master epoch is:{%d}, not {%d}",
-                    syncStateInfo.getMasterEpoch(), request.getMasterEpoch());
+                syncStateInfo.getMasterEpoch(), request.getMasterEpoch());
             LOGGER.error("{}", err);
             result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_MASTER_EPOCH, err);
             return result;
@@ -124,7 +152,7 @@ public class ReplicasInfoManager {
         // Check syncStateSet epoch
         if (syncStateSet.getSyncStateSetEpoch() != syncStateInfo.getSyncStateSetEpoch()) {
             String err = String.format("Rejecting alter syncStateSet request because the current syncStateSet epoch is:{%d}, not {%d}",
-                    syncStateInfo.getSyncStateSetEpoch(), syncStateSet.getSyncStateSetEpoch());
+                syncStateInfo.getSyncStateSetEpoch(), syncStateSet.getSyncStateSetEpoch());
             LOGGER.error("{}", err);
             result.setCodeAndRemark(ResponseCode.CONTROLLER_FENCED_SYNC_STATE_SET_EPOCH, err);
             return result;
@@ -163,7 +191,7 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<ElectMasterResponseHeader> electMaster(final ElectMasterRequestHeader request,
-                                                                   final ElectPolicy electPolicy) {
+        final ElectPolicy electPolicy) {
         final String brokerName = request.getBrokerName();
         final Long brokerId = request.getBrokerId();
         final ControllerResult<ElectMasterResponseHeader> result = new ControllerResult<>(new ElectMasterResponseHeader());
@@ -188,7 +216,7 @@ public class ReplicasInfoManager {
         }
 
         // elect by policy
-        if (newMaster == null) {
+        if (newMaster == null || newMaster == -1) {
             // we should assign this assignedBrokerId when the brokerAddress need to be elected by force
             Long assignedBrokerId = request.getDesignateElect() ? brokerId : null;
             newMaster = electPolicy.elect(brokerReplicaInfo.getClusterName(), brokerReplicaInfo.getBrokerName(), syncStateSet, allReplicaBrokers, oldMaster, assignedBrokerId);
@@ -230,18 +258,20 @@ public class ReplicasInfoManager {
             result.setBody(responseBody.encode());
             final ElectMasterEvent event = new ElectMasterEvent(brokerName, newMaster);
             result.addEvent(event);
+            LOGGER.info("Elect new master {} for broker {}", newMaster, brokerName);
             return result;
         }
         // If elect failed and the electMaster is triggered by controller (we can figure it out by brokerAddress),
         // we still need to apply an ElectMasterEvent to tell the statemachine
         // that the master was shutdown and no new master was elected.
-        if (request.getBrokerId() == null) {
+        if (request.getBrokerId() == null || request.getBrokerId() == -1) {
             final ElectMasterEvent event = new ElectMasterEvent(false, brokerName);
             result.addEvent(event);
             result.setCodeAndRemark(ResponseCode.CONTROLLER_MASTER_NOT_AVAILABLE, "Old master has down and failed to elect a new broker master");
         } else {
             result.setCodeAndRemark(ResponseCode.CONTROLLER_ELECT_MASTER_FAILED, "Failed to elect a new master");
         }
+        LOGGER.warn("Failed to elect a new master for broker {}", brokerName);
         return result;
     }
 
@@ -301,7 +331,8 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(final RegisterBrokerToControllerRequestHeader request, final BrokerValidPredicate alivePredicate) {
+    public ControllerResult<RegisterBrokerToControllerResponseHeader> registerBroker(
+        final RegisterBrokerToControllerRequestHeader request, final BrokerValidPredicate alivePredicate) {
         final String brokerAddress = request.getBrokerAddress();
         final String brokerName = request.getBrokerName();
         final String clusterName = request.getClusterName();
@@ -353,7 +384,8 @@ public class ReplicasInfoManager {
         return result;
     }
 
-    public ControllerResult<Void> getSyncStateData(final List<String> brokerNames, final BrokerValidPredicate brokerAlivePredicate) {
+    public ControllerResult<Void> getSyncStateData(final List<String> brokerNames,
+        final BrokerValidPredicate brokerAlivePredicate) {
         final ControllerResult<Void> result = new ControllerResult<>();
         final BrokerReplicasInfo brokerReplicasInfo = new BrokerReplicasInfo();
         for (String brokerName : brokerNames) {
@@ -382,7 +414,7 @@ public class ReplicasInfoManager {
                 });
 
                 final BrokerReplicasInfo.ReplicasInfo inSyncState = new BrokerReplicasInfo.ReplicasInfo(masterBrokerId, brokerReplicaInfo.getBrokerAddress(masterBrokerId), syncStateInfo.getMasterEpoch(), syncStateInfo.getSyncStateSetEpoch(),
-                        inSyncReplicas, notInSyncReplicas);
+                    inSyncReplicas, notInSyncReplicas);
                 brokerReplicasInfo.addReplicaInfo(brokerName, inSyncState);
             }
         }
@@ -391,7 +423,7 @@ public class ReplicasInfoManager {
     }
 
     public ControllerResult<Void> cleanBrokerData(final CleanControllerBrokerDataRequestHeader requestHeader,
-                                                  final BrokerValidPredicate validPredicate) {
+        final BrokerValidPredicate validPredicate) {
         final ControllerResult<Void> result = new ControllerResult<>();
 
         final String clusterName = requestHeader.getClusterName();
@@ -450,7 +482,6 @@ public class ReplicasInfoManager {
         });
         return needReelectBrokerSets;
     }
-
 
     /**
      * Apply events to memory statemachine.
@@ -576,4 +607,83 @@ public class ReplicasInfoManager {
         return this.replicaInfoTable.containsKey(brokerName) && this.syncStateSetInfoTable.containsKey(brokerName);
     }
 
+    protected void putInt(ByteArrayOutputStream outputStream, int value) {
+        outputStream.write((byte) (value >>> 24));
+        outputStream.write((byte) (value >>> 16));
+        outputStream.write((byte) (value >>> 8));
+        outputStream.write((byte) value);
+    }
+
+    protected int getInt(byte[] memory, int index) {
+        return memory[index] << 24 | (memory[index + 1] & 0xFF) << 16 | (memory[index + 2] & 0xFF) << 8 | memory[index + 3] & 0xFF;
+    }
+
+    public byte[] serialize() throws Throwable {
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            putInt(outputStream, this.replicaInfoTable.size());
+            for (Map.Entry<String, BrokerReplicaInfo> entry : replicaInfoTable.entrySet()) {
+                final byte[] brokerName = entry.getKey().getBytes(StandardCharsets.UTF_8);
+                byte[] brokerReplicaInfo = hessianSerialize(entry.getValue());
+                putInt(outputStream, brokerName.length);
+                outputStream.write(brokerName);
+                putInt(outputStream, brokerReplicaInfo.length);
+                outputStream.write(brokerReplicaInfo);
+            }
+            putInt(outputStream, this.syncStateSetInfoTable.size());
+            for (Map.Entry<String, SyncStateInfo> entry : syncStateSetInfoTable.entrySet()) {
+                final byte[] brokerName = entry.getKey().getBytes(StandardCharsets.UTF_8);
+                byte[] syncStateInfo = hessianSerialize(entry.getValue());
+                putInt(outputStream, brokerName.length);
+                outputStream.write(brokerName);
+                putInt(outputStream, syncStateInfo.length);
+                outputStream.write(syncStateInfo);
+            }
+            return outputStream.toByteArray();
+        } catch (Throwable e) {
+            LOGGER.error("serialize replicaInfoTable or syncStateSetInfoTable error", e);
+            throw e;
+        }
+    }
+
+    public void deserializeFrom(byte[] data) throws Throwable {
+        int index = 0;
+        this.replicaInfoTable.clear();
+        this.syncStateSetInfoTable.clear();
+
+        try {
+            int replicaInfoTableSize = getInt(data, index);
+            index += 4;
+            for (int i = 0; i < replicaInfoTableSize; i++) {
+                int brokerNameLength = getInt(data, index);
+                index += 4;
+                String brokerName = new String(data, index, brokerNameLength, StandardCharsets.UTF_8);
+                index += brokerNameLength;
+                int brokerReplicaInfoLength = getInt(data, index);
+                index += 4;
+                byte[] brokerReplicaInfoArray = new byte[brokerReplicaInfoLength];
+                System.arraycopy(data, index, brokerReplicaInfoArray, 0, brokerReplicaInfoLength);
+                BrokerReplicaInfo brokerReplicaInfo = (BrokerReplicaInfo) hessianDeserialize(brokerReplicaInfoArray);
+                index += brokerReplicaInfoLength;
+                this.replicaInfoTable.put(brokerName, brokerReplicaInfo);
+            }
+            int syncStateSetInfoTableSize = getInt(data, index);
+            index += 4;
+            for (int i = 0; i < syncStateSetInfoTableSize; i++) {
+                int brokerNameLength = getInt(data, index);
+                index += 4;
+                String brokerName = new String(data, index, brokerNameLength, StandardCharsets.UTF_8);
+                index += brokerNameLength;
+                int syncStateInfoLength = getInt(data, index);
+                index += 4;
+                byte[] syncStateInfoArray = new byte[syncStateInfoLength];
+                System.arraycopy(data, index, syncStateInfoArray, 0, syncStateInfoLength);
+                SyncStateInfo syncStateInfo = (SyncStateInfo) hessianDeserialize(syncStateInfoArray);
+                index += syncStateInfoLength;
+                this.syncStateSetInfoTable.put(brokerName, syncStateInfo);
+            }
+        } catch (Throwable e) {
+            LOGGER.error("deserialize replicaInfoTable or syncStateSetInfoTable error", e);
+            throw e;
+        }
+    }
 }

@@ -51,6 +51,8 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_exporter_logging",
         "@maven//:io_opentelemetry_opentelemetry_exporter_logging_otlp",
         "@maven//:org_slf4j_jul_to_slf4j",
+        "@maven//:com_alipay_sofa_jraft_core",
+        "@maven//:com_alipay_sofa_hessian",
     ],
 )
 
@@ -69,7 +71,7 @@ java_library(
         "@maven//:org_apache_commons_commons_lang3", 
         "@maven//:io_netty_netty_all",    
         "@maven//:com_google_guava_guava",  
-        "@maven//:com_alibaba_fastjson",         
+        "@maven//:com_alibaba_fastjson",     
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

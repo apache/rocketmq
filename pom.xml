@@ -139,6 +139,7 @@
         <s3.version>2.20.29</s3.version>
         <rocksdb.version>1.0.2</rocksdb.version>
         <jackson-databind.version>2.13.4.2</jackson-databind.version>
+        <sofa-jraft.version>1.3.14</sofa-jraft.version>
 
         <!-- Test dependencies -->
         <junit.version>4.13.2</junit.version>
@@ -997,6 +998,25 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
                 <version>${jackson-databind.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alipay.sofa</groupId>
+                <artifactId>jraft-core</artifactId>
+                <version>${sofa-jraft.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.ow2.asm</groupId>
+                        <artifactId>asm</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.rocksdb</groupId>
+                        <artifactId>rocksdbjni</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.adobe.testing</groupId>

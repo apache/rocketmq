@@ -107,6 +107,8 @@ maven_install(
         "com.adobe.testing:s3mock-junit4:2.11.0",
         "io.github.aliyunmq:rocketmq-grpc-netty-codec-haproxy:1.0.0",
         "org.apache.rocketmq:rocketmq-rocksdb:1.0.2",
+        "com.alipay.sofa:jraft-core:1.3.11",
+        "com.alipay.sofa:hessian:3.3.6",
     ],
     fetch_sources = True,
     repositories = [
