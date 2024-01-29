@@ -102,11 +102,13 @@ import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.LockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.UnlockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
@@ -906,7 +908,7 @@ public class BrokerOuterAPI {
         final LockBatchRequestBody requestBody,
         final long timeoutMillis,
         final LockCallback callback) throws RemotingException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, new LockBatchMqRequestHeader());
 
         request.setBody(requestBody.encode());
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
@@ -945,7 +947,7 @@ public class BrokerOuterAPI {
         final UnlockBatchRequestBody requestBody,
         final long timeoutMillis,
         final UnlockCallback callback) throws RemotingException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, new UnlockBatchMqRequestHeader());
 
         request.setBody(requestBody.encode());
 
@@ -1377,7 +1379,7 @@ public class BrokerOuterAPI {
         requestHeader.setSubVersion(System.currentTimeMillis());
         requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
         requestHeader.setExpressionType(ExpressionType.TAG);
-        requestHeader.setBname(brokerName);
+        requestHeader.setBrokerName(brokerName);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
         CompletableFuture<PullResult> pullResultFuture = new CompletableFuture<>();

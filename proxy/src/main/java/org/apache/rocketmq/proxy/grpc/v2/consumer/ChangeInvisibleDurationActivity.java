@@ -29,7 +29,6 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
-import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
@@ -49,7 +48,7 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
             validateInvisibleTime(Durations.toMillis(request.getInvisibleDuration()));
 
             ReceiptHandle receiptHandle = ReceiptHandle.decode(request.getReceiptHandle());
-            String group = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup());
+            String group = request.getGroup().getName();
 
             MessageReceiptHandle messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, grpcChannelManager.getChannel(ctx.getClientID()), group, request.getMessageId(), receiptHandle.getReceiptHandle());
             if (messageReceiptHandle != null) {
@@ -60,7 +59,7 @@ public class ChangeInvisibleDurationActivity extends AbstractMessingActivity {
                 receiptHandle,
                 request.getMessageId(),
                 group,
-                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()),
+                request.getTopic().getName(),
                 Durations.toMillis(request.getInvisibleDuration())
             ).thenApply(ackResult -> convertToChangeInvisibleDurationResponse(ctx, request, ackResult));
         } catch (Throwable t) {

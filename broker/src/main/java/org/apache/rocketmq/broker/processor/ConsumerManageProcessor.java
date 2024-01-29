@@ -124,7 +124,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), globalOffset, true);
             requestHeader.setQueueId(mappingItem.getQueueId());
             requestHeader.setLo(false);
-            requestHeader.setBname(mappingItem.getBname());
+            requestHeader.setBrokerName(mappingItem.getBname());
             requestHeader.setCommitOffset(mappingItem.computePhysicalQueueOffset(globalOffset));
             //leader, let it go, do not need to rewrite the response
             if (mappingDetail.getBname().equals(mappingItem.getBname())) {
@@ -237,7 +237,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
                     }
                 } else {
                     //maybe we need to reconstruct an object
-                    requestHeader.setBname(mappingItem.getBname());
+                    requestHeader.setBrokerName(mappingItem.getBname());
                     requestHeader.setQueueId(mappingItem.getQueueId());
                     requestHeader.setLo(false);
                     requestHeader.setSetZeroIfNotFound(false);

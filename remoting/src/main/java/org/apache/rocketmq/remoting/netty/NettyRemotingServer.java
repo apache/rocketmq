@@ -44,6 +44,7 @@ import io.netty.handler.codec.ProtocolDetectionState;
 import io.netty.handler.codec.haproxy.HAProxyMessage;
 import io.netty.handler.codec.haproxy.HAProxyMessageDecoder;
 import io.netty.handler.codec.haproxy.HAProxyProtocolVersion;
+import io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -760,7 +761,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    public static class HAProxyMessageHandler extends ChannelInboundHandlerAdapter {
+    public class HAProxyMessageHandler extends ChannelInboundHandlerAdapter {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -794,19 +795,22 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 }
                 if (CollectionUtils.isNotEmpty(msg.tlvs())) {
                     msg.tlvs().forEach(tlv -> {
-                        byte[] valueBytes = ByteBufUtil.getBytes(tlv.content());
-                        if (!BinaryUtil.isAscii(valueBytes)) {
-                            return;
-                        }
-                        AttributeKey<String> key = AttributeKeys.valueOf(
-                                HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
-                        String value = StringUtils.trim(new String(valueBytes, CharsetUtil.UTF_8));
-                        channel.attr(key).set(value);
+                        handleHAProxyTLV(tlv, channel);
                     });
                 }
             } finally {
                 msg.release();
             }
         }
+    }
+
+    protected void handleHAProxyTLV(HAProxyTLV tlv, Channel channel) {
+        byte[] valueBytes = ByteBufUtil.getBytes(tlv.content());
+        if (!BinaryUtil.isAscii(valueBytes)) {
+            return;
+        }
+        AttributeKey<String> key = AttributeKeys.valueOf(
+            HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
+        channel.attr(key).set(new String(valueBytes, CharsetUtil.UTF_8));
     }
 }

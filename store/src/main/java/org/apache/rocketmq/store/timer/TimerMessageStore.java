@@ -40,6 +40,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import io.opentelemetry.api.common.Attributes;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.rocketmq.common.ServiceThread;
@@ -64,6 +65,7 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
@@ -602,6 +604,10 @@ public class TimerMessageStore {
         this.shouldRunningDequeue = shouldRunningDequeue;
     }
 
+    public boolean isShouldRunningDequeue() {
+        return shouldRunningDequeue;
+    }
+
     public void addMetric(MessageExt msg, int value) {
         try {
             if (null == msg || null == msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC)) {
@@ -682,6 +688,9 @@ public class TimerMessageStore {
                                 return false;
                             }
                         }
+                        Attributes attributes = DefaultStoreMetricsManager.newAttributesBuilder()
+                                .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
+                        DefaultStoreMetricsManager.timerMessageSetLatency.record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
                     }
                 } catch (Exception e) {
                     // here may cause the message loss
@@ -1084,8 +1093,10 @@ public class TimerMessageStore {
                     case PUT_OK:
                         if (brokerStatsManager != null) {
                             this.brokerStatsManager.incTopicPutNums(message.getTopic(), 1, 1);
-                            this.brokerStatsManager.incTopicPutSize(message.getTopic(),
-                                putMessageResult.getAppendMessageResult().getWroteBytes());
+                            if (putMessageResult.getAppendMessageResult() != null) {
+                                this.brokerStatsManager.incTopicPutSize(message.getTopic(),
+                                        putMessageResult.getAppendMessageResult().getWroteBytes());
+                            }
                             this.brokerStatsManager.incBrokerPutNums(message.getTopic(), 1);
                         }
                         return PUT_OK;
@@ -1105,7 +1116,11 @@ public class TimerMessageStore {
                 }
             }
             Thread.sleep(50);
-            putMessageResult = messageStore.putMessage(message);
+            if (escapeBridgeHook != null) {
+                putMessageResult = escapeBridgeHook.apply(message);
+            } else {
+                putMessageResult = messageStore.putMessage(message);
+            }
             LOGGER.warn("Retrying to do put timer msg retryNum:{} putRes:{} msg:{}", retryNum, putMessageResult, message);
         }
         return PUT_NO_RETRY;
@@ -1115,7 +1130,7 @@ public class TimerMessageStore {
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setBody(msgExt.getBody());
         msgInner.setFlag(msgExt.getFlag());
-        MessageAccessor.setProperties(msgInner, msgExt.getProperties());
+        MessageAccessor.setProperties(msgInner, MessageAccessor.deepCopyProperties(msgExt.getProperties()));
         TopicFilterType topicFilterType = MessageExt.parseTopicFilterType(msgInner.getSysFlag());
         long tagsCodeValue =
             MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());

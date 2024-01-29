@@ -43,6 +43,7 @@ import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+import java.util.Collections;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -681,6 +682,10 @@ public class UtilAll {
             return null;
         }
 
+        if (StringUtils.isBlank(str)) {
+            return Collections.EMPTY_LIST;
+        }
+
         String[] addrArray = str.split(splitter);
         return Arrays.asList(addrArray);
     }
@@ -699,10 +704,19 @@ public class UtilAll {
         }
     }
 
+    /**
+     * Free direct-buffer's memory actively.
+     * @param buffer Direct buffer to free.
+     */
     public static void cleanBuffer(final ByteBuffer buffer) {
         if (null == buffer) {
             return;
         }
+
+        if (!buffer.isDirect()) {
+            return;
+        }
+
         PlatformDependent.freeDirectBuffer(buffer);
     }
 

@@ -37,6 +37,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
@@ -101,6 +102,10 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     private void recover() {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
+        // delete compact file directory
+        UtilAll.deleteFile(new File(Paths.get(storeConfig.getStorePathRootDir(),
+            FILE_DIRECTORY_NAME, FILE_COMPACTED_DIRECTORY_NAME).toString()));
+
         // recover local
         File dir = new File(Paths.get(storeConfig.getStorePathRootDir(), FILE_DIRECTORY_NAME).toString());
         this.doConvertOldFormatFile(Paths.get(dir.getPath(), "0000").toString());
@@ -141,6 +146,10 @@ public class IndexStoreService extends ServiceThread implements IndexService {
 
         for (TieredFileSegment fileSegment : flatFile.getFileSegmentList()) {
             IndexFile indexFile = new IndexStoreFile(storeConfig, fileSegment);
+            IndexFile localFile = timeStoreTable.get(indexFile.getTimestamp());
+            if (localFile != null) {
+                localFile.destroy();
+            }
             timeStoreTable.put(indexFile.getTimestamp(), indexFile);
             log.info("IndexStoreService recover load remote file, timestamp: {}", indexFile.getTimestamp());
         }
@@ -248,6 +257,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         if (IndexFile.IndexStatusEnum.UPLOAD.equals(indexFile.getFileStatus())) {
             log.error("IndexStoreService file status not correct, so skip, timestamp: {}, status: {}",
                 indexFile.getTimestamp(), indexFile.getFileStatus());
+            indexFile.destroy();
             return;
         }
 

@@ -196,7 +196,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         } else {
             // batch ack
             consumeGroup = batchAck.getConsumerGroup();
-            topic = ExtraInfoUtil.getRealTopic(batchAck.getTopic(), batchAck.getConsumerGroup(), ExtraInfoUtil.RETRY_TOPIC.equals(batchAck.getRetry()));
+            topic = ExtraInfoUtil.getRealTopic(batchAck.getTopic(), batchAck.getConsumerGroup(), batchAck.getRetry());
             qId = batchAck.getQueueId();
             rqId = batchAck.getReviveQueueId();
             startOffset = batchAck.getStartOffset();
