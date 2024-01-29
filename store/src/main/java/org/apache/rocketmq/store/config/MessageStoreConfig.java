@@ -64,7 +64,6 @@ public class MessageStoreConfig {
 
     private boolean enableCompaction = true;
 
-
     // TimerLog file size, default is 100M
     private int mappedFileSizeTimerLog = 100 * 1024 * 1024;
 
@@ -584,9 +583,13 @@ public class MessageStoreConfig {
         this.maxMessageSize = maxMessageSize;
     }
 
-    public int getMaxFilterMessageSize(){ return maxFilterMessageSize; }
+    public int getMaxFilterMessageSize() {
+        return maxFilterMessageSize;
+    }
 
-    public void setMaxFilterMessageSize(int maxFilterMessageSize){ this.maxFilterMessageSize = maxFilterMessageSize;}
+    public void setMaxFilterMessageSize(int maxFilterMessageSize) {
+        this.maxFilterMessageSize = maxFilterMessageSize;
+    }
 
     @Deprecated
     public int getMaxTopicLength() {
