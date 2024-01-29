@@ -46,7 +46,7 @@ public class MultiProtocolRemotingServer extends NettyRemotingServer {
     private final NettyServerConfig nettyServerConfig;
 
     private final RemotingProtocolHandler remotingProtocolHandler;
-    private final Http2ProtocolProxyHandler http2ProtocolProxyHandler;
+    protected Http2ProtocolProxyHandler http2ProtocolProxyHandler;
 
     public MultiProtocolRemotingServer(NettyServerConfig nettyServerConfig, ChannelEventListener channelEventListener) {
         super(nettyServerConfig, channelEventListener);

@@ -176,7 +176,7 @@ public class ConsumerLagCalculator {
                 }
 
                 if (isPop) {
-                    String retryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
+                    String retryTopic = KeyBuilder.buildPopRetryTopic(topic, group, brokerConfig.isEnableRetryTopicV2());
                     TopicConfig retryTopicConfig = topicConfigManager.selectTopicConfig(retryTopic);
                     if (retryTopicConfig != null) {
                         int retryTopicPerm = retryTopicConfig.getPerm() & brokerConfig.getBrokerPermission();
@@ -185,7 +185,7 @@ public class ConsumerLagCalculator {
                             continue;
                         }
                     }
-                    if (brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
+                    if (brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
                         String retryTopicV1 = KeyBuilder.buildPopRetryTopicV1(topic, group);
                         TopicConfig retryTopicConfigV1 = topicConfigManager.selectTopicConfig(retryTopicV1);
                         if (retryTopicConfigV1 != null) {

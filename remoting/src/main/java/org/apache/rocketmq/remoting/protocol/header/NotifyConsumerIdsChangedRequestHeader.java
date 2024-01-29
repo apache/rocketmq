@@ -17,11 +17,11 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
-public class NotifyConsumerIdsChangedRequestHeader implements CommandCustomHeader {
+public class NotifyConsumerIdsChangedRequestHeader extends RpcRequestHeader {
     @CFNotNull
     private String consumerGroup;
 

@@ -175,7 +175,8 @@ public class GrpcMessagingApplication extends MessagingServiceGrpc.MessagingServ
             .setProtocolType(ChannelProtocolType.GRPC_V2.getName())
             .setLanguage(getDefaultStringMetadataInfo(headers, InterceptorConstants.LANGUAGE))
             .setClientVersion(getDefaultStringMetadataInfo(headers, InterceptorConstants.CLIENT_VERSION))
-            .setAction(getDefaultStringMetadataInfo(headers, InterceptorConstants.SIMPLE_RPC_NAME));
+            .setAction(getDefaultStringMetadataInfo(headers, InterceptorConstants.SIMPLE_RPC_NAME))
+            .setNamespace(getDefaultStringMetadataInfo(headers, InterceptorConstants.NAMESPACE_ID));
         if (ctx.getDeadline() != null) {
             context.setRemainingMs(ctx.getDeadline().timeRemaining(TimeUnit.MILLISECONDS));
         }

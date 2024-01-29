@@ -26,38 +26,36 @@ public class KeyBuilderTest {
     String group = "test-group";
 
     @Test
-    public void buildPopRetryTopic() {
-        assertThat(KeyBuilder.buildPopRetryTopic(topic, group)).isEqualTo(MixAll.RETRY_GROUP_TOPIC_PREFIX + group + ":" + topic);
+    public void testBuildPopRetryTopic() {
+        assertThat(KeyBuilder.buildPopRetryTopicV2(topic, group)).isEqualTo(MixAll.RETRY_GROUP_TOPIC_PREFIX + group + "+" + topic);
     }
 
     @Test
-    public void buildPopRetryTopicV1() {
+    public void testBuildPopRetryTopicV1() {
         assertThat(KeyBuilder.buildPopRetryTopicV1(topic, group)).isEqualTo(MixAll.RETRY_GROUP_TOPIC_PREFIX + group + "_" + topic);
     }
 
     @Test
-    public void parseNormalTopic() {
-        String popRetryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
+    public void testParseNormalTopic() {
+        String popRetryTopic = KeyBuilder.buildPopRetryTopicV2(topic, group);
         assertThat(KeyBuilder.parseNormalTopic(popRetryTopic, group)).isEqualTo(topic);
+
         String popRetryTopicV1 = KeyBuilder.buildPopRetryTopicV1(topic, group);
         assertThat(KeyBuilder.parseNormalTopic(popRetryTopicV1, group)).isEqualTo(topic);
-    }
 
-    @Test
-    public void testParseNormalTopic() {
-        String popRetryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
+        popRetryTopic = KeyBuilder.buildPopRetryTopicV2(topic, group);
         assertThat(KeyBuilder.parseNormalTopic(popRetryTopic)).isEqualTo(topic);
     }
 
     @Test
-    public void parseGroup() {
-        String popRetryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
+    public void testParseGroup() {
+        String popRetryTopic = KeyBuilder.buildPopRetryTopicV2(topic, group);
         assertThat(KeyBuilder.parseGroup(popRetryTopic)).isEqualTo(group);
     }
 
     @Test
-    public void isPopRetryTopicV2() {
-        String popRetryTopic = KeyBuilder.buildPopRetryTopic(topic, group);
+    public void testIsPopRetryTopicV2() {
+        String popRetryTopic = KeyBuilder.buildPopRetryTopicV2(topic, group);
         assertThat(KeyBuilder.isPopRetryTopicV2(popRetryTopic)).isEqualTo(true);
         String popRetryTopicV1 = KeyBuilder.buildPopRetryTopicV1(topic, group);
         assertThat(KeyBuilder.isPopRetryTopicV2(popRetryTopicV1)).isEqualTo(false);

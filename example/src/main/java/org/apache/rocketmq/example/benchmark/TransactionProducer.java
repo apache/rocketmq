@@ -141,7 +141,6 @@ public class TransactionProducer {
         }
         final TransactionListener transactionCheckListener = new TransactionListenerImpl(statsBenchmark, config);
         final TransactionMQProducer producer = new TransactionMQProducer(
-            null,
             "benchmark_transaction_producer",
             rpcHook,
             config.msgTraceEnable,

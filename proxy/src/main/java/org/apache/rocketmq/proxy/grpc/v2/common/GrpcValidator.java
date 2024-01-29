@@ -48,7 +48,7 @@ public class GrpcValidator {
     }
 
     public void validateTopic(Resource topic) {
-        validateTopic(GrpcConverter.getInstance().wrapResourceWithNamespace(topic));
+        validateTopic(topic.getName());
     }
 
     public void validateTopic(String topicName) {
@@ -63,7 +63,7 @@ public class GrpcValidator {
     }
 
     public void validateConsumerGroup(Resource consumerGroup) {
-        validateConsumerGroup(GrpcConverter.getInstance().wrapResourceWithNamespace(consumerGroup));
+        validateConsumerGroup(consumerGroup.getName());
     }
 
     public void validateConsumerGroup(String consumerGroupName) {

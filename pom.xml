@@ -108,10 +108,10 @@
         <jna.version>4.2.2</jna.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
         <commons-io.version>2.7</commons-io.version>
-        <guava.version>31.1-jre</guava.version>
+        <guava.version>32.0.1-jre</guava.version>
         <gson.version>2.9.0</gson.version>
         <openmessaging.version>0.3.1-alpha</openmessaging.version>
-        <snakeyaml.version>1.32</snakeyaml.version>
+        <snakeyaml.version>2.0</snakeyaml.version>
         <commons-codec.version>1.13</commons-codec.version>
         <rocketmq-logging.version>1.0.1</rocketmq-logging.version>
         <slf4j-api.version>2.0.3</slf4j-api.version>
@@ -126,13 +126,13 @@
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
         <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
         <rocketmq-proto.version>2.0.3</rocketmq-proto.version>
-        <grpc.version>1.50.0</grpc.version>
+        <grpc.version>1.53.0</grpc.version>
         <protobuf.version>3.20.1</protobuf.version>
         <disruptor.version>1.2.10</disruptor.version>
         <org.relection.version>0.9.11</org.relection.version>
         <caffeine.version>2.9.3</caffeine.version>
         <spring.version>5.3.27</spring.version>
-        <okio-jvm.version>3.0.0</okio-jvm.version>
+        <okio-jvm.version>3.4.0</okio-jvm.version>
         <opentelemetry.version>1.29.0</opentelemetry.version>
         <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
         <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
@@ -893,6 +893,10 @@
                     <exclusion>
                         <groupId>com.google.code.gson</groupId>
                         <artifactId>gson</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.j2objc</groupId>
+                        <artifactId>j2objc-annotations</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>

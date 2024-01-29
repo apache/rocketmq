@@ -26,12 +26,12 @@ error_exit ()
 
 find_java_home()
 {
+    if [ -n "$JAVA_HOME" ]; then
+        JAVA_HOME=$JAVA_HOME
+        return
+    fi
     case "`uname`" in
         Darwin)
-          if [ -n "$JAVA_HOME" ]; then
-              JAVA_HOME=$JAVA_HOME
-              return
-          fi
             JAVA_HOME=$(/usr/libexec/java_home)
         ;;
         *)

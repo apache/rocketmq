@@ -142,6 +142,15 @@ public class UtilAllTest {
         assertEquals("", UtilAll.join(objects, comma));
     }
 
+    @Test
+    public void testSplit() {
+        List<String> list = Arrays.asList("groupA=DENY", "groupB=PUB|SUB", "groupC=SUB");
+        String comma = ",";
+        assertEquals(list, UtilAll.split("groupA=DENY,groupB=PUB|SUB,groupC=SUB", comma));
+        assertEquals(null, UtilAll.split(null, comma));
+        assertEquals(Collections.EMPTY_LIST, UtilAll.split("", comma));
+    }
+
     static class DemoConfig {
         private int demoWidth = 0;
         private int demoLength = 0;

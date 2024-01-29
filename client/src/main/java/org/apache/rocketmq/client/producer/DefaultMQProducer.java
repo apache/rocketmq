@@ -171,7 +171,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Default constructor.
      */
     public DefaultMQProducer() {
-        this(null, MixAll.DEFAULT_PRODUCER_GROUP, null);
+        this(MixAll.DEFAULT_PRODUCER_GROUP);
     }
 
     /**
@@ -180,7 +180,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param rpcHook RPC hook to execute per each remoting command execution.
      */
     public DefaultMQProducer(RPCHook rpcHook) {
-        this(null, MixAll.DEFAULT_PRODUCER_GROUP, rpcHook);
+        this(MixAll.DEFAULT_PRODUCER_GROUP, rpcHook);
     }
 
     /**
@@ -189,7 +189,46 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param producerGroup Producer group, see the name-sake field.
      */
     public DefaultMQProducer(final String producerGroup) {
-        this(null, producerGroup, null);
+        this.producerGroup = producerGroup;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, null);
+        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+    }
+
+    /**
+     * Constructor specifying both producer group and RPC hook.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param rpcHook       RPC hook to execute per each remoting command execution.
+     */
+    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
+        this.producerGroup = producerGroup;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+    }
+
+    /**
+     * Constructor specifying namespace, producer group, topics and RPC hook.
+     *
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param rpcHook       RPC hook to execute per each remoting command execution.
+     * @param topics        Topic that needs to be initialized for routing
+     */
+    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook,
+        final List<String> topics) {
+        this(producerGroup, rpcHook);
+        this.topics = topics;
+    }
+
+    /**
+     * Constructor specifying producer group, enabled msgTrace flag and customized trace topic name.
+     *
+     * @param producerGroup        Producer group, see the name-sake field.
+     * @param enableMsgTrace       Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     *                             trace topic name.
+     */
+    public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
+        this(producerGroup, null, enableMsgTrace, customizedTraceTopic);
     }
 
     /**
@@ -203,98 +242,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,
         final String customizedTraceTopic) {
-        this(null, producerGroup, rpcHook, enableMsgTrace, customizedTraceTopic);
-    }
-
-    /**
-     * Constructor specifying producer group.
-     *
-     * @param namespace     Namespace for this MQ Producer instance.
-     * @param producerGroup Producer group, see the name-sake field.
-     */
-    public DefaultMQProducer(final String namespace, final String producerGroup) {
-        this(namespace, producerGroup, null);
-    }
-
-    /**
-     * Constructor specifying both producer group and RPC hook.
-     *
-     * @param producerGroup Producer group, see the name-sake field.
-     * @param rpcHook       RPC hook to execute per each remoting command execution.
-     */
-    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
-        this(null, producerGroup, rpcHook);
-    }
-
-    /**
-     * Constructor specifying namespace, producer group and RPC hook.
-     *
-     * @param namespace     Namespace for this MQ Producer instance.
-     * @param producerGroup Producer group, see the name-sake field.
-     * @param rpcHook       RPC hook to execute per each remoting command execution.
-     */
-    public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
-        this.namespace = namespace;
-        this.producerGroup = producerGroup;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
-    }
-
-    /**
-     * Constructor specifying namespace, producer group, topics and RPC hook.
-     *
-     * @param namespace     Namespace for this MQ Producer instance.
-     * @param producerGroup Producer group, see the name-sake field.
-     * @param topics        Topic that needs to be initialized for routing
-     * @param rpcHook       RPC hook to execute per each remoting command execution.
-     */
-    public DefaultMQProducer(final String namespace, final String producerGroup, final List<String> topics, RPCHook rpcHook) {
-        this.namespace = namespace;
-        this.producerGroup = producerGroup;
-        this.topics = topics;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
-    }
-
-    /**
-     * Constructor specifying producer group and enabled msg trace flag.
-     *
-     * @param producerGroup  Producer group, see the name-sake field.
-     * @param enableMsgTrace Switch flag instance for message trace.
-     */
-    public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace) {
-        this(null, producerGroup, null, enableMsgTrace, null);
-    }
-
-    /**
-     * Constructor specifying producer group, enabled msgTrace flag and customized trace topic name.
-     *
-     * @param producerGroup        Producer group, see the name-sake field.
-     * @param enableMsgTrace       Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
-     *                             trace topic name.
-     */
-    public DefaultMQProducer(final String producerGroup, boolean enableMsgTrace, final String customizedTraceTopic) {
-        this(null, producerGroup, null, enableMsgTrace, customizedTraceTopic);
-    }
-
-    /**
-     * Constructor specifying namespace, producer group, RPC hook, enabled msgTrace flag and customized trace topic
-     * name.
-     *
-     * @param namespace            Namespace for this MQ Producer instance.
-     * @param producerGroup        Producer group, see the name-sake field.
-     * @param rpcHook              RPC hook to execute per each remoting command execution.
-     * @param enableMsgTrace       Switch flag instance for message trace.
-     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
-     *                             trace topic name.
-     */
-    public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook,
-        boolean enableMsgTrace, final String customizedTraceTopic) {
-        this.namespace = namespace;
-        this.producerGroup = producerGroup;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+        this(producerGroup, rpcHook);
         //if client open the message trace feature
         if (enableMsgTrace) {
             try {
@@ -315,21 +263,60 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * Constructor specifying namespace, producer group, topics, RPC hook, enabled msgTrace flag and customized trace topic
      * name.
      *
+     * @param producerGroup        Producer group, see the name-sake field.
+     * @param rpcHook              RPC hook to execute per each remoting command execution.
+     * @param topics               Topic that needs to be initialized for routing
+     * @param enableMsgTrace       Switch flag instance for message trace.
+     * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
+     *                             trace topic name.
+     */
+    public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, final List<String> topics,
+        boolean enableMsgTrace, final String customizedTraceTopic) {
+        this(producerGroup, rpcHook, enableMsgTrace, customizedTraceTopic);
+        this.topics = topics;
+    }
+
+    /**
+     * Constructor specifying producer group.
+     *
+     * @param namespace     Namespace for this MQ Producer instance.
+     * @param producerGroup Producer group, see the name-sake field.
+     */
+    @Deprecated
+    public DefaultMQProducer(final String namespace, final String producerGroup) {
+        this(namespace, producerGroup, null);
+    }
+
+    /**
+     * Constructor specifying namespace, producer group and RPC hook.
+     *
+     * @param namespace     Namespace for this MQ Producer instance.
+     * @param producerGroup Producer group, see the name-sake field.
+     * @param rpcHook       RPC hook to execute per each remoting command execution.
+     */
+    @Deprecated
+    public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
+        this.namespace = namespace;
+        this.producerGroup = producerGroup;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+    }
+
+    /**
+     * Constructor specifying namespace, producer group, RPC hook, enabled msgTrace flag and customized trace topic
+     * name.
+     *
      * @param namespace            Namespace for this MQ Producer instance.
      * @param producerGroup        Producer group, see the name-sake field.
-     * @param topics               Topic that needs to be initialized for routing
      * @param rpcHook              RPC hook to execute per each remoting command execution.
      * @param enableMsgTrace       Switch flag instance for message trace.
      * @param customizedTraceTopic The name value of message trace topic.If you don't config,you can use the default
      *                             trace topic name.
      */
-    public DefaultMQProducer(final String namespace, final String producerGroup, final List<String> topics,
-                             RPCHook rpcHook, boolean enableMsgTrace, final String customizedTraceTopic) {
-        this.namespace = namespace;
-        this.producerGroup = producerGroup;
-        this.topics = topics;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+    @Deprecated
+    public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook,
+        boolean enableMsgTrace, final String customizedTraceTopic) {
+        this(namespace, producerGroup, rpcHook);
         //if client open the message trace feature
         if (enableMsgTrace) {
             try {
@@ -337,9 +324,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
                 dispatcher.setHostProducer(this.defaultMQProducerImpl);
                 traceDispatcher = dispatcher;
                 this.defaultMQProducerImpl.registerSendMessageHook(
-                        new SendMessageTraceHookImpl(traceDispatcher));
+                    new SendMessageTraceHookImpl(traceDispatcher));
                 this.defaultMQProducerImpl.registerEndTransactionHook(
-                        new EndTransactionTraceHookImpl(traceDispatcher));
+                    new EndTransactionTraceHookImpl(traceDispatcher));
             } catch (Throwable e) {
                 logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
             }
@@ -410,7 +397,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             return false;
         }
         // delay message do not support batch processing
-        if (msg.getDelayTimeLevel() > 0) {
+        if (msg.getDelayTimeLevel() > 0 || msg.getDelayTimeMs() > 0 || msg.getDelayTimeSec() > 0 || msg.getDeliverTimeMs() > 0) {
             return false;
         }
         // retry message do not support batch processing

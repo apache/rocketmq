@@ -17,11 +17,11 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
-import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
-public class StatisticsMessagesRequestHeader implements CommandCustomHeader {
+public class StatisticsMessagesRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
     private String consumerGroup;
     @CFNotNull
@@ -52,14 +52,14 @@ public class StatisticsMessagesRequestHeader implements CommandCustomHeader {
         this.topic = topic;
     }
 
-    public int getQueueId() {
+    public Integer getQueueId() {
         if (queueId < 0) {
             return -1;
         }
         return queueId;
     }
 
-    public void setQueueId(int queueId) {
+    public void setQueueId(Integer queueId) {
         this.queueId = queueId;
     }
 

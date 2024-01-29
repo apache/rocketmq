@@ -38,6 +38,11 @@ public class BrokerMetricsConstant {
     public static final String GAUGE_CONSUMER_READY_MESSAGES = "rocketmq_consumer_ready_messages";
     public static final String COUNTER_CONSUMER_SEND_TO_DLQ_MESSAGES_TOTAL = "rocketmq_send_to_dlq_messages_total";
 
+    public static final String COUNTER_COMMIT_MESSAGES_TOTAL = "rocketmq_commit_messages_total";
+    public static final String COUNTER_ROLLBACK_MESSAGES_TOTAL = "rocketmq_rollback_messages_total";
+    public static final String HISTOGRAM_FINISH_MSG_LATENCY = "rocketmq_finish_message_latency";
+    public static final String GAUGE_HALF_MESSAGES = "rocketmq_half_messages";
+
     public static final String LABEL_CLUSTER_NAME = "cluster";
     public static final String LABEL_NODE_TYPE = "node_type";
     public static final String NODE_TYPE_BROKER = "broker";

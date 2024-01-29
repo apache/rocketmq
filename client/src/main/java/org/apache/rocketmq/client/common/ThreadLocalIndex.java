@@ -35,9 +35,6 @@ public class ThreadLocalIndex {
 
     public void reset() {
         int index = Math.abs(random.nextInt(Integer.MAX_VALUE));
-        if (index < 0) {
-            index = 0;
-        }
         this.threadLocalIndex.set(index);
     }
 
