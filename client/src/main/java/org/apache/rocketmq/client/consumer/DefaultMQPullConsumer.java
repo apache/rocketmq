@@ -292,6 +292,10 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         return this.defaultMQPullConsumerImpl.fetchSubscribeMessageQueues(withNamespace(topic));
     }
 
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic, String subExpression) throws MQClientException, InterruptedException {
+        return this.defaultMQPullConsumerImpl.fetchSubscribeMessageQueues(withNamespace(topic), subExpression);
+    }
+
     @Override
     public void start() throws MQClientException {
         this.setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));

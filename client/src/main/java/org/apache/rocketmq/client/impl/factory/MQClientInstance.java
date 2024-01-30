@@ -1388,4 +1388,8 @@ public class MQClientInstance {
         }
         return data;
     }
+
+    public ConcurrentMap<String, HashMap<Long, String>> getBrokerAddrTable() {
+        return brokerAddrTable;
+    }
 }

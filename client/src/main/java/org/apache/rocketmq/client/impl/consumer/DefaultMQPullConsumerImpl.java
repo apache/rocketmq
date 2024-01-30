@@ -16,12 +16,7 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -132,6 +127,51 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
 
         return parseSubscribeMessageQueues(mqResult);
+    }
+
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic, String subExpression) throws MQClientException, InterruptedException {
+        this.isRunning();
+        // check if has info in memory, otherwise invoke api.
+        Set<MessageQueue> result = this.rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
+        if (null == result) {
+            result = this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
+        }
+
+        // 从namesvr更新路由信息
+        this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, false, null);
+        // 更新topicSubscribeInfoTable
+        this.rebalanceImpl.getTopicSubscribeInfoTable().put(topic, result);
+        this.rebalanceImpl.getSubscriptionInner().put(topic, getSubscriptionData(topic, subExpression));
+        // 主动上报一次心跳
+        for (Map.Entry<String, HashMap<Long, String>> addressEntry : this.mQClientFactory.getBrokerAddrTable().entrySet()) {
+            for (Map.Entry<Long, String> entry : addressEntry.getValue().entrySet()) {
+                String addr = entry.getValue();
+                long id = entry.getKey();
+                String brokerName = addressEntry.getKey();
+                if (this.mQClientFactory.sendHeartbeatToBroker(id, brokerName, addr)) {
+                    this.mQClientFactory.rebalanceImmediately();
+                }
+                break;
+            }
+        }
+        this.rebalanceImpl.doRebalance(false);
+
+        return parseSubscribeMessageQueues(result);
+    }
+
+
+    private SubscriptionData getSubscriptionData(String topic, String subExpression)
+            throws MQClientException {
+
+        if (null == topic) {
+            throw new MQClientException("topic is null", null);
+        }
+
+        try {
+            return FilterAPI.buildSubscriptionData(topic, subExpression);
+        } catch (Exception e) {
+            throw new MQClientException("parse subscription error", e);
+        }
     }
 
     public List<MessageQueue> fetchPublishMessageQueues(String topic) throws MQClientException {
