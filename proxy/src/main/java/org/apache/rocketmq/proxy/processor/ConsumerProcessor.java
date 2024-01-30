@@ -515,6 +515,9 @@ public class ConsumerProcessor extends AbstractProcessor {
     protected HashMap<String, List<AddressableMessageQueue>> buildAddressableMapByBrokerName(
         final Set<AddressableMessageQueue> mqSet) {
         HashMap<String, List<AddressableMessageQueue>> result = new HashMap<>();
+        if (mqSet == null) {
+            return result;
+        }
         for (AddressableMessageQueue mq : mqSet) {
             if (mq == null) {
                 continue;
