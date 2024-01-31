@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.common;
 
-import java.net.InetAddress;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.junit.Test;
 
