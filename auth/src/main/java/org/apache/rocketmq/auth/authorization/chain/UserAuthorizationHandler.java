@@ -57,10 +57,10 @@ public class UserAuthorizationHandler implements Handler<DefaultAuthorizationCon
         User user = (User) subject;
         return authenticationMetadataProvider.getUser(user.getUsername()).thenApply(result -> {
             if (result == null) {
-                throw new AuthorizationException("User:{} not found", user.getUsername());
+                throw new AuthorizationException("User:{} not found.", user.getUsername());
             }
             if (user.getUserStatus() == UserStatus.DISABLE) {
-                throw new AuthenticationException("User:{} is disabled", user.getUsername());
+                throw new AuthenticationException("User:{} is disabled.", user.getUsername());
             }
             return result;
         });

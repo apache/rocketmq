@@ -71,7 +71,7 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
                     return this.createUser(initUser);
                 }).join();
             } catch (Exception e) {
-                throw new AuthenticationException("Init authentication user error", e);
+                throw new AuthenticationException("Init authentication user error.", e);
             }
         }
         if (StringUtils.isNotBlank(authConfig.getInnerClientAuthenticationCredentials())) {

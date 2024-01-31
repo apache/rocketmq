@@ -137,17 +137,6 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
     }
 
     @Override
-    public CompletableFuture<Boolean> hasUser() {
-        try (RocksIterator iterator = this.storage.iterator()) {
-            iterator.seekToFirst();
-            if (iterator.isValid()) {
-                return CompletableFuture.completedFuture(true);
-            }
-        }
-        return CompletableFuture.completedFuture(false);
-    }
-
-    @Override
     public void shutdown() {
         if (this.storage != null) {
             this.storage.shutdown();
@@ -172,7 +161,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
                 }
                 return JSON.parseObject(new String(valueBytes, StandardCharsets.UTF_8), User.class);
             } catch (Exception e) {
-                throw new AuthenticationException("get user from RocksDB failed", e);
+                throw new AuthenticationException("Get user from RocksDB failed.", e);
             }
         }
     }

@@ -56,7 +56,7 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
         HandlerChain<DefaultAuthorizationContext, CompletableFuture<Void>> chain) {
         return authorizationMetadataProvider.getAcl(context.getSubject()).thenAccept(acl -> {
             if (acl == null) {
-                throwException(context, "no matched acl policies");
+                throwException(context, "no matched acl policies.");
             }
 
             // 1. get the defined acl entries which match the request.
@@ -64,12 +64,12 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
 
             // 2. if no matched acl entries, return deny
             if (matchedEntry == null) {
-                throwException(context, "no matched acl policies");
+                throwException(context, "no matched acl policies.");
             }
 
             // 3. judge is the entries has denied decision.
             if (matchedEntry.getDecision() == Decision.DENY) {
-                throwException(context, "the acl policy's decision is deny");
+                throwException(context, "the acl policy's decision is deny.");
             }
         });
     }
@@ -158,7 +158,7 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
     }
 
     private static void throwException(DefaultAuthorizationContext context, String detail) {
-        throw new AuthorizationException("The {} does not have permission to access the resource {}, " + detail,
+        throw new AuthorizationException("The {} has no permission to access the resource {}, " + detail,
             context.getSubject().getSubjectKey(), context.getResource().getResourceKey());
     }
 }

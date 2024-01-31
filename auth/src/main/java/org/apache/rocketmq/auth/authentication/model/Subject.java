@@ -26,7 +26,6 @@ public interface Subject {
     @JSONField(serialize = false)
     String getSubjectKey();
 
-    @JSONField(serialize = false)
     SubjectType getSubjectType();
 
     default boolean isSubject(SubjectType subjectType) {

@@ -68,6 +68,6 @@ public class StatefulAuthorizationStrategy extends AbstractAuthorizationStrategy
                 + CommonConstants.HYPHEN + StringUtils.join(ctx.getActions(), CommonConstants.COMMA)
                 + CommonConstants.HYPHEN + ctx.getSourceIp();
         }
-        throw new AuthorizationException("{} is not support", context.getClass().getSimpleName());
+        throw new AuthorizationException("The request of {} is not support.", context.getClass().getSimpleName());
     }
 }

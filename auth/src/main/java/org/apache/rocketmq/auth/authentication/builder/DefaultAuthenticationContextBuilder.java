@@ -52,30 +52,30 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
             context.setRpcCode(request.getDescriptorForType().getFullName());
             String authorization = metadata.get(GrpcConstants.AUTHORIZATION);
             if (StringUtils.isEmpty(authorization)) {
-                throw new AuthenticationException("authentication header is null");
+                throw new AuthenticationException("authentication header is null.");
             }
             String datetime = metadata.get(GrpcConstants.DATE_TIME);
             if (StringUtils.isEmpty(datetime)) {
-                throw new AuthenticationException("datetime is null");
+                throw new AuthenticationException("datetime is null.");
             }
 
             String[] result = authorization.split(CommonConstants.SPACE, 2);
             if (result.length != 2) {
-                throw new AuthenticationException("authentication header is incorrect");
+                throw new AuthenticationException("authentication header is incorrect.");
             }
             String[] keyValues = result[1].split(CommonConstants.COMMA);
             for (String keyValue : keyValues) {
                 String[] kv = keyValue.trim().split(CommonConstants.EQUAL, 2);
                 int kvLength = kv.length;
                 if (kv.length != 2) {
-                    throw new AuthenticationException("authentication keyValues length is incorrect, actual length=" + kvLength);
+                    throw new AuthenticationException("authentication keyValues length is incorrect, actual length={}.", kvLength);
                 }
                 String authItem = kv[0];
                 if (CREDENTIAL.equals(authItem)) {
                     String[] credential = kv[1].split(CommonConstants.SLASH);
                     int credentialActualLength = credential.length;
                     if (credentialActualLength == 0) {
-                        throw new AuthenticationException("authentication credential length is incorrect, actual length=" + credentialActualLength);
+                        throw new AuthenticationException("authentication credential length is incorrect, actual length={}.", credentialActualLength);
                     }
                     context.setUsername(credential[0]);
                     continue;
@@ -99,7 +99,7 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
     public DefaultAuthenticationContext build(ChannelHandlerContext context, RemotingCommand request) {
         HashMap<String, String> fields = request.getExtFields();
         if (MapUtils.isEmpty(fields)) {
-            throw new AuthenticationException("authentication field is null");
+            throw new AuthenticationException("authentication field is null.");
         }
         DefaultAuthenticationContext result = new DefaultAuthenticationContext();
         result.setChannelId(context.channel().id().asLongText());

@@ -69,7 +69,7 @@ public abstract class AbstractAuthenticationStrategy implements AuthenticationSt
             if (exception instanceof AuthenticationException) {
                 throw (AuthenticationException) exception;
             }
-            throw new AuthenticationException("Failed to authentication the request", exception);
+            throw new AuthenticationException("Authentication failed. Please verify the credentials and try again.", exception);
         }
     }
 }

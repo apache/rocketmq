@@ -93,7 +93,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         if (message instanceof SendMessageRequest) {
             SendMessageRequest request = (SendMessageRequest) message;
             if (request.getMessagesCount() <= 0) {
-                throw new AuthorizationException("message is null");
+                throw new AuthorizationException("message is null.");
             }
             result = newPubContext(metadata, request.getMessages(0).getTopic());
         }
@@ -111,7 +111,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         if (message instanceof ReceiveMessageRequest) {
             ReceiveMessageRequest request = (ReceiveMessageRequest) message;
             if (!request.hasMessageQueue()) {
-                throw new AuthorizationException("messageQueue is null");
+                throw new AuthorizationException("messageQueue is null.");
             }
             result = newSubContexts(metadata, request.getGroup(), request.getMessageQueue().getTopic());
         }
@@ -278,7 +278,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         } catch (AuthorizationException ex) {
             throw ex;
         } catch (Throwable t) {
-            throw new AuthorizationException("parse authorization context error", t);
+            throw new AuthorizationException("parse authorization context error.", t);
         }
         return result;
     }
@@ -347,7 +347,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
     private List<DefaultAuthorizationContext> newContext(Metadata metadata, QueryRouteRequest request) {
         apache.rocketmq.v2.Resource topic = request.getTopic();
         if (StringUtils.isBlank(topic.getName())) {
-            throw new AuthorizationException("topic is null");
+            throw new AuthorizationException("topic is null.");
         }
         User subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
         Resource resource = Resource.ofTopic(topic.getName());
@@ -361,7 +361,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
             return null;
         }
         if (!request.getSettings().hasPublishing() && !request.getSettings().hasSubscription()) {
-            throw new AclException("settings command doesn't have publishing or subscription");
+            throw new AclException("settings command doesn't have publishing or subscription.");
         }
         List<DefaultAuthorizationContext> result = new ArrayList<>();
         if (request.getSettings().hasPublishing()) {
@@ -387,7 +387,7 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
 
     private static List<DefaultAuthorizationContext> newPubContext(Metadata metadata, apache.rocketmq.v2.Resource topic) {
         if (topic == null || StringUtils.isBlank(topic.getName())) {
-            throw new AuthorizationException("topic is null");
+            throw new AuthorizationException("topic is null.");
         }
         User subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
         Resource resource = Resource.ofTopic(topic.getName());
@@ -418,17 +418,17 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         apache.rocketmq.v2.Resource resource) {
         if (resourceType == ResourceType.GROUP) {
             if (resource == null || StringUtils.isBlank(resource.getName())) {
-                throw new AuthorizationException("group is null");
+                throw new AuthorizationException("group is null.");
             }
             return newSubContexts(metadata, Resource.ofGroup(resource.getName()));
         }
         if (resourceType == ResourceType.TOPIC) {
             if (resource == null || StringUtils.isBlank(resource.getName())) {
-                throw new AuthorizationException("topic is null");
+                throw new AuthorizationException("topic is null.");
             }
             return newSubContexts(metadata, Resource.ofTopic(resource.getName()));
         }
-        throw new AuthorizationException("unknown resource type");
+        throw new AuthorizationException("unknown resource type.");
     }
 
     private static List<DefaultAuthorizationContext> newSubContexts(Metadata metadata, Resource resource) {

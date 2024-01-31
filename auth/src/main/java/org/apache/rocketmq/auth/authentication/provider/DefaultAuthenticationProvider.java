@@ -69,9 +69,9 @@ public class DefaultAuthenticationProvider implements AuthenticationProvider<Def
 
     private void doAuditLog(DefaultAuthenticationContext context, Throwable ex) {
         if (ex != null) {
-            log.info("[AUTHENTICATION] User:{} is authenticated failed with Signature = {}", context.getUsername(), context.getSignature());
+            log.info("[AUTHENTICATION] User:{} is authenticated failed with Signature = {}.", context.getUsername(), context.getSignature());
         } else {
-            log.debug("[AUTHENTICATION] User:{} is authenticated success with Signature = {}", context.getUsername(), context.getSignature());
+            log.debug("[AUTHENTICATION] User:{} is authenticated success with Signature = {}.", context.getUsername(), context.getSignature());
         }
     }
 }

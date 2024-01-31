@@ -90,7 +90,7 @@ public class AuthMigrator {
             }
             return createUserAndAcl(accessConfig);
         }).exceptionally(ex -> {
-            LOG.error("[ACL MIGRATE] An error occurred while migrating ACL configurations for AccessKey:{}", accessConfig.getAccessKey(), ex);
+            LOG.error("[ACL MIGRATE] An error occurred while migrating ACL configurations for AccessKey:{}.", accessConfig.getAccessKey(), ex);
             return null;
         }).join();
     }

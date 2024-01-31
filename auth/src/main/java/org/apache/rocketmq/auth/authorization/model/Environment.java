@@ -19,6 +19,7 @@ package org.apache.rocketmq.auth.authorization.model;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.utils.IPAddressUtils;
 
 public class Environment {
@@ -26,10 +27,16 @@ public class Environment {
     private List<String> sourceIps;
 
     public static Environment of(String sourceIp) {
+        if (StringUtils.isEmpty(sourceIp)) {
+            return null;
+        }
         return of(Collections.singletonList(sourceIp));
     }
 
     public static Environment of(List<String> sourceIps) {
+        if (CollectionUtils.isEmpty(sourceIps)) {
+            return null;
+        }
         Environment environment = new Environment();
         environment.setSourceIps(sourceIps);
         return environment;

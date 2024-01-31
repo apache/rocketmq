@@ -37,6 +37,4 @@ public interface AuthenticationMetadataProvider {
     CompletableFuture<User> getUser(String username);
 
     CompletableFuture<List<User>> listUser(String filter);
-
-    CompletableFuture<Boolean> hasUser();
 }

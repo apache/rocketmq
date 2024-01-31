@@ -60,7 +60,7 @@ public class AuthorizationFactory {
                 return (AuthorizationProvider<AuthorizationContext>) clazz
                     .getDeclaredConstructor().newInstance();
             } catch (Exception e) {
-                throw new RuntimeException("Failed to load the authorization provider", e);
+                throw new RuntimeException("Failed to load the authorization provider.", e);
             }
         });
     }
@@ -88,7 +88,7 @@ public class AuthorizationFactory {
                 result.initialize(config, metadataService);
                 return result;
             } catch (Exception e) {
-                throw new RuntimeException("Failed to load the authorization metadata provider", e);
+                throw new RuntimeException("Failed to load the authorization metadata provider.", e);
             }
         });
     }

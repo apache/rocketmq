@@ -46,21 +46,21 @@ public class DefaultAuthenticationHandler implements Handler<DefaultAuthenticati
 
     protected CompletableFuture<User> getUser(DefaultAuthenticationContext context) {
         if (StringUtils.isEmpty(context.getUsername())) {
-            throw new AuthenticationException("username cannot be null");
+            throw new AuthenticationException("username cannot be null.");
         }
         return this.authenticationMetadataProvider.getUser(context.getUsername());
     }
 
     protected void doAuthenticate(DefaultAuthenticationContext context, User user) {
         if (user == null) {
-            throw new AuthenticationException("User:{} is not found", context.getUsername());
+            throw new AuthenticationException("User:{} is not found.", context.getUsername());
         }
         if (user.getUserStatus() == UserStatus.DISABLE) {
-            throw new AuthenticationException("User:{} is disabled", context.getUsername());
+            throw new AuthenticationException("User:{} is disabled.", context.getUsername());
         }
         String signature = AclSigner.calSignature(context.getContent(), user.getPassword());
         if (!StringUtils.equals(signature, context.getSignature())) {
-            throw new AuthenticationException("check signature failed");
+            throw new AuthenticationException("check signature failed.");
         }
     }
 }

@@ -78,7 +78,7 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
 
             return subjectFuture.thenCompose(subject -> {
                 if (subject == null) {
-                    throw new AuthorizationException("The subject of {} is not exist", acl.getSubject().getSubjectKey());
+                    throw new AuthorizationException("The subject of {} is not exist.", acl.getSubject().getSubjectKey());
                 }
                 return this.getAuthorizationMetadataProvider().getAcl(acl.getSubject());
             }).thenCompose(oldAcl -> {
@@ -111,7 +111,7 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
 
             return subjectFuture.thenCompose(subject -> {
                 if (subject == null) {
-                    throw new AuthorizationException("The subject of {} is not exist", acl.getSubject().getSubjectKey());
+                    throw new AuthorizationException("The subject of {} is not exist.", acl.getSubject().getSubjectKey());
                 }
                 return this.getAuthorizationMetadataProvider().getAcl(acl.getSubject());
             }).thenCompose(oldAcl -> {
@@ -136,7 +136,7 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
     public CompletableFuture<Void> deleteAcl(Subject subject, PolicyType policyType, Resource resource) {
         try {
             if (subject == null) {
-                throw new AuthorizationException("The subject is null");
+                throw new AuthorizationException("The subject is null.");
             }
             if (policyType == null) {
                 policyType = PolicyType.CUSTOM;
@@ -154,10 +154,10 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
             PolicyType finalPolicyType = policyType;
             return subjectFuture.thenCombine(aclFuture, (sub, oldAcl) -> {
                 if (sub == null) {
-                    throw new AuthorizationException("The subject is not exist");
+                    throw new AuthorizationException("The subject is not exist.");
                 }
                 if (oldAcl == null) {
-                    throw new AuthorizationException("The acl is not exist");
+                    throw new AuthorizationException("The acl is not exist.");
                 }
                 return oldAcl;
             }).thenCompose(oldAcl -> {
@@ -186,7 +186,7 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
         }
         return subjectFuture.thenCompose(sub -> {
             if (sub == null) {
-                throw new AuthorizationException("The subject is not exist");
+                throw new AuthorizationException("The subject is not exist.");
             }
             return this.getAuthorizationMetadataProvider().getAcl(subject);
         });
@@ -208,11 +208,11 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
     private void validate(Acl acl) {
         Subject subject = acl.getSubject();
         if (subject.getSubjectType() == null) {
-            throw new AuthorizationException("The subject type is null");
+            throw new AuthorizationException("The subject type is null.");
         }
         List<Policy> policies = acl.getPolicies();
         if (CollectionUtils.isEmpty(policies)) {
-            throw new AuthorizationException("The policies is empty");
+            throw new AuthorizationException("The policies is empty.");
         }
         for (Policy policy : policies) {
             this.validate(policy);
@@ -222,7 +222,7 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
     private void validate(Policy policy) {
         List<PolicyEntry> policyEntries = policy.getEntries();
         if (CollectionUtils.isEmpty(policyEntries)) {
-            throw new AuthorizationException("The policy entries is empty");
+            throw new AuthorizationException("The policy entries is empty.");
         }
         for (PolicyEntry policyEntry : policyEntries) {
             this.validate(policyEntry);
@@ -232,33 +232,33 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
     private void validate(PolicyEntry entry) {
         Resource resource = entry.getResource();
         if (resource == null) {
-            throw new AuthorizationException("The resource is null");
+            throw new AuthorizationException("The resource is null.");
         }
         if (resource.getResourceType() == null) {
-            throw new AuthorizationException("The resource type is null");
+            throw new AuthorizationException("The resource type is null.");
         }
         if (resource.getResourcePattern() == null) {
-            throw new AuthorizationException("The resource pattern is null");
+            throw new AuthorizationException("The resource pattern is null.");
         }
         if (CollectionUtils.isEmpty(entry.getActions())) {
-            throw new AuthorizationException("The actions is empty");
+            throw new AuthorizationException("The actions is empty.");
         }
         if (entry.getActions().contains(Action.ANY)) {
-            throw new AuthorizationException("The actions can not be Any");
+            throw new AuthorizationException("The actions can not be Any.");
         }
         Environment environment = entry.getEnvironment();
         if (environment != null && CollectionUtils.isNotEmpty(environment.getSourceIps())) {
             for (String sourceIp : environment.getSourceIps()) {
                 if (StringUtils.isBlank(sourceIp)) {
-                    throw new AuthorizationException("The source ip is empty");
+                    throw new AuthorizationException("The source ip is empty.");
                 }
                 if (!IPAddressUtils.isValidIPOrCidr(sourceIp)) {
-                    throw new AuthorizationException("The source ip is invalid");
+                    throw new AuthorizationException("The source ip is invalid.");
                 }
             }
         }
         if (entry.getDecision() == null) {
-            throw new AuthorizationException("The decision is null or illegal;");
+            throw new AuthorizationException("The decision is null or illegal.");
         }
     }
 
@@ -275,14 +275,14 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
 
     private AuthorizationMetadataProvider getAuthorizationMetadataProvider() {
         if (authenticationMetadataProvider == null) {
-            throw new IllegalStateException("The authenticationMetadataProvider is not configured");
+            throw new IllegalStateException("The authenticationMetadataProvider is not configured.");
         }
         return authorizationMetadataProvider;
     }
 
     private AuthenticationMetadataProvider getAuthenticationMetadataProvider() {
         if (authorizationMetadataProvider == null) {
-            throw new IllegalStateException("The authorizationMetadataProvider is not configured");
+            throw new IllegalStateException("The authorizationMetadataProvider is not configured.");
         }
         return authenticationMetadataProvider;
     }

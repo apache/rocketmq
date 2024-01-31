@@ -53,7 +53,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
     public void initialize(AuthConfig authConfig, Supplier<?> metadataService) {
         this.storage = new ConfigRocksDBStorage(authConfig.getAuthConfigPath() + File.separator + "acls");
         if (!this.storage.start()) {
-            throw new RuntimeException("Failed to load rocksdb for auth_acl, please check whether it is occupied");
+            throw new RuntimeException("Failed to load rocksdb for auth_acl, please check whether it is occupied.");
         }
         ThreadPoolExecutor cacheRefreshExecutor = ThreadPoolMonitor.createAndMonitor(
             1,
@@ -82,7 +82,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
             this.storage.flushWAL();
             this.aclCache.invalidate(subject.getSubjectKey());
         } catch (Exception e) {
-            throw new AuthorizationException("create Acl to RocksDB failed", e);
+            throw new AuthorizationException("create Acl to RocksDB failed.", e);
         }
         return CompletableFuture.completedFuture(null);
     }
@@ -95,7 +95,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
             this.storage.flushWAL();
             this.aclCache.invalidate(subject.getSubjectKey());
         } catch (Exception e) {
-            throw new AuthorizationException("delete Acl from RocksDB failed", e);
+            throw new AuthorizationException("delete Acl from RocksDB failed.", e);
         }
         return CompletableFuture.completedFuture(null);
     }
@@ -110,7 +110,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
             this.storage.flushWAL();
             this.aclCache.invalidate(subject.getSubjectKey());
         } catch (Exception e) {
-            throw new AuthorizationException("update Acl to RocksDB failed", e);
+            throw new AuthorizationException("update Acl to RocksDB failed.", e);
         }
         return CompletableFuture.completedFuture(null);
     }
@@ -193,7 +193,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
                 Acl acl = JSON.parseObject(valueBytes, Acl.class);
                 return Acl.of(subject, acl.getPolicies());
             } catch (Exception e) {
-                throw new AuthorizationException("get Acl from RocksDB failed", e);
+                throw new AuthorizationException("get Acl from RocksDB failed.", e);
             }
         }
     }

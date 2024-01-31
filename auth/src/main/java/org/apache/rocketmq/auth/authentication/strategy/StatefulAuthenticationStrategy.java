@@ -64,6 +64,6 @@ public class StatefulAuthenticationStrategy extends AbstractAuthenticationStrate
             DefaultAuthenticationContext ctx = (DefaultAuthenticationContext) context;
             return ctx.getChannelId() + CommonConstants.HYPHEN + ctx.getUsername();
         }
-        throw new AuthenticationException("{} is not support", context.getClass().getSimpleName());
+        throw new AuthenticationException("The request of {} is not support.", context.getClass().getSimpleName());
     }
 }

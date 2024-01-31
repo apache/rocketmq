@@ -89,7 +89,7 @@ public class DefaultAuthorizationProvider implements AuthorizationProvider<Defau
         String sourceIp = context.getSourceIp();
         String resource = context.getResource().getResourceKey();
         String request = context.getRpcCode();
-        String format = "[AUTHORIZATION] Subject = {} is {} Action = {} from sourceIp = {} on resource = {} for request = {}";
+        String format = "[AUTHORIZATION] Subject = {} is {} Action = {} from sourceIp = {} on resource = {} for request = {}.";
         if (decision == Decision.ALLOW) {
             log.debug(format, subject, decision.getName(), actions, sourceIp, resource, request);
         } else {

@@ -66,9 +66,4 @@ public class ProxyAuthenticationMetadataProvider implements AuthenticationMetada
     public CompletableFuture<List<User>> listUser(String filter) {
         return null;
     }
-
-    @Override
-    public CompletableFuture<Boolean> hasUser() {
-        return null;
-    }
 }

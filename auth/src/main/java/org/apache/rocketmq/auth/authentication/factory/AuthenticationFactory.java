@@ -58,7 +58,7 @@ public class AuthenticationFactory {
                 }
                 return (AuthenticationProvider<AuthenticationContext>) clazz.getDeclaredConstructor().newInstance();
             } catch (Exception e) {
-                throw new RuntimeException("Failed to load the authentication provider", e);
+                throw new RuntimeException("Failed to load the authentication provider.", e);
             }
         });
     }

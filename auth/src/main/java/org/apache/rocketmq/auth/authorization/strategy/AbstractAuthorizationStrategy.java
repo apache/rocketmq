@@ -69,7 +69,7 @@ public abstract class AbstractAuthorizationStrategy implements AuthorizationStra
             if (exception instanceof AuthorizationException) {
                 throw (AuthorizationException) exception;
             }
-            throw new AuthorizationException("Failed to authorization the request", exception);
+            throw new AuthorizationException("Authorization failed. Please verify your access rights and try again.", exception);
         }
     }
 }
