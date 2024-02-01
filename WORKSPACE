@@ -109,6 +109,7 @@ maven_install(
         "org.apache.rocketmq:rocketmq-rocksdb:1.0.2",
         "com.alipay.sofa:jraft-core:1.3.11",
         "com.alipay.sofa:hessian:3.3.6",
+        "io.netty:netty-tcnative-boringssl-static:2.0.48.Final",
     ],
     fetch_sources = True,
     repositories = [
