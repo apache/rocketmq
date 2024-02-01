@@ -53,6 +53,7 @@ java_library(
         "@maven//:org_slf4j_jul_to_slf4j",
         "@maven//:com_alipay_sofa_jraft_core",
         "@maven//:com_alipay_sofa_hessian",
+        "@maven//:commons_io_commons_io",
     ],
 )
 
