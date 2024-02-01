@@ -110,7 +110,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      * Constructor specifying namespace, consumer group and RPC hook.
      *
      * @param consumerGroup Consumer group.
-     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param rpcHook       RPC hook to execute before each remoting command.
      */
     public DefaultMQPullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
@@ -292,7 +292,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         return this.defaultMQPullConsumerImpl.fetchSubscribeMessageQueues(withNamespace(topic));
     }
 
-    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic, String subExpression) throws MQClientException, InterruptedException {
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic,
+        String subExpression) throws MQClientException, InterruptedException {
         return this.defaultMQPullConsumerImpl.fetchSubscribeMessageQueues(withNamespace(topic), subExpression);
     }
 

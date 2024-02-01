@@ -16,7 +16,13 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -129,7 +135,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         return parseSubscribeMessageQueues(mqResult);
     }
 
-    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic, String subExpression) throws MQClientException, InterruptedException {
+    public Set<MessageQueue> fetchSubscribeMessageQueues(String topic,
+        String subExpression) throws MQClientException, InterruptedException {
         this.isRunning();
         // check if has info in memory, otherwise invoke api.
         Set<MessageQueue> result = this.rebalanceImpl.getTopicSubscribeInfoTable().get(topic);
@@ -137,12 +144,11 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             result = this.mQClientFactory.getMQAdminImpl().fetchSubscribeMessageQueues(topic);
         }
 
-        // 从namesvr更新路由信息
+        // update topic route from namesvr
         this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic, false, null);
-        // 更新topicSubscribeInfoTable
         this.rebalanceImpl.getTopicSubscribeInfoTable().put(topic, result);
         this.rebalanceImpl.getSubscriptionInner().put(topic, getSubscriptionData(topic, subExpression));
-        // 主动上报一次心跳
+        // send heart beat
         for (Map.Entry<String, HashMap<Long, String>> addressEntry : this.mQClientFactory.getBrokerAddrTable().entrySet()) {
             for (Map.Entry<Long, String> entry : addressEntry.getValue().entrySet()) {
                 String addr = entry.getValue();
@@ -155,13 +161,11 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             }
         }
         this.rebalanceImpl.doRebalance(false);
-
         return parseSubscribeMessageQueues(result);
     }
 
-
     private SubscriptionData getSubscriptionData(String topic, String subExpression)
-            throws MQClientException {
+        throws MQClientException {
 
         if (null == topic) {
             throw new MQClientException("topic is null", null);
@@ -266,7 +270,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    private PullResult pullSyncImpl(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, boolean block,
+    private PullResult pullSyncImpl(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums,
+        boolean block,
         long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         this.isRunning();
@@ -498,7 +503,8 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, pullCallback, false, timeout);
     }
 
-    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, int maxSize, PullCallback pullCallback,
+    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, int maxSize,
+        PullCallback pullCallback,
         long timeout)
         throws MQClientException, RemotingException, InterruptedException {
         SubscriptionData subscriptionData = getSubscriptionData(mq, subExpression);
@@ -546,7 +552,6 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             throw new MQClientException("maxSizeInBytes <= 0", null);
         }
 
-
         if (null == pullCallback) {
             throw new MQClientException("pullCallback is null", null);
         }
@@ -592,22 +597,22 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
     private void pullAsyncImpl(
-            final MessageQueue mq,
-            final SubscriptionData subscriptionData,
-            final long offset,
-            final int maxNums,
-            final PullCallback pullCallback,
-            final boolean block,
-            final long timeout) throws MQClientException, RemotingException, InterruptedException {
+        final MessageQueue mq,
+        final SubscriptionData subscriptionData,
+        final long offset,
+        final int maxNums,
+        final PullCallback pullCallback,
+        final boolean block,
+        final long timeout) throws MQClientException, RemotingException, InterruptedException {
         pullAsyncImpl(
-                mq,
-                subscriptionData,
-                offset,
-                maxNums,
-                Integer.MAX_VALUE,
-                pullCallback,
-                block,
-                timeout
+            mq,
+            subscriptionData,
+            offset,
+            maxNums,
+            Integer.MAX_VALUE,
+            pullCallback,
+            block,
+            timeout
         );
     }
 

@@ -157,6 +157,7 @@ public class MQClientInstance {
         if (clientConfig.isEnableHeartbeatChannelEventListener()) {
             channelEventListener = new ChannelEventListener() {
                 private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = MQClientInstance.this.brokerAddrTable;
+
                 @Override
                 public void onChannelConnect(String remoteAddr, Channel channel) {
                 }
