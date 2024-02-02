@@ -34,15 +34,12 @@ public class PullMessageOnce {
         Set<MessageQueue> messageQueues = consumer.fetchSubscribeMessageQueues("PullTopicTest", "*");
         for (MessageQueue messageQueue : messageQueues) {
             long offset = consumer.fetchConsumeOffset(messageQueue, true);
-            System.out.println(offset);
             if (offset < 0) {
                 continue;
             }
             PullResult result = consumer.pull(messageQueue, "*", offset, 1, 3000);
-            System.out.println(result);
             long i = result.getNextBeginOffset();
             if (result.getPullStatus() == PullStatus.FOUND) {
-                System.out.println(i);
                 consumer.updateConsumeOffset(messageQueue, i);
             }
         }
