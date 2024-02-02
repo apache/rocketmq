@@ -17,14 +17,14 @@
 package org.apache.rocketmq.common;
 
 public class JraftConfig {
-    int jRaftElectionTimeoutMs = 1000;
+    private int jRaftElectionTimeoutMs = 1000;
 
-    int jRaftScanWaitTimeoutMs = 1000;
-    int jRaftSnapshotIntervalSecs = 3600;
-    String jRaftGroupId = "jRaft-Controller";
-    String jRaftServerId = "localhost:9880";
-    String jRaftInitConf = "localhost:9880,localhost:9881,localhost:9882";
-    String jRaftControllerRPCAddr = "localhost:9770,localhost:9771,localhost:9772";
+    private int jRaftScanWaitTimeoutMs = 1000;
+    private int jRaftSnapshotIntervalSecs = 3600;
+    private String jRaftGroupId = "jRaft-Controller";
+    private String jRaftServerId = "localhost:9880";
+    private String jRaftInitConf = "localhost:9880,localhost:9881,localhost:9882";
+    private String jRaftControllerRPCAddr = "localhost:9770,localhost:9771,localhost:9772";
 
     public int getjRaftElectionTimeoutMs() {
         return jRaftElectionTimeoutMs;
