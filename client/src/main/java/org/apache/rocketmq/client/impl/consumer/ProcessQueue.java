@@ -202,10 +202,12 @@ public class ProcessQueue {
                         MessageExt prev = msgTreeMap.remove(msg.getQueueOffset());
                         if (prev != null) {
                             removedCnt--;
-                            msgSize.addAndGet(0 - msg.getBody().length);
+                            msgSize.addAndGet(-msg.getBody().length);
                         }
                     }
-                    msgCount.addAndGet(removedCnt);
+                    if (msgCount.addAndGet(removedCnt) == 0) {
+                        msgSize.set(0);
+                    }
 
                     if (!msgTreeMap.isEmpty()) {
                         result = msgTreeMap.firstKey();
@@ -268,9 +270,12 @@ public class ProcessQueue {
             this.treeMapLock.writeLock().lockInterruptibly();
             try {
                 Long offset = this.consumingMsgOrderlyTreeMap.lastKey();
-                msgCount.addAndGet(0 - this.consumingMsgOrderlyTreeMap.size());
-                for (MessageExt msg : this.consumingMsgOrderlyTreeMap.values()) {
-                    msgSize.addAndGet(0 - msg.getBody().length);
+                if (msgCount.addAndGet(-this.consumingMsgOrderlyTreeMap.size()) == 0) {
+                    msgSize.set(0);
+                } else {
+                    for (MessageExt msg : this.consumingMsgOrderlyTreeMap.values()) {
+                        msgSize.addAndGet(-msg.getBody().length);
+                    }
                 }
                 this.consumingMsgOrderlyTreeMap.clear();
                 if (offset != null) {
@@ -409,8 +414,8 @@ public class ProcessQueue {
                 info.setCachedMsgMinOffset(this.msgTreeMap.firstKey());
                 info.setCachedMsgMaxOffset(this.msgTreeMap.lastKey());
                 info.setCachedMsgCount(this.msgTreeMap.size());
-                info.setCachedMsgSizeInMiB((int) (this.msgSize.get() / (1024 * 1024)));
             }
+            info.setCachedMsgSizeInMiB((int) (this.msgSize.get() / (1024 * 1024)));
 
             if (!this.consumingMsgOrderlyTreeMap.isEmpty()) {
                 info.setTransactionMsgMinOffset(this.consumingMsgOrderlyTreeMap.firstKey());
