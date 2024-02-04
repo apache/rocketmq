@@ -464,7 +464,7 @@ public class ConsumerProcessor extends AbstractProcessor {
                 future.complete(null);
             });
         } catch (Throwable t) {
-            log.error("LockBatchMQ exception, group={}", consumerGroup, t);
+            log.error("UnlockBatchMQ exception, group={}", consumerGroup, t);
             future.completeExceptionally(t);
         }
         return FutureUtils.addExecutor(future, this.executor);
