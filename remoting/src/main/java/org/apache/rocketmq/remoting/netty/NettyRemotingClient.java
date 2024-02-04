@@ -619,7 +619,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
-            return cw.getChannel().newSucceededFuture();
+            return cw.getChannelFuture();
         }
 
         return this.createChannelAsync(addr);
@@ -634,7 +634,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (addr != null) {
             ChannelWrapper cw = this.channelTables.get(addr);
             if (cw != null && cw.isOK()) {
-                return cw.getChannel().newSucceededFuture();
+                return cw.getChannelFuture();
             }
         }
 
@@ -645,7 +645,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 if (addr != null) {
                     ChannelWrapper cw = this.channelTables.get(addr);
                     if (cw != null && cw.isOK()) {
-                        return cw.getChannel().newSucceededFuture();
+                        return cw.getChannelFuture();
                     }
                 }
 
@@ -674,36 +674,20 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private ChannelFuture createChannelAsync(final String addr) throws InterruptedException {
         ChannelWrapper cw = this.channelTables.get(addr);
         if (cw != null && cw.isOK()) {
-            return cw.getChannel().newSucceededFuture();
+            return cw.getChannelFuture();
         }
 
         if (this.lockChannelTables.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
             try {
-                boolean createNewConnection;
                 cw = this.channelTables.get(addr);
                 if (cw != null) {
-                    if (cw.isOK()) {
-                        return cw.getChannel().newSucceededFuture();
-                    } else if (!cw.getChannelFuture().isDone()) {
-                        createNewConnection = false;
+                    if (cw.isOK() || !cw.getChannelFuture().isDone()) {
+                        return cw.getChannelFuture();
                     } else {
                         this.channelTables.remove(addr);
-                        createNewConnection = true;
                     }
-                } else {
-                    createNewConnection = true;
                 }
-
-                if (createNewConnection) {
-                    String[] hostAndPort = getHostAndPort(addr);
-                    ChannelFuture channelFuture = fetchBootstrap(addr)
-                        .connect(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
-                    LOGGER.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
-                    cw = new ChannelWrapper(addr, channelFuture);
-                    this.channelTables.put(addr, cw);
-                    this.channelWrapperTables.put(channelFuture.channel(), cw);
-                    return channelFuture;
-                }
+                return createChannel(addr).getChannelFuture();
             } catch (Exception e) {
                 LOGGER.error("createChannel: create channel exception", e);
             } finally {
@@ -716,12 +700,27 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return null;
     }
 
+    private ChannelWrapper createChannel(String addr) {
+        String[] hostAndPort = getHostAndPort(addr);
+        ChannelFuture channelFuture = fetchBootstrap(addr)
+            .connect(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
+        LOGGER.info("createChannel: begin to connect remote host[{}] asynchronously", addr);
+        ChannelWrapper cw = new ChannelWrapper(addr, channelFuture);
+        this.channelTables.put(addr, cw);
+        this.channelWrapperTables.put(channelFuture.channel(), cw);
+        return cw;
+    }
+
     @Override
     public void invokeAsync(String addr, RemotingCommand request, long timeoutMillis, InvokeCallback invokeCallback)
         throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException,
         RemotingSendRequestException {
         long beginStartTime = System.currentTimeMillis();
         final ChannelFuture channelFuture = this.getAndCreateChannelAsync(addr);
+        if (channelFuture == null) {
+            invokeCallback.operationFail(new RemotingConnectException(addr));
+            return;
+        }
         channelFuture.addListener(future -> {
             if (future.isSuccess()) {
                 Channel channel = channelFuture.channel();
@@ -746,6 +745,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public void invokeOneway(String addr, RemotingCommand request, long timeoutMillis) throws InterruptedException,
         RemotingConnectException, RemotingTooMuchRequestException, RemotingTimeoutException, RemotingSendRequestException {
         final ChannelFuture channelFuture = this.getAndCreateChannelAsync(addr);
+        if (channelFuture == null) {
+            throw new RemotingConnectException(addr);
+        }
         channelFuture.addListener(future -> {
             if (future.isSuccess()) {
                 Channel channel = channelFuture.channel();
@@ -766,6 +768,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
             final ChannelFuture channelFuture = this.getAndCreateChannelAsync(addr);
+            if (channelFuture == null) {
+                future.completeExceptionally(new RemotingConnectException(addr));
+                return future;
+            }
             channelFuture.addListener(f -> {
                 if (f.isSuccess()) {
                     Channel channel = channelFuture.channel();
