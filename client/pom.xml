@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>5.1.3</version>
+        <version>4.7.1-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -28,13 +28,14 @@
     <name>rocketmq-client ${project.version}</name>
 
     <properties>
-        <project.root>${basedir}/..</project.root>
+        <maven.compiler.source>1.6</maven.compiler.source>
+        <maven.compiler.target>1.6</maven.compiler.target>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-remoting</artifactId>
+            <artifactId>rocketmq-common</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>io.netty</groupId>
@@ -43,28 +44,23 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.opentracing</groupId>
-            <artifactId>opentracing-api</artifactId>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.opentracing</groupId>
-            <artifactId>opentracing-mock</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.aliyunmq</groupId>
-            <artifactId>rocketmq-slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.github.aliyunmq</groupId>
-            <artifactId>rocketmq-logback-classic</artifactId>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
