@@ -17,16 +17,16 @@
 
 package org.apache.rocketmq.tools.command.offset;
 
-import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -57,13 +57,26 @@ public class ResetOffsetByTimeCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("f", "force", true, "set the force rollback by timestamp switch[true|false]");
+        opt = new Option("f", "force", true, "set the force rollback by timestamp switch[true|false]. Deprecated.");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c", "cplus", false, "reset c++ client offset");
+        opt = new Option("c", "cplus", false, "reset c++ client offset. Deprecated.");
         opt.setRequired(false);
         options.addOption(opt);
+
+        opt = new Option("b", "broker", true, "broker addr");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("q", "queue", true, "queue id");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("o", "offset", true, "Expect queue offset, not support old version broker");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -75,32 +88,64 @@ public class ResetOffsetByTimeCommand implements SubCommand {
             String group = commandLine.getOptionValue("g").trim();
             String topic = commandLine.getOptionValue("t").trim();
             String timeStampStr = commandLine.getOptionValue("s").trim();
-            long timestamp = timeStampStr.equals("now") ? System.currentTimeMillis() : 0;
+            long timestamp = "now".equals(timeStampStr) ? System.currentTimeMillis() : 0;
 
             try {
                 if (timestamp == 0) {
                     timestamp = Long.parseLong(timeStampStr);
                 }
             } catch (NumberFormatException e) {
-
-                timestamp = UtilAll.parseDate(timeStampStr, UtilAll.YYYY_MM_DD_HH_MM_SS_SSS).getTime();
+                timestamp = Objects.requireNonNull(
+                    UtilAll.parseDate(timeStampStr, UtilAll.YYYY_MM_DD_HH_MM_SS_SSS)).getTime();
             }
 
             boolean force = true;
             if (commandLine.hasOption('f')) {
-                force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
+                force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
             }
 
-            boolean isC = false;
-            if (commandLine.hasOption('c')) {
-                isC = true;
+            boolean isC = commandLine.hasOption('c');
+
+            String brokerAddr = null;
+            if (commandLine.hasOption('b')) {
+                brokerAddr = commandLine.getOptionValue("b");
+            }
+            int queueId = -1;
+            if (commandLine.hasOption("q")) {
+                queueId = Integer.parseInt(commandLine.getOptionValue('q'));
+            }
+
+            if (commandLine.hasOption('n')) {
+                defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
+            }
+
+            Long offset = null;
+            if (commandLine.hasOption('o')) {
+                offset = Long.parseLong(commandLine.getOptionValue('o'));
             }
 
             defaultMQAdminExt.start();
+
+            if (brokerAddr != null && queueId >= 0) {
+                System.out.printf("start reset consumer offset by specified, " +
+                        "group[%s], topic[%s], queueId[%s], broker[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
+                        group, topic, queueId, brokerAddr, timeStampStr, timestamp);
+
+                long resetOffset = null != offset ? offset :
+                    defaultMQAdminExt.searchOffset(brokerAddr, topic, queueId, timestamp, 3000);
+
+                System.out.printf("reset consumer offset to %d%n", resetOffset);
+                if (resetOffset > 0) {
+                    defaultMQAdminExt.resetOffsetByQueueId(brokerAddr, group, topic, queueId, resetOffset);
+                }
+                return;
+            }
+
             Map<MessageQueue, Long> offsetTable;
             try {
                 offsetTable = defaultMQAdminExt.resetOffsetByTimestamp(topic, group, timestamp, force, isC);
             } catch (MQClientException e) {
+                // if consumer not online, use old command to reset reset
                 if (ResponseCode.CONSUMER_NOT_ONLINE == e.getResponseCode()) {
                     ResetOffsetByTimeOldCommand.resetOffset(defaultMQAdminExt, group, topic, timestamp, force, timeStampStr);
                     return;
@@ -108,17 +153,13 @@ public class ResetOffsetByTimeCommand implements SubCommand {
                 throw e;
             }
 
-            System.out.printf("rollback consumer offset by specified group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
+            System.out.printf("start reset consumer offset by specified, " +
+                    "group[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
                 group, topic, force, timeStampStr, timestamp);
 
-            System.out.printf("%-40s  %-40s  %-40s%n",
-                "#brokerName",
-                "#queueId",
-                "#offset");
+            System.out.printf("%-40s  %-40s  %-40s%n", "#brokerName", "#queueId", "#offset");
 
-            Iterator<Map.Entry<MessageQueue, Long>> iterator = offsetTable.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<MessageQueue, Long> entry = iterator.next();
+            for (Map.Entry<MessageQueue, Long> entry : offsetTable.entrySet()) {
                 System.out.printf("%-40s  %-40d  %-40d%n",
                     UtilAll.frontStringAtLeast(entry.getKey().getBrokerName(), 32),
                     entry.getKey().getQueueId(),

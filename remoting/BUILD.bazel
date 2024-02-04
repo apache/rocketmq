@@ -1,0 +1,77 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+load("//bazel:GenTestRules.bzl", "GenTestRules")
+
+java_library(
+    name = "remoting",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common",
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:com_squareup_okio_okio_jvm",
+        "@maven//:io_netty_netty_all",
+        "@maven//:io_opentelemetry_opentelemetry_api",
+        "@maven//:io_opentelemetry_opentelemetry_context",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_prometheus",
+        "@maven//:io_opentelemetry_opentelemetry_sdk",
+        "@maven//:io_opentelemetry_opentelemetry_sdk_common",
+        "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
+        "@maven//:org_apache_tomcat_annotations_api",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
+    ],
+)
+
+java_library(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":remoting",
+        "//common",
+        "//:test_deps",
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:com_google_code_gson_gson",
+        "@maven//:com_google_guava_guava",
+        "@maven//:com_google_code_findbugs_jsr305",
+        "@maven//:com_squareup_okio_okio_jvm",
+        "@maven//:io_netty_netty_all",
+        "@maven//:io_opentelemetry_opentelemetry_api",
+        "@maven//:io_opentelemetry_opentelemetry_context",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_prometheus",
+        "@maven//:io_opentelemetry_opentelemetry_sdk",
+        "@maven//:io_opentelemetry_opentelemetry_sdk_common",
+        "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
+        "@maven//:org_apache_tomcat_annotations_api",
+        "@maven//:org_apache_commons_commons_lang3",
+    ],
+    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+)
+
+GenTestRules(
+    name = "GeneratedTestRules",
+    test_files = glob(["src/test/java/**/*Test.java"]),
+    deps = [
+        ":tests",
+    ],
+)

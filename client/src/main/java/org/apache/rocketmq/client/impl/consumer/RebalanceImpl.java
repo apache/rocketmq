@@ -28,29 +28,43 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.log.ClientLogger;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.body.LockBatchRequestBody;
-import org.apache.rocketmq.common.protocol.body.UnlockBatchRequestBody;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.message.MessageQueueAssignment;
+import org.apache.rocketmq.common.message.MessageRequestMode;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public abstract class RebalanceImpl {
-    protected static final InternalLogger log = ClientLogger.getLog();
-    protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
+    protected static final Logger log = LoggerFactory.getLogger(RebalanceImpl.class);
+
+    protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<>(64);
+    protected final ConcurrentMap<MessageQueue, PopProcessQueue> popProcessQueueTable = new ConcurrentHashMap<>(64);
+
     protected final ConcurrentMap<String/* topic */, Set<MessageQueue>> topicSubscribeInfoTable =
-        new ConcurrentHashMap<String, Set<MessageQueue>>();
+        new ConcurrentHashMap<>();
     protected final ConcurrentMap<String /* topic */, SubscriptionData> subscriptionInner =
-        new ConcurrentHashMap<String, SubscriptionData>();
+        new ConcurrentHashMap<>();
     protected String consumerGroup;
     protected MessageModel messageModel;
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
     protected MQClientInstance mQClientFactory;
+    private static final int TIMEOUT_CHECK_TIMES = 3;
+    private static final int QUERY_ASSIGNMENT_TIMEOUT = 3000;
+
+    private Map<String, String> topicBrokerRebalance = new ConcurrentHashMap<>();
+    private Map<String, String> topicClientRebalance = new ConcurrentHashMap<>();
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy,
@@ -62,7 +76,7 @@ public abstract class RebalanceImpl {
     }
 
     public void unlock(final MessageQueue mq, final boolean oneway) {
-        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(this.mQClientFactory.getBrokerNameFromMessageQueue(mq), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
             UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
             requestBody.setConsumerGroup(this.consumerGroup);
@@ -88,8 +102,9 @@ public abstract class RebalanceImpl {
             final String brokerName = entry.getKey();
             final Set<MessageQueue> mqs = entry.getValue();
 
-            if (mqs.isEmpty())
+            if (mqs.isEmpty()) {
                 continue;
+            }
 
             FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
             if (findBrokerResult != null) {
@@ -116,11 +131,20 @@ public abstract class RebalanceImpl {
     }
 
     private HashMap<String/* brokerName */, Set<MessageQueue>> buildProcessQueueTableByBrokerName() {
-        HashMap<String, Set<MessageQueue>> result = new HashMap<String, Set<MessageQueue>>();
-        for (MessageQueue mq : this.processQueueTable.keySet()) {
-            Set<MessageQueue> mqs = result.get(mq.getBrokerName());
+        HashMap<String, Set<MessageQueue>> result = new HashMap<>();
+
+        for (Map.Entry<MessageQueue, ProcessQueue> entry : this.processQueueTable.entrySet()) {
+            MessageQueue mq = entry.getKey();
+            ProcessQueue pq = entry.getValue();
+
+            if (pq.isDropped()) {
+                continue;
+            }
+
+            String destBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(mq);
+            Set<MessageQueue> mqs = result.get(destBrokerName);
             if (null == mqs) {
-                mqs = new HashSet<MessageQueue>();
+                mqs = new HashSet<>();
                 result.put(mq.getBrokerName(), mqs);
             }
 
@@ -131,7 +155,7 @@ public abstract class RebalanceImpl {
     }
 
     public boolean lock(final MessageQueue mq) {
-        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(this.mQClientFactory.getBrokerNameFromMessageQueue(mq), MixAll.MASTER_ID, true);
         if (findBrokerResult != null) {
             LockBatchRequestBody requestBody = new LockBatchRequestBody();
             requestBody.setConsumerGroup(this.consumerGroup);
@@ -150,10 +174,7 @@ public abstract class RebalanceImpl {
                 }
 
                 boolean lockOK = lockedMq.contains(mq);
-                log.info("the message queue lock {}, {} {}",
-                    lockOK ? "OK" : "Failed",
-                    this.consumerGroup,
-                    mq);
+                log.info("message queue lock {}, {} {}", lockOK ? "OK" : "Failed", this.consumerGroup, mq);
                 return lockOK;
             } catch (Exception e) {
                 log.error("lockBatchMQ exception, " + mq, e);
@@ -172,8 +193,9 @@ public abstract class RebalanceImpl {
             final String brokerName = entry.getKey();
             final Set<MessageQueue> mqs = entry.getValue();
 
-            if (mqs.isEmpty())
+            if (mqs.isEmpty()) {
                 continue;
+            }
 
             FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, true);
             if (findBrokerResult != null) {
@@ -186,21 +208,16 @@ public abstract class RebalanceImpl {
                     Set<MessageQueue> lockOKMQSet =
                         this.mQClientFactory.getMQClientAPIImpl().lockBatchMQ(findBrokerResult.getBrokerAddr(), requestBody, 1000);
 
-                    for (MessageQueue mq : lockOKMQSet) {
+                    for (MessageQueue mq : mqs) {
                         ProcessQueue processQueue = this.processQueueTable.get(mq);
                         if (processQueue != null) {
-                            if (!processQueue.isLocked()) {
-                                log.info("the message queue locked OK, Group: {} {}", this.consumerGroup, mq);
-                            }
-
-                            processQueue.setLocked(true);
-                            processQueue.setLastLockTimestamp(System.currentTimeMillis());
-                        }
-                    }
-                    for (MessageQueue mq : mqs) {
-                        if (!lockOKMQSet.contains(mq)) {
-                            ProcessQueue processQueue = this.processQueueTable.get(mq);
-                            if (processQueue != null) {
+                            if (lockOKMQSet.contains(mq)) {
+                                if (!processQueue.isLocked()) {
+                                    log.info("the message queue locked OK, Group: {} {}", this.consumerGroup, mq);
+                                }
+                                processQueue.setLocked(true);
+                                processQueue.setLastLockTimestamp(System.currentTimeMillis());
+                            } else {
                                 processQueue.setLocked(false);
                                 log.warn("the message queue locked Failed, Group: {} {}", this.consumerGroup, mq);
                             }
@@ -213,29 +230,74 @@ public abstract class RebalanceImpl {
         }
     }
 
-    public void doRebalance(final boolean isOrder) {
+    public boolean clientRebalance(String topic) {
+        return true;
+    }
+
+    public boolean doRebalance(final boolean isOrder) {
+        boolean balanced = true;
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
                 try {
-                    this.rebalanceByTopic(topic, isOrder);
+                    if (!clientRebalance(topic) && tryQueryAssignment(topic)) {
+                        balanced = this.getRebalanceResultFromBroker(topic, isOrder);
+                    } else {
+                        balanced = this.rebalanceByTopic(topic, isOrder);
+                    }
                 } catch (Throwable e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
-                        log.warn("rebalanceByTopic Exception", e);
+                        log.warn("rebalance Exception", e);
+                        balanced = false;
                     }
                 }
             }
         }
 
         this.truncateMessageQueueNotMyTopic();
+
+        return balanced;
+    }
+
+    private boolean tryQueryAssignment(String topic) {
+        if (topicClientRebalance.containsKey(topic)) {
+            return false;
+        }
+
+        if (topicBrokerRebalance.containsKey(topic)) {
+            return true;
+        }
+        String strategyName = allocateMessageQueueStrategy != null ? allocateMessageQueueStrategy.getName() : null;
+        int retryTimes = 0;
+        while (retryTimes++ < TIMEOUT_CHECK_TIMES) {
+            try {
+                Set<MessageQueueAssignment> resultSet = mQClientFactory.queryAssignment(topic, consumerGroup,
+                    strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT / TIMEOUT_CHECK_TIMES * retryTimes);
+                topicBrokerRebalance.put(topic, topic);
+                return true;
+            } catch (Throwable t) {
+                if (!(t instanceof RemotingTimeoutException)) {
+                    log.error("tryQueryAssignment error.", t);
+                    topicClientRebalance.put(topic, topic);
+                    return false;
+                }
+            }
+        }
+        if (retryTimes >= TIMEOUT_CHECK_TIMES) {
+            // if never success before and timeout exceed TIMEOUT_CHECK_TIMES, force client rebalance
+            topicClientRebalance.put(topic, topic);
+            return false;
+        }
+        return true;
     }
 
     public ConcurrentMap<String, SubscriptionData> getSubscriptionInner() {
         return subscriptionInner;
     }
 
-    private void rebalanceByTopic(final String topic, final boolean isOrder) {
+    private boolean rebalanceByTopic(final String topic, final boolean isOrder) {
+        boolean balanced = true;
         switch (messageModel) {
             case BROADCASTING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
@@ -243,13 +305,12 @@ public abstract class RebalanceImpl {
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
                     if (changed) {
                         this.messageQueueChanged(topic, mqSet, mqSet);
-                        log.info("messageQueueChanged {} {} {} {}",
-                            consumerGroup,
-                            topic,
-                            mqSet,
-                            mqSet);
+                        log.info("messageQueueChanged {} {} {} {}", consumerGroup, topic, mqSet, mqSet);
                     }
+
+                    balanced = mqSet.equals(getWorkingMessageQueue(topic));
                 } else {
+                    this.messageQueueChanged(topic, Collections.<MessageQueue>emptySet(), Collections.<MessageQueue>emptySet());
                     log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
                 }
                 break;
@@ -259,6 +320,7 @@ public abstract class RebalanceImpl {
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                        this.messageQueueChanged(topic, Collections.<MessageQueue>emptySet(), Collections.<MessageQueue>emptySet());
                         log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
                     }
                 }
@@ -268,7 +330,7 @@ public abstract class RebalanceImpl {
                 }
 
                 if (mqSet != null && cidAll != null) {
-                    List<MessageQueue> mqAll = new ArrayList<MessageQueue>();
+                    List<MessageQueue> mqAll = new ArrayList<>();
                     mqAll.addAll(mqSet);
 
                     Collections.sort(mqAll);
@@ -284,12 +346,11 @@ public abstract class RebalanceImpl {
                             mqAll,
                             cidAll);
                     } catch (Throwable e) {
-                        log.error("AllocateMessageQueueStrategy.allocate Exception. allocateMessageQueueStrategyName={}", strategy.getName(),
-                            e);
-                        return;
+                        log.error("allocate message queue exception. strategy name: {}, ex: {}", strategy.getName(), e);
+                        return false;
                     }
 
-                    Set<MessageQueue> allocateResultSet = new HashSet<MessageQueue>();
+                    Set<MessageQueue> allocateResultSet = new HashSet<>();
                     if (allocateResult != null) {
                         allocateResultSet.addAll(allocateResult);
                     }
@@ -297,17 +358,76 @@ public abstract class RebalanceImpl {
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
-                            "rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, mqAllSize={}, cidAllSize={}, rebalanceResultSize={}, rebalanceResultSet={}",
+                            "client rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, mqAllSize={}, cidAllSize={}, rebalanceResultSize={}, rebalanceResultSet={}",
                             strategy.getName(), consumerGroup, topic, this.mQClientFactory.getClientId(), mqSet.size(), cidAll.size(),
                             allocateResultSet.size(), allocateResultSet);
                         this.messageQueueChanged(topic, mqSet, allocateResultSet);
                     }
+
+                    balanced = allocateResultSet.equals(getWorkingMessageQueue(topic));
                 }
                 break;
             }
             default:
                 break;
         }
+
+        return balanced;
+    }
+
+    private boolean getRebalanceResultFromBroker(final String topic, final boolean isOrder) {
+        String strategyName = this.allocateMessageQueueStrategy.getName();
+        Set<MessageQueueAssignment> messageQueueAssignments;
+        try {
+            messageQueueAssignments = this.mQClientFactory.queryAssignment(topic, consumerGroup,
+                strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT);
+        } catch (Exception e) {
+            log.error("allocate message queue exception. strategy name: {}, ex: {}", strategyName, e);
+            return false;
+        }
+
+        // null means invalid result, we should skip the update logic
+        if (messageQueueAssignments == null) {
+            return false;
+        }
+        Set<MessageQueue> mqSet = new HashSet<>();
+        for (MessageQueueAssignment messageQueueAssignment : messageQueueAssignments) {
+            if (messageQueueAssignment.getMessageQueue() != null) {
+                mqSet.add(messageQueueAssignment.getMessageQueue());
+            }
+        }
+        Set<MessageQueue> mqAll = null;
+        boolean changed = this.updateMessageQueueAssignment(topic, messageQueueAssignments, isOrder);
+        if (changed) {
+            log.info("broker rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, assignmentSet={}",
+                strategyName, consumerGroup, topic, this.mQClientFactory.getClientId(), messageQueueAssignments);
+            this.messageQueueChanged(topic, mqAll, mqSet);
+        }
+
+        return mqSet.equals(getWorkingMessageQueue(topic));
+    }
+
+    private Set<MessageQueue> getWorkingMessageQueue(String topic) {
+        Set<MessageQueue> queueSet = new HashSet<>();
+        for (Entry<MessageQueue, ProcessQueue> entry : this.processQueueTable.entrySet()) {
+            MessageQueue mq = entry.getKey();
+            ProcessQueue pq = entry.getValue();
+
+            if (mq.getTopic().equals(topic) && !pq.isDropped()) {
+                queueSet.add(mq);
+            }
+        }
+
+        for (Entry<MessageQueue, PopProcessQueue> entry : this.popProcessQueueTable.entrySet()) {
+            MessageQueue mq = entry.getKey();
+            PopProcessQueue pq = entry.getValue();
+
+            if (mq.getTopic().equals(topic) && !pq.isDropped()) {
+                queueSet.add(mq);
+            }
+        }
+
+        return queueSet;
     }
 
     private void truncateMessageQueueNotMyTopic() {
@@ -323,12 +443,39 @@ public abstract class RebalanceImpl {
                 }
             }
         }
+
+        for (MessageQueue mq : this.popProcessQueueTable.keySet()) {
+            if (!subTable.containsKey(mq.getTopic())) {
+
+                PopProcessQueue pq = this.popProcessQueueTable.remove(mq);
+                if (pq != null) {
+                    pq.setDropped(true);
+                    log.info("doRebalance, {}, truncateMessageQueueNotMyTopic remove unnecessary pop mq, {}", consumerGroup, mq);
+                }
+            }
+        }
+
+        Iterator<Map.Entry<String, String>> clientIter = topicClientRebalance.entrySet().iterator();
+        while (clientIter.hasNext()) {
+            if (!subTable.containsKey(clientIter.next().getKey())) {
+                clientIter.remove();
+            }
+        }
+
+        Iterator<Map.Entry<String, String>> brokerIter = topicBrokerRebalance.entrySet().iterator();
+        while (brokerIter.hasNext()) {
+            if (!subTable.containsKey(brokerIter.next().getKey())) {
+                brokerIter.remove();
+            }
+        }
     }
 
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
         final boolean isOrder) {
         boolean changed = false;
 
+        // drop process queues no longer belong me
+        HashMap<MessageQueue, ProcessQueue> removeQueueMap = new HashMap<>(this.processQueueTable.size());
         Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<MessageQueue, ProcessQueue> next = it.next();
@@ -338,41 +485,42 @@ public abstract class RebalanceImpl {
             if (mq.getTopic().equals(topic)) {
                 if (!mqSet.contains(mq)) {
                     pq.setDropped(true);
-                    if (this.removeUnnecessaryMessageQueue(mq, pq)) {
-                        it.remove();
-                        changed = true;
-                        log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
-                    }
-                } else if (pq.isPullExpired()) {
-                    switch (this.consumeType()) {
-                        case CONSUME_ACTIVELY:
-                            break;
-                        case CONSUME_PASSIVELY:
-                            pq.setDropped(true);
-                            if (this.removeUnnecessaryMessageQueue(mq, pq)) {
-                                it.remove();
-                                changed = true;
-                                log.error("[BUG]doRebalance, {}, remove unnecessary mq, {}, because pull is pause, so try to fixed it",
-                                    consumerGroup, mq);
-                            }
-                            break;
-                        default:
-                            break;
-                    }
+                    removeQueueMap.put(mq, pq);
+                } else if (pq.isPullExpired() && this.consumeType() == ConsumeType.CONSUME_PASSIVELY) {
+                    pq.setDropped(true);
+                    removeQueueMap.put(mq, pq);
+                    log.error("[BUG]doRebalance, {}, try remove unnecessary mq, {}, because pull is pause, so try to fixed it",
+                        consumerGroup, mq);
                 }
             }
         }
 
-        List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
+        // remove message queues no longer belong me
+        for (Entry<MessageQueue, ProcessQueue> entry : removeQueueMap.entrySet()) {
+            MessageQueue mq = entry.getKey();
+            ProcessQueue pq = entry.getValue();
+
+            if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+                this.processQueueTable.remove(mq);
+                changed = true;
+                log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
+            }
+        }
+
+        // add new message queue
+        boolean allMQLocked = true;
+        List<PullRequest> pullRequestList = new ArrayList<>();
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
                 if (isOrder && !this.lock(mq)) {
                     log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
+                    allMQLocked = false;
                     continue;
                 }
 
                 this.removeDirtyOffset(mq);
-                ProcessQueue pq = new ProcessQueue();
+                ProcessQueue pq = createProcessQueue(topic);
+                pq.setLocked(true);
                 long nextOffset = this.computePullFromWhere(mq);
                 if (nextOffset >= 0) {
                     ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
@@ -392,9 +540,201 @@ public abstract class RebalanceImpl {
                     log.warn("doRebalance, {}, add new mq failed, {}", consumerGroup, mq);
                 }
             }
+
         }
 
-        this.dispatchPullRequest(pullRequestList);
+        if (!allMQLocked) {
+            mQClientFactory.rebalanceLater(500);
+        }
+
+        this.dispatchPullRequest(pullRequestList, 500);
+
+        return changed;
+    }
+
+    private boolean updateMessageQueueAssignment(final String topic, final Set<MessageQueueAssignment> assignments,
+        final boolean isOrder) {
+        boolean changed = false;
+
+        Map<MessageQueue, MessageQueueAssignment> mq2PushAssignment = new HashMap<>();
+        Map<MessageQueue, MessageQueueAssignment> mq2PopAssignment = new HashMap<>();
+        for (MessageQueueAssignment assignment : assignments) {
+            MessageQueue messageQueue = assignment.getMessageQueue();
+            if (messageQueue == null) {
+                continue;
+            }
+            if (MessageRequestMode.POP == assignment.getMode()) {
+                mq2PopAssignment.put(messageQueue, assignment);
+            } else {
+                mq2PushAssignment.put(messageQueue, assignment);
+            }
+        }
+
+        if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+            if (mq2PopAssignment.isEmpty() && !mq2PushAssignment.isEmpty()) {
+                //pop switch to push
+                //subscribe pop retry topic
+                try {
+                    final String retryTopic = KeyBuilder.buildPopRetryTopic(topic, getConsumerGroup());
+                    SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(retryTopic, SubscriptionData.SUB_ALL);
+                    getSubscriptionInner().put(retryTopic, subscriptionData);
+                } catch (Exception ignored) {
+                }
+
+            } else if (!mq2PopAssignment.isEmpty() && mq2PushAssignment.isEmpty()) {
+                //push switch to pop
+                //unsubscribe pop retry topic
+                try {
+                    final String retryTopic = KeyBuilder.buildPopRetryTopic(topic, getConsumerGroup());
+                    getSubscriptionInner().remove(retryTopic);
+                } catch (Exception ignored) {
+                }
+
+            }
+        }
+
+        {
+            // drop process queues no longer belong me
+            HashMap<MessageQueue, ProcessQueue> removeQueueMap = new HashMap<>(this.processQueueTable.size());
+            Iterator<Entry<MessageQueue, ProcessQueue>> it = this.processQueueTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<MessageQueue, ProcessQueue> next = it.next();
+                MessageQueue mq = next.getKey();
+                ProcessQueue pq = next.getValue();
+
+                if (mq.getTopic().equals(topic)) {
+                    if (!mq2PushAssignment.containsKey(mq)) {
+                        pq.setDropped(true);
+                        removeQueueMap.put(mq, pq);
+                    } else if (pq.isPullExpired() && this.consumeType() == ConsumeType.CONSUME_PASSIVELY) {
+                        pq.setDropped(true);
+                        removeQueueMap.put(mq, pq);
+                        log.error("[BUG]doRebalance, {}, try remove unnecessary mq, {}, because pull is pause, so try to fixed it",
+                            consumerGroup, mq);
+                    }
+                }
+            }
+            // remove message queues no longer belong me
+            for (Entry<MessageQueue, ProcessQueue> entry : removeQueueMap.entrySet()) {
+                MessageQueue mq = entry.getKey();
+                ProcessQueue pq = entry.getValue();
+
+                if (this.removeUnnecessaryMessageQueue(mq, pq)) {
+                    this.processQueueTable.remove(mq);
+                    changed = true;
+                    log.info("doRebalance, {}, remove unnecessary mq, {}", consumerGroup, mq);
+                }
+            }
+        }
+
+        {
+            HashMap<MessageQueue, PopProcessQueue> removeQueueMap = new HashMap<>(this.popProcessQueueTable.size());
+            Iterator<Entry<MessageQueue, PopProcessQueue>> it = this.popProcessQueueTable.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<MessageQueue, PopProcessQueue> next = it.next();
+                MessageQueue mq = next.getKey();
+                PopProcessQueue pq = next.getValue();
+
+                if (mq.getTopic().equals(topic)) {
+                    if (!mq2PopAssignment.containsKey(mq)) {
+                        //the queue is no longer your assignment
+                        pq.setDropped(true);
+                        removeQueueMap.put(mq, pq);
+                    } else if (pq.isPullExpired() && this.consumeType() == ConsumeType.CONSUME_PASSIVELY) {
+                        pq.setDropped(true);
+                        removeQueueMap.put(mq, pq);
+                        log.error("[BUG]doRebalance, {}, try remove unnecessary pop mq, {}, because pop is pause, so try to fixed it",
+                            consumerGroup, mq);
+                    }
+                }
+            }
+            // remove message queues no longer belong me
+            for (Entry<MessageQueue, PopProcessQueue> entry : removeQueueMap.entrySet()) {
+                MessageQueue mq = entry.getKey();
+                PopProcessQueue pq = entry.getValue();
+
+                if (this.removeUnnecessaryPopMessageQueue(mq, pq)) {
+                    this.popProcessQueueTable.remove(mq);
+                    changed = true;
+                    log.info("doRebalance, {}, remove unnecessary pop mq, {}", consumerGroup, mq);
+                }
+            }
+        }
+
+        {
+            // add new message queue
+            boolean allMQLocked = true;
+            List<PullRequest> pullRequestList = new ArrayList<>();
+            for (MessageQueue mq : mq2PushAssignment.keySet()) {
+                if (!this.processQueueTable.containsKey(mq)) {
+                    if (isOrder && !this.lock(mq)) {
+                        log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
+                        allMQLocked = false;
+                        continue;
+                    }
+
+                    this.removeDirtyOffset(mq);
+                    ProcessQueue pq = createProcessQueue();
+                    pq.setLocked(true);
+                    long nextOffset = -1L;
+                    try {
+                        nextOffset = this.computePullFromWhereWithException(mq);
+                    } catch (Exception e) {
+                        log.info("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
+                        continue;
+                    }
+
+                    if (nextOffset >= 0) {
+                        ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
+                        if (pre != null) {
+                            log.info("doRebalance, {}, mq already exists, {}", consumerGroup, mq);
+                        } else {
+                            log.info("doRebalance, {}, add a new mq, {}", consumerGroup, mq);
+                            PullRequest pullRequest = new PullRequest();
+                            pullRequest.setConsumerGroup(consumerGroup);
+                            pullRequest.setNextOffset(nextOffset);
+                            pullRequest.setMessageQueue(mq);
+                            pullRequest.setProcessQueue(pq);
+                            pullRequestList.add(pullRequest);
+                            changed = true;
+                        }
+                    } else {
+                        log.warn("doRebalance, {}, add new mq failed, {}", consumerGroup, mq);
+                    }
+                }
+            }
+
+            if (!allMQLocked) {
+                mQClientFactory.rebalanceLater(500);
+            }
+            this.dispatchPullRequest(pullRequestList, 500);
+        }
+
+        {
+            // add new message queue
+            List<PopRequest> popRequestList = new ArrayList<>();
+            for (MessageQueue mq : mq2PopAssignment.keySet()) {
+                if (!this.popProcessQueueTable.containsKey(mq)) {
+                    PopProcessQueue pq = createPopProcessQueue();
+                    PopProcessQueue pre = this.popProcessQueueTable.putIfAbsent(mq, pq);
+                    if (pre != null) {
+                        log.info("doRebalance, {}, mq pop already exists, {}", consumerGroup, mq);
+                    } else {
+                        log.info("doRebalance, {}, add a new pop mq, {}", consumerGroup, mq);
+                        PopRequest popRequest = new PopRequest();
+                        popRequest.setTopic(topic);
+                        popRequest.setConsumerGroup(consumerGroup);
+                        popRequest.setMessageQueue(mq);
+                        popRequest.setPopProcessQueue(pq);
+                        popRequest.setInitMode(getConsumeInitMode());
+                        popRequestList.add(popRequest);
+                        changed = true;
+                    }
+                }
+            }
+
+            this.dispatchPopPullRequest(popRequestList, 500);
+        }
 
         return changed;
     }
@@ -404,13 +744,36 @@ public abstract class RebalanceImpl {
 
     public abstract boolean removeUnnecessaryMessageQueue(final MessageQueue mq, final ProcessQueue pq);
 
+    public boolean removeUnnecessaryPopMessageQueue(final MessageQueue mq, final PopProcessQueue pq) {
+        return true;
+    }
+
     public abstract ConsumeType consumeType();
 
     public abstract void removeDirtyOffset(final MessageQueue mq);
 
+    /**
+     * When the network is unstable, using this interface may return wrong offset.
+     * It is recommended to use computePullFromWhereWithException instead.
+     * @param mq
+     * @return offset
+     */
+    @Deprecated
     public abstract long computePullFromWhere(final MessageQueue mq);
 
-    public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList);
+    public abstract long computePullFromWhereWithException(final MessageQueue mq) throws MQClientException;
+
+    public abstract int getConsumeInitMode();
+
+    public abstract void dispatchPullRequest(final List<PullRequest> pullRequestList, final long delay);
+
+    public abstract void dispatchPopPullRequest(final List<PopRequest> pullRequestList, final long delay);
+
+    public abstract ProcessQueue createProcessQueue();
+
+    public abstract PopProcessQueue createPopProcessQueue();
+
+    public abstract ProcessQueue createProcessQueue(String topicName);
 
     public void removeProcessQueue(final MessageQueue mq) {
         ProcessQueue prev = this.processQueueTable.remove(mq);
@@ -424,6 +787,10 @@ public abstract class RebalanceImpl {
 
     public ConcurrentMap<MessageQueue, ProcessQueue> getProcessQueueTable() {
         return processQueueTable;
+    }
+
+    public ConcurrentMap<MessageQueue, PopProcessQueue> getPopProcessQueueTable() {
+        return popProcessQueueTable;
     }
 
     public ConcurrentMap<String, Set<MessageQueue>> getTopicSubscribeInfoTable() {
@@ -470,5 +837,13 @@ public abstract class RebalanceImpl {
         }
 
         this.processQueueTable.clear();
+
+        Iterator<Entry<MessageQueue, PopProcessQueue>> popIt = this.popProcessQueueTable.entrySet().iterator();
+        while (popIt.hasNext()) {
+            Entry<MessageQueue, PopProcessQueue> next = popIt.next();
+            next.getValue().setDropped(true);
+        }
+        this.popProcessQueueTable.clear();
     }
+
 }

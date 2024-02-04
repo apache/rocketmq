@@ -16,32 +16,37 @@
  */
 package org.apache.rocketmq.broker.processor;
 
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.FileRegion;
+import io.opentelemetry.api.common.Attributes;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.pagecache.OneMessageTransfer;
 import org.apache.rocketmq.broker.pagecache.QueryMessageTransfer;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.common.protocol.RequestCode;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.QueryMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.header.QueryMessageResponseHeader;
-import org.apache.rocketmq.common.protocol.header.ViewMessageRequestHeader;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.netty.AsyncNettyRequestProcessor;
+import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.QueryMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.QueryMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.ViewMessageRequestHeader;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
-public class QueryMessageProcessor extends AsyncNettyRequestProcessor implements NettyRequestProcessor {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_REQUEST_CODE;
+import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESPONSE_CODE;
+import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESULT;
 
+public class QueryMessageProcessor implements NettyRequestProcessor {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
 
     public QueryMessageProcessor(final BrokerController brokerController) {
@@ -102,17 +107,22 @@ public class QueryMessageProcessor extends AsyncNettyRequestProcessor implements
                 FileRegion fileRegion =
                     new QueryMessageTransfer(response.encodeHeader(queryMessageResult
                         .getBufferTotalSize()), queryMessageResult);
-                ctx.channel().writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
+                ctx.channel()
+                    .writeAndFlush(fileRegion)
+                    .addListener((ChannelFutureListener) future -> {
                         queryMessageResult.release();
+                        Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
+                            .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
+                            .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()))
+                            .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
+                            .build();
+                        RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
                         if (!future.isSuccess()) {
-                            log.error("transfer query message by page cache failed, ", future.cause());
+                            LOGGER.error("transfer query message by page cache failed, ", future.cause());
                         }
-                    }
-                });
+                    });
             } catch (Throwable e) {
-                log.error("", e);
+                LOGGER.error("", e);
                 queryMessageResult.release();
             }
 
@@ -142,17 +152,22 @@ public class QueryMessageProcessor extends AsyncNettyRequestProcessor implements
                 FileRegion fileRegion =
                     new OneMessageTransfer(response.encodeHeader(selectMappedBufferResult.getSize()),
                         selectMappedBufferResult);
-                ctx.channel().writeAndFlush(fileRegion).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
+                ctx.channel()
+                    .writeAndFlush(fileRegion)
+                    .addListener((ChannelFutureListener) future -> {
                         selectMappedBufferResult.release();
+                        Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
+                            .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
+                            .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(response.getCode()))
+                            .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
+                            .build();
+                        RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
                         if (!future.isSuccess()) {
-                            log.error("Transfer one message from page cache failed, ", future.cause());
+                            LOGGER.error("Transfer one message from page cache failed, ", future.cause());
                         }
-                    }
-                });
+                    });
             } catch (Throwable e) {
-                log.error("", e);
+                LOGGER.error("", e);
                 selectMappedBufferResult.release();
             }
 

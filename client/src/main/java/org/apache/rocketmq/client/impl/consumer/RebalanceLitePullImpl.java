@@ -27,8 +27,8 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 public class RebalanceLitePullImpl extends RebalanceImpl {
 
@@ -74,8 +74,20 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
         this.litePullConsumerImpl.getOffsetStore().removeOffset(mq);
     }
 
+    @Deprecated
     @Override
     public long computePullFromWhere(MessageQueue mq) {
+        long result = -1L;
+        try {
+            result = computePullFromWhereWithException(mq);
+        } catch (MQClientException e) {
+            log.warn("Compute consume offset exception, mq={}", mq);
+        }
+        return result;
+    }
+
+    @Override
+    public long computePullFromWhereWithException(MessageQueue mq) throws MQClientException {
         ConsumeFromWhere consumeFromWhere = litePullConsumerImpl.getDefaultLitePullConsumer().getConsumeFromWhere();
         long result = -1;
         switch (consumeFromWhere) {
@@ -90,7 +102,8 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
-                            result = -1;
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            throw e;
                         }
                     }
                 } else {
@@ -118,7 +131,8 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
-                            result = -1;
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            throw e;
                         }
                     } else {
                         try {
@@ -126,7 +140,8 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                                 UtilAll.YYYYMMDDHHMMSS).getTime();
                             result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                         } catch (MQClientException e) {
-                            result = -1;
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            throw e;
                         }
                     }
                 } else {
@@ -139,7 +154,30 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
     }
 
     @Override
-    public void dispatchPullRequest(List<PullRequest> pullRequestList) {
+    public int getConsumeInitMode() {
+        throw new UnsupportedOperationException("no initMode for Pull");
     }
 
+    @Override
+    public void dispatchPullRequest(final List<PullRequest> pullRequestList, final long delay) {
+    }
+
+    @Override
+    public void dispatchPopPullRequest(List<PopRequest> pullRequestList, long delay) {
+
+    }
+
+    @Override
+    public ProcessQueue createProcessQueue() {
+        return new ProcessQueue();
+    }
+
+    @Override
+    public PopProcessQueue createPopProcessQueue() {
+        return null;
+    }
+
+    public ProcessQueue createProcessQueue(String topicName) {
+        return createProcessQueue();
+    }
 }

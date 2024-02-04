@@ -16,29 +16,42 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import org.apache.rocketmq.remoting.common.TlsMode;
+
+import static org.apache.rocketmq.remoting.netty.TlsSystemConfig.TLS_ENABLE;
+
 public class NettyClientConfig {
     /**
      * Worker thread number
      */
-    private int clientWorkerThreads = 4;
+    private int clientWorkerThreads = NettySystemConfig.clientWorkerSize;
     private int clientCallbackExecutorThreads = Runtime.getRuntime().availableProcessors();
     private int clientOnewaySemaphoreValue = NettySystemConfig.CLIENT_ONEWAY_SEMAPHORE_VALUE;
     private int clientAsyncSemaphoreValue = NettySystemConfig.CLIENT_ASYNC_SEMAPHORE_VALUE;
-    private int connectTimeoutMillis = 3000;
+    private int connectTimeoutMillis = NettySystemConfig.connectTimeoutMillis;
     private long channelNotActiveInterval = 1000 * 60;
 
     /**
      * IdleStateEvent will be triggered when neither read nor write was performed for
      * the specified period of this time. Specify {@code 0} to disable
      */
-    private int clientChannelMaxIdleTimeSeconds = 120;
+    private int clientChannelMaxIdleTimeSeconds = NettySystemConfig.clientChannelMaxIdleTimeSeconds;
 
     private int clientSocketSndBufSize = NettySystemConfig.socketSndbufSize;
     private int clientSocketRcvBufSize = NettySystemConfig.socketRcvbufSize;
     private boolean clientPooledByteBufAllocatorEnable = false;
-    private boolean clientCloseSocketIfTimeout = false;
+    private boolean clientCloseSocketIfTimeout = NettySystemConfig.clientCloseSocketIfTimeout;
 
-    private boolean useTLS;
+    private boolean useTLS = Boolean.parseBoolean(System.getProperty(TLS_ENABLE,
+        String.valueOf(TlsSystemConfig.tlsMode == TlsMode.ENFORCING)));
+
+    private String socksProxyConfig = "{}";
+
+    private int writeBufferHighWaterMark = NettySystemConfig.writeBufferHighWaterMark;
+    private int writeBufferLowWaterMark = NettySystemConfig.writeBufferLowWaterMark;
+
+    private boolean disableCallbackExecutor = false;
+    private boolean disableNettyWorkerGroup = false;
 
     public boolean isClientCloseSocketIfTimeout() {
         return clientCloseSocketIfTimeout;
@@ -134,5 +147,45 @@ public class NettyClientConfig {
 
     public void setUseTLS(boolean useTLS) {
         this.useTLS = useTLS;
+    }
+
+    public int getWriteBufferLowWaterMark() {
+        return writeBufferLowWaterMark;
+    }
+
+    public void setWriteBufferLowWaterMark(int writeBufferLowWaterMark) {
+        this.writeBufferLowWaterMark = writeBufferLowWaterMark;
+    }
+
+    public int getWriteBufferHighWaterMark() {
+        return writeBufferHighWaterMark;
+    }
+
+    public void setWriteBufferHighWaterMark(int writeBufferHighWaterMark) {
+        this.writeBufferHighWaterMark = writeBufferHighWaterMark;
+    }
+
+    public boolean isDisableCallbackExecutor() {
+        return disableCallbackExecutor;
+    }
+
+    public void setDisableCallbackExecutor(boolean disableCallbackExecutor) {
+        this.disableCallbackExecutor = disableCallbackExecutor;
+    }
+
+    public boolean isDisableNettyWorkerGroup() {
+        return disableNettyWorkerGroup;
+    }
+
+    public void setDisableNettyWorkerGroup(boolean disableNettyWorkerGroup) {
+        this.disableNettyWorkerGroup = disableNettyWorkerGroup;
+    }
+
+    public String getSocksProxyConfig() {
+        return socksProxyConfig;
+    }
+
+    public void setSocksProxyConfig(String socksProxyConfig) {
+        this.socksProxyConfig = socksProxyConfig;
     }
 }

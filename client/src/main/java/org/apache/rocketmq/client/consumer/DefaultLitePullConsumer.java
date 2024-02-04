@@ -18,21 +18,32 @@ package org.apache.rocketmq.client.consumer;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl;
+import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
+import org.apache.rocketmq.client.trace.TraceDispatcher;
+import org.apache.rocketmq.client.trace.hook.ConsumeMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.NamespaceUtil;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+
+import static org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData.SUB_ALL;
 
 public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultLitePullConsumer.class);
 
     private final DefaultLitePullConsumerImpl defaultLitePullConsumerImpl;
 
@@ -154,6 +165,21 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private String consumeTimestamp = UtilAll.timeMillisToHumanString3(System.currentTimeMillis() - (1000 * 60 * 30));
 
     /**
+     * Interface of asynchronous transfer data
+     */
+    private TraceDispatcher traceDispatcher = null;
+
+    /**
+     * The flag for message trace
+     */
+    private boolean enableMsgTrace = false;
+
+    /**
+     * The name value of message trace topic.If you don't config,you can use the default trace topic name.
+     */
+    private String customizedTraceTopic;
+
+    /**
      * Default constructor.
      */
     public DefaultLitePullConsumer() {
@@ -197,18 +223,40 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.consumerGroup = consumerGroup;
+        this.enableStreamRequestType = true;
         defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
     }
 
     @Override
     public void start() throws MQClientException {
+        setTraceDispatcher();
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultLitePullConsumerImpl.start();
+        if (null != traceDispatcher) {
+            try {
+                traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
+            } catch (MQClientException e) {
+                log.warn("trace dispatcher start failed ", e);
+            }
+        }
     }
 
     @Override
     public void shutdown() {
         this.defaultLitePullConsumerImpl.shutdown();
+        if (null != traceDispatcher) {
+            traceDispatcher.shutdown();
+        }
+    }
+
+    @Override
+    public boolean isRunning() {
+        return this.defaultLitePullConsumerImpl.isRunning();
+    }
+
+    @Override
+    public void subscribe(String topic) throws MQClientException {
+        this.subscribe(topic, SUB_ALL);
     }
 
     @Override
@@ -225,10 +273,14 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public void unsubscribe(String topic) {
         this.defaultLitePullConsumerImpl.unsubscribe(withNamespace(topic));
     }
-
     @Override
     public void assign(Collection<MessageQueue> messageQueues) {
         defaultLitePullConsumerImpl.assign(queuesWithNamespace(messageQueues));
+    }
+
+    @Override
+    public void setSubExpressionForAssign(final String topic, final String subExpresion) {
+        defaultLitePullConsumerImpl.setSubExpressionForAssign(withNamespace(topic), subExpresion);
     }
 
     @Override
@@ -272,14 +324,59 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.defaultLitePullConsumerImpl.registerTopicMessageQueueChangeListener(withNamespace(topic), topicMessageQueueChangeListener);
     }
 
+    @Deprecated
     @Override
     public void commitSync() {
         this.defaultLitePullConsumerImpl.commitAll();
     }
 
+    @Deprecated
+    @Override
+    public void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist) {
+        this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
+    }
+
+    @Override
+    public void commit() {
+        this.defaultLitePullConsumerImpl.commitAll();
+    }
+
+    @Override public void commit(Map<MessageQueue, Long> offsetMap, boolean persist) {
+        this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
+    }
+
+    /**
+     * Get the MessageQueue assigned in subscribe mode
+     *
+     * @return
+     * @throws MQClientException
+     */
+    @Override
+    public Set<MessageQueue> assignment() throws MQClientException {
+        return this.defaultLitePullConsumerImpl.assignment();
+    }
+
+    /**
+     * Subscribe some topic with subExpression and messageQueueListener
+     *
+     * @param topic
+     * @param subExpression
+     * @param messageQueueListener
+     */
+    @Override
+    public void subscribe(String topic, String subExpression, MessageQueueListener messageQueueListener) throws MQClientException {
+        this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression, messageQueueListener);
+    }
+
+
+    @Override
+    public void commit(final Set<MessageQueue> messageQueues, boolean persist) {
+        this.defaultLitePullConsumerImpl.commit(messageQueues, persist);
+    }
+
     @Override
     public Long committed(MessageQueue messageQueue) throws MQClientException {
-        return this.defaultLitePullConsumerImpl.committed(messageQueue);
+        return this.defaultLitePullConsumerImpl.committed(queueWithNamespace(messageQueue));
     }
 
     @Override
@@ -289,12 +386,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     @Override
     public void seekToBegin(MessageQueue messageQueue) throws MQClientException {
-        this.defaultLitePullConsumerImpl.seekToBegin(messageQueue);
+        this.defaultLitePullConsumerImpl.seekToBegin(queueWithNamespace(messageQueue));
     }
 
     @Override
     public void seekToEnd(MessageQueue messageQueue) throws MQClientException {
-        this.defaultLitePullConsumerImpl.seekToEnd(messageQueue);
+        this.defaultLitePullConsumerImpl.seekToEnd(queueWithNamespace(messageQueue));
     }
 
     @Override
@@ -305,6 +402,22 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     @Override
     public void setAutoCommit(boolean autoCommit) {
         this.autoCommit = autoCommit;
+    }
+
+    public boolean isConnectBrokerByUser() {
+        return this.defaultLitePullConsumerImpl.getPullAPIWrapper().isConnectBrokerByUser();
+    }
+
+    public void setConnectBrokerByUser(boolean connectBrokerByUser) {
+        this.defaultLitePullConsumerImpl.getPullAPIWrapper().setConnectBrokerByUser(connectBrokerByUser);
+    }
+
+    public long getDefaultBrokerId() {
+        return this.defaultLitePullConsumerImpl.getPullAPIWrapper().getDefaultBrokerId();
+    }
+
+    public void setDefaultBrokerId(long defaultBrokerId) {
+        this.defaultLitePullConsumerImpl.getPullAPIWrapper().setDefaultBrokerId(defaultBrokerId);
     }
 
     public int getPullThreadNums() {
@@ -393,10 +506,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.offsetStore = offsetStore;
     }
 
+    @Override
     public boolean isUnitMode() {
         return unitMode;
     }
 
+    @Override
     public void setUnitMode(boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }
@@ -468,5 +583,39 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
 
     public void setConsumeTimestamp(String consumeTimestamp) {
         this.consumeTimestamp = consumeTimestamp;
+    }
+
+    public TraceDispatcher getTraceDispatcher() {
+        return traceDispatcher;
+    }
+
+    public void setCustomizedTraceTopic(String customizedTraceTopic) {
+        this.customizedTraceTopic = customizedTraceTopic;
+    }
+
+    private void setTraceDispatcher() {
+        if (isEnableMsgTrace()) {
+            try {
+                AsyncTraceDispatcher traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, null);
+                traceDispatcher.getTraceProducer().setUseTLS(this.isUseTLS());
+                this.traceDispatcher = traceDispatcher;
+                this.defaultLitePullConsumerImpl.registerConsumeMessageHook(
+                    new ConsumeMessageTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
+    }
+
+    public String getCustomizedTraceTopic() {
+        return customizedTraceTopic;
+    }
+
+    public boolean isEnableMsgTrace() {
+        return enableMsgTrace;
+    }
+
+    public void setEnableMsgTrace(boolean enableMsgTrace) {
+        this.enableMsgTrace = enableMsgTrace;
     }
 }

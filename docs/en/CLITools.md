@@ -35,7 +35,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td class=xl66 width=159 style='width:119pt'>The -c option declares the name of the cluster, which represents the cluster in which the current topic is located. (clusters are available through clusterList query)</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
-  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-h-</td>
+  <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-h</td>
   <td class=xl66 width=159 style='width:119pt'>Print help information</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
@@ -184,15 +184,15 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=149 style='height:17.0pt;width:112pt'>-t</td>
-  <td class=xl66 width=159 style='width:119pt'>topic，key</td>
+  <td class=xl66 width=159 style='width:119pt'>topic, key</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl65 width=149 style='height:29.0pt;width:112pt'>-v</td>
-  <td class=xl66 width=159 style='width:119pt'>orderConf，value</td>
+  <td class=xl66 width=159 style='width:119pt'>orderConf, value</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl65 width=149 style='height:43.0pt;width:112pt'>-m</td>
-  <td class=xl66 width=159 style='width:119pt'>method，available values include get, put, delete</td>
+  <td class=xl66 width=159 style='width:119pt'>method, available values include get, put, delete</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td rowspan=4 height=198 class=xl68 width=163 style='border-bottom:1.0pt;
@@ -277,7 +277,7 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl65 width=177 style='height:29.0pt;width:133pt'>-i</td>
-  <td class=xl66 width=185 style='width:139pt'>Print interval，unit basis is seconds</td>
+  <td class=xl66 width=185 style='width:139pt'>Print interval, unit basis is seconds</td>
  </tr>
  <tr height=95 style='height:71.0pt'>
   <td rowspan=8 height=391 class=xl67 width=177 style='border-bottom:1.0pt;
@@ -285,11 +285,11 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td rowspan=8 class=xl70 width=175 style='border-bottom:1.0pt;
   border-top:none;width:131pt'>Send message to detect each broker RT of the cluster.the message send to ${BrokerName} Topic</td>
   <td class=xl65 width=177 style='width:133pt'>-a</td>
-  <td class=xl66 width=185 style='width:139pt'>amount，total number per probe，RT = Total time/amount</td>
+  <td class=xl66 width=185 style='width:139pt'>amount, total number per probe, RT = Total time/amount</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl65 width=177 style='height:29.0pt;width:133pt'>-s</td>
-  <td class=xl66 width=185 style='width:139pt'>Message size，unit basis is B</td>
+  <td class=xl66 width=185 style='width:139pt'>Message size, unit basis is B</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl65 width=177 style='height:17.0pt;width:133pt'>-c</td>
@@ -419,13 +419,21 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td class=xl68 width=87 style='width:65pt'>Service address used to specify nameServer and formatted as ip:port</td>
  </tr>
  <tr height=57 style='height:43.0pt'>
-  <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
+  <td rowspan=1 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
   height:103.0pt;border-top:none;width:143pt'>wipeWritePerm</td>
-  <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
+  <td rowspan=1 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>Clear write permissions for broker from nameServer</td>
   <td class=xl67 width=87 style='width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>Declare the address of the broker and format as ip:port</td>
+  <td class=xl68 width=87 style='width:65pt'>Declare the BrokerName</td>
  </tr>
+ <tr height=57 style='height:43.0pt'>
+   <td rowspan=3 height=137 class=xl69 width=191 style='border-bottom:1.0pt;
+   height:103.0pt;border-top:none;width:143pt'>addWritePerm</td>
+   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
+   border-top:none;width:65pt'>Add write permissions for broker from nameServer</td>
+   <td class=xl67 width=87 style='width:65pt'>-b</td>
+   <td class=xl68 width=87 style='width:65pt'>Declare the BrokerName</td>
+  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-n</td>
   <td class=xl68 width=87 style='width:65pt'>Service address used to specify nameServer and formatted as ip:port</td>
@@ -438,7 +446,27 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td rowspan=4 height=160 class=xl69 width=191 style='border-bottom:1.0pt;
   height:120.0pt;border-top:none;width:143pt'>cleanExpiredCQ</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>Clean up expired consume Queue on broker，An expired queue may be generated if the number of columns is reduced manually</td>
+  border-top:none;width:65pt'>Clean up expired consume Queue on broker, An expired queue may be generated if the number of columns is reduced manually</td>
+  <td class=xl67 width=87 style='width:65pt'>-n</td>
+  <td class=xl68 width=87 style='width:65pt'>Service address used to specify nameServer and formatted as ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-h</td>
+  <td class=xl68 width=87 style='width:65pt'>Print help information</td>
+ </tr>
+ <tr height=57 style='height:43.0pt'>
+  <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
+  <td class=xl68 width=87 style='width:65pt'>Declare the address of the broker and format as ip:port</td>
+ </tr>
+ <tr height=23 style='height:17.0pt'>
+  <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
+  <td class=xl68 width=87 style='width:65pt'>Used to specify the name of the cluster</td>
+ </tr>
+ <tr height=57 style='height:43.0pt'>
+  <td rowspan=4 height=160 class=xl69 width=191 style='border-bottom:1.0pt;
+  height:120.0pt;border-top:none;width:143pt'>deleteExpiredCommitLog</td>
+  <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
+  border-top:none;width:65pt'>Clean up expired CommitLog files on broker. A maximum of 20 deletion operations can be performed, and a maximum of 10 files can be deleted each time.</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
   <td class=xl68 width=87 style='width:65pt'>Service address used to specify nameServer and formatted as ip:port</td>
  </tr>
@@ -458,7 +486,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td rowspan=4 height=191 class=xl69 width=191 style='border-bottom:1.0pt;
   height:143.0pt;border-top:none;width:143pt'>cleanUnusedTopic</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
-  border-top:none;width:65pt'>Clean up unused topic on broker and release topic's consume Queue from memory，If the topic is removed manually, an unused topic will be generated</td>
+  border-top:none;width:65pt'>Clean up unused topic on broker and release topic's consume Queue from memory, If the topic is removed manually, an unused topic will be generated</td>
   <td class=xl67 width=87 style='width:65pt'>-n</td>
   <td class=xl68 width=87 style='width:65pt'>Service address used to specify nameServer and formatted as ip:port</td>
  </tr>
@@ -488,11 +516,11 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-b</td>
-  <td class=xl68 width=87 style='width:65pt'>brokerName，note that this is not broker's address</td>
+  <td class=xl68 width=87 style='width:65pt'>brokerName, note that this is not broker's address</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-s</td>
-  <td class=xl68 width=87 style='width:65pt'>Message size，the unit of account is B</td>
+  <td class=xl68 width=87 style='width:65pt'>Message size, the unit of account is B</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-c</td>
@@ -596,7 +624,7 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-i</td>
-  <td class=xl67 width=87 style='width:65pt'>uniqe msg id</td>
+  <td class=xl67 width=87 style='width:65pt'>unique msg id</td>
  </tr>
  <tr height=36 style='height:27.0pt'>
   <td height=36 class=xl67 width=87 style='height:27.0pt;width:65pt'>-g</td>
@@ -652,7 +680,7 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-p</td>
-  <td class=xl68 width=87 style='width:65pt'>body，message body</td>
+  <td class=xl68 width=87 style='width:65pt'>body, message body</td>
  </tr>
  <tr height=23 style='height:17.0pt'>
   <td height=23 class=xl67 width=87 style='height:17.0pt;width:65pt'>-k</td>
@@ -732,11 +760,11 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-c</td>
-  <td class=xl68 width=87 style='width:65pt'>Character set，for example UTF-8</td>
+  <td class=xl68 width=87 style='width:65pt'>Character set, for example UTF-8</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-s</td>
-  <td class=xl68 width=87 style='width:65pt'>subExpress，filter expression</td>
+  <td class=xl68 width=87 style='width:65pt'>subExpress, filter expression</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-b</td>
@@ -776,11 +804,11 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-c</td>
-  <td class=xl68 width=87 style='width:65pt'>Character set，for example UTF-8</td>
+  <td class=xl68 width=87 style='width:65pt'>Character set, for example UTF-8</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-s</td>
-  <td class=xl68 width=87 style='width:65pt'>subExpress，filter expression</td>
+  <td class=xl68 width=87 style='width:65pt'>subExpress, filter expression</td>
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td height=39 class=xl67 width=87 style='height:29.0pt;width:65pt'>-b</td>
@@ -807,7 +835,7 @@ Before introducing the mqadmin management tool, the following points need to be 
   <td rowspan=7 height=410 class=xl69 width=87 style='border-bottom:1.0pt;
   height:307.0pt;border-top:none;width:65pt'>resetOffsetByTime</td>
   <td rowspan=7 class=xl72 width=87 style='border-bottom:1.0pt;
-  border-top:none;width:65pt'>Reset both offset,broker and consumer by timestamp</td>
+  border-top:none;width:65pt'>Reset consumer offset by timestamp(without client restart).</td>
   <td class=xl67 width=87 style='width:65pt'>-h</td>
   <td class=xl68 width=87 style='width:65pt'>Print help information</td>
  </tr>
@@ -825,7 +853,7 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=57 style='height:43.0pt'>
   <td height=57 class=xl67 width=87 style='height:43.0pt;width:65pt'>-s</td>
-  <td class=xl68 width=87 style='width:65pt'>Resets the offset corresponding to this timestamp</td>
+  <td class=xl68 width=87 style='width:65pt'>Resets the offset corresponding to this timestamp in a format see -h, if you want to reset to maxOffset, the value is 'now'.</td>
  </tr>
  <tr height=188 style='height:141.0pt'>
   <td height=188 class=xl67 width=87 style='height:141.0pt;width:65pt'>-f</td>
@@ -1053,7 +1081,7 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=3 height=119 class=xl69 width=87 style='border-bottom:1.0pt
-  height:89.0pt;border-top:none;width:65pt'>consumerConnec tion</td>
+  height:89.0pt;border-top:none;width:65pt'>consumerConnection</td>
   <td rowspan=3 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>Query the network connection of consumer</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>
@@ -1069,7 +1097,7 @@ Before introducing the mqadmin management tool, the following points need to be 
  </tr>
  <tr height=39 style='height:29.0pt'>
   <td rowspan=4 height=142 class=xl69 width=87 style='border-bottom:1.0pt
-  height:106.0pt;border-top:none;width:65pt'>producerConnec tion</td>
+  height:106.0pt;border-top:none;width:65pt'>producerConnection</td>
   <td rowspan=4 class=xl72 width=87 style='border-bottom:1.0pt
   border-top:none;width:65pt'>Query the network connection of producer</td>
   <td class=xl67 width=87 style='width:65pt'>-g</td>

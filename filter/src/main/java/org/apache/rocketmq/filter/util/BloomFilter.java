@@ -20,13 +20,14 @@ package org.apache.rocketmq.filter.util;
 import com.google.common.hash.Hashing;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Simple implement of bloom filter.
  */
 public class BloomFilter {
 
-    public static final Charset UTF_8 = Charset.forName("UTF-8");
+    public static final Charset UTF_8 = StandardCharsets.UTF_8;
 
     // as error rate, 10/100 = 0.1
     private int f = 10;
@@ -145,7 +146,7 @@ public class BloomFilter {
         if (!isValid(filterData)) {
             throw new IllegalArgumentException(
                 String.format("Bloom filter data may not belong to this filter! %s, %s",
-                    filterData, this.toString())
+                    filterData, this)
             );
         }
         hashTo(filterData.getBitPos(), bits);
@@ -183,7 +184,7 @@ public class BloomFilter {
         if (!isValid(filterData)) {
             throw new IllegalArgumentException(
                 String.format("Bloom filter data may not belong to this filter! %s, %s",
-                    filterData, this.toString())
+                    filterData, this)
             );
         }
         return isHit(filterData.getBitPos(), bits);

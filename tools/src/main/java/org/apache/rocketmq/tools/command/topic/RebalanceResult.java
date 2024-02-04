@@ -23,7 +23,7 @@ import java.util.Map;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 public class RebalanceResult {
-    private Map<String/*ip*/, List<MessageQueue>> result = new HashMap<String, List<MessageQueue>>();
+    private Map<String/*ip*/, List<MessageQueue>> result = new HashMap<>();
 
     public Map<String, List<MessageQueue>> getResult() {
         return result;

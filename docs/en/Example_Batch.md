@@ -19,46 +19,53 @@ try {
 ### 2 Split into Lists
 The complexity only grow when you send large batch and you may not sure if it exceeds the size limit (4MiB). At this time, you’d better split the lists:
 ```java
-public class ListSplitter implements Iterator<List<Message>> {
-    private final int SIZE_LIMIT = 1000 * 1000;
+public class ListSplitter implements Iterator<List<Message>> { 
+    private final int SIZE_LIMIT = 1024 * 1024 * 4;
     private final List<Message> messages;
     private int currIndex;
-    public ListSplitter(List<Message> messages) {
-            this.messages = messages;
+    public ListSplitter(List<Message> messages) { 
+        this.messages = messages;
     }
-    @Override public boolean hasNext() {
-        return currIndex < messages.size();
+    @Override 
+    public boolean hasNext() {
+        return currIndex < messages.size(); 
     }
-    @Override public List<Message> next() {
-        int nextIndex = currIndex;
+    @Override 
+    public List<Message> next() { 
+        int startIndex = getStartIndex();
+        int nextIndex = startIndex;
         int totalSize = 0;
         for (; nextIndex < messages.size(); nextIndex++) {
-            Message message = messages.get(nextIndex);
-            int tmpSize = message.getTopic().length() + message.getBody().length;
-            Map<String, String> properties = message.getProperties();
-            for (Map.Entry<String, String> entry : properties.entrySet()) {
-                tmpSize += entry.getKey().length() + entry.getValue().length();
-            }
-            tmpSize = tmpSize + 20; //for log overhead
-            if (tmpSize > SIZE_LIMIT) {
-                //it is unexpected that single message exceeds the SIZE_LIMIT
-                //here just let it go, otherwise it will block the splitting process
-                if (nextIndex - currIndex == 0) {
-                   //if the next sublist has no element, add this one and then break, otherwise just break
-                   nextIndex++;  
-                }
-                break;
-            }
+            Message message = messages.get(nextIndex); 
+            int tmpSize = calcMessageSize(message);
             if (tmpSize + totalSize > SIZE_LIMIT) {
-                break;
+                break; 
             } else {
-                totalSize += tmpSize;
+                totalSize += tmpSize; 
             }
-    
         }
-        List<Message> subList = messages.subList(currIndex, nextIndex);
+        List<Message> subList = messages.subList(startIndex, nextIndex); 
         currIndex = nextIndex;
         return subList;
+    }
+    private int getStartIndex() {
+        Message currMessage = messages.get(currIndex); 
+        int tmpSize = calcMessageSize(currMessage); 
+        while(tmpSize > SIZE_LIMIT) {
+            currIndex += 1;
+            Message message = messages.get(curIndex); 
+            tmpSize = calcMessageSize(message);
+        }
+        return currIndex; 
+    }
+    private int calcMessageSize(Message message) {
+        int tmpSize = message.getTopic().length() + message.getBody().length; 
+        Map<String, String> properties = message.getProperties();
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+            tmpSize += entry.getKey().length() + entry.getValue().length(); 
+        }
+        tmpSize = tmpSize + 20; // Increase the log overhead by 20 bytes
+        return tmpSize; 
     }
 }
 

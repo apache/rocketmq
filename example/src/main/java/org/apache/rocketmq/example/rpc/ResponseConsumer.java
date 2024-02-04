@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.example.rpc;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -40,11 +41,13 @@ public class ResponseConsumer {
 
         // create a producer to send reply message
         DefaultMQProducer replyProducer = new DefaultMQProducer(producerGroup);
+        replyProducer.setNamesrvAddr("127.0.0.1:9876");
         replyProducer.start();
 
         // create consumer
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(consumerGroup);
         consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+        consumer.setNamesrvAddr("127.0.0.1:9876");
 
         // recommend client configs
         consumer.setPullTimeDelayMillsWhenException(0L);
@@ -55,9 +58,9 @@ public class ResponseConsumer {
                 System.out.printf("%s Receive New Messages: %s %n", Thread.currentThread().getName(), msgs);
                 for (MessageExt msg : msgs) {
                     try {
-                        System.out.printf("handle message: %s", msg.toString());
+                        System.out.printf("handle message: %s %n", msg.toString());
                         String replyTo = MessageUtil.getReplyToClient(msg);
-                        byte[] replyContent = "reply message contents.".getBytes();
+                        byte[] replyContent = "reply message contents.".getBytes(StandardCharsets.UTF_8);
                         // create reply message with given util, do not create reply message by yourself
                         Message replyMessage = MessageUtil.createReplyMessage(msg, replyContent);
 

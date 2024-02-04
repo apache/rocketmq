@@ -17,8 +17,9 @@
 
 package org.apache.rocketmq.test.client.producer.exception.msg;
 
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.balance.NormalMsgStaticBalanceIT;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
@@ -32,7 +33,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class MessageUserPropIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(NormalMsgStaticBalanceIT.class);
+    private static Logger logger = LoggerFactory.getLogger(NormalMsgStaticBalanceIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
@@ -40,7 +41,7 @@ public class MessageUserPropIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s !", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -58,12 +59,12 @@ public class MessageUserPropIT extends BaseConf {
         String msgValue = "jueyinValue";
         msg.putUserProperty(msgKey, msgValue);
 
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
 
         producer.send(msg, null);
         assertThat(producer.getAllMsgBody().size()).isEqualTo(1);
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         Message sendMsg = (Message) producer.getFirstMsg();
         Message recvMsg = (Message) consumer.getListener().getFirstMsg();
@@ -80,12 +81,12 @@ public class MessageUserPropIT extends BaseConf {
         String msgValue = "jueyinzhi";
         msg.putUserProperty(msgKey, msgValue);
 
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
 
         producer.send(msg, null);
         assertThat(producer.getAllMsgBody().size()).isEqualTo(1);
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         Message sendMsg = (Message) producer.getFirstMsg();
         Message recvMsg = (Message) consumer.getListener().getFirstMsg();

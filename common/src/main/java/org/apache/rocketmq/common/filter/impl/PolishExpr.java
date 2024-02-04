@@ -38,8 +38,8 @@ public class PolishExpr {
      * @return the compute result of Shunting-yard algorithm
      */
     public static List<Op> reversePolish(List<Op> tokens) {
-        List<Op> segments = new ArrayList<Op>();
-        Stack<Operator> operatorStack = new Stack<Operator>();
+        List<Op> segments = new ArrayList<>();
+        Stack<Operator> operatorStack = new Stack<>();
 
         for (int i = 0; i < tokens.size(); i++) {
             Op token = tokens.get(i);
@@ -87,7 +87,7 @@ public class PolishExpr {
      * @throws Exception
      */
     private static List<Op> participle(String expression) {
-        List<Op> segments = new ArrayList<Op>();
+        List<Op> segments = new ArrayList<>();
 
         int size = expression.length();
         int wordStartIndex = -1;
@@ -97,8 +97,8 @@ public class PolishExpr {
         for (int i = 0; i < size; i++) {
             int chValue = (int) expression.charAt(i);
 
-            if ((97 <= chValue && chValue <= 122) || (65 <= chValue && chValue <= 90)
-                || (49 <= chValue && chValue <= 57) || 95 == chValue) {
+            if (97 <= chValue && chValue <= 122 || 65 <= chValue && chValue <= 90
+                || 49 <= chValue && chValue <= 57 || 95 == chValue) {
 
                 if (Type.OPERATOR == preType || Type.SEPAERATOR == preType || Type.NULL == preType
                     || Type.PARENTHESIS == preType) {

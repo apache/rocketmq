@@ -24,7 +24,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 public class RandomAsyncCommit {
     private final ConcurrentHashMap<MessageQueue, CachedQueue> mqCachedTable =
-        new ConcurrentHashMap<MessageQueue, CachedQueue>();
+        new ConcurrentHashMap<>();
 
     public void putMessages(final MessageQueue mq, final List<MessageExt> msgs) {
         CachedQueue cachedQueue = this.mqCachedTable.get(mq);

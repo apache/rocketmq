@@ -17,8 +17,8 @@
 package org.apache.rocketmq.tools.command.topic;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.junit.Test;
 
@@ -31,7 +31,8 @@ public class UpdateOrderConfCommandTest {
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-t unit-test", "-v default-broker:8", "-m post"};
         final CommandLine commandLine =
-            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                cmd.buildCommandlineOptions(options), new DefaultParser());
         assertThat(commandLine.getOptionValue('t').trim()).isEqualTo("unit-test");
         assertThat(commandLine.getOptionValue('v').trim()).isEqualTo("default-broker:8");
         assertThat(commandLine.getOptionValue('m').trim()).isEqualTo("post");

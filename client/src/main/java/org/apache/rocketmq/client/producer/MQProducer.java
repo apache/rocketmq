@@ -99,7 +99,19 @@ public interface MQProducer extends MQAdmin {
 
     SendResult send(final Collection<Message> msgs, final MessageQueue mq, final long timeout)
         throws MQClientException, RemotingException, MQBrokerException, InterruptedException;
-
+    
+    void send(final Collection<Message> msgs, final SendCallback sendCallback) throws MQClientException, RemotingException, MQBrokerException,
+        InterruptedException;
+    
+    void send(final Collection<Message> msgs, final SendCallback sendCallback, final long timeout) throws MQClientException, RemotingException,
+        MQBrokerException, InterruptedException;
+    
+    void send(final Collection<Message> msgs, final MessageQueue mq, final SendCallback sendCallback) throws MQClientException, RemotingException,
+        MQBrokerException, InterruptedException;
+    
+    void send(final Collection<Message> msgs, final MessageQueue mq, final SendCallback sendCallback, final long timeout) throws MQClientException,
+        RemotingException, MQBrokerException, InterruptedException;
+    
     //for rpc
     Message request(final Message msg, final long timeout) throws RequestTimeoutException, MQClientException,
         RemotingException, MQBrokerException, InterruptedException;

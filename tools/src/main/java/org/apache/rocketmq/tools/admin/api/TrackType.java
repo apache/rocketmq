@@ -23,5 +23,6 @@ public enum TrackType {
     PULL,
     NOT_CONSUME_YET,
     NOT_ONLINE,
+    CONSUME_BROADCASTING,
     UNKNOWN
 }

@@ -1,0 +1,36 @@
+name: PR-CI
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  dist-tar:
+    name: Build distribution tar
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "8"
+          cache: "maven"
+      - name: Build distribution tar
+        run: |
+          mvn -Prelease-all -DskipTests -Dspotbugs.skip=true clean install -U
+      - uses: actions/upload-artifact@v3
+        name: Upload distribution tar
+        with:
+          name: rocketmq
+          path: distribution/target/rocketmq*/rocketmq*
+      - name: Save PR number
+        run: |
+          mkdir -p ./pr
+          echo ${{ github.event.number }} > ./pr/NR
+      - uses: actions/upload-artifact@v2
+        with:
+          name: pr
+          path: pr/

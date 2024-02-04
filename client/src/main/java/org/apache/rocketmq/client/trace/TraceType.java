@@ -20,4 +20,5 @@ public enum TraceType {
     Pub,
     SubBefore,
     SubAfter,
+    EndTransaction,
 }

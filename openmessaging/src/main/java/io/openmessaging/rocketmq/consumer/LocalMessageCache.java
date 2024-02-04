@@ -35,23 +35,23 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPullConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.consumer.ProcessQueue;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.ThreadUtils;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 class LocalMessageCache implements ServiceLifecycle {
+    private static final Logger log = LoggerFactory.getLogger(LocalMessageCache.class);
+
     private final BlockingQueue<ConsumeRequest> consumeRequestCache;
     private final Map<String, ConsumeRequest> consumedRequest;
     private final ConcurrentHashMap<MessageQueue, Long> pullOffsetTable;
     private final DefaultMQPullConsumer rocketmqPullConsumer;
     private final ClientConfig clientConfig;
     private final ScheduledExecutorService cleanExpireMsgExecutors;
-
-    private final static InternalLogger log = ClientLogger.getLog();
 
     LocalMessageCache(final DefaultMQPullConsumer rocketmqPullConsumer, final ClientConfig clientConfig) {
         consumeRequestCache = new LinkedBlockingQueue<>(clientConfig.getRmqPullMessageCacheCapacity());

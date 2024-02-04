@@ -19,7 +19,7 @@ Header field | Type | Request desc | Response desc
 code |int | Request  code. answering business processing is different according to different requests code | Response code. 0 means success, and non-zero means errors.
 language | LanguageCode | Language implemented by the requester | Language implemented by the responder
 version | int | Version of Request Equation | Version of Response Equation
-opaque | int |Equivalent to reqeustId, the different request identification codes on the same connection correspond to those in the response message| The response returns directly without modification
+opaque | int |Equivalent to requestId, the different request identification codes on the same connection correspond to those in the response message| The response returns directly without modification
 flag | int | Sign, used to distinguish between ordinary RPC or oneway RPC | Sign, used to distinguish between ordinary RPC or oneway RPC
 remark | String | Transfer custom text information | Transfer custom text information 
 extFields | HashMap<String, String> | Request custom extension information| Response custom extension information
@@ -28,7 +28,7 @@ From the above figure, the transport content can be divided into four parts:
 
  (1) Message length: total length, four bytes of storage, occupying an int type; 
  
-(2) Serialization type header length: occupying an int type. The first byte represents the serialization type, and the last three bytes represent the header length；
+(2) Serialization type header length: occupying an int type. The first byte represents the serialization type, and the last three bytes represent the header length;
 
 (3) Header data: serialized header data;
 
@@ -45,6 +45,6 @@ Number of thread | Name of thread | Desc of thread
 1 | NettyBoss_%d | Reactor Main thread
 N | NettyServerEPOLLSelector_%d_%d | Reactor thread pool
 M1 | NettyServerCodecThread_%d | Worker thread pool
-M2 | RemotingExecutorThread_%d | bussiness processor thread pool
+M2 | RemotingExecutorThread_%d | business processor thread pool
 
 

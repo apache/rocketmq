@@ -30,7 +30,7 @@ import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -106,7 +106,7 @@ public class DefaultMQPullConsumerTest {
         assertThat(pullResult.getNextBeginOffset()).isEqualTo(1024 + 1);
         assertThat(pullResult.getMinOffset()).isEqualTo(123);
         assertThat(pullResult.getMaxOffset()).isEqualTo(2048);
-        assertThat(pullResult.getMsgFoundList()).isEqualTo(new ArrayList<Object>());
+        assertThat(pullResult.getMsgFoundList()).isEqualTo(new ArrayList<>());
     }
 
     @Test
@@ -115,7 +115,7 @@ public class DefaultMQPullConsumerTest {
             @Override
             public Object answer(InvocationOnMock mock) throws Throwable {
                 PullMessageRequestHeader requestHeader = mock.getArgument(1);
-                return createPullResult(requestHeader, PullStatus.NO_NEW_MSG, new ArrayList<MessageExt>());
+                return createPullResult(requestHeader, PullStatus.NO_NEW_MSG, new ArrayList<>());
             }
         }).when(mQClientAPIImpl).pullMessage(anyString(), any(PullMessageRequestHeader.class), anyLong(), any(CommunicationMode.class), nullable(PullCallback.class));
 
@@ -147,7 +147,7 @@ public class DefaultMQPullConsumerTest {
                 assertThat(pullResult.getNextBeginOffset()).isEqualTo(1024 + 1);
                 assertThat(pullResult.getMinOffset()).isEqualTo(123);
                 assertThat(pullResult.getMaxOffset()).isEqualTo(2048);
-                assertThat(pullResult.getMsgFoundList()).isEqualTo(new ArrayList<Object>());
+                assertThat(pullResult.getMsgFoundList()).isEqualTo(new ArrayList<>());
             }
 
             @Override

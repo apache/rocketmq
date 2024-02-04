@@ -30,8 +30,8 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class IndexFileTest {
-    private final int HASH_SLOT_NUM = 100;
-    private final int INDEX_NUM = 400;
+    private static final int HASH_SLOT_NUM = 100;
+    private static final int INDEX_NUM = 400;
 
     @Test
     public void testPutKey() throws Exception {
@@ -62,8 +62,8 @@ public class IndexFileTest {
         boolean putResult = indexFile.putKey(Long.toString(400), 400, System.currentTimeMillis());
         assertThat(putResult).isFalse();
 
-        final List<Long> phyOffsets = new ArrayList<Long>();
-        indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE, true);
+        final List<Long> phyOffsets = new ArrayList<>();
+        indexFile.selectPhyOffset(phyOffsets, "60", 10, 0, Long.MAX_VALUE);
         assertThat(phyOffsets).isNotEmpty();
         assertThat(phyOffsets.size()).isEqualTo(1);
         indexFile.destroy(0);

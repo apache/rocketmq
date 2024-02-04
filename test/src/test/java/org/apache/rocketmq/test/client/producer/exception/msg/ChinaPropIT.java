@@ -37,7 +37,7 @@ public class ChinaPropIT extends BaseConf {
 
     @Before
     public void setUp() {
-        producer = ProducerFactory.getRMQProducer(nsAddr);
+        producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
         topic = initTopic();
     }
 

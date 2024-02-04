@@ -71,7 +71,7 @@ public class LocalFileOffsetStoreTest {
         offsetStore.updateOffset(messageQueue, 1024, false);
         assertThat(offsetStore.readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE)).isEqualTo(-1);
 
-        offsetStore.persistAll(new HashSet<MessageQueue>(Collections.singletonList(messageQueue)));
+        offsetStore.persistAll(new HashSet<>(Collections.singletonList(messageQueue)));
         assertThat(offsetStore.readOffset(messageQueue, ReadOffsetType.READ_FROM_STORE)).isEqualTo(1024);
     }
 

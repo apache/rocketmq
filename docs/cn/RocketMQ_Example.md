@@ -1,5 +1,44 @@
 # 样例
 -----
+ * [目录](#样例)
+      * [1 基本样例](#1-基本样例)
+         * [1.1 加入依赖：](#11-加入依赖)
+         * [1.2 消息发送](#12-消息发送)
+            * [1、Producer端发送同步消息](#1producer端发送同步消息)
+            * [2、发送异步消息](#2发送异步消息)
+            * [3、单向发送消息](#3单向发送消息)
+         * [1.3 消费消息](#13-消费消息)
+      * [2 顺序消息样例](#2-顺序消息样例)
+         * [2.1 顺序消息生产](#21-顺序消息生产)
+         * [2.2 顺序消费消息](#22-顺序消费消息)
+      * [3 延时消息样例](#3-延时消息样例)
+         * [3.1 启动消费者等待传入订阅消息](#31-启动消费者等待传入订阅消息)
+         * [3.2 发送延时消息](#32-发送延时消息)
+         * [3.3 验证](#33-验证)
+         * [3.4 延时消息的使用场景](#34-延时消息的使用场景)
+         * [3.5 延时消息的使用限制](#35-延时消息的使用限制)
+      * [4 批量消息样例](#4-批量消息样例)
+         * [4.1 发送批量消息](#41-发送批量消息)
+         * [4.2 消息列表分割](#42-消息列表分割)
+      * [5 过滤消息样例](#5-过滤消息样例)
+         * [5.1 基本语法](#51-基本语法)
+         * [5.2 使用样例](#52-使用样例)
+            * [1、生产者样例](#1生产者样例)
+            * [2、消费者样例](#2消费者样例)
+      * [6 消息事务样例](#6-消息事务样例)
+         * [6.1 发送事务消息样例](#61-发送事务消息样例)
+            * [1、创建事务性生产者](#1创建事务性生产者)
+            * [2、实现事务的监听接口](#2实现事务的监听接口)
+         * [6.2 事务消息使用上的限制](#62-事务消息使用上的限制)
+      * [7 Logappender样例](#7-logappender样例)
+         * [7.1 log4j样例](#71-log4j样例)
+         * [7.2 log4j2样例](#72-log4j2样例)
+         * [7.3 logback样例](#73-logback样例)
+      * [8 OpenMessaging样例](#8-openmessaging样例)
+         * [8.1 OMSProducer样例](#81-omsproducer样例)
+         * [8.2 OMSPullConsumer](#82-omspullconsumer)
+         * [8.3 OMSPushConsumer](#83-omspushconsumer)
+-----
 ## 1 基本样例
 
 
@@ -15,7 +54,7 @@
 <dependency>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-client</artifactId>
-    <version>4.3.0</version>
+    <version>4.9.1</version>
 </dependency>
 ```
 `gradle`
@@ -81,13 +120,15 @@ public class AsyncProducer {
                 producer.send(msg, new SendCallback() {
                     @Override
                     public void onSuccess(SendResult sendResult) {
+                        countDownLatch.countDown();
                         System.out.printf("%-10d OK %s %n", index,
                             sendResult.getMsgId());
                     }
                     @Override
                     public void onException(Throwable e) {
-      	              System.out.printf("%-10d Exception %s %n", index, e);
-      	              e.printStackTrace();
+                        countDownLatch.countDown();
+      	                System.out.printf("%-10d Exception %s %n", index, e);
+      	                e.printStackTrace();
                     }
             	});
     	}
@@ -323,13 +364,6 @@ public class Producer {
 ### 2.2 顺序消费消息
 
 ```java
-import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.common.message.MessageExt;
-import java.util.List;
-
 package org.apache.rocketmq.example.order2;
 
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
@@ -406,6 +440,8 @@ public class ScheduledMessageConsumer {
    public static void main(String[] args) throws Exception {
       // 实例化消费者
       DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("ExampleConsumer");
+      // 设置NameServer的地址
+      consumer.setNamesrvAddr("localhost:9876");
       // 订阅Topics
       consumer.subscribe("TestTopic", "*");
       // 注册消息监听者
@@ -414,7 +450,7 @@ public class ScheduledMessageConsumer {
           public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> messages, ConsumeConcurrentlyContext context) {
               for (MessageExt message : messages) {
                   // Print approximate delay time period
-                  System.out.println("Receive message[msgId=" + message.getMsgId() + "] " + (System.currentTimeMillis() - message.getStoreTimestamp()) + "ms later");
+                  System.out.println("Receive message[msgId=" + message.getMsgId() + "] " + (System.currentTimeMillis() - message.getBornTimestamp()) + "ms later");
               }
               return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
           }
@@ -437,6 +473,8 @@ public class ScheduledMessageProducer {
    public static void main(String[] args) throws Exception {
       // 实例化一个生产者来产生延时消息
       DefaultMQProducer producer = new DefaultMQProducer("ExampleProducerGroup");
+      // 设置NameServer的地址
+      producer.setNamesrvAddr("localhost:9876");
       // 启动生产者
       producer.start();
       int totalMessagesToSend = 100;
@@ -500,48 +538,54 @@ try {
 复杂度只有当你发送大批量时才会增长，你可能不确定它是否超过了大小限制（4MB）。这时候你最好把你的消息列表分割一下：
 
 ```java
-
-public class ListSplitter implements Iterator<List<Message>> {
-   private final int SIZE_LIMIT = 1024 * 1024 * 4;
-   private final List<Message> messages;
-   private int currIndex;
-   public ListSplitter(List<Message> messages) {
-           this.messages = messages;
-   }
-   @Override public boolean hasNext() {
-       return currIndex < messages.size();
-   }
-   @Override public List<Message> next() {
-       int nextIndex = currIndex;
-       int totalSize = 0;
-       for (; nextIndex < messages.size(); nextIndex++) {
-           Message message = messages.get(nextIndex);
-           int tmpSize = message.getTopic().length() + message.getBody().length;
-           Map<String, String> properties = message.getProperties();
-           for (Map.Entry<String, String> entry : properties.entrySet()) {
-               tmpSize += entry.getKey().length() + entry.getValue().length();
-           }
-           tmpSize = tmpSize + 20; // 增加日志的开销20字节
-           if (tmpSize > SIZE_LIMIT) {
-               //单个消息超过了最大的限制
-               //忽略,否则会阻塞分裂的进程
-               if (nextIndex - currIndex == 0) {
-                  //假如下一个子列表没有元素,则添加这个子列表然后退出循环,否则只是退出循环
-                  nextIndex++;
-               }
-               break;
-           }
-           if (tmpSize + totalSize > SIZE_LIMIT) {
-               break;
-           } else {
-               totalSize += tmpSize;
-           }
-
-       }
-       List<Message> subList = messages.subList(currIndex, nextIndex);
-       currIndex = nextIndex;
-       return subList;
-   }
+public class ListSplitter implements Iterator<List<Message>> { 
+    private final int SIZE_LIMIT = 1024 * 1024 * 4;
+    private final List<Message> messages;
+    private int currIndex;
+    public ListSplitter(List<Message> messages) { 
+        this.messages = messages;
+    }
+    @Override 
+    public boolean hasNext() {
+        return currIndex < messages.size(); 
+    }
+    @Override 
+    public List<Message> next() { 
+        int startIndex = getStartIndex();
+        int nextIndex = startIndex;
+        int totalSize = 0;
+        for (; nextIndex < messages.size(); nextIndex++) {
+            Message message = messages.get(nextIndex); 
+            int tmpSize = calcMessageSize(message);
+            if (tmpSize + totalSize > SIZE_LIMIT) {
+                break; 
+            } else {
+                totalSize += tmpSize; 
+            }
+        }
+        List<Message> subList = messages.subList(startIndex, nextIndex); 
+        currIndex = nextIndex;
+        return subList;
+    }
+    private int getStartIndex() {
+        Message currMessage = messages.get(currIndex); 
+        int tmpSize = calcMessageSize(currMessage); 
+        while(tmpSize > SIZE_LIMIT) {
+            currIndex += 1;
+            Message message = messages.get(currIndex); 
+            tmpSize = calcMessageSize(message);
+        }
+        return currIndex; 
+    }
+    private int calcMessageSize(Message message) {
+        int tmpSize = message.getTopic().length() + message.getBody().length; 
+        Map<String, String> properties = message.getProperties();
+        for (Map.Entry<String, String> entry : properties.entrySet()) {
+            tmpSize += entry.getKey().length() + entry.getValue().length(); 
+        }
+        tmpSize = tmpSize + 20; // 增加⽇日志的开销20字节
+        return tmpSize; 
+    }
 }
 //把大的消息分裂成若干个小的消息
 ListSplitter splitter = new ListSplitter(messages);
@@ -702,7 +746,7 @@ public class TransactionProducer {
 ```
 #### 2、实现事务的监听接口
 
-当发送半消息成功时，我们使用 `executeLocalTransaction` 方法来执行本地事务。它返回前一节中提到的三个事务状态之一。`checkLocalTranscation` 方法用于检查本地事务状态，并回应消息队列的检查请求。它也是返回前一节中提到的三个事务状态之一。
+当发送半消息成功时，我们使用 `executeLocalTransaction` 方法来执行本地事务。它返回前一节中提到的三个事务状态之一。`checkLocalTransaction` 方法用于检查本地事务状态，并回应消息队列的检查请求。它也是返回前一节中提到的三个事务状态之一。
 
 ```java
 public class TransactionListenerImpl implements TransactionListener {
@@ -737,8 +781,8 @@ public class TransactionListenerImpl implements TransactionListener {
 ### 6.2 事务消息使用上的限制
 
 1. 事务消息不支持延时消息和批量消息。
-2. 为了避免单个消息被检查太多次而导致半队列消息累积，我们默认将单个消息的检查次数限制为 15 次，但是用户可以通过 Broker 配置文件的 `transactionCheckMax`参数来修改此限制。如果已经检查某条消息超过 N 次的话（ N = `transactionCheckMax` ） 则 Broker 将丢弃此消息，并在默认情况下同时打印错误日志。用户可以通过重写 `AbstractTransactionCheckListener` 类来修改这个行为。
-3. 事务消息将在 Broker 配置文件中的参数 transactionMsgTimeout 这样的特定时间长度之后被检查。当发送事务消息时，用户还可以通过设置用户属性 CHECK_IMMUNITY_TIME_IN_SECONDS 来改变这个限制，该参数优先于 `transactionMsgTimeout` 参数。
+2. 为了避免单个消息被检查太多次而导致半队列消息累积，我们默认将单个消息的检查次数限制为 15 次，但是用户可以通过 Broker 配置文件的 `transactionCheckMax`参数来修改此限制。如果已经检查某条消息超过 N 次的话（ N = `transactionCheckMax` ） 则 Broker 将丢弃此消息，并在默认情况下同时打印错误日志。用户可以通过重写 `AbstractTransactionalMessageCheckListener` 类来修改这个行为。
+3. 事务消息将在 Broker 配置文件中的参数 transactionTimeout 这样的特定时间长度之后被检查。当发送事务消息时，用户还可以通过设置用户属性 CHECK_IMMUNITY_TIME_IN_SECONDS 来改变这个限制，该参数优先于 `transactionTimeout` 参数。
 4. 事务性消息可能不止一次被检查或消费。
 5. 提交给用户的目标主题消息可能会失败，目前这依日志的记录而定。它的高可用性通过 RocketMQ 本身的高可用性机制来保证，如果希望确保事务消息不丢失、并且事务完整性得到保证，建议使用同步的双重写入机制。
 6. 事务消息的生产者 ID 不能与其他类型消息的生产者 ID 共享。与其他类型的消息不同，事务消息允许反向查询、MQ服务器能通过它们的生产者 ID 查询到消费者。
@@ -823,50 +867,52 @@ import io.openmessaging.MessagingAccessPoint;
 import io.openmessaging.OMS;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.SendResult;
+
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 
 public class SimpleProducer {
     public static void main(String[] args) {
-       final MessagingAccessPoint messagingAccessPoint =
-           OMS.getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
-       final Producer producer = messagingAccessPoint.createProducer();
-       messagingAccessPoint.startup();
-       System.out.printf("MessagingAccessPoint startup OK%n");
-       producer.startup();
-       System.out.printf("Producer startup OK%n");
-       {
-           Message message = producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8")));
-           SendResult sendResult = producer.send(message);
-           //final Void aVoid = result.get(3000L);
-           System.out.printf("Send async message OK, msgId: %s%n", sendResult.messageId());
-       }
-       final CountDownLatch countDownLatch = new CountDownLatch(1);
-       {
-           final Future<SendResult> result = producer.sendAsync(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
-           result.addListener(new FutureListener<SendResult>() {
-               @Override
-               public void operationComplete(Future<SendResult> future) {
-                   if (future.getThrowable() != null) {
-                       System.out.printf("Send async message Failed, error: %s%n", future.getThrowable().getMessage());
-                   } else {
-                       System.out.printf("Send async message OK, msgId: %s%n", future.get().messageId());
-                   }
-                   countDownLatch.countDown();
-               }
-           });
-       }
-       {
-           producer.sendOneway(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(Charset.forName("UTF-8"))));
-           System.out.printf("Send oneway message OK%n");
-       }
-       try {
-           countDownLatch.await();
-           Thread.sleep(500); // 等一些时间来发送消息
-       } catch (InterruptedException ignore) {
-       }
-       producer.shutdown();
-   }
+        final MessagingAccessPoint messagingAccessPoint =
+                OMS.getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
+        final Producer producer = messagingAccessPoint.createProducer();
+        messagingAccessPoint.startup();
+        System.out.printf("MessagingAccessPoint startup OK%n");
+        producer.startup();
+        System.out.printf("Producer startup OK%n");
+        {
+            Message message = producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(StandardCharsets.UTF_8));
+            SendResult sendResult = producer.send(message);
+            //final Void aVoid = result.get(3000L);
+            System.out.printf("Send async message OK, msgId: %s%n", sendResult.messageId());
+        }
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        {
+            final Future<SendResult> result = producer.sendAsync(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(StandardCharsets.UTF_8)));
+            result.addListener(new FutureListener<SendResult>() {
+                @Override
+                public void operationComplete(Future<SendResult> future) {
+                    if (future.getThrowable() != null) {
+                        System.out.printf("Send async message Failed, error: %s%n", future.getThrowable().getMessage());
+                    } else {
+                        System.out.printf("Send async message OK, msgId: %s%n", future.get().messageId());
+                    }
+                    countDownLatch.countDown();
+                }
+            });
+        }
+        {
+            producer.sendOneway(producer.createBytesMessage("OMS_HELLO_TOPIC", "OMS_HELLO_BODY".getBytes(StandardCharsets.UTF_8)));
+            System.out.printf("Send oneway message OK%n");
+        }
+        try {
+            countDownLatch.await();
+            Thread.sleep(500); // 等一些时间来发送消息
+        } catch (InterruptedException ignore) {
+        }
+        producer.shutdown();
+    }
 }
 ```
 

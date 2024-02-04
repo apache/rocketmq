@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.test.client.producer.exception.producer;
 
-import org.apache.log4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
 import org.apache.rocketmq.test.util.RandomUtils;
@@ -28,7 +29,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class ProducerGroupAndInstanceNameValidityIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(ProducerGroupAndInstanceNameValidityIT.class);
+    private static Logger logger = LoggerFactory.getLogger(ProducerGroupAndInstanceNameValidityIT.class);
     private String topic = null;
 
     @Before
@@ -47,9 +48,9 @@ public class ProducerGroupAndInstanceNameValidityIT extends BaseConf {
      */
     @Test
     public void testTwoProducerSameGroupAndInstanceName() {
-        RMQNormalProducer producer1 = getProducer(nsAddr, topic);
+        RMQNormalProducer producer1 = getProducer(NAMESRV_ADDR, topic);
         assertThat(producer1.isStartSuccess()).isEqualTo(true);
-        RMQNormalProducer producer2 = getProducer(nsAddr, topic,
+        RMQNormalProducer producer2 = getProducer(NAMESRV_ADDR, topic,
             producer1.getProducerGroupName(), producer1.getProducerInstanceName());
         assertThat(producer2.isStartSuccess()).isEqualTo(false);
     }
@@ -59,9 +60,9 @@ public class ProducerGroupAndInstanceNameValidityIT extends BaseConf {
      */
     @Test
     public void testTwoProducerSameGroup() {
-        RMQNormalProducer producer1 = getProducer(nsAddr, topic);
+        RMQNormalProducer producer1 = getProducer(NAMESRV_ADDR, topic);
         assertThat(producer1.isStartSuccess()).isEqualTo(true);
-        RMQNormalProducer producer2 = getProducer(nsAddr, topic,
+        RMQNormalProducer producer2 = getProducer(NAMESRV_ADDR, topic,
             producer1.getProducerGroupName(), RandomUtils.getStringByUUID());
         assertThat(producer2.isStartSuccess()).isEqualTo(true);
     }

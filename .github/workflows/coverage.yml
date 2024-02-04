@@ -1,0 +1,24 @@
+name: Coverage
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [master, develop]
+jobs:
+  calculate-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: "8"
+          distribution: "adopt"
+          cache: "maven"
+      - name: Generate coverage report
+        run: mvn -B test -T 2C --file pom.xml
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          fail_ci_if_error: true
+          verbose: true

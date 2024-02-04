@@ -40,7 +40,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "check message send response time";
+        return "Check message send response time";
     }
 
     @Override
@@ -54,7 +54,7 @@ public class CheckMsgSendRTCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("s", "size", true, "message size | default 128 Byte");
-        opt.setRequired(true);
+        opt.setRequired(false);
         options.addOption(opt);
         return options;
     }

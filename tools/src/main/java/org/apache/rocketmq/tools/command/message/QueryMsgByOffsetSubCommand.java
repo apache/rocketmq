@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
+import java.nio.charset.Charset;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -58,6 +60,9 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("f", "bodyFormat", true, "print message body by the specified format");
+        opt.setRequired(false);
+        options.addOption(opt);
         return options;
     }
 
@@ -74,6 +79,10 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
             String brokerName = commandLine.getOptionValue('b').trim();
             String queueId = commandLine.getOptionValue('i').trim();
             String offset = commandLine.getOptionValue('o').trim();
+            Charset msgBodyCharset = null;
+            if (commandLine.hasOption('f')) {
+                msgBodyCharset = Charset.forName(commandLine.getOptionValue('f').trim());
+            }
 
             MessageQueue mq = new MessageQueue();
             mq.setTopic(topic);
@@ -87,7 +96,7 @@ public class QueryMsgByOffsetSubCommand implements SubCommand {
             if (pullResult != null) {
                 switch (pullResult.getPullStatus()) {
                     case FOUND:
-                        QueryMsgByIdSubCommand.printMsg(defaultMQAdminExt, pullResult.getMsgFoundList().get(0));
+                        QueryMsgByIdSubCommand.printMsg(defaultMQAdminExt, pullResult.getMsgFoundList().get(0), msgBodyCharset);
                         break;
                     case NO_MATCHED_MSG:
                     case NO_NEW_MSG:

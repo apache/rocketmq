@@ -17,10 +17,12 @@
 package org.apache.rocketmq.tools.command.acl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.junit.Assert;
@@ -35,17 +37,20 @@ public class UpdateAccessConfigSubCommandTest {
         UpdateAccessConfigSubCommand cmd = new UpdateAccessConfigSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {
-            "-b 127.0.0.1:10911",
-            "-a RocketMQ",
-            "-s 12345678",
-            "-w 192.168.0.*",
-            "-i DENY",
-            "-u SUB",
-            "-t topicA=DENY;topicB=PUB|SUB",
-            "-g groupA=DENY;groupB=SUB",
-            "-m true"};
+            "-b","127.0.0.1:10911",
+            "-a","RocketMQ",
+            "-s","12345678",
+            "-w","192.168.0.*",
+            "-i","DENY",
+            "-u","SUB",
+            "-t","topicA=DENY;topicB=PUB|SUB",
+            "-g","groupA=DENY;groupB=SUB",
+            "-m","true"
+        };
+        // Note: Posix parser is capable of handling values that contains '='.
         final CommandLine commandLine =
-            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
+                cmd.buildCommandlineOptions(options), new DefaultParser());
         assertThat(commandLine.getOptionValue('b').trim()).isEqualTo("127.0.0.1:10911");
         assertThat(commandLine.getOptionValue('a').trim()).isEqualTo("RocketMQ");
         assertThat(commandLine.getOptionValue('s').trim()).isEqualTo("12345678");
@@ -61,24 +66,15 @@ public class UpdateAccessConfigSubCommandTest {
         // topicPerms list value
         if (commandLine.hasOption('t')) {
             String[] topicPerms = commandLine.getOptionValue('t').trim().split(";");
-            List<String> topicPermList = new ArrayList<String>();
-            if (topicPerms != null) {
-                for (String topicPerm : topicPerms) {
-                    topicPermList.add(topicPerm);
-                }
-            }
+            List<String> topicPermList = new ArrayList<>(Arrays.asList(topicPerms));
             accessConfig.setTopicPerms(topicPermList);
         }
 
         // groupPerms list value
         if (commandLine.hasOption('g')) {
             String[] groupPerms = commandLine.getOptionValue('g').trim().split(";");
-            List<String> groupPermList = new ArrayList<String>();
-            if (groupPerms != null) {
-                for (String groupPerm : groupPerms) {
-                    groupPermList.add(groupPerm);
-                }
-            }
+            List<String> groupPermList = new ArrayList<>();
+            Collections.addAll(groupPermList, groupPerms);
             accessConfig.setGroupPerms(groupPermList);
         }
 

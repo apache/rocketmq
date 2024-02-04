@@ -4,7 +4,7 @@
 .settings/
 target/
 devenv
-*.log*
+*.log.*
 *.iml
 .idea/
 *.versionsBackup
@@ -13,3 +13,8 @@ devenv
 .DS_Store
 localbin
 nohup.out
+bazel-out
+bazel-bin
+bazel-rocketmq
+bazel-testlogs
+.vscode

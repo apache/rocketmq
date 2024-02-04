@@ -55,7 +55,7 @@ public class CommitLogDispatcherCalcBitMapTest {
             filterManager);
 
         for (int i = 0; i < 1; i++) {
-            Map<String, String> properties = new HashMap<String, String>(4);
+            Map<String, String> properties = new HashMap<>(4);
             properties.put("a", String.valueOf(i * 10 + 5));
 
             String topic = "topic" + i;
@@ -99,7 +99,7 @@ public class CommitLogDispatcherCalcBitMapTest {
             filterManager);
 
         for (int i = 0; i < 10; i++) {
-            Map<String, String> properties = new HashMap<String, String>(4);
+            Map<String, String> properties = new HashMap<>(4);
             properties.put("a", String.valueOf(i * 10 + 5));
 
             String topic = "topic" + i;
@@ -136,7 +136,7 @@ public class CommitLogDispatcherCalcBitMapTest {
             filterManager);
 
         for (int i = 0; i < 10; i++) {
-            Map<String, String> properties = new HashMap<String, String>(4);
+            Map<String, String> properties = new HashMap<>(4);
             properties.put("a", String.valueOf(i * 10 + 5));
 
             String topic = "topic" + i;

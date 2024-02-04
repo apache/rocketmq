@@ -50,9 +50,10 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
     protected void encode(ChannelHandlerContext ctx, FileRegion msg, final ByteBuf out) throws Exception {
         WritableByteChannel writableByteChannel = new WritableByteChannel() {
             @Override
-            public int write(ByteBuffer src) throws IOException {
+            public int write(ByteBuffer src) {
+                int prev = out.writerIndex();
                 out.writeBytes(src);
-                return out.capacity();
+                return out.writerIndex() - prev;
             }
 
             @Override
@@ -68,7 +69,7 @@ public class FileRegionEncoder extends MessageToByteEncoder<FileRegion> {
         long toTransfer = msg.count();
 
         while (true) {
-            long transferred = msg.transfered();
+            long transferred = msg.transferred();
             if (toTransfer - transferred <= 0) {
                 break;
             }

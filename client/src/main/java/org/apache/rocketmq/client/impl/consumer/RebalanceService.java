@@ -17,15 +17,15 @@
 package org.apache.rocketmq.client.impl.consumer;
 
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.ServiceThread;
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class RebalanceService extends ServiceThread {
     private static long waitInterval =
         Long.parseLong(System.getProperty(
             "rocketmq.client.rebalance.waitInterval", "20000"));
-    private final InternalLogger log = ClientLogger.getLog();
+    private final Logger log = LoggerFactory.getLogger(RebalanceService.class);
     private final MQClientInstance mqClientFactory;
 
     public RebalanceService(MQClientInstance mqClientFactory) {

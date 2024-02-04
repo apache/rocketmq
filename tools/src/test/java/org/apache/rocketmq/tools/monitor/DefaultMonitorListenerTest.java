@@ -19,12 +19,8 @@ package org.apache.rocketmq.tools.monitor;
 import java.util.Properties;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.body.ConsumeStatus;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.common.protocol.body.ProcessQueueInfo;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.common.protocol.topic.OffsetMovedEvent;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.topic.OffsetMovedEvent;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -75,10 +71,10 @@ public class DefaultMonitorListenerTest {
     public void testReportConsumerRunningInfo() {
         TreeMap<String, ConsumerRunningInfo> criTable = new TreeMap<>();
         ConsumerRunningInfo consumerRunningInfo = new ConsumerRunningInfo();
-        consumerRunningInfo.setSubscriptionSet(new TreeSet<SubscriptionData>());
-        consumerRunningInfo.setStatusTable(new TreeMap<String, ConsumeStatus>());
-        consumerRunningInfo.setSubscriptionSet(new TreeSet<SubscriptionData>());
-        consumerRunningInfo.setMqTable(new TreeMap<MessageQueue, ProcessQueueInfo>());
+        consumerRunningInfo.setSubscriptionSet(new TreeSet<>());
+        consumerRunningInfo.setStatusTable(new TreeMap<>());
+        consumerRunningInfo.setSubscriptionSet(new TreeSet<>());
+        consumerRunningInfo.setMqTable(new TreeMap<>());
         consumerRunningInfo.setProperties(new Properties());
         criTable.put("test", consumerRunningInfo);
         defaultMonitorListener.reportConsumerRunningInfo(criTable);

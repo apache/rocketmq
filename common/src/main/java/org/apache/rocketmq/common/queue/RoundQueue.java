@@ -30,7 +30,7 @@ public class RoundQueue<E> {
 
     public RoundQueue(int capacity) {
         this.capacity = capacity;
-        queue = new LinkedList<E>();
+        queue = new LinkedList<>();
     }
 
     public boolean put(E e) {

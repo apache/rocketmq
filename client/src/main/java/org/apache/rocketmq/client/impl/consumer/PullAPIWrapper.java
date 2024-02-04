@@ -23,6 +23,7 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
+import org.apache.rocketmq.client.consumer.PopCallback;
 import org.apache.rocketmq.client.consumer.PullCallback;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -33,33 +34,35 @@ import org.apache.rocketmq.client.hook.FilterMessageHook;
 import org.apache.rocketmq.client.impl.CommunicationMode;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.header.PullMessageRequestHeader;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.sysflag.PullSysFlag;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class PullAPIWrapper {
-    private final InternalLogger log = ClientLogger.getLog();
+    private static final Logger log = LoggerFactory.getLogger(PullAPIWrapper.class);
     private final MQClientInstance mQClientFactory;
     private final String consumerGroup;
     private final boolean unitMode;
     private ConcurrentMap<MessageQueue, AtomicLong/* brokerId */> pullFromWhichNodeTable =
-        new ConcurrentHashMap<MessageQueue, AtomicLong>(32);
+        new ConcurrentHashMap<>(32);
     private volatile boolean connectBrokerByUser = false;
     private volatile long defaultBrokerId = MixAll.MASTER_ID;
-    private Random random = new Random(System.currentTimeMillis());
-    private ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<FilterMessageHook>();
+    private Random random = new Random(System.nanoTime());
+    private ArrayList<FilterMessageHook> filterMessageHookList = new ArrayList<>();
 
     public PullAPIWrapper(MQClientInstance mQClientFactory, String consumerGroup, boolean unitMode) {
         this.mQClientFactory = mQClientFactory;
@@ -74,11 +77,41 @@ public class PullAPIWrapper {
         this.updatePullFromWhichNode(mq, pullResultExt.getSuggestWhichBrokerId());
         if (PullStatus.FOUND == pullResult.getPullStatus()) {
             ByteBuffer byteBuffer = ByteBuffer.wrap(pullResultExt.getMessageBinary());
-            List<MessageExt> msgList = MessageDecoder.decodes(byteBuffer);
+            List<MessageExt> msgList = MessageDecoder.decodesBatch(
+                byteBuffer,
+                this.mQClientFactory.getClientConfig().isDecodeReadBody(),
+                this.mQClientFactory.getClientConfig().isDecodeDecompressBody(),
+                true
+            );
+
+            boolean needDecodeInnerMessage = false;
+            for (MessageExt messageExt: msgList) {
+                if (MessageSysFlag.check(messageExt.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)
+                    && MessageSysFlag.check(messageExt.getSysFlag(), MessageSysFlag.NEED_UNWRAP_FLAG)) {
+                    needDecodeInnerMessage = true;
+                    break;
+                }
+            }
+            if (needDecodeInnerMessage) {
+                List<MessageExt> innerMsgList = new ArrayList<>();
+                try {
+                    for (MessageExt messageExt: msgList) {
+                        if (MessageSysFlag.check(messageExt.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)
+                            && MessageSysFlag.check(messageExt.getSysFlag(), MessageSysFlag.NEED_UNWRAP_FLAG)) {
+                            MessageDecoder.decodeMessage(messageExt, innerMsgList);
+                        } else {
+                            innerMsgList.add(messageExt);
+                        }
+                    }
+                    msgList = innerMsgList;
+                } catch (Throwable t) {
+                    log.error("Try to decode the inner batch failed for {}", pullResult.toString(), t);
+                }
+            }
 
             List<MessageExt> msgListFilterAgain = msgList;
             if (!subscriptionData.getTagsSet().isEmpty() && !subscriptionData.isClassFilterMode()) {
-                msgListFilterAgain = new ArrayList<MessageExt>(msgList.size());
+                msgListFilterAgain = new ArrayList<>(msgList.size());
                 for (MessageExt msg : msgList) {
                     if (msg.getTags() != null) {
                         if (subscriptionData.getTagsSet().contains(msg.getTags())) {
@@ -105,6 +138,10 @@ public class PullAPIWrapper {
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_MAX_OFFSET,
                     Long.toString(pullResult.getMaxOffset()));
                 msg.setBrokerName(mq.getBrokerName());
+                msg.setQueueId(mq.getQueueId());
+                if (pullResultExt.getOffsetDelta() != null) {
+                    msg.setQueueOffset(pullResultExt.getOffsetDelta() + msg.getQueueOffset());
+                }
             }
 
             pullResultExt.setMsgFoundList(msgListFilterAgain);
@@ -147,6 +184,7 @@ public class PullAPIWrapper {
         final long subVersion,
         final long offset,
         final int maxNums,
+        final int maxSizeInBytes,
         final int sysFlag,
         final long commitOffset,
         final long brokerSuspendMaxTimeMillis,
@@ -155,14 +193,15 @@ public class PullAPIWrapper {
         final PullCallback pullCallback
     ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         FindBrokerResult findBrokerResult =
-            this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
+            this.mQClientFactory.findBrokerAddressInSubscribe(this.mQClientFactory.getBrokerNameFromMessageQueue(mq),
                 this.recalculatePullFromWhichNode(mq), false);
         if (null == findBrokerResult) {
             this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
             findBrokerResult =
-                this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(),
+                this.mQClientFactory.findBrokerAddressInSubscribe(this.mQClientFactory.getBrokerNameFromMessageQueue(mq),
                     this.recalculatePullFromWhichNode(mq), false);
         }
+
 
         if (findBrokerResult != null) {
             {
@@ -190,11 +229,13 @@ public class PullAPIWrapper {
             requestHeader.setSuspendTimeoutMillis(brokerSuspendMaxTimeMillis);
             requestHeader.setSubscription(subExpression);
             requestHeader.setSubVersion(subVersion);
+            requestHeader.setMaxMsgBytes(maxSizeInBytes);
             requestHeader.setExpressionType(expressionType);
+            requestHeader.setBname(mq.getBrokerName());
 
             String brokerAddr = findBrokerResult.getBrokerAddr();
             if (PullSysFlag.hasClassFilterFlag(sysFlagInner)) {
-                brokerAddr = computPullFromWhichFilterServer(mq.getTopic(), brokerAddr);
+                brokerAddr = computePullFromWhichFilterServer(mq.getTopic(), brokerAddr);
             }
 
             PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(
@@ -210,6 +251,36 @@ public class PullAPIWrapper {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
+    public PullResult pullKernelImpl(
+        MessageQueue mq,
+        final String subExpression,
+        final String expressionType,
+        final long subVersion,
+        long offset,
+        final int maxNums,
+        final int sysFlag,
+        long commitOffset,
+        final long brokerSuspendMaxTimeMillis,
+        final long timeoutMillis,
+        final CommunicationMode communicationMode,
+        PullCallback pullCallback
+    ) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        return pullKernelImpl(
+                mq,
+                subExpression,
+                expressionType,
+                subVersion, offset,
+                maxNums,
+                Integer.MAX_VALUE,
+                sysFlag,
+                commitOffset,
+                brokerSuspendMaxTimeMillis,
+                timeoutMillis,
+                communicationMode,
+                pullCallback
+        );
+    }
+
     public long recalculatePullFromWhichNode(final MessageQueue mq) {
         if (this.isConnectBrokerByUser()) {
             return this.defaultBrokerId;
@@ -223,7 +294,7 @@ public class PullAPIWrapper {
         return MixAll.MASTER_ID;
     }
 
-    private String computPullFromWhichFilterServer(final String topic, final String brokerAddr)
+    private String computePullFromWhichFilterServer(final String topic, final String brokerAddr)
         throws MQClientException {
         ConcurrentMap<String, TopicRouteData> topicRouteTable = this.mQClientFactory.getTopicRouteTable();
         if (topicRouteTable != null) {
@@ -269,4 +340,57 @@ public class PullAPIWrapper {
     public void setDefaultBrokerId(long defaultBrokerId) {
         this.defaultBrokerId = defaultBrokerId;
     }
+
+
+    /**
+     *
+     * @param mq
+     * @param invisibleTime
+     * @param maxNums
+     * @param consumerGroup
+     * @param timeout
+     * @param popCallback
+     * @param poll
+     * @param initMode
+    //     * @param expressionType
+    //     * @param expression
+     * @param order
+     * @throws MQClientException
+     * @throws RemotingException
+     * @throws InterruptedException
+     */
+    public void popAsync(MessageQueue mq, long invisibleTime, int maxNums, String consumerGroup,
+                         long timeout, PopCallback popCallback, boolean poll, int initMode, boolean order, String expressionType, String expression)
+        throws MQClientException, RemotingException, InterruptedException {
+        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        if (null == findBrokerResult) {
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(mq.getTopic());
+            findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(mq.getBrokerName(), MixAll.MASTER_ID, true);
+        }
+        if (findBrokerResult != null) {
+            PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
+            requestHeader.setConsumerGroup(consumerGroup);
+            requestHeader.setTopic(mq.getTopic());
+            requestHeader.setQueueId(mq.getQueueId());
+            requestHeader.setMaxMsgNums(maxNums);
+            requestHeader.setInvisibleTime(invisibleTime);
+            requestHeader.setInitMode(initMode);
+            requestHeader.setExpType(expressionType);
+            requestHeader.setExp(expression);
+            requestHeader.setOrder(order);
+            requestHeader.setBname(mq.getBrokerName());
+            //give 1000 ms for server response
+            if (poll) {
+                requestHeader.setPollTime(timeout);
+                requestHeader.setBornTime(System.currentTimeMillis());
+                // timeout + 10s, fix the too earlier timeout of client when long polling.
+                timeout += 10 * 1000;
+            }
+            String brokerAddr = findBrokerResult.getBrokerAddr();
+            this.mQClientFactory.getMQClientAPIImpl().popMessageAsync(mq.getBrokerName(), brokerAddr, requestHeader, timeout, popCallback);
+            return;
+        }
+        throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
+    }
+
 }

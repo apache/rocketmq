@@ -17,39 +17,29 @@
 package org.apache.rocketmq.broker.transaction;
 
 import io.netty.channel.Channel;
-import java.util.Random;
-import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.header.CheckTransactionStateRequestHeader;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 
 public abstract class AbstractTransactionalMessageCheckListener {
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
     private BrokerController brokerController;
 
     //queue nums of topic TRANS_CHECK_MAX_TIME_TOPIC
     protected final static int TCMT_QUEUE_NUMS = 1;
-    protected final Random random = new Random(System.currentTimeMillis());
 
-    private static ExecutorService executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(2000), new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            Thread thread = new Thread(r);
-            thread.setName("Transaction-msg-check-thread");
-            return thread;
-        }
-    }, new CallerRunsPolicy());
+    private static volatile ExecutorService executorService;
 
     public AbstractTransactionalMessageCheckListener() {
     }
@@ -65,11 +55,12 @@ public abstract class AbstractTransactionalMessageCheckListener {
         checkTransactionStateRequestHeader.setMsgId(msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
         checkTransactionStateRequestHeader.setTransactionId(checkTransactionStateRequestHeader.getMsgId());
         checkTransactionStateRequestHeader.setTranStateTableOffset(msgExt.getQueueOffset());
+        checkTransactionStateRequestHeader.setBname(brokerController.getBrokerConfig().getBrokerName());
         msgExt.setTopic(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
         msgExt.setQueueId(Integer.parseInt(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
         msgExt.setStoreSize(0);
         String groupId = msgExt.getProperty(MessageConst.PROPERTY_PRODUCER_GROUP);
-        Channel channel = brokerController.getProducerManager().getAvaliableChannel(groupId);
+        Channel channel = brokerController.getProducerManager().getAvailableChannel(groupId);
         if (channel != null) {
             brokerController.getBroker2Client().checkProducerTransactionState(groupId, channel, checkTransactionStateRequestHeader, msgExt);
         } else {
@@ -78,16 +69,20 @@ public abstract class AbstractTransactionalMessageCheckListener {
     }
 
     public void resolveHalfMsg(final MessageExt msgExt) {
-        executorService.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    sendCheckMessage(msgExt);
-                } catch (Exception e) {
-                    LOGGER.error("Send check message error!", e);
+        if (executorService != null) {
+            executorService.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        sendCheckMessage(msgExt);
+                    } catch (Exception e) {
+                        LOGGER.error("Send check message error!", e);
+                    }
                 }
-            }
-        });
+            });
+        } else {
+            LOGGER.error("TransactionalMessageCheckListener not init");
+        }
     }
 
     public BrokerController getBrokerController() {
@@ -95,7 +90,16 @@ public abstract class AbstractTransactionalMessageCheckListener {
     }
 
     public void shutDown() {
-        executorService.shutdown();
+        if (executorService != null) {
+            executorService.shutdown();
+        }
+    }
+
+    public synchronized void initExecutorService() {
+        if (executorService == null) {
+            executorService = new ThreadPoolExecutor(2, 5, 100, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2000),
+                new ThreadFactoryImpl("Transaction-msg-check-thread", brokerController.getBrokerIdentity()), new CallerRunsPolicy());
+        }
     }
 
     /**
@@ -105,6 +109,7 @@ public abstract class AbstractTransactionalMessageCheckListener {
      */
     public void setBrokerController(BrokerController brokerController) {
         this.brokerController = brokerController;
+        initExecutorService();
     }
 
     /**

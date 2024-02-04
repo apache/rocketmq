@@ -70,7 +70,7 @@ consumer.setConsumeThreadMax(20);
 
 ### 1. If you start a producer or consumer failed and the error message is producer group or consumer repeat.
 
-Reason：Using the same Producer /Consumer Group to launch multiple instances of Producer/Consumer in the same JVM may cause the client fail to start.
+Reason: Using the same Producer /Consumer Group to launch multiple instances of Producer/Consumer in the same JVM may cause the client fail to start.
 
 Solution: Make sure that a JVM corresponding to one Producer /Consumer Group starts only with one Producer/Consumer instance.
 
@@ -88,11 +88,11 @@ Messages can no longer be sent to this broker set, but if you have another broke
 
 &#8195;2) Some slave crash
 
-As long as there is another working slave, there will be no impact on sending messages. There will also be no impact on consuming messages except when the consumer group is set to consume from this slave preferably. By default, comsumer group consumes from master.
+As long as there is another working slave, there will be no impact on sending messages. There will also be no impact on consuming messages except when the consumer group is set to consume from this slave preferably. By default, consumer group consumes from master.
 
 &#8195;3) All slaves crash
 
-There will be no impact on sending messages to master, but, if the master is SYNC_MASTER, producer will get a SLAVE_NOT_AVAILABLE indicating that the message is not sent to any slaves. There will also be no impact on consuming messages except that if the consumer group is set to consume from slave preferably. By default, comsumer group consumes from master.
+There will be no impact on sending messages to master, but, if the master is SYNC_MASTER, producer will get a SLAVE_NOT_AVAILABLE indicating that the message is not sent to any slaves. There will also be no impact on consuming messages except that if the consumer group is set to consume from slave preferably. By default, consumer group consumes from master.
 
 ### 4. Producer complains “No Topic Route Info”, how to diagnose?
 
@@ -104,6 +104,6 @@ This happens when you are trying to send messages to a topic whose routing info 
   
 &#8195;3) Make sure that your brokers are sending heartbeats to the same list of name servers your producer is connecting to.
   
-&#8195;4) Make sure that the topic’s permssion is 6(rw-), or at least 2(-w-).
+&#8195;4) Make sure that the topic’s permission is 6(rw-), or at least 2(-w-).
 
 If you can’t find this topic, create it on a broker via admin tools command updateTopic or web console.

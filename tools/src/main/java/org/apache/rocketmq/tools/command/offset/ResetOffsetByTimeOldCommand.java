@@ -25,20 +25,24 @@ import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.admin.RollbackStats;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.admin.RollbackStats;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class ResetOffsetByTimeOldCommand implements SubCommand {
+
     public static void resetOffset(DefaultMQAdminExt defaultMQAdminExt, String consumerGroup, String topic,
-        long timestamp, boolean force,
-        String timeStampStr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        List<RollbackStats> rollbackStatsList = defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
-        System.out.printf(
-            "rollback consumer offset by specified consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
+        long timestamp, boolean force, String timeStampStr)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+
+        List<RollbackStats> rollbackStatsList =
+            defaultMQAdminExt.resetOffsetByTimestampOld(consumerGroup, topic, timestamp, force);
+
+        System.out.printf("reset consumer offset by specified " +
+                "consumerGroup[%s], topic[%s], force[%s], timestamp(string)[%s], timestamp(long)[%s]%n",
             consumerGroup, topic, force, timeStampStr, timestamp);
 
         System.out.printf("%-20s  %-20s  %-20s  %-20s  %-20s  %-20s%n",
@@ -47,7 +51,7 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
             "#brokerOffset",
             "#consumerOffset",
             "#timestampOffset",
-            "#rollbackOffset"
+            "#resetOffset"
         );
 
         for (RollbackStats rollbackStats : rollbackStatsList) {
@@ -112,15 +116,14 @@ public class ResetOffsetByTimeOldCommand implements SubCommand {
                     System.out.printf("specified timestamp invalid.%n");
                     return;
                 }
-
-                boolean force = true;
-                if (commandLine.hasOption('f')) {
-                    force = Boolean.valueOf(commandLine.getOptionValue("f").trim());
-                }
-
-                defaultMQAdminExt.start();
-                resetOffset(defaultMQAdminExt, consumerGroup, topic, timestamp, force, timeStampStr);
             }
+
+            boolean force = true;
+            if (commandLine.hasOption('f')) {
+                force = Boolean.parseBoolean(commandLine.getOptionValue("f").trim());
+            }
+            defaultMQAdminExt.start();
+            resetOffset(defaultMQAdminExt, consumerGroup, topic, timestamp, force, timeStampStr);
 
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

@@ -21,11 +21,11 @@ import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.admin.ConsumeStats;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -38,7 +38,7 @@ public class CloneGroupOffsetCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "clone offset from other group.";
+        return "Clone offset from other group.";
     }
 
     @Override
@@ -87,7 +87,7 @@ public class CloneGroupOffsetCommand implements SubCommand {
                             break;
                         }
                     }
-                    long offset = consumeStats.getOffsetTable().get(mq).getBrokerOffset();
+                    long offset = consumeStats.getOffsetTable().get(mq).getConsumerOffset();
                     if (offset >= 0) {
                         defaultMQAdminExt.updateConsumeOffset(addr, destGroup, mq, offset);
                     }

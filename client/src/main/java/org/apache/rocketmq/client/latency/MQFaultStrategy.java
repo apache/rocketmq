@@ -17,13 +17,14 @@
 
 package org.apache.rocketmq.client.latency;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.client.log.ClientLogger;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class MQFaultStrategy {
-    private final static InternalLogger log = ClientLogger.getLog();
+    private final static Logger log = LoggerFactory.getLogger(MQFaultStrategy.class);
     private final LatencyFaultTolerance<String> latencyFaultTolerance = new LatencyFaultToleranceImpl();
 
     private boolean sendLatencyFaultEnable = false;
@@ -58,25 +59,22 @@ public class MQFaultStrategy {
     public MessageQueue selectOneMessageQueue(final TopicPublishInfo tpInfo, final String lastBrokerName) {
         if (this.sendLatencyFaultEnable) {
             try {
-                int index = tpInfo.getSendWhichQueue().getAndIncrement();
+                int index = tpInfo.getSendWhichQueue().incrementAndGet();
                 for (int i = 0; i < tpInfo.getMessageQueueList().size(); i++) {
-                    int pos = Math.abs(index++) % tpInfo.getMessageQueueList().size();
-                    if (pos < 0)
-                        pos = 0;
+                    int pos = index++ % tpInfo.getMessageQueueList().size();
                     MessageQueue mq = tpInfo.getMessageQueueList().get(pos);
-                    if (latencyFaultTolerance.isAvailable(mq.getBrokerName())) {
-                        if (null == lastBrokerName || mq.getBrokerName().equals(lastBrokerName))
-                            return mq;
+                    if (!StringUtils.equals(lastBrokerName, mq.getBrokerName()) && latencyFaultTolerance.isAvailable(mq.getBrokerName())) {
+                        return mq;
                     }
                 }
 
                 final String notBestBroker = latencyFaultTolerance.pickOneAtLeast();
-                int writeQueueNums = tpInfo.getQueueIdByBroker(notBestBroker);
+                int writeQueueNums = tpInfo.getWriteQueueIdByBroker(notBestBroker);
                 if (writeQueueNums > 0) {
                     final MessageQueue mq = tpInfo.selectOneMessageQueue();
                     if (notBestBroker != null) {
                         mq.setBrokerName(notBestBroker);
-                        mq.setQueueId(tpInfo.getSendWhichQueue().getAndIncrement() % writeQueueNums);
+                        mq.setQueueId(tpInfo.getSendWhichQueue().incrementAndGet() % writeQueueNums);
                     }
                     return mq;
                 } else {

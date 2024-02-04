@@ -20,13 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.route.QueueData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
+import org.apache.rocketmq.remoting.protocol.route.QueueData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 
 public class TopicPublishInfo {
     private boolean orderTopic = false;
     private boolean haveTopicRouterInfo = false;
-    private List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>();
+    private List<MessageQueue> messageQueueList = new ArrayList<>();
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
     private TopicRouteData topicRouteData;
 
@@ -70,11 +70,9 @@ public class TopicPublishInfo {
         if (lastBrokerName == null) {
             return selectOneMessageQueue();
         } else {
-            int index = this.sendWhichQueue.getAndIncrement();
             for (int i = 0; i < this.messageQueueList.size(); i++) {
-                int pos = Math.abs(index++) % this.messageQueueList.size();
-                if (pos < 0)
-                    pos = 0;
+                int index = this.sendWhichQueue.incrementAndGet();
+                int pos = index % this.messageQueueList.size();
                 MessageQueue mq = this.messageQueueList.get(pos);
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
@@ -85,14 +83,13 @@ public class TopicPublishInfo {
     }
 
     public MessageQueue selectOneMessageQueue() {
-        int index = this.sendWhichQueue.getAndIncrement();
-        int pos = Math.abs(index) % this.messageQueueList.size();
-        if (pos < 0)
-            pos = 0;
+        int index = this.sendWhichQueue.incrementAndGet();
+        int pos = index % this.messageQueueList.size();
+
         return this.messageQueueList.get(pos);
     }
 
-    public int getQueueIdByBroker(final String brokerName) {
+    public int getWriteQueueIdByBroker(final String brokerName) {
         for (int i = 0; i < topicRouteData.getQueueDatas().size(); i++) {
             final QueueData queueData = this.topicRouteData.getQueueDatas().get(i);
             if (queueData.getBrokerName().equals(brokerName)) {

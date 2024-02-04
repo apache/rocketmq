@@ -17,8 +17,10 @@
 package org.apache.rocketmq.remoting;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
@@ -30,6 +32,8 @@ public interface RemotingClient extends RemotingService {
     void updateNameServerAddressList(final List<String> addrs);
 
     List<String> getNameServerAddressList();
+
+    List<String> getAvailableNameSrvList();
 
     RemotingCommand invokeSync(final String addr, final RemotingCommand request,
         final long timeoutMillis) throws InterruptedException, RemotingConnectException,
@@ -43,12 +47,38 @@ public interface RemotingClient extends RemotingService {
         throws InterruptedException, RemotingConnectException, RemotingTooMuchRequestException,
         RemotingTimeoutException, RemotingSendRequestException;
 
+    default CompletableFuture<RemotingCommand> invoke(final String addr, final RemotingCommand request,
+        final long timeoutMillis) {
+        CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
+        try {
+            invokeAsync(addr, request, timeoutMillis, responseFuture -> {
+                RemotingCommand response = responseFuture.getResponseCommand();
+                if (response != null) {
+                    future.complete(response);
+                } else {
+                    if (!responseFuture.isSendRequestOK()) {
+                        future.completeExceptionally(new RemotingSendRequestException(addr, responseFuture.getCause()));
+                    } else if (responseFuture.isTimeout()) {
+                        future.completeExceptionally(new RemotingTimeoutException(addr, timeoutMillis, responseFuture.getCause()));
+                    } else {
+                        future.completeExceptionally(new RemotingException(request.toString(), responseFuture.getCause()));
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
+    }
+
     void registerProcessor(final int requestCode, final NettyRequestProcessor processor,
         final ExecutorService executor);
 
     void setCallbackExecutor(final ExecutorService callbackExecutor);
 
-    ExecutorService getCallbackExecutor();
-
     boolean isChannelWritable(final String addr);
+
+    boolean isAddressReachable(final String addr);
+
+    void closeChannels(final List<String> addrList);
 }

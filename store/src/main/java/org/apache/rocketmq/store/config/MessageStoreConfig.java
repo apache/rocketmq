@@ -17,27 +17,98 @@
 package org.apache.rocketmq.store.config;
 
 import java.io.File;
+
 import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
+import org.apache.rocketmq.store.queue.BatchConsumeQueue;
 
 public class MessageStoreConfig {
+
+    public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
+
     //The root directory in which the log data is kept
     @ImportantField
     private String storePathRootDir = System.getProperty("user.home") + File.separator + "store";
 
     //The directory in which the commitlog is kept
     @ImportantField
-    private String storePathCommitLog = System.getProperty("user.home") + File.separator + "store"
-        + File.separator + "commitlog";
+    private String storePathCommitLog = null;
+
+    @ImportantField
+    private String storePathDLedgerCommitLog = null;
+
+    //The directory in which the epochFile is kept
+    @ImportantField
+    private String storePathEpochFile = null;
+
+    @ImportantField
+    private String storePathBrokerIdentity = null;
+
+    private String readOnlyCommitLogStorePaths = null;
 
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
+
+    // CompactinLog file size, default is 100M
+    private int compactionMappedFileSize = 100 * 1024 * 1024;
+
+    // CompactionLog consumeQueue file size, default is 10M
+    private int compactionCqMappedFileSize = 10 * 1024 * 1024;
+
+    private int compactionScheduleInternal = 15 * 60 * 1000;
+
+    private int maxOffsetMapSize = 100 * 1024 * 1024;
+
+    private int compactionThreadNum = 6;
+
+    private boolean enableCompaction = true;
+
+
+    // TimerLog file size, default is 100M
+    private int mappedFileSizeTimerLog = 100 * 1024 * 1024;
+
+    private int timerPrecisionMs = 1000;
+
+    private int timerRollWindowSlot = 3600 * 24 * 2;
+    private int timerFlushIntervalMs = 1000;
+    private int timerGetMessageThreadNum = 3;
+    private int timerPutMessageThreadNum = 3;
+
+    private boolean timerEnableDisruptor = false;
+
+    private boolean timerEnableCheckMetrics = true;
+    private boolean timerInterceptDelayLevel = false;
+    private int timerMaxDelaySec = 3600 * 24 * 3;
+    private boolean timerWheelEnable = true;
+
+    /**
+     * 1. Register to broker after (startTime + disappearTimeAfterStart)
+     * 2. Internal msg exchange will start after (startTime + disappearTimeAfterStart)
+     * A. PopReviveService
+     * B. TimerDequeueGetService
+     */
+    @ImportantField
+    private int disappearTimeAfterStart = -1;
+
+    private boolean timerStopEnqueue = false;
+
+    private String timerCheckMetricsWhen = "05";
+
+    private boolean timerSkipUnknownError = false;
+    private boolean timerWarmEnable = false;
+    private boolean timerStopDequeue = false;
+    private int timerCongestNumEachSlot = Integer.MAX_VALUE;
+
+    private int timerMetricSmallThreshold = 1000000;
+    private int timerProgressLogIntervalMs = 10 * 1000;
+
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
     private boolean enableConsumeQueueExt = false;
     // ConsumeQueue extend file size, 48M
     private int mappedFileSizeConsumeQueueExt = 48 * 1024 * 1024;
+    private int mapperFileSizeBatchConsumeQueue = 300000 * BatchConsumeQueue.CQ_STORE_UNIT_SIZE;
     // Bit count of filter bit map.
     // this will be set by pipe of calculate filter bit map.
     private int bitMapLengthConsumeQueueExt = 64;
@@ -52,15 +123,20 @@ public class MessageStoreConfig {
     @ImportantField
     private int commitIntervalCommitLog = 200;
 
+    private int maxRecoveryCommitlogFiles = 30;
+
+    private int diskSpaceWarningLevelRatio = 90;
+
+    private int diskSpaceCleanForciblyRatio = 85;
+
     /**
      * introduced since 4.0.x. Determine whether to use mutex reentrantLock when putting message.<br/>
-     * By default it is set to false indicating using spin lock when putting message.
      */
-    private boolean useReentrantLockWhenPutMessage = false;
+    private boolean useReentrantLockWhenPutMessage = true;
 
-    // Whether schedule flush,default is real-time
+    // Whether schedule flush
     @ImportantField
-    private boolean flushCommitLogTimed = false;
+    private boolean flushCommitLogTimed = true;
     // ConsumeQueue flush interval
     private int flushIntervalConsumeQueue = 1000;
     // Resource reclaim interval
@@ -78,9 +154,11 @@ public class MessageStoreConfig {
     // The number of hours to keep a log file before deleting it (in hours)
     @ImportantField
     private int fileReservedTime = 72;
+    @ImportantField
+    private int deleteFileBatchMax = 10;
     // Flow control for ConsumeQueue
     private int putMsgIndexHightWater = 600000;
-    // The maximum size of message,default is 4M
+    // The maximum size of message body,default is 4M,4M only for body length,not include others.
     private int maxMessageSize = 1024 * 1024 * 4;
     // Whether check the CRC32 of the records consumed.
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
@@ -117,15 +195,23 @@ public class MessageStoreConfig {
     private int haListenPort = 10912;
     private int haSendHeartbeatInterval = 1000 * 5;
     private int haHousekeepingInterval = 1000 * 20;
+    /**
+     * Maximum size of data to transfer to slave.
+     * NOTE: cannot be larger than HAClient.READ_MAX_BUFFER_SIZE
+     */
     private int haTransferBatchSize = 1024 * 32;
     @ImportantField
     private String haMasterAddress = null;
-    private int haSlaveFallbehindMax = 1024 * 1024 * 256;
+    private int haMaxGapNotInSync = 1024 * 1024 * 256;
     @ImportantField
-    private BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
+    private volatile BrokerRole brokerRole = BrokerRole.ASYNC_MASTER;
     @ImportantField
     private FlushDiskType flushDiskType = FlushDiskType.ASYNC_FLUSH;
+    // Used by GroupTransferService to sync messages from master to slave
     private int syncFlushTimeout = 1000 * 5;
+    // Used by PutMessage to wait messages be flushed to disk and synchronized in current broker member group.
+    private int putMessageTimeout = 1000 * 8;
+    private int slaveTimeout = 3000;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
     private long flushDelayOffsetInterval = 1000 * 10;
     @ImportantField
@@ -143,10 +229,168 @@ public class MessageStoreConfig {
     private int transientStorePoolSize = 5;
     private boolean fastFailIfNoBufferInStorePool = false;
 
+    // DLedger message store config
     private boolean enableDLegerCommitLog = false;
     private String dLegerGroup;
     private String dLegerPeers;
     private String dLegerSelfId;
+    private String preferredLeaderId;
+    private boolean enableBatchPush = false;
+
+    private boolean enableScheduleMessageStats = true;
+
+    private boolean enableLmq = false;
+    private boolean enableMultiDispatch = false;
+    private int maxLmqConsumeQueueNum = 20000;
+
+    private boolean enableScheduleAsyncDeliver = false;
+    private int scheduleAsyncDeliverMaxPendingLimit = 2000;
+    private int scheduleAsyncDeliverMaxResendNum2Blocked = 3;
+
+    private int maxBatchDeleteFilesNum = 50;
+    //Polish dispatch
+    private int dispatchCqThreads = 10;
+    private int dispatchCqCacheNum = 1024 * 4;
+    private boolean enableAsyncReput = true;
+    //For recheck the reput
+    private boolean recheckReputOffsetFromCq = false;
+
+    // Maximum length of topic, it will be removed in the future release
+    @Deprecated
+    private int maxTopicLength = Byte.MAX_VALUE;
+
+    /**
+     * Use MessageVersion.MESSAGE_VERSION_V2 automatically if topic length larger than Bytes.MAX_VALUE.
+     * Otherwise, store use MESSAGE_VERSION_V1. Note: Client couldn't decode MESSAGE_VERSION_V2 version message.
+     * Enable this config to resolve this issue. https://github.com/apache/rocketmq/issues/5568
+     */
+    private boolean autoMessageVersionOnTopicLen = true;
+
+    private int travelCqFileNumWhenGetMessage = 1;
+    // Sleep interval between to corrections
+    private int correctLogicMinOffsetSleepInterval = 1;
+    // Force correct min offset interval
+    private int correctLogicMinOffsetForceInterval = 5 * 60 * 1000;
+    // swap
+    private boolean mappedFileSwapEnable = true;
+    private long commitLogForceSwapMapInterval = 12L * 60 * 60 * 1000;
+    private long commitLogSwapMapInterval = 1L * 60 * 60 * 1000;
+    private int commitLogSwapMapReserveFileNum = 100;
+    private long logicQueueForceSwapMapInterval = 12L * 60 * 60 * 1000;
+    private long logicQueueSwapMapInterval = 1L * 60 * 60 * 1000;
+    private long cleanSwapedMapInterval = 5L * 60 * 1000;
+    private int logicQueueSwapMapReserveFileNum = 20;
+
+    private boolean searchBcqByCacheEnable = true;
+
+    @ImportantField
+    private boolean dispatchFromSenderThread = false;
+
+    @ImportantField
+    private boolean wakeCommitWhenPutMessage = true;
+    @ImportantField
+    private boolean wakeFlushWhenPutMessage = false;
+
+    @ImportantField
+    private boolean enableCleanExpiredOffset = false;
+
+    private int maxAsyncPutMessageRequests = 5000;
+
+    private int pullBatchMaxMessageCount = 160;
+
+    @ImportantField
+    private int totalReplicas = 1;
+
+    /**
+     * Each message must be written successfully to at least in-sync replicas.
+     * The master broker is considered one of the in-sync replicas, and it's included in the count of total.
+     * If a master broker is ASYNC_MASTER, inSyncReplicas will be ignored.
+     * If enableControllerMode is true and ackAckInSyncStateSet is true, inSyncReplicas will be ignored.
+     */
+    @ImportantField
+    private int inSyncReplicas = 1;
+
+    /**
+     * Will be worked in auto multiple replicas mode, to provide minimum in-sync replicas.
+     * It is still valid in controller mode.
+     */
+    @ImportantField
+    private int minInSyncReplicas = 1;
+
+    /**
+     * Each message must be written successfully to all replicas in SyncStateSet.
+     */
+    @ImportantField
+    private boolean allAckInSyncStateSet = false;
+
+    /**
+     * Dynamically adjust in-sync replicas to provide higher availability, the real time in-sync replicas
+     * will smaller than inSyncReplicas config.
+     */
+    @ImportantField
+    private boolean enableAutoInSyncReplicas = false;
+
+    /**
+     * Enable or not ha flow control
+     */
+    @ImportantField
+    private boolean haFlowControlEnable = false;
+
+    /**
+     * The max speed for one slave when transfer data in ha
+     */
+    private long maxHaTransferByteInSecond = 100 * 1024 * 1024;
+
+    /**
+     * The max gap time that slave doesn't catch up to master.
+     */
+    private long haMaxTimeSlaveNotCatchup = 1000 * 15;
+
+    /**
+     * Sync flush offset from master when broker startup, used in upgrading from old version broker.
+     */
+    private boolean syncMasterFlushOffsetWhenStartup = false;
+
+    /**
+     * Max checksum range.
+     */
+    private long maxChecksumRange = 1024 * 1024 * 1024;
+
+    private int replicasPerDiskPartition = 1;
+
+    private double logicalDiskSpaceCleanForciblyThreshold = 0.8;
+
+    private long maxSlaveResendLength = 256 * 1024 * 1024;
+
+    /**
+     * Whether sync from lastFile when a new broker replicas(no data) join the master.
+     */
+    private boolean syncFromLastFile = false;
+
+    private boolean asyncLearner = false;
+
+    /**
+     * Number of records to scan before starting to estimate.
+     */
+    private int maxConsumeQueueScan = 20_000;
+
+    /**
+     * Number of matched records before starting to estimate.
+     */
+    private int sampleCountThreshold = 5000;
+
+    private boolean coldDataFlowControlEnable = false;
+    private boolean coldDataScanEnable = false;
+    private boolean dataReadAheadEnable = false;
+    private int timerColdDataCheckIntervalMs = 60 * 1000;
+    private int sampleSteps = 32;
+    private int accessMessageInMemoryHotRatio = 26;
+    /**
+     * Build ConsumeQueue concurrently with multi-thread
+     */
+    private boolean enableBuildConsumeQueueConcurrently = false;
+
+    private int batchDispatchRequestThreadPoolNums = 16;
 
     public boolean isDebugLockEnable() {
         return debugLockEnable;
@@ -186,6 +430,54 @@ public class MessageStoreConfig {
 
     public void setWarmMapedFileEnable(boolean warmMapedFileEnable) {
         this.warmMapedFileEnable = warmMapedFileEnable;
+    }
+
+    public int getCompactionMappedFileSize() {
+        return compactionMappedFileSize;
+    }
+
+    public int getCompactionCqMappedFileSize() {
+        return compactionCqMappedFileSize;
+    }
+
+    public void setCompactionMappedFileSize(int compactionMappedFileSize) {
+        this.compactionMappedFileSize = compactionMappedFileSize;
+    }
+
+    public void setCompactionCqMappedFileSize(int compactionCqMappedFileSize) {
+        this.compactionCqMappedFileSize = compactionCqMappedFileSize;
+    }
+
+    public int getCompactionScheduleInternal() {
+        return compactionScheduleInternal;
+    }
+
+    public void setCompactionScheduleInternal(int compactionScheduleInternal) {
+        this.compactionScheduleInternal = compactionScheduleInternal;
+    }
+
+    public int getMaxOffsetMapSize() {
+        return maxOffsetMapSize;
+    }
+
+    public void setMaxOffsetMapSize(int maxOffsetMapSize) {
+        this.maxOffsetMapSize = maxOffsetMapSize;
+    }
+
+    public int getCompactionThreadNum() {
+        return compactionThreadNum;
+    }
+
+    public void setCompactionThreadNum(int compactionThreadNum) {
+        this.compactionThreadNum = compactionThreadNum;
+    }
+
+    public boolean isEnableCompaction() {
+        return enableCompaction;
+    }
+
+    public void setEnableCompaction(boolean enableCompaction) {
+        this.enableCompaction = enableCompaction;
     }
 
     public int getMappedFileSizeCommitLog() {
@@ -270,6 +562,48 @@ public class MessageStoreConfig {
         this.maxMessageSize = maxMessageSize;
     }
 
+    @Deprecated
+    public int getMaxTopicLength() {
+        return maxTopicLength;
+    }
+
+    @Deprecated
+    public void setMaxTopicLength(int maxTopicLength) {
+        this.maxTopicLength = maxTopicLength;
+    }
+
+    public boolean isAutoMessageVersionOnTopicLen() {
+        return autoMessageVersionOnTopicLen;
+    }
+
+    public void setAutoMessageVersionOnTopicLen(boolean autoMessageVersionOnTopicLen) {
+        this.autoMessageVersionOnTopicLen = autoMessageVersionOnTopicLen;
+    }
+
+    public int getTravelCqFileNumWhenGetMessage() {
+        return travelCqFileNumWhenGetMessage;
+    }
+
+    public void setTravelCqFileNumWhenGetMessage(int travelCqFileNumWhenGetMessage) {
+        this.travelCqFileNumWhenGetMessage = travelCqFileNumWhenGetMessage;
+    }
+
+    public int getCorrectLogicMinOffsetSleepInterval() {
+        return correctLogicMinOffsetSleepInterval;
+    }
+
+    public void setCorrectLogicMinOffsetSleepInterval(int correctLogicMinOffsetSleepInterval) {
+        this.correctLogicMinOffsetSleepInterval = correctLogicMinOffsetSleepInterval;
+    }
+
+    public int getCorrectLogicMinOffsetForceInterval() {
+        return correctLogicMinOffsetForceInterval;
+    }
+
+    public void setCorrectLogicMinOffsetForceInterval(int correctLogicMinOffsetForceInterval) {
+        this.correctLogicMinOffsetForceInterval = correctLogicMinOffsetForceInterval;
+    }
+
     public boolean isCheckCRCOnRecover() {
         return checkCRCOnRecover;
     }
@@ -283,11 +617,44 @@ public class MessageStoreConfig {
     }
 
     public String getStorePathCommitLog() {
+        if (storePathCommitLog == null) {
+            return storePathRootDir + File.separator + "commitlog";
+        }
         return storePathCommitLog;
     }
 
     public void setStorePathCommitLog(String storePathCommitLog) {
         this.storePathCommitLog = storePathCommitLog;
+    }
+
+    public String getStorePathDLedgerCommitLog() {
+        return storePathDLedgerCommitLog;
+    }
+
+    public void setStorePathDLedgerCommitLog(String storePathDLedgerCommitLog) {
+        this.storePathDLedgerCommitLog = storePathDLedgerCommitLog;
+    }
+
+    public String getStorePathEpochFile() {
+        if (storePathEpochFile == null) {
+            return storePathRootDir + File.separator + "epochFileCheckpoint";
+        }
+        return storePathEpochFile;
+    }
+
+    public void setStorePathEpochFile(String storePathEpochFile) {
+        this.storePathEpochFile = storePathEpochFile;
+    }
+
+    public String getStorePathBrokerIdentity() {
+        if (storePathBrokerIdentity == null) {
+            return storePathRootDir + File.separator + "brokerIdentity";
+        }
+        return storePathBrokerIdentity;
+    }
+
+    public void setStorePathBrokerIdentity(String storePathBrokerIdentity) {
+        this.storePathBrokerIdentity = storePathBrokerIdentity;
     }
 
     public String getDeleteWhen() {
@@ -461,6 +828,10 @@ public class MessageStoreConfig {
     }
 
     public void setHaListenPort(int haListenPort) {
+        if (haListenPort < 0) {
+            this.haListenPort = 0;
+            return;
+        }
         this.haListenPort = haListenPort;
     }
 
@@ -500,12 +871,12 @@ public class MessageStoreConfig {
         this.haTransferBatchSize = haTransferBatchSize;
     }
 
-    public int getHaSlaveFallbehindMax() {
-        return haSlaveFallbehindMax;
+    public int getHaMaxGapNotInSync() {
+        return haMaxGapNotInSync;
     }
 
-    public void setHaSlaveFallbehindMax(int haSlaveFallbehindMax) {
-        this.haSlaveFallbehindMax = haSlaveFallbehindMax;
+    public void setHaMaxGapNotInSync(int haMaxGapNotInSync) {
+        this.haMaxGapNotInSync = haMaxGapNotInSync;
     }
 
     public FlushDiskType getFlushDiskType() {
@@ -526,6 +897,22 @@ public class MessageStoreConfig {
 
     public void setSyncFlushTimeout(int syncFlushTimeout) {
         this.syncFlushTimeout = syncFlushTimeout;
+    }
+
+    public int getPutMessageTimeout() {
+        return putMessageTimeout;
+    }
+
+    public void setPutMessageTimeout(int putMessageTimeout) {
+        this.putMessageTimeout = putMessageTimeout;
+    }
+
+    public int getSlaveTimeout() {
+        return slaveTimeout;
+    }
+
+    public void setSlaveTimeout(int slaveTimeout) {
+        this.slaveTimeout = slaveTimeout;
     }
 
     public String getHaMasterAddress() {
@@ -608,15 +995,8 @@ public class MessageStoreConfig {
         this.defaultQueryMaxNum = defaultQueryMaxNum;
     }
 
-    /**
-     * Enable transient commitLog store pool only if transientStorePoolEnable is true and the FlushDiskType is
-     * ASYNC_FLUSH
-     *
-     * @return <tt>true</tt> or <tt>false</tt>
-     */
     public boolean isTransientStorePoolEnable() {
-        return transientStorePoolEnable && FlushDiskType.ASYNC_FLUSH == getFlushDiskType()
-            && BrokerRole.SLAVE != getBrokerRole();
+        return transientStorePoolEnable;
     }
 
     public void setTransientStorePoolEnable(final boolean transientStorePoolEnable) {
@@ -671,6 +1051,46 @@ public class MessageStoreConfig {
         this.commitCommitLogThoroughInterval = commitCommitLogThoroughInterval;
     }
 
+    public boolean isWakeCommitWhenPutMessage() {
+        return wakeCommitWhenPutMessage;
+    }
+
+    public void setWakeCommitWhenPutMessage(boolean wakeCommitWhenPutMessage) {
+        this.wakeCommitWhenPutMessage = wakeCommitWhenPutMessage;
+    }
+
+    public boolean isWakeFlushWhenPutMessage() {
+        return wakeFlushWhenPutMessage;
+    }
+
+    public void setWakeFlushWhenPutMessage(boolean wakeFlushWhenPutMessage) {
+        this.wakeFlushWhenPutMessage = wakeFlushWhenPutMessage;
+    }
+
+    public int getMapperFileSizeBatchConsumeQueue() {
+        return mapperFileSizeBatchConsumeQueue;
+    }
+
+    public void setMapperFileSizeBatchConsumeQueue(int mapperFileSizeBatchConsumeQueue) {
+        this.mapperFileSizeBatchConsumeQueue = mapperFileSizeBatchConsumeQueue;
+    }
+
+    public boolean isEnableCleanExpiredOffset() {
+        return enableCleanExpiredOffset;
+    }
+
+    public void setEnableCleanExpiredOffset(boolean enableCleanExpiredOffset) {
+        this.enableCleanExpiredOffset = enableCleanExpiredOffset;
+    }
+
+    public String getReadOnlyCommitLogStorePaths() {
+        return readOnlyCommitLogStorePaths;
+    }
+
+    public void setReadOnlyCommitLogStorePaths(String readOnlyCommitLogStorePaths) {
+        this.readOnlyCommitLogStorePaths = readOnlyCommitLogStorePaths;
+    }
+
     public String getdLegerGroup() {
         return dLegerGroup;
     }
@@ -701,5 +1121,593 @@ public class MessageStoreConfig {
 
     public void setEnableDLegerCommitLog(boolean enableDLegerCommitLog) {
         this.enableDLegerCommitLog = enableDLegerCommitLog;
+    }
+
+    public String getPreferredLeaderId() {
+        return preferredLeaderId;
+    }
+
+    public void setPreferredLeaderId(String preferredLeaderId) {
+        this.preferredLeaderId = preferredLeaderId;
+    }
+
+    public boolean isEnableBatchPush() {
+        return enableBatchPush;
+    }
+
+    public void setEnableBatchPush(boolean enableBatchPush) {
+        this.enableBatchPush = enableBatchPush;
+    }
+
+    public boolean isEnableScheduleMessageStats() {
+        return enableScheduleMessageStats;
+    }
+
+    public void setEnableScheduleMessageStats(boolean enableScheduleMessageStats) {
+        this.enableScheduleMessageStats = enableScheduleMessageStats;
+    }
+
+    public int getMaxAsyncPutMessageRequests() {
+        return maxAsyncPutMessageRequests;
+    }
+
+    public void setMaxAsyncPutMessageRequests(int maxAsyncPutMessageRequests) {
+        this.maxAsyncPutMessageRequests = maxAsyncPutMessageRequests;
+    }
+
+    public int getMaxRecoveryCommitlogFiles() {
+        return maxRecoveryCommitlogFiles;
+    }
+
+    public void setMaxRecoveryCommitlogFiles(final int maxRecoveryCommitlogFiles) {
+        this.maxRecoveryCommitlogFiles = maxRecoveryCommitlogFiles;
+    }
+
+    public boolean isDispatchFromSenderThread() {
+        return dispatchFromSenderThread;
+    }
+
+    public void setDispatchFromSenderThread(boolean dispatchFromSenderThread) {
+        this.dispatchFromSenderThread = dispatchFromSenderThread;
+    }
+
+    public int getDispatchCqThreads() {
+        return dispatchCqThreads;
+    }
+
+    public void setDispatchCqThreads(final int dispatchCqThreads) {
+        this.dispatchCqThreads = dispatchCqThreads;
+    }
+
+    public int getDispatchCqCacheNum() {
+        return dispatchCqCacheNum;
+    }
+
+    public void setDispatchCqCacheNum(final int dispatchCqCacheNum) {
+        this.dispatchCqCacheNum = dispatchCqCacheNum;
+    }
+
+    public boolean isEnableAsyncReput() {
+        return enableAsyncReput;
+    }
+
+    public void setEnableAsyncReput(final boolean enableAsyncReput) {
+        this.enableAsyncReput = enableAsyncReput;
+    }
+
+    public boolean isRecheckReputOffsetFromCq() {
+        return recheckReputOffsetFromCq;
+    }
+
+    public void setRecheckReputOffsetFromCq(final boolean recheckReputOffsetFromCq) {
+        this.recheckReputOffsetFromCq = recheckReputOffsetFromCq;
+    }
+
+    public long getCommitLogForceSwapMapInterval() {
+        return commitLogForceSwapMapInterval;
+    }
+
+    public void setCommitLogForceSwapMapInterval(long commitLogForceSwapMapInterval) {
+        this.commitLogForceSwapMapInterval = commitLogForceSwapMapInterval;
+    }
+
+    public int getCommitLogSwapMapReserveFileNum() {
+        return commitLogSwapMapReserveFileNum;
+    }
+
+    public void setCommitLogSwapMapReserveFileNum(int commitLogSwapMapReserveFileNum) {
+        this.commitLogSwapMapReserveFileNum = commitLogSwapMapReserveFileNum;
+    }
+
+    public long getLogicQueueForceSwapMapInterval() {
+        return logicQueueForceSwapMapInterval;
+    }
+
+    public void setLogicQueueForceSwapMapInterval(long logicQueueForceSwapMapInterval) {
+        this.logicQueueForceSwapMapInterval = logicQueueForceSwapMapInterval;
+    }
+
+    public int getLogicQueueSwapMapReserveFileNum() {
+        return logicQueueSwapMapReserveFileNum;
+    }
+
+    public void setLogicQueueSwapMapReserveFileNum(int logicQueueSwapMapReserveFileNum) {
+        this.logicQueueSwapMapReserveFileNum = logicQueueSwapMapReserveFileNum;
+    }
+
+    public long getCleanSwapedMapInterval() {
+        return cleanSwapedMapInterval;
+    }
+
+    public void setCleanSwapedMapInterval(long cleanSwapedMapInterval) {
+        this.cleanSwapedMapInterval = cleanSwapedMapInterval;
+    }
+
+    public long getCommitLogSwapMapInterval() {
+        return commitLogSwapMapInterval;
+    }
+
+    public void setCommitLogSwapMapInterval(long commitLogSwapMapInterval) {
+        this.commitLogSwapMapInterval = commitLogSwapMapInterval;
+    }
+
+    public long getLogicQueueSwapMapInterval() {
+        return logicQueueSwapMapInterval;
+    }
+
+    public void setLogicQueueSwapMapInterval(long logicQueueSwapMapInterval) {
+        this.logicQueueSwapMapInterval = logicQueueSwapMapInterval;
+    }
+
+    public int getMaxBatchDeleteFilesNum() {
+        return maxBatchDeleteFilesNum;
+    }
+
+    public void setMaxBatchDeleteFilesNum(int maxBatchDeleteFilesNum) {
+        this.maxBatchDeleteFilesNum = maxBatchDeleteFilesNum;
+    }
+
+    public boolean isSearchBcqByCacheEnable() {
+        return searchBcqByCacheEnable;
+    }
+
+    public void setSearchBcqByCacheEnable(boolean searchBcqByCacheEnable) {
+        this.searchBcqByCacheEnable = searchBcqByCacheEnable;
+    }
+
+    public int getDiskSpaceWarningLevelRatio() {
+        return diskSpaceWarningLevelRatio;
+    }
+
+    public void setDiskSpaceWarningLevelRatio(int diskSpaceWarningLevelRatio) {
+        this.diskSpaceWarningLevelRatio = diskSpaceWarningLevelRatio;
+    }
+
+    public int getDiskSpaceCleanForciblyRatio() {
+        return diskSpaceCleanForciblyRatio;
+    }
+
+    public void setDiskSpaceCleanForciblyRatio(int diskSpaceCleanForciblyRatio) {
+        this.diskSpaceCleanForciblyRatio = diskSpaceCleanForciblyRatio;
+    }
+
+    public boolean isMappedFileSwapEnable() {
+        return mappedFileSwapEnable;
+    }
+
+    public void setMappedFileSwapEnable(boolean mappedFileSwapEnable) {
+        this.mappedFileSwapEnable = mappedFileSwapEnable;
+    }
+
+    public int getPullBatchMaxMessageCount() {
+        return pullBatchMaxMessageCount;
+    }
+
+    public void setPullBatchMaxMessageCount(int pullBatchMaxMessageCount) {
+        this.pullBatchMaxMessageCount = pullBatchMaxMessageCount;
+    }
+
+    public int getDeleteFileBatchMax() {
+        return deleteFileBatchMax;
+    }
+
+    public void setDeleteFileBatchMax(int deleteFileBatchMax) {
+        this.deleteFileBatchMax = deleteFileBatchMax;
+    }
+
+    public int getTotalReplicas() {
+        return totalReplicas;
+    }
+
+    public void setTotalReplicas(int totalReplicas) {
+        this.totalReplicas = totalReplicas;
+    }
+
+    public int getInSyncReplicas() {
+        return inSyncReplicas;
+    }
+
+    public void setInSyncReplicas(int inSyncReplicas) {
+        this.inSyncReplicas = inSyncReplicas;
+    }
+
+    public int getMinInSyncReplicas() {
+        return minInSyncReplicas;
+    }
+
+    public void setMinInSyncReplicas(int minInSyncReplicas) {
+        this.minInSyncReplicas = minInSyncReplicas;
+    }
+
+    public boolean isAllAckInSyncStateSet() {
+        return allAckInSyncStateSet;
+    }
+
+    public void setAllAckInSyncStateSet(boolean allAckInSyncStateSet) {
+        this.allAckInSyncStateSet = allAckInSyncStateSet;
+    }
+
+    public boolean isEnableAutoInSyncReplicas() {
+        return enableAutoInSyncReplicas;
+    }
+
+    public void setEnableAutoInSyncReplicas(boolean enableAutoInSyncReplicas) {
+        this.enableAutoInSyncReplicas = enableAutoInSyncReplicas;
+    }
+
+    public boolean isHaFlowControlEnable() {
+        return haFlowControlEnable;
+    }
+
+    public void setHaFlowControlEnable(boolean haFlowControlEnable) {
+        this.haFlowControlEnable = haFlowControlEnable;
+    }
+
+    public long getMaxHaTransferByteInSecond() {
+        return maxHaTransferByteInSecond;
+    }
+
+    public void setMaxHaTransferByteInSecond(long maxHaTransferByteInSecond) {
+        this.maxHaTransferByteInSecond = maxHaTransferByteInSecond;
+    }
+
+    public long getHaMaxTimeSlaveNotCatchup() {
+        return haMaxTimeSlaveNotCatchup;
+    }
+
+    public void setHaMaxTimeSlaveNotCatchup(long haMaxTimeSlaveNotCatchup) {
+        this.haMaxTimeSlaveNotCatchup = haMaxTimeSlaveNotCatchup;
+    }
+
+    public boolean isSyncMasterFlushOffsetWhenStartup() {
+        return syncMasterFlushOffsetWhenStartup;
+    }
+
+    public void setSyncMasterFlushOffsetWhenStartup(boolean syncMasterFlushOffsetWhenStartup) {
+        this.syncMasterFlushOffsetWhenStartup = syncMasterFlushOffsetWhenStartup;
+    }
+
+    public long getMaxChecksumRange() {
+        return maxChecksumRange;
+    }
+
+    public void setMaxChecksumRange(long maxChecksumRange) {
+        this.maxChecksumRange = maxChecksumRange;
+    }
+
+    public int getReplicasPerDiskPartition() {
+        return replicasPerDiskPartition;
+    }
+
+    public void setReplicasPerDiskPartition(int replicasPerDiskPartition) {
+        this.replicasPerDiskPartition = replicasPerDiskPartition;
+    }
+
+    public double getLogicalDiskSpaceCleanForciblyThreshold() {
+        return logicalDiskSpaceCleanForciblyThreshold;
+    }
+
+    public void setLogicalDiskSpaceCleanForciblyThreshold(double logicalDiskSpaceCleanForciblyThreshold) {
+        this.logicalDiskSpaceCleanForciblyThreshold = logicalDiskSpaceCleanForciblyThreshold;
+    }
+
+    public int getDisappearTimeAfterStart() {
+        return disappearTimeAfterStart;
+    }
+
+    public void setDisappearTimeAfterStart(int disappearTimeAfterStart) {
+        this.disappearTimeAfterStart = disappearTimeAfterStart;
+    }
+
+    public long getMaxSlaveResendLength() {
+        return maxSlaveResendLength;
+    }
+
+    public void setMaxSlaveResendLength(long maxSlaveResendLength) {
+        this.maxSlaveResendLength = maxSlaveResendLength;
+    }
+
+    public boolean isSyncFromLastFile() {
+        return syncFromLastFile;
+    }
+
+    public void setSyncFromLastFile(boolean syncFromLastFile) {
+        this.syncFromLastFile = syncFromLastFile;
+    }
+
+    public boolean isEnableLmq() {
+        return enableLmq;
+    }
+
+    public void setEnableLmq(boolean enableLmq) {
+        this.enableLmq = enableLmq;
+    }
+
+    public boolean isEnableMultiDispatch() {
+        return enableMultiDispatch;
+    }
+
+    public void setEnableMultiDispatch(boolean enableMultiDispatch) {
+        this.enableMultiDispatch = enableMultiDispatch;
+    }
+
+    public int getMaxLmqConsumeQueueNum() {
+        return maxLmqConsumeQueueNum;
+    }
+
+    public void setMaxLmqConsumeQueueNum(int maxLmqConsumeQueueNum) {
+        this.maxLmqConsumeQueueNum = maxLmqConsumeQueueNum;
+    }
+
+    public boolean isEnableScheduleAsyncDeliver() {
+        return enableScheduleAsyncDeliver;
+    }
+
+    public void setEnableScheduleAsyncDeliver(boolean enableScheduleAsyncDeliver) {
+        this.enableScheduleAsyncDeliver = enableScheduleAsyncDeliver;
+    }
+
+    public int getScheduleAsyncDeliverMaxPendingLimit() {
+        return scheduleAsyncDeliverMaxPendingLimit;
+    }
+
+    public void setScheduleAsyncDeliverMaxPendingLimit(int scheduleAsyncDeliverMaxPendingLimit) {
+        this.scheduleAsyncDeliverMaxPendingLimit = scheduleAsyncDeliverMaxPendingLimit;
+    }
+
+    public int getScheduleAsyncDeliverMaxResendNum2Blocked() {
+        return scheduleAsyncDeliverMaxResendNum2Blocked;
+    }
+
+    public void setScheduleAsyncDeliverMaxResendNum2Blocked(int scheduleAsyncDeliverMaxResendNum2Blocked) {
+        this.scheduleAsyncDeliverMaxResendNum2Blocked = scheduleAsyncDeliverMaxResendNum2Blocked;
+    }
+
+    public boolean isAsyncLearner() {
+        return asyncLearner;
+    }
+
+    public void setAsyncLearner(boolean asyncLearner) {
+        this.asyncLearner = asyncLearner;
+    }
+
+    public int getMappedFileSizeTimerLog() {
+        return mappedFileSizeTimerLog;
+    }
+
+    public void setMappedFileSizeTimerLog(final int mappedFileSizeTimerLog) {
+        this.mappedFileSizeTimerLog = mappedFileSizeTimerLog;
+    }
+
+    public int getTimerPrecisionMs() {
+        return timerPrecisionMs;
+    }
+
+    public void setTimerPrecisionMs(int timerPrecisionMs) {
+        int[] candidates = {100, 200, 500, 1000};
+        for (int i = 1; i < candidates.length; i++) {
+            if (timerPrecisionMs < candidates[i]) {
+                this.timerPrecisionMs = candidates[i - 1];
+                return;
+            }
+        }
+        this.timerPrecisionMs = candidates[candidates.length - 1];
+    }
+
+    public int getTimerRollWindowSlot() {
+        return timerRollWindowSlot;
+    }
+
+    public int getTimerGetMessageThreadNum() {
+        return timerGetMessageThreadNum;
+    }
+
+    public void setTimerGetMessageThreadNum(int timerGetMessageThreadNum) {
+        this.timerGetMessageThreadNum = timerGetMessageThreadNum;
+    }
+
+    public int getTimerPutMessageThreadNum() {
+        return timerPutMessageThreadNum;
+    }
+
+    public void setTimerPutMessageThreadNum(int timerPutMessageThreadNum) {
+        this.timerPutMessageThreadNum = timerPutMessageThreadNum;
+    }
+
+    public boolean isTimerEnableDisruptor() {
+        return timerEnableDisruptor;
+    }
+
+    public boolean isTimerEnableCheckMetrics() {
+        return timerEnableCheckMetrics;
+    }
+
+    public void setTimerEnableCheckMetrics(boolean timerEnableCheckMetrics) {
+        this.timerEnableCheckMetrics = timerEnableCheckMetrics;
+    }
+
+    public boolean isTimerStopEnqueue() {
+        return timerStopEnqueue;
+    }
+
+    public void setTimerStopEnqueue(boolean timerStopEnqueue) {
+        this.timerStopEnqueue = timerStopEnqueue;
+    }
+
+    public String getTimerCheckMetricsWhen() {
+        return timerCheckMetricsWhen;
+    }
+
+    public boolean isTimerSkipUnknownError() {
+        return timerSkipUnknownError;
+    }
+
+    public boolean isTimerWarmEnable() {
+        return timerWarmEnable;
+    }
+
+    public boolean isTimerWheelEnable() {
+        return timerWheelEnable;
+    }
+
+    public void setTimerWheelEnable(boolean timerWheelEnable) {
+        this.timerWheelEnable = timerWheelEnable;
+    }
+
+    public boolean isTimerStopDequeue() {
+        return timerStopDequeue;
+    }
+
+    public int getTimerMetricSmallThreshold() {
+        return timerMetricSmallThreshold;
+    }
+
+    public void setTimerMetricSmallThreshold(int timerMetricSmallThreshold) {
+        this.timerMetricSmallThreshold = timerMetricSmallThreshold;
+    }
+
+    public int getTimerCongestNumEachSlot() {
+        return timerCongestNumEachSlot;
+    }
+
+    public void setTimerCongestNumEachSlot(int timerCongestNumEachSlot) {
+        // In order to get this value from messageStoreConfig properties file created before v4.4.1.
+        this.timerCongestNumEachSlot = timerCongestNumEachSlot;
+    }
+
+    public int getTimerFlushIntervalMs() {
+        return timerFlushIntervalMs;
+    }
+
+    public void setTimerFlushIntervalMs(final int timerFlushIntervalMs) {
+        this.timerFlushIntervalMs = timerFlushIntervalMs;
+    }
+
+    public void setTimerRollWindowSlot(final int timerRollWindowSlot) {
+        this.timerRollWindowSlot = timerRollWindowSlot;
+    }
+
+    public int getTimerProgressLogIntervalMs() {
+        return timerProgressLogIntervalMs;
+    }
+
+    public void setTimerProgressLogIntervalMs(final int timerProgressLogIntervalMs) {
+        this.timerProgressLogIntervalMs = timerProgressLogIntervalMs;
+    }
+
+    public boolean isTimerInterceptDelayLevel() {
+        return timerInterceptDelayLevel;
+    }
+
+    public void setTimerInterceptDelayLevel(boolean timerInterceptDelayLevel) {
+        this.timerInterceptDelayLevel = timerInterceptDelayLevel;
+    }
+
+    public int getTimerMaxDelaySec() {
+        return timerMaxDelaySec;
+    }
+
+    public void setTimerMaxDelaySec(final int timerMaxDelaySec) {
+        this.timerMaxDelaySec = timerMaxDelaySec;
+    }
+
+    public int getMaxConsumeQueueScan() {
+        return maxConsumeQueueScan;
+    }
+
+    public void setMaxConsumeQueueScan(int maxConsumeQueueScan) {
+        this.maxConsumeQueueScan = maxConsumeQueueScan;
+    }
+
+    public int getSampleCountThreshold() {
+        return sampleCountThreshold;
+    }
+
+    public void setSampleCountThreshold(int sampleCountThreshold) {
+        this.sampleCountThreshold = sampleCountThreshold;
+    }
+
+    public boolean isColdDataFlowControlEnable() {
+        return coldDataFlowControlEnable;
+    }
+
+    public void setColdDataFlowControlEnable(boolean coldDataFlowControlEnable) {
+        this.coldDataFlowControlEnable = coldDataFlowControlEnable;
+    }
+
+    public boolean isColdDataScanEnable() {
+        return coldDataScanEnable;
+    }
+
+    public void setColdDataScanEnable(boolean coldDataScanEnable) {
+        this.coldDataScanEnable = coldDataScanEnable;
+    }
+
+    public int getTimerColdDataCheckIntervalMs() {
+        return timerColdDataCheckIntervalMs;
+    }
+
+    public void setTimerColdDataCheckIntervalMs(int timerColdDataCheckIntervalMs) {
+        this.timerColdDataCheckIntervalMs = timerColdDataCheckIntervalMs;
+    }
+
+    public int getSampleSteps() {
+        return sampleSteps;
+    }
+
+    public void setSampleSteps(int sampleSteps) {
+        this.sampleSteps = sampleSteps;
+    }
+
+    public int getAccessMessageInMemoryHotRatio() {
+        return accessMessageInMemoryHotRatio;
+    }
+
+    public void setAccessMessageInMemoryHotRatio(int accessMessageInMemoryHotRatio) {
+        this.accessMessageInMemoryHotRatio = accessMessageInMemoryHotRatio;
+    }
+
+    public boolean isDataReadAheadEnable() {
+        return dataReadAheadEnable;
+    }
+
+    public void setDataReadAheadEnable(boolean dataReadAheadEnable) {
+        this.dataReadAheadEnable = dataReadAheadEnable;
+    }
+
+    public boolean isEnableBuildConsumeQueueConcurrently() {
+        return enableBuildConsumeQueueConcurrently;
+    }
+
+    public void setEnableBuildConsumeQueueConcurrently(boolean enableBuildConsumeQueueConcurrently) {
+        this.enableBuildConsumeQueueConcurrently = enableBuildConsumeQueueConcurrently;
+    }
+
+    public int getBatchDispatchRequestThreadPoolNums() {
+        return batchDispatchRequestThreadPoolNums;
+    }
+
+    public void setBatchDispatchRequestThreadPoolNums(int batchDispatchRequestThreadPoolNums) {
+        this.batchDispatchRequestThreadPoolNums = batchDispatchRequestThreadPoolNums;
     }
 }

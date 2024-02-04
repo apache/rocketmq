@@ -42,4 +42,4 @@ fi
 
 export ROCKETMQ_HOME
 
-sh ${ROCKETMQ_HOME}/bin/tools.sh org.apache.rocketmq.tools.command.MQAdminStartup $@
+sh ${ROCKETMQ_HOME}/bin/tools.sh -Drmq.logback.configurationFile=$ROCKETMQ_HOME/conf/rmq.tools.logback.xml org.apache.rocketmq.tools.command.MQAdminStartup "$@"

@@ -25,7 +25,7 @@ public class RequestTask implements Runnable {
     private final long createTimestamp = System.currentTimeMillis();
     private final Channel channel;
     private final RemotingCommand request;
-    private boolean stopRun = false;
+    private volatile boolean stopRun = false;
 
     public RequestTask(final Runnable runnable, final Channel channel, final RemotingCommand request) {
         this.runnable = runnable;

@@ -19,24 +19,27 @@ package org.apache.rocketmq.client.consumer.rebalance;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
  * Computer room Hashing queue algorithm, such as Alipay logic room
  */
-public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueStrategy {
+public class AllocateMessageQueueByMachineRoom extends AbstractAllocateMessageQueueStrategy {
     private Set<String> consumeridcs;
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+
+        List<MessageQueue> result = new ArrayList<>();
+        if (!check(consumerGroup, currentCID, mqAll, cidAll)) {
+            return result;
+        }
         int currentIndex = cidAll.indexOf(currentCID);
         if (currentIndex < 0) {
             return result;
         }
-        List<MessageQueue> premqAll = new ArrayList<MessageQueue>();
+        List<MessageQueue> premqAll = new ArrayList<>();
         for (MessageQueue mq : mqAll) {
             String[] temp = mq.getBrokerName().split("@");
             if (temp.length == 2 && consumeridcs.contains(temp[0])) {
@@ -49,7 +52,7 @@ public class AllocateMessageQueueByMachineRoom implements AllocateMessageQueueSt
         int startIndex = mod * currentIndex;
         int endIndex = startIndex + mod;
         for (int i = startIndex; i < endIndex; i++) {
-            result.add(mqAll.get(i));
+            result.add(premqAll.get(i));
         }
         if (rem > currentIndex) {
             result.add(premqAll.get(currentIndex + mod * cidAll.size()));

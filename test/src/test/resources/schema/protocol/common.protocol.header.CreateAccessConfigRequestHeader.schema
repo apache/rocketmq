@@ -1,0 +1,43 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field accessKey : private java.lang.String null
+Field admin : private boolean false
+Field defaultGroupPerm : private java.lang.String null
+Field defaultTopicPerm : private java.lang.String null
+Field groupPerms : private java.lang.String null
+Field secretKey : private java.lang.String null
+Field topicPerms : private java.lang.String null
+Field whiteRemoteAddress : private java.lang.String null
+Method checkFields() : public throws (void)
+Method getAccessKey() : public throws (java.lang.String)
+Method getDefaultGroupPerm() : public throws (java.lang.String)
+Method getDefaultTopicPerm() : public throws (java.lang.String)
+Method getGroupPerms() : public throws (java.lang.String)
+Method getSecretKey() : public throws (java.lang.String)
+Method getTopicPerms() : public throws (java.lang.String)
+Method getWhiteRemoteAddress() : public throws (java.lang.String)
+Method isAdmin() : public throws (boolean)
+Method setAccessKey(java.lang.String) : public throws (void)
+Method setAdmin(boolean) : public throws (void)
+Method setDefaultGroupPerm(java.lang.String) : public throws (void)
+Method setDefaultTopicPerm(java.lang.String) : public throws (void)
+Method setGroupPerms(java.lang.String) : public throws (void)
+Method setSecretKey(java.lang.String) : public throws (void)
+Method setTopicPerms(java.lang.String) : public throws (void)
+Method setWhiteRemoteAddress(java.lang.String) : public throws (void)

@@ -18,7 +18,9 @@
 package org.apache.rocketmq.test.client.consumer.tag;
 
 import java.util.List;
-import org.apache.log4j.Logger;
+
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -33,7 +35,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class TagMessageWith1ConsumerIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
@@ -42,7 +44,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         topic = initTopic();
         String consumerId = initConsumerGroup();
         logger.info(String.format("use topic: %s; consumerId: %s !", topic, consumerId));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -54,10 +56,10 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
     public void testTagSmoke() {
         String tag = "jueyin";
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, tag, new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, tag, new RMQNormalListener());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
@@ -67,11 +69,11 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
     public void testSubAllMessageNoTag() {
         String subExprress = "*";
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExprress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExprress,
             new RMQNormalListener());
         producer.send(msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -83,11 +85,11 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String tag = "jueyin";
         String subExpress = "*";
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -99,11 +101,11 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String tag = null;
         String subExpress = "*";
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -115,11 +117,11 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String tag = null;
         String subExpress = null;
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -132,7 +134,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String tag2 = "jueyin";
         String subExpress = "*";
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         List<Object> tag1Msgs = MQMessageFactory.getRMQMessage(tag1, topic, msgSize);
@@ -142,7 +144,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         producer.send(tag2Msgs);
         producer.send(10);
         Assert.assertEquals("Not all are sent", msgSize * 3, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -155,7 +157,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String tag2 = "jueyin";
         String subExpress = null;
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         List<Object> tag1Msgs = MQMessageFactory.getRMQMessage(tag1, topic, msgSize);
@@ -164,7 +166,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         producer.send(tag1Msgs);
         producer.send(tag2Msgs);
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -177,7 +179,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         String tag2 = "jueyin";
         String subExpress = tag2;
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         List<Object> tag1Msgs = MQMessageFactory.getRMQMessage(tag1, topic, msgSize);
@@ -188,7 +190,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         producer.send(10);
         Assert.assertEquals("Not all are sent", msgSize * 3, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(MQMessageFactory.getMessageBody(tag2Msgs),
-            consumeTime);
+            CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))

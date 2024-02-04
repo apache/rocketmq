@@ -1,0 +1,32 @@
+name: Close Stale Issues/PRs
+
+permissions:
+  issues: write
+  pull-requests: write
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v5
+        with:
+          operations-per-run: 128
+          days-before-issue-stale: 365
+          days-before-issue-close: 3
+          exempt-issue-labels: "no stale"
+          stale-issue-label: "stale"
+          stale-issue-message: "This issue is stale because it has been open for 365 days with no activity. It will be closed in 3 days if no further activity occurs."
+          close-issue-message: "This issue was closed because it has been inactive for 3 days since being marked as stale."
+          remove-issue-stale-when-updated: true
+          days-before-pr-stale: 365
+          days-before-pr-close: 3
+          exempt-pr-labels: "no stale"
+          stale-pr-label: "stale"
+          stale-pr-message: "This PR is stale because it has been open for 365 days with no activity. It will be closed in 3 days if no further activity occurs. If you wish not to mark it as stale, please leave a comment in this PR."
+          close-pr-message: "This PR was closed because it has been inactive for 3 days since being marked as stale."
+          remove-pr-stale-when-updated: true

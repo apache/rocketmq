@@ -1,4 +1,5 @@
 # Dledger集群搭建
+> 该模式为4.x的切换方式，建议采用 5.x [自动主从切换](../controller/design.md)
 ---
 ## 前言
 该文档主要介绍如何部署自动容灾切换的 RocketMQ-on-DLedger Group。
@@ -19,7 +20,7 @@ RocketMQ-on-DLedger Group 是可以水平扩展的，也即可以部署任意多
 | enableDLegerCommitLog | 是否启动 DLedger  | true |
 | dLegerGroup | DLedger Raft Group的名字，建议和 brokerName 保持一致 | RaftNode00 |
 | dLegerPeers | DLedger Group 内各节点的端口信息，同一个 Group 内的各个节点配置必须要保证一致 | n0-127.0.0.1:40911;n1-127.0.0.1:40912;n2-127.0.0.1:40913 |
-| dLegerSelfId | 节点 id, 必须属于 dLegerPeers 中的一个；同 Group 内各个节点要唯一 | n0 |
+| dLegerSelfId | 节点 id，必须属于 dLegerPeers 中的一个；同 Group 内各个节点要唯一 | n0 |
 | sendMessageThreadPoolNums | 发送线程个数，建议配置成 Cpu 核数 | 16 |
 
 这里贴出 conf/dledger/broker-n0.conf 的配置举例。  

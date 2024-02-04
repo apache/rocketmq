@@ -18,12 +18,81 @@ package org.apache.rocketmq.remoting.protocol;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
+import io.netty.buffer.ByteBuf;
 
 public class RocketMQSerializable {
-    private static final Charset CHARSET_UTF8 = Charset.forName("UTF-8");
+    private static final Charset CHARSET_UTF8 = StandardCharsets.UTF_8;
+
+    public static void writeStr(ByteBuf buf, boolean useShortLength, String str) {
+        int lenIndex = buf.writerIndex();
+        if (useShortLength) {
+            buf.writeShort(0);
+        } else {
+            buf.writeInt(0);
+        }
+        int len = buf.writeCharSequence(str, StandardCharsets.UTF_8);
+        if (useShortLength) {
+            buf.setShort(lenIndex, len);
+        } else {
+            buf.setInt(lenIndex, len);
+        }
+    }
+
+    private static String readStr(ByteBuf buf, boolean useShortLength, int limit) throws RemotingCommandException {
+        int len = useShortLength ? buf.readShort() : buf.readInt();
+        if (len == 0) {
+            return null;
+        }
+        if (len > limit) {
+            throw new RemotingCommandException("string length exceed limit:" + limit);
+        }
+        CharSequence cs = buf.readCharSequence(len, StandardCharsets.UTF_8);
+        return cs == null ? null : cs.toString();
+    }
+
+    public static int rocketMQProtocolEncode(RemotingCommand cmd, ByteBuf out) {
+        int beginIndex = out.writerIndex();
+        // int code(~32767)
+        out.writeShort(cmd.getCode());
+        // LanguageCode language
+        out.writeByte(cmd.getLanguage().getCode());
+        // int version(~32767)
+        out.writeShort(cmd.getVersion());
+        // int opaque
+        out.writeInt(cmd.getOpaque());
+        // int flag
+        out.writeInt(cmd.getFlag());
+        // String remark
+        String remark = cmd.getRemark();
+        if (remark != null && !remark.isEmpty()) {
+            writeStr(out, false, remark);
+        } else {
+            out.writeInt(0);
+        }
+
+        int mapLenIndex = out.writerIndex();
+        out.writeInt(0);
+        if (cmd.readCustomHeader() instanceof FastCodesHeader) {
+            ((FastCodesHeader) cmd.readCustomHeader()).encode(out);
+        }
+        HashMap<String, String> map = cmd.getExtFields();
+        if (map != null && !map.isEmpty()) {
+            map.forEach((k, v) -> {
+                if (k != null && v != null) {
+                    writeStr(out, true, k);
+                    writeStr(out, false, v);
+                }
+            });
+        }
+        out.setInt(mapLenIndex, out.writerIndex() - mapLenIndex - 4);
+        return out.writerIndex() - beginIndex;
+    }
 
     public static byte[] rocketMQProtocolEncode(RemotingCommand cmd) {
         // String remark
@@ -133,72 +202,43 @@ public class RocketMQSerializable {
         return length;
     }
 
-    public static RemotingCommand rocketMQProtocolDecode(final byte[] headerArray) {
+    public static RemotingCommand rocketMQProtocolDecode(final ByteBuf headerBuffer,
+        int headerLen) throws RemotingCommandException {
         RemotingCommand cmd = new RemotingCommand();
-        ByteBuffer headerBuffer = ByteBuffer.wrap(headerArray);
         // int code(~32767)
-        cmd.setCode(headerBuffer.getShort());
+        cmd.setCode(headerBuffer.readShort());
         // LanguageCode language
-        cmd.setLanguage(LanguageCode.valueOf(headerBuffer.get()));
+        cmd.setLanguage(LanguageCode.valueOf(headerBuffer.readByte()));
         // int version(~32767)
-        cmd.setVersion(headerBuffer.getShort());
+        cmd.setVersion(headerBuffer.readShort());
         // int opaque
-        cmd.setOpaque(headerBuffer.getInt());
+        cmd.setOpaque(headerBuffer.readInt());
         // int flag
-        cmd.setFlag(headerBuffer.getInt());
+        cmd.setFlag(headerBuffer.readInt());
         // String remark
-        int remarkLength = headerBuffer.getInt();
-        if (remarkLength > 0) {
-            byte[] remarkContent = new byte[remarkLength];
-            headerBuffer.get(remarkContent);
-            cmd.setRemark(new String(remarkContent, CHARSET_UTF8));
-        }
+        cmd.setRemark(readStr(headerBuffer, false, headerLen));
 
         // HashMap<String, String> extFields
-        int extFieldsLength = headerBuffer.getInt();
+        int extFieldsLength = headerBuffer.readInt();
         if (extFieldsLength > 0) {
-            byte[] extFieldsBytes = new byte[extFieldsLength];
-            headerBuffer.get(extFieldsBytes);
-            cmd.setExtFields(mapDeserialize(extFieldsBytes));
+            if (extFieldsLength > headerLen) {
+                throw new RemotingCommandException("RocketMQ protocol decoding failed, extFields length: " + extFieldsLength + ", but header length: " + headerLen);
+            }
+            cmd.setExtFields(mapDeserialize(headerBuffer, extFieldsLength));
         }
         return cmd;
     }
 
-    public static HashMap<String, String> mapDeserialize(byte[] bytes) {
-        if (bytes == null || bytes.length <= 0)
-            return null;
+    public static HashMap<String, String> mapDeserialize(ByteBuf byteBuffer, int len) throws RemotingCommandException {
 
-        HashMap<String, String> map = new HashMap<String, String>();
-        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        HashMap<String, String> map = new HashMap<>(128);
+        int endIndex = byteBuffer.readerIndex() + len;
 
-        short keySize;
-        byte[] keyContent;
-        int valSize;
-        byte[] valContent;
-        while (byteBuffer.hasRemaining()) {
-            keySize = byteBuffer.getShort();
-            keyContent = new byte[keySize];
-            byteBuffer.get(keyContent);
-
-            valSize = byteBuffer.getInt();
-            valContent = new byte[valSize];
-            byteBuffer.get(valContent);
-
-            map.put(new String(keyContent, CHARSET_UTF8), new String(valContent, CHARSET_UTF8));
+        while (byteBuffer.readerIndex() < endIndex) {
+            String k = readStr(byteBuffer, true, len);
+            String v = readStr(byteBuffer, false, len);
+            map.put(k, v);
         }
         return map;
-    }
-
-    public static boolean isBlank(String str) {
-        int strLen;
-        if (str == null || (strLen = str.length()) == 0) {
-            return true;
-        }
-        for (int i = 0; i < strLen; i++) {
-            if (!Character.isWhitespace(str.charAt(i))) {
-                return false;
-            }
-        }
-        return true;
     }
 }

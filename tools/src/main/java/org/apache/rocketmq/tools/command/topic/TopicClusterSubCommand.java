@@ -34,7 +34,7 @@ public class TopicClusterSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "get cluster info for topic";
+        return "Get cluster info for topic";
     }
 
     @Override
