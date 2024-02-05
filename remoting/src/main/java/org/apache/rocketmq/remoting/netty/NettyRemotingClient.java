@@ -826,11 +826,11 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     });
                     if (channelWrapper != null) {
                         if (nettyClientConfig.isEnableTransparentRetry()) {
-                            stopwatch.stop();
                             RemotingCommand retryRequest = RemotingCommand.createRequestCommand(request.getCode(), request.readCustomHeader());
                             retryRequest.setBody(request.getBody());
                             if (channelWrapper.isOK()) {
                                 long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                                stopwatch.stop();
                                 Channel retryChannel = channelWrapper.getChannel();
                                 if (retryChannel != null && channel != retryChannel) {
                                     return super.invokeImpl(retryChannel, retryRequest, timeoutMillis - duration);
@@ -840,6 +840,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                                 ChannelFuture channelFuture = channelWrapper.getChannelFuture();
                                 channelFuture.addListener(f -> {
                                     long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                                    stopwatch.stop();
                                     if (f.isSuccess()) {
                                         Channel retryChannel0 = channelFuture.channel();
                                         if (retryChannel0 != null && channel != retryChannel0) {
