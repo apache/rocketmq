@@ -88,12 +88,19 @@ public class RequestCode {
     public static final int GET_TIMER_METRICS = 61;
 
     public static final int POP_MESSAGE = 200050;
+    public static final int POP_MESSAGE_S = (short) POP_MESSAGE;
     public static final int ACK_MESSAGE = 200051;
+    public static final int ACK_MESSAGE_S = (short) ACK_MESSAGE;
     public static final int BATCH_ACK_MESSAGE = 200151;
+    public static final int BATCH_ACK_MESSAGE_S = (short) BATCH_ACK_MESSAGE;
     public static final int PEEK_MESSAGE = 200052;
+    public static final int PEEK_MESSAGE_S = (short) PEEK_MESSAGE;
     public static final int CHANGE_MESSAGE_INVISIBLETIME = 200053;
+    public static final int CHANGE_MESSAGE_INVISIBLETIME_S = (short) CHANGE_MESSAGE_INVISIBLETIME;
     public static final int NOTIFICATION = 200054;
+    public static final int NOTIFICATION_S = (short) NOTIFICATION;
     public static final int POLLING_INFO = 200055;
+    public static final int POLLING_INFO_S = (short) POLLING_INFO;
 
     public static final int PUT_KV_CONFIG = 100;
 

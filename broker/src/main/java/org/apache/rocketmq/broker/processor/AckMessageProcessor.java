@@ -113,7 +113,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         BatchAckMessageRequestBody reqBody = null;
         final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
         response.setOpaque(request.getOpaque());
-        if (request.getCode() == RequestCode.ACK_MESSAGE) {
+        if (request.getCode() == RequestCode.ACK_MESSAGE || request.getCode() == RequestCode.ACK_MESSAGE_S) {
             requestHeader = (AckMessageRequestHeader) request.decodeCommandCustomHeader(AckMessageRequestHeader.class);
 
             TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
@@ -145,7 +145,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             }
 
             appendAck(requestHeader, null, response, channel, null);
-        } else if (request.getCode() == RequestCode.BATCH_ACK_MESSAGE) {
+        } else if (request.getCode() == RequestCode.BATCH_ACK_MESSAGE || request.getCode() == RequestCode.BATCH_ACK_MESSAGE_S) {
             if (request.getBody() != null) {
                 reqBody = BatchAckMessageRequestBody.decode(request.getBody(), BatchAckMessageRequestBody.class);
             }

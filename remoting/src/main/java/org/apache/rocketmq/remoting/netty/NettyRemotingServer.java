@@ -343,6 +343,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
         Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<>(processor, executorThis);
         this.processorTable.put(requestCode, pair);
+        this.processorTable.putIfAbsent((int) (short) requestCode, pair);
     }
 
     @Override
@@ -671,6 +672,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
             Pair<NettyRequestProcessor, ExecutorService> pair = new Pair<>(processor, executorThis);
             this.processorTable.put(requestCode, pair);
+            this.processorTable.putIfAbsent((int) (short) requestCode, pair);
         }
 
         @Override
