@@ -1366,4 +1366,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void setTopics(List<String> topics) {
         this.topics = topics;
     }
+
+    @Override
+    public void setStartDetectorEnable(boolean startDetectorEnable) {
+        super.setStartDetectorEnable(startDetectorEnable);
+        this.defaultMQProducerImpl.getMqFaultStrategy().setStartDetectorEnable(startDetectorEnable);
+    }
 }
