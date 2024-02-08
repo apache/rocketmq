@@ -351,9 +351,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         return bootstrap;
     }
 
-    // Do not use RemotingUtil, it will directly resolve the domain
+    // Do not use RemotingHelper.string2SocketAddress(), it will directly resolve the domain
     private String[] getHostAndPort(String address) {
-        return address.split(":");
+        int split = address.lastIndexOf(":");
+        return split < 0 ? new String[]{address} : new String[]{address.substring(0, split), address.substring(split + 1)};
     }
 
     @Override
