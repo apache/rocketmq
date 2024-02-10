@@ -511,6 +511,7 @@ public class AdminBrokerProcessor extends AsyncNettyRequestProcessor {
                     if (validateBlackListConfigExist(properties)) {
                         response.setCode(ResponseCode.NO_PERMISSION);
                         response.setRemark("Can not update config in black list.");
+                        return response;
                     }
 
                     log.info("updateBrokerConfig, new config: [{}] client: {} ", properties, ctx.channel().remoteAddress());
