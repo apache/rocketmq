@@ -314,13 +314,14 @@
                         <exclude>src/test/resources/**</exclude>
                         <exclude>src/test/resources/certs/*</exclude>
                         <exclude>src/test/**/*.log</exclude>
-                        <exclude>src/test/resources/META-INF/service/*</exclude>
-                        <exclude>src/main/resources/META-INF/service/*</exclude>
+                        <exclude>src/test/resources/META-INF/services/*</exclude>
+                        <exclude>src/main/resources/META-INF/services/*</exclude>
                         <exclude>*/target/**</exclude>
                         <exclude>*/*.iml</exclude>
                         <exclude>docs/**</exclude>
                         <exclude>localbin/**</exclude>
                         <exclude>conf/rmq-proxy.json</exclude>
+                        <exclude>.bazelversion</exclude>
                     </excludes>
                 </configuration>
             </plugin>
