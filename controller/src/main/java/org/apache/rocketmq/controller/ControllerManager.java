@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.controller;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
@@ -26,17 +27,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
-
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.controller.elect.impl.DefaultElectPolicy;
 import org.apache.rocketmq.controller.impl.DLedgerController;
-import org.apache.rocketmq.controller.impl.heartbeat.DefaultBrokerHeartbeatManager;
+import org.apache.rocketmq.controller.impl.JRaftController;
+import org.apache.rocketmq.controller.impl.heartbeat.RaftBrokerHeartBeatManager;
 import org.apache.rocketmq.controller.metrics.ControllerMetricsManager;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -68,12 +68,10 @@ public class ControllerManager {
     private final Configuration configuration;
     private final RemotingClient remotingClient;
     private Controller controller;
-    private BrokerHeartbeatManager heartbeatManager;
+    private final BrokerHeartbeatManager heartbeatManager;
     private ExecutorService controllerRequestExecutor;
     private BlockingQueue<Runnable> controllerRequestThreadPoolQueue;
-
-    private NotifyService notifyService;
-
+    private final NotifyService notifyService;
     private ControllerMetricsManager controllerMetricsManager;
 
     public ControllerManager(ControllerConfig controllerConfig, NettyServerConfig nettyServerConfig,
@@ -85,7 +83,7 @@ public class ControllerManager {
         this.configuration = new Configuration(log, this.controllerConfig, this.nettyServerConfig);
         this.configuration.setStorePathFromConfig(this.controllerConfig, "configStorePath");
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
-        this.heartbeatManager = new DefaultBrokerHeartbeatManager(this.controllerConfig);
+        this.heartbeatManager = BrokerHeartbeatManager.newBrokerHeartbeatManager(controllerConfig);
         this.notifyService = new NotifyService();
     }
 
@@ -100,15 +98,31 @@ public class ControllerManager {
             new ThreadFactoryImpl("ControllerRequestExecutorThread_"));
 
         this.notifyService.initialize();
-        if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerPeers())) {
-            throw new IllegalArgumentException("Attribute value controllerDLegerPeers of ControllerConfig is null or empty");
+
+        if (controllerConfig.getControllerType().equals(ControllerConfig.JRAFT_CONTROLLER)) {
+            if (StringUtils.isEmpty(this.controllerConfig.getJraftConfig().getjRaftInitConf())) {
+                throw new IllegalArgumentException("Attribute value jRaftInitConf of ControllerConfig is null or empty");
+            }
+            if (StringUtils.isEmpty(this.controllerConfig.getJraftConfig().getjRaftServerId())) {
+                throw new IllegalArgumentException("Attribute value jRaftServerId of ControllerConfig is null or empty");
+            }
+            try {
+                this.controller = new JRaftController(controllerConfig, this.brokerHousekeepingService);
+                ((RaftBrokerHeartBeatManager) this.heartbeatManager).setController((JRaftController) this.controller);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerPeers())) {
+                throw new IllegalArgumentException("Attribute value controllerDLegerPeers of ControllerConfig is null or empty");
+            }
+            if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerSelfId())) {
+                throw new IllegalArgumentException("Attribute value controllerDLegerSelfId of ControllerConfig is null or empty");
+            }
+            this.controller = new DLedgerController(this.controllerConfig, this.heartbeatManager::isBrokerActive,
+                this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService,
+                new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo));
         }
-        if (StringUtils.isEmpty(this.controllerConfig.getControllerDLegerSelfId())) {
-            throw new IllegalArgumentException("Attribute value controllerDLegerSelfId of ControllerConfig is null or empty");
-        }
-        this.controller = new DLedgerController(this.controllerConfig, this.heartbeatManager::isBrokerActive,
-            this.nettyServerConfig, this.nettyClientConfig, this.brokerHousekeepingService,
-            new DefaultElectPolicy(this.heartbeatManager::isBrokerActive, this.heartbeatManager::getBrokerLiveInfo));
 
         // Initialize the basic resources
         this.heartbeatManager.initialize();
@@ -126,10 +140,12 @@ public class ControllerManager {
      * something else.
      *
      * @param clusterName The cluster name of this inactive broker
-     * @param brokerName The inactive broker name
-     * @param brokerId The inactive broker id, null means that the election forced to be triggered
+     * @param brokerName  The inactive broker name
+     * @param brokerId    The inactive broker id, null means that the election forced to be triggered
      */
     private void onBrokerInactive(String clusterName, String brokerName, Long brokerId) {
+        log.info("Controller Manager received broker inactive event, clusterName: {}, brokerName: {}, brokerId: {}",
+            clusterName, brokerName, brokerId);
         if (controller.isLeaderState()) {
             if (brokerId == null) {
                 // Means that force triggering election for this broker-set
@@ -156,20 +172,37 @@ public class ControllerManager {
         }
     }
 
-    private void triggerElectMaster(String brokerName) {
+    private CompletableFuture<Boolean> triggerElectMaster0(String brokerName) {
         final CompletableFuture<RemotingCommand> electMasterFuture = controller.electMaster(ElectMasterRequestHeader.ofControllerTrigger(brokerName));
-        electMasterFuture.whenCompleteAsync((electMasterResponse, err) -> {
-            if (err != null || electMasterResponse == null) {
+        return electMasterFuture.handleAsync((electMasterResponse, err) -> {
+            if (err != null || electMasterResponse == null || electMasterResponse.getCode() != ResponseCode.SUCCESS) {
                 log.error("Failed to trigger elect-master in broker-set: {}", brokerName, err);
-                return;
+                return false;
             }
             if (electMasterResponse.getCode() == ResponseCode.SUCCESS) {
                 log.info("Elect a new master in broker-set: {} done, result: {}", brokerName, electMasterResponse);
                 if (controllerConfig.isNotifyBrokerRoleChanged()) {
                     notifyBrokerRoleChanged(RoleChangeNotifyEntry.convert(electMasterResponse));
                 }
+                return true;
             }
+            //default is false
+            return false;
         });
+    }
+
+    private void triggerElectMaster(String brokerName) {
+        int maxRetryCount = controllerConfig.getElectMasterMaxRetryCount();
+        for (int i = 0; i < maxRetryCount; i++) {
+            try {
+                Boolean electResult = triggerElectMaster0(brokerName).get(3, TimeUnit.SECONDS);
+                if (electResult) {
+                    return;
+                }
+            } catch (Exception e) {
+                log.warn("Failed to trigger elect-master in broker-set: {}, retryCount: {}", brokerName, i, e);
+            }
+        }
     }
 
     /**
@@ -188,20 +221,21 @@ public class ControllerManager {
             // Inform all active brokers
             final Map<Long, String> brokerAddrs = memberGroup.getBrokerAddrs();
             brokerAddrs.entrySet().stream().filter(x -> this.heartbeatManager.isBrokerActive(clusterName, brokerName, x.getKey()))
-                    .forEach(x -> this.notifyService.notifyBroker(x.getValue(), entry));
+                .forEach(x -> this.notifyService.notifyBroker(x.getValue(), entry));
         }
     }
 
     /**
      * Notify broker that there are roles-changing in controller
+     *
      * @param brokerAddr target broker's address to notify
-     * @param entry role change entry
+     * @param entry      role change entry
      */
     public void doNotifyBrokerRoleChanged(final String brokerAddr, final RoleChangeNotifyEntry entry) {
         if (StringUtils.isNoneEmpty(brokerAddr)) {
             log.info("Try notify broker {} that role changed, RoleChangeNotifyEntry:{}", brokerAddr, entry);
             final NotifyBrokerRoleChangedRequestHeader requestHeader = new NotifyBrokerRoleChangedRequestHeader(entry.getMasterAddress(), entry.getMasterBrokerId(),
-                    entry.getMasterEpoch(), entry.getSyncStateSetEpoch());
+                entry.getMasterEpoch(), entry.getSyncStateSetEpoch());
             final RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_BROKER_ROLE_CHANGED, requestHeader);
             request.setBody(new SyncStateSet(entry.getSyncStateSet(), entry.getSyncStateSetEpoch()).encode());
             try {
@@ -214,7 +248,7 @@ public class ControllerManager {
 
     public void registerProcessor() {
         final ControllerRequestProcessor controllerRequestProcessor = new ControllerRequestProcessor(this);
-        final RemotingServer controllerRemotingServer = this.controller.getRemotingServer();
+        RemotingServer controllerRemotingServer = this.controller.getRemotingServer();
         assert controllerRemotingServer != null;
         controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, controllerRequestProcessor, this.controllerRequestExecutor);
         controllerRemotingServer.registerProcessor(RequestCode.CONTROLLER_ELECT_MASTER, controllerRequestProcessor, this.controllerRequestExecutor);
@@ -231,8 +265,8 @@ public class ControllerManager {
     }
 
     public void start() {
-        this.heartbeatManager.start();
         this.controller.startup();
+        this.heartbeatManager.start();
         this.remotingClient.start();
     }
 
@@ -335,7 +369,9 @@ public class ControllerManager {
 
             @Override
             public boolean equals(Object obj) {
-                if (this == obj) return true;
+                if (this == obj) {
+                    return true;
+                }
                 if (!(obj instanceof NotifyTask)) {
                     return false;
                 }

@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.controller;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Properties;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
@@ -29,6 +27,9 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

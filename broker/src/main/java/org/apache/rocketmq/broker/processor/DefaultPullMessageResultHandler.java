@@ -84,7 +84,8 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
         final boolean brokerAllowSuspend,
         final MessageFilter messageFilter,
         RemotingCommand response,
-        TopicQueueMappingContext mappingContext) {
+        TopicQueueMappingContext mappingContext,
+        long beginTimeMills) {
         PullMessageProcessor processor = brokerController.getPullMessageProcessor();
         final String clientAddress = RemotingHelper.parseChannelRemoteAddr(channel);
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
@@ -137,8 +138,6 @@ public class DefaultPullMessageResultHandler implements PullMessageResultHandler
                 }
 
                 if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
-
-                    final long beginTimeMills = this.brokerController.getMessageStore().now();
                     final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
                     this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(),
                         requestHeader.getTopic(), requestHeader.getQueueId(),

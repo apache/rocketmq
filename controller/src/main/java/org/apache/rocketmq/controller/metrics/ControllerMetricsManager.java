@@ -41,12 +41,6 @@ import io.opentelemetry.sdk.metrics.data.AggregationTemporality;
 import io.opentelemetry.sdk.metrics.export.MetricExporter;
 import io.opentelemetry.sdk.metrics.export.PeriodicMetricReader;
 import io.opentelemetry.sdk.resources.Resource;
-import java.io.File;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -60,6 +54,13 @@ import org.apache.rocketmq.controller.ControllerManager;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
+
+import java.io.File;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.AGGREGATION_DELTA;
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.COUNTER_DLEDGER_OP_TOTAL;
@@ -165,9 +166,15 @@ public class ControllerMetricsManager {
     private ControllerMetricsManager(ControllerManager controllerManager) {
         this.controllerManager = controllerManager;
         this.config = this.controllerManager.getControllerConfig();
-        this.LABEL_MAP.put(LABEL_ADDRESS, this.config.getDLedgerAddress());
-        this.LABEL_MAP.put(LABEL_GROUP, this.config.getControllerDLegerGroup());
-        this.LABEL_MAP.put(LABEL_PEER_ID, this.config.getControllerDLegerSelfId());
+        if (config.getControllerType().equals(ControllerConfig.JRAFT_CONTROLLER)) {
+            this.LABEL_MAP.put(LABEL_ADDRESS, this.config.getJraftConfig().getjRaftAddress());
+            this.LABEL_MAP.put(LABEL_GROUP, this.config.getJraftConfig().getjRaftGroupId());
+            this.LABEL_MAP.put(LABEL_PEER_ID, this.config.getJraftConfig().getjRaftServerId());
+        } else {
+            this.LABEL_MAP.put(LABEL_ADDRESS, this.config.getDLedgerAddress());
+            this.LABEL_MAP.put(LABEL_GROUP, this.config.getControllerDLegerGroup());
+            this.LABEL_MAP.put(LABEL_PEER_ID, this.config.getControllerDLegerSelfId());
+        }
         this.init();
     }
 
