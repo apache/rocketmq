@@ -519,6 +519,13 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return future;
         }
 
+        if (isPopShouldStop(topic, requestHeader.getConsumerGroup(), queueId)) {
+            POP_LOGGER.warn("Too much msgs unacked, then stop poping. topic={}, group={}, queueId={}", topic, requestHeader.getConsumerGroup(), queueId);
+            restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
+            future.complete(restNum);
+            return future;
+        }
+
         try {
             future.whenComplete((result, throwable) -> queueLockManager.unLock(lockKey));
             offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
@@ -665,6 +672,11 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 }
                 queueLockManager.unLock(lockKey);
             });
+    }
+
+    private boolean isPopShouldStop(String topic, String group, int queueId) {
+        return brokerController.getBrokerConfig().isEnablePopMessageThreshold() &&
+                brokerController.getPopInflightMessageCounter().getGroupPopInFlightMessageNum(topic, group, queueId) > brokerController.getBrokerConfig().getPopInflightMessageThreshold();
     }
 
     private long getPopOffset(String topic, String group, int queueId, int initMode, boolean init, String lockKey,
