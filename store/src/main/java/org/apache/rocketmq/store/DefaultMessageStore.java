@@ -1652,12 +1652,12 @@ public class DefaultMessageStore implements MessageStore {
             Double.parseDouble(System.getProperty("rocketmq.broker.diskSpaceCleanForciblyRatio", "0.85"));
         private long lastRedeleteTimestamp = 0;
 
-        private volatile int manualDeleteFileSeveralTimes = 0;
+        private AtomicInteger manualDeleteFileSeveralTimes = new AtomicInteger();
 
         private volatile boolean cleanImmediately = false;
 
         public void executeDeleteFilesManually() {
-            this.manualDeleteFileSeveralTimes = MAX_MANUAL_DELETE_FILE_TIMES;
+            this.manualDeleteFileSeveralTimes.set(MAX_MANUAL_DELETE_FILE_TIMES);
             DefaultMessageStore.log.info("executeDeleteFilesManually was invoked");
         }
 
@@ -1679,12 +1679,12 @@ public class DefaultMessageStore implements MessageStore {
 
             boolean timeup = this.isTimeToDelete();
             boolean spacefull = this.isSpaceToDelete();
-            boolean manualDelete = this.manualDeleteFileSeveralTimes > 0;
+            boolean manualDelete = this.manualDeleteFileSeveralTimes.get() > 0;
 
             if (timeup || spacefull || manualDelete) {
 
                 if (manualDelete)
-                    this.manualDeleteFileSeveralTimes--;
+                    this.manualDeleteFileSeveralTimes.decrementAndGet();
 
                 boolean cleanAtOnce = DefaultMessageStore.this.getMessageStoreConfig().isCleanFileForciblyEnable() && this.cleanImmediately;
 
@@ -1692,7 +1692,7 @@ public class DefaultMessageStore implements MessageStore {
                     fileReservedTime,
                     timeup,
                     spacefull,
-                    manualDeleteFileSeveralTimes,
+                    manualDeleteFileSeveralTimes.get(),
                     cleanAtOnce);
 
                 fileReservedTime *= 60 * 60 * 1000;
@@ -1808,11 +1808,11 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         public int getManualDeleteFileSeveralTimes() {
-            return manualDeleteFileSeveralTimes;
+            return manualDeleteFileSeveralTimes.get();
         }
 
         public void setManualDeleteFileSeveralTimes(int manualDeleteFileSeveralTimes) {
-            this.manualDeleteFileSeveralTimes = manualDeleteFileSeveralTimes;
+            this.manualDeleteFileSeveralTimes.set(manualDeleteFileSeveralTimes);
         }
 
         public double calcStorePathPhysicRatio() {
