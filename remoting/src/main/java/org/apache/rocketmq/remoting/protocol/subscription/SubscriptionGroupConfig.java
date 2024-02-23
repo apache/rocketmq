@@ -182,6 +182,7 @@ public class SubscriptionGroupConfig {
         result = prime * result + (consumeEnable ? 1231 : 1237);
         result = prime * result + (consumeFromMinEnable ? 1231 : 1237);
         result = prime * result + (notifyConsumerIdsChangedEnable ? 1231 : 1237);
+        result = prime * result + (consumeMessageOrderly ? 1231 : 1237);
         result = prime * result + ((groupName == null) ? 0 : groupName.hashCode());
         result = prime * result + retryMaxTimes;
         result = prime * result + retryQueueNums;
@@ -208,6 +209,7 @@ public class SubscriptionGroupConfig {
             .append(consumeEnable, other.consumeEnable)
             .append(consumeFromMinEnable, other.consumeFromMinEnable)
             .append(consumeBroadcastEnable, other.consumeBroadcastEnable)
+            .append(consumeMessageOrderly, other.consumeMessageOrderly)
             .append(retryQueueNums, other.retryQueueNums)
             .append(retryMaxTimes, other.retryMaxTimes)
             .append(whichBrokerWhenConsumeSlowly, other.whichBrokerWhenConsumeSlowly)
