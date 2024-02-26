@@ -906,7 +906,7 @@ public class CommitLog implements Swappable {
         }
         // Set the message body CRC (consider the most appropriate setting on the client)
         msg.setBodyCRC(UtilAll.crc32(msg.getBody()));
-        if (enabledAppendPropCRC) {
+        if (!enabledAppendPropCRC) {
             // delete crc32 properties if exist
             msg.deleteProperty(MessageConst.PROPERTY_CRC32);
         }
