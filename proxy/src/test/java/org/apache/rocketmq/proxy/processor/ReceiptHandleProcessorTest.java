@@ -70,7 +70,7 @@ public class ReceiptHandleProcessorTest extends BaseProcessorTest {
     }
 
     @Test
-    public void testStartAutoRenewTask() throws Exception {
+    public void testStart() throws Exception {
         receiptHandleProcessor.start();
         receiptHandleProcessor.addReceiptHandle(PROXY_CONTEXT, PROXY_CONTEXT.getChannel(), CONSUMER_GROUP, MSG_ID, messageReceiptHandle);
         Mockito.when(metadataService.getSubscriptionGroupConfig(Mockito.any(), Mockito.eq(CONSUMER_GROUP))).thenReturn(new SubscriptionGroupConfig());
