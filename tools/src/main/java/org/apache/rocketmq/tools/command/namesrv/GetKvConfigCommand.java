@@ -13,7 +13,9 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
+
 package org.apache.rocketmq.tools.command.namesrv;
 
 import org.apache.commons.cli.CommandLine;
@@ -24,15 +26,15 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
-public class UpdateKvConfigCommand implements SubCommand {
+public class GetKvConfigCommand implements SubCommand {
     @Override
     public String commandName() {
-        return "updateKvConfig";
+        return "getKvConfig";
     }
 
     @Override
     public String commandDesc() {
-        return "Create or update KV config.";
+        return "get KV config.";
     }
 
     @Override
@@ -45,9 +47,6 @@ public class UpdateKvConfigCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("v", "value", true, "set the key value");
-        opt.setRequired(true);
-        options.addOption(opt);
         return options;
     }
 
@@ -60,16 +59,10 @@ public class UpdateKvConfigCommand implements SubCommand {
             String namespace = commandLine.getOptionValue('s').trim();
             // key name
             String key = commandLine.getOptionValue('k').trim();
-            // value
-            String value = commandLine.getOptionValue('v').trim();
-
-            if (commandLine.hasOption('n')) {
-                defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
-            }
 
             defaultMQAdminExt.start();
-            defaultMQAdminExt.createAndUpdateKvConfig(namespace, key, value);
-            System.out.printf("create or update kv config to namespace success.%n");
+            String value = defaultMQAdminExt.getKVConfig(namespace, key);
+            System.out.printf("get kv config success, namespace: %s, key: %s, value: %s.%n", namespace, key, value);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
