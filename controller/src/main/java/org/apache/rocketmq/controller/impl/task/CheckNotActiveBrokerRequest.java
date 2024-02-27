@@ -14,29 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.rocketmq.controller.impl.task;
 
-package org.apache.rocketmq.remoting.protocol.header;
-
-import java.util.List;
-import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 
-public class GetBrokerClusterAclConfigResponseHeader implements CommandCustomHeader {
+public class CheckNotActiveBrokerRequest implements CommandCustomHeader {
+    private final Long checkTimeMillis = System.currentTimeMillis();
 
-    @CFNotNull
-    private List<PlainAccessConfig> plainAccessConfigs;
+    public CheckNotActiveBrokerRequest() {
+    }
+
+    public Long getCheckTimeMillis() {
+        return checkTimeMillis;
+    }
 
     @Override
     public void checkFields() throws RemotingCommandException {
+
     }
 
-    public List<PlainAccessConfig> getPlainAccessConfigs() {
-        return plainAccessConfigs;
-    }
-
-    public void setPlainAccessConfigs(List<PlainAccessConfig> plainAccessConfigs) {
-        this.plainAccessConfigs = plainAccessConfigs;
+    @Override
+    public String toString() {
+        return "CheckNotActiveBrokerRequest{" +
+            "checkTimeMillis=" + checkTimeMillis +
+            '}';
     }
 }

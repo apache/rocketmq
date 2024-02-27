@@ -496,13 +496,7 @@ public abstract class NettyRemotingAbstract {
 
     public CompletableFuture<ResponseFuture> invokeImpl(final Channel channel, final RemotingCommand request,
         final long timeoutMillis) {
-        String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
-        doBeforeRpcHooks(channelRemoteAddr, request);
-        return invoke0(channel, request, timeoutMillis).whenComplete((v, t) -> {
-            if (t == null) {
-                doAfterRpcHooks(channelRemoteAddr, request, v.getResponseCommand());
-            }
-        });
+        return invoke0(channel, request, timeoutMillis);
     }
 
     protected CompletableFuture<ResponseFuture> invoke0(final Channel channel, final RemotingCommand request,
@@ -700,6 +694,9 @@ public abstract class NettyRemotingAbstract {
                                 break;
                             case EXCEPTION:
                                 listener.onChannelException(event.getRemoteAddr(), event.getChannel());
+                                break;
+                            case ACTIVE:
+                                listener.onChannelActive(event.getRemoteAddr(), event.getChannel());
                                 break;
                             default:
                                 break;

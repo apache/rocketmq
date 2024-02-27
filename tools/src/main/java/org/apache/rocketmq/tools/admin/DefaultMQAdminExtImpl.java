@@ -45,7 +45,6 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
@@ -303,12 +302,6 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     public ClusterAclVersionInfo examineBrokerClusterAclVersionInfo(
         String addr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         return this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterAclInfo(addr, timeoutMillis);
-    }
-
-    @Override
-    public AclConfig examineBrokerClusterAclConfig(
-        String addr) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.mqClientInstance.getMQClientAPIImpl().getBrokerClusterConfig(addr, timeoutMillis);
     }
 
     @Override
@@ -988,7 +981,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             requestHeader.setTopic(queue.getTopic());
             requestHeader.setQueueId(queue.getQueueId());
             requestHeader.setCommitOffset(resetOffset);
-            requestHeader.setBname(queue.getBrokerName());
+            requestHeader.setBrokerName(queue.getBrokerName());
             this.mqClientInstance.getMQClientAPIImpl().updateConsumerOffset(brokerAddr, requestHeader, timeoutMillis);
         }
         return rollbackStats;
@@ -1742,7 +1735,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         requestHeader.setTopic(mq.getTopic());
         requestHeader.setQueueId(mq.getQueueId());
         requestHeader.setCommitOffset(offset);
-        requestHeader.setBname(mq.getBrokerName());
+        requestHeader.setBrokerName(mq.getBrokerName());
         this.mqClientInstance.getMQClientAPIImpl().updateConsumerOffset(brokerAddr, requestHeader, timeoutMillis);
     }
 

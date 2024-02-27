@@ -184,6 +184,20 @@ public interface ConsumeQueueStoreInterface {
     void increaseQueueOffset(MessageExtBrokerInner msg, short messageNum);
 
     /**
+     * Increase lmq offset
+     * @param queueKey
+     * @param messageNum
+     */
+    void increaseLmqOffset(String queueKey, short messageNum);
+
+    /**
+     * get lmq queue offset
+     * @param queueKey
+     * @return
+     */
+    long getLmqQueueOffset(String queueKey);
+
+    /**
      * recover topicQueue table by minPhyOffset
      * @param minPhyOffset
      */

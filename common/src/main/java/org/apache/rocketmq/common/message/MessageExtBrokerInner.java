@@ -19,6 +19,7 @@ package org.apache.rocketmq.common.message;
 import java.nio.ByteBuffer;
 
 import org.apache.rocketmq.common.TopicFilterType;
+import org.apache.rocketmq.common.utils.MessageUtils;
 
 public class MessageExtBrokerInner extends MessageExt {
     private static final long serialVersionUID = 7256001576878700634L;
@@ -26,6 +27,8 @@ public class MessageExtBrokerInner extends MessageExt {
     private long tagsCode;
 
     private ByteBuffer encodedBuff;
+
+    private volatile boolean encodeCompleted;
 
     private MessageVersion version = MessageVersion.MESSAGE_VERSION_V1;
 
@@ -55,6 +58,14 @@ public class MessageExtBrokerInner extends MessageExt {
         this.propertiesString = propertiesString;
     }
 
+
+    public void deleteProperty(String name) {
+        super.clearProperty(name);
+        if (propertiesString != null) {
+            this.setPropertiesString(MessageUtils.deleteProperty(propertiesString, name));
+        }
+    }
+
     public long getTagsCode() {
         return tagsCode;
     }
@@ -82,5 +93,13 @@ public class MessageExtBrokerInner extends MessageExt {
         } else {
             this.setPropertiesString(MessageDecoder.messageProperties2String(this.getProperties()));
         }
+    }
+
+    public boolean isEncodeCompleted() {
+        return encodeCompleted;
+    }
+
+    public void setEncodeCompleted(boolean encodeCompleted) {
+        this.encodeCompleted = encodeCompleted;
     }
 }

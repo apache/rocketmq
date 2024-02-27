@@ -242,9 +242,15 @@ public abstract class RebalanceImpl {
                 final String topic = entry.getKey();
                 try {
                     if (!clientRebalance(topic) && tryQueryAssignment(topic)) {
-                        balanced = this.getRebalanceResultFromBroker(topic, isOrder);
+                        boolean result = this.getRebalanceResultFromBroker(topic, isOrder);
+                        if (!result) {
+                            balanced = false;
+                        }
                     } else {
-                        balanced = this.rebalanceByTopic(topic, isOrder);
+                        boolean result = this.rebalanceByTopic(topic, isOrder);
+                        if (!result) {
+                            balanced = false;
+                        }
                     }
                 } catch (Throwable e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {

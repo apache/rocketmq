@@ -75,6 +75,16 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
     }
 
     @Override
+    public void increaseLmqOffset(String queueKey, short messageNum) {
+        queueOffsetOperator.increaseLmqOffset(queueKey, messageNum);
+    }
+
+    @Override
+    public long getLmqQueueOffset(String queueKey) {
+        return queueOffsetOperator.getLmqOffset(queueKey);
+    }
+
+    @Override
     public void removeTopicQueueTable(String topic, Integer queueId) {
         this.queueOffsetOperator.remove(topic, queueId);
     }

@@ -203,7 +203,7 @@ public class RequestProcessorTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
-        assertThat(response.getRemark()).contains("Can not update config path");
+        assertThat(response.getRemark()).contains("Can not update config in black list.");
 
         //update disallowed values
         properties.clear();
@@ -214,7 +214,18 @@ public class RequestProcessorTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
-        assertThat(response.getRemark()).contains("Can not update config path");
+        assertThat(response.getRemark()).contains("Can not update config in black list");
+
+        //update disallowed values
+        properties.clear();
+        properties.setProperty("configBlackList", "test;path");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        response = defaultRequestProcessor.processRequest(null, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).contains("Can not update config in black list");
     }
 
     @Test

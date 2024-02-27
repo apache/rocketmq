@@ -278,15 +278,16 @@ public class AdminBrokerProcessorTest {
     public void testDeleteWithPopRetryTopic() throws Exception {
         String topic = "topicA";
         String anotherTopic = "another_topicA";
+        BrokerConfig brokerConfig = new BrokerConfig();
 
         topicConfigManager = mock(TopicConfigManager.class);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         final ConcurrentHashMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>();
         topicConfigTable.put(topic, new TopicConfig());
-        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(topic, "cid1"), new TopicConfig());
+        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(topic, "cid1", brokerConfig.isEnableRetryTopicV2()), new TopicConfig());
 
         topicConfigTable.put(anotherTopic, new TopicConfig());
-        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(anotherTopic, "cid2"), new TopicConfig());
+        topicConfigTable.put(KeyBuilder.buildPopRetryTopic(anotherTopic, "cid2", brokerConfig.isEnableRetryTopicV2()), new TopicConfig());
         when(topicConfigManager.getTopicConfigTable()).thenReturn(topicConfigTable);
         when(topicConfigManager.selectTopicConfig(anyString())).thenAnswer(invocation -> {
             final String selectTopic = invocation.getArgument(0);
@@ -301,7 +302,7 @@ public class AdminBrokerProcessorTest {
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
 
         verify(topicConfigManager).deleteTopicConfig(topic);
-        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1"));
+        verify(topicConfigManager).deleteTopicConfig(KeyBuilder.buildPopRetryTopic(topic, "cid1", brokerConfig.isEnableRetryTopicV2()));
         verify(messageStore, times(2)).deleteTopics(anySet());
     }
 
@@ -370,8 +371,18 @@ public class AdminBrokerProcessorTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
-        assertThat(response.getRemark()).contains("Can not update config path");
+        assertThat(response.getRemark()).contains("Can not update config in black list.");
 
+        //update disallowed value
+        properties.clear();
+        properties.setProperty("configBlackList", "test;path");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        response = adminBrokerProcessor.processRequest(ctx, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).contains("Can not update config in black list.");
     }
 
     @Test

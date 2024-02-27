@@ -16,14 +16,6 @@
  */
 package org.apache.rocketmq.controller;
 
-import java.io.File;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.controller.impl.DLedgerController;
@@ -35,6 +27,9 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
@@ -42,13 +37,18 @@ import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextB
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.File;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
@@ -131,7 +131,8 @@ public class ControllerManagerTest {
      */
     public void registerBroker(
         final String controllerAddress, final String clusterName,
-        final String brokerName, final Long brokerId,  final String brokerAddress, final Long expectMasterBrokerId, final RemotingClient client) throws Exception {
+        final String brokerName, final Long brokerId, final String brokerAddress, final Long expectMasterBrokerId,
+        final RemotingClient client) throws Exception {
         // Get next brokerId;
         final GetNextBrokerIdRequestHeader getNextBrokerIdRequestHeader = new GetNextBrokerIdRequestHeader(clusterName, brokerName);
         final RemotingCommand getNextBrokerIdRequest = RemotingCommand.createRequestCommand(RequestCode.CONTROLLER_GET_NEXT_BROKER_ID, getNextBrokerIdRequestHeader);
@@ -166,8 +167,9 @@ public class ControllerManagerTest {
         return response;
     }
 
-    public void sendHeartbeat(final String controllerAddress, final String clusterName, final String brokerName, final Long brokerId,
-                              final String brokerAddress, final Long timeout, final RemotingClient client) throws Exception {
+    public void sendHeartbeat(final String controllerAddress, final String clusterName, final String brokerName,
+        final Long brokerId,
+        final String brokerAddress, final Long timeout, final RemotingClient client) throws Exception {
         final BrokerHeartbeatRequestHeader heartbeatRequestHeader0 = new BrokerHeartbeatRequestHeader();
         heartbeatRequestHeader0.setBrokerId(brokerId);
         heartbeatRequestHeader0.setClusterName(clusterName);

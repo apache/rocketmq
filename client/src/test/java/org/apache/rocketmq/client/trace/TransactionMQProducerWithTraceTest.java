@@ -106,7 +106,7 @@ public class TransactionMQProducerWithTraceTest {
                 return LocalTransactionState.COMMIT_MESSAGE;
             }
         };
-        producer = new TransactionMQProducer(null, producerGroupTemp, null, true, null);
+        producer = new TransactionMQProducer(producerGroupTemp, null, true, null);
         producer.setTransactionListener(transactionListener);
 
         producer.setNamesrvAddr("127.0.0.1:9876");

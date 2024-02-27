@@ -59,7 +59,7 @@ public class RpcClientImpl implements RpcClient {
     @Override
     public Future<RpcResponse>  invoke(MessageQueue mq, RpcRequest request, long timeoutMs) throws RpcException {
         String bname =  clientMetadata.getBrokerNameFromMessageQueue(mq);
-        request.getHeader().setBname(bname);
+        request.getHeader().setBrokerName(bname);
         return invoke(request, timeoutMs);
     }
 

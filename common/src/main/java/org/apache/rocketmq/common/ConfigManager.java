@@ -16,13 +16,14 @@
  */
 package org.apache.rocketmq.common;
 
-import java.io.IOException;
-import java.util.Map;
-
 import org.apache.rocketmq.common.config.RocksDBConfigManager;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.rocksdb.Statistics;
+
+import java.io.IOException;
+import java.util.Map;
 
 public abstract class ConfigManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -103,4 +104,8 @@ public abstract class ConfigManager {
     public abstract String encode(final boolean prettyFormat);
 
     public abstract void decode(final String jsonString);
+
+    public Statistics getStatistics() {
+        return rocksDBConfigManager == null ? null : rocksDBConfigManager.getStatistics();
+    }
 }

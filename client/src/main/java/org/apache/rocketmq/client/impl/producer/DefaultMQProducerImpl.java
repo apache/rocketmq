@@ -54,7 +54,6 @@ import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.client.latency.Resolver;
 import org.apache.rocketmq.client.latency.ServiceDetector;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.client.producer.LocalTransactionExecuter;
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.RequestCallback;
@@ -263,6 +262,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     mQClientFactory.start();
                 }
 
+                this.initTopicRoute();
+
                 this.mqFaultStrategy.startDetector();
 
                 log.info("the producer [{}] start OK. sendMessageWithVIPChannel={}", this.defaultMQProducer.getProducerGroup(),
@@ -402,7 +403,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 thisHeader.setProducerGroup(producerGroup);
                 thisHeader.setTranStateTableOffset(checkRequestHeader.getTranStateTableOffset());
                 thisHeader.setFromTransactionCheck(true);
-                thisHeader.setBname(checkRequestHeader.getBname());
+                thisHeader.setBrokerName(checkRequestHeader.getBrokerName());
 
                 String uniqueKey = message.getProperties().get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
                 if (uniqueKey == null) {
@@ -951,7 +952,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 requestHeader.setReconsumeTimes(0);
                 requestHeader.setUnitMode(this.isUnitMode());
                 requestHeader.setBatch(msg instanceof MessageBatch);
-                requestHeader.setBname(brokerName);
+                requestHeader.setBrokerName(brokerName);
                 if (requestHeader.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                     String reconsumeTimes = MessageAccessor.getReconsumeTime(msg);
                     if (reconsumeTimes != null) {
@@ -1379,10 +1380,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     public TransactionSendResult sendMessageInTransaction(final Message msg,
-        final LocalTransactionExecuter localTransactionExecuter, final Object arg)
+        final TransactionListener localTransactionListener, final Object arg)
         throws MQClientException {
         TransactionListener transactionListener = getCheckListener();
-        if (null == localTransactionExecuter && null == transactionListener) {
+        if (null == localTransactionListener && null == transactionListener) {
             throw new MQClientException("tranExecutor is null", null);
         }
 
@@ -1414,8 +1415,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     if (null != transactionId && !"".equals(transactionId)) {
                         msg.setTransactionId(transactionId);
                     }
-                    if (null != localTransactionExecuter) {
-                        localTransactionState = localTransactionExecuter.executeLocalTransactionBranch(msg, arg);
+                    if (null != localTransactionListener) {
+                        localTransactionState = localTransactionListener.executeLocalTransaction(msg, arg);
                     } else {
                         log.debug("Used new transaction API");
                         localTransactionState = transactionListener.executeLocalTransaction(msg, arg);
@@ -1485,7 +1486,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
         requestHeader.setTransactionId(transactionId);
         requestHeader.setCommitLogOffset(id.getOffset());
-        requestHeader.setBname(destBrokerName);
+        requestHeader.setBrokerName(destBrokerName);
         switch (localTransactionState) {
             case COMMIT_MESSAGE:
                 requestHeader.setCommitOrRollback(MessageSysFlag.TRANSACTION_COMMIT_TYPE);
@@ -1741,6 +1742,19 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         }
     }
 
+    private void initTopicRoute() {
+        List<String> topics = this.defaultMQProducer.getTopics();
+        if (topics != null && topics.size() > 0) {
+            topics.forEach(topic -> {
+                String newTopic = NamespaceUtil.wrapNamespace(this.defaultMQProducer.getNamespace(), topic);
+                TopicPublishInfo topicPublishInfo = tryToFindTopicPublishInfo(newTopic);
+                if (topicPublishInfo == null || !topicPublishInfo.ok()) {
+                    log.warn("No route info of this topic: " + newTopic + FAQUrl.suggestTodo(FAQUrl.NO_TOPIC_ROUTE_INFO));
+                }
+            });
+        }
+    }
+
     public ConcurrentMap<String, TopicPublishInfo> getTopicPublishInfoTable() {
         return topicPublishInfoTable;
     }
@@ -1795,5 +1809,9 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public DefaultMQProducer getDefaultMQProducer() {
         return defaultMQProducer;
+    }
+
+    public MQFaultStrategy getMqFaultStrategy() {
+        return mqFaultStrategy;
     }
 }

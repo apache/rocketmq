@@ -104,6 +104,7 @@ import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
 import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
+import org.apache.rocketmq.broker.transaction.TransactionMetricsFlushService;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageCheckListener;
@@ -277,6 +278,7 @@ public class BrokerController {
     private BrokerMetricsManager brokerMetricsManager;
     private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
     private ColdDataCgCtrService coldDataCgCtrService;
+    private TransactionMetricsFlushService transactionMetricsFlushService;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -963,6 +965,9 @@ public class BrokerController {
         }
         this.transactionalMessageCheckListener.setBrokerController(this);
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
+        this.transactionMetricsFlushService = new TransactionMetricsFlushService(this);
+        this.transactionMetricsFlushService.start();
+
     }
 
     private void initialAcl() {
@@ -1438,6 +1443,10 @@ public class BrokerController {
 
         if (this.endTransactionExecutor != null) {
             this.endTransactionExecutor.shutdown();
+        }
+
+        if (this.transactionMetricsFlushService != null) {
+            this.transactionMetricsFlushService.shutdown();
         }
 
         if (this.escapeBridge != null) {
@@ -2108,6 +2117,7 @@ public class BrokerController {
             isScheduleServiceStart = shouldStart;
 
             if (timerMessageStore != null) {
+                timerMessageStore.syncLastReadTimeMs();
                 timerMessageStore.setShouldRunningDequeue(shouldStart);
             }
         }

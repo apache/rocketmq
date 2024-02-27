@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.stats;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;

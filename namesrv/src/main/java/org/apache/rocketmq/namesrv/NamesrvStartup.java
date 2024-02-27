@@ -27,6 +27,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.rocketmq.common.JraftConfig;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -105,7 +106,10 @@ public class NamesrvStartup {
                 MixAll.properties2Object(properties, nettyClientConfig);
                 if (namesrvConfig.isEnableControllerInNamesrv()) {
                     controllerConfig = new ControllerConfig();
+                    JraftConfig jraftConfig = new JraftConfig();
+                    controllerConfig.setJraftConfig(jraftConfig);
                     MixAll.properties2Object(properties, controllerConfig);
+                    MixAll.properties2Object(properties, jraftConfig);
                 }
                 namesrvConfig.setConfigStorePath(file);
 

@@ -46,7 +46,6 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
-import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.service.route.ProxyTopicRouteData;
@@ -66,7 +65,7 @@ public class RouteActivity extends AbstractMessingActivity {
             validateTopic(request.getTopic());
             List<org.apache.rocketmq.proxy.common.Address> addressList = this.convertToAddressList(request.getEndpoints());
 
-            String topicName = GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic());
+            String topicName = request.getTopic().getName();
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
                 ctx, addressList, topicName);
 
@@ -107,11 +106,11 @@ public class RouteActivity extends AbstractMessingActivity {
             ProxyTopicRouteData proxyTopicRouteData = this.messagingProcessor.getTopicRouteDataForProxy(
                 ctx,
                 addressList,
-                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()));
+                request.getTopic().getName());
 
             boolean fifo = false;
             SubscriptionGroupConfig config = this.messagingProcessor.getSubscriptionGroupConfig(ctx,
-                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getGroup()));
+                request.getGroup().getName());
             if (config != null && config.isConsumeMessageOrderly()) {
                 fifo = true;
             }

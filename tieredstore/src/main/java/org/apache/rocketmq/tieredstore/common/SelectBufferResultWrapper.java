@@ -16,32 +16,21 @@
  */
 package org.apache.rocketmq.tieredstore.common;
 
-import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 
-public class SelectMappedBufferResultWrapper {
+public class SelectBufferResultWrapper {
 
     private final SelectMappedBufferResult result;
-    private final LongAdder accessCount;
+    private final long offset;
+    private final long tagCode;
+    private final AtomicInteger accessCount;
 
-    private final long curOffset;
-    private final long minOffset;
-    private final long maxOffset;
-    private final long size;
-
-    public SelectMappedBufferResultWrapper(
-        SelectMappedBufferResult result, long curOffset, long minOffset, long maxOffset, long size) {
-
+    public SelectBufferResultWrapper(SelectMappedBufferResult result, long offset, long tagCode, boolean used) {
         this.result = result;
-        this.accessCount = new LongAdder();
-        this.curOffset = curOffset;
-        this.minOffset = minOffset;
-        this.maxOffset = maxOffset;
-        this.size = size;
-    }
-
-    public SelectMappedBufferResult getResult() {
-        return result;
+        this.offset = offset;
+        this.tagCode = tagCode;
+        this.accessCount = new AtomicInteger(used ? 1 : 0);
     }
 
     public SelectMappedBufferResult getDuplicateResult() {
@@ -53,27 +42,23 @@ public class SelectMappedBufferResultWrapper {
             result.getMappedFile());
     }
 
-    public long getCurOffset() {
-        return curOffset;
+    public long getOffset() {
+        return offset;
     }
 
-    public long getMinOffset() {
-        return minOffset;
+    public int getBufferSize() {
+        return this.result.getSize();
     }
 
-    public long getMaxOffset() {
-        return maxOffset;
+    public long getTagCode() {
+        return tagCode;
     }
 
-    public long getSize() {
-        return size;
+    public int incrementAndGet() {
+        return accessCount.incrementAndGet();
     }
 
-    public void addAccessCount() {
-        accessCount.increment();
-    }
-
-    public long getAccessCount() {
-        return accessCount.sum();
+    public int getAccessCount() {
+        return accessCount.get();
     }
 }

@@ -465,7 +465,7 @@ public class AutoSwitchHATest {
 
         // Step2: check flag SynchronizingSyncStateSet
         Assert.assertTrue(masterHAService.isSynchronizingSyncStateSet());
-        Assert.assertEquals(this.messageStore1.getConfirmOffset(), 1570);
+        Assert.assertEquals(this.messageStore1.getConfirmOffset(), 1580);
         Set<Long> syncStateSet = masterHAService.getSyncStateSet();
         Assert.assertEquals(syncStateSet.size(), 2);
         Assert.assertTrue(syncStateSet.contains(1L));

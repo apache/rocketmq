@@ -60,6 +60,9 @@ public class BrokerPathConfigHelper {
     public static String getTimerMetricsPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "timermetrics";
     }
+    public static String getTransactionMetricsPath(final String rootDir) {
+        return rootDir + File.separator + "config" + File.separator + "transactionMetrics";
+    }
 
     public static String getConsumerFilterPath(final String rootDir) {
         return rootDir + File.separator + "config" + File.separator + "consumerFilter.json";

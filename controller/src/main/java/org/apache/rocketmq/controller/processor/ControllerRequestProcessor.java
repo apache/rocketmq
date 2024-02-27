@@ -20,8 +20,11 @@ import com.google.common.base.Stopwatch;
 import io.netty.channel.ChannelHandlerContext;
 import io.opentelemetry.api.common.Attributes;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -41,14 +44,14 @@ import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.RoleChangeNotifyEntry;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
+import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.BrokerHeartbeatRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
 
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_REQUEST_HANDLE_STATUS;
 import static org.apache.rocketmq.controller.metrics.ControllerMetricsConstant.LABEL_REQUEST_TYPE;
@@ -73,12 +76,20 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     private static final int WAIT_TIMEOUT_OUT = 5;
     private final ControllerManager controllerManager;
     private final BrokerHeartbeatManager heartbeatManager;
+    protected Set<String> configBlackList = new HashSet<>();
 
     public ControllerRequestProcessor(final ControllerManager controllerManager) {
         this.controllerManager = controllerManager;
         this.heartbeatManager = controllerManager.getHeartbeatManager();
+        initConfigBlackList();
     }
-
+    private void initConfigBlackList() {
+        configBlackList.add("configBlackList");
+        configBlackList.add("configStorePath");
+        configBlackList.add("rocketmqHome");
+        String[] configArray = controllerManager.getControllerConfig().getConfigBlackList().split(";");
+        configBlackList.addAll(Arrays.asList(configArray));
+    }
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
         if (ctx != null) {
@@ -280,10 +291,9 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
                 response.setRemark("string2Properties error");
                 return response;
             }
-
-            if (properties.containsKey("configStorePath")) {
+            if (validateBlackListConfigExist(properties)) {
                 response.setCode(ResponseCode.NO_PERMISSION);
-                response.setRemark("Can not update config path");
+                response.setRemark("Can not update config in black list.");
                 return response;
             }
 
@@ -319,5 +329,12 @@ public class ControllerRequestProcessor implements NettyRequestProcessor {
     public boolean rejectRequest() {
         return false;
     }
-
+    private boolean validateBlackListConfigExist(Properties properties) {
+        for (String blackConfig : configBlackList) {
+            if (properties.containsKey(blackConfig)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

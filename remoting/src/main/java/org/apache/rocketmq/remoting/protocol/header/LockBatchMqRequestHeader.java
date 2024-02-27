@@ -17,29 +17,12 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
-import java.util.List;
-import org.apache.rocketmq.common.PlainAccessConfig;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
-public class GetBrokerClusterAclConfigResponseBody extends RemotingSerializable {
+public class LockBatchMqRequestHeader extends RpcRequestHeader {
+    @Override
+    public void checkFields() throws RemotingCommandException {
 
-    private List<String> globalWhiteAddrs;
-
-    private List<PlainAccessConfig> plainAccessConfigs;
-
-    public List<String> getGlobalWhiteAddrs() {
-        return globalWhiteAddrs;
-    }
-
-    public void setGlobalWhiteAddrs(List<String> globalWhiteAddrs) {
-        this.globalWhiteAddrs = globalWhiteAddrs;
-    }
-
-    public List<PlainAccessConfig> getPlainAccessConfigs() {
-        return plainAccessConfigs;
-    }
-
-    public void setPlainAccessConfigs(List<PlainAccessConfig> plainAccessConfigs) {
-        this.plainAccessConfigs = plainAccessConfigs;
     }
 }

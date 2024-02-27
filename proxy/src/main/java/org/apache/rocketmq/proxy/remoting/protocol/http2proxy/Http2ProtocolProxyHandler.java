@@ -121,15 +121,19 @@ public class Http2ProtocolProxyHandler implements ProtocolHandler {
         }
 
         final Channel outboundChannel = f.channel();
-        if (inboundChannel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
-            ctx.pipeline().addLast(new HAProxyMessageForwarder(outboundChannel));
-            outboundChannel.pipeline().addFirst(HAProxyMessageEncoder.INSTANCE);
-        }
+        configPipeline(inboundChannel, outboundChannel);
 
         SslHandler sslHandler = null;
         if (sslContext != null) {
             sslHandler = sslContext.newHandler(outboundChannel.alloc(), LOCAL_HOST, config.getGrpcServerPort());
         }
         ctx.pipeline().addLast(new Http2ProxyFrontendHandler(outboundChannel, sslHandler));
+    }
+
+    protected void configPipeline(Channel inboundChannel, Channel outboundChannel) {
+        if (inboundChannel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
+            inboundChannel.pipeline().addLast(new HAProxyMessageForwarder(outboundChannel));
+            outboundChannel.pipeline().addFirst(HAProxyMessageEncoder.INSTANCE);
+        }
     }
 }

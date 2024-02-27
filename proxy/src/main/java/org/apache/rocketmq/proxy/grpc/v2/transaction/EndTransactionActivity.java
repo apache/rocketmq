@@ -27,7 +27,6 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
-import org.apache.rocketmq.proxy.grpc.v2.common.GrpcConverter;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcProxyException;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -64,7 +63,7 @@ public class EndTransactionActivity extends AbstractMessingActivity {
                 ctx,
                 request.getTransactionId(),
                 request.getMessageId(),
-                GrpcConverter.getInstance().wrapResourceWithNamespace(request.getTopic()),
+                request.getTopic().getName(),
                 transactionStatus,
                 request.getSource().equals(TransactionSource.SOURCE_SERVER_CHECK))
                 .thenApply(r -> EndTransactionResponse.newBuilder()
