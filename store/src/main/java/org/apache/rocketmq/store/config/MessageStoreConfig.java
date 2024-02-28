@@ -64,7 +64,6 @@ public class MessageStoreConfig {
 
     private boolean enableCompaction = true;
 
-
     // TimerLog file size, default is 100M
     private int mappedFileSizeTimerLog = 100 * 1024 * 1024;
 
@@ -164,6 +163,9 @@ public class MessageStoreConfig {
     private int putMsgIndexHightWater = 600000;
     // The maximum size of message body,default is 4M,4M only for body length,not include others.
     private int maxMessageSize = 1024 * 1024 * 4;
+
+    // The maximum size of message body can be  set in config;count with maxMsgNums * CQ_STORE_UNIT_SIZE(20 || 46)
+    private int maxFilterMessageSize = 16000;
     // Whether check the CRC32 of the records consumed.
     // This ensures no on-the-wire or on-disk corruption to the messages occurred.
     // This check adds some overhead,so it may be disabled in cases seeking extreme performance.
@@ -598,6 +600,14 @@ public class MessageStoreConfig {
 
     public void setMaxMessageSize(int maxMessageSize) {
         this.maxMessageSize = maxMessageSize;
+    }
+
+    public int getMaxFilterMessageSize() {
+        return maxFilterMessageSize;
+    }
+
+    public void setMaxFilterMessageSize(int maxFilterMessageSize) {
+        this.maxFilterMessageSize = maxFilterMessageSize;
     }
 
     @Deprecated
@@ -1607,6 +1617,10 @@ public class MessageStoreConfig {
 
     public boolean isTimerSkipUnknownError() {
         return timerSkipUnknownError;
+    }
+
+    public void setTimerSkipUnknownError(boolean timerSkipUnknownError) {
+        this.timerSkipUnknownError = timerSkipUnknownError;
     }
 
     public boolean isTimerWarmEnable() {

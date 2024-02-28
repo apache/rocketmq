@@ -366,7 +366,7 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     }
 
     public RemotingCommand unregisterBroker(ChannelHandlerContext ctx,
-            RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final UnRegisterBrokerRequestHeader requestHeader = (UnRegisterBrokerRequestHeader) request.decodeCommandCustomHeader(UnRegisterBrokerRequestHeader.class);
 
@@ -386,7 +386,6 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final BrokerHeartbeatRequestHeader requestHeader =
             (BrokerHeartbeatRequestHeader) request.decodeCommandCustomHeader(BrokerHeartbeatRequestHeader.class);
-
 
         this.namesrvController.getRouteInfoManager().updateBrokerInfoUpdateTimestamp(requestHeader.getClusterName(), requestHeader.getBrokerAddr());
 
@@ -522,21 +521,21 @@ public class DefaultRequestProcessor implements NettyRequestProcessor {
     private RemotingCommand getTopicsByCluster(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();
+        if (!enableTopicList) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("disable");
+            return response;
+        }
         final GetTopicsByClusterRequestHeader requestHeader =
             (GetTopicsByClusterRequestHeader) request.decodeCommandCustomHeader(GetTopicsByClusterRequestHeader.class);
 
-        boolean enableTopicList = namesrvController.getNamesrvConfig().isEnableTopicList();
-        if (enableTopicList) {
-            TopicList topicsByCluster = this.namesrvController.getRouteInfoManager().getTopicsByCluster(requestHeader.getCluster());
-            byte[] body = topicsByCluster.encode();
+        TopicList topicsByCluster = this.namesrvController.getRouteInfoManager().getTopicsByCluster(requestHeader.getCluster());
+        byte[] body = topicsByCluster.encode();
 
-            response.setBody(body);
-            response.setCode(ResponseCode.SUCCESS);
-            response.setRemark(null);
-        } else {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("disable");
-        }
+        response.setBody(body);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
 
         return response;
     }

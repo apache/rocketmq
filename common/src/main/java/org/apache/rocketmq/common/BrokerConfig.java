@@ -269,6 +269,8 @@ public class BrokerConfig extends BrokerIdentity {
     @ImportantField
     private long transactionCheckInterval = 30 * 1000;
 
+    private long transactionMetricFlushInterval = 3 * 1000;
+
     /**
      * transaction batch op message
      */
@@ -308,7 +310,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean asyncSendEnable = true;
 
-    private boolean useServerSideResetOffset = false;
+    private boolean useServerSideResetOffset = true;
 
     private long consumerOffsetUpdateVersionStep = 500;
 
@@ -404,6 +406,9 @@ public class BrokerConfig extends BrokerIdentity {
      * otherwise there will be a loss of routing
      */
     private boolean enableSplitRegistration = false;
+
+    private long popInflightMessageThreshold = 10000;
+    private boolean enablePopMessageThreshold = false;
 
     private int splitRegistrationSize = 800;
 
@@ -1788,5 +1793,29 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setSplitRegistrationSize(int splitRegistrationSize) {
         this.splitRegistrationSize = splitRegistrationSize;
+    }
+
+    public long getTransactionMetricFlushInterval() {
+        return transactionMetricFlushInterval;
+    }
+
+    public void setTransactionMetricFlushInterval(long transactionMetricFlushInterval) {
+        this.transactionMetricFlushInterval = transactionMetricFlushInterval;
+    }
+
+    public long getPopInflightMessageThreshold() {
+        return popInflightMessageThreshold;
+    }
+
+    public void setPopInflightMessageThreshold(long popInflightMessageThreshold) {
+        this.popInflightMessageThreshold = popInflightMessageThreshold;
+    }
+
+    public boolean isEnablePopMessageThreshold() {
+        return enablePopMessageThreshold;
+    }
+
+    public void setEnablePopMessageThreshold(boolean enablePopMessageThreshold) {
+        this.enablePopMessageThreshold = enablePopMessageThreshold;
     }
 }

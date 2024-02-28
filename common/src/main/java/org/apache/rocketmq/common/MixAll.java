@@ -108,6 +108,8 @@ public class MixAll {
     public static final String ROCKETMQ_ZONE_MODE_PROPERTY = "rocketmq.zone.mode";
     public static final String ZONE_NAME = "__ZONE_NAME";
     public static final String ZONE_MODE = "__ZONE_MODE";
+    public final static String RPC_REQUEST_HEADER_NAMESPACED_FIELD = "nsd";
+    public final static String RPC_REQUEST_HEADER_NAMESPACE_FIELD = "ns";
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     public static final String LOGICAL_QUEUE_MOCK_BROKER_PREFIX = "__syslo__";
@@ -461,7 +463,9 @@ public class MixAll {
         if (!candidatesHost.isEmpty()) {
             return candidatesHost.get(0);
         }
-        return null;
+
+        // Fallback to loopback 
+        return localhost();
     }
 
     public static boolean compareAndIncreaseOnly(final AtomicLong target, final long value) {

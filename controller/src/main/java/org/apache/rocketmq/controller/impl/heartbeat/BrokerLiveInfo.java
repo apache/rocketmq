@@ -17,8 +17,10 @@
 package org.apache.rocketmq.controller.impl.heartbeat;
 
 import io.netty.channel.Channel;
+import java.io.Serializable;
 
-public class BrokerLiveInfo {
+public class BrokerLiveInfo implements Serializable {
+    private static final long serialVersionUID = 3612173344946510993L;
     private final String brokerName;
 
     private String brokerAddr;
@@ -45,7 +47,8 @@ public class BrokerLiveInfo {
     }
 
     public BrokerLiveInfo(String brokerName, String brokerAddr, long brokerId, long lastUpdateTimestamp,
-        long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority, long confirmOffset) {
+        long heartbeatTimeoutMillis, Channel channel, int epoch, long maxOffset, Integer electionPriority,
+        long confirmOffset) {
         this.brokerName = brokerName;
         this.brokerAddr = brokerAddr;
         this.brokerId = brokerId;

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.controller.impl.manager;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -24,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Manages the syncStateSet of broker replicas.
  */
-public class SyncStateInfo {
+public class SyncStateInfo implements Serializable {
     private final String clusterName;
     private final String brokerName;
     private final AtomicInteger masterEpoch;

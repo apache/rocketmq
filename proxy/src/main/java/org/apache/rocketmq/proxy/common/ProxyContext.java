@@ -131,4 +131,13 @@ public class ProxyContext {
         return this.getVal(ContextVariable.PROTOCOL_TYPE);
     }
 
+    public ProxyContext setNamespace(String namespace) {
+        this.withVal(ContextVariable.NAMESPACE, namespace);
+        return this;
+    }
+
+    public String getNamespace() {
+        return this.getVal(ContextVariable.NAMESPACE);
+    }
+
 }
