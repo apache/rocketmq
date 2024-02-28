@@ -19,10 +19,9 @@ package org.apache.rocketmq.client.rpchook;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
 public class NamespaceRpcHook implements RPCHook {
     private final ClientConfig clientConfig;
@@ -33,13 +32,9 @@ public class NamespaceRpcHook implements RPCHook {
 
     @Override
     public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
-        CommandCustomHeader customHeader = request.readCustomHeader();
-        if (customHeader instanceof RpcRequestHeader) {
-            RpcRequestHeader requestHeader = (RpcRequestHeader) customHeader;
-            if (StringUtils.isNotEmpty(clientConfig.getNamespaceV2())) {
-                requestHeader.setNamespaced(true);
-                requestHeader.setNamespace(clientConfig.getNamespaceV2());
-            }
+        if (StringUtils.isNotEmpty(clientConfig.getNamespaceV2())) {
+            request.addExtField(MixAll.RPC_REQUEST_HEADER_NAMESPACED_FIELD, "true");
+            request.addExtField(MixAll.RPC_REQUEST_HEADER_NAMESPACE_FIELD, clientConfig.getNamespaceV2());
         }
     }
 
