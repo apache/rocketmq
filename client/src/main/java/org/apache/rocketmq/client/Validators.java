@@ -59,7 +59,7 @@ public class Validators {
         }
     }
 
-    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer) throws MQClientException {
+    public static void checkMessage(Message msg, DefaultMQProducer defaultMQProducer, CompressMessageConsumer msgConsumer) throws MQClientException {
         if (null == msg) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
@@ -75,6 +75,8 @@ public class Validators {
         if (0 == msg.getBody().length) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body length is zero");
         }
+
+        msgConsumer.tryToCompressMessage(msg);
 
         if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
@@ -134,4 +136,10 @@ public class Validators {
                 String.format("brokerPermission value: %s is invalid.", brokerConfig.getProperty("brokerPermission")));
         }
     }
+
+    public interface CompressMessageConsumer {
+
+        void tryToCompressMessage(Message message);
+    }
+
 }
