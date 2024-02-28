@@ -27,8 +27,11 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
 import org.apache.rocketmq.broker.transaction.OperationResult;
+import org.apache.rocketmq.broker.transaction.TransactionMetrics;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
@@ -70,10 +73,25 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
 
     private ConcurrentHashMap<MessageQueue, MessageQueue> opQueueMap = new ConcurrentHashMap<>();
 
+    private TransactionMetrics transactionMetrics;
+
     public TransactionalMessageServiceImpl(TransactionalMessageBridge transactionBridge) {
         this.transactionalMessageBridge = transactionBridge;
         transactionalOpBatchService = new TransactionalOpBatchService(transactionalMessageBridge.getBrokerController(), this);
         transactionalOpBatchService.start();
+        transactionMetrics = new TransactionMetrics(BrokerPathConfigHelper.getTransactionMetricsPath(
+                transactionalMessageBridge.getBrokerController().getMessageStoreConfig().getStorePathRootDir()));
+        transactionMetrics.load();
+    }
+
+    @Override
+    public TransactionMetrics getTransactionMetrics() {
+        return transactionMetrics;
+    }
+
+    @Override
+    public void setTransactionMetrics(TransactionMetrics transactionMetrics) {
+        this.transactionMetrics = transactionMetrics;
     }
 
 
@@ -632,6 +650,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
         if (this.transactionalOpBatchService != null) {
             this.transactionalOpBatchService.shutdown();
         }
+        this.getTransactionMetrics().persist();
     }
 
     public Message getOpMessage(int queueId, String moreData) {

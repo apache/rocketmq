@@ -238,7 +238,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
 
         public boolean isAvailable() {
-            return reachableFlag && System.currentTimeMillis() >= startTimestamp;
+            return System.currentTimeMillis() >= startTimestamp;
         }
 
         public boolean isReachable() {
