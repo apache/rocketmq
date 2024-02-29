@@ -552,8 +552,7 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
         CompletableFuture<List<IndexItem>> future = indexStoreService.queryAsync(topic, key, maxCount, begin, end);
 
         return future.thenCompose(indexItemList -> {
-            QueryMessageResult result = new QueryMessageResult();
-            List<CompletableFuture<Void>> futureList = new ArrayList<>(maxCount);
+            List<CompletableFuture<SelectMappedBufferResult>> futureList = new ArrayList<>(maxCount);
             for (IndexItem indexItem : indexItemList) {
                 if (topicId != indexItem.getTopicId()) {
                     continue;
@@ -563,17 +562,19 @@ public class TieredMessageFetcher implements MessageStoreFetcher {
                 if (flatFile == null) {
                     continue;
                 }
-                CompletableFuture<Void> getMessageFuture = flatFile
+                CompletableFuture<SelectMappedBufferResult> getMessageFuture = flatFile
                     .getCommitLogAsync(indexItem.getOffset(), indexItem.getSize())
-                    .thenAccept(messageBuffer -> result.addMessage(
-                        new SelectMappedBufferResult(
-                            indexItem.getOffset(), messageBuffer, indexItem.getSize(), null)));
+                    .thenApply(messageBuffer -> new SelectMappedBufferResult(indexItem.getOffset(), messageBuffer, indexItem.getSize(), null));
                 futureList.add(getMessageFuture);
                 if (futureList.size() >= maxCount) {
                     break;
                 }
             }
-            return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).thenApply(v -> result);
+            return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).thenApply(v -> {
+                QueryMessageResult result = new QueryMessageResult();
+                futureList.forEach(f -> f.thenAccept(result::addMessage));
+                return result;
+            });
         }).whenComplete((result, throwable) -> {
             if (result != null) {
                 LOGGER.info("MessageFetcher#queryMessageAsync, " +
