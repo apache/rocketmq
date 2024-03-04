@@ -34,25 +34,26 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
-import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
+import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
-import org.apache.rocketmq.tieredstore.file.TieredFileAllocator;
-import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
+import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
+import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtilTest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.awaitility.Awaitility.await;
 
 public class IndexStoreServiceTest {
 
-    private static final Logger log = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     private static final String TOPIC_NAME = "TopicTest";
     private static final int TOPIC_ID = 123;
@@ -62,22 +63,23 @@ public class IndexStoreServiceTest {
     private static final Set<String> KEY_SET = Collections.singleton("MessageKey");
 
     private String filePath;
-    private TieredMessageStoreConfig storeConfig;
-    private TieredFileAllocator fileAllocator;
+    private MessageStoreConfig storeConfig;
+    private FlatFileFactory fileAllocator;
     private IndexStoreService indexService;
 
     @Before
     public void init() throws IOException, ClassNotFoundException, NoSuchMethodException {
-        TieredStoreExecutor.init();
+//        MessageStoreExecutor.init();
         filePath = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         String directory = Paths.get(System.getProperty("user.home"), "store_test", filePath).toString();
-        storeConfig = new TieredMessageStoreConfig();
+        storeConfig = new MessageStoreConfig();
         storeConfig.setStorePathRootDir(directory);
         storeConfig.setTieredStoreFilePath(directory);
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(5);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(20);
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.posix.PosixFileSegment");
-        fileAllocator = new TieredFileAllocator(storeConfig);
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.PosixFileSegment");
+        MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
+        fileAllocator = new FlatFileFactory(metadataStore, storeConfig);
     }
 
     @After
@@ -86,10 +88,7 @@ public class IndexStoreServiceTest {
             indexService.shutdown();
             indexService.destroy();
         }
-        TieredStoreTestUtil.destroyMetadataStore();
-        TieredStoreTestUtil.destroyTempDir(storeConfig.getStorePathRootDir());
-        TieredStoreTestUtil.destroyTempDir(storeConfig.getTieredStoreFilePath());
-        TieredStoreExecutor.shutdown();
+        MessageStoreUtilTest.deleteStoreDirectory(storeConfig.getTieredStoreFilePath());
     }
 
     @Test
