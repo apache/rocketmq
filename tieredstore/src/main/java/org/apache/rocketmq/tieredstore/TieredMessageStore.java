@@ -330,7 +330,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
             return fetcher.getMessageStoreTimeStampAsync(topic, queueId, consumeQueueOffset)
                 .thenApply(time -> {
                     Attributes latencyAttributes = TieredStoreMetricsManager.newAttributesBuilder()
-                        .put(TieredStoreMetricsConstant.LABEL_OPERATION, TieredStoreMetricsConstant.OPERATION_API_GET_TIME_BY_OFFSET)
+                        .put(TieredStoreMetricsConstant.LABEL_OPERATION,
+                                TieredStoreMetricsConstant.OPERATION_API_GET_TIME_BY_OFFSET)
                         .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
                         .build();
                     TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
@@ -352,13 +353,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
-        long earliestTimeInNextStore = next.getEarliestMessageTime();
-        if (earliestTimeInNextStore <= 0) {
-            log.warn("TieredMessageStore#getOffsetInQueueByTimeAsync: get earliest message time in next store failed: {}", earliestTimeInNextStore);
-            return next.getOffsetInQueueByTime(topic, queueId, timestamp);
-        }
         boolean isForce = storeConfig.getTieredStorageLevel() == MessageStoreConfig.TieredStorageLevel.FORCE;
-        if (timestamp < earliestTimeInNextStore || isForce) {
+        if (timestamp < next.getEarliestMessageTime() || isForce) {
             Stopwatch stopwatch = Stopwatch.createStarted();
             long offsetInTieredStore = fetcher.getOffsetInQueueByTime(topic, queueId, timestamp, boundaryType);
             Attributes latencyAttributes = TieredStoreMetricsManager.newAttributesBuilder()
@@ -366,7 +362,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
                 .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
                 .build();
             TieredStoreMetricsManager.apiLatency.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), latencyAttributes);
-            if (offsetInTieredStore == -1 && !isForce) {
+            if (offsetInTieredStore == -1L && !isForce) {
                 return next.getOffsetInQueueByTime(topic, queueId, timestamp);
             }
             return offsetInTieredStore;

@@ -43,7 +43,7 @@ public class FlatCommitLogFileTest {
     private FlatFileFactory flatFileFactory;
 
     @Before
-    public void setUp() throws ClassNotFoundException, NoSuchMethodException {
+    public void init() throws ClassNotFoundException, NoSuchMethodException {
         storeConfig = new MessageStoreConfig();
         storeConfig.setBrokerName("brokerName");
         storeConfig.setStorePathRootDir(storePath);
@@ -57,7 +57,7 @@ public class FlatCommitLogFileTest {
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void shutdown() throws IOException {
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 

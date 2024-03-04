@@ -69,7 +69,6 @@ public class IndexStoreServiceTest {
 
     @Before
     public void init() throws IOException, ClassNotFoundException, NoSuchMethodException {
-//        MessageStoreExecutor.init();
         filePath = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         String directory = Paths.get(System.getProperty("user.home"), "store_test", filePath).toString();
         storeConfig = new MessageStoreConfig();

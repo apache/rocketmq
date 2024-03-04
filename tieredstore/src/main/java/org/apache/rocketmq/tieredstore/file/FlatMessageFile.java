@@ -88,7 +88,7 @@ public class FlatMessageFile implements FlatFileInterface {
 
     @Override
     public MessageQueue getMessageQueue() {
-        return queueMetadata.getQueue();
+        return queueMetadata != null ? queueMetadata.getQueue() : null;
     }
 
     @Override
@@ -114,10 +114,12 @@ public class FlatMessageFile implements FlatFileInterface {
     }
 
     public void flushMetadata() {
-        queueMetadata.setMinOffset(this.getConsumeQueueMinOffset());
-        queueMetadata.setMaxOffset(this.getConsumeQueueCommitOffset());
-        queueMetadata.setUpdateTimestamp(System.currentTimeMillis());
-        metadataStore.updateQueue(queueMetadata);
+        if (queueMetadata != null) {
+            queueMetadata.setMinOffset(this.getConsumeQueueMinOffset());
+            queueMetadata.setMaxOffset(this.getConsumeQueueCommitOffset());
+            queueMetadata.setUpdateTimestamp(System.currentTimeMillis());
+            metadataStore.updateQueue(queueMetadata);
+        }
     }
 
     @Override
@@ -281,25 +283,24 @@ public class FlatMessageFile implements FlatFileInterface {
 
     @Override
     public CompletableFuture<Long> getQueueOffsetByTimeAsync(long timestamp, BoundaryType boundaryType) {
-        long minOffset = getConsumeQueueMinOffset();
-        long maxOffset = getConsumeQueueMaxOffset();
-        if (maxOffset == -1 || maxOffset < minOffset) {
-            return CompletableFuture.completedFuture(-1L);
+        long cqMin = getConsumeQueueMinOffset();
+        long cqMax = getConsumeQueueCommitOffset() - 1;
+        if (cqMax == -1 || cqMax < cqMin) {
+            return CompletableFuture.completedFuture(cqMin);
         }
 
+        long minOffset = cqMin;
+        long maxOffset = cqMax;
         List<String> queryLog = new ArrayList<>();
         while (minOffset < maxOffset) {
             long middle = minOffset + (maxOffset - minOffset) / 2;
             ByteBuffer buffer = this.getMessageAsync(middle).join();
             long storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
             queryLog.add(String.format(
-                "range=%d-%d, middle=%d, timestamp=%d", minOffset, maxOffset, middle, storeTime));
+                "(range=%d-%d, middle=%d, timestamp=%d)", minOffset, maxOffset, middle, storeTime));
             if (storeTime == timestamp) {
-                if (boundaryType == BoundaryType.LOWER) {
-                    maxOffset = middle - 1;
-                } else if (boundaryType == BoundaryType.UPPER) {
-                    minOffset = middle + 1;
-                }
+                minOffset = middle;
+                break;
             } else if (storeTime < timestamp) {
                 minOffset = middle + 1;
             } else {
@@ -307,9 +308,24 @@ public class FlatMessageFile implements FlatFileInterface {
             }
         }
 
-        log.info("MessageStore getQueueOffsetByTimeAsync, topic={}, queueId={}, log={}",
-            queueMetadata.getQueue().getTopic(), queueMetadata.getQueue().getQueueId(), JSON.toJSONString(queryLog));
-        return CompletableFuture.completedFuture(minOffset);
+        long offset = minOffset;
+        while (true) {
+            long next = boundaryType == BoundaryType.LOWER ? offset - 1 : offset + 1;
+            if (next < cqMin || next > cqMax) {
+                break;
+            }
+            ByteBuffer buffer = this.getMessageAsync(next).join();
+            long storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
+            if (storeTime == timestamp) {
+                offset = next;
+                continue;
+            }
+            break;
+        }
+
+        log.info("FlatMessageFile getQueueOffsetByTimeAsync, filePath={}, timestamp={}, result={}, log={}",
+            filePath, timestamp, offset, JSON.toJSONString(queryLog));
+        return CompletableFuture.completedFuture(offset);
     }
 
     @Override

@@ -46,7 +46,7 @@ public class DefaultMetadataStoreTest {
     private MetadataStore metadataStore;
 
     @Before
-    public void setUp() {
+    public void init() {
         storeConfig = new MessageStoreConfig();
         storeConfig.setBrokerName("brokerName");
         storeConfig.setStorePathRootDir(storePath);
@@ -57,7 +57,7 @@ public class DefaultMetadataStoreTest {
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void shutdown() throws IOException {
         metadataStore.destroy();
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }

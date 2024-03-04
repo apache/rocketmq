@@ -70,7 +70,7 @@ public class MessageStoreDispatcherImplTest {
     protected TieredMessageStore messageStore;
 
     @Before
-    public void setUp() {
+    public void init() {
         storeConfig = new MessageStoreConfig();
         storeConfig.setBrokerName("brokerName");
         storeConfig.setStorePathRootDir(storePath);
@@ -83,7 +83,7 @@ public class MessageStoreDispatcherImplTest {
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void shutdown() throws IOException {
         if (messageStore != null) {
             messageStore.destroy();
         }

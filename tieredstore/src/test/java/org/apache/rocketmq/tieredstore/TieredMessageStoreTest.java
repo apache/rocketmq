@@ -275,15 +275,19 @@ public class TieredMessageStoreTest {
 
     @Test
     public void testGetOffsetInQueueByTime() {
+        Properties properties = new Properties();
+        properties.setProperty("tieredStorageLevel", "FORCE");
+        configuration.update(properties);
+
         Mockito.when(fetcher.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), eq(BoundaryType.LOWER))).thenReturn(1L);
         Mockito.when(defaultStore.getOffsetInQueueByTime(anyString(), anyInt(), anyLong())).thenReturn(2L);
         Mockito.when(defaultStore.getEarliestMessageTime()).thenReturn(100L);
-        Assert.assertEquals(1, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
-        Assert.assertEquals(2, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 1000, BoundaryType.LOWER));
+        Assert.assertEquals(1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 1000, BoundaryType.LOWER));
+        Assert.assertEquals(1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
 
         Mockito.when(fetcher.getOffsetInQueueByTime(anyString(), anyInt(), anyLong(), eq(BoundaryType.LOWER))).thenReturn(-1L);
-        Assert.assertEquals(2, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0));
-        Assert.assertEquals(2, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
+        Assert.assertEquals(-1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0));
+        Assert.assertEquals(-1L, currentStore.getOffsetInQueueByTime(mq.getTopic(), mq.getQueueId(), 0, BoundaryType.LOWER));
     }
 
     @Test

@@ -33,6 +33,7 @@ import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.provider.FileSegment;
 import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtilTest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -54,7 +55,6 @@ public class IndexStoreFileTest {
 
     @Before
     public void init() throws IOException {
-//        MessageStoreExecutor.init();
         filePath = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         String directory = Paths.get(System.getProperty("user.home"), "store_test", filePath).toString();
         storeConfig = new MessageStoreConfig();
@@ -72,8 +72,7 @@ public class IndexStoreFileTest {
             this.indexStoreFile.shutdown();
             this.indexStoreFile.destroy();
         }
-//        MessageStoreTest.deleteStoreDirectory(storeConfig.getTieredStoreFilePath());
-//        MessageStoreExecutor.shutdown();
+        MessageStoreUtilTest.deleteStoreDirectory(storeConfig.getTieredStoreFilePath());
     }
 
     @Test
@@ -211,7 +210,7 @@ public class IndexStoreFileTest {
     }
 
     @Test
-    public void doCompactionTest() throws Exception {
+    public void doCompactionTest() {
         long timestamp = indexStoreFile.getTimestamp();
         for (int i = 0; i < 10; i++) {
             Assert.assertEquals(AppendResult.SUCCESS, indexStoreFile.putKey(

@@ -45,14 +45,14 @@ public class MessageStoreFetcherImplTest {
     private MessageStoreFetcherImpl fetcher;
 
     @Before
-    public void setUp() throws Exception {
+    public void init() throws Exception {
         groupName = "GID-fetcherTest";
         dispatcherTest = new MessageStoreDispatcherImplTest();
-        dispatcherTest.setUp();
+        dispatcherTest.init();
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void shutdown() throws IOException {
         if (messageStore != null) {
             messageStore.destroy();
         }
@@ -203,14 +203,16 @@ public class MessageStoreFetcherImplTest {
         messageStore = dispatcherTest.messageStore;
         storeConfig = dispatcherTest.storeConfig;
 
-        long result1 = fetcher.getOffsetInQueueByTime(mq.getTopic(), 0, 0, BoundaryType.LOWER);
-        Assert.assertEquals(-1L, result1);
+        // message time is all 11
+        Assert.assertEquals(-1L, fetcher.getOffsetInQueueByTime(mq.getTopic(), 0, 10, BoundaryType.LOWER));
 
-        long result2 = fetcher.getOffsetInQueueByTime(mq.getTopic(), 1, 0, BoundaryType.LOWER);
-        Assert.assertEquals(100L, result2);
+        Assert.assertEquals(100L, fetcher.getOffsetInQueueByTime(mq.getTopic(), 1, 10, BoundaryType.LOWER));
+        Assert.assertEquals(100L, fetcher.getOffsetInQueueByTime(mq.getTopic(), 1, 11, BoundaryType.LOWER));
+        Assert.assertEquals(199L, fetcher.getOffsetInQueueByTime(mq.getTopic(), 1, 12, BoundaryType.LOWER));
 
-        long result3 = fetcher.getOffsetInQueueByTime(mq.getTopic(), 1, 11, BoundaryType.UPPER);
-        Assert.assertEquals(200L, result3);
+        Assert.assertEquals(100L, fetcher.getOffsetInQueueByTime(mq.getTopic(), 1, 10, BoundaryType.UPPER));
+        Assert.assertEquals(199L, fetcher.getOffsetInQueueByTime(mq.getTopic(), 1, 11, BoundaryType.UPPER));
+        Assert.assertEquals(199L, fetcher.getOffsetInQueueByTime(mq.getTopic(), 1, 12, BoundaryType.UPPER));
     }
 
     @Test

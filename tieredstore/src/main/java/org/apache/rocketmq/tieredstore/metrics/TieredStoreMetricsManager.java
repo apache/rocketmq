@@ -143,7 +143,7 @@ public class TieredStoreMetricsManager {
 
     public static void init(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier,
         MessageStoreConfig storeConfig, MessageStoreFetcher fetcher,
-        FlatFileStore flatFileManager, MessageStore next) {
+        FlatFileStore flatFileStore, MessageStore next) {
 
         TieredStoreMetricsManager.attributesBuilderSupplier = attributesBuilderSupplier;
 
@@ -175,7 +175,7 @@ public class TieredStoreMetricsManager {
             .setDescription("Tiered store dispatch behind message count")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                for (FlatMessageFile flatFile : flatFileManager.deepCopyFlatFileToList()) {
+                for (FlatMessageFile flatFile : flatFileStore.deepCopyFlatFileToList()) {
 
                     MessageQueue mq = flatFile.getMessageQueue();
                     long maxOffset = next.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId());
@@ -204,7 +204,7 @@ public class TieredStoreMetricsManager {
             .setUnit("seconds")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                for (FlatMessageFile flatFile : flatFileManager.deepCopyFlatFileToList()) {
+                for (FlatMessageFile flatFile : flatFileStore.deepCopyFlatFileToList()) {
 
                     MessageQueue mq = flatFile.getMessageQueue();
                     long maxOffset = next.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId());
@@ -282,7 +282,7 @@ public class TieredStoreMetricsManager {
             .buildWithCallback(measurement -> {
                 Map<String, Map<FileSegmentType, Long>> topicFileSizeMap = new HashMap<>();
                 try {
-                    MetadataStore metadataStore = flatFileManager.getMetadataStore();
+                    MetadataStore metadataStore = flatFileStore.getMetadataStore();
                     metadataStore.iterateFileSegment(fileSegment -> {
                         Map<FileSegmentType, Long> subMap =
                             topicFileSizeMap.computeIfAbsent(fileSegment.getPath(), k -> new HashMap<>());
@@ -310,7 +310,7 @@ public class TieredStoreMetricsManager {
             .setUnit("milliseconds")
             .ofLongs()
             .buildWithCallback(measurement -> {
-                for (FlatMessageFile flatFile : flatFileManager.deepCopyFlatFileToList()) {
+                for (FlatMessageFile flatFile : flatFileStore.deepCopyFlatFileToList()) {
                     long timestamp = flatFile.getMinStoreTimestamp();
                     if (timestamp > 0) {
                         MessageQueue mq = flatFile.getMessageQueue();

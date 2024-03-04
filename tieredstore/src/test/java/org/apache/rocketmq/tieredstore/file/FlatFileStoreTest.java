@@ -39,21 +39,19 @@ public class FlatFileStoreTest {
 
     private final String storePath = MessageStoreUtilTest.getRandomStorePath();
     private MessageStoreConfig storeConfig;
-    private MessageQueue mq;
     private MetadataStore metadataStore;
 
     @Before
-    public void setUp() {
+    public void init() {
         storeConfig = new MessageStoreConfig();
         storeConfig.setStorePathRootDir(storePath);
         storeConfig.setTieredBackendServiceProvider(PosixFileSegment.class.getName());
         storeConfig.setBrokerName(storeConfig.getBrokerName());
-        mq = new MessageQueue("flatFileStoreTest", storeConfig.getBrokerName(), 0);
         metadataStore = new DefaultMetadataStore(storeConfig);
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void shutdown() throws IOException {
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 
@@ -68,22 +66,24 @@ public class FlatFileStoreTest {
         Assert.assertEquals(metadataStore, fileStore.getMetadataStore());
         Assert.assertNotNull(fileStore.getFlatFileFactory());
 
-        FlatMessageFile flatFile = fileStore.computeIfAbsent(mq);
-        FlatMessageFile flatFileGet = fileStore.getFlatFile(mq);
-        Assert.assertEquals(flatFile, flatFileGet);
-
-        mq.setQueueId(1);
-        fileStore.computeIfAbsent(mq);
-        Assert.assertEquals(2, fileStore.deepCopyFlatFileToList().size());
+        for (int i = 0; i < 4; i++) {
+            MessageQueue mq = new MessageQueue("flatFileStoreTest", storeConfig.getBrokerName(), i);
+            FlatMessageFile flatFile = fileStore.computeIfAbsent(mq);
+            FlatMessageFile flatFileGet = fileStore.getFlatFile(mq);
+            Assert.assertEquals(flatFile, flatFileGet);
+        }
+        Assert.assertEquals(4, fileStore.deepCopyFlatFileToList().size());
         fileStore.shutdown();
 
         fileStore = new FlatFileStore(storeConfig, metadataStore, executor);
         Assert.assertTrue(fileStore.load());
-        Assert.assertEquals(2, fileStore.deepCopyFlatFileToList().size());
-        fileStore.shutdown();
+        Assert.assertEquals(4, fileStore.deepCopyFlatFileToList().size());
 
-        fileStore.destroyFile(mq);
-        Assert.assertEquals(1, fileStore.deepCopyFlatFileToList().size());
+        for (int i = 1; i < 3; i++) {
+            MessageQueue mq = new MessageQueue("flatFileStoreTest", storeConfig.getBrokerName(), i);
+            fileStore.destroyFile(mq);
+        }
+        Assert.assertEquals(2, fileStore.deepCopyFlatFileToList().size());
 
         FlatFileStore fileStoreSpy = Mockito.spy(fileStore);
         Mockito.when(fileStoreSpy.recoverAsync(any())).thenReturn(CompletableFuture.supplyAsync(() -> {
@@ -91,6 +91,9 @@ public class FlatFileStoreTest {
         }));
         Assert.assertFalse(fileStoreSpy.load());
 
+        Mockito.reset(fileStoreSpy);
+        fileStore.load();
+        Assert.assertEquals(2, fileStore.deepCopyFlatFileToList().size());
         fileStore.destroy();
         Assert.assertEquals(0, fileStore.deepCopyFlatFileToList().size());
     }

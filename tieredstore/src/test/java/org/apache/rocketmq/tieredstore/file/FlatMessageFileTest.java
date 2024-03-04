@@ -18,13 +18,18 @@ package org.apache.rocketmq.tieredstore.file;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtil;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtilTest;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtilTest;
 import org.junit.After;
 import org.junit.Assert;
@@ -39,7 +44,7 @@ public class FlatMessageFileTest {
     private FlatFileFactory flatFileFactory;
 
     @Before
-    public void setUp() throws ClassNotFoundException, NoSuchMethodException {
+    public void init() throws ClassNotFoundException, NoSuchMethodException {
         storeConfig = new MessageStoreConfig();
         storeConfig.setBrokerName("brokerName");
         storeConfig.setStorePathRootDir(storePath);
@@ -51,7 +56,7 @@ public class FlatMessageFileTest {
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void shutdown() throws IOException {
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 
@@ -129,73 +134,75 @@ public class FlatMessageFileTest {
     }
 
     @Test
-    public void testBinarySearchInQueueByTime() throws ClassNotFoundException, NoSuchMethodException {
+    public void testBinarySearchInQueueByTime() {
 
         // replace provider, need new factory again
-//        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.MemoryFileSegmentWithoutCheck");
-//        flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
-//
-//        // inject store time: 0, +100, +100, +100, +200
-//        FlatMessageFileExt flatFile = new FlatMessageFileExt(flatFileFactory, mq);
-////        flatFile.initOffset(50);
-//        long timestamp1 = System.currentTimeMillis();
-//        ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
-//        buffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, 50);
-//        buffer.putLong(MessageFormatUtil.STORE_TIMESTAMP_POSITION, timestamp1);
-//        flatFile.appendCommitLog(buffer);
-//
-//        long timestamp2 = timestamp1 + 100;
-//        buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
-//        buffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, 51);
-//        buffer.putLong(MessageFormatUtil.STORE_TIMESTAMP_POSITION, timestamp2);
-//        flatFile.appendCommitLog(buffer);
-//        buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
-//        buffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, 52);
-//        buffer.putLong(MessageFormatUtil.STORE_TIMESTAMP_POSITION, timestamp2);
-//        flatFile.appendCommitLog(buffer);
-//        buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
-//        buffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, 53);
-//        buffer.putLong(MessageFormatUtil.STORE_TIMESTAMP_POSITION, timestamp2);
-//        flatFile.appendCommitLog(buffer);
-//
-//        long timestamp3 = timestamp2 + 100;
-//        buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
-//        buffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, 54);
-//        buffer.putLong(MessageFormatUtil.STORE_TIMESTAMP_POSITION, timestamp3);
-//        flatFile.appendCommitLog(buffer);
+        storeConfig.setTieredBackendServiceProvider(PosixFileSegment.class.getName());
+        flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
+
+        // inject store time: 0, +100, +100, +100, +200
+        MessageQueue mq = new MessageQueue("TopicTest", "BrokerName", 1);
+        FlatMessageFile flatFile = new FlatMessageFile(flatFileFactory, MessageStoreUtil.toFilePath(mq));
+        flatFile.initOffset(50);
+        long timestamp1 = 1000;
+        ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+        buffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, 50);
+        buffer.putLong(MessageFormatUtil.STORE_TIMESTAMP_POSITION, timestamp1);
+        flatFile.appendCommitLog(buffer);
+
+        long timestamp2 = timestamp1 + 100;
+        buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+        buffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, 51);
+        buffer.putLong(MessageFormatUtil.STORE_TIMESTAMP_POSITION, timestamp2);
+        flatFile.appendCommitLog(buffer);
+        buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+        buffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, 52);
+        buffer.putLong(MessageFormatUtil.STORE_TIMESTAMP_POSITION, timestamp2);
+        flatFile.appendCommitLog(buffer);
+        buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+        buffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, 53);
+        buffer.putLong(MessageFormatUtil.STORE_TIMESTAMP_POSITION, timestamp2);
+        flatFile.appendCommitLog(buffer);
+
+        long timestamp3 = timestamp2 + 100;
+        buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+        buffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, 54);
+        buffer.putLong(MessageFormatUtil.STORE_TIMESTAMP_POSITION, timestamp3);
+        flatFile.appendCommitLog(buffer);
 
         // append message to consume queue
-//        flatFile.consumeQueue.getFlatFile().setBaseOffset(50 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
-//
-//        for (int i = 0; i < 5; i++) {
-//            AppendResult appendResult = flatFile.appendConsumeQueue(new DispatchRequest(
-//                mq.getTopic(), mq.getQueueId(), MessageFormatUtilTest.MSG_LEN * i,
-//                MessageFormatUtilTest.MSG_LEN, 0, timestamp1, 50 + i,
-//                "", "", 0, 0, null));
-//            Assert.assertEquals(AppendResult.SUCCESS, appendResult);
-//        }
+        flatFile.consumeQueue.initOffset(50 * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+
+        for (int i = 0; i < 5; i++) {
+            AppendResult appendResult = flatFile.appendConsumeQueue(new DispatchRequest(
+                mq.getTopic(), mq.getQueueId(), MessageFormatUtilTest.MSG_LEN * i,
+                MessageFormatUtilTest.MSG_LEN, 0, timestamp1, 50 + i,
+                "", "", 0, 0, null));
+            Assert.assertEquals(AppendResult.SUCCESS, appendResult);
+        }
 
         // commit message will increase max consume queue offset
-//        flatFile.commitCommitLog();
-//        flatFile.commitConsumeQueue();
-//
-//        Assert.assertEquals(54, flatFile.getOffsetInConsumeQueueByTime(timestamp3 + 1, BoundaryType.UPPER));
-//        Assert.assertEquals(54, flatFile.getOffsetInConsumeQueueByTime(timestamp3, BoundaryType.UPPER));
-//
-//        Assert.assertEquals(50, flatFile.getOffsetInConsumeQueueByTime(timestamp1 - 1, BoundaryType.LOWER));
-//        Assert.assertEquals(50, flatFile.getOffsetInConsumeQueueByTime(timestamp1, BoundaryType.LOWER));
-//
-//        Assert.assertEquals(51, flatFile.getOffsetInConsumeQueueByTime(timestamp1 + 1, BoundaryType.LOWER));
-//        Assert.assertEquals(51, flatFile.getOffsetInConsumeQueueByTime(timestamp2, BoundaryType.LOWER));
-//        Assert.assertEquals(54, flatFile.getOffsetInConsumeQueueByTime(timestamp2 + 1, BoundaryType.LOWER));
-//        Assert.assertEquals(54, flatFile.getOffsetInConsumeQueueByTime(timestamp3, BoundaryType.LOWER));
-//
-//        Assert.assertEquals(50, flatFile.getOffsetInConsumeQueueByTime(timestamp1, BoundaryType.UPPER));
-//        Assert.assertEquals(50, flatFile.getOffsetInConsumeQueueByTime(timestamp1 + 1, BoundaryType.UPPER));
-//        Assert.assertEquals(53, flatFile.getOffsetInConsumeQueueByTime(timestamp2, BoundaryType.UPPER));
-//        Assert.assertEquals(53, flatFile.getOffsetInConsumeQueueByTime(timestamp2 + 1, BoundaryType.UPPER));
-//
-//        Assert.assertEquals(0, flatFile.getOffsetInConsumeQueueByTime(timestamp1 - 1, BoundaryType.UPPER));
-//        Assert.assertEquals(55, flatFile.getOffsetInConsumeQueueByTime(timestamp3 + 1, BoundaryType.LOWER));
+        Assert.assertTrue(flatFile.commitAsync().join());
+
+        Assert.assertEquals(54, flatFile.getQueueOffsetByTimeAsync(timestamp3 + 1, BoundaryType.UPPER).join().longValue());
+        Assert.assertEquals(54, flatFile.getQueueOffsetByTimeAsync(timestamp3, BoundaryType.UPPER).join().longValue());
+
+        Assert.assertEquals(50, flatFile.getQueueOffsetByTimeAsync(timestamp1 - 1, BoundaryType.LOWER).join().longValue());
+        Assert.assertEquals(50, flatFile.getQueueOffsetByTimeAsync(timestamp1, BoundaryType.LOWER).join().longValue());
+
+        Assert.assertEquals(51, flatFile.getQueueOffsetByTimeAsync(timestamp1 + 1, BoundaryType.LOWER).join().longValue());
+        Assert.assertEquals(51, flatFile.getQueueOffsetByTimeAsync(timestamp2, BoundaryType.LOWER).join().longValue());
+        Assert.assertEquals(54, flatFile.getQueueOffsetByTimeAsync(timestamp2 + 1, BoundaryType.LOWER).join().longValue());
+        Assert.assertEquals(54, flatFile.getQueueOffsetByTimeAsync(timestamp3, BoundaryType.LOWER).join().longValue());
+
+        Assert.assertEquals(50, flatFile.getQueueOffsetByTimeAsync(timestamp1, BoundaryType.UPPER).join().longValue());
+        Assert.assertEquals(51, flatFile.getQueueOffsetByTimeAsync(timestamp1 + 1, BoundaryType.UPPER).join().longValue());
+        Assert.assertEquals(53, flatFile.getQueueOffsetByTimeAsync(timestamp2, BoundaryType.UPPER).join().longValue());
+        Assert.assertEquals(54, flatFile.getQueueOffsetByTimeAsync(timestamp2 + 1, BoundaryType.UPPER).join().longValue());
+
+        Assert.assertEquals(50, flatFile.getQueueOffsetByTimeAsync(timestamp1 - 1, BoundaryType.UPPER).join().longValue());
+        Assert.assertEquals(54, flatFile.getQueueOffsetByTimeAsync(timestamp3 + 1, BoundaryType.LOWER).join().longValue());
+
+        flatFile.destroy();
     }
 }

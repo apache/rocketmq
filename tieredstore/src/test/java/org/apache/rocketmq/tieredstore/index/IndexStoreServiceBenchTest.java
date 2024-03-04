@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
 import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
@@ -76,17 +77,15 @@ public class IndexStoreServiceBenchTest {
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(500 * 1000);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000 * 1000);
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-//        MessageStoreExecutor.init();
         FlatFileFactory flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
         indexStoreService = new IndexStoreService(flatFileFactory, storePath);
         indexStoreService.start();
     }
 
-    @TearDown
+    @TearDown()
     public void shutdown() throws IOException {
         indexStoreService.shutdown();
         indexStoreService.destroy();
-//        MessageStoreExecutor.shutdown();
     }
 
     //@Benchmark
@@ -97,12 +96,12 @@ public class IndexStoreServiceBenchTest {
     @Measurement(iterations = 1, time = 1)
     public void doPutThroughputBenchmark() {
         for (int i = 0; i < 100; i++) {
-//            AppendResult result = indexStoreService.putKey(
-//                TOPIC_NAME, 123, 2, Collections.singleton(String.valueOf(i)),
-//                i * 100L, i * 100, System.currentTimeMillis());
-//            if (AppendResult.SUCCESS.equals(result)) {
-//                failureCount.increment();
-//            }
+            AppendResult result = indexStoreService.putKey(
+                TOPIC_NAME, 123, 2, Collections.singleton(String.valueOf(i)),
+                i * 100L, i * 100, System.currentTimeMillis());
+            if (AppendResult.SUCCESS.equals(result)) {
+                failureCount.increment();
+            }
         }
     }
 

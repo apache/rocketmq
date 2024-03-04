@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.tieredstore.core;
 
-import com.conversantmedia.util.concurrent.DisruptorBlockingQueue;
-import com.conversantmedia.util.concurrent.SpinPolicy;
 import io.opentelemetry.api.common.Attributes;
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -26,7 +24,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -67,7 +64,6 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
     protected final MessageStoreFilter topicFilter;
     protected final Semaphore semaphore;
     protected final IndexService indexService;
-    protected final BlockingQueue<DispatchRequest> dispatchBlockingQueue;
 
     public MessageStoreDispatcherImpl(TieredMessageStore messageStore) {
         this.messageStore = messageStore;
@@ -80,8 +76,6 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
         this.flatFileStore = messageStore.getFlatFileStore();
         this.storeExecutor = messageStore.getStoreExecutor();
         this.indexService = messageStore.getIndexService();
-        this.dispatchBlockingQueue = new DisruptorBlockingQueue<>(
-            storeConfig.getTieredStoreMaxPendingLimit(), SpinPolicy.BLOCKING);
     }
 
     @Override
