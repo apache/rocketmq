@@ -822,6 +822,10 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         this.defaultMQPushConsumerImpl.subscribe(withNamespace(topic), subExpression);
     }
 
+    public void subscribeIdentical(String topic, String subExpression) throws MQClientException {
+        this.defaultMQPushConsumerImpl.subscribeIdentical(withNamespace(topic), subExpression);
+    }
+
     /**
      * Subscribe a topic to consuming subscription.
      *

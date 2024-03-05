@@ -192,6 +192,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 nettyClientConfig.getClientWorkerThreads(),
                 new ThreadFactoryImpl("NettyClientWorkerThread_"));
         }
+        if (this.bootstrap.group() != null) {
+            return;
+        }
         Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
             .option(ChannelOption.TCP_NODELAY, true)
             .option(ChannelOption.SO_KEEPALIVE, false)
