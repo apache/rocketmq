@@ -51,14 +51,16 @@ public class PopLongPollingService extends ServiceThread {
     private long lastCleanTime = 0;
 
     private final AtomicLong totalPollingNum = new AtomicLong(0);
+    private final boolean notifyLast;
 
-    public PopLongPollingService(BrokerController brokerController, NettyRequestProcessor processor) {
+    public PopLongPollingService(BrokerController brokerController, NettyRequestProcessor processor, boolean notifyLast) {
         this.brokerController = brokerController;
         this.processor = processor;
         // 100000 topic default,  100000 lru topic + cid + qid
         this.topicCidMap = new ConcurrentHashMap<>(brokerController.getBrokerConfig().getPopPollingMapSize());
         this.pollingMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentSkipListSet<PopRequest>>()
             .maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize()).build();
+        this.notifyLast = notifyLast;
     }
 
     @Override
@@ -172,17 +174,10 @@ public class PopLongPollingService extends ServiceThread {
         if (remotingCommands == null || remotingCommands.isEmpty()) {
             return false;
         }
-        PopRequest popRequest = remotingCommands.pollFirst();
-        //clean inactive channel
-        while (popRequest != null && !popRequest.getChannel().isActive()) {
-            totalPollingNum.decrementAndGet();
-            popRequest = remotingCommands.pollFirst();
-        }
-
+        PopRequest popRequest = pollRemotingCommands(remotingCommands);
         if (popRequest == null) {
             return false;
         }
-        totalPollingNum.decrementAndGet();
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
             POP_LOGGER.info("lock release , new msg arrive , wakeUp : {}", popRequest);
         }
@@ -339,5 +334,23 @@ public class PopLongPollingService extends ServiceThread {
         }
 
         lastCleanTime = System.currentTimeMillis();
+    }
+
+    private PopRequest pollRemotingCommands(ConcurrentSkipListSet<PopRequest> remotingCommands) {
+        if (remotingCommands == null || remotingCommands.isEmpty()) {
+            return null;
+        }
+
+        PopRequest popRequest;
+        do {
+            if (notifyLast) {
+                popRequest = remotingCommands.pollLast();
+            } else {
+                popRequest = remotingCommands.pollFirst();
+            }
+            totalPollingNum.decrementAndGet();
+        } while (popRequest != null && !popRequest.getChannel().isActive());
+
+        return popRequest;
     }
 }

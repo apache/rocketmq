@@ -463,7 +463,9 @@ public class MixAll {
         if (!candidatesHost.isEmpty()) {
             return candidatesHost.get(0);
         }
-        return null;
+
+        // Fallback to loopback 
+        return localhost();
     }
 
     public static boolean compareAndIncreaseOnly(final AtomicLong target, final long value) {

@@ -59,7 +59,7 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
     @CFNullable
     private Integer j; // reconsumeTimes;
     @CFNullable
-    private Boolean k; // unitMode = false;
+    private Boolean k; // unitMode;
 
     private Integer l; // consumeRetryTimes
 

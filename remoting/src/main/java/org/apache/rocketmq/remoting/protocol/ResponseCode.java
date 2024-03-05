@@ -127,6 +127,10 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int CONTROLLER_BROKER_ID_INVALID = 2014;
 
+    public static final int CONTROLLER_JRAFT_INTERNAL_ERROR = 2015;
+
+    public static final int CONTROLLER_BROKER_LIVE_INFO_NOT_EXISTS = 2016;
+
     public static final int USER_NOT_EXIST = 3001;
 
     public static final int POLICY_NOT_EXIST = 3002;

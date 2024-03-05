@@ -107,6 +107,8 @@ java_library(
         "@maven//:org_springframework_spring_core",
     	"@maven//:org_jetbrains_annotations",
         "@maven//:org_slf4j_jul_to_slf4j",
+        "@maven//:io_netty_netty_tcnative_boringssl_static",
+        "@maven//:commons_codec_commons_codec",
     ],
 )
 

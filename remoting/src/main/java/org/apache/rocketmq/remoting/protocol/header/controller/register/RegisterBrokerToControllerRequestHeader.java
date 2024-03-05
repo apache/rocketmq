@@ -37,6 +37,8 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
 
     private String brokerAddress;
 
+    private long invokeTime;
+
     public RegisterBrokerToControllerRequestHeader() {
     }
 
@@ -45,11 +47,20 @@ public class RegisterBrokerToControllerRequestHeader implements CommandCustomHea
         this.brokerName = brokerName;
         this.brokerId = brokerId;
         this.brokerAddress = brokerAddress;
+        this.invokeTime = System.currentTimeMillis();
     }
 
     @Override
     public void checkFields() throws RemotingCommandException {
 
+    }
+
+    public long getInvokeTime() {
+        return invokeTime;
+    }
+
+    public void setInvokeTime(long invokeTime) {
+        this.invokeTime = invokeTime;
     }
 
     public String getClusterName() {

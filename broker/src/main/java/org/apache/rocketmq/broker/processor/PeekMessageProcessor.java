@@ -81,6 +81,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
         throws RemotingCommandException {
+        final long beginTimeMills = this.brokerController.getMessageStore().now();
         RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
         final PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
         final PeekMessageRequestHeader requestHeader =
@@ -188,7 +189,6 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), getMessageResult.getMessageCount());
 
                 if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
-                    final long beginTimeMills = this.brokerController.getMessageStore().now();
                     final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
                     this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(),
                         requestHeader.getTopic(), requestHeader.getQueueId(),

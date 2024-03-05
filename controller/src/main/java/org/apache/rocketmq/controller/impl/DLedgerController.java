@@ -66,11 +66,11 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetReplicaInfoRequestHeader;
-import org.apache.rocketmq.remoting.protocol.header.controller.admin.CleanControllerBrokerDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.ApplyBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.GetNextBrokerIdRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.register.RegisterBrokerToControllerRequestHeader;
@@ -99,14 +99,14 @@ public class DLedgerController implements Controller {
 
     private ScheduledFuture scanInactiveMasterFuture;
 
-    private List<BrokerLifecycleListener> brokerLifecycleListeners;
+    private final List<BrokerLifecycleListener> brokerLifecycleListeners;
 
     // Usr for checking whether the broker is alive
     private BrokerValidPredicate brokerAlivePredicate;
     // use for elect a master
     private ElectPolicy electPolicy;
 
-    private AtomicBoolean isScheduling = new AtomicBoolean(false);
+    private final AtomicBoolean isScheduling = new AtomicBoolean(false);
 
     public DLedgerController(final ControllerConfig config, final BrokerValidPredicate brokerAlivePredicate) {
         this(config, brokerAlivePredicate, null, null, null, null);
@@ -555,8 +555,8 @@ public class DLedgerController implements Controller {
                                     if (DLedgerController.this.scanInactiveMasterFuture == null) {
                                         long scanInactiveMasterInterval = DLedgerController.this.controllerConfig.getScanInactiveMasterInterval();
                                         DLedgerController.this.scanInactiveMasterFuture =
-                                                DLedgerController.this.scanInactiveMasterService.scheduleAtFixedRate(DLedgerController.this::scanInactiveMasterAndTriggerReelect,
-                                                        scanInactiveMasterInterval, scanInactiveMasterInterval, TimeUnit.MILLISECONDS);
+                                            DLedgerController.this.scanInactiveMasterService.scheduleAtFixedRate(DLedgerController.this::scanInactiveMasterAndTriggerReelect,
+                                                scanInactiveMasterInterval, scanInactiveMasterInterval, TimeUnit.MILLISECONDS);
                                     }
                                     break;
                                 }
