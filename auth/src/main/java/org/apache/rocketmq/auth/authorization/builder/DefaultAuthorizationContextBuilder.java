@@ -157,7 +157,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         List<DefaultAuthorizationContext> result = new ArrayList<>();
         try {
             HashMap<String, String> fields = command.getExtFields();
-            Subject subject = User.of(fields.get(SessionCredentials.ACCESS_KEY));
+            Subject subject = null;
+            if (fields.containsKey(SessionCredentials.ACCESS_KEY)) {
+                subject = User.of(fields.get(SessionCredentials.ACCESS_KEY));
+            }
             String remoteAddr = RemotingHelper.parseChannelRemoteAddr(context.channel());
             String sourceIp = StringUtils.substringBefore(remoteAddr, CommonConstants.COLON);
 
@@ -349,7 +352,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         if (StringUtils.isBlank(topic.getName())) {
             throw new AuthorizationException("topic is null.");
         }
-        User subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
+        Subject subject = null;
+        if (metadata.containsKey(GrpcConstants.AUTHORIZATION_AK)) {
+            subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
+        }
         Resource resource = Resource.ofTopic(topic.getName());
         String sourceIp = StringUtils.substringBefore(metadata.get(GrpcConstants.REMOTE_ADDRESS), CommonConstants.COLON);
         DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, Arrays.asList(Action.PUB, Action.SUB), sourceIp);
@@ -389,7 +395,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         if (topic == null || StringUtils.isBlank(topic.getName())) {
             throw new AuthorizationException("topic is null.");
         }
-        User subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
+        Subject subject = null;
+        if (metadata.containsKey(GrpcConstants.AUTHORIZATION_AK)) {
+            subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
+        }
         Resource resource = Resource.ofTopic(topic.getName());
         String sourceIp = StringUtils.substringBefore(metadata.get(GrpcConstants.REMOTE_ADDRESS), CommonConstants.COLON);
         DefaultAuthorizationContext context = DefaultAuthorizationContext.of(subject, resource, Action.PUB, sourceIp);
@@ -433,7 +442,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
 
     private static List<DefaultAuthorizationContext> newSubContexts(Metadata metadata, Resource resource) {
         List<DefaultAuthorizationContext> result = new ArrayList<>();
-        User subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
+        Subject subject = null;
+        if (metadata.containsKey(GrpcConstants.AUTHORIZATION_AK)) {
+            subject = User.of(metadata.get(GrpcConstants.AUTHORIZATION_AK));
+        }
         String sourceIp = StringUtils.substringBefore(metadata.get(GrpcConstants.REMOTE_ADDRESS), CommonConstants.COLON);
         result.add(DefaultAuthorizationContext.of(subject, resource, Action.SUB, sourceIp));
         return result;
