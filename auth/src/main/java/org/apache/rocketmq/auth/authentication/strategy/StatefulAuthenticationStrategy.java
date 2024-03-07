@@ -62,7 +62,10 @@ public class StatefulAuthenticationStrategy extends AbstractAuthenticationStrate
     private String buildKey(AuthenticationContext context) {
         if (context instanceof DefaultAuthenticationContext) {
             DefaultAuthenticationContext ctx = (DefaultAuthenticationContext) context;
-            return ctx.getChannelId() + CommonConstants.HYPHEN + ctx.getUsername();
+            if (StringUtils.isBlank(ctx.getUsername())) {
+                return ctx.getChannelId();
+            }
+            return ctx.getChannelId() + CommonConstants.POUND + ctx.getUsername();
         }
         throw new AuthenticationException("The request of {} is not support.", context.getClass().getSimpleName());
     }

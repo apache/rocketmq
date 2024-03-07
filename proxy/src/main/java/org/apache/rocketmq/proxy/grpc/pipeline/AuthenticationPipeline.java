@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.grpc.pipeline;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Context;
 import io.grpc.Metadata;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.AuthenticationEvaluator;
 import org.apache.rocketmq.auth.authentication.context.AuthenticationContext;
 import org.apache.rocketmq.auth.authentication.context.DefaultAuthenticationContext;
@@ -48,7 +49,10 @@ public class AuthenticationPipeline implements RequestPipeline {
         AuthenticationContext authenticationContext = newContext(context, metadata, request);
         authenticationEvaluator.evaluate(authenticationContext);
         if (authenticationContext instanceof DefaultAuthenticationContext) {
-            headers.put(GrpcConstants.AUTHORIZATION_AK, ((DefaultAuthenticationContext) authenticationContext).getUsername());
+            DefaultAuthenticationContext defaultAuthenticationContext = (DefaultAuthenticationContext) authenticationContext;
+            if (StringUtils.isNotBlank(defaultAuthenticationContext.getUsername())) {
+                headers.put(GrpcConstants.AUTHORIZATION_AK, defaultAuthenticationContext.getUsername());
+            }
         }
     }
 

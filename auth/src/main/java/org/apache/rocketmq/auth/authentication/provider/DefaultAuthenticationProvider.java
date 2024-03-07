@@ -21,6 +21,7 @@ import io.grpc.Metadata;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.builder.AuthenticationContextBuilder;
 import org.apache.rocketmq.auth.authentication.builder.DefaultAuthenticationContextBuilder;
 import org.apache.rocketmq.auth.authentication.context.DefaultAuthenticationContext;
@@ -68,6 +69,9 @@ public class DefaultAuthenticationProvider implements AuthenticationProvider<Def
     }
 
     private void doAuditLog(DefaultAuthenticationContext context, Throwable ex) {
+        if (StringUtils.isBlank(context.getUsername())) {
+            return;
+        }
         if (ex != null) {
             log.info("[AUTHENTICATION] User:{} is authenticated failed with Signature = {}.", context.getUsername(), context.getSignature());
         } else {

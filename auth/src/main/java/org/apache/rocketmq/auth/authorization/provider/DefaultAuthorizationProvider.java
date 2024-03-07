@@ -25,9 +25,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.rocketmq.auth.authorization.builder.AuthorizationContextBuilder;
 import org.apache.rocketmq.auth.authorization.builder.DefaultAuthorizationContextBuilder;
-import org.apache.rocketmq.auth.authorization.context.DefaultAuthorizationContext;
 import org.apache.rocketmq.auth.authorization.chain.AclAuthorizationHandler;
 import org.apache.rocketmq.auth.authorization.chain.UserAuthorizationHandler;
+import org.apache.rocketmq.auth.authorization.context.DefaultAuthorizationContext;
 import org.apache.rocketmq.auth.authorization.enums.Decision;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.action.Action;
@@ -79,6 +79,9 @@ public class DefaultAuthorizationProvider implements AuthorizationProvider<Defau
     }
 
     private void doAuditLog(DefaultAuthorizationContext context, Throwable ex) {
+        if (context.getSubject() == null) {
+            return;
+        }
         Decision decision = Decision.ALLOW;
         if (ex != null) {
             decision = Decision.DENY;

@@ -63,10 +63,10 @@ public class StatefulAuthorizationStrategy extends AbstractAuthorizationStrategy
         if (context instanceof DefaultAuthorizationContext) {
             DefaultAuthorizationContext ctx = (DefaultAuthorizationContext) context;
             return ctx.getChannelId()
-                + CommonConstants.HYPHEN + ctx.getSubjectKey()
-                + CommonConstants.HYPHEN + ctx.getResourceKey()
-                + CommonConstants.HYPHEN + StringUtils.join(ctx.getActions(), CommonConstants.COMMA)
-                + CommonConstants.HYPHEN + ctx.getSourceIp();
+                + (ctx.getSubject() != null ? CommonConstants.POUND + ctx.getSubjectKey() : "")
+                + CommonConstants.POUND + ctx.getResourceKey()
+                + CommonConstants.POUND + StringUtils.join(ctx.getActions(), CommonConstants.COMMA)
+                + CommonConstants.POUND + ctx.getSourceIp();
         }
         throw new AuthorizationException("The request of {} is not support.", context.getClass().getSimpleName());
     }

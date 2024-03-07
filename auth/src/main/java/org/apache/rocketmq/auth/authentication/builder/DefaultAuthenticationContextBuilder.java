@@ -52,7 +52,7 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
             context.setRpcCode(request.getDescriptorForType().getFullName());
             String authorization = metadata.get(GrpcConstants.AUTHORIZATION);
             if (StringUtils.isEmpty(authorization)) {
-                throw new AuthenticationException("authentication header is null.");
+                return context;
             }
             String datetime = metadata.get(GrpcConstants.DATE_TIME);
             if (StringUtils.isEmpty(datetime)) {
@@ -104,6 +104,9 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
         DefaultAuthenticationContext result = new DefaultAuthenticationContext();
         result.setChannelId(context.channel().id().asLongText());
         result.setRpcCode(String.valueOf(request.getCode()));
+        if (!fields.containsKey(SessionCredentials.ACCESS_KEY)) {
+            return result;
+        }
         result.setUsername(fields.get(SessionCredentials.ACCESS_KEY));
         result.setSignature(fields.get(SessionCredentials.SIGNATURE));
         // Content
