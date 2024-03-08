@@ -50,9 +50,9 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
     @CFNullable
     private Integer reconsumeTimes;
     @CFNullable
-    private boolean unitMode = false;
+    private Boolean unitMode;
     @CFNullable
-    private boolean batch = false;
+    private Boolean batch;
     private Integer maxReconsumeTimes;
 
     @Override
@@ -136,6 +136,9 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
     }
 
     public Integer getReconsumeTimes() {
+        if (null == reconsumeTimes) {
+            return 0;
+        }
         return reconsumeTimes;
     }
 
@@ -144,10 +147,13 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
     }
 
     public boolean isUnitMode() {
+        if (null == unitMode) {
+            return false;
+        }
         return unitMode;
     }
 
-    public void setUnitMode(boolean isUnitMode) {
+    public void setUnitMode(Boolean isUnitMode) {
         this.unitMode = isUnitMode;
     }
 
@@ -160,10 +166,13 @@ public class SendMessageRequestHeader extends TopicQueueRequestHeader {
     }
 
     public boolean isBatch() {
+        if (null == batch) {
+            return false;
+        }
         return batch;
     }
 
-    public void setBatch(boolean batch) {
+    public void setBatch(Boolean batch) {
         this.batch = batch;
     }
 
