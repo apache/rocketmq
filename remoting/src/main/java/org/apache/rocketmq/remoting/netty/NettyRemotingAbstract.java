@@ -195,7 +195,7 @@ public abstract class NettyRemotingAbstract {
     }
 
     public void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response) {
-        if (rpcHooks.size() > 0) {
+        if (rpcHooks.size() > 0 && response != null) {
             for (RPCHook rpcHook : rpcHooks) {
                 rpcHook.doAfterResponse(addr, request, response);
             }
