@@ -158,7 +158,7 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
     }
 
     private static void throwException(DefaultAuthorizationContext context, String detail) {
-        throw new AuthorizationException("The {} has no permission to access the resource of {} from the host {}, " + detail,
+        throw new AuthorizationException("{} has no permission to access {} from {}, " + detail,
             context.getSubject().getSubjectKey(), context.getResource().getResourceKey(), context.getSourceIp());
     }
 }
