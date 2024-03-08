@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
+import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
@@ -36,6 +37,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
@@ -146,6 +148,9 @@ public class PullMessageProcessorTest {
     public void testProcessRequest_FoundWithHook() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
         when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(CompletableFuture.completedFuture(getMessageResult));
+        NettyRemotingServer nettyRemotingServer = createNettyRemotingServer();
+        when(brokerController.getRemotingServer()).thenReturn(nettyRemotingServer);
+
         List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
         final ConsumeMessageContext[] messageContext = new ConsumeMessageContext[1];
         ConsumeMessageHook consumeMessageHook = new ConsumeMessageHook() {
@@ -174,6 +179,10 @@ public class PullMessageProcessorTest {
         assertThat(messageContext[0].getConsumerGroup()).isEqualTo(group);
         assertThat(messageContext[0].getTopic()).isEqualTo(topic);
         assertThat(messageContext[0].getQueueId()).isEqualTo(1);
+    }
+
+    private NettyRemotingServer createNettyRemotingServer() {
+        return new NettyRemotingServer(brokerController.getNettyServerConfig(), new ClientHousekeepingService(brokerController));
     }
 
     @Test
