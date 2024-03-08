@@ -17,7 +17,6 @@
 package org.apache.rocketmq.client.impl.producer;
 
 import com.google.common.base.Optional;
-import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,7 +68,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.compression.CompressionType;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
