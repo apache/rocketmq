@@ -56,7 +56,7 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
         HandlerChain<DefaultAuthorizationContext, CompletableFuture<Void>> chain) {
         return authorizationMetadataProvider.getAcl(context.getSubject()).thenAccept(acl -> {
             if (acl == null) {
-                throwException(context, "no matched acl policies.");
+                throwException(context, "no matched policies.");
             }
 
             // 1. get the defined acl entries which match the request.
@@ -64,12 +64,12 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
 
             // 2. if no matched acl entries, return deny
             if (matchedEntry == null) {
-                throwException(context, "no matched acl policies.");
+                throwException(context, "no matched policies.");
             }
 
             // 3. judge is the entries has denied decision.
             if (matchedEntry.getDecision() == Decision.DENY) {
-                throwException(context, "the acl policy's decision is deny.");
+                throwException(context, "the decision is deny.");
             }
         });
     }
