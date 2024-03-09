@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -60,7 +61,17 @@ public class ThreadPoolMonitor {
         TimeUnit unit,
         String name,
         int queueCapacity) {
-        return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity, Collections.emptyList());
+        return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity, null, Collections.emptyList());
+    }
+
+    public static ThreadPoolExecutor createAndMonitor(int corePoolSize,
+        int maximumPoolSize,
+        long keepAliveTime,
+        TimeUnit unit,
+        String name,
+        int queueCapacity,
+        RejectedExecutionHandler rejectedExecutionHandler) {
+        return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity, rejectedExecutionHandler, Collections.emptyList());
     }
 
     public static ThreadPoolExecutor createAndMonitor(int corePoolSize,
@@ -70,7 +81,7 @@ public class ThreadPoolMonitor {
         String name,
         int queueCapacity,
         ThreadPoolStatusMonitor... threadPoolStatusMonitors) {
-        return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity,
+        return createAndMonitor(corePoolSize, maximumPoolSize, keepAliveTime, unit, name, queueCapacity, null,
             Lists.newArrayList(threadPoolStatusMonitors));
     }
 
@@ -80,7 +91,11 @@ public class ThreadPoolMonitor {
         TimeUnit unit,
         String name,
         int queueCapacity,
+        RejectedExecutionHandler rejectedExecutionHandler,
         List<ThreadPoolStatusMonitor> threadPoolStatusMonitors) {
+        if (rejectedExecutionHandler == null) {
+            rejectedExecutionHandler = new ThreadPoolExecutor.DiscardOldestPolicy();
+        }
         ThreadPoolExecutor executor = (ThreadPoolExecutor) ThreadUtils.newThreadPoolExecutor(
             corePoolSize,
             maximumPoolSize,
@@ -88,7 +103,7 @@ public class ThreadPoolMonitor {
             unit,
             new LinkedBlockingQueue<>(queueCapacity),
             new ThreadFactoryBuilder().setNameFormat(name + "-%d").build(),
-            new ThreadPoolExecutor.DiscardOldestPolicy());
+            rejectedExecutionHandler);
         List<ThreadPoolStatusMonitor> printers = Lists.newArrayList(new ThreadPoolQueueSizeMonitor(queueCapacity));
         printers.addAll(threadPoolStatusMonitors);
 
