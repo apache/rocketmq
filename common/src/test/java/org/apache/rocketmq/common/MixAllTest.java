@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
 
@@ -84,5 +86,22 @@ public class MixAllTest {
         assertThat(MixAll.isLmq(testLmq)).isTrue();
         testLmq = "%LMQ%GID_TEST";
         assertThat(MixAll.isLmq(testLmq)).isTrue();
+    }
+
+    @Test
+    public void testInvalidProperties() {
+        Properties properties = new Properties();
+        // invalid property with incorrect property name.
+        properties.setProperty("brokerIp1", "127.0.0.1:100000");
+        // valid property with correct property name.
+        properties.setProperty("brokerIP2", "127.0.0.1:10086");
+        properties.setProperty("brokerName", "broker-a");
+
+        BrokerConfig brokerConfig = new BrokerConfig();
+
+        Set<String> invalidProperties = MixAll.invalidProperties(properties, brokerConfig);
+
+        assertThat(invalidProperties).hasSize(1);
+        assertThat(invalidProperties).element(0).isEqualTo("brokerIp1");
     }
 }

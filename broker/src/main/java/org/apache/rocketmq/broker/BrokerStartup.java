@@ -21,11 +21,13 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MQVersion;
@@ -108,6 +110,8 @@ public class BrokerStartup {
 
         if (properties != null) {
             properties2SystemEnv(properties);
+            // check properties have incorrect property name.
+            checkPropertiesForConfig(properties, brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig);
             MixAll.properties2Object(properties, brokerConfig);
             MixAll.properties2Object(properties, nettyServerConfig);
             MixAll.properties2Object(properties, nettyClientConfig);
@@ -211,6 +215,22 @@ public class BrokerStartup {
         controller.getConfiguration().registerConfig(properties);
 
         return controller;
+    }
+
+    /**
+     * check config file have incorrect property name.
+     * logging a warn message to remind user if file have incorrect property.
+     * @param properties
+     */
+    private static void checkPropertiesForConfig(Properties properties, Object... configs) {
+        Set<String> invalidProperties = MixAll.invalidProperties(properties, configs);
+        if (CollectionUtils.isEmpty(invalidProperties)) {
+            return;
+        }
+        Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
+        console.warn("config file in [{}] contains invalid property name: {}",
+            BrokerPathConfigHelper.getBrokerConfigPath(),
+            invalidProperties);
     }
 
     public static Runnable buildShutdownHook(BrokerController brokerController) {

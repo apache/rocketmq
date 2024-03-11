@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.common;
 
+import com.google.common.collect.Sets;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,6 +37,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -523,5 +525,26 @@ public class MixAll {
             return true;
         }
         return false;
+    }
+
+    public static Set<String> invalidProperties(Properties properties, Object... objects) {
+        if (objects == null || objects.length == 0) {
+            return null;
+        }
+        Set<String> propertyNames = properties.stringPropertyNames();
+
+        Set<String> fieldNames = new HashSet<>();
+        for (Object obj : objects) {
+            Method[] methods = obj.getClass().getMethods();
+            for (Method method : methods) {
+                String mn = method.getName();
+                if (mn.startsWith("get")) {
+                    // get getter's field name and to camel name.
+                    fieldNames.add(mn.substring(3, 4).toLowerCase() +  mn.substring(4));
+                }
+            }
+        }
+
+        return Sets.difference(propertyNames, fieldNames);
     }
 }
