@@ -64,7 +64,7 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("w", "whiteRemoteAddress", true, "set white ip Address for account in acl config file");
+        opt = new Option("w", "whiteRemoteAddress", true, "set white ip Address for account in acl config file.\"\" means delete all whiteRemoteAddress");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -76,11 +76,11 @@ public class UpdateAccessConfigSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("t", "topicPerms", true, "set topicPerms list,eg: topicA=DENY,topicD=SUB");
+        opt = new Option("t", "topicPerms", true, "set topicPerms list,eg: topicA=DENY,topicD=SUB.\"\" means delete all topicPerms");
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("g", "groupPerms", true, "set groupPerms list,eg: groupD=DENY,groupD=SUB");
+        opt = new Option("g", "groupPerms", true, "set groupPerms list,eg: groupD=DENY,groupD=SUB.\"\" means delete all groupPerms");
         opt.setRequired(false);
         options.addOption(opt);
 
