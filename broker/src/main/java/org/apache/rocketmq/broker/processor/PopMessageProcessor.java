@@ -285,6 +285,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return response;
         }
 
+        String retryTopicName = MixAll.getRetryTopic(requestHeader.getConsumerGroup());
+        this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(retryTopicName, subscriptionGroupConfig.getRetryQueueNums(), PermName.PERM_WRITE | PermName.PERM_READ, requestHeader.isOrder(), requestHeader.getInitMode());
         if (!subscriptionGroupConfig.isConsumeEnable()) {
             response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark("subscription group no permission, " + requestHeader.getConsumerGroup());
