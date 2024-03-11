@@ -54,7 +54,7 @@ maven_install(
         "org.apache.commons:commons-lang3:3.12.0",
         "org.hamcrest:hamcrest-core:1.3",
         "io.openmessaging.storage:dledger:0.3.1",
-        "net.java.dev.jna:jna:4.2.2",
+        "net.java.dev.jna:jna:5.5.0",
         "ch.qos.logback:logback-classic:1.2.10",
         "ch.qos.logback:logback-core:1.2.10",
         "io.opentracing:opentracing-api:0.33.0",

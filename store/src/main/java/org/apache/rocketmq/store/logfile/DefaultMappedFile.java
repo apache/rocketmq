@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.store.logfile;
 
-import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -54,7 +53,7 @@ import org.apache.rocketmq.store.PutMessageContext;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.FlushDiskType;
-import org.apache.rocketmq.store.util.LibC;
+import org.apache.rocketmq.store.util.JNASdk;
 import sun.misc.Unsafe;
 import sun.nio.ch.DirectBuffer;
 
@@ -739,12 +738,12 @@ public class DefaultMappedFile extends AbstractMappedFile {
         final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
         Pointer pointer = new Pointer(address);
         {
-            int ret = LibC.INSTANCE.mlock(pointer, new NativeLong(this.fileSize));
+            boolean ret = JNASdk.mlock(pointer, fileSize);
             log.info("mlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
         }
 
         {
-            int ret = LibC.INSTANCE.madvise(pointer, new NativeLong(this.fileSize), LibC.MADV_WILLNEED);
+            boolean ret = JNASdk.madvise(pointer, this.fileSize);
             log.info("madvise {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
         }
     }
@@ -754,7 +753,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         final long beginTime = System.currentTimeMillis();
         final long address = ((DirectBuffer) (this.mappedByteBuffer)).address();
         Pointer pointer = new Pointer(address);
-        int ret = LibC.INSTANCE.munlock(pointer, new NativeLong(this.fileSize));
+        boolean ret = JNASdk.munlock(pointer, this.fileSize);
         log.info("munlock {} {} {} ret = {} time consuming = {}", address, this.fileName, this.fileSize, ret, System.currentTimeMillis() - beginTime);
     }
 

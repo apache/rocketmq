@@ -19,11 +19,10 @@ package org.apache.rocketmq.store.util;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
-import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
 
 public interface LibC extends Library {
-    LibC INSTANCE = (LibC) Native.loadLibrary(Platform.isWindows() ? "msvcrt" : "c", LibC.class);
+    LibC INSTANCE = (LibC) Native.loadLibrary("c", LibC.class);
 
     int MADV_NORMAL = 0;
     int MADV_RANDOM = 1;
@@ -41,6 +40,8 @@ public interface LibC extends Library {
     /* synchronous memory sync */
     int MS_SYNC = 0x0004;
 
+    int RLIMIT_MEMLOCK_ERRNO = 12;
+
     int mlock(Pointer var1, NativeLong var2);
 
     int munlock(Pointer var1, NativeLong var2);
@@ -52,6 +53,8 @@ public interface LibC extends Library {
     int mlockall(int flags);
 
     int msync(Pointer p, NativeLong length, int flags);
+
+    String strerror(int errno);
 
     int mincore(Pointer p, NativeLong length, byte[] vec);
 
