@@ -127,7 +127,7 @@ public class BrokerStartup {
             try {
                 String[] addrArray = namesrvAddr.split(";");
                 for (String addr : addrArray) {
-                    NetworkUtil.string2SocketAddress(addr);
+                    NetworkUtil.validateNamesrvAddress(addr);
                 }
             } catch (Exception e) {
                 System.out.printf("The Name Server Address[%s] illegal, please set it as follows, " +

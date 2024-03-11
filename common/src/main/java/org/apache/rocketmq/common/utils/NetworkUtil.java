@@ -28,6 +28,9 @@ import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -151,6 +154,32 @@ public class NetworkUtil {
         String port = addr.substring(split + 1);
         InetSocketAddress isa = new InetSocketAddress(host, Integer.parseInt(port));
         return isa;
+    }
+
+    public static void validateNamesrvAddress(final String addr) throws Exception {
+        int split = addr.lastIndexOf(":");
+        String host = addr.substring(0, split);
+        if (!isValidIPAddress(host)) {
+            throw new Exception("Invalid NameServer address:" + addr);
+        }
+    }
+
+    public static boolean isValidIPAddress(String ipAddress) {
+        InetAddressValidator validator = InetAddressValidator.getInstance();
+        if (validator.isValidInet4Address(ipAddress)) {
+            return true;
+        }
+        if (validator.isValidInet6Address(ipAddress)) {
+            return true;
+        }
+
+        return containsDigitOrLetter(ipAddress);
+    }
+
+    public static boolean containsDigitOrLetter(String input) {
+        Pattern pattern = Pattern.compile("^[a-zA-Z0-9]+$");
+        Matcher matcher = pattern.matcher(input);
+        return matcher.find();
     }
 
     public static String socketAddress2String(final SocketAddress addr) {
