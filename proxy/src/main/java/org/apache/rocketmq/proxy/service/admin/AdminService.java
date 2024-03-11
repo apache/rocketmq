@@ -24,6 +24,10 @@ public interface AdminService {
 
     boolean topicExist(String topic);
 
+    boolean groupExist(String topic, String groupName);
+
+    boolean createSubscriptionGroupIfNotExist(String topic, String groupName, boolean examineGroup, int retryCheckCount);
+
     boolean createTopicOnTopicBrokerIfNotExist(String createTopic, String sampleTopic, int wQueueNum,
         int rQueueNum, boolean examineTopic, int retryCheckCount);
 

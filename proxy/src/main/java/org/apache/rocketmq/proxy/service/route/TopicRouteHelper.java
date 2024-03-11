@@ -45,4 +45,12 @@ public class TopicRouteHelper {
 
         return false;
     }
+
+    public static boolean isGroupNotExistError(Throwable e) {
+        if (e instanceof MQBrokerException) {
+            int code = ((MQBrokerException) e).getResponseCode();
+            return code == ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST;
+        }
+        return false;
+    }
 }
