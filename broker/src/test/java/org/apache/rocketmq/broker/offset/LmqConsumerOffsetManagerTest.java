@@ -17,8 +17,13 @@
 
 package org.apache.rocketmq.broker.offset;
 
+import com.alibaba.fastjson.JSON;
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
 import org.apache.rocketmq.broker.topic.LmqTopicConfigManager;
@@ -30,6 +35,7 @@ import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Spy;
 
@@ -98,6 +104,136 @@ public class LmqConsumerOffsetManagerTest {
         assertThat(lmqConsumerOffsetManager1.getOffsetTable().size()).isEqualTo(1);
         assertThat(lmqConsumerOffsetManager1.getLmqOffsetTable().size()).isEqualTo(2);
     }
+
+    @Test
+    public void testUpgradeCompatible() throws IOException, InterruptedException {
+        //load old consumerOffset
+        ConsumerOffsetManager consumerOffsetManager = new ConsumerOffsetManager(brokerController);
+        consumerOffsetManager.commitOffset("127.0.0.1","GID_test2", "OldTopic",0, 11L);
+        String json = JSON.toJSONString(consumerOffsetManager);
+        String configFilePath = consumerOffsetManager.configFilePath();
+
+        persistOffsetFile(configFilePath, json);
+        ConcurrentMap<String, ConcurrentMap<Integer, Long>> oldOffsetTable = consumerOffsetManager.getOffsetTable();
+        String oldOffset = JSON.toJSONString(oldOffsetTable);
+
+        //[UPGRADE]init lmq consumer offset manager
+        LmqConsumerOffsetManager lmqConsumerOffsetManager = new LmqConsumerOffsetManager(brokerController);
+        lmqConsumerOffsetManager.load();
+        ConcurrentMap<String, ConcurrentMap<Integer, Long>> offsetTable = lmqConsumerOffsetManager.getOffsetTable();
+        String newOffsetJson = JSON.toJSONString(offsetTable);
+        Assert.assertEquals(oldOffset, newOffsetJson);
+    }
+
+    @Test
+    public void testRollBack() throws IOException, InterruptedException {
+        //generate lmq offset
+        LmqConsumerOffsetManager lmqConsumerOffsetManager = new LmqConsumerOffsetManager(brokerController);
+        lmqConsumerOffsetManager.commitOffset("127.0.0.1", "GID_test1", "OldTopic", 1, 12L);
+        String json = JSON.toJSONString(lmqConsumerOffsetManager);
+        String configFilePath = lmqConsumerOffsetManager.configFilePath();
+        persistOffsetFile(configFilePath, json);
+        Thread.sleep(1000);
+
+        //init consumerOffsetManager
+        ConsumerOffsetManager consumerOffsetManager = new ConsumerOffsetManager(brokerController);
+        consumerOffsetManager.commitOffset("127.0.0.1", "GID_test2", "NewTopic", 0, 12L);
+        String offsetJson = JSON.toJSONString(consumerOffsetManager);
+        String filePath = consumerOffsetManager.configFilePath();
+        persistOffsetFile(filePath, offsetJson);
+        String offsetTableOld = JSON.toJSONString(consumerOffsetManager.getOffsetTable());
+
+        //clear old offset info
+        consumerOffsetManager.getOffsetTable().clear();
+        Assert.assertEquals(0, consumerOffsetManager.getOffsetTable().size());
+        consumerOffsetManager.load();
+        Assert.assertEquals(1, consumerOffsetManager.getOffsetTable().size());
+
+        String offsetTableNew = JSON.toJSONString(consumerOffsetManager.getOffsetTable());
+        Assert.assertEquals(offsetTableOld, offsetTableNew);
+        Thread.sleep(1000);
+
+        //roll back and lmqOffset is modified resently
+        lmqConsumerOffsetManager.commitOffset("127.0.0.1", "GID_test2", "OldTopic", 0, 10L);
+        String newLmqOffsetJson = JSON.toJSONString(lmqConsumerOffsetManager);
+        persistOffsetFile(configFilePath, newLmqOffsetJson);
+        String expectOffset = JSON.toJSONString(lmqConsumerOffsetManager.getOffsetTable());
+
+        //clear old offset info
+        consumerOffsetManager.getOffsetTable().clear();
+        Assert.assertEquals(0, consumerOffsetManager.getOffsetTable().size());
+        consumerOffsetManager.load();
+        Assert.assertEquals(2, consumerOffsetManager.getOffsetTable().size());
+        String actualOffset = JSON.toJSONString(consumerOffsetManager.getOffsetTable());
+        Assert.assertEquals(expectOffset, actualOffset);
+    }
+
+    @Test
+    public void testUpgradeWithOldAndNewFile() throws IOException {
+        //generate normal offset table
+        ConsumerOffsetManager consumerOffsetManager = new ConsumerOffsetManager(brokerController);
+        consumerOffsetManager.commitOffset("127.0.0.1", "GID_test3", "NormalTopic", 0, 10L);
+        String consumerOffsetManagerJson = JSON.toJSONString(consumerOffsetManager);
+        String consumerOffsetConfigPath = consumerOffsetManager.configFilePath();
+        persistOffsetFile(consumerOffsetConfigPath, consumerOffsetManagerJson);
+
+        //generate old lmq offset table
+        LmqConsumerOffsetManager lmqConsumerOffsetManager = new LmqConsumerOffsetManager(brokerController);
+        lmqConsumerOffsetManager.commitOffset("127.0.0.1", "GID_test1", "OldTopic", 0, 10L);
+        lmqConsumerOffsetManager.commitOffset("127.0.0.1", "GID_test2", "OldTopic", 0, 10L);
+        String expectLmqOffsetJson = JSON.toJSONString(lmqConsumerOffsetManager.getOffsetTable());
+        String lmqConfigPath = lmqConsumerOffsetManager.configFilePath();
+        String lmqManagerJson = JSON.toJSONString(lmqConsumerOffsetManager);
+        persistOffsetFile(lmqConfigPath, lmqManagerJson);
+
+        //reset lmq offset table
+        lmqConsumerOffsetManager.getOffsetTable().clear();
+        Assert.assertEquals(0, lmqConsumerOffsetManager.getOffsetTable().size());
+        lmqConsumerOffsetManager.load();
+        Assert.assertEquals(2, lmqConsumerOffsetManager.getOffsetTable().size());
+        String actualLmqOffsetJson = JSON.toJSONString(lmqConsumerOffsetManager.getOffsetTable());
+        Assert.assertEquals(expectLmqOffsetJson, actualLmqOffsetJson);
+    }
+
+    @Test
+    public void testLoadBakCompatible() throws IOException, InterruptedException {
+        //generate normal offset table
+        ConsumerOffsetManager consumerOffsetManager = new ConsumerOffsetManager(brokerController);
+        consumerOffsetManager.commitOffset("127.0.0.1", "GID_test3", "NormalTopic", 0, 10L);
+        String consumerOffsetManagerJson = JSON.toJSONString(consumerOffsetManager);
+        String consumerOffsetConfigPath = consumerOffsetManager.configFilePath() + ".bak";
+
+        //generate old lmq offset table
+        LmqConsumerOffsetManager lmqConsumerOffsetManager = new LmqConsumerOffsetManager(brokerController);
+        lmqConsumerOffsetManager.commitOffset("127.0.0.1", "GID_test1", "OldTopic", 0, 10L);
+        lmqConsumerOffsetManager.commitOffset("127.0.0.1", "GID_test2", "OldTopic", 0, 10L);
+        lmqConsumerOffsetManager.commitOffset("127.0.0.1", "%LMQ%GID_test222", "%LMQ%1222", 0, 10L);
+        String lmqConfigPath = lmqConsumerOffsetManager.configFilePath() + ".bak";
+        String lmqManagerJson = JSON.toJSONString(lmqConsumerOffsetManager);
+        persistOffsetFile(lmqConfigPath, lmqManagerJson);
+        Thread.sleep(1000);
+        persistOffsetFile(consumerOffsetConfigPath, consumerOffsetManagerJson);
+        String expectLmqOffsetJson = JSON.toJSONString(consumerOffsetManager.getOffsetTable());
+
+        //reset lmq offset table
+        lmqConsumerOffsetManager.getOffsetTable().clear();
+        lmqConsumerOffsetManager.getLmqOffsetTable().clear();
+        Assert.assertEquals(0, lmqConsumerOffsetManager.getOffsetTable().size());
+        lmqConsumerOffsetManager.loadBak();
+        Assert.assertEquals(1, lmqConsumerOffsetManager.getOffsetTable().size());
+        Assert.assertEquals(1, lmqConsumerOffsetManager.getLmqOffsetTable().size());
+        String actualLmqOffsetJson = JSON.toJSONString(lmqConsumerOffsetManager.getOffsetTable());
+        Assert.assertEquals(expectLmqOffsetJson, actualLmqOffsetJson);
+    }
+
+    public void persistOffsetFile(String filePath, String detail) throws IOException {
+        File file = new File(filePath);
+        boolean mkdirs = file.getParentFile().mkdirs();
+        FileWriter writer = new FileWriter(file);
+        writer.write(detail);
+        writer.close();
+    }
+
 
     @After
     public void destroy() {
