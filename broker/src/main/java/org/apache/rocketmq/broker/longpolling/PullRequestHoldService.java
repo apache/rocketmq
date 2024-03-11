@@ -16,11 +16,14 @@
  */
 package org.apache.rocketmq.broker.longpolling;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
@@ -36,6 +39,10 @@ public class PullRequestHoldService extends ServiceThread {
     private final SystemClock systemClock = new SystemClock();
     protected ConcurrentMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
         new ConcurrentHashMap<>(1024);
+    // Cache the most recently message arriving notification from store.
+    // (To resolve: https://github.com/apache/rocketmq/issues/7358)
+    protected Cache<String/* topic@queueId */, Long/* offset */> lastNotifyMaxOffsetCache =
+        Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS).build();
 
     public PullRequestHoldService(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -54,6 +61,11 @@ public class PullRequestHoldService extends ServiceThread {
 
         pullRequest.getRequestCommand().setSuspended(true);
         mpr.addPullRequest(pullRequest);
+        // check the last notify maxOffset
+        Long maxOffset = this.lastNotifyMaxOffsetCache.getIfPresent(key);
+        if (maxOffset != null && pullRequest.getPullFromThisOffset() < maxOffset) {
+            notifyMessageArriving(topic, queueId, maxOffset);
+        }
     }
 
     private String buildKey(final String topic, final int queueId) {
@@ -122,6 +134,12 @@ public class PullRequestHoldService extends ServiceThread {
     public void notifyMessageArriving(final String topic, final int queueId, final long maxOffset, final Long tagsCode,
         long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         String key = this.buildKey(topic, queueId);
+
+        // record the maxOffset if notify from message store
+        if (msgStoreTime > 0) {
+            this.lastNotifyMaxOffsetCache.put(key, maxOffset);
+        }
+
         ManyPullRequest mpr = this.pullRequestTable.get(key);
         if (mpr != null) {
             List<PullRequest> requestList = mpr.cloneListAndClear();
