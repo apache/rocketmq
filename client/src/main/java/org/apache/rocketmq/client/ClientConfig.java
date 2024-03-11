@@ -249,8 +249,9 @@ public class ClientConfig {
     }
 
     public String getNamesrvAddr() {
-        if (StringUtils.isNotEmpty(namesrvAddr) && NameServerAddressUtils.NAMESRV_ENDPOINT_PATTERN.matcher(namesrvAddr.trim()).matches()) {
-            return NameServerAddressUtils.getNameSrvAddrFromNamesrvEndpoint(namesrvAddr);
+        String trimmedNamesrvAddr = namesrvAddr.trim();
+        if (StringUtils.isNotEmpty(namesrvAddr) && NameServerAddressUtils.NAMESRV_ENDPOINT_PATTERN.matcher(trimmedNamesrvAddr).matches()) {
+            return NameServerAddressUtils.getNameSrvAddrFromNamesrvEndpoint(trimmedNamesrvAddr);
         }
         return namesrvAddr;
     }
