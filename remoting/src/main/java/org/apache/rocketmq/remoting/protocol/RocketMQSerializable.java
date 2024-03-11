@@ -36,7 +36,7 @@ public class RocketMQSerializable {
         } else {
             buf.writeInt(0);
         }
-        int len = buf.writeCharSequence(str, StandardCharsets.UTF_8);
+        int len = buf.writeCharSequence(str, CHARSET_UTF8);
         if (useShortLength) {
             buf.setShort(lenIndex, len);
         } else {
@@ -52,7 +52,7 @@ public class RocketMQSerializable {
         if (len > limit) {
             throw new RemotingCommandException("string length exceed limit:" + limit);
         }
-        CharSequence cs = buf.readCharSequence(len, StandardCharsets.UTF_8);
+        CharSequence cs = buf.readCharSequence(len, CHARSET_UTF8);
         return cs == null ? null : cs.toString();
     }
 
@@ -202,29 +202,33 @@ public class RocketMQSerializable {
         return length;
     }
 
-    public static RemotingCommand rocketMQProtocolDecode(final ByteBuf headerBuffer,
+    public static RemotingCommand rocketMQProtocolDecode(final ByteBuf byteBuffer,
         int headerLen) throws RemotingCommandException {
         RemotingCommand cmd = new RemotingCommand();
+        int beginIndex = byteBuffer.readerIndex();
         // int code(~32767)
-        cmd.setCode(headerBuffer.readShort());
+        cmd.setCode(byteBuffer.readShort());
         // LanguageCode language
-        cmd.setLanguage(LanguageCode.valueOf(headerBuffer.readByte()));
+        cmd.setLanguage(LanguageCode.valueOf(byteBuffer.readByte()));
         // int version(~32767)
-        cmd.setVersion(headerBuffer.readShort());
+        cmd.setVersion(byteBuffer.readShort());
         // int opaque
-        cmd.setOpaque(headerBuffer.readInt());
+        cmd.setOpaque(byteBuffer.readInt());
         // int flag
-        cmd.setFlag(headerBuffer.readInt());
+        cmd.setFlag(byteBuffer.readInt());
+        // remain length
+        int remainLength = headerLen - byteBuffer.readerIndex() + beginIndex;
         // String remark
-        cmd.setRemark(readStr(headerBuffer, false, headerLen));
+        cmd.setRemark(readStr(byteBuffer, false, remainLength - 4));
 
         // HashMap<String, String> extFields
-        int extFieldsLength = headerBuffer.readInt();
+        int extFieldsLength = byteBuffer.readInt();
         if (extFieldsLength > 0) {
-            if (extFieldsLength > headerLen) {
-                throw new RemotingCommandException("RocketMQ protocol decoding failed, extFields length: " + extFieldsLength + ", but header length: " + headerLen);
+            remainLength = headerLen - byteBuffer.readerIndex() + beginIndex;
+            if (extFieldsLength > remainLength) {
+                throw new RemotingCommandException("RocketMQ protocol decoding failed, extFields length: " + extFieldsLength + ", exceed limit: " + remainLength);
             }
-            cmd.setExtFields(mapDeserialize(headerBuffer, extFieldsLength));
+            cmd.setExtFields(mapDeserialize(byteBuffer, extFieldsLength));
         }
         return cmd;
     }
