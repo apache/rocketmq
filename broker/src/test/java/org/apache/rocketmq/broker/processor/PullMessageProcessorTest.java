@@ -136,7 +136,9 @@ public class PullMessageProcessorTest {
     public void testProcessRequest_Found() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
         when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(CompletableFuture.completedFuture(getMessageResult));
-
+        NettyRemotingServer nettyRemotingServer = createNettyRemotingServer();
+        when(brokerController.getRemotingServer()).thenReturn(nettyRemotingServer);
+        
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         pullMessageProcessor.processRequest(handlerContext, request);
         RemotingCommand response = embeddedChannel.readOutbound();
@@ -190,6 +192,8 @@ public class PullMessageProcessorTest {
         GetMessageResult getMessageResult = createGetMessageResult();
         getMessageResult.setStatus(GetMessageStatus.MESSAGE_WAS_REMOVING);
         when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(CompletableFuture.completedFuture(getMessageResult));
+        NettyRemotingServer nettyRemotingServer = createNettyRemotingServer();
+        when(brokerController.getRemotingServer()).thenReturn(nettyRemotingServer);
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         pullMessageProcessor.processRequest(handlerContext, request);
@@ -203,6 +207,8 @@ public class PullMessageProcessorTest {
         GetMessageResult getMessageResult = createGetMessageResult();
         getMessageResult.setStatus(GetMessageStatus.NO_MESSAGE_IN_QUEUE);
         when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(CompletableFuture.completedFuture(getMessageResult));
+        NettyRemotingServer nettyRemotingServer = createNettyRemotingServer();
+        when(brokerController.getRemotingServer()).thenReturn(nettyRemotingServer);
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         pullMessageProcessor.processRequest(handlerContext, request);
@@ -243,6 +249,8 @@ public class PullMessageProcessorTest {
     public void testCommitPullOffset() throws RemotingCommandException {
         GetMessageResult getMessageResult = createGetMessageResult();
         when(messageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any(ExpressionMessageFilter.class))).thenReturn(CompletableFuture.completedFuture(getMessageResult));
+        NettyRemotingServer nettyRemotingServer = createNettyRemotingServer();
+        when(brokerController.getRemotingServer()).thenReturn(nettyRemotingServer);
 
         final RemotingCommand request = createPullMsgCommand(RequestCode.PULL_MESSAGE);
         pullMessageProcessor.processRequest(handlerContext, request);
