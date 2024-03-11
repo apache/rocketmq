@@ -79,7 +79,7 @@ public class CompactionStore {
             new ThreadFactoryImpl("compactionSchedule_"));
         this.offsetMapSize = config.getMaxOffsetMapSize() / compactionThreadNum;
 
-        this.compactionInterval = defaultMessageStore.getMessageStoreConfig().getCompactionScheduleInternal();
+        this.compactionInterval = defaultMessageStore.getMessageStoreConfig().getCompactionScheduleInterval();
     }
 
     public void load(boolean exitOk) throws Exception {

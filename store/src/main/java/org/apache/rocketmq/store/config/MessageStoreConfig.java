@@ -56,7 +56,7 @@ public class MessageStoreConfig {
     // CompactionLog consumeQueue file size, default is 10M
     private int compactionCqMappedFileSize = 10 * 1024 * 1024;
 
-    private int compactionScheduleInternal = 15 * 60 * 1000;
+    private int compactionScheduleInterval = 15 * 60 * 1000;
 
     private int maxOffsetMapSize = 100 * 1024 * 1024;
 
@@ -477,12 +477,12 @@ public class MessageStoreConfig {
         this.compactionCqMappedFileSize = compactionCqMappedFileSize;
     }
 
-    public int getCompactionScheduleInternal() {
-        return compactionScheduleInternal;
+    public int getCompactionScheduleInterval() {
+        return compactionScheduleInterval;
     }
 
-    public void setCompactionScheduleInternal(int compactionScheduleInternal) {
-        this.compactionScheduleInternal = compactionScheduleInternal;
+    public void setCompactionScheduleInterval(int compactionScheduleInterval) {
+        this.compactionScheduleInterval = compactionScheduleInterval;
     }
 
     public int getMaxOffsetMapSize() {
