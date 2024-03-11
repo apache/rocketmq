@@ -121,7 +121,7 @@ public abstract class NettyRemotingAbstract {
     /**
      * custom rpc hooks
      */
-    protected List<RPCHook> rpcHooks = new ArrayList<>();
+    protected static final List<RPCHook> RPC_HOOKS = new ArrayList<>();
 
     protected AtomicBoolean isShuttingDown = new AtomicBoolean(false);
 
@@ -187,16 +187,16 @@ public abstract class NettyRemotingAbstract {
     }
 
     protected void doBeforeRpcHooks(String addr, RemotingCommand request) {
-        if (rpcHooks.size() > 0) {
-            for (RPCHook rpcHook : rpcHooks) {
+        if (RPC_HOOKS.size() > 0) {
+            for (RPCHook rpcHook : RPC_HOOKS) {
                 rpcHook.doBeforeRequest(addr, request);
             }
         }
     }
 
-    public void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response) {
-        if (rpcHooks.size() > 0) {
-            for (RPCHook rpcHook : rpcHooks) {
+    public static void doAfterRpcHooks(String addr, RemotingCommand request, RemotingCommand response) {
+        if (RPC_HOOKS.size() > 0) {
+            for (RPCHook rpcHook : RPC_HOOKS) {
                 rpcHook.doAfterResponse(addr, request, response);
             }
         }
@@ -208,9 +208,23 @@ public abstract class NettyRemotingAbstract {
 
     public static void writeResponse(Channel channel, RemotingCommand request, @Nullable RemotingCommand response,
         Consumer<Future<?>> callback) {
+        try {
+            doAfterRpcHooks(RemotingHelper.parseChannelRemoteAddr(channel), request, response);
+        } catch (AbortProcessException e) {
+            response = RemotingCommand.createResponseCommand(e.getResponseCode(), e.getErrorMessage());
+            response.setOpaque(request.getOpaque());
+        } catch (Exception e) {
+            if (!request.isOnewayRPC()) {
+                response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR,
+                        UtilAll.exceptionSimpleDesc(e));
+                response.setOpaque(request.getOpaque());
+            }
+        }
+
         if (response == null) {
             return;
         }
+
         AttributesBuilder attributesBuilder = RemotingMetricsManager.newAttributesBuilder()
             .put(LABEL_IS_LONG_POLLING, request.isSuspended())
             .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
@@ -222,14 +236,16 @@ public abstract class NettyRemotingAbstract {
         }
         response.setOpaque(request.getOpaque());
         response.markResponseType();
+
+        RemotingCommand finalResponse = response;
         try {
             channel.writeAndFlush(response).addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
                     log.debug("Response[request code: {}, response code: {}, opaque: {}] is written to channel{}",
-                        request.getCode(), response.getCode(), response.getOpaque(), channel);
+                        request.getCode(), finalResponse.getCode(), finalResponse.getOpaque(), channel);
                 } else {
                     log.error("Failed to write response[request code: {}, response code: {}, opaque: {}] to channel{}",
-                        request.getCode(), response.getCode(), response.getOpaque(), channel, future.cause());
+                        request.getCode(), finalResponse.getCode(), finalResponse.getOpaque(), channel, future.cause());
                 }
                 attributesBuilder.put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future));
                 RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributesBuilder.build());
@@ -333,18 +349,6 @@ public abstract class NettyRemotingAbstract {
                     response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, null);
                 }
 
-                try {
-                    doAfterRpcHooks(remoteAddr, cmd, response);
-                } catch (AbortProcessException e) {
-                    throw e;
-                } catch (Exception e) {
-                    exception = e;
-                }
-
-                if (exception != null) {
-                    throw exception;
-                }
-
                 writeResponse(ctx.channel(), cmd, response);
             } catch (AbortProcessException e) {
                 response = RemotingCommand.createResponseCommand(e.getResponseCode(), e.getErrorMessage());
@@ -431,17 +435,17 @@ public abstract class NettyRemotingAbstract {
      * @return RPC hooks if specified; null otherwise.
      */
     public List<RPCHook> getRPCHook() {
-        return rpcHooks;
+        return RPC_HOOKS;
     }
 
     public void registerRPCHook(RPCHook rpcHook) {
-        if (rpcHook != null && !rpcHooks.contains(rpcHook)) {
-            rpcHooks.add(rpcHook);
+        if (rpcHook != null && !RPC_HOOKS.contains(rpcHook)) {
+            RPC_HOOKS.add(rpcHook);
         }
     }
 
     public void clearRPCHook() {
-        rpcHooks.clear();
+        RPC_HOOKS.clear();
     }
 
     /**
