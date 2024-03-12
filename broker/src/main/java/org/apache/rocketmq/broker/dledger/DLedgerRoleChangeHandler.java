@@ -146,10 +146,11 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
         handleSlaveSynchronize(BrokerRole.SLAVE);
 
         try {
-            this.brokerController.registerBrokerAll(true, true, this.brokerController.getBrokerConfig().isForceRegister());
+            this.brokerController.registerBrokerAll(true, false, this.brokerController.getBrokerConfig().isForceRegister());
         } catch (Throwable ignored) {
 
         }
+        this.brokerController.getSlaveSynchronize().syncAll();
         LOGGER.info("Finish to change to slave brokerName={} brokerId={}", this.brokerController.getBrokerConfig().getBrokerName(), brokerId);
     }
 
