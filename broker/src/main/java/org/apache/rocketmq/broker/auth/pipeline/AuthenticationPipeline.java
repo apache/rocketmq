@@ -20,13 +20,17 @@ package org.apache.rocketmq.broker.auth.pipeline;
 import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.auth.authentication.AuthenticationEvaluator;
 import org.apache.rocketmq.auth.authentication.context.AuthenticationContext;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class AuthenticationPipeline implements RequestPipeline {
-
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final AuthConfig authConfig;
     private final AuthenticationEvaluator evaluator;
 
@@ -40,13 +44,15 @@ public class AuthenticationPipeline implements RequestPipeline {
         if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
-
-        AuthenticationContext authenticationContext = newContext(ctx, request);
-        if (authenticationContext == null) {
-            return;
+        try {
+            AuthenticationContext authenticationContext = newContext(ctx, request);
+            evaluator.evaluate(authenticationContext);
+        } catch (AuthenticationException ex) {
+            throw ex;
+        } catch (Throwable ex) {
+            LOGGER.error("authenticate failed, request:{}", request, ex);
+            throw ex;
         }
-        
-        evaluator.evaluate(authenticationContext);
     }
 
     protected AuthenticationContext newContext(ChannelHandlerContext ctx, RemotingCommand request) {

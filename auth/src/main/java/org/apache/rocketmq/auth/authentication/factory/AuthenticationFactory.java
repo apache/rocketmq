@@ -33,7 +33,7 @@ import org.apache.rocketmq.auth.authentication.provider.AuthenticationProvider;
 import org.apache.rocketmq.auth.authentication.provider.DefaultAuthenticationProvider;
 import org.apache.rocketmq.auth.authentication.provider.LocalAuthenticationMetadataProvider;
 import org.apache.rocketmq.auth.authentication.strategy.AuthenticationStrategy;
-import org.apache.rocketmq.auth.authentication.strategy.StatefulAuthenticationStrategy;
+import org.apache.rocketmq.auth.authentication.strategy.StatelessAuthenticationStrategy;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
@@ -102,7 +102,7 @@ public class AuthenticationFactory {
     @SuppressWarnings("unchecked")
     public static AuthenticationStrategy getStrategy(AuthConfig config, Supplier<?> metadataService) {
         try {
-            Class<? extends AuthenticationStrategy> clazz = StatefulAuthenticationStrategy.class;
+            Class<? extends AuthenticationStrategy> clazz = StatelessAuthenticationStrategy.class;
             if (StringUtils.isNotBlank(config.getAuthenticationStrategy())) {
                 clazz = (Class<? extends AuthenticationStrategy>) Class.forName(config.getAuthenticationStrategy());
             }

@@ -19,15 +19,20 @@ package org.apache.rocketmq.proxy.grpc.pipeline;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
 import java.util.List;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authorization.AuthorizationEvaluator;
 import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
+import org.apache.rocketmq.auth.authorization.exception.AuthorizationException;
 import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
 public class AuthorizationPipeline implements RequestPipeline {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final AuthConfig authConfig;
     private final AuthorizationEvaluator authorizationEvaluator;
 
@@ -38,11 +43,18 @@ public class AuthorizationPipeline implements RequestPipeline {
 
     @Override
     public void execute(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {
-        if (!authConfig.isAuthenticationEnabled()) {
+        if (!authConfig.isAuthorizationEnabled()) {
             return;
         }
-        List<AuthorizationContext> contexts = newContexts(context, headers, request);
-        authorizationEvaluator.evaluate(contexts);
+        try {
+            List<AuthorizationContext> contexts = newContexts(context, headers, request);
+            authorizationEvaluator.evaluate(contexts);
+        } catch (AuthorizationException | AuthenticationException ex) {
+            throw ex;
+        }  catch (Throwable ex) {
+            LOGGER.error("authorize failed, request:{}", request, ex);
+            throw ex;
+        }
     }
 
     protected List<AuthorizationContext> newContexts(ProxyContext context, Metadata headers, GeneratedMessageV3 request) {

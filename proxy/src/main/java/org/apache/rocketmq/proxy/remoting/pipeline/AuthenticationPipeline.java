@@ -23,8 +23,12 @@ import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.auth.authentication.AuthenticationEvaluator;
 import org.apache.rocketmq.auth.authentication.context.AuthenticationContext;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
@@ -32,11 +36,9 @@ import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class AuthenticationPipeline implements RequestPipeline {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final List<AccessValidator> accessValidatorList;
-
     private final AuthConfig authConfig;
-
     private final AuthenticationEvaluator authenticationEvaluator;
 
     public AuthenticationPipeline(List<AccessValidator> accessValidatorList, AuthConfig authConfig, MessagingProcessor messagingProcessor) {
@@ -58,13 +60,15 @@ public class AuthenticationPipeline implements RequestPipeline {
         if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
-
-        AuthenticationContext authenticationContext = newContext(ctx, request, context);
-        if (authenticationContext == null) {
-            return;
+        try {
+            AuthenticationContext authenticationContext = newContext(ctx, request, context);
+            authenticationEvaluator.evaluate(authenticationContext);
+        } catch (AuthenticationException ex) {
+            throw ex;
+        } catch (Throwable ex) {
+            LOGGER.error("authenticate failed, request:{}", request, ex);
+            throw ex;
         }
-        
-        authenticationEvaluator.evaluate(authenticationContext);
     }
 
     protected AuthenticationContext newContext(ChannelHandlerContext ctx, RemotingCommand request, ProxyContext context) {

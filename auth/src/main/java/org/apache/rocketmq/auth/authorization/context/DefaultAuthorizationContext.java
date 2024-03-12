@@ -41,8 +41,7 @@ public class DefaultAuthorizationContext extends AuthorizationContext {
         return context;
     }
 
-    public static DefaultAuthorizationContext of(Subject subject, Resource resource, List<Action> actions,
-        String sourceIp) {
+    public static DefaultAuthorizationContext of(Subject subject, Resource resource, List<Action> actions, String sourceIp) {
         DefaultAuthorizationContext context = new DefaultAuthorizationContext();
         context.setSubject(subject);
         context.setResource(resource);

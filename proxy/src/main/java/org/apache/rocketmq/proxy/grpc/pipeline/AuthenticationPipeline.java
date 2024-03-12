@@ -23,16 +23,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.auth.authentication.AuthenticationEvaluator;
 import org.apache.rocketmq.auth.authentication.context.AuthenticationContext;
 import org.apache.rocketmq.auth.authentication.context.DefaultAuthenticationContext;
+import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
 import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.constant.GrpcConstants;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
 public class AuthenticationPipeline implements RequestPipeline {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private final AuthConfig authConfig;
-
     private final AuthenticationEvaluator authenticationEvaluator;
 
     public AuthenticationPipeline(AuthConfig authConfig, MessagingProcessor messagingProcessor) {
@@ -45,9 +48,16 @@ public class AuthenticationPipeline implements RequestPipeline {
         if (!authConfig.isAuthenticationEnabled()) {
             return;
         }
-        Metadata metadata = GrpcConstants.METADATA.get(Context.current());
-        AuthenticationContext authenticationContext = newContext(context, metadata, request);
-        authenticationEvaluator.evaluate(authenticationContext);
+        try {
+            Metadata metadata = GrpcConstants.METADATA.get(Context.current());
+            AuthenticationContext authenticationContext = newContext(context, metadata, request);
+            authenticationEvaluator.evaluate(authenticationContext);
+        } catch (AuthenticationException ex) {
+            throw ex;
+        } catch (Throwable ex) {
+            LOGGER.error("authenticate failed, request:{}", request, ex);
+            throw ex;
+        }
     }
 
     /**

@@ -35,6 +35,9 @@ public class AuthenticationEvaluator {
     }
 
     public void evaluate(AuthenticationContext context) {
+        if (context == null) {
+            return;
+        }
         this.authenticationStrategy.evaluate(context);
     }
 }

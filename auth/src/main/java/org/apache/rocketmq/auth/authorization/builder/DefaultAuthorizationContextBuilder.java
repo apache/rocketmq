@@ -54,6 +54,7 @@ import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.action.RocketMQAction;
 import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.common.constant.GrpcConstants;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.resource.ResourcePattern;
 import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.common.resource.RocketMQResource;
@@ -63,6 +64,8 @@ import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.RequestHeaderRegistry;
+import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
@@ -267,6 +270,34 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                     }
                     group = Resource.ofGroup(updateConsumerOffsetRequestHeader.getConsumerGroup());
                     result.add(DefaultAuthorizationContext.of(subject, group, Arrays.asList(Action.SUB, Action.UPDATE), sourceIp));
+                    break;
+                case RequestCode.LOCK_BATCH_MQ:
+                    LockBatchRequestBody lockBatchRequestBody = LockBatchRequestBody.decode(command.getBody(), LockBatchRequestBody.class);
+                    group = Resource.ofGroup(lockBatchRequestBody.getConsumerGroup());
+                    result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
+                    if (CollectionUtils.isNotEmpty(lockBatchRequestBody.getMqSet())) {
+                        for (MessageQueue messageQueue : lockBatchRequestBody.getMqSet()) {
+                            if (NamespaceUtil.isRetryTopic(messageQueue.getTopic())) {
+                                continue;
+                            }
+                            topic = Resource.ofTopic(messageQueue.getTopic());
+                            result.add(DefaultAuthorizationContext.of(subject, topic, Action.SUB, sourceIp));
+                        }
+                    }
+                    break;
+                case RequestCode.UNLOCK_BATCH_MQ:
+                    UnlockBatchRequestBody unlockBatchRequestBody = LockBatchRequestBody.decode(command.getBody(), UnlockBatchRequestBody.class);
+                    group = Resource.ofGroup(unlockBatchRequestBody.getConsumerGroup());
+                    result.add(DefaultAuthorizationContext.of(subject, group, Action.SUB, sourceIp));
+                    if (CollectionUtils.isNotEmpty(unlockBatchRequestBody.getMqSet())) {
+                        for (MessageQueue messageQueue : unlockBatchRequestBody.getMqSet()) {
+                            if (NamespaceUtil.isRetryTopic(messageQueue.getTopic())) {
+                                continue;
+                            }
+                            topic = Resource.ofTopic(messageQueue.getTopic());
+                            result.add(DefaultAuthorizationContext.of(subject, topic, Action.SUB, sourceIp));
+                        }
+                    }
                     break;
                 default:
                     result = buildContextByAnnotation(subject, command, sourceIp);
