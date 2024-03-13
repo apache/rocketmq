@@ -38,7 +38,6 @@ import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.action.Action;
 import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.common.utils.IPAddressUtils;
-import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataManager {
 
@@ -265,11 +264,7 @@ public class AuthorizationMetadataManagerImpl implements AuthorizationMetadataMa
     private <T> CompletableFuture<T> handleException(Exception e) {
         CompletableFuture<T> result = new CompletableFuture<>();
         Throwable throwable = ExceptionUtils.getRealException(e);
-        if (throwable instanceof AuthorizationException) {
-            result.completeExceptionally(throwable);
-        } else {
-            result.completeExceptionally(new AuthorizationException(ResponseCode.SYSTEM_ERROR, throwable));
-        }
+        result.completeExceptionally(throwable);
         return result;
     }
 

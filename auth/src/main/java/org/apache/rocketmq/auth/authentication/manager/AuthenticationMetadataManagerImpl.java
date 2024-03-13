@@ -31,7 +31,6 @@ import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationMetadataProvider;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.utils.ExceptionUtils;
-import org.apache.rocketmq.remoting.protocol.ResponseCode;
 
 public class AuthenticationMetadataManagerImpl implements AuthenticationMetadataManager {
 
@@ -204,11 +203,7 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
 
     private void handleException(Exception e, CompletableFuture<?> result) {
         Throwable throwable = ExceptionUtils.getRealException(e);
-        if (throwable instanceof AuthenticationException) {
-            result.completeExceptionally(throwable);
-        } else {
-            result.completeExceptionally(new AuthenticationException(ResponseCode.SYSTEM_ERROR, throwable));
-        }
+        result.completeExceptionally(throwable);
     }
 
     private AuthorizationMetadataProvider getAuthorizationMetadataProvider() {
