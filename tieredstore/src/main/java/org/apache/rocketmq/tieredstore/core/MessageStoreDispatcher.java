@@ -27,5 +27,5 @@ public interface MessageStoreDispatcher extends CommitLogDispatcher {
 
     void shutdown();
 
-    CompletableFuture<Boolean> dispatchAsync(FlatFileInterface flatFile, boolean force);
+    CompletableFuture<Boolean> doScheduleDispatch(FlatFileInterface flatFile, boolean force);
 }

@@ -132,7 +132,7 @@ public class TieredMessageStoreTest {
 
         FlatMessageFile flatFile = currentStore.getFlatFileStore().computeIfAbsent(mq);
         Assert.assertNotNull(flatFile);
-        currentStore.dispatcher.dispatchAsync(flatFile, true).join();
+        currentStore.dispatcher.doScheduleDispatch(flatFile, true).join();
 
         for (int i = 100; i < 200; i++) {
             SelectMappedBufferResult bufferResult = new SelectMappedBufferResult(
@@ -144,7 +144,7 @@ public class TieredMessageStoreTest {
             flatFile.appendCommitLog(bufferResult);
             flatFile.appendConsumeQueue(request);
         }
-        currentStore.dispatcher.dispatchAsync(flatFile, true).join();
+        currentStore.dispatcher.doScheduleDispatch(flatFile, true).join();
     }
 
     @After

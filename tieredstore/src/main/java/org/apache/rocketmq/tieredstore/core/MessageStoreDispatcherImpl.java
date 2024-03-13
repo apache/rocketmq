@@ -89,7 +89,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                 return;
             }
             semaphore.acquire();
-            this.dispatchAsync(flatFile, false)
+            this.doScheduleDispatch(flatFile, false)
                 .whenComplete((future, throwable) -> semaphore.release());
         } catch (InterruptedException e) {
             semaphore.release();
@@ -106,7 +106,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
     }
 
     @Override
-    public CompletableFuture<Boolean> dispatchAsync(FlatFileInterface flatFile, boolean force) {
+    public CompletableFuture<Boolean> doScheduleDispatch(FlatFileInterface flatFile, boolean force) {
         if (stopped) {
             return CompletableFuture.completedFuture(true);
         }
@@ -114,6 +114,8 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
         String topic = flatFile.getMessageQueue().getTopic();
         int queueId = flatFile.getMessageQueue().getQueueId();
 
+        // For test scenarios, we set the 'force' variable to true to
+        // ensure that the data in the cache is directly committed successfully.
         force = !storeConfig.isTieredStoreGroupCommit() || force;
         if (force) {
             flatFile.getFileLock().lock();
@@ -142,13 +144,9 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                 return CompletableFuture.completedFuture(true);
             }
 
-            // If last commit failed
+            // If the previous commit fails, attempt to trigger a commit directly.
             if (commitOffset < currentOffset) {
                 this.commitAsync(flatFile);
-                return CompletableFuture.completedFuture(false);
-            }
-
-            if (currentOffset == maxOffsetInQueue) {
                 return CompletableFuture.completedFuture(false);
             }
 
@@ -170,9 +168,13 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
 
             long interval = TimeUnit.HOURS.toMillis(storeConfig.getCommitLogRollingInterval());
             if (flatFile.rollingFile(interval)) {
-                log.warn("MessageDispatcher#dispatch, rolling file, " +
+                log.info("MessageDispatcher#dispatch, rolling file, " +
                         "topic: {}, queueId: {}, offset={}-{}, current={}",
                     topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset);
+            }
+
+            if (currentOffset == maxOffsetInQueue) {
+                return CompletableFuture.completedFuture(false);
             }
 
             long bufferSize = 0L;
@@ -235,6 +237,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                 }
             }
 
+            // If there are many messages waiting to be uploaded, call the upload logic immediately.
             boolean repeat = timeout || maxOffsetInQueue - offset > storeConfig.getTieredStoreGroupCommitCount();
 
             if (!flatFile.getDispatchRequestList().isEmpty()) {

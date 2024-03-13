@@ -128,7 +128,7 @@ public class MessageStoreDispatcherImplTest {
         Assert.assertNotNull(flatFile);
 
         // init offset
-        dispatcher.dispatchAsync(flatFile, true).join();
+        dispatcher.doScheduleDispatch(flatFile, true).join();
         Assert.assertEquals(100L, flatFile.getConsumeQueueMinOffset());
         Assert.assertEquals(100L, flatFile.getConsumeQueueMaxOffset());
         Assert.assertEquals(100L, flatFile.getConsumeQueueCommitOffset());
@@ -139,7 +139,7 @@ public class MessageStoreDispatcherImplTest {
             new CqUnit(100, 1000, buffer.remaining(), 0L));
         Mockito.when(defaultStore.selectOneMessageByOffset(anyLong(), anyInt())).thenReturn(
             new SelectMappedBufferResult(0L, buffer.asReadOnlyBuffer(), buffer.remaining(), null));
-        dispatcher.dispatchAsync(flatFile, true).join();
+        dispatcher.doScheduleDispatch(flatFile, true).join();
 
         Awaitility.await().pollInterval(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(30)).until(() -> {
             List<IndexItem> resultList1 = indexService.queryAsync(
