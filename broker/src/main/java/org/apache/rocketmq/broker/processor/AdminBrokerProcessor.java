@@ -3130,21 +3130,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private Void handleAuthException(RemotingCommand response, Throwable ex) {
         Throwable throwable = ExceptionUtils.getRealException(ex);
-        if (throwable instanceof AuthenticationException) {
-            AuthenticationException exception = (AuthenticationException) throwable;
-            if (exception.getCode() != 0) {
-                response.setCode(exception.getCode());
-            } else {
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-            }
-            response.setRemark(throwable.getMessage());
-        } else if (throwable instanceof AuthorizationException) {
-            AuthorizationException exception = (AuthorizationException) throwable;
-            if (exception.getCode() != 0) {
-                response.setCode(exception.getCode());
-            } else {
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-            }
+        if (throwable instanceof AuthenticationException || throwable instanceof AuthorizationException) {
+            response.setCode(ResponseCode.NO_PERMISSION);
             response.setRemark(throwable.getMessage());
         } else {
             response.setCode(ResponseCode.SYSTEM_ERROR);
