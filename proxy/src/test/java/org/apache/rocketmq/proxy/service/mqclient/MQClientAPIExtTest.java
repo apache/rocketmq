@@ -62,6 +62,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupRespon
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.PeekMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
@@ -180,6 +181,18 @@ public class MQClientAPIExtTest {
             .get();
         assertNotNull(remotingCommand);
         assertEquals(ResponseCode.SUCCESS, remotingCommand.getCode());
+    }
+
+    @Test
+    public void testPeekMessageAsync() throws Exception {
+        PopResult popResult = new PopResult(PopStatus.POLLING_NOT_FOUND, null);
+        doAnswer((Answer<Void>) mock -> {
+            PopCallback popCallback = mock.getArgument(4);
+            popCallback.onSuccess(popResult);
+            return null;
+        }).when(mqClientAPI).peekMessageAsync(anyString(), anyString(), any(), anyLong(), any());
+
+        assertSame(popResult, mqClientAPI.peekMessageAsync(BROKER_ADDR, BROKER_NAME, new PeekMessageRequestHeader(), TIMEOUT).get());
     }
 
     @Test
