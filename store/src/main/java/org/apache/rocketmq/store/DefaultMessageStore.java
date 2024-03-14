@@ -2926,7 +2926,7 @@ public class DefaultMessageStore implements MessageStore {
                 try {
                     TimeUnit.MILLISECONDS.sleep(1);
                     this.doReput();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
                 }
             }
