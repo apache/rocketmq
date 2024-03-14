@@ -359,25 +359,25 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getBrokerEpochCache(ctx, request);
             case RequestCode.NOTIFY_BROKER_ROLE_CHANGED:
                 return this.notifyBrokerRoleChanged(ctx, request);
-            case RequestCode.CREATE_USER:
+            case RequestCode.AUTH_CREATE_USER:
                 return this.createUser(ctx, request);
-            case RequestCode.UPDATE_USER:
+            case RequestCode.AUTH_UPDATE_USER:
                 return this.updateUser(ctx, request);
-            case RequestCode.DELETE_USER:
+            case RequestCode.AUTH_DELETE_USER:
                 return this.deleteUser(ctx, request);
-            case RequestCode.GET_USER:
+            case RequestCode.AUTH_GET_USER:
                 return this.getUser(ctx, request);
-            case RequestCode.LIST_USER:
+            case RequestCode.AUTH_LIST_USER:
                 return this.listUser(ctx, request);
-            case RequestCode.CREATE_ACL:
+            case RequestCode.AUTH_CREATE_ACL:
                 return this.createAcl(ctx, request);
-            case RequestCode.UPDATE_ACL:
+            case RequestCode.AUTH_UPDATE_ACL:
                 return this.updateAcl(ctx, request);
-            case RequestCode.DELETE_ACL:
+            case RequestCode.AUTH_DELETE_ACL:
                 return this.deleteAcl(ctx, request);
-            case RequestCode.GET_ACL:
+            case RequestCode.AUTH_GET_ACL:
                 return this.getAcl(ctx, request);
-            case RequestCode.LIST_ACL:
+            case RequestCode.AUTH_LIST_ACL:
                 return this.listAcl(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);

@@ -23,7 +23,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-@RocketMQAction(value = RequestCode.CREATE_ACL, resource = ResourceType.CLUSTER, action = Action.UPDATE)
+@RocketMQAction(value = RequestCode.AUTH_CREATE_ACL, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class CreateAclRequestHeader implements CommandCustomHeader {
 
     private String subject;

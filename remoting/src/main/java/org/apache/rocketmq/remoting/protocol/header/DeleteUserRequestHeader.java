@@ -23,7 +23,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-@RocketMQAction(value = RequestCode.DELETE_USER, resource = ResourceType.CLUSTER, action = Action.UPDATE)
+@RocketMQAction(value = RequestCode.AUTH_DELETE_USER, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class DeleteUserRequestHeader implements CommandCustomHeader {
 
     private String username;

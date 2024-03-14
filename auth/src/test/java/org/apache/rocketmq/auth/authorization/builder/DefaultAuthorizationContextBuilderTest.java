@@ -469,7 +469,7 @@ public class DefaultAuthorizationContextBuilderTest {
 
         CreateUserRequestHeader createUserRequestHeader = new CreateUserRequestHeader();
         createUserRequestHeader.setUsername("abc");
-        request = RemotingCommand.createRequestCommand(RequestCode.CREATE_USER, createUserRequestHeader);
+        request = RemotingCommand.createRequestCommand(RequestCode.AUTH_CREATE_USER, createUserRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();

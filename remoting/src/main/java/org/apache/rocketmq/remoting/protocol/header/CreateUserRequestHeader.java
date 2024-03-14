@@ -23,7 +23,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-@RocketMQAction(value = RequestCode.CREATE_USER, resource = ResourceType.CLUSTER, action = Action.UPDATE)
+@RocketMQAction(value = RequestCode.AUTH_CREATE_USER, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class CreateUserRequestHeader implements CommandCustomHeader {
 
     private String username;

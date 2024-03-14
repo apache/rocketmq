@@ -1545,8 +1545,8 @@ public class BrokerController {
             this.consumerOffsetManager.stop();
         }
 
-        if (this.authorizationMetadataManager != null) {
-            this.authorizationMetadataManager.shutdown();
+        if (this.authenticationMetadataManager != null) {
+            this.authenticationMetadataManager.shutdown();
         }
 
         if (this.authorizationMetadataManager != null) {

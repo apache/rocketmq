@@ -290,15 +290,15 @@ public class RequestCode {
     public static final int GET_COLD_DATA_FLOW_CTR_INFO = 2003;
     public static final int SET_COMMITLOG_READ_MODE = 2004;
 
-    public static final int CREATE_USER = 3001;
-    public static final int UPDATE_USER = 3002;
-    public static final int DELETE_USER = 3003;
-    public static final int GET_USER = 3004;
-    public static final int LIST_USER = 3005;
+    public static final int AUTH_CREATE_USER = 3001;
+    public static final int AUTH_UPDATE_USER = 3002;
+    public static final int AUTH_DELETE_USER = 3003;
+    public static final int AUTH_GET_USER = 3004;
+    public static final int AUTH_LIST_USER = 3005;
 
-    public static final int CREATE_ACL = 3006;
-    public static final int UPDATE_ACL = 3007;
-    public static final int DELETE_ACL = 3008;
-    public static final int GET_ACL = 3009;
-    public static final int LIST_ACL = 3010;
+    public static final int AUTH_CREATE_ACL = 3006;
+    public static final int AUTH_UPDATE_ACL = 3007;
+    public static final int AUTH_DELETE_ACL = 3008;
+    public static final int AUTH_GET_ACL = 3009;
+    public static final int AUTH_LIST_ACL = 3010;
 }

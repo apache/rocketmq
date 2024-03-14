@@ -672,7 +672,7 @@ public class AdminBrokerProcessorTest {
 
         CreateUserRequestHeader createUserRequestHeader = new CreateUserRequestHeader();
         createUserRequestHeader.setUsername("abc");
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CREATE_USER, createUserRequestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_CREATE_USER, createUserRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -684,7 +684,7 @@ public class AdminBrokerProcessorTest {
         when(authenticationMetadataManager.isSuperUser(eq("rocketmq"))).thenReturn(CompletableFuture.completedFuture(true));
         createUserRequestHeader = new CreateUserRequestHeader();
         createUserRequestHeader.setUsername("super");
-        request = RemotingCommand.createRequestCommand(RequestCode.CREATE_USER, createUserRequestHeader);
+        request = RemotingCommand.createRequestCommand(RequestCode.AUTH_CREATE_USER, createUserRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -707,7 +707,7 @@ public class AdminBrokerProcessorTest {
 
         UpdateUserRequestHeader updateUserRequestHeader = new UpdateUserRequestHeader();
         updateUserRequestHeader.setUsername("abc");
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_USER, updateUserRequestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_UPDATE_USER, updateUserRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -719,7 +719,7 @@ public class AdminBrokerProcessorTest {
         when(authenticationMetadataManager.isSuperUser(eq("rocketmq"))).thenReturn(CompletableFuture.completedFuture(true));
         updateUserRequestHeader = new UpdateUserRequestHeader();
         updateUserRequestHeader.setUsername("super");
-        request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_USER, updateUserRequestHeader);
+        request = RemotingCommand.createRequestCommand(RequestCode.AUTH_UPDATE_USER, updateUserRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -742,7 +742,7 @@ public class AdminBrokerProcessorTest {
 
         DeleteUserRequestHeader deleteUserRequestHeader = new DeleteUserRequestHeader();
         deleteUserRequestHeader.setUsername("abc");
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_USER, deleteUserRequestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_DELETE_USER, deleteUserRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -752,7 +752,7 @@ public class AdminBrokerProcessorTest {
         when(authenticationMetadataManager.isSuperUser(eq("rocketmq"))).thenReturn(CompletableFuture.completedFuture(true));
         deleteUserRequestHeader = new DeleteUserRequestHeader();
         deleteUserRequestHeader.setUsername("super");
-        request = RemotingCommand.createRequestCommand(RequestCode.DELETE_USER, deleteUserRequestHeader);
+        request = RemotingCommand.createRequestCommand(RequestCode.AUTH_DELETE_USER, deleteUserRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -770,7 +770,7 @@ public class AdminBrokerProcessorTest {
 
         GetUserRequestHeader getUserRequestHeader = new GetUserRequestHeader();
         getUserRequestHeader.setUsername("abc");
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_USER, getUserRequestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, getUserRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -788,7 +788,7 @@ public class AdminBrokerProcessorTest {
 
         ListUsersRequestHeader listUserRequestHeader = new ListUsersRequestHeader();
         listUserRequestHeader.setFilter("abc");
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LIST_USER, listUserRequestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_LIST_USER, listUserRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -807,7 +807,7 @@ public class AdminBrokerProcessorTest {
 
         CreateAclRequestHeader createAclRequestHeader = new CreateAclRequestHeader();
         createAclRequestHeader.setSubject("User:abc");
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CREATE_ACL, createAclRequestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_CREATE_ACL, createAclRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -825,7 +825,7 @@ public class AdminBrokerProcessorTest {
 
         UpdateAclRequestHeader updateAclRequestHeader = new UpdateAclRequestHeader();
         updateAclRequestHeader.setSubject("User:abc");
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_ACL, updateAclRequestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_UPDATE_ACL, updateAclRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -843,7 +843,7 @@ public class AdminBrokerProcessorTest {
 
         DeleteAclRequestHeader deleteAclRequestHeader = new DeleteAclRequestHeader();
         deleteAclRequestHeader.setSubject("User:abc");
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_ACL, deleteAclRequestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_DELETE_ACL, deleteAclRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -858,7 +858,7 @@ public class AdminBrokerProcessorTest {
 
         GetAclRequestHeader getAclRequestHeader = new GetAclRequestHeader();
         getAclRequestHeader.setSubject("User:abc");
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ACL, getAclRequestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_ACL, getAclRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();
@@ -879,7 +879,7 @@ public class AdminBrokerProcessorTest {
 
         ListAclsRequestHeader listAclRequestHeader = new ListAclsRequestHeader();
         listAclRequestHeader.setSubjectFilter("User:abc");
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LIST_ACL, listAclRequestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_LIST_ACL, listAclRequestHeader);
         request.setVersion(441);
         request.addExtField("AccessKey", "rocketmq");
         request.makeCustomHeaderToNet();

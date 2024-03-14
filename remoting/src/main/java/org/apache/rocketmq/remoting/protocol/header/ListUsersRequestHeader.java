@@ -23,7 +23,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-@RocketMQAction(value = RequestCode.LIST_USER, resource = ResourceType.CLUSTER, action = Action.GET)
+@RocketMQAction(value = RequestCode.AUTH_LIST_USER, resource = ResourceType.CLUSTER, action = Action.GET)
 public class ListUsersRequestHeader implements CommandCustomHeader {
 
     private String filter;

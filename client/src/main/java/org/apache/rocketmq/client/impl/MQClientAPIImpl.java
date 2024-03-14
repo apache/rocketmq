@@ -3314,7 +3314,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public void createUser(String addr, UserInfo userInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         CreateUserRequestHeader requestHeader = new CreateUserRequestHeader(userInfo.getUsername());
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CREATE_USER, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_CREATE_USER, requestHeader);
         request.setBody(RemotingSerializable.encode(userInfo));
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
@@ -3330,7 +3330,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public void updateUser(String addr, UserInfo userInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         UpdateUserRequestHeader requestHeader = new UpdateUserRequestHeader(userInfo.getUsername());
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_USER, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_UPDATE_USER, requestHeader);
         request.setBody(RemotingSerializable.encode(userInfo));
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
@@ -3346,7 +3346,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public void deleteUser(String addr, String username, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         DeleteUserRequestHeader requestHeader = new DeleteUserRequestHeader(username);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_USER, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_DELETE_USER, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
         switch (response.getCode()) {
@@ -3361,7 +3361,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public UserInfo getUser(String addr, String username, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         GetUserRequestHeader requestHeader = new GetUserRequestHeader(username);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_USER, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_USER, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
         switch (response.getCode()) {
@@ -3376,7 +3376,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public List<UserInfo> listUser(String addr, String filter, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         ListUsersRequestHeader requestHeader = new ListUsersRequestHeader(filter);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LIST_USER, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_LIST_USER, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
         switch (response.getCode()) {
@@ -3391,7 +3391,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public void createAcl(String addr, AclInfo aclInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         CreateAclRequestHeader requestHeader = new CreateAclRequestHeader(aclInfo.getSubject());
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CREATE_ACL, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_CREATE_ACL, requestHeader);
         request.setBody(RemotingSerializable.encode(aclInfo));
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
@@ -3407,7 +3407,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public void updateAcl(String addr, AclInfo aclInfo, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         UpdateAclRequestHeader requestHeader = new UpdateAclRequestHeader(aclInfo.getSubject());
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_ACL, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_UPDATE_ACL, requestHeader);
         request.setBody(RemotingSerializable.encode(aclInfo));
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
@@ -3423,7 +3423,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public void deleteAcl(String addr, String subject, String resource, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         DeleteAclRequestHeader requestHeader = new DeleteAclRequestHeader(subject, resource);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DELETE_ACL, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_DELETE_ACL, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
         switch (response.getCode()) {
@@ -3438,7 +3438,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public AclInfo getAcl(String addr, String subject, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         GetAclRequestHeader requestHeader = new GetAclRequestHeader(subject);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ACL, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_GET_ACL, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
         switch (response.getCode()) {
@@ -3453,7 +3453,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     public List<AclInfo> listAcl(String addr, String subjectFilter, String resourceFilter, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         ListAclsRequestHeader requestHeader = new ListAclsRequestHeader(subjectFilter, resourceFilter);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LIST_ACL, requestHeader);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.AUTH_LIST_ACL, requestHeader);
         RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
         assert response != null;
         switch (response.getCode()) {

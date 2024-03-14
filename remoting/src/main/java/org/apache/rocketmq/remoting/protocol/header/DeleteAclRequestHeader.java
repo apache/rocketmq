@@ -23,7 +23,7 @@ import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
-@RocketMQAction(value = RequestCode.DELETE_ACL, resource = ResourceType.CLUSTER, action = Action.UPDATE)
+@RocketMQAction(value = RequestCode.AUTH_DELETE_ACL, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class DeleteAclRequestHeader implements CommandCustomHeader {
 
     private String subject;
