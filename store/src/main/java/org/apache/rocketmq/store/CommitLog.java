@@ -1271,9 +1271,7 @@ public class CommitLog {
                 CommitLog.log.warn(this.getServiceName() + " Exception, ", e);
             }
 
-            synchronized (this) {
-                this.swapRequests();
-            }
+            this.swapRequests();
 
             this.doCommit();
 
