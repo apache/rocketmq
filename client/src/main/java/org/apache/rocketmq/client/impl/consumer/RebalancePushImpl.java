@@ -58,7 +58,8 @@ public class RebalancePushImpl extends RebalanceImpl {
          * Fix: inconsistency subscription may lead to consumer miss messages.
          */
         SubscriptionData subscriptionData = this.subscriptionInner.get(topic);
-        long newVersion = System.currentTimeMillis();
+        //Ensure that the version number is greater than the previous one.
+        long newVersion = subscriptionData.getSubVersion() + 1;
         log.info("{} Rebalance changed, also update version: {}, {}", topic, subscriptionData.getSubVersion(), newVersion);
         subscriptionData.setSubVersion(newVersion);
 

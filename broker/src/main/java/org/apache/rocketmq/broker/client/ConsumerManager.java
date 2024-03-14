@@ -254,7 +254,7 @@ public class ConsumerManager {
             List<String> removeTopicList = new ArrayList<>();
             ConcurrentMap<String, SubscriptionData> subscriptionTable = consumerGroupInfo.getSubscriptionTable();
             subscriptionTable.forEach((topic, subscriptionData) -> {
-                long diff = System.currentTimeMillis() - subscriptionData.getSubVersion();
+                long diff = System.currentTimeMillis() - subscriptionData.getLastUpdateTime();
                 if (diff > subscriptionExpiredTimeout) {
                     removeTopicList.add(topic);
                 }
