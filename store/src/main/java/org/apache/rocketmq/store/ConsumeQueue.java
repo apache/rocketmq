@@ -751,11 +751,16 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         int queueId) {
         ConsumeQueueInterface cq = this.messageStore.findConsumeQueue(queueName, queueId);
         boolean canWrite = this.messageStore.getRunningFlags().isCQWriteable();
+        final long beginTimeMillis = this.messageStore.now();
         for (int i = 0; i < maxRetries && canWrite; i++) {
             boolean result = ((ConsumeQueue) cq).putMessagePositionInfo(request.getCommitLogOffset(), request.getMsgSize(),
                 request.getTagsCode(),
                 queueOffset);
             if (result) {
+                this.messageStore.getBrokerStatsManager().incTopicPutNums(queueName, 1, 1);
+                this.messageStore.getBrokerStatsManager().incTopicPutSize(queueName, request.getMsgSize());
+                this.messageStore.getBrokerStatsManager().incBrokerPutNums(queueName, 1);
+                this.messageStore.getBrokerStatsManager().incTopicPutLatency(queueName, queueId, (int) (this.messageStore.now() - beginTimeMillis));
                 break;
             } else {
                 log.warn("[BUG]put commit log position info to " + queueName + ":" + queueId + " " + request.getCommitLogOffset()
