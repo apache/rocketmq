@@ -761,7 +761,7 @@ public class AdminBrokerProcessorTest {
 
         when(authenticationMetadataManager.isSuperUser(eq("rocketmq"))).thenReturn(CompletableFuture.completedFuture(false));
         response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
     }
 
     @Test
