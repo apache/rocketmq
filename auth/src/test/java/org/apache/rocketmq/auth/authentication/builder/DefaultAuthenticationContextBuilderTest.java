@@ -94,7 +94,7 @@ public class DefaultAuthenticationContextBuilderTest {
         Assert.assertNotNull(context);
         Assert.assertEquals("abc", context.getUsername());
         Assert.assertEquals("ZG26exJ5u9q1fwZlO4DCmz2Rs88=", context.getSignature());
-        Assert.assertEquals("abcfalsebrokerName-11170367864413300topic-testfalse", new String(context.getContent(), StandardCharsets.UTF_8));
+        Assert.assertEquals("abcbrokerName-11170367864413300topic-test", new String(context.getContent(), StandardCharsets.UTF_8));
     }
 
     private ChannelId mockChannelId(String channelId) {
