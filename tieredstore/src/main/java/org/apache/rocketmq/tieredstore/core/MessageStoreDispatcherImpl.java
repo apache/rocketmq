@@ -187,7 +187,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             SelectMappedBufferResult message =
                 defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
             boolean timeout = MessageFormatUtil.getStoreTimeStamp(message.getByteBuffer()) +
-                TimeUnit.SECONDS.toMillis(30) < System.currentTimeMillis();
+                storeConfig.getTieredStoreGroupCommitTimeout() < System.currentTimeMillis();
             boolean bufferFull = maxOffsetInQueue - currentOffset > storeConfig.getTieredStoreGroupCommitCount();
 
             if (!timeout && !bufferFull && !force) {

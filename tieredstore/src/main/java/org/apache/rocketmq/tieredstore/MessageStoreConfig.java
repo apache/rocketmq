@@ -105,11 +105,12 @@ public class MessageStoreConfig {
     private int maxCommitJitter = 100;
 
     private boolean tieredStoreGroupCommit = true;
-    // Cached message count larger than this value will trigger async commit. default is 1000
+    private int tieredStoreGroupCommitTimeout = 30 * 1000;
+    // Cached message count larger than this value will trigger async commit. default is 4096
     private int tieredStoreGroupCommitCount = 4 * 1024;
-    // Cached message size larger than this value will trigger async commit. default is 32M
+    // Cached message size larger than this value will trigger async commit. default is 4M
     private int tieredStoreGroupCommitSize = 4 * 1024 * 1024;
-    // Cached message count larger than this value will suspend append. default is 2000
+    // Cached message count larger than this value will suspend append. default is 10000
     private int tieredStoreMaxGroupCommitCount = 10000;
     private long tieredStoreMaxFallBehindSize = 128 * 1024 * 1024;
 
@@ -287,6 +288,14 @@ public class MessageStoreConfig {
 
     public void setTieredStoreGroupCommit(boolean tieredStoreGroupCommit) {
         this.tieredStoreGroupCommit = tieredStoreGroupCommit;
+    }
+
+    public int getTieredStoreGroupCommitTimeout() {
+        return tieredStoreGroupCommitTimeout;
+    }
+
+    public void setTieredStoreGroupCommitTimeout(int tieredStoreGroupCommitTimeout) {
+        this.tieredStoreGroupCommitTimeout = tieredStoreGroupCommitTimeout;
     }
 
     public int getTieredStoreGroupCommitCount() {
