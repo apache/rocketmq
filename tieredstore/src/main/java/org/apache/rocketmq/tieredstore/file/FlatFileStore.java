@@ -156,6 +156,7 @@ public class FlatFileStore {
     }
 
     public void destroy() {
+        this.shutdown();
         flatFileConcurrentMap.values().forEach(FlatMessageFile::destroy);
         flatFileConcurrentMap.clear();
     }

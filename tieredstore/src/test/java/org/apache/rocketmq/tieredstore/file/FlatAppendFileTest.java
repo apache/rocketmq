@@ -108,6 +108,7 @@ public class FlatAppendFileTest {
         flatFile.commitAsync().join();
         flatFile.flushFileSegmentMeta(fileSegment);
         Assert.assertEquals(2, flatFile.getFileSegmentList().size());
+        flatFile.getFileToWrite().close();
 
         metadata = metadataStore.getFileSegment(filePath, FileSegmentType.CONSUME_QUEUE, 1500L);
         Assert.assertEquals(fileSegment.getPath(), metadata.getPath());
@@ -211,40 +212,4 @@ public class FlatAppendFileTest {
         flatFile.destroy();
         Assert.assertEquals(0, flatFile.fileSegmentTable.size());
     }
-
-//    @Test
-//    public void testGetFileByTime() {
-//        String filePath = TieredStoreUtil.toPath(queue);
-//        FlatCompositeFile flatCompositeFile = fileQueueFactory.createFlatFileForCommitLog(filePath);
-//        FileSegment fileSegment1 = new MemoryFileSegment(FileSegmentType.CONSUME_QUEUE, queue, 1100, storeConfig);
-//        fileSegment1.setMinTimestamp(100);
-//        fileSegment1.setMaxTimestamp(200);
-//
-//        FileSegment fileSegment2 = new MemoryFileSegment(FileSegmentType.CONSUME_QUEUE, queue, 1100, storeConfig);
-//        fileSegment2.setMinTimestamp(200);
-//        fileSegment2.setMaxTimestamp(300);
-//
-//        flatCompositeFile.getFileSegmentList().add(fileSegment1);
-//        flatCompositeFile.getFileSegmentList().add(fileSegment2);
-//
-//        FileSegment segmentUpper = flatCompositeFile.getFileByTime(400, BoundaryType.UPPER);
-//        Assert.assertEquals(fileSegment2, segmentUpper);
-//
-//        FileSegment segmentLower = flatCompositeFile.getFileByTime(400, BoundaryType.LOWER);
-//        Assert.assertEquals(fileSegment2, segmentLower);
-//
-//
-//        FileSegment segmentUpper2 = flatCompositeFile.getFileByTime(0, BoundaryType.UPPER);
-//        Assert.assertEquals(fileSegment1, segmentUpper2);
-//
-//        FileSegment segmentLower2 = flatCompositeFile.getFileByTime(0, BoundaryType.LOWER);
-//        Assert.assertEquals(fileSegment1, segmentLower2);
-//
-//
-//        FileSegment segmentUpper3 = flatCompositeFile.getFileByTime(200, BoundaryType.UPPER);
-//        Assert.assertEquals(fileSegment1, segmentUpper3);
-//
-//        FileSegment segmentLower3 = flatCompositeFile.getFileByTime(200, BoundaryType.LOWER);
-//        Assert.assertEquals(fileSegment2, segmentLower3);
-//    }
 }

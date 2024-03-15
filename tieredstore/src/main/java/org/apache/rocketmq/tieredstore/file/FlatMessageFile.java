@@ -352,9 +352,8 @@ public class FlatMessageFile implements FlatFileInterface {
         closed = true;
         fileLock.lock();
         try {
-            commitLog.commitAsync().join();
-            consumeQueue.commitAsync().join();
-            this.flushMetadata();
+            commitLog.shutdown();
+            consumeQueue.shutdown();
         } finally {
             fileLock.unlock();
         }

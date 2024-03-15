@@ -137,6 +137,16 @@ public class PosixFileSegment extends FileSegment {
 
     @SuppressWarnings({"ResultOfMethodCallIgnored"})
     public void destroyFile() {
+        this.close();
+        if (file != null && file.exists()) {
+            file.delete();
+        }
+        log.info("Destroy Posix FileSegment, filePath: {}", fullPath);
+    }
+
+    @Override
+    public void close() {
+        super.close();
         try {
             if (readFileChannel != null && readFileChannel.isOpen()) {
                 readFileChannel.close();
@@ -149,11 +159,6 @@ public class PosixFileSegment extends FileSegment {
         } catch (IOException e) {
             log.error("Destroy Posix FileSegment failed, filePath: {}", fullPath, e);
         }
-
-        if (file != null && file.exists()) {
-            file.delete();
-        }
-        log.info("Destroy Posix FileSegment, filePath: {}", fullPath);
     }
 
     @Override

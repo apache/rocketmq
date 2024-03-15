@@ -226,6 +226,15 @@ public class FlatAppendFile {
                 });
     }
 
+    public void shutdown() {
+        fileSegmentLock.writeLock().lock();
+        try {
+            fileSegmentTable.forEach(FileSegment::close);
+        } finally {
+            fileSegmentLock.writeLock().unlock();
+        }
+    }
+
     public void destroyExpiredFile(long expireTimestamp) {
         fileSegmentLock.writeLock().lock();
         try {
