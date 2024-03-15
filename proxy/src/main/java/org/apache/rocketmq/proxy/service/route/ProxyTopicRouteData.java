@@ -33,6 +33,10 @@ public class ProxyTopicRouteData {
     }
 
     public ProxyTopicRouteData(TopicRouteData topicRouteData) {
+        this(topicRouteData, Address.AddressScheme.IPv4);
+    }
+
+    public ProxyTopicRouteData(TopicRouteData topicRouteData, Address.AddressScheme addressScheme) {
         this.queueDatas = topicRouteData.getQueueDatas();
         this.brokerDatas = new ArrayList<>();
 
@@ -44,7 +48,7 @@ public class ProxyTopicRouteData {
                 String brokerAddr = brokerData.getBrokerAddrs().get(brokerId);
                 HostAndPort hostAndPort = HostAndPort.fromString(brokerAddr);
 
-                proxyBrokerData.getBrokerAddrs().put(brokerId, Lists.newArrayList(new Address(Address.AddressScheme.IPv4, hostAndPort)));
+                proxyBrokerData.getBrokerAddrs().put(brokerId, Lists.newArrayList(new Address(addressScheme, hostAndPort)));
             }
             this.brokerDatas.add(proxyBrokerData);
         }
