@@ -122,7 +122,7 @@ public class PosixFileSegment extends FileSegment {
             }
             if (!file.exists()) {
                 if (file.createNewFile()) {
-                    log.info("Create Posix FileSegment, filePath: {}", fullPath);
+                    log.debug("Create Posix FileSegment, filePath: {}", fullPath);
                 }
             }
             this.readFileChannel = new RandomAccessFile(file, "r").getChannel();
@@ -135,13 +135,15 @@ public class PosixFileSegment extends FileSegment {
 
     @Override
 
-    @SuppressWarnings({"ResultOfMethodCallIgnored"})
     public void destroyFile() {
         this.close();
         if (file != null && file.exists()) {
-            file.delete();
+            if (file.delete()) {
+                log.info("Destroy Posix FileSegment, filePath: {}", fullPath);
+            } else {
+                log.warn("Destroy Posix FileSegment error, filePath: {}", fullPath);
+            }
         }
-        log.info("Destroy Posix FileSegment, filePath: {}", fullPath);
     }
 
     @Override

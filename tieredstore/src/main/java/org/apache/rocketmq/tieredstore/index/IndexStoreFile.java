@@ -41,6 +41,7 @@ import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.provider.FileSegment;
+import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -461,6 +462,9 @@ public class IndexStoreFile implements IndexFile {
         try {
             fileReadWriteLock.writeLock().lock();
             this.fileStatus.set(IndexStatusEnum.SHUTDOWN);
+            if (this.fileSegment != null && this.fileSegment instanceof PosixFileSegment) {
+                ((PosixFileSegment) this.fileSegment).close();
+            }
             if (this.mappedFile != null) {
                 this.mappedFile.shutdown(TimeUnit.SECONDS.toMillis(10));
             }

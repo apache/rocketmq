@@ -128,6 +128,10 @@ public class FlatMessageFileTest {
         Assert.assertEquals(flatFile1.hashCode(), flatFile2.hashCode());
         Assert.assertNotEquals(flatFile1, flatFile3);
 
+        flatFile1.shutdown();
+        flatFile2.shutdown();
+        flatFile3.shutdown();
+
         flatFile1.destroy();
         flatFile2.destroy();
         flatFile3.destroy();

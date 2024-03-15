@@ -84,6 +84,7 @@ public class FlatFileStoreTest {
             fileStore.destroyFile(mq);
         }
         Assert.assertEquals(2, fileStore.deepCopyFlatFileToList().size());
+        fileStore.shutdown();
 
         FlatFileStore fileStoreSpy = Mockito.spy(fileStore);
         Mockito.when(fileStoreSpy.recoverAsync(any())).thenReturn(CompletableFuture.supplyAsync(() -> {

@@ -352,6 +352,22 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     }
 
     @Override
+    public void shutdown() {
+        super.shutdown();
+        readWriteLock.writeLock().lock();
+        try {
+            for (Map.Entry<Long /* timestamp */, IndexFile> entry : timeStoreTable.entrySet()) {
+                entry.getValue().shutdown();
+            }
+            this.timeStoreTable.clear();
+        } catch (Exception e) {
+            log.error("IndexStoreService shutdown error", e);
+        } finally {
+            readWriteLock.writeLock().unlock();
+        }
+    }
+
+    @Override
     public void run() {
         while (!this.isStopped()) {
             long expireTimestamp = System.currentTimeMillis()
@@ -367,10 +383,6 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             }
             this.waitForRunning(TimeUnit.SECONDS.toMillis(10));
         }
-        for (Map.Entry<Long /* timestamp */, IndexFile> entry : timeStoreTable.entrySet()) {
-            entry.getValue().shutdown();
-        }
-        this.timeStoreTable.clear();
         log.info(this.getServiceName() + " service shutdown");
     }
 }
