@@ -125,7 +125,7 @@ public class EscapeBridge {
             return null;
         }
 
-        final MessageQueue mqSelected = topicPublishInfo.selectOneMessageQueue();
+        final MessageQueue mqSelected = topicPublishInfo.selectOneMessageQueue(this.brokerController.getBrokerConfig().getBrokerName());
 
         messageToPut.setQueueId(mqSelected.getQueueId());
 
