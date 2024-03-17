@@ -20,7 +20,6 @@ package org.apache.rocketmq.srvutil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * {@link ShutdownHookThread} is the standard hook for filtersrv and namesrv modules.
@@ -28,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ShutdownHookThread extends Thread {
     private volatile boolean hasShutdown = false;
-    private AtomicInteger shutdownTimes = new AtomicInteger(0);
+    private int shutdownTimes;
     private final Logger log;
     private final Callable callback;
 
@@ -53,7 +52,7 @@ public class ShutdownHookThread extends Thread {
     @Override
     public void run() {
         synchronized (this) {
-            log.info("shutdown hook was invoked, " + this.shutdownTimes.incrementAndGet() + " times.");
+            log.info("shutdown hook was invoked, " + ++this.shutdownTimes + " times.");
             if (!this.hasShutdown) {
                 this.hasShutdown = true;
                 long beginTime = System.currentTimeMillis();
