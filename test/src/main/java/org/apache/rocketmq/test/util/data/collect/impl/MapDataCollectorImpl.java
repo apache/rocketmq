@@ -41,6 +41,7 @@ public class MapDataCollectorImpl implements DataCollector {
         }
     }
 
+    @Override
     public synchronized void addData(Object data) {
         if (lock) {
             return;
@@ -52,6 +53,7 @@ public class MapDataCollectorImpl implements DataCollector {
         }
     }
 
+    @Override
     public Collection<Object> getAllData() {
         List<Object> lst = new ArrayList<Object>();
         for (Entry<Object, AtomicInteger> entry : datas.entrySet()) {
@@ -62,10 +64,12 @@ public class MapDataCollectorImpl implements DataCollector {
         return lst;
     }
 
+    @Override
     public long getDataSizeWithoutDuplicate() {
         return datas.keySet().size();
     }
 
+    @Override
     public void resetData() {
         datas.clear();
         unlockIncrement();
