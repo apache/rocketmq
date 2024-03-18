@@ -67,7 +67,7 @@ public class EndTransactionActivityTest extends BaseActivityTest {
     public void testEndTransaction() throws Throwable {
         ArgumentCaptor<TransactionStatus> transactionStatusCaptor = ArgumentCaptor.forClass(TransactionStatus.class);
         ArgumentCaptor<Boolean> fromTransactionCheckCaptor = ArgumentCaptor.forClass(Boolean.class);
-        when(this.messagingProcessor.endTransaction(any(), any(), anyString(), anyString(),
+        when(this.messagingProcessor.endTransaction(any(), any(), anyString(), anyString(), anyString(),
             transactionStatusCaptor.capture(),
             fromTransactionCheckCaptor.capture())).thenReturn(CompletableFuture.completedFuture(null));
 

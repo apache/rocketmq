@@ -84,15 +84,6 @@ public interface MQAdmin {
     long earliestMsgStoreTime(final MessageQueue mq) throws MQClientException;
 
     /**
-     * Query message according to message id
-     *
-     * @param offsetMsgId message id
-     * @return message
-     */
-    MessageExt viewMessage(final String offsetMsgId) throws RemotingException, MQBrokerException,
-        InterruptedException, MQClientException;
-
-    /**
      * Query messages
      *
      * @param topic message topic
