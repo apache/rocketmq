@@ -41,7 +41,7 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         ":auth",
-        ":acl",
+        "//acl",
         "//:test_deps",
         "//common",
         "//remoting",
