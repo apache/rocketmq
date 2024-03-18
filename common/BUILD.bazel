@@ -22,6 +22,7 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_github_luben_zstd_jni",
         "@maven//:com_google_guava_guava",
         "@maven//:commons_collections_commons_collections",
@@ -53,6 +54,7 @@ java_library(
         "//:test_deps",
         "@maven//:com_google_guava_guava",
         "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:io_netty_netty_all",
         "@maven//:io_opentelemetry_opentelemetry_api",
         "@maven//:io_opentelemetry_opentelemetry_context",
