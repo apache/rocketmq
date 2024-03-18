@@ -62,7 +62,7 @@ import static org.mockito.Mockito.when;
 public class ChangeInvisibleTimeProcessorTest {
     private ChangeInvisibleTimeProcessor changeInvisibleTimeProcessor;
     @Spy
-    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig());
+    private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(), new MessageStoreConfig(), null);
     @Mock
     private ChannelHandlerContext handlerContext;
     @Mock

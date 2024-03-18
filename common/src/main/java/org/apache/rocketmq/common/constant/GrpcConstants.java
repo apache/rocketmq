@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.grpc.interceptor;
+package org.apache.rocketmq.common.constant;
 
 import io.grpc.Context;
 import io.grpc.Metadata;
 
-public class InterceptorConstants {
+public class GrpcConstants {
     public static final Context.Key<Metadata> METADATA = Context.key("rpc-metadata");
 
     /**
@@ -70,4 +70,7 @@ public class InterceptorConstants {
 
     public static final Metadata.Key<String> AUTHORIZATION_AK
         = Metadata.Key.of("x-mq-authorization-ak", Metadata.ASCII_STRING_MARSHALLER);
+
+    public static final Metadata.Key<String> CHANNEL_ID
+        = Metadata.Key.of("x-mq-channel-id", Metadata.ASCII_STRING_MARSHALLER);
 }

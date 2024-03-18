@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.proxy.common.utils;
+package org.apache.rocketmq.common.utils;
 
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;

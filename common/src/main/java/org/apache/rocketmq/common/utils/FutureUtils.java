@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.proxy.common.utils;
+package org.apache.rocketmq.common.utils;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
