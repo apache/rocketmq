@@ -30,7 +30,6 @@ import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -110,7 +109,7 @@ public class DefaultAuthenticationContextBuilderTest {
             }
 
             @Override
-            public int compareTo(@NotNull ChannelId o) {
+            public int compareTo(ChannelId o) {
                 return 0;
             }
         };
