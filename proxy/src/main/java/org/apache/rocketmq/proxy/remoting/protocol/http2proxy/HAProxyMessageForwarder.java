@@ -78,6 +78,15 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
             return;
         }
 
+        HAProxyMessage message = buildHAProxyMessage(inboundChannel);
+        if (message == null) {
+            return;
+        }
+
+        outboundChannel.writeAndFlush(message).sync();
+    }
+
+    protected HAProxyMessage buildHAProxyMessage(Channel inboundChannel) throws IllegalAccessException, DecoderException {
         String sourceAddress = null, destinationAddress = null;
         int sourcePort = 0, destinationPort = 0;
         List<HAProxyTLV> haProxyTLVs = new ArrayList<>();
@@ -85,7 +94,7 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
         if (inboundChannel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
             Attribute<?>[] attributes = (Attribute<?>[]) FieldUtils.readField(FIELD_ATTRIBUTE, inboundChannel);
             if (ArrayUtils.isEmpty(attributes)) {
-                return;
+                return null;
             }
             for (Attribute<?> attribute : attributes) {
                 String attributeKey = attribute.key().name();
@@ -128,9 +137,8 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
         HAProxyProxiedProtocol proxiedProtocol = AclUtils.isColon(sourceAddress) ? HAProxyProxiedProtocol.TCP6 :
             HAProxyProxiedProtocol.TCP4;
 
-        HAProxyMessage message = new HAProxyMessage(HAProxyProtocolVersion.V2, HAProxyCommand.PROXY,
+        return new HAProxyMessage(HAProxyProtocolVersion.V2, HAProxyCommand.PROXY,
             proxiedProtocol, sourceAddress, destinationAddress, sourcePort, destinationPort, haProxyTLVs);
-        outboundChannel.writeAndFlush(message).sync();
     }
 
     protected HAProxyTLV buildHAProxyTLV(String attributeKey, String attributeValue) throws DecoderException {
