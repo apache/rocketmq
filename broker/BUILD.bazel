@@ -22,6 +22,7 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//acl",
+        "//auth",
         "//client",
         "//common",
         "//filter",
@@ -73,6 +74,7 @@ java_library(
         ":broker",
         "//:test_deps",
         "//acl",
+        "//auth",
         "//client",
         "//common",
         "//filter",
