@@ -37,6 +37,7 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_sdk_common",
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
         "@maven//:io_opentelemetry_opentelemetry_exporter_logging_otlp",
+        "@maven//:io_grpc_grpc_api",
         "@maven//:org_apache_commons_commons_lang3",
         "@maven//:org_lz4_lz4_java",
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
@@ -63,6 +64,7 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_sdk",
         "@maven//:io_opentelemetry_opentelemetry_sdk_common",
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
+        "@maven//:io_grpc_grpc_api",
         "@maven//:org_apache_commons_commons_lang3",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
