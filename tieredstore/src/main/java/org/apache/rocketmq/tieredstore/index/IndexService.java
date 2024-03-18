@@ -24,6 +24,8 @@ import org.apache.rocketmq.tieredstore.common.AppendResult;
 
 public interface IndexService {
 
+    void start();
+
     /**
      * Puts a key into the index.
      *

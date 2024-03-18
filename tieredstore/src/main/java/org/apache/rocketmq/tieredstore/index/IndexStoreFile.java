@@ -35,15 +35,16 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
-import org.apache.rocketmq.tieredstore.provider.TieredFileSegment;
-import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+import org.apache.rocketmq.tieredstore.provider.FileSegment;
+import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.rocketmq.tieredstore.index.IndexFile.IndexStatusEnum.SEALED;
 import static org.apache.rocketmq.tieredstore.index.IndexFile.IndexStatusEnum.UNSEALED;
@@ -57,7 +58,7 @@ import static org.apache.rocketmq.tieredstore.index.IndexStoreService.FILE_DIREC
  */
 public class IndexStoreFile implements IndexFile {
 
-    private static final Logger log = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     /**
      * header format:
@@ -93,9 +94,9 @@ public class IndexStoreFile implements IndexFile {
     private MappedFile mappedFile;
     private ByteBuffer byteBuffer;
     private MappedFile compactMappedFile;
-    private TieredFileSegment fileSegment;
+    private FileSegment fileSegment;
 
-    public IndexStoreFile(TieredMessageStoreConfig storeConfig, long timestamp) throws IOException {
+    public IndexStoreFile(MessageStoreConfig storeConfig, long timestamp) throws IOException {
         this.hashSlotMaxCount = storeConfig.getTieredStoreIndexFileMaxHashSlotNum();
         this.indexItemMaxCount = storeConfig.getTieredStoreIndexFileMaxIndexNum();
         this.fileStatus = new AtomicReference<>(UNSEALED);
@@ -112,7 +113,7 @@ public class IndexStoreFile implements IndexFile {
         this.flushNewMetadata(byteBuffer, indexItemMaxCount == this.indexItemCount.get() + 1);
     }
 
-    public IndexStoreFile(TieredMessageStoreConfig storeConfig, TieredFileSegment fileSegment) {
+    public IndexStoreFile(MessageStoreConfig storeConfig, FileSegment fileSegment) {
         this.fileSegment = fileSegment;
         this.fileStatus = new AtomicReference<>(UPLOAD);
         this.fileReadWriteLock = new ReentrantReadWriteLock();
@@ -130,6 +131,7 @@ public class IndexStoreFile implements IndexFile {
         return this.beginTimestamp.get();
     }
 
+    @Override
     public long getEndTimestamp() {
         return this.endTimestamp.get();
     }
@@ -174,6 +176,11 @@ public class IndexStoreFile implements IndexFile {
 
     protected int getItemPosition(int itemIndex) {
         return INDEX_HEADER_SIZE + hashSlotMaxCount * HASH_SLOT_SIZE + itemIndex * IndexItem.INDEX_ITEM_SIZE;
+    }
+
+    @Override
+    public void start() {
+
     }
 
     @Override
@@ -301,7 +308,7 @@ public class IndexStoreFile implements IndexFile {
                 mappedFile.release();
             }
             return result;
-        }, TieredStoreExecutor.fetchDataExecutor);
+        }, MessageStoreExecutor.getInstance().bufferFetchExecutor);
     }
 
     protected CompletableFuture<List<IndexItem>> queryAsyncFromSegmentFile(
@@ -455,6 +462,9 @@ public class IndexStoreFile implements IndexFile {
         try {
             fileReadWriteLock.writeLock().lock();
             this.fileStatus.set(IndexStatusEnum.SHUTDOWN);
+            if (this.fileSegment != null && this.fileSegment instanceof PosixFileSegment) {
+                ((PosixFileSegment) this.fileSegment).close();
+            }
             if (this.mappedFile != null) {
                 this.mappedFile.shutdown(TimeUnit.SECONDS.toMillis(10));
             }
@@ -483,7 +493,7 @@ public class IndexStoreFile implements IndexFile {
                     if (this.compactMappedFile != null) {
                         this.compactMappedFile.destroy(TimeUnit.SECONDS.toMillis(10));
                     }
-                    log.info("IndexStoreService destroy local file, timestamp: {}, status: {}", this.getTimestamp(), fileStatus.get());
+                    log.debug("IndexStoreService destroy local file, timestamp: {}, status: {}", this.getTimestamp(), fileStatus.get());
                     break;
                 case UPLOAD:
                     log.warn("[BUG] IndexStoreService destroy remote file, timestamp: {}", this.getTimestamp());
