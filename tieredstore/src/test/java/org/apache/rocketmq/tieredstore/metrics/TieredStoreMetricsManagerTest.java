@@ -17,22 +17,16 @@
 package org.apache.rocketmq.tieredstore.metrics;
 
 import io.opentelemetry.sdk.OpenTelemetrySdk;
-import java.io.IOException;
-import org.apache.rocketmq.tieredstore.TieredMessageFetcher;
-import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
-import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
-import org.junit.After;
+import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
+import org.apache.rocketmq.tieredstore.core.MessageStoreFetcherImpl;
+import org.apache.rocketmq.tieredstore.file.FlatFileStore;
+import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class TieredStoreMetricsManagerTest {
-
-    @After
-    public void tearDown() throws IOException {
-        TieredStoreTestUtil.destroyCompositeFlatFileManager();
-        TieredStoreTestUtil.destroyMetadataStore();
-        TieredStoreExecutor.shutdown();
-    }
 
     @Test
     public void getMetricsView() {
@@ -41,11 +35,17 @@ public class TieredStoreMetricsManagerTest {
 
     @Test
     public void init() {
-        TieredStoreExecutor.init();
-        TieredMessageStoreConfig storeConfig = new TieredMessageStoreConfig();
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.memory.MemoryFileSegment");
-        TieredStoreMetricsManager.init(OpenTelemetrySdk.builder().build().getMeter(""),
-            null, storeConfig, new TieredMessageFetcher(storeConfig), null);
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        storeConfig.setTieredBackendServiceProvider(PosixFileSegment.class.getName());
+        TieredMessageStore messageStore = Mockito.mock(TieredMessageStore.class);
+        Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getFlatFileStore()).thenReturn(Mockito.mock(FlatFileStore.class));
+        MessageStoreFetcherImpl fetcher = Mockito.spy(new MessageStoreFetcherImpl(messageStore));
+
+        TieredStoreMetricsManager.init(
+            OpenTelemetrySdk.builder().build().getMeter(""),
+            null, storeConfig, fetcher,
+            Mockito.mock(FlatFileStore.class), Mockito.mock(DefaultMessageStore.class));
     }
 
     @Test
