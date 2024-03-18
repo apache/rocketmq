@@ -29,6 +29,8 @@ public interface IndexFile extends IndexService {
 
     long getTimestamp();
 
+    long getEndTimestamp();
+
     IndexStatusEnum getFileStatus();
 
     ByteBuffer doCompaction();

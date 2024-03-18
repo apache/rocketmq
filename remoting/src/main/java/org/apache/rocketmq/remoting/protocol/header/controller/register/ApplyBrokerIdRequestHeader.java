@@ -17,11 +17,18 @@
 
 package org.apache.rocketmq.remoting.protocol.header.controller.register;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.CONTROLLER_APPLY_BROKER_ID, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class ApplyBrokerIdRequestHeader implements CommandCustomHeader {
 
+    @RocketMQResource(ResourceType.CLUSTER)
     private String clusterName;
 
     private String brokerName;

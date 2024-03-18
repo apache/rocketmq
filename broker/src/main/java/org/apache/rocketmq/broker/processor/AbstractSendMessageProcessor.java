@@ -21,6 +21,7 @@ import io.opentelemetry.api.common.Attributes;
 import java.net.SocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.rocketmq.broker.BrokerController;
@@ -370,15 +371,12 @@ public abstract class AbstractSendMessageProcessor implements NettyRequestProces
         sendMessageContext.setCommercialOwner(owner);
 
         Map<String, String> properties = MessageDecoder.string2messageProperties(requestHeader.getProperties());
-        String uniqueKey = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
         properties.put(MessageConst.PROPERTY_MSG_REGION, this.brokerController.getBrokerConfig().getRegionId());
         properties.put(MessageConst.PROPERTY_TRACE_SWITCH, String.valueOf(this.brokerController.getBrokerConfig().isTraceOn()));
         requestHeader.setProperties(MessageDecoder.messageProperties2String(properties));
 
-        if (uniqueKey == null) {
-            uniqueKey = "";
-        }
-        sendMessageContext.setMsgUniqueKey(uniqueKey);
+        String uniqueKey = properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX);
+        sendMessageContext.setMsgUniqueKey(Optional.ofNullable(uniqueKey).orElse(""));
 
         if (properties.containsKey(MessageConst.PROPERTY_SHARDING_KEY)) {
             sendMessageContext.setMsgType(MessageType.Order_Msg);
