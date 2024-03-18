@@ -490,7 +490,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.putThreadPoolQueue,
-            new ThreadFactoryImpl("SendMessageThread_", getBrokerIdentity()));
+            new ThreadFactoryImpl("PutMessageThread_", getBrokerIdentity()));
 
         this.ackMessageExecutor = ThreadUtils.newThreadPoolExecutor(
             this.brokerConfig.getAckMessageThreadPoolNums(),

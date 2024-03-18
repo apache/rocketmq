@@ -281,7 +281,7 @@ public class RouteInfoManager {
                     long oldStateVersion = oldBrokerInfo.getDataVersion().getStateVersion();
                     long newStateVersion = topicConfigWrapper.getDataVersion().getStateVersion();
                     if (oldStateVersion > newStateVersion) {
-                        log.warn("Registered Broker conflicts with the existed one, just ignore.: Cluster:{}, BrokerName:{}, BrokerId:{}, " +
+                        log.warn("Registering Broker conflicts with the existed one, just ignore.: Cluster:{}, BrokerName:{}, BrokerId:{}, " +
                                 "Old BrokerAddr:{}, Old Version:{}, New BrokerAddr:{}, New Version:{}.",
                             clusterName, brokerName, brokerId, oldBrokerAddr, oldStateVersion, brokerAddr, newStateVersion);
                         //Remove the rejected brokerAddr from brokerLiveTable.
