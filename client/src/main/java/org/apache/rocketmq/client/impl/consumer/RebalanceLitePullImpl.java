@@ -27,6 +27,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
@@ -150,6 +151,11 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
                 break;
             }
         }
+
+        if (result < 0) {
+            throw new MQClientException(ResponseCode.SYSTEM_ERROR, "Found unexpected result " + result);
+        }
+
         return result;
     }
 

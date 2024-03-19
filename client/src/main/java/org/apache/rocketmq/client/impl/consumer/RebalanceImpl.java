@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
@@ -527,7 +528,13 @@ public abstract class RebalanceImpl {
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = createProcessQueue(topic);
                 pq.setLocked(true);
-                long nextOffset = this.computePullFromWhere(mq);
+                long nextOffset;
+                try {
+                    nextOffset = this.computePullFromWhereWithException(mq);
+                } catch (Exception e) {
+                    log.warn("doRebalance, {}, compute offset failed, {}", consumerGroup, mq, e);
+                    continue;
+                }
                 if (nextOffset >= 0) {
                     ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
                     if (pre != null) {
@@ -686,7 +693,7 @@ public abstract class RebalanceImpl {
                     try {
                         nextOffset = this.computePullFromWhereWithException(mq);
                     } catch (Exception e) {
-                        log.info("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
+                        log.warn("doRebalance, {}, compute offset failed, {}", consumerGroup, mq, e);
                         continue;
                     }
 
@@ -761,6 +768,7 @@ public abstract class RebalanceImpl {
     /**
      * When the network is unstable, using this interface may return wrong offset.
      * It is recommended to use computePullFromWhereWithException instead.
+     *
      * @param mq
      * @return offset
      */
