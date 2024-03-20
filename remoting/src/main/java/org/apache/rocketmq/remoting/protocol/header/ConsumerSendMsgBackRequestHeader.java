@@ -18,19 +18,27 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
+@RocketMQAction(value = RequestCode.CONSUMER_SEND_MSG_BACK, action = Action.SUB)
 public class ConsumerSendMsgBackRequestHeader extends RpcRequestHeader {
     @CFNotNull
     private Long offset;
     @CFNotNull
+    @RocketMQResource(ResourceType.GROUP)
     private String group;
     @CFNotNull
     private Integer delayLevel;
     private String originMsgId;
+    @RocketMQResource(ResourceType.TOPIC)
     private String originTopic;
     @CFNullable
     private boolean unitMode = false;

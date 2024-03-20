@@ -24,6 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class AttributeKeys {
 
+    public static final Attributes.Key<String> CHANNEL_ID =
+        Attributes.Key.create(HAProxyConstants.CHANNEL_ID);
+
     public static final Attributes.Key<String> PROXY_PROTOCOL_ADDR =
             Attributes.Key.create(HAProxyConstants.PROXY_PROTOCOL_ADDR);
 

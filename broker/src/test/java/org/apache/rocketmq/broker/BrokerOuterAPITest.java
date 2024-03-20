@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
@@ -93,7 +94,7 @@ public class BrokerOuterAPITest {
     private BrokerOuterAPI brokerOuterAPI;
 
     public void init() throws Exception {
-        brokerOuterAPI = new BrokerOuterAPI(new NettyClientConfig());
+        brokerOuterAPI = new BrokerOuterAPI(new NettyClientConfig(), new AuthConfig());
         Field field = BrokerOuterAPI.class.getDeclaredField("remotingClient");
         field.setAccessible(true);
         field.set(brokerOuterAPI, nettyRemotingClient);

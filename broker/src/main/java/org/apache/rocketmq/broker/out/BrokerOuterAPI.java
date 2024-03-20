@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.out;
 
+import com.alibaba.fastjson2.JSON;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -30,6 +31,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -154,15 +158,28 @@ public class BrokerOuterAPI {
     private final RpcClient rpcClient;
     private String nameSrvAddr = null;
 
-    public BrokerOuterAPI(final NettyClientConfig nettyClientConfig) {
-        this(nettyClientConfig, new DynamicalExtFieldRPCHook(), new ClientMetadata());
+    public BrokerOuterAPI(final NettyClientConfig nettyClientConfig, AuthConfig authConfig) {
+        this(nettyClientConfig, authConfig, new DynamicalExtFieldRPCHook(), new ClientMetadata());
     }
 
-    private BrokerOuterAPI(final NettyClientConfig nettyClientConfig, RPCHook rpcHook, ClientMetadata clientMetadata) {
+    private BrokerOuterAPI(final NettyClientConfig nettyClientConfig, AuthConfig authConfig, RPCHook rpcHook, ClientMetadata clientMetadata) {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
         this.clientMetadata = clientMetadata;
         this.remotingClient.registerRPCHook(rpcHook);
+        this.remotingClient.registerRPCHook(newAclRPCHook(authConfig));
         this.rpcClient = new RpcClientImpl(this.clientMetadata, this.remotingClient);
+    }
+
+    private RPCHook newAclRPCHook(AuthConfig config) {
+        if (config == null || StringUtils.isBlank(config.getInnerClientAuthenticationCredentials())) {
+            return null;
+        }
+        SessionCredentials sessionCredentials =
+            JSON.parseObject(config.getInnerClientAuthenticationCredentials(), SessionCredentials.class);
+        if (StringUtils.isBlank(sessionCredentials.getAccessKey()) || StringUtils.isBlank(sessionCredentials.getSecretKey())) {
+            return null;
+        }
+        return new AclClientRPCHook(sessionCredentials);
     }
 
     public void start() {

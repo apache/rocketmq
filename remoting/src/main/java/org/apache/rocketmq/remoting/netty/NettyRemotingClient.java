@@ -362,8 +362,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         try {
             this.timer.stop();
 
-            for (String addr : this.channelTables.keySet()) {
-                this.channelTables.get(addr).close();
+            for (Map.Entry<String, ChannelWrapper> channel : this.channelTables.entrySet()) {
+                channel.getValue().close();
             }
 
             this.channelWrapperTables.clear();
@@ -943,8 +943,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return;
         }
 
-        for (String addr : this.channelTables.keySet()) {
-            ChannelWrapper channelWrapper = this.channelTables.get(addr);
+        for (Map.Entry<String, ChannelWrapper> entry : this.channelTables.entrySet()) {
+            String addr = entry.getKey();
+            ChannelWrapper channelWrapper = entry.getValue();
             if (channelWrapper == null) {
                 continue;
             }
