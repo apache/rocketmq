@@ -264,11 +264,11 @@ public class MQAdminImpl {
 
     public MessageExt viewMessage(String topic, String msgId)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        MessageId messageId = null;
+        MessageId messageId;
         try {
             messageId = MessageDecoder.decodeMessageId(msgId);
-            return this.mQClientFactory.getMQAdminImpl().viewMessage(topic, msgId);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
         }
         return this.mQClientFactory.getMQClientAPIImpl().viewMessage(NetworkUtil.socketAddress2String(messageId.getAddress()),
             topic, messageId.getOffset(), timeoutMillis);
