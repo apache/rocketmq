@@ -35,7 +35,6 @@ import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.rocksdb.RocksIterator;
 
 public class LocalAuthenticationMetadataProvider implements AuthenticationMetadataProvider {
@@ -152,7 +151,7 @@ public class LocalAuthenticationMetadataProvider implements AuthenticationMetada
         }
 
         @Override
-        public User load(@NonNull String username) {
+        public User load(String username) {
             try {
                 byte[] keyBytes = username.getBytes(StandardCharsets.UTF_8);
                 byte[] valueBytes = storage.get(keyBytes);

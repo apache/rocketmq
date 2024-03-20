@@ -40,7 +40,6 @@ import org.apache.rocketmq.auth.authorization.model.PolicyEntry;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.rocksdb.RocksIterator;
 
 public class LocalAuthorizationMetadataProvider implements AuthorizationMetadataProvider {
@@ -181,7 +180,7 @@ public class LocalAuthorizationMetadataProvider implements AuthorizationMetadata
         }
 
         @Override
-        public Acl load(@NonNull String subjectKey) {
+        public Acl load(String subjectKey) {
             try {
                 byte[] keyBytes = subjectKey.getBytes(StandardCharsets.UTF_8);
                 Subject subject = Subject.of(subjectKey);
