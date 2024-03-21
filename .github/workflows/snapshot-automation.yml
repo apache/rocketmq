@@ -36,6 +36,7 @@ env:
 
 jobs:
   dist-tar:
+    if: github.repository == 'apache/rocketmq'
     name: Build dist tar
     runs-on: ubuntu-latest
     timeout-minutes: 30
