@@ -17,9 +17,12 @@
 package org.apache.rocketmq.client.impl.producer;
 
 import java.util.Set;
+
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.TransactionCheckListener;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.protocol.body.ProducerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 
 public interface MQProducerInner {
@@ -38,4 +41,6 @@ public interface MQProducerInner {
     void updateTopicPublishInfo(final String topic, final TopicPublishInfo info);
 
     boolean isUnitMode();
+
+    ProducerRunningInfo producerRunningInfo() throws MQClientException;
 }
