@@ -90,22 +90,17 @@ public class LocalMessageService implements MessageService {
     @Override
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         List<Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
-        byte[] body;
-        String messageId;
-        if (msgList.size() > 1) {
-            requestHeader.setBatch(true);
-            MessageBatch msgBatch = MessageBatch.generateFromList(msgList);
-            MessageClientIDSetter.setUniqID(msgBatch);
-            body = msgBatch.encode();
-            msgBatch.setBody(body);
-            messageId = MessageClientIDSetter.getUniqID(msgBatch);
+        Message message;
+        if (msgList.size() == 1) {
+            message = msgList.get(0);
         } else {
-            Message message = msgList.get(0);
-            body = message.getBody();
-            messageId = MessageClientIDSetter.getUniqID(message);
+            requestHeader.setBatch(true);
+            message = MessageBatch.generateFromList(msgList);
+            MessageClientIDSetter.setUniqID(message);
+            ((MessageBatch) message).fillBody();
         }
         RemotingCommand request = LocalRemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, requestHeader, ctx.getLanguage());
-        request.setBody(body);
+        request.setBody(message.getBody());
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         SimpleChannel channel = channelManager.createInvocationChannel(ctx);
         InvocationContext invocationContext = new InvocationContext(future);
@@ -147,6 +142,7 @@ public class LocalMessageService implements MessageService {
                     throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, r.getRemark());
                 }
             }
+            String messageId = MessageClientIDSetter.getUniqID(message);
             sendResult.setSendStatus(sendStatus);
             sendResult.setMsgId(messageId);
             sendResult.setMessageQueue(new MessageQueue(requestHeader.getTopic(), brokerController.getBrokerConfig().getBrokerName(), requestHeader.getQueueId()));
@@ -176,7 +172,8 @@ public class LocalMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<Void> endTransactionOneway(ProxyContext ctx, String brokerName, EndTransactionRequestHeader requestHeader,
+    public CompletableFuture<Void> endTransactionOneway(ProxyContext ctx, String brokerName,
+        EndTransactionRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         SimpleChannel channel = channelManager.createChannel(ctx);

@@ -28,6 +28,8 @@ import org.apache.rocketmq.client.impl.mqclient.MQClientAPIFactory;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageBatch;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
@@ -63,17 +65,20 @@ public class ClusterMessageService implements MessageService {
     public CompletableFuture<List<SendResult>> sendMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         List<Message> msgList, SendMessageRequestHeader requestHeader, long timeoutMillis) {
         CompletableFuture<List<SendResult>> future;
+        Message message;
         if (msgList.size() == 1) {
-            future = this.mqClientAPIFactory.getClient().sendMessageAsync(
-                    messageQueue.getBrokerAddr(),
-                    messageQueue.getBrokerName(), msgList.get(0), requestHeader, timeoutMillis)
-                .thenApply(Lists::newArrayList);
+            message = msgList.get(0);
         } else {
-            future = this.mqClientAPIFactory.getClient().sendMessageAsync(
-                    messageQueue.getBrokerAddr(),
-                    messageQueue.getBrokerName(), msgList, requestHeader, timeoutMillis)
-                .thenApply(Lists::newArrayList);
+            requestHeader.setBatch(true);
+            message = MessageBatch.generateFromList(msgList);
+            MessageClientIDSetter.setUniqID(message);
+            ((MessageBatch) message).fillBody();
         }
+        future = this.mqClientAPIFactory.getClient().sendMessageAsync(
+            messageQueue.getBrokerAddr(),
+            messageQueue.getBrokerName(), message, requestHeader, timeoutMillis)
+            .thenApply(Lists::newArrayList);
+
         return future;
     }
 
@@ -139,7 +144,8 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<AckResult> batchAckMessage(ProxyContext ctx, List<ReceiptHandleMessage> handleList, String consumerGroup,
+    public CompletableFuture<AckResult> batchAckMessage(ProxyContext ctx, List<ReceiptHandleMessage> handleList,
+        String consumerGroup,
         String topic, long timeoutMillis) {
         List<String> extraInfoList = handleList.stream().map(message -> message.getReceiptHandle().getReceiptHandle()).collect(Collectors.toList());
         return this.mqClientAPIFactory.getClient().batchAckMessageAsync(

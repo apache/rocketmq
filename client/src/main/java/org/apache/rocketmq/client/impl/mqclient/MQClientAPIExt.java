@@ -39,8 +39,6 @@ import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageBatch;
-import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -155,7 +153,9 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         long timeoutMillis
     ) {
         SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, requestHeaderV2);
+
+        int code = requestHeader.isBatch() ? RequestCode.SEND_BATCH_MESSAGE : RequestCode.SEND_MESSAGE_V2;
+        RemotingCommand request = RemotingCommand.createRequestCommand(code, requestHeaderV2);
         request.setBody(msg.getBody());
 
         return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
@@ -167,40 +167,6 @@ public class MQClientAPIExt extends MQClientAPIImpl {
             }
             return future0;
         });
-    }
-
-    public CompletableFuture<SendResult> sendMessageAsync(
-        String brokerAddr,
-        String brokerName,
-        List<? extends Message> msgList,
-        SendMessageRequestHeader requestHeader,
-        long timeoutMillis
-    ) {
-        SendMessageRequestHeaderV2 requestHeaderV2 = SendMessageRequestHeaderV2.createSendMessageRequestHeaderV2(requestHeader);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE, requestHeaderV2);
-
-        CompletableFuture<SendResult> future = new CompletableFuture<>();
-        try {
-            requestHeader.setBatch(true);
-            MessageBatch msgBatch = MessageBatch.generateFromList(msgList);
-            MessageClientIDSetter.setUniqID(msgBatch);
-            byte[] body = msgBatch.encode();
-            msgBatch.setBody(body);
-
-            request.setBody(body);
-            return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
-                CompletableFuture<SendResult> future0 = new CompletableFuture<>();
-                try {
-                    future0.complete(processSendResponse(brokerName, msgBatch, response, brokerAddr));
-                } catch (Exception e) {
-                    future0.completeExceptionally(e);
-                }
-                return future0;
-            });
-        } catch (Throwable t) {
-            future.completeExceptionally(t);
-        }
-        return future;
     }
 
     public CompletableFuture<RemotingCommand> sendMessageBackAsync(
