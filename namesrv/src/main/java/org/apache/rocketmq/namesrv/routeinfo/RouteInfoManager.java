@@ -124,28 +124,18 @@ public class RouteInfoManager {
 
         try {
             this.lock.writeLock().lockInterruptibly();
-            if (this.topicQueueTable.containsKey(topic)) {
-                Map<String, QueueData> queueDataMap  = this.topicQueueTable.get(topic);
-                for (QueueData queueData : queueDatas) {
-                    if (!this.brokerAddrTable.containsKey(queueData.getBrokerName())) {
-                        log.warn("Register topic contains illegal broker, {}, {}", topic, queueData);
-                        return;
-                    }
-                    queueDataMap.put(queueData.getBrokerName(), queueData);
-                }
-                log.info("Topic route already exist.{}, {}", topic, this.topicQueueTable.get(topic));
-            } else {
-                // check and construct queue data map
-                Map<String, QueueData> queueDataMap = new HashMap<>();
-                for (QueueData queueData : queueDatas) {
-                    if (!this.brokerAddrTable.containsKey(queueData.getBrokerName())) {
-                        log.warn("Register topic contains illegal broker, {}, {}", topic, queueData);
-                        return;
-                    }
-                    queueDataMap.put(queueData.getBrokerName(), queueData);
+            Map<String, QueueData> queueDataMap = this.topicQueueTable.computeIfAbsent(topic, k -> new HashMap<>());
+            for (QueueData queueData : queueDatas) {
+                if (!this.brokerAddrTable.containsKey(queueData.getBrokerName())) {
+                    log.warn("Register topic contains illegal broker, {}, {}", topic, queueData);
+                    return;
                 }
 
-                this.topicQueueTable.put(topic, queueDataMap);
+                queueDataMap.put(queueData.getBrokerName(), queueData);
+            }
+            if (queueDataMap.size() > queueDatas.size()) {
+                log.info("Topic route already exist.{}, {}", topic, queueDataMap);
+            } else {
                 log.info("Register topic route:{}, {}", topic, queueDatas);
             }
         } catch (Exception e) {
