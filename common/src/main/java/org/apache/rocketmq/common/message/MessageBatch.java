@@ -70,4 +70,8 @@ public class MessageBatch extends Message implements Iterable<Message> {
         return messageBatch;
     }
 
+    public int getBatchCount() {
+        return this.messages.size();
+    }
+
 }
