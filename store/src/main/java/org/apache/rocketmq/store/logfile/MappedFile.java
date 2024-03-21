@@ -368,4 +368,12 @@ public interface MappedFile {
      * @return data is resided in memory or not
      */
     boolean isLoaded(long position, int size);
+
+    /**
+     * Check inactive mapped file and try refresh to reduce the memory usage
+     * @param force do we need force refresh or we wait inactive time
+     * @param inActiveCheckMs the inactive time for unused
+     * @return the mmap file is reloaded or not
+     */
+    boolean checkInactiveAndRefresh(boolean force, int inActiveCheckMs);
 }
