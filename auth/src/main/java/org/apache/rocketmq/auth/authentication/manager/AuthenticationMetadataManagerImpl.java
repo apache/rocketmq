@@ -206,17 +206,17 @@ public class AuthenticationMetadataManagerImpl implements AuthenticationMetadata
         result.completeExceptionally(throwable);
     }
 
-    private AuthorizationMetadataProvider getAuthorizationMetadataProvider() {
-        if (authenticationMetadataProvider == null) {
-            throw new IllegalStateException("The authenticationMetadataProvider is not configured");
-        }
-        return authorizationMetadataProvider;
-    }
-
     private AuthenticationMetadataProvider getAuthenticationMetadataProvider() {
         if (authorizationMetadataProvider == null) {
-            throw new IllegalStateException("The authorizationMetadataProvider is not configured");
+            throw new IllegalStateException("The authenticationMetadataProvider is not configured");
         }
         return authenticationMetadataProvider;
+    }
+
+    private AuthorizationMetadataProvider getAuthorizationMetadataProvider() {
+        if (authenticationMetadataProvider == null) {
+            throw new IllegalStateException("The authorizationMetadataProvider is not configured");
+        }
+        return authorizationMetadataProvider;
     }
 }
