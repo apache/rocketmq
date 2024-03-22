@@ -62,6 +62,7 @@ public class MapDataCollectorImpl implements DataCollector {
         return lst;
     }
 
+
     public long getDataSizeWithoutDuplicate() {
         return datas.keySet().size();
     }
