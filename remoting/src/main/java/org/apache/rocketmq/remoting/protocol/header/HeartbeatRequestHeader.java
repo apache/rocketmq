@@ -17,9 +17,14 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
+@RocketMQAction(value = RequestCode.HEART_BEAT, resource = ResourceType.GROUP, action = {Action.PUB, Action.SUB})
 public class HeartbeatRequestHeader extends RpcRequestHeader {
     // for namespace
     @Override

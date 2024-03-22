@@ -30,9 +30,11 @@ import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.proxy.grpc.pipeline.ContextInitPipeline;
+import org.apache.rocketmq.proxy.grpc.pipeline.RequestPipeline;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.junit.Assert;
 import org.junit.Before;
@@ -68,19 +70,22 @@ public class GrpcMessagingApplicationTest extends InitConfigTest {
     @Before
     public void setUp() throws Throwable {
         super.before();
-        grpcMessagingApplication = new GrpcMessagingApplication(grpcMessingActivity);
+        RequestPipeline pipeline = (context, headers, request) -> {
+        };
+        pipeline = pipeline.pipe(new ContextInitPipeline());
+        grpcMessagingApplication = new GrpcMessagingApplication(grpcMessingActivity, pipeline);
     }
 
     @Test
     public void testQueryRoute() {
         Metadata metadata = new Metadata();
-        metadata.put(InterceptorConstants.CLIENT_ID, CLIENT_ID);
-        metadata.put(InterceptorConstants.LANGUAGE, JAVA);
-        metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
-        metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
+        metadata.put(GrpcConstants.CLIENT_ID, CLIENT_ID);
+        metadata.put(GrpcConstants.LANGUAGE, JAVA);
+        metadata.put(GrpcConstants.REMOTE_ADDRESS, REMOTE_ADDR);
+        metadata.put(GrpcConstants.LOCAL_ADDRESS, LOCAL_ADDR);
         
         Assert.assertNotNull(Context.current()
-            .withValue(InterceptorConstants.METADATA, metadata)
+            .withValue(GrpcConstants.METADATA, metadata)
             .attach());
 
         CompletableFuture<QueryRouteResponse> future = new CompletableFuture<>();
@@ -104,12 +109,12 @@ public class GrpcMessagingApplicationTest extends InitConfigTest {
     @Test
     public void testQueryRouteWithBadClientID() {
         Metadata metadata = new Metadata();
-        metadata.put(InterceptorConstants.LANGUAGE, JAVA);
-        metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
-        metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
+        metadata.put(GrpcConstants.LANGUAGE, JAVA);
+        metadata.put(GrpcConstants.REMOTE_ADDRESS, REMOTE_ADDR);
+        metadata.put(GrpcConstants.LOCAL_ADDRESS, LOCAL_ADDR);
 
         Assert.assertNotNull(Context.current()
-            .withValue(InterceptorConstants.METADATA, metadata)
+            .withValue(GrpcConstants.METADATA, metadata)
             .attach());
 
         QueryRouteRequest request = QueryRouteRequest.newBuilder()

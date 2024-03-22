@@ -100,6 +100,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
             any(),
             brokerNameCaptor.capture(),
             anyString(),
+            anyString(),
             tranStateTableOffsetCaptor.capture(),
             commitLogOffsetCaptor.capture(),
             anyString(), any())).thenReturn(mock(TransactionData.class));
@@ -154,6 +155,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
         when(transactionService.addTransactionDataByBrokerName(
             any(),
             brokerNameCaptor.capture(),
+            anyString(),
             anyString(),
             tranStateTableOffsetCaptor.capture(),
             commitLogOffsetCaptor.capture(),

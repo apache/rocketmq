@@ -23,6 +23,7 @@ import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 
 public class ContextInterceptor implements ServerInterceptor {
 
@@ -32,7 +33,7 @@ public class ContextInterceptor implements ServerInterceptor {
         Metadata headers,
         ServerCallHandler<R, W> next
     ) {
-        Context context = Context.current().withValue(InterceptorConstants.METADATA, headers);
+        Context context = Context.current().withValue(GrpcConstants.METADATA, headers);
         return Contexts.interceptCall(context, call, headers, next);
     }
 }
