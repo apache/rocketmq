@@ -1543,7 +1543,11 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public long flushBehindBytes() {
-        return this.commitLog.remainHowManyDataToCommit() + this.commitLog.remainHowManyDataToFlush();
+        if (this.messageStoreConfig.isTransientStorePoolEnable()) {
+            return this.commitLog.remainHowManyDataToCommit() + this.commitLog.remainHowManyDataToFlush();
+        } else {
+            return this.commitLog.remainHowManyDataToFlush();
+        }
     }
 
     @Override
