@@ -34,7 +34,7 @@ public class Producer {
         DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP);
 
         // Uncomment the following line while debugging, namesrvAddr should be set to your local address
-        //producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
+        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
 
         producer.start();
         for (int i = 0; i < 128; i++) {
