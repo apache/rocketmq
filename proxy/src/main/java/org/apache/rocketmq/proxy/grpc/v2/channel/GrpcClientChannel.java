@@ -30,6 +30,7 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelId;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -210,7 +211,7 @@ public class GrpcClientChannel extends ProxyChannel implements ChannelExtendAttr
     protected CompletableFuture<Void> processGetConsumerRunningInfo(RemotingCommand command,
         GetConsumerRunningInfoRequestHeader header,
         CompletableFuture<ProxyRelayResult<ConsumerRunningInfo>> responseFuture) {
-        if (!header.isJstackEnable()) {
+        if (Objects.isNull(header) || !header.isJstackEnable()) {
             return CompletableFuture.completedFuture(null);
         }
         this.writeTelemetryCommand(TelemetryCommand.newBuilder()
