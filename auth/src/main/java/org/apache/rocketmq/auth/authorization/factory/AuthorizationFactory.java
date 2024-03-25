@@ -19,9 +19,9 @@ package org.apache.rocketmq.auth.authorization.factory;
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Metadata;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
@@ -32,7 +32,6 @@ import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManag
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationMetadataProvider;
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationProvider;
 import org.apache.rocketmq.auth.authorization.provider.DefaultAuthorizationProvider;
-import org.apache.rocketmq.auth.authorization.provider.LocalAuthorizationMetadataProvider;
 import org.apache.rocketmq.auth.authorization.strategy.AuthorizationStrategy;
 import org.apache.rocketmq.auth.authorization.strategy.StatelessAuthorizationStrategy;
 import org.apache.rocketmq.auth.config.AuthConfig;
@@ -40,7 +39,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class AuthorizationFactory {
 
-    private static final ConcurrentMap<String, Object> INSTANCE_MAP = new ConcurrentHashMap<>();
+    private static final Map<String, Object> INSTANCE_MAP = new HashMap<>();
     private static final String PROVIDER_PREFIX = "PROVIDER_";
     private static final String METADATA_PROVIDER_PREFIX = "METADATA_PROVIDER_";
     private static final String EVALUATOR_PREFIX = "EVALUATOR_";
@@ -80,10 +79,11 @@ public class AuthorizationFactory {
         }
         return computeIfAbsent(METADATA_PROVIDER_PREFIX + config.getConfigName(), key -> {
             try {
-                Class<? extends AuthorizationMetadataProvider> clazz = LocalAuthorizationMetadataProvider.class;
-                if (StringUtils.isNotBlank(config.getAuthorizationMetadataProvider())) {
-                    clazz = (Class<? extends AuthorizationMetadataProvider>) Class.forName(config.getAuthorizationMetadataProvider());
+                if (StringUtils.isBlank(config.getAuthorizationMetadataProvider())) {
+                    return null;
                 }
+                Class<? extends AuthorizationMetadataProvider> clazz = (Class<? extends AuthorizationMetadataProvider>)
+                    Class.forName(config.getAuthorizationMetadataProvider());
                 AuthorizationMetadataProvider result = clazz.getDeclaredConstructor().newInstance();
                 result.initialize(config, metadataService);
                 return result;
@@ -145,7 +145,9 @@ public class AuthorizationFactory {
                 }
                 if (result == null) {
                     result = function.apply(key);
-                    INSTANCE_MAP.put(key, result);
+                    if (result != null) {
+                        INSTANCE_MAP.put(key, result);
+                    }
                 }
             }
         }
