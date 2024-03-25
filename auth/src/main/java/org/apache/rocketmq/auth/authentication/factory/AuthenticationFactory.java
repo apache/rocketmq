@@ -31,7 +31,6 @@ import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataMan
 import org.apache.rocketmq.auth.authentication.provider.AuthenticationMetadataProvider;
 import org.apache.rocketmq.auth.authentication.provider.AuthenticationProvider;
 import org.apache.rocketmq.auth.authentication.provider.DefaultAuthenticationProvider;
-import org.apache.rocketmq.auth.authentication.provider.LocalAuthenticationMetadataProvider;
 import org.apache.rocketmq.auth.authentication.strategy.AuthenticationStrategy;
 import org.apache.rocketmq.auth.authentication.strategy.StatelessAuthenticationStrategy;
 import org.apache.rocketmq.auth.config.AuthConfig;
@@ -78,10 +77,11 @@ public class AuthenticationFactory {
         }
         return computeIfAbsent(METADATA_PROVIDER_PREFIX + config.getConfigName(), key -> {
             try {
-                Class<? extends AuthenticationMetadataProvider> clazz = LocalAuthenticationMetadataProvider.class;
-                if (StringUtils.isNotBlank(config.getAuthenticationMetadataProvider())) {
-                    clazz = (Class<? extends AuthenticationMetadataProvider>) Class.forName(config.getAuthenticationMetadataProvider());
+                if (StringUtils.isBlank(config.getAuthenticationMetadataProvider())) {
+                    return null;
                 }
+                Class<? extends AuthenticationMetadataProvider> clazz = (Class<? extends AuthenticationMetadataProvider>)
+                    Class.forName(config.getAuthenticationMetadataProvider());
                 AuthenticationMetadataProvider result = clazz.getDeclaredConstructor().newInstance();
                 result.initialize(config, metadataService);
                 return result;
@@ -142,7 +142,9 @@ public class AuthenticationFactory {
                 }
                 if (result == null) {
                     result = function.apply(key);
-                    INSTANCE_MAP.put(key, result);
+                    if (result != null) {
+                        INSTANCE_MAP.put(key, result);
+                    }
                 }
             }
         }
