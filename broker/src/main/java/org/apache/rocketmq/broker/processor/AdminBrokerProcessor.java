@@ -1551,7 +1551,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         TopicStatsTable topicStatsTable = new TopicStatsTable();
-        for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
+
+        int maxQueueNums = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
+        for (int i = 0; i < maxQueueNums; i++) {
             MessageQueue mq = new MessageQueue();
             mq.setTopic(topic);
             mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
