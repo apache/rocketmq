@@ -333,8 +333,8 @@ public class MQClientInstance {
             this.scheduledExecutorService.scheduleAtFixedRate(() -> {
                 try {
                     MQClientInstance.this.mQClientAPIImpl.fetchNameServerAddr();
-                } catch (Exception e) {
-                    log.error("ScheduledTask fetchNameServerAddr exception", e);
+                } catch (Throwable t) {
+                    log.error("ScheduledTask fetchNameServerAddr exception", t);
                 }
             }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
         }
@@ -342,8 +342,8 @@ public class MQClientInstance {
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             try {
                 MQClientInstance.this.updateTopicRouteInfoFromNameServer();
-            } catch (Exception e) {
-                log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", e);
+            } catch (Throwable t) {
+                log.error("ScheduledTask updateTopicRouteInfoFromNameServer exception", t);
             }
         }, 10, this.clientConfig.getPollNameServerInterval(), TimeUnit.MILLISECONDS);
 
@@ -351,24 +351,24 @@ public class MQClientInstance {
             try {
                 MQClientInstance.this.cleanOfflineBroker();
                 MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
-            } catch (Exception e) {
-                log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
+            } catch (Throwable t) {
+                log.error("ScheduledTask sendHeartbeatToAllBroker exception", t);
             }
         }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             try {
                 MQClientInstance.this.persistAllConsumerOffset();
-            } catch (Exception e) {
-                log.error("ScheduledTask persistAllConsumerOffset exception", e);
+            } catch (Throwable t) {
+                log.error("ScheduledTask persistAllConsumerOffset exception", t);
             }
         }, 1000 * 10, this.clientConfig.getPersistConsumerOffsetInterval(), TimeUnit.MILLISECONDS);
 
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             try {
                 MQClientInstance.this.adjustThreadPool();
-            } catch (Exception e) {
-                log.error("ScheduledTask adjustThreadPool exception", e);
+            } catch (Throwable t) {
+                log.error("ScheduledTask adjustThreadPool exception", t);
             }
         }, 1, 1, TimeUnit.MINUTES);
     }
