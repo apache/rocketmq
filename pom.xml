@@ -104,6 +104,7 @@
         <netty.tcnative.version>2.0.53.Final</netty.tcnative.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
         <fastjson.version>1.2.83</fastjson.version>
+        <fastjson2.version>2.0.43</fastjson2.version>
         <javassist.version>3.20.0-GA</javassist.version>
         <jna.version>4.2.2</jna.version>
         <commons-lang3.version>3.12.0</commons-lang3.version>
@@ -192,6 +193,7 @@
         <module>distribution</module>
         <module>openmessaging</module>
         <module>acl</module>
+        <module>auth</module>
         <module>example</module>
         <module>container</module>
         <module>controller</module>
@@ -534,6 +536,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-auth</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-broker</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -652,6 +659,11 @@
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
                 <version>${fastjson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson2.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.javassist</groupId>

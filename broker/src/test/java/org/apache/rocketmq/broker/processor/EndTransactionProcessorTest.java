@@ -67,7 +67,7 @@ public class EndTransactionProcessorTest {
     @Spy
     private BrokerController
         brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(), new NettyClientConfig(),
-            new MessageStoreConfig());
+            new MessageStoreConfig(), null);
 
     @Mock
     private MessageStore messageStore;
@@ -166,6 +166,7 @@ public class EndTransactionProcessorTest {
 
     private EndTransactionRequestHeader createEndTransactionRequestHeader(int status, boolean isCheckMsg) {
         EndTransactionRequestHeader header = new EndTransactionRequestHeader();
+        header.setTopic("topic");
         header.setCommitLogOffset(123456789L);
         header.setFromTransactionCheck(isCheckMsg);
         header.setCommitOrRollback(status);
