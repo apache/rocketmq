@@ -156,7 +156,7 @@ public class NettyServerConfig implements Cloneable {
 
     @Override
     public Object clone() throws CloneNotSupportedException {
-        return (NettyServerConfig) super.clone();
+        return super.clone();
     }
 
     public int getWriteBufferLowWaterMark() {
