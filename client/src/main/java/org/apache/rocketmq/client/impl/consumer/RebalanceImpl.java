@@ -527,7 +527,13 @@ public abstract class RebalanceImpl {
                 this.removeDirtyOffset(mq);
                 ProcessQueue pq = createProcessQueue(topic);
                 pq.setLocked(true);
-                long nextOffset = this.computePullFromWhere(mq);
+                long nextOffset;
+                try {
+                    nextOffset = this.computePullFromWhereWithException(mq);
+                } catch (MQClientException e) {
+                    log.warn("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
+                    continue;
+                }
                 if (nextOffset >= 0) {
                     ProcessQueue pre = this.processQueueTable.putIfAbsent(mq, pq);
                     if (pre != null) {
@@ -686,7 +692,7 @@ public abstract class RebalanceImpl {
                     try {
                         nextOffset = this.computePullFromWhereWithException(mq);
                     } catch (Exception e) {
-                        log.info("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
+                        log.warn("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
                         continue;
                     }
 
@@ -761,6 +767,7 @@ public abstract class RebalanceImpl {
     /**
      * When the network is unstable, using this interface may return wrong offset.
      * It is recommended to use computePullFromWhereWithException instead.
+     *
      * @param mq
      * @return offset
      */
