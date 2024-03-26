@@ -120,11 +120,26 @@ public interface FlatFileInterface {
     CompletableFuture<ByteBuffer> getConsumeQueueAsync(long consumeQueueOffset, int count);
 
     /**
-     * Gets the offset in the consume queue by timestamp and boundary type
-     *
-     * @param timestamp    search time
-     * @param boundaryType lower or upper to decide boundary
-     * @return Returns the offset of the message
+     * Gets the start offset in the consume queue based on the timestamp and boundary type.
+     * The consume queues consist of ordered units, and their storage times are non-decreasing
+     * sequence. If the specified message exists, it returns the offset of either the first
+     * or last message, depending on the boundary type. If the specified message does not exist,
+     * it returns the offset of the next message as the pull offset. For example:
+     * ------------------------------------------------------------
+     *   store time   : 40, 50, 50, 50, 60, 60, 70
+     *   queue offset : 10, 11, 12, 13, 14, 15, 16
+     * ------------------------------------------------------------
+     *   query timestamp | boundary | result (reason)
+     *         35        |    -     |   10 (minimum offset)
+     *         45        |    -     |   11 (next offset)
+     *         50        |   lower  |   11
+     *         50        |   upper  |   13
+     *         60        |    -     |   14 (default to lower)
+     *         75        |    -     |   17 (maximum offset + 1)
+     * ------------------------------------------------------------
+     * @param timestamp    The search time
+     * @param boundaryType 'lower' or 'upper' to determine the boundary
+     * @return Returns the offset of the message in the consume queue
      */
     CompletableFuture<Long> getQueueOffsetByTimeAsync(long timestamp, BoundaryType boundaryType);
 
