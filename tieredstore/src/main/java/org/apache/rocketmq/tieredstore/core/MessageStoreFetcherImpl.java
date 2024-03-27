@@ -76,7 +76,10 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
 
         return Caffeine.newBuilder()
             .scheduler(Scheduler.systemScheduler())
-            .expireAfterWrite(storeConfig.getReadAheadCacheExpireDuration(), TimeUnit.MILLISECONDS)
+            // Clients may repeatedly request messages at the same offset in tiered storage,
+            // causing the request queue to become full. Using expire after read or write policy
+            // to refresh the cache expiration time.
+            .expireAfterAccess(storeConfig.getReadAheadCacheExpireDuration(), TimeUnit.MILLISECONDS)
             .maximumWeight(memoryMaxSize)
             // Using the buffer size of messages to calculate memory usage
             .weigher((String key, SelectBufferResult buffer) -> buffer.getSize())
@@ -98,7 +101,15 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
         SelectBufferResult buffer = this.fetcherCache.getIfPresent(
             String.format(CACHE_KEY_FORMAT, mq.getTopic(), mq.getQueueId(), offset));
         // return duplicate buffer here
-        return buffer == null ? null : new SelectBufferResult(
+        if (buffer == null) {
+            return null;
+        }
+        long count = buffer.getAccessCount().incrementAndGet();
+        if (count % 1000L == 0L) {
+            log.warn("MessageFetcher fetch same offset message too many times, " +
+                "topic={}, queueId={}, offset={}, count={}", mq.getTopic(), mq.getQueueId(), offset, count);
+        }
+        return new SelectBufferResult(
             buffer.getByteBuffer().asReadOnlyBuffer(), buffer.getStartOffset(), buffer.getSize(), buffer.getTagCode());
     }
 
