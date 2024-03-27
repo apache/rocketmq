@@ -18,6 +18,7 @@ package org.apache.rocketmq.store;
 
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -335,8 +336,10 @@ public class CommitLog implements Swappable {
             long lastValidMsgPhyOffset = this.getConfirmOffset();
             // normal recover doesn't require dispatching
             boolean doDispatch = false;
+            log.info("recover physics file {}", mappedFile.getFileName());
             while (true) {
-                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
+                // if not checkcrc not need to read body, so pass checkCRCOnRecover as readBody
+                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
                 // Normal data
                 if (dispatchRequest.isSuccess() && size > 0) {
@@ -497,6 +500,11 @@ public class CommitLog implements Swappable {
                         }
                     }
                 } else {
+                    if (byteBuffer.remaining() < bodyLen) {
+                        log.warn("bodyLen is {} but buffer remaining is {}", bodyLen, byteBuffer.remaining());
+                        // Same as byteBuffer.get exception
+                        throw new BufferUnderflowException();
+                    }
                     byteBuffer.position(byteBuffer.position() + bodyLen);
                 }
             }
@@ -721,7 +729,8 @@ public class CommitLog implements Swappable {
             // abnormal recover require dispatching
             boolean doDispatch = true;
             while (true) {
-                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
+                // if not checkcrc not need to read body, so pass checkCRCOnRecover as readBody
+                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo, checkCRCOnRecover);
                 int size = dispatchRequest.getMsgSize();
 
                 if (dispatchRequest.isSuccess()) {
