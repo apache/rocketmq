@@ -55,10 +55,6 @@
             <artifactId>opentracing-mock</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.github.aliyunmq</groupId>
             <artifactId>rocketmq-slf4j-api</artifactId>
         </dependency>
