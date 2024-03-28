@@ -759,7 +759,13 @@ public class TimerMessageStore {
             // TODO: check if the delete msg is in the same slot with "the msg to be deleted".
             timerWheel.putSlot(delayedTime, slot.firstPos == -1 ? ret : slot.firstPos, ret,
                 isDelete ? slot.num - 1 : slot.num + 1, slot.magic);
-            addMetric(messageExt, isDelete ? -1 : 1);
+            if(isDelete){
+                if(!needRoll) {
+                    addMetric(messageExt, -1);
+                }
+            }else {
+                addMetric(messageExt, 1);
+            }
         }
         return -1 != ret;
     }
@@ -1556,6 +1562,7 @@ public class TimerMessageStore {
                             if (null != msgExt) {
                                 if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {
                                     if (msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null && tr.getDeleteList() != null) {
+                                        addMetric(msgExt,1);
                                         tr.getDeleteList().add(msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
                                     }
                                     tr.idempotentRelease();
@@ -1566,6 +1573,7 @@ public class TimerMessageStore {
                                         LOGGER.warn("No uniqueKey for msg:{}", msgExt);
                                     }
                                     if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0 && tr.getDeleteList().contains(uniqueKey)) {
+                                        addMetric(msgExt,-1);
                                         doRes = true;
                                         tr.idempotentRelease();
                                         perfCounterTicks.getCounter("dequeue_delete").flow(1);
