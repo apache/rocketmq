@@ -28,6 +28,8 @@ import org.apache.rocketmq.logging.inner.LoggingBuilder;
 import org.apache.rocketmq.logging.inner.LoggingEvent;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
+import java.io.File;
+
 public class ClientLogger {
 
     public static final String CLIENT_LOG_USESLF4J = "rocketmq.client.logUseSlf4j";
@@ -59,13 +61,14 @@ public class ClientLogger {
     }
 
     private static synchronized Appender createClientAppender() {
-        String clientLogRoot = System.getProperty(CLIENT_LOG_ROOT, System.getProperty("user.home") + "/logs/rocketmqlogs");
+        String clientLogRoot = System.getProperty(CLIENT_LOG_ROOT, System.getProperty("user.home")) + File.separator + "logs" + File.separator +
+                "rocketmqlogs";
         String clientLogMaxIndex = System.getProperty(CLIENT_LOG_MAXINDEX, "10");
         String clientLogFileName = System.getProperty(CLIENT_LOG_FILENAME, "rocketmq_client.log");
         String maxFileSize = System.getProperty(CLIENT_LOG_FILESIZE, "1073741824");
         String asyncQueueSize = System.getProperty(CLIENT_LOG_ASYNC_QUEUESIZE, "1024");
 
-        String logFileName = clientLogRoot + "/" + clientLogFileName;
+        String logFileName = new File(clientLogRoot + File.separator + clientLogFileName).getAbsolutePath();
 
         int maxFileIndex = Integer.parseInt(clientLogMaxIndex);
         int queueSize = Integer.parseInt(asyncQueueSize);
@@ -73,8 +76,8 @@ public class ClientLogger {
         Layout layout = LoggingBuilder.newLayoutBuilder().withDefaultLayout().build();
 
         Appender rocketmqClientAppender = LoggingBuilder.newAppenderBuilder()
-            .withRollingFileAppender(logFileName, maxFileSize, maxFileIndex)
-            .withAsync(false, queueSize).withName(ROCKETMQ_CLIENT_APPENDER_NAME).withLayout(layout).build();
+                .withRollingFileAppender(logFileName, maxFileSize, maxFileIndex)
+                .withAsync(false, queueSize).withName(ROCKETMQ_CLIENT_APPENDER_NAME).withLayout(layout).build();
 
         Logger.getRootLogger().addAppender(rocketmqClientAppender);
         return rocketmqClientAppender;
