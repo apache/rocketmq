@@ -760,6 +760,7 @@ public class TimerMessageStore {
             timerWheel.putSlot(delayedTime, slot.firstPos == -1 ? ret : slot.firstPos, ret,
                 isDelete ? slot.num - 1 : slot.num + 1, slot.magic);
             if(isDelete){
+                //Reduce the time range affected by the deletion failure
                 if(!needRoll) {
                     addMetric(messageExt, -1);
                 }
@@ -1562,6 +1563,7 @@ public class TimerMessageStore {
                             if (null != msgExt) {
                                 if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {
                                     if (msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null && tr.getDeleteList() != null) {
+                                        //Execute metric plus one for messages that fail to be deleted
                                         addMetric(msgExt, 1);
                                         tr.getDeleteList().add(msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
                                     }
@@ -1573,6 +1575,7 @@ public class TimerMessageStore {
                                         LOGGER.warn("No uniqueKey for msg:{}", msgExt);
                                     }
                                     if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0 && tr.getDeleteList().contains(uniqueKey)) {
+                                        //Normally, it cancels out with the +1 above
                                         addMetric(msgExt, -1);
                                         doRes = true;
                                         tr.idempotentRelease();
