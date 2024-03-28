@@ -759,14 +759,7 @@ public class TimerMessageStore {
             // TODO: check if the delete msg is in the same slot with "the msg to be deleted".
             timerWheel.putSlot(delayedTime, slot.firstPos == -1 ? ret : slot.firstPos, ret,
                 isDelete ? slot.num - 1 : slot.num + 1, slot.magic);
-            if(isDelete){
-                //Reduce the time range affected by the deletion failure
-                if(!needRoll) {
-                    addMetric(messageExt, -1);
-                }
-            }else {
-                addMetric(messageExt, 1);
-            }
+            addMetric(messageExt, isDelete ? -1 : 1);
         }
         return -1 != ret;
     }
