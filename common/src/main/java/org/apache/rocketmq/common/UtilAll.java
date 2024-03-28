@@ -662,7 +662,7 @@ public class UtilAll {
     }
 
     public static String join(List<String> list, String splitter) {
-        if (list == null) {
+        if (list == null || list.isEmpty()) {
             return null;
         }
 
