@@ -1556,6 +1556,8 @@ public class TimerMessageStore {
                             if (null != msgExt) {
                                 if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {
                                     if (msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null && tr.getDeleteList() != null) {
+                                        //Execute metric plus one for messages that fail to be deleted
+                                        addMetric(msgExt, 1);
                                         tr.getDeleteList().add(msgExt.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
                                     }
                                     tr.idempotentRelease();
@@ -1566,6 +1568,8 @@ public class TimerMessageStore {
                                         LOGGER.warn("No uniqueKey for msg:{}", msgExt);
                                     }
                                     if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0 && tr.getDeleteList().contains(uniqueKey)) {
+                                        //Normally, it cancels out with the +1 above
+                                        addMetric(msgExt, -1);
                                         doRes = true;
                                         tr.idempotentRelease();
                                         perfCounterTicks.getCounter("dequeue_delete").flow(1);
