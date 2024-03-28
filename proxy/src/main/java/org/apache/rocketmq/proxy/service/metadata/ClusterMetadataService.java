@@ -19,7 +19,9 @@ package org.apache.rocketmq.proxy.service.metadata;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.LoadingCache;
+import java.util.List;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -69,6 +71,8 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
     protected final LoadingCache<String, Acl> aclCache;
 
     protected final static Acl EMPTY_ACL = new Acl();
+
+    protected final Random random = new Random();
 
 
     public ClusterMetadataService(TopicRouteService topicRouteService, MQClientAPIFactory mqClientAPIFactory) {
@@ -274,7 +278,9 @@ public class ClusterMetadataService extends AbstractStartAndShutdown implements 
 
     protected Optional<BrokerData> findOneBroker(String topic) throws Exception {
         try {
-            return topicRouteService.getAllMessageQueueView(ProxyContext.createForInner(this.getClass()), topic).getTopicRouteData().getBrokerDatas().stream().findAny();
+            List<BrokerData> brokerDatas = topicRouteService.getAllMessageQueueView(ProxyContext.createForInner(this.getClass()), topic).getTopicRouteData().getBrokerDatas();
+            int skipNum = random.nextInt(brokerDatas.size());
+            return brokerDatas.stream().skip(skipNum).findFirst();
         } catch (Exception e) {
             if (TopicRouteHelper.isTopicNotExistError(e)) {
                 return Optional.empty();
