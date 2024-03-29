@@ -106,9 +106,9 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
 
         boolean balance = VerifyUtils.verifyBalance(msgSize,
             VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                consumer1.getListener().getAllUndupMsgBody()).size()- msgSize/2,
+                consumer1.getListener().getAllUndupMsgBody()).size() - msgSize / 2,
             VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-                consumer2.getListener().getAllUndupMsgBody()).size()- msgSize/2,
+                consumer2.getListener().getAllUndupMsgBody()).size() - msgSize / 2,
             VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
                 consumer3.getListener().getAllUndupMsgBody()).size());
         assertThat(balance).isEqualTo(true);
