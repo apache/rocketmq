@@ -167,6 +167,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     private int backPressureForAsyncSendSize = 100 * 1024 * 1024;
 
+    private RPCHook rpcHook = null;
+
     /**
      * Default constructor.
      */
@@ -202,6 +204,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
         this.producerGroup = producerGroup;
+        this.rpcHook = rpcHook;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
         produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
@@ -243,20 +246,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,
         final String customizedTraceTopic) {
         this(producerGroup, rpcHook);
-        //if client open the message trace feature
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
-                dispatcher.setHostProducer(this.defaultMQProducerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQProducerImpl.registerSendMessageHook(
-                    new SendMessageTraceHookImpl(traceDispatcher));
-                this.defaultMQProducerImpl.registerEndTransactionHook(
-                    new EndTransactionTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
     }
 
     /**
@@ -298,6 +289,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.producerGroup = producerGroup;
+        this.rpcHook = rpcHook;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
         produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
@@ -318,19 +310,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         boolean enableMsgTrace, final String customizedTraceTopic) {
         this(namespace, producerGroup, rpcHook);
         //if client open the message trace feature
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
-                dispatcher.setHostProducer(this.defaultMQProducerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQProducerImpl.registerSendMessageHook(
-                    new SendMessageTraceHookImpl(traceDispatcher));
-                this.defaultMQProducerImpl.registerEndTransactionHook(
-                    new EndTransactionTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
     }
 
     @Override
@@ -355,6 +336,20 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.defaultMQProducerImpl.start();
         if (this.produceAccumulator != null) {
             this.produceAccumulator.start();
+        }
+        if (enableTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, traceTopic, rpcHook);
+                dispatcher.setHostProducer(this.defaultMQProducerImpl);
+                dispatcher.setNamespaceV2(this.namespaceV2);
+                traceDispatcher = dispatcher;
+                this.defaultMQProducerImpl.registerSendMessageHook(
+                    new SendMessageTraceHookImpl(traceDispatcher));
+                this.defaultMQProducerImpl.registerEndTransactionHook(
+                    new EndTransactionTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
         }
         if (null != traceDispatcher) {
             try {
