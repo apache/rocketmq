@@ -455,9 +455,6 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void setUseTLS(boolean useTLS) {
         super.setUseTLS(useTLS);
-        if (traceDispatcher instanceof AsyncTraceDispatcher) {
-            ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
-        }
     }
 
     /**
@@ -753,6 +750,9 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
             }
         }
         if (null != traceDispatcher) {
+            if (traceDispatcher instanceof AsyncTraceDispatcher) {
+                ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(isUseTLS());
+            }
             try {
                 traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {

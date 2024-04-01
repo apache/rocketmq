@@ -314,14 +314,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.traceTopic = customizedTraceTopic;
     }
 
-    @Override
-    public void setUseTLS(boolean useTLS) {
-        super.setUseTLS(useTLS);
-        if (traceDispatcher instanceof AsyncTraceDispatcher) {
-            ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
-        }
-    }
-
     /**
      * Start this producer instance. </p>
      *
@@ -352,6 +344,9 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
             }
         }
         if (null != traceDispatcher) {
+            if (traceDispatcher instanceof AsyncTraceDispatcher) {
+                ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(isUseTLS());
+            }
             try {
                 traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {
