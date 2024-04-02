@@ -148,6 +148,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         if (isStarted.compareAndSet(false, true)) {
             traceProducer.setNamesrvAddr(nameSrvAddr);
             traceProducer.setInstanceName(TRACE_INSTANCE_NAME + "_" + nameSrvAddr);
+            traceProducer.setEnableTrace(false);
             traceProducer.start();
         }
         this.accessChannel = accessChannel;
