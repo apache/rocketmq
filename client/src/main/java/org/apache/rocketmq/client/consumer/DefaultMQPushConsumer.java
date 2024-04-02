@@ -293,6 +293,8 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     // force to use client rebalance
     private boolean clientRebalance = true;
 
+    private RPCHook rpcHook = null;
+
     /**
      * Default constructor.
      */
@@ -327,6 +329,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook) {
         this.consumerGroup = consumerGroup;
+        this.rpcHook = rpcHook;
         this.allocateMessageQueueStrategy = new AllocateMessageQueueAveragely();
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
     }
@@ -353,6 +356,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
         this.consumerGroup = consumerGroup;
+        this.rpcHook = rpcHook;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
     }
@@ -369,18 +373,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public DefaultMQPushConsumer(final String consumerGroup, RPCHook rpcHook,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace, final String customizedTraceTopic) {
         this.consumerGroup = consumerGroup;
+        this.rpcHook = rpcHook;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, rpcHook);
-                dispatcher.setHostConsumer(this.defaultMQPushConsumerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQPushConsumerImpl.registerConsumeMessageHook(new ConsumeMessageTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
     }
 
     /**
@@ -419,6 +416,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         AllocateMessageQueueStrategy allocateMessageQueueStrategy) {
         this.consumerGroup = consumerGroup;
         this.namespace = namespace;
+        this.rpcHook = rpcHook;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
     }
@@ -438,18 +436,11 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         AllocateMessageQueueStrategy allocateMessageQueueStrategy, boolean enableMsgTrace, final String customizedTraceTopic) {
         this.consumerGroup = consumerGroup;
         this.namespace = namespace;
+        this.rpcHook = rpcHook;
         this.allocateMessageQueueStrategy = allocateMessageQueueStrategy;
         defaultMQPushConsumerImpl = new DefaultMQPushConsumerImpl(this, rpcHook);
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, rpcHook);
-                dispatcher.setHostConsumer(this.defaultMQPushConsumerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQPushConsumerImpl.registerConsumeMessageHook(new ConsumeMessageTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
     }
 
     /**
@@ -464,9 +455,6 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     @Override
     public void setUseTLS(boolean useTLS) {
         super.setUseTLS(useTLS);
-        if (traceDispatcher instanceof AsyncTraceDispatcher) {
-            ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
-        }
     }
 
     /**
@@ -519,16 +507,6 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      */
     @Deprecated
     @Override
-    public MessageExt viewMessage(
-        String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.defaultMQPushConsumerImpl.viewMessage(offsetMsgId);
-    }
-
-    /**
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     */
-    @Deprecated
-    @Override
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
         return this.defaultMQPushConsumerImpl.queryMessage(withNamespace(topic), key, maxNum, begin, end);
@@ -543,7 +521,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
             MessageDecoder.decodeMessageId(msgId);
-            return this.viewMessage(msgId);
+            return this.defaultMQPushConsumerImpl.viewMessage(withNamespace(topic), msgId);
         } catch (Exception e) {
             // Ignore
         }
@@ -760,7 +738,21 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public void start() throws MQClientException {
         setConsumerGroup(NamespaceUtil.wrapNamespace(this.getNamespace(), this.consumerGroup));
         this.defaultMQPushConsumerImpl.start();
+        if (enableTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, traceTopic, rpcHook);
+                dispatcher.setHostConsumer(this.defaultMQPushConsumerImpl);
+                dispatcher.setNamespaceV2(namespaceV2);
+                traceDispatcher = dispatcher;
+                this.defaultMQPushConsumerImpl.registerConsumeMessageHook(new ConsumeMessageTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                log.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
         if (null != traceDispatcher) {
+            if (traceDispatcher instanceof AsyncTraceDispatcher) {
+                ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(isUseTLS());
+            }
             try {
                 traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {

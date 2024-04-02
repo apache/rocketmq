@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -34,7 +35,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Optional;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -184,7 +184,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
     private Optional<String> pickTopic() {
         if (topicPublishInfoTable.isEmpty()) {
-            return Optional.absent();
+            return Optional.empty();
         }
         return Optional.of(topicPublishInfoTable.keySet().iterator().next());
     }
@@ -386,6 +386,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     }
 
                     this.processTransactionState(
+                        checkRequestHeader.getTopic(),
                         localTransactionState,
                         group,
                         exception);
@@ -395,10 +396,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             }
 
             private void processTransactionState(
+                final String topic,
                 final LocalTransactionState localTransactionState,
                 final String producerGroup,
                 final Throwable exception) {
                 final EndTransactionRequestHeader thisHeader = new EndTransactionRequestHeader();
+                thisHeader.setTopic(topic);
                 thisHeader.setCommitLogOffset(checkRequestHeader.getCommitLogOffset());
                 thisHeader.setProducerGroup(producerGroup);
                 thisHeader.setTranStateTableOffset(checkRequestHeader.getTranStateTableOffset());
@@ -506,11 +509,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         return this.mQClientFactory.getMQAdminImpl().earliestMsgStoreTime(mq);
     }
 
-    public MessageExt viewMessage(
+    public MessageExt viewMessage(String topic,
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.makeSureStateOK();
 
-        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
+        return this.mQClientFactory.getMQAdminImpl().viewMessage(topic, msgId);
     }
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
@@ -1484,6 +1487,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         final String destBrokerName = this.mQClientFactory.getBrokerNameFromMessageQueue(defaultMQProducer.queueWithNamespace(sendResult.getMessageQueue()));
         final String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(destBrokerName);
         EndTransactionRequestHeader requestHeader = new EndTransactionRequestHeader();
+        requestHeader.setTopic(msg.getTopic());
         requestHeader.setTransactionId(transactionId);
         requestHeader.setCommitLogOffset(id.getOffset());
         requestHeader.setBrokerName(destBrokerName);

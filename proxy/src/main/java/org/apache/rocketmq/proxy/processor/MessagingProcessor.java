@@ -102,17 +102,19 @@ public interface MessagingProcessor extends StartAndShutdown {
 
     default CompletableFuture<Void> endTransaction(
         ProxyContext ctx,
+        String topic,
         String transactionId,
         String messageId,
         String producerGroup,
         TransactionStatus transactionStatus,
         boolean fromTransactionCheck
     ) {
-        return endTransaction(ctx, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, DEFAULT_TIMEOUT_MILLS);
+        return endTransaction(ctx, topic, transactionId, messageId, producerGroup, transactionStatus, fromTransactionCheck, DEFAULT_TIMEOUT_MILLS);
     }
 
     CompletableFuture<Void> endTransaction(
         ProxyContext ctx,
+        String topic,
         String transactionId,
         String messageId,
         String producerGroup,

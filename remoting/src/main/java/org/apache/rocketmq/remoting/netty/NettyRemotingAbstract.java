@@ -60,6 +60,7 @@ import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
+import org.apache.rocketmq.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -122,6 +123,8 @@ public abstract class NettyRemotingAbstract {
      * custom rpc hooks
      */
     protected List<RPCHook> rpcHooks = new ArrayList<>();
+
+    protected RequestPipeline requestPipeline;
 
     protected AtomicBoolean isShuttingDown = new AtomicBoolean(false);
 
@@ -327,6 +330,10 @@ public abstract class NettyRemotingAbstract {
                     exception = e;
                 }
 
+                if (this.requestPipeline != null) {
+                    this.requestPipeline.execute(ctx, cmd);
+                }
+
                 if (exception == null) {
                     response = pair.getObject1().processRequest(ctx, cmd);
                 } else {
@@ -438,6 +445,10 @@ public abstract class NettyRemotingAbstract {
         if (rpcHook != null && !rpcHooks.contains(rpcHook)) {
             rpcHooks.add(rpcHook);
         }
+    }
+
+    public void setRequestPipeline(RequestPipeline pipeline) {
+        this.requestPipeline = pipeline;
     }
 
     public void clearRPCHook() {

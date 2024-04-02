@@ -22,6 +22,7 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//acl",
+        "//auth",
         "//broker",
         "//client",
         "//common",
@@ -30,6 +31,7 @@ java_library(
         "@maven//:ch_qos_logback_logback_classic",
         "@maven//:ch_qos_logback_logback_core",
         "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_github_ben_manes_caffeine_caffeine",
         "@maven//:com_github_luben_zstd_jni",
         "@maven//:com_google_code_findbugs_jsr305",
@@ -78,7 +80,8 @@ java_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-	"//acl",
+	    "//acl",
+	    "//auth",
         ":proxy",
         "//:test_deps",
         "//broker",
@@ -87,6 +90,7 @@ java_library(
         "//remoting",
         "@maven//:ch_qos_logback_logback_core",
         "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_github_ben_manes_caffeine_caffeine",
         "@maven//:com_google_guava_guava",
         "@maven//:com_google_protobuf_protobuf_java",

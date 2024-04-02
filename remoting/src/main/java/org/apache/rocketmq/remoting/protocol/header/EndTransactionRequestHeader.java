@@ -18,13 +18,21 @@
 package org.apache.rocketmq.remoting.protocol.header;
 
 import com.google.common.base.MoreObjects;
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.RpcRequestHeader;
 
+@RocketMQAction(value = RequestCode.END_TRANSACTION, action = Action.PUB)
 public class EndTransactionRequestHeader extends RpcRequestHeader {
+    @RocketMQResource(ResourceType.TOPIC)
+    private String topic;
     @CFNotNull
     private String producerGroup;
     @CFNotNull
@@ -59,6 +67,14 @@ public class EndTransactionRequestHeader extends RpcRequestHeader {
         }
 
         throw new RemotingCommandException("commitOrRollback field wrong");
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+
+    public void setTopic(String topic) {
+        this.topic = topic;
     }
 
     public String getProducerGroup() {
