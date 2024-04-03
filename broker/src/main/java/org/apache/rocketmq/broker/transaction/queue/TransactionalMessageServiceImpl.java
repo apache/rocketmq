@@ -292,12 +292,15 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             }
                         }
                         List<MessageExt> opMsg = pullResult == null ? null : pullResult.getMsgFoundList();
-                        boolean isNeedCheck = opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime
-                            || opMsg != null && opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout
-                            || valueOfCurrentMinusBorn <= -1;
+
+                        boolean isOpMsgNullOrOutOfImmunity = opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime;
+                        boolean isTransactionTimeout = opMsg != null && opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout;
+                        boolean isSystemClockKeepPace = valueOfCurrentMinusBorn <= -1;
+                        log.info("opMsg:{}, isOpMsgNullOrOutOfImmunity:{}, isTransactionTimeout:{}, isSystemClockKeepPace:{}", opMsg, isOpMsgNullOrOutOfImmunity, isTransactionTimeout, isSystemClockKeepPace);
+                        boolean isNeedCheck = isOpMsgNullOrOutOfImmunity || isTransactionTimeout || isSystemClockKeepPace;
 
                         if (isNeedCheck) {
-
+                            log.info("isNeedCheck is true, transactionId:{}", msgExt.getTransactionId());
                             if (!putBackHalfMsgQueue(msgExt, i)) {
                                 continue;
                             }
