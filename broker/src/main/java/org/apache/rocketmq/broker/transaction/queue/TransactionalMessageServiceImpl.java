@@ -297,11 +297,11 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             continue;
                         }
 
-                        boolean isOpMsgNullOrOutOfImmunity = opMsg == null && valueOfCurrentMinusBorn > checkImmunityTime;
-                        boolean isTransactionTimeout = opMsg != null && opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout;
+                        boolean isImmunityTimeout = valueOfCurrentMinusBorn > checkImmunityTime;
+                        boolean isTransactionTimeout = opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout;
                         boolean isSystemClockKeepPace = valueOfCurrentMinusBorn <= -1;
-                        log.info("opMsg:{}, isOpMsgNullOrOutOfImmunity:{}, isTransactionTimeout:{}, isSystemClockKeepPace:{}", opMsg, isOpMsgNullOrOutOfImmunity, isTransactionTimeout, isSystemClockKeepPace);
-                        boolean isNeedCheck = isOpMsgNullOrOutOfImmunity || isTransactionTimeout || isSystemClockKeepPace;
+                        log.info("opMsg:{}, isOpMsgNullOrOutOfImmunity:{}, isTransactionTimeout:{}, isSystemClockKeepPace:{}", opMsg, isImmunityTimeout, isTransactionTimeout, isSystemClockKeepPace);
+                        boolean isNeedCheck = isImmunityTimeout || isTransactionTimeout || isSystemClockKeepPace;
 
                         if (isNeedCheck) {
                             log.info("isNeedCheck is true, transactionId:{}", msgExt.getTransactionId());
