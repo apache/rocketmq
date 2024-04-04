@@ -293,7 +293,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         }
                         List<MessageExt> opMsg = pullResult == null ? null : pullResult.getMsgFoundList();
                         if (opMsg == null) {
-                            log.warn("opMsg is null, broker has not receive the RequestCode.END_TRANSACTION command from producer of topic:{}, msgId:{}", msgExt.getTopic(), msgExt.getMsgId());
+                            log.info("opMsg is null, broker has not receive the RequestCode.END_TRANSACTION command from producer of topic:{}, msgId:{}", msgExt.getTopic(), msgExt.getMsgId());
                             continue;
                         }
 
