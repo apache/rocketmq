@@ -18,17 +18,13 @@ package org.apache.rocketmq.test.transaction;
 
 import org.apache.rocketmq.client.producer.LocalTransactionState;
 import org.apache.rocketmq.client.producer.TransactionListener;
-import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TransactionListenerImpl implements TransactionListener {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
     private AtomicInteger transactionIndex = new AtomicInteger(0);
 
     private ConcurrentHashMap<String, Integer> localTrans = new ConcurrentHashMap<>();
@@ -39,9 +35,6 @@ public class TransactionListenerImpl implements TransactionListener {
 //        int status = value % 3;
 //        localTrans.put(msg.getTransactionId(), status);
 //        return LocalTransactionState.UNKNOW;
-        int value = transactionIndex.getAndIncrement();
-        int status = value % 3;
-        localTrans.put(msg.getTransactionId(), 1);
         try {
             Thread.sleep(1000);
             System.out.println("executeLocalTransaction, sleep 1s");
@@ -54,12 +47,7 @@ public class TransactionListenerImpl implements TransactionListener {
 
     @Override
     public LocalTransactionState checkLocalTransaction(MessageExt msg) {
-        log.info("checkLocalTransaction executed, transactionId:{}", msg.getTransactionId());
-        System.out.println("checkLocalTransaction executed, transactionId:" + msg.getTransactionId());
-
         Integer status = localTrans.get(msg.getTransactionId());
-        log.info("Checking local transaction, status:{}", status);
-        System.out.println("Checking local transaction, status:" + status);
         if (null != status) {
             switch (status) {
                 case 0:
