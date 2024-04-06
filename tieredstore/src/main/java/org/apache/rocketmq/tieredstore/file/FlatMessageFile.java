@@ -289,38 +289,54 @@ public class FlatMessageFile implements FlatFileInterface {
             return CompletableFuture.completedFuture(cqMin);
         }
 
+        ByteBuffer buffer = getMessageAsync(cqMax).join();
+        long storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
+        if (storeTime < timestamp) {
+            log.info("FlatMessageFile getQueueOffsetByTimeAsync, exceeded maximum time, " +
+                "filePath={}, timestamp={}, result={}", filePath, timestamp, cqMax + 1);
+            return CompletableFuture.completedFuture(cqMax + 1);
+        }
+
+        buffer = getMessageAsync(cqMin).join();
+        storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
+        if (storeTime > timestamp) {
+            log.info("FlatMessageFile getQueueOffsetByTimeAsync, less than minimum time, " +
+                "filePath={}, timestamp={}, result={}", filePath, timestamp, cqMin);
+            return CompletableFuture.completedFuture(cqMin);
+        }
+
+        // binary search lower bound index in a sorted array
         long minOffset = cqMin;
         long maxOffset = cqMax;
         List<String> queryLog = new ArrayList<>();
         while (minOffset < maxOffset) {
             long middle = minOffset + (maxOffset - minOffset) / 2;
-            ByteBuffer buffer = this.getMessageAsync(middle).join();
-            long storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
-            queryLog.add(String.format(
-                "(range=%d-%d, middle=%d, timestamp=%d)", minOffset, maxOffset, middle, storeTime));
-            if (storeTime == timestamp) {
-                minOffset = middle;
-                break;
-            } else if (storeTime < timestamp) {
+            buffer = this.getMessageAsync(middle).join();
+            storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
+            queryLog.add(String.format("(range=%d-%d, middle=%d, timestamp=%d, diff=%dms)",
+                minOffset, maxOffset, middle, storeTime, timestamp - storeTime));
+            if (storeTime < timestamp) {
                 minOffset = middle + 1;
             } else {
-                maxOffset = middle - 1;
+                maxOffset = middle;
             }
         }
 
         long offset = minOffset;
-        while (true) {
-            long next = boundaryType == BoundaryType.LOWER ? offset - 1 : offset + 1;
-            if (next < cqMin || next > cqMax) {
-                break;
+        if (boundaryType == BoundaryType.UPPER) {
+            while (true) {
+                long next = offset + 1;
+                if (next > cqMax) {
+                    break;
+                }
+                buffer = this.getMessageAsync(next).join();
+                storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
+                if (storeTime == timestamp) {
+                    offset = next;
+                } else {
+                    break;
+                }
             }
-            ByteBuffer buffer = this.getMessageAsync(next).join();
-            long storeTime = MessageFormatUtil.getStoreTimeStamp(buffer);
-            if (storeTime == timestamp) {
-                offset = next;
-                continue;
-            }
-            break;
         }
 
         log.info("FlatMessageFile getQueueOffsetByTimeAsync, filePath={}, timestamp={}, result={}, log={}",

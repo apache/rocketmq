@@ -54,7 +54,10 @@ public class AclAuthorizationHandler implements Handler<DefaultAuthorizationCont
     @Override
     public CompletableFuture<Void> handle(DefaultAuthorizationContext context,
         HandlerChain<DefaultAuthorizationContext, CompletableFuture<Void>> chain) {
-        return authorizationMetadataProvider.getAcl(context.getSubject()).thenAccept(acl -> {
+        if (this.authorizationMetadataProvider == null) {
+            throw new AuthorizationException("The authorizationMetadataProvider is not configured");
+        }
+        return this.authorizationMetadataProvider.getAcl(context.getSubject()).thenAccept(acl -> {
             if (acl == null) {
                 throwException(context, "no matched policies.");
             }

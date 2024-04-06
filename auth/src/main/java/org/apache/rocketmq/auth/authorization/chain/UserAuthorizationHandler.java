@@ -54,6 +54,9 @@ public class UserAuthorizationHandler implements Handler<DefaultAuthorizationCon
     }
 
     private CompletableFuture<User> getUser(Subject subject) {
+        if (this.authenticationMetadataProvider == null) {
+            throw new AuthorizationException("The authenticationMetadataProvider is not configured");
+        }
         User user = (User) subject;
         return authenticationMetadataProvider.getUser(user.getUsername()).thenApply(result -> {
             if (result == null) {

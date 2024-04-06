@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -34,7 +35,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Optional;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -184,7 +184,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
     private Optional<String> pickTopic() {
         if (topicPublishInfoTable.isEmpty()) {
-            return Optional.absent();
+            return Optional.empty();
         }
         return Optional.of(topicPublishInfoTable.keySet().iterator().next());
     }

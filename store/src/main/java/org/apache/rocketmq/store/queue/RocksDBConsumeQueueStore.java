@@ -375,7 +375,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         if (high == null || high == -1) {
             return 0;
         }
-        return this.rocksDBConsumeQueueTable.binarySearchInCQByTime(topic, queueId, high, low, timestamp, minPhysicOffset);
+        return this.rocksDBConsumeQueueTable.binarySearchInCQByTime(topic, queueId, high, low, timestamp,
+            minPhysicOffset, boundaryType);
     }
 
     @Override
