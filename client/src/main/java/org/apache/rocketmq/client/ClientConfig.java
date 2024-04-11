@@ -101,7 +101,7 @@ public class ClientConfig {
     /**
      * The switch for message trace
      */
-    protected boolean enableTrace = true;
+    protected boolean enableTrace = false;
 
     /**
      * The name value of message trace topic. If not set, the default trace topic name will be used.
