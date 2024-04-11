@@ -83,6 +83,17 @@ public class IndexFile {
         return this.fileTotalSize;
     }
 
+    //switch new file to put
+    public boolean putKey() {
+        try {
+            this.mappedByteBuffer.putInt(IndexHeader.INDEX_HEADER_SIZE - 4, this.indexNum);
+            return true;
+        } catch (Exception e) {
+            log.error("abnormal recover index file: Error switching new file");
+        }
+        return false;
+    }
+
     public void load() {
         this.indexHeader.load();
     }
@@ -234,13 +245,21 @@ public class IndexFile {
                         long timeRead = this.indexHeader.getBeginTimestamp() + timeDiff;
                         boolean timeMatched = timeRead >= begin && timeRead <= end;
 
-                        if (keyHash == keyHashRead && timeMatched) {
+                        if (keyHash == keyHashRead && timeMatched && !phyOffsets.contains(phyOffsetRead)) {
                             phyOffsets.add(phyOffsetRead);
                         }
 
                         if (prevIndexRead <= invalidIndex
-                            || prevIndexRead > this.indexHeader.getIndexCount()
-                            || prevIndexRead == nextIndexToRead || timeRead < begin) {
+                                || prevIndexRead > this.indexHeader.getIndexCount()
+                                || timeRead < begin) {
+                            break;
+                        }
+
+                        if (prevIndexRead >= nextIndexToRead) {
+                            this.mappedByteBuffer.putInt(absIndexPos + 4 + 8 + 4, -1);
+                            log.error("the file[" + getFileName()
+                                    + "] structure is faulty and the preIndexNo of the message["
+                                    + nextIndexToRead + "] has been reset to -1");
                             break;
                         }
 
