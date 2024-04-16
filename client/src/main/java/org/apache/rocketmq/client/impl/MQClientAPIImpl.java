@@ -2007,6 +2007,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             case ResponseCode.TOPIC_NOT_EXIST: {
                 if (allowTopicNotExist) {
                     log.warn("get Topic [{}] RouteInfoFromNameServer is not exist value", topic);
+                    return null;
                 }
 
                 break;
