@@ -60,6 +60,10 @@ public class ReceiveMessageActivity extends AbstractMessingActivity {
 
         try {
             Settings settings = this.grpcClientSettingsManager.getClientSettings(ctx);
+            if (settings == null) {
+                writer.writeAndComplete(ctx, Code.UNRECOGNIZED_CLIENT_TYPE, "cannot find client settings for this client");
+                return;
+            }
             Subscription subscription = settings.getSubscription();
             boolean fifo = subscription.getFifo();
             int maxAttempts = settings.getBackoffPolicy().getMaxAttempts();
