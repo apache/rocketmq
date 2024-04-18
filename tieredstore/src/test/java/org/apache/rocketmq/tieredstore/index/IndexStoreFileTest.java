@@ -219,7 +219,7 @@ public class IndexStoreFileTest {
 
         ByteBuffer byteBuffer = indexStoreFile.doCompaction();
         FileSegment fileSegment = new PosixFileSegment(
-            storeConfig, FileSegmentType.INDEX, filePath, 0L);
+            storeConfig, FileSegmentType.INDEX_COMPACTED, filePath, 0L);
         fileSegment.append(byteBuffer, timestamp);
         fileSegment.commitAsync().join();
         Assert.assertEquals(byteBuffer.limit(), fileSegment.getSize());
@@ -252,7 +252,7 @@ public class IndexStoreFileTest {
 
         ByteBuffer byteBuffer = indexStoreFile.doCompaction();
         FileSegment fileSegment = new PosixFileSegment(
-            storeConfig, FileSegmentType.INDEX, filePath, 0L);
+            storeConfig, FileSegmentType.INDEX_COMPACTED, filePath, 0L);
         fileSegment.append(byteBuffer, timestamp);
         fileSegment.commitAsync().join();
         Assert.assertEquals(byteBuffer.limit(), fileSegment.getSize());

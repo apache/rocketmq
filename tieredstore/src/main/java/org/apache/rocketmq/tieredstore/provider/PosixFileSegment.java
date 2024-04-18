@@ -24,10 +24,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
+import com.google.common.io.ByteStreams;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
@@ -55,8 +58,9 @@ public class PosixFileSegment extends FileSegment {
 
     private final String fullPath;
     private volatile File file;
-    private volatile FileChannel readFileChannel;
-    private volatile FileChannel writeFileChannel;
+    private volatile FileChannel fileChannel;
+
+    private MappedByteBuffer mappedByteBuffer;
 
     public PosixFileSegment(MessageStoreConfig storeConfig,
         FileSegmentType fileType, String filePath, long baseOffset) {
@@ -75,6 +79,11 @@ public class PosixFileSegment extends FileSegment {
         log.info("Constructing Posix FileSegment, filePath: {}", fullPath);
 
         this.createFile();
+        try {
+            this.mappedByteBuffer = this.fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, getMaxSizeByFileType());
+        } catch (Exception e) {
+            log.error("PosixFileSegment constructor failed: ", e);
+        }
     }
 
     protected AttributesBuilder newAttributesBuilder() {
@@ -91,7 +100,7 @@ public class PosixFileSegment extends FileSegment {
     @Override
     public long getSize() {
         if (exists()) {
-            return file.length();
+            return commitPosition;
         }
         return 0L;
     }
@@ -125,8 +134,7 @@ public class PosixFileSegment extends FileSegment {
                     log.debug("Create Posix FileSegment, filePath: {}", fullPath);
                 }
             }
-            this.readFileChannel = new RandomAccessFile(file, "r").getChannel();
-            this.writeFileChannel = new RandomAccessFile(file, "rwd").getChannel();
+            this.fileChannel = new RandomAccessFile(file, "rwd").getChannel();
             this.file = file;
         } catch (Exception e) {
             log.error("PosixFileSegment#createFile: create file {} failed: ", filePath, e);
@@ -150,13 +158,9 @@ public class PosixFileSegment extends FileSegment {
     public void close() {
         super.close();
         try {
-            if (readFileChannel != null && readFileChannel.isOpen()) {
-                readFileChannel.close();
-                readFileChannel = null;
-            }
-            if (writeFileChannel != null && writeFileChannel.isOpen()) {
-                writeFileChannel.close();
-                writeFileChannel = null;
+            if (fileChannel != null && fileChannel.isOpen()) {
+                fileChannel.close();
+                fileChannel = null;
             }
         } catch (IOException e) {
             log.error("Destroy Posix FileSegment failed, filePath: {}", fullPath, e);
@@ -171,34 +175,28 @@ public class PosixFileSegment extends FileSegment {
 
         CompletableFuture<ByteBuffer> future = new CompletableFuture<>();
         ByteBuffer byteBuffer = ByteBuffer.allocate(length);
-        try {
-            readFileChannel.position(position);
-            readFileChannel.read(byteBuffer);
-            byteBuffer.flip();
-            byteBuffer.limit(length);
+        ByteBuffer directByteBuffer = mappedByteBuffer.slice();
+        directByteBuffer.position((int) position);
+        directByteBuffer.limit((int) (length + position));
+        byteBuffer.put(directByteBuffer);
+        byteBuffer.flip();
+        byteBuffer.limit(length);
 
-            attributesBuilder.put(LABEL_SUCCESS, true);
-            long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
-            TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
+        attributesBuilder.put(LABEL_SUCCESS, true);
+        long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
+        TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
 
-            Attributes metricsAttributes = newAttributesBuilder()
-                .put(LABEL_OPERATION, OPERATION_POSIX_READ)
-                .build();
-            int downloadedBytes = byteBuffer.remaining();
-            TieredStoreMetricsManager.downloadBytes.record(downloadedBytes, metricsAttributes);
+        Attributes metricsAttributes = newAttributesBuilder()
+            .put(LABEL_OPERATION, OPERATION_POSIX_READ)
+            .build();
+        int downloadedBytes = byteBuffer.remaining();
+        TieredStoreMetricsManager.downloadBytes.record(downloadedBytes, metricsAttributes);
 
-            future.complete(byteBuffer);
-        } catch (IOException e) {
-            long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
-            attributesBuilder.put(LABEL_SUCCESS, false);
-            TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
-            future.completeExceptionally(e);
-        }
+        future.complete(byteBuffer);
         return future;
     }
 
     @Override
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     public CompletableFuture<Boolean> commit0(
         FileSegmentInputStream inputStream, long position, int length, boolean append) {
 
@@ -208,13 +206,11 @@ public class PosixFileSegment extends FileSegment {
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                byte[] byteArray = ByteStreams.toByteArray(inputStream);
-                writeFileChannel.position(position);
-                ByteBuffer buffer = ByteBuffer.wrap(byteArray);
-                while (buffer.hasRemaining()) {
-                    writeFileChannel.write(buffer);
-                }
-                writeFileChannel.force(true);
+                ByteBuffer writeBuffer = mappedByteBuffer.slice();
+                writeBuffer.position((int) position);
+                writeBuffer.limit((int) position + length);
+                writeBuffer.put(ByteStreams.toByteArray(inputStream));
+                mappedByteBuffer.force();
                 attributesBuilder.put(LABEL_SUCCESS, true);
                 long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
                 TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());

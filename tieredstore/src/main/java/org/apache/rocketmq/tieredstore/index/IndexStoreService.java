@@ -139,7 +139,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         this.setCompactTimestamp(this.timeStoreTable.firstKey() - 1);
 
         // recover remote
-        this.flatAppendFile = fileAllocator.createFlatFileForIndexFile(filePath);
+        this.flatAppendFile = fileAllocator.createFlatFileForCompactedIndexFile(filePath);
 
         for (FileSegment fileSegment : flatAppendFile.getFileSegmentList()) {
             IndexFile indexFile = new IndexStoreFile(storeConfig, fileSegment);

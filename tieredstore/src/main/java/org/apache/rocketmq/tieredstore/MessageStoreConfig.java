@@ -210,6 +210,14 @@ public class MessageStoreConfig {
         this.tieredStoreConsumeQueueMaxSize = tieredStoreConsumeQueueMaxSize;
     }
 
+    public int getTieredStoreOriginalIndexFileMaxSize() {
+        return 28 + 8 * tieredStoreIndexFileMaxHashSlotNum + 32 * tieredStoreIndexFileMaxIndexNum;
+    }
+
+    public int getTieredStoreCompactedIndexFileMaxSize() {
+        return 28 + 8 * tieredStoreIndexFileMaxHashSlotNum + 28 * tieredStoreIndexFileMaxIndexNum;
+    }
+
     public int getTieredStoreIndexFileMaxHashSlotNum() {
         return tieredStoreIndexFileMaxHashSlotNum;
     }

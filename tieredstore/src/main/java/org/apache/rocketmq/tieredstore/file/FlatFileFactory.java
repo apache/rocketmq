@@ -53,4 +53,8 @@ public class FlatFileFactory {
     public FlatAppendFile createFlatFileForIndexFile(String filePath) {
         return new FlatAppendFile(this.fileSegmentFactory, FileSegmentType.INDEX, filePath);
     }
+
+    public FlatAppendFile createFlatFileForCompactedIndexFile(String filePath) {
+        return new FlatAppendFile(this.fileSegmentFactory, FileSegmentType.INDEX_COMPACTED, filePath);
+    }
 }

@@ -71,7 +71,8 @@ public class FlatAppendFile {
     }
 
     public void recoverFileSize() {
-        if (fileSegmentTable.isEmpty() || FileSegmentType.INDEX.equals(fileType)) {
+        if (fileSegmentTable.isEmpty() ||
+            FileSegmentType.INDEX.equals(fileType) || FileSegmentType.INDEX_COMPACTED.equals(fileType)) {
             return;
         }
         FileSegment fileSegment = fileSegmentTable.get(fileSegmentTable.size() - 1);
