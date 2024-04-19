@@ -172,13 +172,7 @@ public class AllocateMappedFileService extends ServiceThread {
 
                 MappedFile mappedFile;
                 if (messageStore.isTransientStorePoolEnable()) {
-                    try {
-                        mappedFile = ServiceLoader.load(MappedFile.class).iterator().next();
-                        mappedFile.init(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
-                    } catch (RuntimeException e) {
-                        log.warn("Use default implementation.");
-                        mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
-                    }
+                    mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize(), messageStore.getTransientStorePool());
                 } else {
                     mappedFile = new DefaultMappedFile(req.getFilePath(), req.getFileSize());
                 }
@@ -317,5 +311,14 @@ public class AllocateMappedFileService extends ServiceThread {
                 return false;
             return true;
         }
+    }
+
+    public static void main(String[] args) {
+        try {
+            MappedFile mappedFile = ServiceLoader.load(MappedFile.class).iterator().next();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        System.out.printf("aa");
     }
 }
