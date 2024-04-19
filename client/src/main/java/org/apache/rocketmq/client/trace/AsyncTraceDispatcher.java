@@ -78,6 +78,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
     private volatile AccessChannel accessChannel = AccessChannel.LOCAL;
     private String group;
     private Type type;
+    private String namespaceV2;
 
     public AsyncTraceDispatcher(String group, Type type, String traceTopicName, RPCHook rpcHook) {
         // queueSize is greater than or equal to the n power of 2 of value
@@ -144,10 +145,20 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.hostConsumer = hostConsumer;
     }
 
+    public String getNamespaceV2() {
+        return namespaceV2;
+    }
+
+    public void setNamespaceV2(String namespaceV2) {
+        this.namespaceV2 = namespaceV2;
+    }
+
     public void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException {
         if (isStarted.compareAndSet(false, true)) {
             traceProducer.setNamesrvAddr(nameSrvAddr);
             traceProducer.setInstanceName(TRACE_INSTANCE_NAME + "_" + nameSrvAddr);
+            traceProducer.setNamespaceV2(namespaceV2);
+            traceProducer.setEnableTrace(false);
             traceProducer.start();
         }
         this.accessChannel = accessChannel;

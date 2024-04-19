@@ -72,7 +72,6 @@ import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestH
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumerData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -499,7 +498,7 @@ public class DefaultAuthorizationContextBuilderTest {
             }
 
             @Override
-            public int compareTo(@NotNull ChannelId o) {
+            public int compareTo(ChannelId o) {
                 return 0;
             }
         };

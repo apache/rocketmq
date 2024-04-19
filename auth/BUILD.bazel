@@ -17,41 +17,55 @@
 load("//bazel:GenTestRules.bzl", "GenTestRules")
 
 java_library(
-    name = "client",
+    name = "auth",
     srcs = glob(["src/main/java/**/*.java"]),
     visibility = ["//visibility:public"],
     deps = [
+        "//acl",
         "//common",
         "//remoting",
+        "//srvutil",
+        "@maven//:commons_codec_commons_codec",
         "@maven//:org_apache_commons_commons_lang3",
-        "@maven//:commons_validator_commons_validator",
-        "@maven//:com_github_luben_zstd_jni",
-        "@maven//:org_lz4_lz4_java",
-        "@maven//:com_alibaba_fastjson",
-        "@maven//:io_netty_netty_all",
-        "@maven//:io_opentracing_opentracing_api",
         "@maven//:commons_collections_commons_collections",
-        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
-        "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
+        "@maven//:org_apache_rocketmq_rocketmq_proto",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:com_github_ben_manes_caffeine_caffeine",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:io_netty_netty_all",
+        "@maven//:com_google_guava_guava",
+        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
     ],
 )
 
 java_library(
     name = "tests",
     srcs = glob(["src/test/java/**/*.java"]),
+    resources = glob(["src/test/resources/**/*.yml"]),
     visibility = ["//visibility:public"],
     deps = [
-        ":client",
-        "//remoting",
-        "//common",
+        ":auth",
+        "//acl",
         "//:test_deps",
-        "@maven//:org_apache_commons_commons_lang3", 
-        "@maven//:io_netty_netty_all",   
-        "@maven//:io_opentracing_opentracing_api",        
-        "@maven//:io_opentracing_opentracing_mock",   
-        "@maven//:org_awaitility_awaitility",         
+        "//common",
+        "//remoting",
+        "@maven//:commons_codec_commons_codec",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_collections_commons_collections",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
+        "@maven//:org_apache_rocketmq_rocketmq_proto",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:com_github_ben_manes_caffeine_caffeine",
+        "@maven//:io_grpc_grpc_api",
+        "@maven//:com_google_protobuf_protobuf_java",
+        "@maven//:com_google_protobuf_protobuf_java_util",
+        "@maven//:io_netty_netty_all",
+        "@maven//:com_google_guava_guava",
+        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
     ],
-    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )
 
 GenTestRules(
@@ -59,8 +73,5 @@ GenTestRules(
     test_files = glob(["src/test/java/**/*Test.java"]),
     deps = [
         ":tests",
-    ],
-    exclude_tests = [
-        "src/test/java/org/apache/rocketmq/client/consumer/DefaultLitePullConsumerTest",
     ],
 )

@@ -103,6 +103,8 @@ public class TransactionMQProducerWithOpenTracingTest {
         producer.getDefaultMQProducerImpl().registerSendMessageHook(new SendMessageOpenTracingHookImpl(tracer));
         producer.getDefaultMQProducerImpl().registerEndTransactionHook(new EndTransactionOpenTracingHookImpl(tracer));
         producer.setTransactionListener(transactionListener);
+        // disable trace to let mock trace work
+        producer.setEnableTrace(false);
 
         producer.setNamesrvAddr("127.0.0.1:9876");
         message = new Message(topic, new byte[] {'a', 'b', 'c'});

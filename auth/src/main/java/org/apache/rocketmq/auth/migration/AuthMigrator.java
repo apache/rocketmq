@@ -45,8 +45,8 @@ import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.resource.ResourcePattern;
 import org.apache.rocketmq.common.resource.ResourceType;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AuthMigrator {
 

@@ -76,7 +76,10 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
 
         return Caffeine.newBuilder()
             .scheduler(Scheduler.systemScheduler())
-            .expireAfterWrite(storeConfig.getReadAheadCacheExpireDuration(), TimeUnit.MILLISECONDS)
+            // Clients may repeatedly request messages at the same offset in tiered storage,
+            // causing the request queue to become full. Using expire after read or write policy
+            // to refresh the cache expiration time.
+            .expireAfterAccess(storeConfig.getReadAheadCacheExpireDuration(), TimeUnit.MILLISECONDS)
             .maximumWeight(memoryMaxSize)
             // Using the buffer size of messages to calculate memory usage
             .weigher((String key, SelectBufferResult buffer) -> buffer.getSize())
@@ -98,7 +101,15 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
         SelectBufferResult buffer = this.fetcherCache.getIfPresent(
             String.format(CACHE_KEY_FORMAT, mq.getTopic(), mq.getQueueId(), offset));
         // return duplicate buffer here
-        return buffer == null ? null : new SelectBufferResult(
+        if (buffer == null) {
+            return null;
+        }
+        long count = buffer.getAccessCount().incrementAndGet();
+        if (count % 1000L == 0L) {
+            log.warn("MessageFetcher fetch same offset message too many times, " +
+                "topic={}, queueId={}, offset={}, count={}", mq.getTopic(), mq.getQueueId(), offset, count);
+        }
+        return new SelectBufferResult(
             buffer.getByteBuffer().asReadOnlyBuffer(), buffer.getStartOffset(), buffer.getSize(), buffer.getTagCode());
     }
 
@@ -394,8 +405,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
             messageStore.getIndexService().queryAsync(topic, key, maxCount, begin, end);
 
         return future.thenCompose(indexItemList -> {
-            QueryMessageResult result = new QueryMessageResult();
-            List<CompletableFuture<Void>> futureList = new ArrayList<>(maxCount);
+            List<CompletableFuture<SelectMappedBufferResult>> futureList = new ArrayList<>(maxCount);
             for (IndexItem indexItem : indexItemList) {
                 if (topicId != indexItem.getTopicId()) {
                     continue;
@@ -405,17 +415,20 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
                 if (flatFile == null) {
                     continue;
                 }
-                CompletableFuture<Void> getMessageFuture = flatFile
+                CompletableFuture<SelectMappedBufferResult> getMessageFuture = flatFile
                     .getCommitLogAsync(indexItem.getOffset(), indexItem.getSize())
-                    .thenAccept(messageBuffer -> result.addMessage(
-                        new SelectMappedBufferResult(
-                            indexItem.getOffset(), messageBuffer, indexItem.getSize(), null)));
+                    .thenApply(messageBuffer -> new SelectMappedBufferResult(
+                        indexItem.getOffset(), messageBuffer, indexItem.getSize(), null));
                 futureList.add(getMessageFuture);
                 if (futureList.size() >= maxCount) {
                     break;
                 }
             }
-            return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).thenApply(v -> result);
+            return CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).thenApply(v -> {
+                QueryMessageResult result = new QueryMessageResult();
+                futureList.forEach(f -> f.thenAccept(result::addMessage));
+                return result;
+            });
         }).whenComplete((result, throwable) -> {
             if (result != null) {
                 log.info("MessageFetcher#queryMessageAsync, " +
