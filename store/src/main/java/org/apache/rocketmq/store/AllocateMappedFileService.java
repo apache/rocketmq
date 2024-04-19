@@ -18,7 +18,6 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -311,14 +310,5 @@ public class AllocateMappedFileService extends ServiceThread {
                 return false;
             return true;
         }
-    }
-
-    public static void main(String[] args) {
-        try {
-            MappedFile mappedFile = ServiceLoader.load(MappedFile.class).iterator().next();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        System.out.printf("aa");
     }
 }
