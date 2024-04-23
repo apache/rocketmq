@@ -161,8 +161,11 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         List<DefaultAuthorizationContext> result = new ArrayList<>();
         try {
             HashMap<String, String> fields = command.getExtFields();
+            if (MapUtils.isEmpty(fields)) {
+                return result;
+            }
             Subject subject = null;
-            if (MapUtils.isNotEmpty(fields) && fields.containsKey(SessionCredentials.ACCESS_KEY)) {
+            if (fields.containsKey(SessionCredentials.ACCESS_KEY)) {
                 subject = User.of(fields.get(SessionCredentials.ACCESS_KEY));
             }
             String remoteAddr = RemotingHelper.parseChannelRemoteAddr(context.channel());
