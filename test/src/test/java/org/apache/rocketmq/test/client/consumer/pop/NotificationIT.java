@@ -58,12 +58,12 @@ public class NotificationIT extends BasePop {
         CompletableFuture<Boolean> future1 = client.notification(brokerAddr, topic, group, messageQueue.getQueueId(), pollTime, System.currentTimeMillis(), 5000);
         CompletableFuture<Boolean> future2 = client.notification(brokerAddr, topic, group, messageQueue.getQueueId(), pollTime, System.currentTimeMillis(), 5000);
         sendMessage(1);
-        Boolean result1 = future1.get();
-        assertThat(result1).isTrue();
-        client.popMessageAsync(brokerAddr, messageQueue, 10000, 1, group, 1000, false,
-            ConsumeInitMode.MIN, false, null, null);
         Boolean result2 = future2.get();
-        assertThat(result2).isFalse();
+        assertThat(result2).isTrue();
+        client.popMessageAsync(brokerAddr, messageQueue, 10000, 1, group, 1000, false,
+            ConsumeInitMode.MIN, false, null, null).get();
+        Boolean result1 = future1.get();
+        assertThat(result1).isFalse();
     }
 
     @Test
@@ -76,7 +76,7 @@ public class NotificationIT extends BasePop {
         Boolean result1 = future1.get();
         assertThat(result1).isTrue();
         client.popMessageAsync(brokerAddr, messageQueue, 10000, 1, group, 1000, false,
-            ConsumeInitMode.MIN, true, null, null, attemptId);
+            ConsumeInitMode.MIN, true, null, null, attemptId).get();
         Boolean result2 = future2.get();
         assertThat(result2).isTrue();
 

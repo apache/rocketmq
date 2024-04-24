@@ -24,7 +24,7 @@ import java.util.UUID;
 import org.apache.rocketmq.proxy.common.ContextVariable;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.InitConfigTest;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
@@ -65,10 +65,10 @@ public class BaseActivityTest extends InitConfigTest {
         receiptHandleProcessor = mock(ReceiptHandleProcessor.class);
         metadataService = mock(MetadataService.class);
 
-        metadata.put(InterceptorConstants.CLIENT_ID, CLIENT_ID);
-        metadata.put(InterceptorConstants.LANGUAGE, JAVA);
-        metadata.put(InterceptorConstants.REMOTE_ADDRESS, REMOTE_ADDR);
-        metadata.put(InterceptorConstants.LOCAL_ADDRESS, LOCAL_ADDR);
+        metadata.put(GrpcConstants.CLIENT_ID, CLIENT_ID);
+        metadata.put(GrpcConstants.LANGUAGE, JAVA);
+        metadata.put(GrpcConstants.REMOTE_ADDRESS, REMOTE_ADDR);
+        metadata.put(GrpcConstants.LOCAL_ADDRESS, LOCAL_ADDR);
         when(messagingProcessor.getProxyRelayService()).thenReturn(proxyRelayService);
         when(messagingProcessor.getMetadataService()).thenReturn(metadataService);
         grpcChannelManager = new GrpcChannelManager(messagingProcessor.getProxyRelayService(), grpcClientSettingsManager);

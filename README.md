@@ -5,7 +5,7 @@
 [![Maven Central][maven-central-image]][maven-central-url]
 [![Release][release-image]][release-url]
 [![License][license-image]][license-url]
-[![Average Time to Resolve An Issue][percentage-of-issues-still-open-image]][pencentage-of-issues-still-open-url]
+[![Average Time to Resolve An Issue][percentage-of-issues-still-open-image]][percentage-of-issues-still-open-url]
 [![Percentage of Issues Still Open][average-time-to-resolve-an-issue-image]][average-time-to-resolve-an-issue-url]
 [![Twitter Follow][twitter-follow-image]][twitter-follow-url]
 
@@ -183,7 +183,7 @@ name-service         1/1     107m
 * [RocketMQ Connect](https://github.com/apache/rocketmq-connect): A tool for scalably and reliably streaming data between Apache RocketMQ and other systems.
 * [RocketMQ MQTT](https://github.com/apache/rocketmq-mqtt): A new MQTT protocol architecture model, based on which Apache RocketMQ can better support messages from terminals such as IoT devices and Mobile APP.
 * [RocketMQ EventBridge](https://github.com/apache/rocketmq-eventbridge): EventBridge make it easier to build a event-driven application.
-* [RocketMQ Incubating Community Projects](https://github.com/apache/rocketmq-externals): Icubator community projects of Apache RocketMQ, including [logappender](https://github.com/apache/rocketmq-externals/tree/master/logappender), [rocketmq-ansible](https://github.com/apache/rocketmq-externals/tree/master/rocketmq-ansible), [rocketmq-beats-integration](https://github.com/apache/rocketmq-externals/tree/master/rocketmq-beats-integration), [rocketmq-cloudevents-binding](https://github.com/apache/rocketmq-externals/tree/master/rocketmq-cloudevents-binding), etc.
+* [RocketMQ Incubating Community Projects](https://github.com/apache/rocketmq-externals): Incubator community projects of Apache RocketMQ, including [logappender](https://github.com/apache/rocketmq-externals/tree/master/logappender), [rocketmq-ansible](https://github.com/apache/rocketmq-externals/tree/master/rocketmq-ansible), [rocketmq-beats-integration](https://github.com/apache/rocketmq-externals/tree/master/rocketmq-beats-integration), [rocketmq-cloudevents-binding](https://github.com/apache/rocketmq-externals/tree/master/rocketmq-cloudevents-binding), etc.
 * [RocketMQ Site](https://github.com/apache/rocketmq-site): The repository for Apache RocketMQ website.
 * [RocketMQ E2E](https://github.com/apache/rocketmq-e2e): A project for testing Apache RocketMQ, including end-to-end, performance, compatibility tests.
 
@@ -245,6 +245,6 @@ services.
 [average-time-to-resolve-an-issue-image]: http://isitmaintained.com/badge/resolution/apache/rocketmq.svg
 [average-time-to-resolve-an-issue-url]: http://isitmaintained.com/project/apache/rocketmq
 [percentage-of-issues-still-open-image]: http://isitmaintained.com/badge/open/apache/rocketmq.svg
-[pencentage-of-issues-still-open-url]: http://isitmaintained.com/project/apache/rocketmq
+[percentage-of-issues-still-open-url]: http://isitmaintained.com/project/apache/rocketmq
 [twitter-follow-image]: https://img.shields.io/twitter/follow/ApacheRocketMQ?style=social
 [twitter-follow-url]: https://twitter.com/intent/follow?screen_name=ApacheRocketMQ

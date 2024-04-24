@@ -1543,7 +1543,11 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     public long flushBehindBytes() {
-        return this.commitLog.remainHowManyDataToCommit() + this.commitLog.remainHowManyDataToFlush();
+        if (this.messageStoreConfig.isTransientStorePoolEnable()) {
+            return this.commitLog.remainHowManyDataToCommit() + this.commitLog.remainHowManyDataToFlush();
+        } else {
+            return this.commitLog.remainHowManyDataToFlush();
+        }
     }
 
     @Override
@@ -2926,7 +2930,7 @@ public class DefaultMessageStore implements MessageStore {
                 try {
                     TimeUnit.MILLISECONDS.sleep(1);
                     this.doReput();
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     DefaultMessageStore.LOGGER.warn(this.getServiceName() + " service has exception. ", e);
                 }
             }

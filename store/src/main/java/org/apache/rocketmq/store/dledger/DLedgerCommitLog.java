@@ -318,6 +318,7 @@ public class DLedgerCommitLog extends CommitLog {
 
     private void dledgerRecoverAbnormally(long maxPhyOffsetOfConsumeQueue) throws RocksDBException {
         boolean checkCRCOnRecover = this.defaultMessageStore.getMessageStoreConfig().isCheckCRCOnRecover();
+        boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
         dLedgerFileStore.load();
         if (!dLedgerFileList.getMappedFiles().isEmpty()) {
             dLedgerFileStore.recover();
@@ -346,7 +347,7 @@ public class DLedgerCommitLog extends CommitLog {
             long processOffset = mmapFile.getFileFromOffset();
             long mmapFileOffset = 0;
             while (true) {
-                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, true);
+                DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
                 int size = dispatchRequest.getMsgSize();
 
                 if (dispatchRequest.isSuccess()) {

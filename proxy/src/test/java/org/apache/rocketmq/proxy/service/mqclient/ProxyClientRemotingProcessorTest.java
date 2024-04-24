@@ -75,7 +75,7 @@ public class ProxyClientRemotingProcessorTest {
         CompletableFuture<ProxyRelayResult<Void>> proxyRelayResultFuture = new CompletableFuture<>();
         when(proxyRelayService.processCheckTransactionState(any(), any(), any(), any()))
             .thenReturn(new RelayData<>(
-                new TransactionData("brokerName", 0, 0, "id", System.currentTimeMillis(), 3000),
+                new TransactionData("brokerName", "topic", 0, 0, "id", System.currentTimeMillis(), 3000),
                 proxyRelayResultFuture));
 
         GrpcClientChannel grpcClientChannel = new GrpcClientChannel(proxyRelayService, grpcClientSettingsManager, null,

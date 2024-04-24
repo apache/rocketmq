@@ -167,6 +167,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     private int backPressureForAsyncSendSize = 100 * 1024 * 1024;
 
+    private RPCHook rpcHook = null;
+
     /**
      * Default constructor.
      */
@@ -202,6 +204,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
         this.producerGroup = producerGroup;
+        this.rpcHook = rpcHook;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
         produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
@@ -243,20 +246,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,
         final String customizedTraceTopic) {
         this(producerGroup, rpcHook);
-        //if client open the message trace feature
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
-                dispatcher.setHostProducer(this.defaultMQProducerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQProducerImpl.registerSendMessageHook(
-                    new SendMessageTraceHookImpl(traceDispatcher));
-                this.defaultMQProducerImpl.registerEndTransactionHook(
-                    new EndTransactionTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
     }
 
     /**
@@ -298,6 +289,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.producerGroup = producerGroup;
+        this.rpcHook = rpcHook;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
         produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
@@ -318,27 +310,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         boolean enableMsgTrace, final String customizedTraceTopic) {
         this(namespace, producerGroup, rpcHook);
         //if client open the message trace feature
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
-                dispatcher.setHostProducer(this.defaultMQProducerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQProducerImpl.registerSendMessageHook(
-                    new SendMessageTraceHookImpl(traceDispatcher));
-                this.defaultMQProducerImpl.registerEndTransactionHook(
-                    new EndTransactionTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
-    }
-
-    @Override
-    public void setUseTLS(boolean useTLS) {
-        super.setUseTLS(useTLS);
-        if (traceDispatcher instanceof AsyncTraceDispatcher) {
-            ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
-        }
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
     }
 
     /**
@@ -356,7 +329,24 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         if (this.produceAccumulator != null) {
             this.produceAccumulator.start();
         }
+        if (enableTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, traceTopic, rpcHook);
+                dispatcher.setHostProducer(this.defaultMQProducerImpl);
+                dispatcher.setNamespaceV2(this.namespaceV2);
+                traceDispatcher = dispatcher;
+                this.defaultMQProducerImpl.registerSendMessageHook(
+                    new SendMessageTraceHookImpl(traceDispatcher));
+                this.defaultMQProducerImpl.registerEndTransactionHook(
+                    new EndTransactionTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
         if (null != traceDispatcher) {
+            if (traceDispatcher instanceof AsyncTraceDispatcher) {
+                ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(isUseTLS());
+            }
             try {
                 traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {
@@ -1003,25 +993,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     /**
-     * Query message of the given offset message ID.
-     * <p>
-     * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
-     *
-     * @param offsetMsgId message id
-     * @return Message specified.
-     * @throws MQBrokerException    if there is any broker error.
-     * @throws MQClientException    if there is any client error.
-     * @throws RemotingException    if there is any network-tier error.
-     * @throws InterruptedException if the sending thread is interrupted.
-     */
-    @Deprecated
-    @Override
-    public MessageExt viewMessage(
-        String offsetMsgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        return this.defaultMQProducerImpl.viewMessage(offsetMsgId);
-    }
-
-    /**
      * Query message by key.
      * <p>
      * This method will be removed in a certain version after April 5, 2020, so please do not use this method.
@@ -1060,7 +1031,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public MessageExt viewMessage(String topic,
         String msgId) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         try {
-            return this.viewMessage(msgId);
+            return this.defaultMQProducerImpl.viewMessage(topic, msgId);
         } catch (Exception ignored) {
         }
         return this.defaultMQProducerImpl.queryMessageByUniqKey(withNamespace(topic), msgId);

@@ -122,7 +122,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
         retMsgExt.setReconsumeTimes(2);
         retMsgExt.setBornTimestamp(System.currentTimeMillis());
         retMsgExt.setStoreTimestamp(System.currentTimeMillis());
-        when(mQAdminImpl.viewMessage(anyString())).thenReturn(retMsgExt);
+        when(mQAdminImpl.viewMessage(anyString(), anyString())).thenReturn(retMsgExt);
 
         when(mQAdminImpl.queryMessageByUniqKey(anyString(), anyString())).thenReturn(retMsgExt);
 
