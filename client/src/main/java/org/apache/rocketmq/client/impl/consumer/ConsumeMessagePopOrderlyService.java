@@ -49,6 +49,8 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
     private static final Logger log = LoggerFactory.getLogger(ConsumeMessagePopOrderlyService.class);
+    private static final boolean PREFER_VIRTUAL = Boolean.parseBoolean(
+        System.getProperty("rocketmq.client.consumer.virtualThread", "false"));
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
     private final DefaultMQPushConsumer defaultMQPushConsumer;
     private final MessageListenerOrderly messageListener;
@@ -76,7 +78,7 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.consumeRequestQueue,
-            new ThreadFactoryImpl("ConsumeMessageThread_"));
+            new ThreadFactoryImpl("ConsumeMessageThread_", false, null, PREFER_VIRTUAL));
 
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_"));
     }

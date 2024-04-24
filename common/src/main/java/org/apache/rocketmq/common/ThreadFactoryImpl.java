@@ -17,9 +17,11 @@
 
 package org.apache.rocketmq.common;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.VirtualThreadFactorySupport;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
@@ -30,33 +32,55 @@ public class ThreadFactoryImpl implements ThreadFactory {
     private final AtomicLong threadIndex = new AtomicLong(0);
     private final String threadNamePrefix;
     private final boolean daemon;
+    //Whether preferring virtual thread
+    private final boolean preferVirtualThread;
+    private final ThreadFactory defaultFactory;
 
     public ThreadFactoryImpl(final String threadNamePrefix) {
         this(threadNamePrefix, false);
     }
 
-    public ThreadFactoryImpl(final String threadNamePrefix, boolean daemon) {
-        this.threadNamePrefix = threadNamePrefix;
-        this.daemon = daemon;
+    public ThreadFactoryImpl(final String threadNamePrefix, final boolean daemon) {
+        this(threadNamePrefix, daemon, null);
     }
 
-    public ThreadFactoryImpl(final String threadNamePrefix, BrokerIdentity brokerIdentity) {
+    public ThreadFactoryImpl(final String threadNamePrefix, final BrokerIdentity brokerIdentity) {
         this(threadNamePrefix, false, brokerIdentity);
     }
 
-    public ThreadFactoryImpl(final String threadNamePrefix, boolean daemon, BrokerIdentity brokerIdentity) {
+    public ThreadFactoryImpl(final String threadNamePrefix,
+                             final boolean daemon,
+                             final BrokerIdentity brokerIdentity) {
+        this(threadNamePrefix, daemon, brokerIdentity, false);
+    }
+
+    public ThreadFactoryImpl(final String threadNamePrefix,
+                             final boolean daemon,
+                             final BrokerIdentity brokerIdentity,
+                             final boolean preferVirtualThread) {
         this.daemon = daemon;
+        this.preferVirtualThread = preferVirtualThread;
         if (brokerIdentity != null && brokerIdentity.isInBrokerContainer()) {
             this.threadNamePrefix = brokerIdentity.getIdentifier() + threadNamePrefix;
         } else {
             this.threadNamePrefix = threadNamePrefix;
         }
+        if (this.preferVirtualThread) {
+            final ThreadFactory virtualThreadFactory = VirtualThreadFactorySupport.create(this.threadNamePrefix);
+            this.defaultFactory = virtualThreadFactory != null ? virtualThreadFactory : Executors.defaultThreadFactory();
+        } else {
+            this.defaultFactory = Executors.defaultThreadFactory();
+        }
     }
 
     @Override
-    public Thread newThread(Runnable r) {
-        Thread thread = new Thread(r, threadNamePrefix + this.threadIndex.incrementAndGet());
-        thread.setDaemon(daemon);
+    public Thread newThread(final Runnable r) {
+        final Thread thread = this.defaultFactory.newThread(r);
+        if (!this.preferVirtualThread) {
+            thread.setDaemon(daemon);
+            final String threadName = this.threadNamePrefix + threadIndex.getAndIncrement();
+            thread.setName(threadName);
+        }
 
         // Log all uncaught exception
         thread.setUncaughtExceptionHandler((t, e) ->
