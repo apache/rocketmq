@@ -223,7 +223,7 @@ public interface LitePullConsumer {
      * Manually commit consume offset saved by the system.
      *
      * @param messageQueues Message queues that need to submit consumer offset
-     * @param persist hether to persist to the broker
+     * @param persist whether to persist to the broker
      */
     void commit(final Set<MessageQueue> messageQueues, boolean persist);
 
