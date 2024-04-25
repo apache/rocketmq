@@ -55,10 +55,10 @@ public class MomentStatsItem {
     }
 
     public void printAtMinutes() {
-        log.info(String.format("[%s] [%s] Stats Every 5 Minutes, Value: %d",
+        log.info("[{}] [{}] Stats Every 5 Minutes, Value: {}",
             this.statsName,
             this.statsKey,
-            this.value.get()));
+            this.value.get());
     }
 
     public AtomicLong getValue() {
