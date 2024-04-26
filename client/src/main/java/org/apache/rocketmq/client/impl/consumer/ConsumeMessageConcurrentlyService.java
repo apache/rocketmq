@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -190,35 +189,11 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         final MessageQueue messageQueue,
         final boolean dispatchToConsume) {
         final int consumeBatchSize = this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
-        if (msgs.size() <= consumeBatchSize) {
-            ConsumeRequest consumeRequest = new ConsumeRequest(msgs, processQueue, messageQueue);
-            try {
-                this.consumeExecutor.submit(consumeRequest);
-            } catch (RejectedExecutionException e) {
-                this.submitConsumeRequestLater(consumeRequest);
-            }
-        } else {
-            for (int total = 0; total < msgs.size(); ) {
-                List<MessageExt> msgThis = new ArrayList<>(consumeBatchSize);
-                for (int i = 0; i < consumeBatchSize; i++, total++) {
-                    if (total < msgs.size()) {
-                        msgThis.add(msgs.get(total));
-                    } else {
-                        break;
-                    }
-                }
-
-                ConsumeRequest consumeRequest = new ConsumeRequest(msgThis, processQueue, messageQueue);
-                try {
-                    this.consumeExecutor.submit(consumeRequest);
-                } catch (RejectedExecutionException e) {
-                    for (; total < msgs.size(); total++) {
-                        msgThis.add(msgs.get(total));
-                    }
-
-                    this.submitConsumeRequestLater(consumeRequest);
-                }
-            }
+        int batch = ((msgs.size() - 1) / consumeBatchSize) + 1;
+        for (int batchIdx = 0; batchIdx < batch; batchIdx++) {
+            List<MessageExt> batchMessages = msgs.subList(batchIdx * consumeBatchSize, Math.min((batchIdx + 1) * consumeBatchSize, msgs.size()));
+            ConsumeRequest consumeRequest = new ConsumeRequest(batchMessages, processQueue, messageQueue);
+            this.consumeExecutor.submit(consumeRequest);
         }
     }
 
