@@ -27,6 +27,8 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
@@ -142,6 +144,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     // only for test purpose, will be modified by reflection in unit test.
     @SuppressWarnings("FieldMayBeFinal")
     private static boolean doNotUpdateTopicSubscribeInfoWhenSubscriptionChanged = false;
+    private final ReentrantLock lock = new ReentrantLock();
 
     public DefaultMQPushConsumerImpl(DefaultMQPushConsumer defaultMQPushConsumer, RPCHook rpcHook) {
         this.defaultMQPushConsumer = defaultMQPushConsumer;
@@ -889,119 +892,129 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         shutdown(0);
     }
 
-    public synchronized void shutdown(long awaitTerminateMillis) {
-        switch (this.serviceState) {
-            case CREATE_JUST:
-                break;
-            case RUNNING:
-                this.consumeMessageService.shutdown(awaitTerminateMillis);
-                this.persistConsumerOffset();
-                this.mQClientFactory.unregisterConsumer(this.defaultMQPushConsumer.getConsumerGroup());
-                this.mQClientFactory.shutdown();
-                log.info("the consumer [{}] shutdown OK", this.defaultMQPushConsumer.getConsumerGroup());
-                this.rebalanceImpl.destroy();
-                this.serviceState = ServiceState.SHUTDOWN_ALREADY;
-                break;
-            case SHUTDOWN_ALREADY:
-                break;
-            default:
-                break;
+    public void shutdown(long awaitTerminateMillis) {
+        lock.lock();
+        try {
+            switch (this.serviceState) {
+                case CREATE_JUST:
+                    break;
+                case RUNNING:
+                    this.consumeMessageService.shutdown(awaitTerminateMillis);
+                    this.persistConsumerOffset();
+                    this.mQClientFactory.unregisterConsumer(this.defaultMQPushConsumer.getConsumerGroup());
+                    this.mQClientFactory.shutdown();
+                    log.info("the consumer [{}] shutdown OK", this.defaultMQPushConsumer.getConsumerGroup());
+                    this.rebalanceImpl.destroy();
+                    this.serviceState = ServiceState.SHUTDOWN_ALREADY;
+                    break;
+                case SHUTDOWN_ALREADY:
+                    break;
+                default:
+                    break;
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
-    public synchronized void start() throws MQClientException {
-        switch (this.serviceState) {
-            case CREATE_JUST:
-                log.info("the consumer [{}] start beginning. messageModel={}, isUnitMode={}", this.defaultMQPushConsumer.getConsumerGroup(),
-                    this.defaultMQPushConsumer.getMessageModel(), this.defaultMQPushConsumer.isUnitMode());
-                this.serviceState = ServiceState.START_FAILED;
+    public void start() throws MQClientException {
+        lock.lock();
+        try {
+            switch (this.serviceState) {
+                case CREATE_JUST:
+                    log.info("the consumer [{}] start beginning. messageModel={}, isUnitMode={}", this.defaultMQPushConsumer.getConsumerGroup(),
+                        this.defaultMQPushConsumer.getMessageModel(), this.defaultMQPushConsumer.isUnitMode());
+                    this.serviceState = ServiceState.START_FAILED;
 
-                this.checkConfig();
+                    this.checkConfig();
 
-                this.copySubscription();
+                    this.copySubscription();
 
-                if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
-                    this.defaultMQPushConsumer.changeInstanceNameToPID();
-                }
-
-                this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQPushConsumer, this.rpcHook);
-
-                this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
-                this.rebalanceImpl.setMessageModel(this.defaultMQPushConsumer.getMessageModel());
-                this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPushConsumer.getAllocateMessageQueueStrategy());
-                this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
-
-                if (this.pullAPIWrapper == null) {
-                    this.pullAPIWrapper = new PullAPIWrapper(
-                        mQClientFactory,
-                        this.defaultMQPushConsumer.getConsumerGroup(), isUnitMode());
-                }
-                this.pullAPIWrapper.registerFilterMessageHook(filterMessageHookList);
-
-                if (this.defaultMQPushConsumer.getOffsetStore() != null) {
-                    this.offsetStore = this.defaultMQPushConsumer.getOffsetStore();
-                } else {
-                    switch (this.defaultMQPushConsumer.getMessageModel()) {
-                        case BROADCASTING:
-                            this.offsetStore = new LocalFileOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
-                            break;
-                        case CLUSTERING:
-                            this.offsetStore = new RemoteBrokerOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
-                            break;
-                        default:
-                            break;
+                    if (this.defaultMQPushConsumer.getMessageModel() == MessageModel.CLUSTERING) {
+                        this.defaultMQPushConsumer.changeInstanceNameToPID();
                     }
-                    this.defaultMQPushConsumer.setOffsetStore(this.offsetStore);
-                }
-                this.offsetStore.load();
 
-                if (this.getMessageListenerInner() instanceof MessageListenerOrderly) {
-                    this.consumeOrderly = true;
-                    this.consumeMessageService =
-                        new ConsumeMessageOrderlyService(this, (MessageListenerOrderly) this.getMessageListenerInner());
-                    //POPTODO reuse Executor ?
-                    this.consumeMessagePopService = new ConsumeMessagePopOrderlyService(this, (MessageListenerOrderly) this.getMessageListenerInner());
-                } else if (this.getMessageListenerInner() instanceof MessageListenerConcurrently) {
-                    this.consumeOrderly = false;
-                    this.consumeMessageService =
-                        new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
-                    //POPTODO reuse Executor ?
-                    this.consumeMessagePopService =
-                        new ConsumeMessagePopConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
-                }
+                    this.mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(this.defaultMQPushConsumer, this.rpcHook);
 
-                this.consumeMessageService.start();
-                // POPTODO
-                this.consumeMessagePopService.start();
+                    this.rebalanceImpl.setConsumerGroup(this.defaultMQPushConsumer.getConsumerGroup());
+                    this.rebalanceImpl.setMessageModel(this.defaultMQPushConsumer.getMessageModel());
+                    this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPushConsumer.getAllocateMessageQueueStrategy());
+                    this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
 
-                boolean registerOK = mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
-                if (!registerOK) {
-                    this.serviceState = ServiceState.CREATE_JUST;
-                    this.consumeMessageService.shutdown(defaultMQPushConsumer.getAwaitTerminationMillisWhenShutdown());
-                    throw new MQClientException("The consumer group[" + this.defaultMQPushConsumer.getConsumerGroup()
-                        + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
+                    if (this.pullAPIWrapper == null) {
+                        this.pullAPIWrapper = new PullAPIWrapper(
+                            mQClientFactory,
+                            this.defaultMQPushConsumer.getConsumerGroup(), isUnitMode());
+                    }
+                    this.pullAPIWrapper.registerFilterMessageHook(filterMessageHookList);
+
+                    if (this.defaultMQPushConsumer.getOffsetStore() != null) {
+                        this.offsetStore = this.defaultMQPushConsumer.getOffsetStore();
+                    } else {
+                        switch (this.defaultMQPushConsumer.getMessageModel()) {
+                            case BROADCASTING:
+                                this.offsetStore = new LocalFileOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
+                                break;
+                            case CLUSTERING:
+                                this.offsetStore = new RemoteBrokerOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
+                                break;
+                            default:
+                                break;
+                        }
+                        this.defaultMQPushConsumer.setOffsetStore(this.offsetStore);
+                    }
+                    this.offsetStore.load();
+
+                    if (this.getMessageListenerInner() instanceof MessageListenerOrderly) {
+                        this.consumeOrderly = true;
+                        this.consumeMessageService =
+                            new ConsumeMessageOrderlyService(this, (MessageListenerOrderly) this.getMessageListenerInner());
+                        //POPTODO reuse Executor ?
+                        this.consumeMessagePopService = new ConsumeMessagePopOrderlyService(this, (MessageListenerOrderly) this.getMessageListenerInner());
+                    } else if (this.getMessageListenerInner() instanceof MessageListenerConcurrently) {
+                        this.consumeOrderly = false;
+                        this.consumeMessageService =
+                            new ConsumeMessageConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
+                        //POPTODO reuse Executor ?
+                        this.consumeMessagePopService =
+                            new ConsumeMessagePopConcurrentlyService(this, (MessageListenerConcurrently) this.getMessageListenerInner());
+                    }
+
+                    this.consumeMessageService.start();
+                    // POPTODO
+                    this.consumeMessagePopService.start();
+
+                    boolean registerOK = mQClientFactory.registerConsumer(this.defaultMQPushConsumer.getConsumerGroup(), this);
+                    if (!registerOK) {
+                        this.serviceState = ServiceState.CREATE_JUST;
+                        this.consumeMessageService.shutdown(defaultMQPushConsumer.getAwaitTerminationMillisWhenShutdown());
+                        throw new MQClientException("The consumer group[" + this.defaultMQPushConsumer.getConsumerGroup()
+                            + "] has been created before, specify another name please." + FAQUrl.suggestTodo(FAQUrl.GROUP_NAME_DUPLICATE_URL),
+                            null);
+                    }
+
+                    mQClientFactory.start();
+                    log.info("the consumer [{}] start OK.", this.defaultMQPushConsumer.getConsumerGroup());
+                    this.serviceState = ServiceState.RUNNING;
+                    break;
+                case RUNNING:
+                case START_FAILED:
+                case SHUTDOWN_ALREADY:
+                    throw new MQClientException("The PushConsumer service state not OK, maybe started once, "
+                        + this.serviceState
+                        + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
                         null);
-                }
+                default:
+                    break;
+            }
 
-                mQClientFactory.start();
-                log.info("the consumer [{}] start OK.", this.defaultMQPushConsumer.getConsumerGroup());
-                this.serviceState = ServiceState.RUNNING;
-                break;
-            case RUNNING:
-            case START_FAILED:
-            case SHUTDOWN_ALREADY:
-                throw new MQClientException("The PushConsumer service state not OK, maybe started once, "
-                    + this.serviceState
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_SERVICE_NOT_OK),
-                    null);
-            default:
-                break;
-        }
-
-        this.updateTopicSubscribeInfoWhenSubscriptionChanged();
-        this.mQClientFactory.checkClientInBroker();
-        if (this.mQClientFactory.sendHeartbeatToAllBrokerWithLock()) {
-            this.mQClientFactory.rebalanceImmediately();
+            this.updateTopicSubscribeInfoWhenSubscriptionChanged();
+            this.mQClientFactory.checkClientInBroker();
+            if (this.mQClientFactory.sendHeartbeatToAllBrokerWithLock()) {
+                this.mQClientFactory.rebalanceImmediately();
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
