@@ -13,7 +13,7 @@ jobs:
       matrix:
         # see https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
         os: [ubuntu-latest, windows-latest, macos-latest]
-        jdk: [11]
+        jdk: [8]
     steps:
       - name: Checkout
         uses: actions/checkout@v2

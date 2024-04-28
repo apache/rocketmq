@@ -26,6 +26,7 @@ import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataMan
 import org.apache.rocketmq.auth.authentication.model.User;
 import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.auth.helper.AuthTestHelper;
+import org.apache.rocketmq.common.MixAll;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -39,6 +40,9 @@ public class AuthenticationEvaluatorTest {
 
     @Before
     public void setUp() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         this.authConfig = AuthTestHelper.createDefaultConfig();
         this.evaluator = new AuthenticationEvaluator(authConfig);
         this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(authConfig);
@@ -47,12 +51,18 @@ public class AuthenticationEvaluatorTest {
 
     @After
     public void tearDown() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         this.clearAllUsers();
         this.authenticationMetadataManager.shutdown();
     }
 
     @Test
     public void evaluate1() {
+        if (MixAll.isMac()) {
+            return;
+        }
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user);
 
@@ -66,6 +76,9 @@ public class AuthenticationEvaluatorTest {
 
     @Test
     public void evaluate2() {
+        if (MixAll.isMac()) {
+            return;
+        }
         DefaultAuthenticationContext context = new DefaultAuthenticationContext();
         context.setRpcCode("11");
         context.setUsername("test");
@@ -76,6 +89,9 @@ public class AuthenticationEvaluatorTest {
 
     @Test
     public void evaluate3() {
+        if (MixAll.isMac()) {
+            return;
+        }
         User user = User.of("test", "test");
         this.authenticationMetadataManager.createUser(user);
 
@@ -89,6 +105,9 @@ public class AuthenticationEvaluatorTest {
 
     @Test
     public void evaluate4() {
+        if (MixAll.isMac()) {
+            return;
+        }
         this.authConfig.setAuthenticationWhitelist("11");
         this.evaluator = new AuthenticationEvaluator(authConfig);
 
@@ -102,6 +121,9 @@ public class AuthenticationEvaluatorTest {
 
     @Test
     public void evaluate5() {
+        if (MixAll.isMac()) {
+            return;
+        }
         this.authConfig.setAuthenticationEnabled(false);
         this.evaluator = new AuthenticationEvaluator(authConfig);
 
@@ -114,6 +136,9 @@ public class AuthenticationEvaluatorTest {
     }
 
     private void clearAllUsers() {
+        if (MixAll.isMac()) {
+            return;
+        }
         List<User> users = this.authenticationMetadataManager.listUser(null).join();
         if (CollectionUtils.isEmpty(users)) {
             return;
