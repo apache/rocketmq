@@ -39,7 +39,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.action.Action;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
