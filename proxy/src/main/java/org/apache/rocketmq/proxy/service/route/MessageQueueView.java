@@ -24,14 +24,14 @@ public class MessageQueueView {
     public static final MessageQueueView WRAPPED_EMPTY_QUEUE = new MessageQueueView("", new TopicRouteData(), null);
 
     private final MessageQueueSelector readSelector;
-    private final MessageQueueSelector writeSelector;
+    private final MessageQueueWriteSelector writeSelector;
     private final TopicRouteWrapper topicRouteWrapper;
 
     public MessageQueueView(String topic, TopicRouteData topicRouteData, MQFaultStrategy mqFaultStrategy) {
         this.topicRouteWrapper = new TopicRouteWrapper(topicRouteData, topic);
 
         this.readSelector = new MessageQueueSelector(topicRouteWrapper, mqFaultStrategy, true);
-        this.writeSelector = new MessageQueueSelector(topicRouteWrapper, mqFaultStrategy, false);
+        this.writeSelector = new MessageQueueWriteSelector(topicRouteWrapper, mqFaultStrategy);
     }
 
     public TopicRouteData getTopicRouteData() {
@@ -54,7 +54,7 @@ public class MessageQueueView {
         return readSelector;
     }
 
-    public MessageQueueSelector getWriteSelector() {
+    public MessageQueueWriteSelector getWriteSelector() {
         return writeSelector;
     }
 
