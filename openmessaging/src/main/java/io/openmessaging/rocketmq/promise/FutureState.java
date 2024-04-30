@@ -27,7 +27,7 @@ public enum FutureState {
      **/
     DONE(1),
     /**
-     * ths task is cancelled
+     * the task is cancelled
      **/
     CANCELLED(2);
 

@@ -25,12 +25,12 @@ public class Operator extends Op {
     public static final Operator OR = new Operator("||", 15, true);
 
     private int priority;
-    private boolean compareable;
+    private boolean comparable;
 
-    private Operator(String symbol, int priority, boolean compareable) {
+    private Operator(String symbol, int priority, boolean comparable) {
         super(symbol);
         this.priority = priority;
-        this.compareable = compareable;
+        this.comparable = comparable;
     }
 
     public static Operator createOperator(String operator) {
@@ -50,8 +50,8 @@ public class Operator extends Op {
         return priority;
     }
 
-    public boolean isCompareable() {
-        return compareable;
+    public boolean isComparable() {
+        return comparable;
     }
 
     public int compare(Operator operator) {

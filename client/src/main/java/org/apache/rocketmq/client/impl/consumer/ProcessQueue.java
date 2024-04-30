@@ -444,7 +444,7 @@ public class ProcessQueue {
             info.setTryUnlockTimes(this.tryUnlockTimes.get());
             info.setLastLockTimestamp(this.lastLockTimestamp);
 
-            info.setDroped(this.dropped);
+            info.setDropped(this.dropped);
             info.setLastPullTimestamp(this.lastPullTimestamp);
             info.setLastConsumeTimestamp(this.lastConsumeTimestamp);
         } catch (Exception e) {

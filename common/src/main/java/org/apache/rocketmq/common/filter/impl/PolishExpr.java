@@ -62,7 +62,7 @@ public class PolishExpr {
                 Operator opNew = (Operator) token;
                 if (!operatorStack.empty()) {
                     Operator opOld = operatorStack.peek();
-                    if (opOld.isCompareable() && opNew.compare(opOld) != 1) {
+                    if (opOld.isComparable() && opNew.compare(opOld) != 1) {
                         segments.add(operatorStack.pop());
                     }
                 }

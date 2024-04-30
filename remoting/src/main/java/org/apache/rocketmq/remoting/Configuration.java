@@ -298,7 +298,7 @@ public class Configuration {
         return stringBuilder.toString();
     }
 
-    private String getClientConfigsInternal(List<String> clientConigKeys) {
+    private String getClientConfigsInternal(List<String> clientConfigKeys) {
         StringBuilder stringBuilder = new StringBuilder();
         Properties clientProperties = new Properties();
 
@@ -306,7 +306,7 @@ public class Configuration {
         for (Object configObject : this.configObjectList) {
             Properties properties = MixAll.object2Properties(configObject);
 
-            for (String nameNow : clientConigKeys) {
+            for (String nameNow : clientConfigKeys) {
                 if (properties.containsKey(nameNow)) {
                     clientProperties.put(nameNow, properties.get(nameNow));
                 }

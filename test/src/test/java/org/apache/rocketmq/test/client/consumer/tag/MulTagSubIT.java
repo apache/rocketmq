@@ -65,7 +65,7 @@ public class MulTagSubIT extends BaseConf {
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
@@ -87,7 +87,7 @@ public class MulTagSubIT extends BaseConf {
 
         consumer.getListener().waitForMessageConsume(MQMessageFactory.getMessageBody(tag2Msgs),
             CONSUME_TIME);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(MQMessageFactory.getMessageBody(tag2Msgs));
     }
@@ -108,7 +108,7 @@ public class MulTagSubIT extends BaseConf {
 
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(tagMessage.getAllTagMessageBody());
     }
@@ -130,7 +130,7 @@ public class MulTagSubIT extends BaseConf {
         consumer.getListener().waitForMessageConsume(
             tagMessage.getMessageBodyByTag(tags[0], tags[1]), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody())).containsExactlyElementsIn(
             tagMessage.getMessageBodyByTag(tags[0], tags[1]));
     }
@@ -152,7 +152,7 @@ public class MulTagSubIT extends BaseConf {
         TestUtils.waitForSeconds(5);
 
         assertThat(VerifyUtils
-            .getFilterdMessage(producer.getAllMsgBody(), consumer.getListener().getAllMsgBody())
+            .getFilteredMessage(producer.getAllMsgBody(), consumer.getListener().getAllMsgBody())
             .size()).isEqualTo(0);
     }
 }

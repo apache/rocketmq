@@ -75,7 +75,7 @@ public class SqlFilterIT extends BaseConf {
         Assert.assertEquals("Not all sent succeeded", msgSize * 3, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(msgSize * 2, CONSUME_TIME);
         assertThat(producer.getAllMsgBody())
-            .containsAllIn(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+            .containsAllIn(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                 consumer.getListener().getAllMsgBody()));
 
         assertThat(consumer.getListener().getAllMsgBody().size()).isEqualTo(msgSize * 2);

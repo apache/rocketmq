@@ -86,7 +86,7 @@ public class ExportConfigsCommand implements SubCommand {
                 masterBrokerSize++;
                 slaveBrokerSize += masterAndSlaveEntry.getValue().size();
 
-                brokerConfigs.put(masterProperties.getProperty("brokerName"), needBrokerProprties(masterProperties));
+                brokerConfigs.put(masterProperties.getProperty("brokerName"), needBrokerProperties(masterProperties));
             }
 
             Map<String, Integer> clusterScaleMap = new HashMap<>();
@@ -108,7 +108,7 @@ public class ExportConfigsCommand implements SubCommand {
     }
 
 
-    private Properties needBrokerProprties(Properties properties) {
+    private Properties needBrokerProperties(Properties properties) {
         List<String> propertyKeys = Arrays.asList(
                 "brokerClusterName",
                 "brokerId",

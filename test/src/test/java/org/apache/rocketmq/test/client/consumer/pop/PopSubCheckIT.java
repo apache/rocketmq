@@ -85,7 +85,7 @@ public class PopSubCheckIT extends BaseConf {
         TestUtils.waitForSeconds(10);
 
         consumer.getListener().waitForMessageConsume(msgNum, 30_000);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(), consumer.getListener().getAllMsgBody()))
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(), consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
         for (Object o : consumer.getListener().getAllOriginMsg()) {
             MessageClientExt msg = (MessageClientExt) o;

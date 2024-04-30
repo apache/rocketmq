@@ -72,7 +72,7 @@ Transfer 阶段：
 
 - 在 HandShake 阶段， Slave 会从 Master 处获取 Master 的 EpochCache 。
 
-- Slave ⽐较获取到的 Master EpochCahce <Startoffset，Endoffset>，从后往前依次和本地进行比对，如果二者的 Epoch 与 StartOffset 相等， 则该 Epoch 有效，截断位点为两者中较⼩的 Endoffset，截断后修正⾃⼰的<Epoch , Startoffset> 信息，进⼊Transfer 阶 段；如果不相等，对比 Slave 前⼀个epoch，直到找到截断位点。
+- Slave ⽐较获取到的 Master EpochCache <Startoffset，Endoffset>，从后往前依次和本地进行比对，如果二者的 Epoch 与 StartOffset 相等， 则该 Epoch 有效，截断位点为两者中较⼩的 Endoffset，截断后修正⾃⼰的<Epoch , Startoffset> 信息，进⼊Transfer 阶 段；如果不相等，对比 Slave 前⼀个epoch，直到找到截断位点。
 
 ```java
 slave：TreeMap<Epoch, Pair<startOffset,endOffset>> epochMap;

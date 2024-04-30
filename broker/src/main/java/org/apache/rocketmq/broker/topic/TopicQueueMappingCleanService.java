@@ -130,8 +130,8 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                         if (!TopicQueueMappingUtils.checkIfLeader(items, mappingDetail)) {
                             continue;
                         }
-                        LogicQueueMappingItem earlistItem = items.get(0);
-                        brokers.add(earlistItem.getBname());
+                        LogicQueueMappingItem earliestItem = items.get(0);
+                        brokers.add(earliestItem.getBname());
                     }
                     Map<String, TopicStatsTable> statsTable = new HashMap<>();
                     for (String broker: brokers) {
@@ -161,27 +161,27 @@ public class TopicQueueMappingCleanService extends ServiceThread {
                         if (!TopicQueueMappingUtils.checkIfLeader(items, mappingDetail)) {
                             continue;
                         }
-                        LogicQueueMappingItem earlistItem = items.get(0);
-                        TopicStatsTable topicStats = statsTable.get(earlistItem.getBname());
+                        LogicQueueMappingItem earliestItem = items.get(0);
+                        TopicStatsTable topicStats = statsTable.get(earliestItem.getBname());
                         if (topicStats == null) {
                             continue;
                         }
-                        TopicOffset topicOffset = topicStats.getOffsetTable().get(new MessageQueue(topic, earlistItem.getBname(), earlistItem.getQueueId()));
+                        TopicOffset topicOffset = topicStats.getOffsetTable().get(new MessageQueue(topic, earliestItem.getBname(), earliestItem.getQueueId()));
                         if (topicOffset == null) {
                             //this may should not happen
-                            log.error("Get null topicOffset for {} {}",topic,  earlistItem);
+                            log.error("Get null topicOffset for {} {}",topic,  earliestItem);
                             continue;
                         }
                         //ignore the maxOffset < 0, which may in case of some error
                         if (topicOffset.getMaxOffset() == topicOffset.getMinOffset()
                             || topicOffset.getMaxOffset() == 0) {
                             List<LogicQueueMappingItem> newItems = new ArrayList<>(items);
-                            boolean result = newItems.remove(earlistItem);
+                            boolean result = newItems.remove(earliestItem);
                             if (result) {
                                 changedForTopic = true;
                                 newHostedQueues.put(qid, newItems);
                             }
-                            log.info("The logic queue item {} {} is removed {} because of {}", topic, earlistItem, result, topicOffset);
+                            log.info("The logic queue item {} {} is removed {} because of {}", topic, earliestItem, result, topicOffset);
                         }
                     }
                     if (changedForTopic) {

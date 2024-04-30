@@ -72,8 +72,8 @@ public class FileUtil {
 
     private String getPropertiesAsString(Properties properties) {
         StringBuilder sb = new StringBuilder();
-        for (Entry<Object, Object> keyEnty : properties.entrySet()) {
-            sb.append(keyEnty.getKey()).append("=").append((String) keyEnty.getValue())
+        for (Entry<Object, Object> keyEntry : properties.entrySet()) {
+            sb.append(keyEntry.getKey()).append("=").append((String) keyEntry.getValue())
                     .append(lineSeparator);
         }
         return sb.toString();

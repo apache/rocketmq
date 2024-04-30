@@ -203,7 +203,7 @@ public class StaticTopicIT extends BaseConf {
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 60000);
 
         Assert.assertEquals(producer.getAllMsgBody().size(), consumer.getListener().getAllMsgBody().size());
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                 consumer.getListener().getAllMsgBody()))
                 .containsExactlyElementsIn(producer.getAllMsgBody());
         Map<Integer, List<MessageExt>> messagesByQueue = computeMessageByQueue(consumer.getListener().getAllOriginMsg());

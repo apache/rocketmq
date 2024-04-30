@@ -50,7 +50,7 @@ public final class TestUtil {
         return val;
     }
 
-    public static String addQuoteToParamater(String param) {
+    public static String addQuoteToParameter(String param) {
         StringBuilder sb = new StringBuilder("'");
         sb.append(param).append("'");
         return sb.toString();

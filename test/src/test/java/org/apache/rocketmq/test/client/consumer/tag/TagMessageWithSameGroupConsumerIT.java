@@ -64,7 +64,7 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
@@ -84,7 +84,7 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
         TestUtils.waitForMoment(5);
 
         consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
@@ -107,7 +107,7 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
         TestUtils.waitForMoment(5);
 
         consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }

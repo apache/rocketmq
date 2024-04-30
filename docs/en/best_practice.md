@@ -103,6 +103,6 @@ This type application can use oneway to send messages. Oneway only send request 
 | storePathCommitLog                      | $HOME/store/commitlog/                              | file path for commit log                                                 |
 | mappedFileSizeCommitLog     | 1024 * 1024 * 1024(1G) | mapped file size for commit log                                        |​ 
 | deleteWhen     | 04 | When to delete the commitlog which is out of the reserve time                                        |​ 
-| fileReserverdTime     | 72 | The number of hours to keep a commitlog before deleting it                                        |​ 
+| fileReservedTime     | 72 | The number of hours to keep a commitlog before deleting it                                        |​ 
 | brokerRole     | ASYNC_MASTER | SYNC_MASTER/ASYNC_MASTER/SLAVE                                        |​ 
 | flushDiskType     | ASYNC_FLUSH | {SYNC_FLUSH/ASYNC_FLUSH}. Broker of SYNC_FLUSH mode flushes each message onto disk before acknowledging producer. Broker of ASYNC_FLUSH mode, on the other hand, takes advantage of group-committing, achieving better performance.                                        |​

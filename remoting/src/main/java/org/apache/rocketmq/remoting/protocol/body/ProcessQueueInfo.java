@@ -35,7 +35,7 @@ public class ProcessQueueInfo {
     private long tryUnlockTimes;
     private long lastLockTimestamp;
 
-    private boolean droped;
+    private boolean dropped;
     private long lastPullTimestamp;
     private long lastConsumeTimestamp;
 
@@ -119,12 +119,12 @@ public class ProcessQueueInfo {
         this.lastLockTimestamp = lastLockTimestamp;
     }
 
-    public boolean isDroped() {
-        return droped;
+    public boolean isDropped() {
+        return dropped;
     }
 
-    public void setDroped(boolean droped) {
-        this.droped = droped;
+    public void setDropped(boolean dropped) {
+        this.dropped = dropped;
     }
 
     public long getLastPullTimestamp() {
@@ -160,7 +160,7 @@ public class ProcessQueueInfo {
             + ", transactionMsgMaxOffset=" + transactionMsgMaxOffset + ", transactionMsgCount="
             + transactionMsgCount + ", locked=" + locked + ", tryUnlockTimes=" + tryUnlockTimes
             + ", lastLockTimestamp=" + UtilAll.timeMillisToHumanString(lastLockTimestamp) + ", droped="
-            + droped + ", lastPullTimestamp=" + UtilAll.timeMillisToHumanString(lastPullTimestamp)
+            + dropped + ", lastPullTimestamp=" + UtilAll.timeMillisToHumanString(lastPullTimestamp)
             + ", lastConsumeTimestamp=" + UtilAll.timeMillisToHumanString(lastConsumeTimestamp) + "]";
     }
 }

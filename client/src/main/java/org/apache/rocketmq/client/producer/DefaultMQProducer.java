@@ -813,7 +813,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Same to {@link #request(Message, RequestCallback, long)} with target message selector specified.
      *
-     * @param msg             requst message to send
+     * @param msg             request message to send
      * @param selector        message queue selector, through which we get target message queue to deliver message to.
      * @param arg             argument to work along with message queue selector.
      * @param requestCallback callback to execute on request completion.

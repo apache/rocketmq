@@ -192,7 +192,7 @@ public class ConsumeMessagePopOrderlyService implements ConsumeMessageService {
 
     @Override
     public void submitConsumeRequest(List<MessageExt> msgs, ProcessQueue processQueue,
-                                     MessageQueue messageQueue, boolean dispathToConsume) {
+                                     MessageQueue messageQueue, boolean dispatchToConsume) {
         throw new UnsupportedOperationException();
     }
 

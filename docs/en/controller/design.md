@@ -80,8 +80,8 @@ while (iterator.hasNext()) {
     findMasterOffsetByEpoch(curEntry.getKey());
     
     if(masterOffset != null && 
-            curEntry.getKey().getObejct1() == masterOffset.getObejct1()) {
-        truncateOffset = Math.min(curEntry.getKey().getObejct2(), masterOffset.getObejct2());
+            curEntry.getKey().getObject1() == masterOffset.getObject1()) {
+        truncateOffset = Math.min(curEntry.getKey().getObject2(), masterOffset.getObject2());
         break;
    }
 }

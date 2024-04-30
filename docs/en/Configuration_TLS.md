@@ -107,7 +107,7 @@ Add following parameters in JVM. The value of "tls.config.file" needs to be repl
 -Dtls.client.authServer=true -Dtls.enable=true  -Dtls.test.mode.enable=false  -Dtls.config.file=/opt/certs/tlsclient.properties
 ```
 
-Enable TLS for client linke following:
+Enable TLS for client link following:
 ```Java
 public class ExampleProducer {
     public static void main(String[] args) throws Exception {

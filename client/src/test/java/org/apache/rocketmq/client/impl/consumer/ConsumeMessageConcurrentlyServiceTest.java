@@ -166,7 +166,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicReference<MessageExt> messageAtomic = new AtomicReference<>();
 
-        ConsumeMessageConcurrentlyService  normalServie = new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
+        ConsumeMessageConcurrentlyService  normalService = new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                                                             ConsumeConcurrentlyContext context) {
@@ -175,7 +175,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
-        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(normalServie);
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(normalService);
 
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
@@ -183,9 +183,9 @@ public class ConsumeMessageConcurrentlyServiceTest {
 
         Thread.sleep(1000);
 
-        ConsumeStatus stats = normalServie.getConsumerStatsManager().consumeStatus(pushConsumer.getDefaultMQPushConsumerImpl().groupName(),topic);
+        ConsumeStatus stats = normalService.getConsumerStatsManager().consumeStatus(pushConsumer.getDefaultMQPushConsumerImpl().groupName(),topic);
 
-        ConsumerStatsManager mgr  =   normalServie.getConsumerStatsManager();
+        ConsumerStatsManager mgr  =   normalService.getConsumerStatsManager();
 
         Field statItmeSetField = mgr.getClass().getDeclaredField("topicAndGroupConsumeOKTPS");
         statItmeSetField.setAccessible(true);
@@ -242,7 +242,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
             consumeGroup2.append(i).append("#");
         }
         pushConsumer.setConsumerGroup(consumeGroup2.toString());
-        ConsumeMessageConcurrentlyService  normalServie = new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
+        ConsumeMessageConcurrentlyService  normalService = new ConsumeMessageConcurrentlyService(pushConsumer.getDefaultMQPushConsumerImpl(), new MessageListenerConcurrently() {
             @Override
             public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
                                                             ConsumeConcurrentlyContext context) {
@@ -251,7 +251,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
                 return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
             }
         });
-        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(normalServie);
+        pushConsumer.getDefaultMQPushConsumerImpl().setConsumeMessageService(normalService);
 
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());

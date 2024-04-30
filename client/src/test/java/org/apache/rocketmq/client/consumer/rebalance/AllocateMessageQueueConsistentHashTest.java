@@ -28,7 +28,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class AllocateMessageQueueConsitentHashTest {
+public class AllocateMessageQueueConsistentHashTest {
 
     private String topic;
     private static final String CID_PREFIX = "CID-";

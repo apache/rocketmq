@@ -165,7 +165,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
             LogicQueueMappingItem currentItem = mappingContext.getCurrentItem();
 
-            LogicQueueMappingItem earlistItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), 0L, true);
+            LogicQueueMappingItem earliestItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), 0L, true);
 
             assert currentItem.getLogicOffset() >= 0;
 
@@ -200,7 +200,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     }
                 }
                 //note the currentItem maybe both the leader and  the earliest
-                if (earlistItem.getGen() == currentItem.getGen()) {
+                if (earliestItem.getGen() == currentItem.getGen()) {
                     //read the earliest one
                     if (requestOffset < minOffset) {
                         if (code == ResponseCode.PULL_OFFSET_MOVED) {
@@ -234,7 +234,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 //read from the middle item, ignore the PULL_OFFSET_MOVED
                 if (!isRevised
                     && leaderItem.getGen() != currentItem.getGen()
-                    && earlistItem.getGen() != currentItem.getGen()) {
+                    && earliestItem.getGen() != currentItem.getGen()) {
                     if (requestOffset < minOffset) {
                         nextBeginOffset = minOffset;
                         responseCode = ResponseCode.PULL_RETRY_IMMEDIATELY;

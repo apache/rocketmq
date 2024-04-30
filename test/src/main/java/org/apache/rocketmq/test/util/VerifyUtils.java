@@ -38,7 +38,7 @@ public class VerifyUtils {
         return miss;
     }
 
-    public static Collection<Object> getFilterdMessage(Collection<Object> sendMsgs,
+    public static Collection<Object> getFilteredMessage(Collection<Object> sendMsgs,
         Collection<Object> recvMsgs) {
         Collection<Object> recvMsgsSync = Collections.synchronizedCollection(recvMsgs);
         Collection<Object> filteredMsgs = new ArrayList<Object>();

@@ -69,9 +69,9 @@ public class OrderMsgRebalanceIT extends BaseConf {
         assertThat(recvAll).isEqualTo(true);
 
         boolean balance = VerifyUtils.verifyBalance(producer.getAllMsgBody().size(),
-            VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+            VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                 consumer1.getListener().getAllUndupMsgBody()).size(),
-            VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+            VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                 consumer2.getListener().getAllUndupMsgBody()).size());
         assertThat(balance).isEqualTo(true);
 
@@ -105,14 +105,14 @@ public class OrderMsgRebalanceIT extends BaseConf {
         boolean balance = VerifyUtils
             .verifyBalance(producer.getAllMsgBody().size(),
                 VerifyUtils
-                    .getFilterdMessage(producer.getAllMsgBody(),
+                    .getFilteredMessage(producer.getAllMsgBody(),
                         consumer1.getListener().getAllUndupMsgBody())
                     .size(),
-                VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+                VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                     consumer2.getListener().getAllUndupMsgBody()).size(),
-                VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+                VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                     consumer3.getListener().getAllUndupMsgBody()).size(),
-                VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+                VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                     consumer4.getListener().getAllUndupMsgBody()).size());
         logger.info(String.format("consumer1:%s;consumer2:%s;consumer3:%s,consumer4:%s",
             consumer1.getListener().getAllMsgBody().size(),

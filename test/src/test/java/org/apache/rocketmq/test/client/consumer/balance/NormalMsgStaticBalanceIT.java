@@ -66,9 +66,9 @@ public class NormalMsgStaticBalanceIT extends BaseConf {
         assertThat(recvAll).isEqualTo(true);
 
         boolean balance = VerifyUtils.verifyBalance(msgSize,
-            VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+            VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                 consumer1.getListener().getAllUndupMsgBody()).size(),
-            VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+            VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                 consumer2.getListener().getAllUndupMsgBody()).size());
         assertThat(balance).isEqualTo(true);
     }
@@ -95,14 +95,14 @@ public class NormalMsgStaticBalanceIT extends BaseConf {
         boolean balance = VerifyUtils
             .verifyBalance(msgSize,
                 VerifyUtils
-                    .getFilterdMessage(producer.getAllMsgBody(),
+                    .getFilteredMessage(producer.getAllMsgBody(),
                         consumer1.getListener().getAllUndupMsgBody())
                     .size(),
-                VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+                VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                     consumer2.getListener().getAllUndupMsgBody()).size(),
-                VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+                VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                     consumer3.getListener().getAllUndupMsgBody()).size(),
-                VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+                VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                     consumer4.getListener().getAllUndupMsgBody()).size());
         assertThat(balance).isEqualTo(true);
     }

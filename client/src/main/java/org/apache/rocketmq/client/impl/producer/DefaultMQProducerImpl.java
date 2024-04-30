@@ -570,8 +570,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     class BackpressureSendCallBack implements SendCallback {
-        public boolean isSemaphoreAsyncSizeAquired = false;
-        public boolean isSemaphoreAsyncNumAquired = false;
+        public boolean isSemaphoreAsyncSizeAcquired = false;
+        public boolean isSemaphoreAsyncNumAcquired = false;
         public int msgLen;
         private final SendCallback sendCallback;
 
@@ -581,10 +581,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         @Override
         public void onSuccess(SendResult sendResult) {
-            if (isSemaphoreAsyncSizeAquired) {
+            if (isSemaphoreAsyncSizeAcquired) {
                 semaphoreAsyncSendSize.release(msgLen);
             }
-            if (isSemaphoreAsyncNumAquired) {
+            if (isSemaphoreAsyncNumAcquired) {
                 semaphoreAsyncSendNum.release();
             }
             sendCallback.onSuccess(sendResult);
@@ -592,10 +592,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         @Override
         public void onException(Throwable e) {
-            if (isSemaphoreAsyncSizeAquired) {
+            if (isSemaphoreAsyncSizeAcquired) {
                 semaphoreAsyncSendSize.release(msgLen);
             }
-            if (isSemaphoreAsyncNumAquired) {
+            if (isSemaphoreAsyncNumAcquired) {
                 semaphoreAsyncSendNum.release();
             }
             sendCallback.onException(e);
@@ -607,31 +607,31 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws MQClientException, InterruptedException {
         ExecutorService executor = this.getAsyncSenderExecutor();
         boolean isEnableBackpressureForAsyncMode = this.getDefaultMQProducer().isEnableBackpressureForAsyncMode();
-        boolean isSemaphoreAsyncNumAquired = false;
-        boolean isSemaphoreAsyncSizeAquired = false;
+        boolean isSemaphoreAsyncNumAcquired = false;
+        boolean isSemaphoreAsyncSizeAcquired = false;
         int msgLen = msg.getBody() == null ? 1 : msg.getBody().length;
 
         try {
             if (isEnableBackpressureForAsyncMode) {
                 long costTime = System.currentTimeMillis() - beginStartTime;
-                isSemaphoreAsyncNumAquired = timeout - costTime > 0
+                isSemaphoreAsyncNumAcquired = timeout - costTime > 0
                     && semaphoreAsyncSendNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
-                if (!isSemaphoreAsyncNumAquired) {
+                if (!isSemaphoreAsyncNumAcquired) {
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncNum timeout"));
                     return;
                 }
                 costTime = System.currentTimeMillis() - beginStartTime;
-                isSemaphoreAsyncSizeAquired = timeout - costTime > 0
+                isSemaphoreAsyncSizeAcquired = timeout - costTime > 0
                     && semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
-                if (!isSemaphoreAsyncSizeAquired) {
+                if (!isSemaphoreAsyncSizeAcquired) {
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncSize timeout"));
                     return;
                 }
             }
-            sendCallback.isSemaphoreAsyncSizeAquired = isSemaphoreAsyncSizeAquired;
-            sendCallback.isSemaphoreAsyncNumAquired = isSemaphoreAsyncNumAquired;
+            sendCallback.isSemaphoreAsyncSizeAcquired = isSemaphoreAsyncSizeAcquired;
+            sendCallback.isSemaphoreAsyncNumAcquired = isSemaphoreAsyncNumAcquired;
             sendCallback.msgLen = msgLen;
             executor.submit(runnable);
         } catch (RejectedExecutionException e) {
@@ -977,7 +977,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         boolean messageCloned = false;
                         if (msgBodyCompressed) {
                             //If msg body was compressed, msgbody should be reset using prevBody.
-                            //Clone new message using commpressed message body and recover origin massage.
+                            //Clone new message using compressed message body and recover origin massage.
                             //Fix bug:https://github.com/apache/rocketmq-externals/issues/66
                             tmpMessage = MessageAccessor.cloneMessage(msg);
                             messageCloned = true;

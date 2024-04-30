@@ -60,7 +60,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
@@ -75,7 +75,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
@@ -91,7 +91,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
@@ -107,7 +107,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
@@ -123,7 +123,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
@@ -146,7 +146,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         Assert.assertEquals("Not all are sent", msgSize * 3, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
@@ -168,7 +168,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         Assert.assertEquals("Not all are sent", msgSize * 2, producer.getAllUndupMsgBody().size());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
     }
@@ -192,7 +192,7 @@ public class TagMessageWith1ConsumerIT extends BaseConf {
         consumer.getListener().waitForMessageConsume(MQMessageFactory.getMessageBody(tag2Msgs),
             CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(MQMessageFactory.getMessageBody(tag2Msgs));
     }

@@ -73,7 +73,7 @@ public class OneWaySendWithSelectorIT extends BaseConf {
         assertThat(producer.getAllMsgBody().size()).isEqualTo(msgSize);
 
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
@@ -96,7 +96,7 @@ public class OneWaySendWithSelectorIT extends BaseConf {
         assertThat(producer.getAllMsgBody().size()).isEqualTo(msgSize);
 
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 

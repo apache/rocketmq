@@ -49,7 +49,7 @@ BrokerContainer中的所有broker共享同一个传输层，就像RocketMQ客户
 
 像Broker启动利用BrokerStartup一样，使用BrokerContainerStartup来启动BrokerContainer。我们可以通过两种方式向BrokerContainer中增加broker，一种是通过启动时通过在配置文件中指定
 
-BrokerContainer配置文件内容主要是Netty网络层参数（由于传输层共享），BrokerContainer的监听端口、namesrv配置，以及最重要的brokerConfigPaths参数，brokerConfigPaths是指需要向BrokerContainer内添加的brokerConfig路径，多个config间用“:”分隔，不指定则只启动BrokerConainer，具体broker可通过mqadmin工具添加
+BrokerContainer配置文件内容主要是Netty网络层参数（由于传输层共享），BrokerContainer的监听端口、namesrv配置，以及最重要的brokerConfigPaths参数，brokerConfigPaths是指需要向BrokerContainer内添加的brokerConfig路径，多个config间用“:”分隔，不指定则只启动BrokerContainer，具体broker可通过mqadmin工具添加
 
 broker-container.conf（distribution/conf/container/broker-container.conf）:
 
@@ -61,7 +61,7 @@ namesrvAddr=127.0.0.1:9876
 #或指定自动获取namesrv
 fetchNamesrvAddrByAddressServer=true
 #指定要向BrokerContainer内添加的brokerConfig路径，多个config间用“:”分隔；
-#不指定则只启动BrokerConainer，具体broker可通过mqadmin工具添加
+#不指定则只启动BrokerContainer，具体broker可通过mqadmin工具添加
 brokerConfigPaths=/home/admin/broker-a.conf:/home/admin/broker-b.conf
 ```
 broker的配置和以前一样，但在BrokerContainer模式下broker配置文件中下Netty网络层参数和nameserver参数不生效，均使用BrokerContainer的配置参数。

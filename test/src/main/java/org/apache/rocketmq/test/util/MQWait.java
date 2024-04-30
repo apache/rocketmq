@@ -42,7 +42,7 @@ public class MQWait {
                     for (AbstractListener listener : listeners) {
                         Collection<Object> recvMsgs = Collections
                             .synchronizedCollection(listener.getAllUndupMsgBody());
-                        noDupMsgs.addAll(VerifyUtils.getFilterdMessage(allSendMsgs, recvMsgs));
+                        noDupMsgs.addAll(VerifyUtils.getFilteredMessage(allSendMsgs, recvMsgs));
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

@@ -98,7 +98,7 @@ public class OffsetNotFoundIT extends BaseConf {
         RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 15000);
         Assert.assertEquals(producer.getAllMsgBody().size(), consumer.getListener().getAllMsgBody().size());
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
         consumer.shutdown();
@@ -122,7 +122,7 @@ public class OffsetNotFoundIT extends BaseConf {
             consumer.start();
             consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), 15000);
             Assert.assertEquals(producer.getAllMsgBody().size(), consumer.getListener().getAllMsgBody().size());
-            assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+            assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
                 consumer.getListener().getAllMsgBody()))
                 .containsExactlyElementsIn(producer.getAllMsgBody());
             consumer.shutdown();

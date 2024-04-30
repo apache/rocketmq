@@ -61,7 +61,7 @@ public class OneWaySendWithMQIT extends BaseConf {
         producer.waitForResponse(5 * 1000);
 
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 

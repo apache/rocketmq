@@ -67,7 +67,7 @@ public class PopProcessQueue {
 
     public void fillPopProcessQueueInfo(final PopProcessQueueInfo info) {
         info.setWaitAckCount(getWaiAckMsgCount());
-        info.setDroped(isDropped());
+        info.setDropped(isDropped());
         info.setLastPopTimestamp(getLastPopTimestamp());
     }
 

@@ -63,7 +63,7 @@ public class OrderMsgWithTagIT extends BaseConf {
 
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(mqMsgs.getMsgBodys());
 
@@ -83,7 +83,7 @@ public class OrderMsgWithTagIT extends BaseConf {
 
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(mqMsgs.getMsgBodys());
 
@@ -109,7 +109,7 @@ public class OrderMsgWithTagIT extends BaseConf {
 
         consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(mqMsgs.getMsgBodys());
 

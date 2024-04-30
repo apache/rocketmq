@@ -784,10 +784,10 @@ public abstract class RebalanceImpl {
     public void removeProcessQueue(final MessageQueue mq) {
         ProcessQueue prev = this.processQueueTable.remove(mq);
         if (prev != null) {
-            boolean droped = prev.isDropped();
+            boolean dropped = prev.isDropped();
             prev.setDropped(true);
             this.removeUnnecessaryMessageQueue(mq, prev);
-            log.info("Fix Offset, {}, remove unnecessary mq, {} Droped: {}", consumerGroup, mq, droped);
+            log.info("Fix Offset, {}, remove unnecessary mq, {} Dropped: {}", consumerGroup, mq, dropped);
         }
     }
 

@@ -62,7 +62,7 @@ public class BroadcastNormalMsgNotReceiveIT extends BaseBroadcast {
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
 
         consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
+        assertThat(VerifyUtils.getFilteredMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 

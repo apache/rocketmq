@@ -27,10 +27,10 @@ public class NowExpression extends ConstantExpression {
 
     @Override
     public Object evaluate(EvaluationContext context) throws Exception {
-        return new Long(System.currentTimeMillis());
+        return System.currentTimeMillis();
     }
 
     public Object getValue() {
-        return new Long(System.currentTimeMillis());
+        return System.currentTimeMillis();
     }
 }

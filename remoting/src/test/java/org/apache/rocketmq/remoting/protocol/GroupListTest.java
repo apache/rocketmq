@@ -31,15 +31,15 @@ public class GroupListTest {
 
     @Test
     public void testSetGet() throws Exception {
-        HashSet<String> fisrtUniqueSet = createUniqueNewSet();
+        HashSet<String> firstUniqueSet = createUniqueNewSet();
         HashSet<String> secondUniqueSet = createUniqueNewSet();
-        assertThat(fisrtUniqueSet).isNotEqualTo(secondUniqueSet);
+        assertThat(firstUniqueSet).isNotEqualTo(secondUniqueSet);
         GroupList gl = new GroupList();
-        gl.setGroupList(fisrtUniqueSet);
-        assertThat(gl.getGroupList()).isEqualTo(fisrtUniqueSet);
+        gl.setGroupList(firstUniqueSet);
+        assertThat(gl.getGroupList()).isEqualTo(firstUniqueSet);
         assertThat(gl.getGroupList()).isNotEqualTo(secondUniqueSet);
         gl.setGroupList(secondUniqueSet);
-        assertThat(gl.getGroupList()).isNotEqualTo(fisrtUniqueSet);
+        assertThat(gl.getGroupList()).isNotEqualTo(firstUniqueSet);
         assertThat(gl.getGroupList()).isEqualTo(secondUniqueSet);
     }
 
