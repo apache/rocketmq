@@ -181,7 +181,7 @@ public class MQAdminImpl {
                 e);
         }
 
-        throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
+        throw new MQClientException("Unknown why, Can not find Message Queue for this topic, " + topic, null);
     }
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
