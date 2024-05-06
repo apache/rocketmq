@@ -11,10 +11,7 @@ import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * @author Willhow
- * @since 2024/5/3
- */
+
 public class DefaultLitePullConsumerImplTest {
     private final DefaultLitePullConsumerImpl consumer = new DefaultLitePullConsumerImpl(new DefaultLitePullConsumer(), null);
 
