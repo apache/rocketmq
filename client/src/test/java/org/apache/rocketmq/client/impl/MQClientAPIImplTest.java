@@ -83,7 +83,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -387,7 +387,7 @@ public class MQClientAPIImplTest {
                 callback.operationSucceed(responseFuture.getResponseCommand());
                 return null;
             }
-        }).when(remotingClient).invokeAsync(Matchers.anyString(), Matchers.any(RemotingCommand.class), Matchers.anyLong(), Matchers.any(InvokeCallback.class));
+        }).when(remotingClient).invokeAsync(ArgumentMatchers.anyString(), ArgumentMatchers.any(RemotingCommand.class), ArgumentMatchers.anyLong(), ArgumentMatchers.any(InvokeCallback.class));
         SendMessageContext sendMessageContext = new SendMessageContext();
         sendMessageContext.setProducer(new DefaultMQProducerImpl(new DefaultMQProducer()));
         msg.getProperties().put("MSG_TYPE", "reply");
