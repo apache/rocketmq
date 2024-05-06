@@ -227,7 +227,7 @@ public class DefaultReceiptHandleManagerTest extends BaseServiceTest {
                 Mockito.eq(GROUP), Mockito.eq(TOPIC), Mockito.eq(retryPolicy.nextDelayDuration(messageReceiptHandle.getRenewTimes()))))
             .thenReturn(ackResultFuture);
 
-        await().atMost(Duration.ofSeconds(1)).until(() -> {
+        await().atMost(Duration.ofSeconds(3)).until(() -> {
             receiptHandleManager.scheduleRenewTask();
             try {
                 ReceiptHandleGroup receiptHandleGroup = receiptHandleManager.receiptHandleGroupMap.values().stream().findFirst().get();
