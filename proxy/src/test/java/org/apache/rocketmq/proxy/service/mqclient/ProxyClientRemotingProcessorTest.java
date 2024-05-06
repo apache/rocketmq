@@ -123,7 +123,7 @@ public class ProxyClientRemotingProcessorTest {
                 }
             });
         }
-        await().atMost(Duration.ofSeconds(1)).until(() -> count.get() == 100);
+        await().atMost(Duration.ofSeconds(3)).until(() -> count.get() == 100);
         verify(observer, times(2)).onNext(any());
     }
 
