@@ -117,8 +117,7 @@ public class MQAdminTestUtils {
             for (String addr : masterSet) {
                 try {
                     mqAdminExt.createAndUpdateSubscriptionGroupConfig(addr, config);
-                    log.info(String.format("create subscription group %s to %s success.\n", consumerId,
-                            addr));
+                    log.info("create subscription group {} to {} success.", consumerId, addr);
                 } catch (Exception e) {
                     e.printStackTrace();
                     Thread.sleep(1000 * 1);

@@ -569,7 +569,7 @@ public class DLedgerController implements Controller {
                                 break;
                             }
                             tryTimes++;
-                            log.error(String.format("Controller leader append initial log failed, try %d times", tryTimes));
+                            log.error("Controller leader append initial log failed, try {} times", tryTimes);
                             if (tryTimes % 3 == 0) {
                                 log.warn("Controller leader append initial log failed too many times, please wait a while");
                             }

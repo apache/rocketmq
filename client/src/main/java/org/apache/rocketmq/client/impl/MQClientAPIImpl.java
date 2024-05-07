@@ -1168,7 +1168,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                             index = sortMap.get(queueIdKey).indexOf(offset);
                             msgQueueOffset = msgOffsetInfo.get(queueIdKey).get(index);
                             if (msgQueueOffset != offset) {
-                                log.warn("Queue offset[%d] of msg is strange, not equal to the stored in msg, %s",
+                                log.warn("Queue offset[{}] of msg is strange, not equal to the stored in msg, {}",
                                     msgQueueOffset, messageExt);
                             }
                             messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
@@ -1181,7 +1181,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                             index = sortMap.get(queueIdKey).indexOf(messageExt.getQueueOffset());
                             msgQueueOffset = msgOffsetInfo.get(queueIdKey).get(index);
                             if (msgQueueOffset != messageExt.getQueueOffset()) {
-                                log.warn("Queue offset[%d] of msg is strange, not equal to the stored in msg, %s", msgQueueOffset, messageExt);
+                                log.warn("Queue offset[{}] of msg is strange, not equal to the stored in msg, {}", msgQueueOffset, messageExt);
                             }
                             messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
                                 ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(queueIdKey), responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
