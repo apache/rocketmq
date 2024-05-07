@@ -64,7 +64,7 @@ public class PopSubCheckIT extends BaseConf {
     @Test
     public void testNormalPopAck() throws Exception {
         String topic = initTopic();
-        log.info(String.format("use topic: %s; group: %s !", topic, group));
+        log.info("use topic: {}; group: {} !", topic, group);
 
         RMQNormalProducer producer = getProducer(NAMESRV_ADDR, topic);
         producer.getProducer().setCompressMsgBodyOverHowmuch(Integer.MAX_VALUE);

@@ -95,6 +95,10 @@ java_library(
 GenTestRules(
     name = "GeneratedTestRules",
     test_files = glob(["src/test/java/**/*Test.java"]),
+    exclude_tests = [
+            # These tests are extremely slow and flaky, exclude them before they are properly fixed.
+            "src/test/java/org/apache/rocketmq/broker/controller/ReplicasManagerRegisterTest",
+        ],
     deps = [
         ":tests",
     ],

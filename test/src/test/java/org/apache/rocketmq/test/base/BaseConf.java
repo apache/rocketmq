@@ -287,8 +287,7 @@ public class BaseConf {
             consumer.setDebug();
         }
         mqClients.add(consumer);
-        log.info(String.format("consumer[%s] start,topic[%s],subExpression[%s]", consumerGroup,
-                topic, subExpression));
+        log.info("consumer[{}] start,topic[{}],subExpression[{}]", consumerGroup, topic, subExpression);
         return consumer;
     }
 
