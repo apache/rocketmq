@@ -68,6 +68,7 @@ public class FilterSpiTest {
             e.printStackTrace();
             assertThat(Boolean.FALSE).isTrue();
         }
+        FilterFactory.INSTANCE.unRegister("Nothing");
     }
 
     @Test

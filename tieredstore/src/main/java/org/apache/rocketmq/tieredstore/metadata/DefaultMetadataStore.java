@@ -164,7 +164,10 @@ public class DefaultMetadataStore extends ConfigManager implements MetadataStore
 
     @Override
     public void iterateQueue(String topic, Consumer<QueueMetadata> callback) {
-        queueMetadataTable.get(topic).values().forEach(callback);
+        ConcurrentMap<Integer, QueueMetadata> metadataConcurrentMap = queueMetadataTable.get(topic);
+        if (metadataConcurrentMap != null) {
+            metadataConcurrentMap.values().forEach(callback);
+        }
     }
 
     @Override
