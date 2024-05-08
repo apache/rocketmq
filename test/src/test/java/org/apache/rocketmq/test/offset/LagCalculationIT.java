@@ -174,7 +174,7 @@ public class LagCalculationIT extends BaseConf {
         RMQNormalConsumer tagConsumer = getConsumer(NAMESRV_ADDR, topic, tag, tagListener);
 
         //init subscriptionData & consumerFilterData for sql
-        SubscriptionData subscriptionData = FilterAPI.buildSubscriptionData(topic, sql, ExpressionType.SQL92);
+        SubscriptionData subscriptionData = FilterAPI.build(topic, sql, ExpressionType.SQL92);
         for (BrokerController controller : brokerControllerList) {
             controller.getConsumerFilterManager().register(topic, sqlConsumer.getConsumerGroup(), sql, ExpressionType.SQL92, subscriptionData.getSubVersion());
         }
