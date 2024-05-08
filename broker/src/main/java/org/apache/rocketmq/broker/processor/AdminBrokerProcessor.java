@@ -2907,7 +2907,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.brokerController.getAuthenticationMetadataManager().updateUser(old);
             }).thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
             .exceptionally(ex -> {
-                LOGGER.error("delete user {} error", requestHeader.getUsername(), ex);
+                LOGGER.error("update user {} error", requestHeader.getUsername(), ex);
                 return handleAuthException(response, ex);
             })
             .join();
