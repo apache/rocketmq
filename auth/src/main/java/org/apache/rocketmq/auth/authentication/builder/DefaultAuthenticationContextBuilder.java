@@ -98,12 +98,12 @@ public class DefaultAuthenticationContextBuilder implements AuthenticationContex
     @Override
     public DefaultAuthenticationContext build(ChannelHandlerContext context, RemotingCommand request) {
         HashMap<String, String> fields = request.getExtFields();
-        if (MapUtils.isEmpty(fields)) {
-            throw new AuthenticationException("authentication field is null.");
-        }
         DefaultAuthenticationContext result = new DefaultAuthenticationContext();
         result.setChannelId(context.channel().id().asLongText());
         result.setRpcCode(String.valueOf(request.getCode()));
+        if (MapUtils.isEmpty(fields)) {
+            return result;
+        }
         if (!fields.containsKey(SessionCredentials.ACCESS_KEY)) {
             return result;
         }
