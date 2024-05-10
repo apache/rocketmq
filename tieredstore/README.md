@@ -12,7 +12,7 @@ This article is a cookbook for RocketMQ tiered storage.
 
 Use the following steps to easily use tiered storage
 
-1. Change `messageStorePlugIn` to `org.apache.rocketmq.tieredstore.MessageStoreExtend` in your `broker.conf`.
+1. Change `messageStorePlugIn` to `org.apache.rocketmq.tieredstore.TieredMessageStore` in your `broker.conf`.
 2. Configure your backend service provider. change `tieredBackendServiceProvider` to your storage medium implement. We give a default implement: POSIX provider, and you need to change `tieredStoreFilePath` to the mount point of storage medium for tiered storage.
 3. Start the broker and enjoy!
 
@@ -22,7 +22,7 @@ The following are some core configurations, for more details, see [TieredMessage
 
 | Configuration                   | Default value                                                 | Unit        | Function                                                                        |
 | ------------------------------- |---------------------------------------------------------------| ----------- | ------------------------------------------------------------------------------- |
-| messageStorePlugIn              |                                                               |             | Set to org.apache.rocketmq.tieredstore.MessageStoreExtend to use tiered storage |
+| messageStorePlugIn              |                                                               |             | Set to org.apache.rocketmq.tieredstore.TieredMessageStore to use tiered storage |
 | tieredMetadataServiceProvider   | org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore |             | Select your metadata provider                                                   |
 | tieredBackendServiceProvider    | org.apache.rocketmq.tieredstore.provider.PosixFileSegment     |             | Select your backend service provider                                            |
 | tieredStoreFilePath             |                                                               |             | Select the directory using for tiered storage, only for POSIX provider.         |
