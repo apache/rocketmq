@@ -442,7 +442,6 @@ public class ConsumerLagCalculator {
 
         if (brokerConfig.isEstimateAccumulation() && to > from) {
             SubscriptionData subscriptionData = null;
-            ConsumerFilterData consumerFilterData = consumerFilterManager.get(topic, group);
             if (brokerConfig.isUseStaticSubscription()) {
                 SubscriptionGroupConfig subscriptionGroupConfig = subscriptionGroupManager.findSubscriptionGroupConfig(group);
                 if (subscriptionGroupConfig != null) {
@@ -455,14 +454,6 @@ public class ConsumerLagCalculator {
                                 LOGGER.error("Try to build subscription for group:{}, topic:{} exception.", group, topic, e);
                             }
                             break;
-                        }
-                    }
-                    if (subscriptionData != null) {
-                        consumerFilterData = ConsumerFilterManager.build(subscriptionData.getTopic(),
-                            subscriptionGroupConfig.getGroupName(), subscriptionData.getSubString(),
-                            subscriptionData.getExpressionType(), subscriptionData.getSubVersion());
-                        if (consumerFilterData != null) {
-                            consumerFilterData.setBloomFilterData(consumerFilterManager.getBloomFilter().generate(group + "#" + topic));
                         }
                     }
                 }
@@ -479,6 +470,7 @@ public class ConsumerLagCalculator {
                     count = messageStore.estimateMessageCount(topic, queueId, from, to,
                         new DefaultMessageFilter(subscriptionData));
                 } else if (ExpressionType.SQL92.equalsIgnoreCase(subscriptionData.getExpressionType())) {
+                    ConsumerFilterData consumerFilterData = consumerFilterManager.get(topic, group);
                     count = messageStore.estimateMessageCount(topic, queueId, from, to,
                         new ExpressionMessageFilter(subscriptionData,
                             consumerFilterData,

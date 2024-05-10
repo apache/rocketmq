@@ -311,7 +311,6 @@ public class LagCalculationIT extends BaseConf {
             for (MessageQueue mq : mqs) {
                 if (mq.getBrokerName().equals(controller.getBrokerConfig().getBrokerName())) {
                     long brokerOffset = controller.getMessageStore().getMaxOffsetInQueue(topic, mq.getQueueId());
-                    System.out.println("BrokerOffset: " + brokerOffset);
                     long estimateMessageCount = controller.getMessageStore()
                         .estimateMessageCount(topic, mq.getQueueId(), 0, brokerOffset,
                             new ExpressionMessageFilter(subscriptionData, controller.getConsumerFilterManager().get(topic, sqlConsumer.getConsumerGroup()), controller.getConsumerFilterManager()));
