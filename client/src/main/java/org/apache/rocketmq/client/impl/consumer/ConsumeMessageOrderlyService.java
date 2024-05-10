@@ -181,11 +181,11 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
             result.setRemark(UtilAll.exceptionSimpleDesc(e));
 
-            log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
+            log.warn("consumeMessageDirectly exception: {} Group: {} Msgs: {} MQ: {}",
                 UtilAll.exceptionSimpleDesc(e),
                 ConsumeMessageOrderlyService.this.consumerGroup,
                 msgs,
-                mq), e);
+                mq, e);
         }
 
         result.setAutoCommit(context.isAutoCommit());
@@ -497,11 +497,11 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
 
                                 status = messageListener.consumeMessage(Collections.unmodifiableList(msgs), context);
                             } catch (Throwable e) {
-                                log.warn(String.format("consumeMessage exception: %s Group: %s Msgs: %s MQ: %s",
+                                log.warn("consumeMessage exception: {} Group: {} Msgs: {} MQ: {}",
                                     UtilAll.exceptionSimpleDesc(e),
                                     ConsumeMessageOrderlyService.this.consumerGroup,
                                     msgs,
-                                    messageQueue), e);
+                                    messageQueue, e);
                                 hasException = true;
                             } finally {
                                 this.processQueue.getConsumeLock().readLock().unlock();

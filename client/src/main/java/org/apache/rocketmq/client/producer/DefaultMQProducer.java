@@ -72,6 +72,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         ResponseCode.TOPIC_NOT_EXIST,
         ResponseCode.SERVICE_NOT_AVAILABLE,
         ResponseCode.SYSTEM_ERROR,
+        ResponseCode.SYSTEM_BUSY,
         ResponseCode.NO_PERMISSION,
         ResponseCode.NO_BUYER_ID,
         ResponseCode.NOT_IN_CURRENT_UNIT

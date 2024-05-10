@@ -93,19 +93,33 @@ public class FlatCommitLogFileTest {
         for (int i = 6; i < 9; i++) {
             ByteBuffer byteBuffer = MessageFormatUtilTest.buildMockedMessageBuffer();
             byteBuffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, i);
-            Assert.assertEquals(AppendResult.SUCCESS, flatFile.append(byteBuffer, 1L));
+            Assert.assertEquals(AppendResult.SUCCESS, flatFile.append(byteBuffer, i));
         }
         Assert.assertEquals(-1L, flatFile.getMinOffsetFromFileAsync().join().longValue());
 
         // append some messages
         for (int i = 9; i < 30; i++) {
+            if (i == 20) {
+                flatFile.commitAsync().join();
+                flatFile.rollingNewFile(flatFile.getAppendOffset());
+            }
             ByteBuffer byteBuffer = MessageFormatUtilTest.buildMockedMessageBuffer();
             byteBuffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, i);
-            Assert.assertEquals(AppendResult.SUCCESS, flatFile.append(byteBuffer, 1L));
+            Assert.assertEquals(AppendResult.SUCCESS, flatFile.append(byteBuffer, i));
         }
 
         flatFile.commitAsync().join();
         Assert.assertEquals(6L, flatFile.getMinOffsetFromFile());
         Assert.assertEquals(6L, flatFile.getMinOffsetFromFileAsync().join().longValue());
+
+        // recalculate min offset here
+        flatFile.destroyExpiredFile(20L);
+        Assert.assertEquals(20L, flatFile.getMinOffsetFromFile());
+        Assert.assertEquals(20L, flatFile.getMinOffsetFromFileAsync().join().longValue());
+
+        // clean expired file again
+        flatFile.destroyExpiredFile(20L);
+        Assert.assertEquals(20L, flatFile.getMinOffsetFromFile());
+        Assert.assertEquals(20L, flatFile.getMinOffsetFromFileAsync().join().longValue());
     }
 }
