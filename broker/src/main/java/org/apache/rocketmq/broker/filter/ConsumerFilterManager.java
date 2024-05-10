@@ -140,7 +140,7 @@ public class ConsumerFilterManager extends ConfigManager {
             return false;
         }
 
-        if (expression == null || expression.length() == 0) {
+        if (expression == null || expression.isEmpty()) {
             return false;
         }
 

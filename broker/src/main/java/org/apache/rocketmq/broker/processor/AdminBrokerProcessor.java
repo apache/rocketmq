@@ -193,6 +193,7 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingContex
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupForbidden;
+import org.apache.rocketmq.remoting.protocol.subscription.SimpleSubscriptionData;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.remoting.rpc.RpcClientUtils;
 import org.apache.rocketmq.remoting.rpc.RpcException;
@@ -1458,6 +1459,17 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         SubscriptionGroupConfig config = RemotingSerializable.decode(request.getBody(), SubscriptionGroupConfig.class);
         if (config != null) {
             this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfig(config);
+            if (brokerController.getBrokerConfig().isUseStaticSubscription()) {
+                Set<SimpleSubscriptionData> subSet = config.getSubscriptionDataSet();
+                if (subSet != null) {
+                    for (SimpleSubscriptionData simpleSubscriptionData : subSet) {
+                        String group = config.getGroupName();
+                        String topic = simpleSubscriptionData.getTopic();
+                        brokerController.getConsumerFilterManager().register(topic, group, simpleSubscriptionData.getExpression(),
+                            simpleSubscriptionData.getExpressionType(), Integer.MAX_VALUE);
+                    }
+                }
+            }
         }
 
         response.setCode(ResponseCode.SUCCESS);
@@ -1522,6 +1534,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(requestHeader.getGroupName());
+        if (this.brokerController.getBrokerConfig().isUseStaticSubscription()) {
+            this.brokerController.getConsumerFilterManager().unRegister(requestHeader.getGroupName());
+        }
 
         if (requestHeader.isCleanOffset()) {
             this.brokerController.getConsumerOffsetManager().removeOffset(requestHeader.getGroupName());

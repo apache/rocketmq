@@ -17,9 +17,11 @@
 
 package org.apache.rocketmq.test.offset;
 
+import com.google.common.collect.Sets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
@@ -35,6 +37,8 @@ import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.subscription.SimpleSubscriptionData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.DefaultMessageFilter;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
@@ -44,6 +48,8 @@ import org.apache.rocketmq.test.factory.ConsumerFactory;
 import org.apache.rocketmq.test.listener.rmq.concurrent.RMQBlockListener;
 import org.apache.rocketmq.test.message.MessageQueueMsg;
 import org.apache.rocketmq.test.util.MQAdminTestUtils;
+import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
+import org.apache.rocketmq.tools.command.CommandUtil;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
@@ -68,7 +74,6 @@ public class LagCalculationIT extends BaseConf {
         for (BrokerController controller : brokerControllerList) {
             controller.getBrokerConfig().setLongPollingEnable(false);
             controller.getBrokerConfig().setShortPollingTimeMills(500);
-            controller.getBrokerConfig().setEstimateAccumulation(true);
         }
         producer = getProducer(NAMESRV_ADDR, topic);
         blockListener = new RMQBlockListener(false);
@@ -77,6 +82,11 @@ public class LagCalculationIT extends BaseConf {
 
     @After
     public void tearDown() {
+        for (BrokerController controller : brokerControllerList) {
+            controller.getBrokerConfig().setLongPollingEnable(true);
+            controller.getBrokerConfig().setShortPollingTimeMills(1000);
+            controller.getBrokerConfig().setUseStaticSubscription(false);
+        }
         shutdown();
     }
 
@@ -222,6 +232,89 @@ public class LagCalculationIT extends BaseConf {
                     long estimateMessageCount = controller.getMessageStore()
                         .estimateMessageCount(topic, mq.getQueueId(), 0, brokerOffset,
                             new ExpressionMessageFilter(subscriptionData, consumerFilterData, controller.getConsumerFilterManager()));
+                    assertEquals(repeat / 2 * msgWithTagSize, estimateMessageCount);
+                }
+            }
+        }
+
+        sqlConsumer.shutdown();
+        tagConsumer.shutdown();
+    }
+
+    @Test
+    public void testEstimateLagWhenUseStaticSubscription() throws Exception {
+        for (BrokerController controller : brokerControllerList) {
+            controller.getBrokerConfig().setUseStaticSubscription(true);
+        }
+        int msgNoTagSize = 80;
+        int msgWithTagSize = 20;
+        int repeat = 2;
+        String tag = "TAG_FOR_TEST_ESTIMATE";
+        String sql = "TAGS = 'TAG_FOR_TEST_ESTIMATE' And value < " + repeat / 2;
+        MessageSelector selector = MessageSelector.bySql(sql);
+        RMQBlockListener sqlListener = new RMQBlockListener(true);
+        RMQSqlConsumer sqlConsumer = ConsumerFactory.getRMQSqlConsumer(NAMESRV_ADDR, initConsumerGroup(), topic, selector, sqlListener);
+        RMQBlockListener tagListener = new RMQBlockListener(true);
+        RMQNormalConsumer tagConsumer = getConsumer(NAMESRV_ADDR, topic, tag, tagListener);
+        DefaultMQAdminExt admin = getAdmin(NAMESRV_ADDR);
+        admin.start();
+
+        //init subscriptionData & consumerFilterData for sql
+        SubscriptionData subscriptionData = FilterAPI.build(topic, sql, ExpressionType.SQL92);
+
+        Set<String> masterSet =
+            CommandUtil.fetchMasterAddrByClusterName(admin, CLUSTER_NAME);
+        SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
+        subscriptionGroupConfig.setGroupName(sqlConsumer.getConsumerGroup());
+        SimpleSubscriptionData simpleSubscriptionData = new SimpleSubscriptionData(topic, "SQL92", sql, Integer.MAX_VALUE);
+        subscriptionGroupConfig.setSubscriptionDataSet(Sets.newHashSet(simpleSubscriptionData));
+        for (String addr : masterSet) {
+            admin.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
+        }
+
+        // wait for building filter data
+        await().atMost(5, TimeUnit.SECONDS).until(() -> sqlListener.isBlocked() && tagListener.isBlocked());
+
+        List<MessageQueue> mqs = producer.getMessageQueue();
+        for (int i = 0; i < repeat; i++) {
+            MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgNoTagSize);
+            Map<MessageQueue, List<Object>> msgMap = mqMsgs.getMsgsWithMQ();
+            mqMsgs = new MessageQueueMsg(mqs, msgWithTagSize, tag);
+            Map<MessageQueue, List<Object>> msgWithTagMap = mqMsgs.getMsgsWithMQ();
+            int finalI = i;
+            msgMap.forEach((mq, msgList) -> {
+                List<Object> msgWithTagList = msgWithTagMap.get(mq);
+                for (Object o : msgWithTagList) {
+                    ((Message) o).putUserProperty("value", String.valueOf(finalI));
+                }
+                msgList.addAll(msgWithTagList);
+                Collections.shuffle(msgList);
+            });
+            producer.send(msgMap);
+        }
+
+        // test lag estimation for tag consumer
+        for (BrokerController controller : brokerControllerList) {
+            for (MessageQueue mq : mqs) {
+                if (mq.getBrokerName().equals(controller.getBrokerConfig().getBrokerName())) {
+                    long brokerOffset = controller.getMessageStore().getMaxOffsetInQueue(topic, mq.getQueueId());
+                    long estimateMessageCount = controller.getMessageStore()
+                        .estimateMessageCount(topic, mq.getQueueId(), 0, brokerOffset,
+                            new DefaultMessageFilter(FilterAPI.buildSubscriptionData(topic, tag)));
+                    assertEquals(repeat * msgWithTagSize, estimateMessageCount);
+                }
+            }
+        }
+
+        // test lag estimation for sql consumer
+        for (BrokerController controller : brokerControllerList) {
+            for (MessageQueue mq : mqs) {
+                if (mq.getBrokerName().equals(controller.getBrokerConfig().getBrokerName())) {
+                    long brokerOffset = controller.getMessageStore().getMaxOffsetInQueue(topic, mq.getQueueId());
+                    System.out.println("BrokerOffset: " + brokerOffset);
+                    long estimateMessageCount = controller.getMessageStore()
+                        .estimateMessageCount(topic, mq.getQueueId(), 0, brokerOffset,
+                            new ExpressionMessageFilter(subscriptionData, controller.getConsumerFilterManager().get(topic, sqlConsumer.getConsumerGroup()), controller.getConsumerFilterManager()));
                     assertEquals(repeat / 2 * msgWithTagSize, estimateMessageCount);
                 }
             }

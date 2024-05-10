@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -157,6 +158,8 @@ import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingDetail;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+import org.apache.rocketmq.remoting.protocol.subscription.SimpleSubscriptionData;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.srvutil.FileWatchService;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageArrivingListener;
@@ -777,6 +780,20 @@ public class BrokerController {
         result = result && this.consumerOffsetManager.load();
         result = result && this.subscriptionGroupManager.load();
         result = result && this.consumerFilterManager.load();
+        if (this.brokerConfig.isUseStaticSubscription()) {
+            for (SubscriptionGroupConfig subscriptionGroupConfig : this.subscriptionGroupManager.getSubscriptionGroupTable().values()) {
+                Set<SimpleSubscriptionData> subSet = subscriptionGroupConfig.getSubscriptionDataSet();
+                if (subSet != null) {
+                    for (SimpleSubscriptionData simpleSubscriptionData : subSet) {
+                        String group = subscriptionGroupConfig.getGroupName();
+                        String topic = simpleSubscriptionData.getTopic();
+                        consumerFilterManager.register(topic, group, simpleSubscriptionData.getExpression(),
+                            simpleSubscriptionData.getExpressionType(), Integer.MAX_VALUE);
+                    }
+                }
+            }
+        }
+
         result = result && this.consumerOrderInfoManager.load();
         return result;
     }
