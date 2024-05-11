@@ -1222,8 +1222,7 @@ public class MQClientInstance {
         if (topicRouteData != null) {
             List<BrokerData> brokers = topicRouteData.getBrokerDatas();
             if (!brokers.isEmpty()) {
-                int index = random.nextInt(brokers.size());
-                BrokerData bd = brokers.get(index % brokers.size());
+                BrokerData bd = brokers.get(random.nextInt(brokers.size()));
                 return bd.selectBrokerAddr();
             }
         }
