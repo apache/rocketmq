@@ -349,7 +349,7 @@ public class LagCalculationIT extends BaseConf {
             CommandUtil.fetchMasterAddrByClusterName(admin, CLUSTER_NAME);
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         subscriptionGroupConfig.setGroupName(sqlConsumer.getConsumerGroup());
-        SimpleSubscriptionData simpleSubscriptionData = new SimpleSubscriptionData(topic, "SQL92", sql, Integer.MAX_VALUE);
+        SimpleSubscriptionData simpleSubscriptionData = new SimpleSubscriptionData(topic, "SQL92", sql, Long.MAX_VALUE);
         subscriptionGroupConfig.setSubscriptionDataSet(Sets.newHashSet(simpleSubscriptionData));
         for (String addr : masterSet) {
             admin.createAndUpdateSubscriptionGroupConfig(addr, subscriptionGroupConfig);
