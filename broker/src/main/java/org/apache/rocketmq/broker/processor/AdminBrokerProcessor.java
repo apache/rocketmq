@@ -3187,16 +3187,21 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         TieredMessageStore tieredMessageStore = (TieredMessageStore) brokerController.getMessageStore();
         MetadataStore metadataStore = tieredMessageStore.getMetadataStore();
-        TopicMetadata topicMetadata = metadataStore.getTopic(topic);
-        if (topicMetadata == null) {
+        TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topic);
+        if (topicConfig == null) {
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("topic[" + requestHeader.getTopic() + "] not exist");
             return response;
         }
 
         try {
-            topicMetadata.setReserveTime(requestHeader.getReserveTime());
-            metadataStore.updateTopic(topicMetadata);
+            TopicMetadata topicMetadata = metadataStore.getTopic(topic);
+            if (topicMetadata == null) {
+                metadataStore.addTopic(topic, requestHeader.getReserveTime());
+            } else {
+                topicMetadata.setReserveTime(requestHeader.getReserveTime());
+                metadataStore.updateTopic(topicMetadata);
+            }
             response.setCode(ResponseCode.SUCCESS);
         } catch (Exception e) {
             LOGGER.error("Update topic metadata failed for [{}]", request, e);
