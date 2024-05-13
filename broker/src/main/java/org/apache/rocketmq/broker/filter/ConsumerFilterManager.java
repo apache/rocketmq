@@ -152,7 +152,7 @@ public class ConsumerFilterManager extends ConfigManager {
             filterDataMapByTopic = prev != null ? prev : temp;
         }
 
-        BloomFilterData bloomFilterData = bloomFilter.generate(consumerGroup + "#" + topic);
+        BloomFilterData bloomFilterData = generateBloomFilterData(consumerGroup, topic);
 
         return filterDataMapByTopic.register(consumerGroup, expression, type, bloomFilterData, clientVersion);
     }
@@ -204,6 +204,10 @@ public class ConsumerFilterManager extends ConfigManager {
         }
 
         return this.filterDataByTopic.get(topic).getGroupFilterData().values();
+    }
+
+    public BloomFilterData generateBloomFilterData(String consumerGroup, String topic) {
+        return bloomFilter.generate(consumerGroup + "#" + topic);
     }
 
     public BloomFilter getBloomFilter() {

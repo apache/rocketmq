@@ -305,6 +305,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     retryTopic, retrySubscriptionData);
 
                 ConsumerFilterData consumerFilterData = null;
+                ConsumerFilterManager consumerFilterManager = brokerController.getConsumerFilterManager();
                 if (!ExpressionType.isTagType(subscriptionData.getExpressionType())) {
                     consumerFilterData = ConsumerFilterManager.build(
                         requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getExp(),
@@ -317,9 +318,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                         response.setRemark("parse the consumer's subscription failed");
                         return response;
                     }
+                    consumerFilterData.setBloomFilterData(consumerFilterManager.generateBloomFilterData(requestHeader.getConsumerGroup(), requestHeader.getTopic()));
                 }
-                messageFilter = new ExpressionMessageFilter(subscriptionData, consumerFilterData,
-                    brokerController.getConsumerFilterManager());
+                messageFilter = new ExpressionMessageFilter(subscriptionData, consumerFilterData, consumerFilterManager);
             } catch (Exception e) {
                 POP_LOGGER.warn("Parse the consumer's subscription[{}] error, group: {}", requestHeader.getExp(),
                     requestHeader.getConsumerGroup());
