@@ -224,7 +224,7 @@ public class ScheduleMessageService extends ConfigManager {
         result = result && this.correctDelayOffset();
         return result;
     }
-    
+
     public boolean loadWhenSyncDelayOffset() {
         boolean result = super.load();
         result = result && this.parseDelayLevel();
@@ -377,7 +377,7 @@ public class ScheduleMessageService extends ConfigManager {
                 if (isStarted()) {
                     this.executeOnTimeUp();
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 // XXX: warn and notify me
                 log.error("ScheduleMessageService, executeOnTimeUp exception", e);
                 this.scheduleNextTimerTask(this.offset, DELAY_FOR_A_PERIOD);
