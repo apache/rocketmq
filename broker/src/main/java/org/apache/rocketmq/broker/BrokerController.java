@@ -788,7 +788,7 @@ public class BrokerController {
                         String group = subscriptionGroupConfig.getGroupName();
                         String topic = simpleSubscriptionData.getTopic();
                         consumerFilterManager.register(topic, group, simpleSubscriptionData.getExpression(),
-                            simpleSubscriptionData.getExpressionType(), Integer.MAX_VALUE);
+                            simpleSubscriptionData.getExpressionType(), Long.MAX_VALUE);
                     }
                 }
             }

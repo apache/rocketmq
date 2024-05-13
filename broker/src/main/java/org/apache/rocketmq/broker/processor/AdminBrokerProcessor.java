@@ -1466,7 +1466,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                         String group = config.getGroupName();
                         String topic = simpleSubscriptionData.getTopic();
                         brokerController.getConsumerFilterManager().register(topic, group, simpleSubscriptionData.getExpression(),
-                            simpleSubscriptionData.getExpressionType(), Integer.MAX_VALUE);
+                            simpleSubscriptionData.getExpressionType(), Long.MAX_VALUE);
                     }
                 }
             }
