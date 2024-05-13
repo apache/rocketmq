@@ -1560,7 +1560,7 @@ public class TimerMessageStore {
                                 if (needDelete(tr.getMagic()) && !needRoll(tr.getMagic())) {
                                     //Clearing is performed once in each round.
                                     //The deletion message is received first and the common message is received once
-                                    if(!isRound){
+                                    if (!isRound) {
                                         isRound = true;
                                         for (MessageExt messageExt: avoidDeleteLose.values()) {
                                             addMetric(messageExt, 1);
@@ -1580,7 +1580,7 @@ public class TimerMessageStore {
                                         LOGGER.warn("No uniqueKey for msg:{}", msgExt);
                                     }
                                     //Mark ready for next round
-                                    if(isRound){
+                                    if (isRound) {
                                         isRound = false;
                                     }
                                     if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0 && tr.getDeleteList().contains(uniqueKey)) {
