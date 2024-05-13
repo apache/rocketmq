@@ -188,8 +188,12 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         final ProcessQueue processQueue,
         final MessageQueue messageQueue,
         final boolean dispatchToConsume) {
+
         final int consumeBatchSize = this.defaultMQPushConsumer.getConsumeMessageBatchMaxSize();
-        int batch = ((msgs.size() - 1) / consumeBatchSize) + 1;
+        int batch = msgs.size() / consumeBatchSize;
+        if (msgs.size() % consumeBatchSize != 0) {
+            batch += 1;
+        }
         for (int batchIdx = 0; batchIdx < batch; batchIdx++) {
             List<MessageExt> batchMessages = msgs.subList(batchIdx * consumeBatchSize, Math.min((batchIdx + 1) * consumeBatchSize, msgs.size()));
             ConsumeRequest consumeRequest = new ConsumeRequest(batchMessages, processQueue, messageQueue);
