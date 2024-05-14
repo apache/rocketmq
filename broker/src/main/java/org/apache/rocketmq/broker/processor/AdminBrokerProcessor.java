@@ -1466,7 +1466,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                         String group = config.getGroupName();
                         String topic = simpleSubscriptionData.getTopic();
                         brokerController.getConsumerFilterManager().register(topic, group, simpleSubscriptionData.getExpression(),
-                            simpleSubscriptionData.getExpressionType(), Long.MAX_VALUE);
+                            simpleSubscriptionData.getExpressionType(), System.currentTimeMillis());
                     }
                 }
             }
@@ -1534,9 +1534,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         this.brokerController.getSubscriptionGroupManager().deleteSubscriptionGroupConfig(requestHeader.getGroupName());
-        if (this.brokerController.getBrokerConfig().isUseStaticSubscription()) {
-            this.brokerController.getConsumerFilterManager().unRegister(requestHeader.getGroupName());
-        }
+        this.brokerController.getConsumerFilterManager().unRegister(requestHeader.getGroupName());
 
         if (requestHeader.isCleanOffset()) {
             this.brokerController.getConsumerOffsetManager().removeOffset(requestHeader.getGroupName());
