@@ -353,7 +353,7 @@ public class ScheduleMessageService extends ConfigManager {
                 if (isStarted()) {
                     this.executeOnTimeup();
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 // XXX: warn and notify me
                 log.error("ScheduleMessageService, executeOnTimeup exception", e);
                 this.scheduleNextTimerTask(this.offset, DELAY_FOR_A_PERIOD);
