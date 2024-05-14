@@ -138,7 +138,7 @@ public class ProduceAccumulator {
             final int sleepTime = Math.max(1, holdMs / 2);
             for (MessageAccumulation v : values) {
                 if (v.readyToSend()) {
-                    v.send(null);
+                    v.sendWithCallback();
                 }
                 synchronized (v.closed) {
                     if (v.messagesSize.get() == 0) {
@@ -333,9 +333,9 @@ public class ProduceAccumulator {
 
         public MessageAccumulation(AggregateKey aggregateKey, DefaultMQProducer defaultMQProducer) {
             this.defaultMQProducer = defaultMQProducer;
-            this.messages = new LinkedList<Message>();
-            this.sendCallbacks = new LinkedList<SendCallback>();
-            this.keys = new HashSet<String>();
+            this.messages = new LinkedList<>();
+            this.sendCallbacks = new LinkedList<>();
+            this.keys = new HashSet<>();
             this.closed = new AtomicBoolean(false);
             this.messagesSize = new AtomicInteger(0);
             this.aggregateKey = aggregateKey;
@@ -391,7 +391,7 @@ public class ProduceAccumulator {
                 messagesSize.getAndAdd(msg.getBody().length);
             }
             if (readyToSend()) {
-                this.send(sendCallback);
+                this.sendWithCallback();
             }
             return true;
 
@@ -460,7 +460,7 @@ public class ProduceAccumulator {
             }
         }
 
-        private void send(SendCallback sendCallback) {
+        private void sendWithCallback() {
             synchronized (this.closed) {
                 if (this.closed.getAndSet(true)) {
                     return;
