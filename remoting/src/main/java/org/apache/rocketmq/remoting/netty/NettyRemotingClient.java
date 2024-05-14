@@ -631,7 +631,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (channelFuture == null) {
             return null;
         }
-        return getAndCreateChannelAsync(addr).awaitUninterruptibly().channel();
+        return channelFuture.awaitUninterruptibly().channel();
     }
 
     private ChannelFuture getAndCreateNameserverChannelAsync() throws InterruptedException {
