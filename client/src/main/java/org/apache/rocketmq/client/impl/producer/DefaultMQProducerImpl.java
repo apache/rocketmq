@@ -637,7 +637,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 isSemaphoreAsyncSizeAquired = timeout - costTime > 0
                     && semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
                 if (!isSemaphoreAsyncSizeAquired) {
-                    sendCallback.semaphoreAsyncAdjust( 1, 0);
+                    sendCallback.semaphoreAsyncAdjust(1, 0);
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncSize timeout"));
                     return;
