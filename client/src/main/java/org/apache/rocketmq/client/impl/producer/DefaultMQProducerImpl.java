@@ -570,8 +570,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     }
 
     class BackpressureSendCallBack implements SendCallback {
-        public boolean isSemaphoreAsyncSizeAquired = false;
-        public boolean isSemaphoreAsyncNumAquired = false;
+        public boolean isSemaphoreAsyncSizeAcquired = false;
+        public boolean isSemaphoreAsyncNumAcquired = false;
         public int msgLen;
         private final SendCallback sendCallback;
 
@@ -581,24 +581,36 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         @Override
         public void onSuccess(SendResult sendResult) {
-            if (isSemaphoreAsyncSizeAquired) {
-                semaphoreAsyncSendSize.release(msgLen);
-            }
-            if (isSemaphoreAsyncNumAquired) {
-                semaphoreAsyncSendNum.release();
-            }
+            semaphoreProcessor();
             sendCallback.onSuccess(sendResult);
         }
 
         @Override
         public void onException(Throwable e) {
-            if (isSemaphoreAsyncSizeAquired) {
+            semaphoreProcessor();
+            sendCallback.onException(e);
+        }
+
+        public void semaphoreProcessor(){
+            if (isSemaphoreAsyncSizeAcquired) {
                 semaphoreAsyncSendSize.release(msgLen);
             }
-            if (isSemaphoreAsyncNumAquired) {
+            if (isSemaphoreAsyncNumAcquired) {
                 semaphoreAsyncSendNum.release();
             }
-            sendCallback.onException(e);
+        }
+
+        public void semaphoreAsyncAdjust(int semaphoreAsyncNum, int semaphoreAsyncSize) throws InterruptedException {
+            if (semaphoreAsyncNum > 0) {
+                semaphoreAsyncSendNum.release(semaphoreAsyncNum);
+            }else {
+                semaphoreAsyncSendNum.acquire(- semaphoreAsyncNum);
+            }
+            if (semaphoreAsyncSize > 0) {
+                semaphoreAsyncSendSize.release(semaphoreAsyncSize);
+            } else {
+                semaphoreAsyncSendSize.acquire(- semaphoreAsyncSize);
+            }
         }
     }
 
@@ -625,13 +637,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 isSemaphoreAsyncSizeAquired = timeout - costTime > 0
                     && semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
                 if (!isSemaphoreAsyncSizeAquired) {
+                    sendCallback.semaphoreAsyncAdjust( 1, 0);
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncSize timeout"));
                     return;
                 }
             }
-            sendCallback.isSemaphoreAsyncSizeAquired = isSemaphoreAsyncSizeAquired;
-            sendCallback.isSemaphoreAsyncNumAquired = isSemaphoreAsyncNumAquired;
+            sendCallback.isSemaphoreAsyncSizeAcquired = isSemaphoreAsyncSizeAquired;
+            sendCallback.isSemaphoreAsyncNumAcquired = isSemaphoreAsyncNumAquired;
             sendCallback.msgLen = msgLen;
             executor.submit(runnable);
         } catch (RejectedExecutionException e) {
