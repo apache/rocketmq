@@ -142,7 +142,7 @@ public class BrokerStatsManager {
     private MomentStatsItemSet momentStatsItemSetFallTime;
 
     private final StatisticsManager accountStatManager = new StatisticsManager();
-    private StateGetter produerStateGetter;
+    private StateGetter producerStateGetter;
     private StateGetter consumerStateGetter;
 
     private BrokerConfig brokerConfig;
@@ -270,7 +270,7 @@ public class BrokerStatsManager {
 
                 String kind = item.getStatKind();
                 if (ACCOUNT_SEND.equals(kind) || ACCOUNT_SEND_REJ.equals(kind)) {
-                    return produerStateGetter.online(instanceId, group, topic);
+                    return producerStateGetter.online(instanceId, group, topic);
                 } else if (ACCOUNT_RCV.equals(kind) || ACCOUNT_SEND_BACK.equals(kind) || ACCOUNT_SEND_BACK_TO_DLQ.equals(kind) || ACCOUNT_REV_REJ.equals(kind)) {
                     return consumerStateGetter.online(instanceId, group, topic);
                 }
@@ -296,12 +296,12 @@ public class BrokerStatsManager {
         return momentStatsItemSetFallTime;
     }
 
-    public StateGetter getProduerStateGetter() {
-        return produerStateGetter;
+    public StateGetter getProducerStateGetter() {
+        return producerStateGetter;
     }
 
-    public void setProduerStateGetter(StateGetter produerStateGetter) {
-        this.produerStateGetter = produerStateGetter;
+    public void setProducerStateGetter(StateGetter producerStateGetter) {
+        this.producerStateGetter = producerStateGetter;
     }
 
     public StateGetter getConsumerStateGetter() {

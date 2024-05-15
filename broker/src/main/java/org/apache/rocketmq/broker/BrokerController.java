@@ -408,7 +408,7 @@ public class BrokerController {
             this.brokerConfig, this.nettyServerConfig, this.nettyClientConfig, this.messageStoreConfig
         );
 
-        this.brokerStatsManager.setProduerStateGetter(new BrokerStatsManager.StateGetter() {
+        this.brokerStatsManager.setProducerStateGetter(new BrokerStatsManager.StateGetter() {
             @Override
             public boolean online(String instanceId, String group, String topic) {
                 if (getTopicConfigManager().getTopicConfigTable().containsKey(NamespaceUtil.wrapNamespace(instanceId, topic))) {
