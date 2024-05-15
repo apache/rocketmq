@@ -591,7 +591,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
             sendCallback.onException(e);
         }
 
-        public void semaphoreProcessor(){
+        public void semaphoreProcessor() {
             if (isSemaphoreAsyncSizeAcquired) {
                 semaphoreAsyncSendSize.release(msgLen);
             }
@@ -603,7 +603,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         public void semaphoreAsyncAdjust(int semaphoreAsyncNum, int semaphoreAsyncSize) throws InterruptedException {
             if (semaphoreAsyncNum > 0) {
                 semaphoreAsyncSendNum.release(semaphoreAsyncNum);
-            }else {
+            } else {
                 semaphoreAsyncSendNum.acquire(- semaphoreAsyncNum);
             }
             if (semaphoreAsyncSize > 0) {
