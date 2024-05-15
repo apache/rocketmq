@@ -1470,8 +1470,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setRemark(null);
         long endTime = System.currentTimeMillis();
         long executionTime = endTime - startTime;
-        LOGGER.info("executionTime of create subscriptionGroup:" + config.getGroupName() + " is " + executionTime + "ms");
-
+        LOGGER.info("" + config.getGroupName() + " is " + executionTime + "ms");
+        LOGGER.info("" + config.getGroupName() + " is " + executionTime + "ms");
         return response;
     }
 
