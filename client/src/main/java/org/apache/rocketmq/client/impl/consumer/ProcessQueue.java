@@ -58,7 +58,6 @@ public class ProcessQueue {
     private volatile long lastConsumeTimestamp = System.currentTimeMillis();
     private volatile boolean locked = false;
     private volatile long lastLockTimestamp = System.currentTimeMillis();
-    private volatile boolean consuming = false;
     private volatile long msgAccCnt = 0;
 
     public boolean isLockExpired() {
@@ -142,9 +141,8 @@ public class ProcessQueue {
                 }
                 msgCount.addAndGet(validMsgCnt);
 
-                if (!msgTreeMap.isEmpty() && !this.consuming) {
+                if (!msgTreeMap.isEmpty()) {
                     dispatchToConsume = true;
-                    this.consuming = true;
                 }
 
                 if (!msgs.isEmpty()) {
@@ -320,10 +318,6 @@ public class ProcessQueue {
                             break;
                         }
                     }
-                }
-
-                if (result.isEmpty()) {
-                    consuming = false;
                 }
             } finally {
                 this.treeMapLock.writeLock().unlock();
