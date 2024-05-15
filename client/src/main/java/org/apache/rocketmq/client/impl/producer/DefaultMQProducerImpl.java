@@ -619,32 +619,32 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         throws MQClientException, InterruptedException {
         ExecutorService executor = this.getAsyncSenderExecutor();
         boolean isEnableBackpressureForAsyncMode = this.getDefaultMQProducer().isEnableBackpressureForAsyncMode();
-        boolean isSemaphoreAsyncNumAquired = false;
-        boolean isSemaphoreAsyncSizeAquired = false;
+        boolean isSemaphoreAsyncNumAcquired = false;
+        boolean isSemaphoreAsyncSizeAcquired = false;
         int msgLen = msg.getBody() == null ? 1 : msg.getBody().length;
 
         try {
             if (isEnableBackpressureForAsyncMode) {
                 long costTime = System.currentTimeMillis() - beginStartTime;
-                isSemaphoreAsyncNumAquired = timeout - costTime > 0
+                isSemaphoreAsyncNumAcquired = timeout - costTime > 0
                     && semaphoreAsyncSendNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
-                if (!isSemaphoreAsyncNumAquired) {
+                if (!isSemaphoreAsyncNumAcquired) {
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncNum timeout"));
                     return;
                 }
                 costTime = System.currentTimeMillis() - beginStartTime;
-                isSemaphoreAsyncSizeAquired = timeout - costTime > 0
+                isSemaphoreAsyncSizeAcquired = timeout - costTime > 0
                     && semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
-                if (!isSemaphoreAsyncSizeAquired) {
+                if (!isSemaphoreAsyncSizeAcquired) {
                     sendCallback.semaphoreAsyncAdjust(1, 0);
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncSize timeout"));
                     return;
                 }
             }
-            sendCallback.isSemaphoreAsyncSizeAcquired = isSemaphoreAsyncSizeAquired;
-            sendCallback.isSemaphoreAsyncNumAcquired = isSemaphoreAsyncNumAquired;
+            sendCallback.isSemaphoreAsyncSizeAcquired = isSemaphoreAsyncSizeAcquired;
+            sendCallback.isSemaphoreAsyncNumAcquired = isSemaphoreAsyncNumAcquired;
             sendCallback.msgLen = msgLen;
             executor.submit(runnable);
         } catch (RejectedExecutionException e) {
