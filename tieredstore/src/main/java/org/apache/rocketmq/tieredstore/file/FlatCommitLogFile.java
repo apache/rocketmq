@@ -60,4 +60,17 @@ public class FlatCommitLogFile extends FlatAppendFile {
                 return firstOffset.get();
             });
     }
+
+    @Override
+    public void destroyExpiredFile(long expireTimestamp) {
+        long beforeOffset = this.getMinOffset();
+        super.destroyExpiredFile(expireTimestamp);
+        long afterOffset = this.getMinOffset();
+
+        if (beforeOffset != afterOffset) {
+            log.info("CommitLog min cq offset reset, filePath={}, offset={}, expireTimestamp={}, change={}-{}",
+                filePath, firstOffset.get(), expireTimestamp, beforeOffset, afterOffset);
+            firstOffset.set(GET_OFFSET_ERROR);
+        }
+    }
 }

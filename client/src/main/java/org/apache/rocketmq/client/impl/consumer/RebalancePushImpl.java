@@ -289,11 +289,6 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
     @Override
-    public ProcessQueue createProcessQueue(String topicName) {
-        return createProcessQueue();
-    }
-
-    @Override
     public PopProcessQueue createPopProcessQueue() {
         return new PopProcessQueue();
     }
