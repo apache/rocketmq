@@ -525,7 +525,7 @@ public abstract class RebalanceImpl {
                 }
 
                 this.removeDirtyOffset(mq);
-                ProcessQueue pq = createProcessQueue(topic);
+                ProcessQueue pq = createProcessQueue();
                 pq.setLocked(true);
                 long nextOffset = this.computePullFromWhere(mq);
                 if (nextOffset >= 0) {
@@ -778,8 +778,6 @@ public abstract class RebalanceImpl {
     public abstract ProcessQueue createProcessQueue();
 
     public abstract PopProcessQueue createPopProcessQueue();
-
-    public abstract ProcessQueue createProcessQueue(String topicName);
 
     public void removeProcessQueue(final MessageQueue mq) {
         ProcessQueue prev = this.processQueueTable.remove(mq);
