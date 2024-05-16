@@ -153,6 +153,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         this.namespaceV2 = namespaceV2;
     }
 
+    @Override
     public void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException {
         if (isStarted.compareAndSet(false, true)) {
             traceProducer.setNamesrvAddr(nameSrvAddr);
@@ -330,7 +331,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         private int currentMsgKeySize;
         private final String traceTopicName;
         private final String regionId;
-        private final List<TraceTransferBean> traceTransferBeanList = new ArrayList();
+        private final List<TraceTransferBean> traceTransferBeanList = new ArrayList<>();
 
         TraceDataSegment(String traceTopicName, String regionId) {
             this.traceTopicName = traceTopicName;
@@ -345,7 +346,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             this.currentMsgKeySize = traceTransferBean.getTransKey().stream()
                 .reduce(currentMsgKeySize, (acc, x) -> acc + x.length(), Integer::sum);
             if (currentMsgSize >= traceProducer.getMaxMessageSize() - 10 * 1000 || currentMsgKeySize >= MAX_MSG_KEY_SIZE) {
-                List<TraceTransferBean> dataToSend = new ArrayList(traceTransferBeanList);
+                List<TraceTransferBean> dataToSend = new ArrayList<>(traceTransferBeanList);
                 AsyncDataSendTask asyncDataSendTask = new AsyncDataSendTask(traceTopicName, regionId, dataToSend);
                 traceExecutor.submit(asyncDataSendTask);
                 this.clear();
@@ -356,7 +357,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             if (this.traceTransferBeanList.isEmpty()) {
                 return;
             }
-            List<TraceTransferBean> dataToSend = new ArrayList(traceTransferBeanList);
+            List<TraceTransferBean> dataToSend = new ArrayList<>(traceTransferBeanList);
             AsyncDataSendTask asyncDataSendTask = new AsyncDataSendTask(traceTopicName, regionId, dataToSend);
             traceExecutor.submit(asyncDataSendTask);
 
