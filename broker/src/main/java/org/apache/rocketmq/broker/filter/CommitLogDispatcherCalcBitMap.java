@@ -67,7 +67,6 @@ public class CommitLogDispatcherCalcBitMap implements CommitLogDispatcher {
             while (iterator.hasNext()) {
                 ConsumerFilterData filterData = iterator.next();
 
-
                 if (filterData.getCompiledExpression() == null) {
                     log.error("[BUG] Consumer in filter manager has no compiled expression! {}", filterData);
                     continue;
