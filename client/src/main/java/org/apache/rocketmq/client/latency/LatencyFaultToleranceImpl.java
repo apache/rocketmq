@@ -55,6 +55,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         this.serviceDetector = serviceDetector;
     }
 
+    @Override
     public void detectByOneRound() {
         for (Map.Entry<String, FaultItem> item : this.faultItemTable.entrySet()) {
             FaultItem brokerItem = item.getValue();
@@ -77,6 +78,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }
     }
 
+    @Override
     public void startDetector() {
         this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
             @Override
@@ -92,6 +94,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         }, 3, 3, TimeUnit.SECONDS);
     }
 
+    @Override
     public void shutdown() {
         this.scheduledExecutorService.shutdown();
     }
@@ -128,6 +131,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         return true;
     }
 
+    @Override
     public boolean isReachable(final String name) {
         final FaultItem faultItem = this.faultItemTable.get(name);
         if (faultItem != null) {
@@ -141,10 +145,12 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
         this.faultItemTable.remove(name);
     }
 
+    @Override
     public boolean isStartDetectorEnable() {
         return startDetectorEnable;
     }
 
+    @Override
     public void setStartDetectorEnable(boolean startDetectorEnable) {
         this.startDetectorEnable = startDetectorEnable;
     }
@@ -177,10 +183,12 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
                 '}';
     }
 
+    @Override
     public void setDetectTimeout(final int detectTimeout) {
         this.detectTimeout = detectTimeout;
     }
 
+    @Override
     public void setDetectInterval(final int detectInterval) {
         this.detectInterval = detectInterval;
     }
