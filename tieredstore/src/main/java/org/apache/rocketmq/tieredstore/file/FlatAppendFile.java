@@ -81,9 +81,10 @@ public class FlatAppendFile {
             return;
         }
         if (fileSegment.getCommitPosition() != fileSize) {
+            log.warn("FlatAppendFile last file size not correct, filePath: {}, commitPosition = {}, fileSize = {}",
+                fileSegment.getPath(), fileSegment.getCommitPosition(), fileSegment.getSize());
             fileSegment.initPosition(fileSize);
             flushFileSegmentMeta(fileSegment);
-            log.warn("FlatAppendFile last file size not correct, filePath: {}", this.filePath);
         }
     }
 

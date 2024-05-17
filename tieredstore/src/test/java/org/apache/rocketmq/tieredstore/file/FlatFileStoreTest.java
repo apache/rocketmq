@@ -19,8 +19,10 @@ package org.apache.rocketmq.tieredstore.file;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreException;
 import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
@@ -40,6 +42,7 @@ public class FlatFileStoreTest {
     private final String storePath = MessageStoreUtilTest.getRandomStorePath();
     private MessageStoreConfig storeConfig;
     private MetadataStore metadataStore;
+    private TieredMessageStore messageStore;
 
     @Before
     public void init() {
@@ -48,6 +51,10 @@ public class FlatFileStoreTest {
         storeConfig.setTieredBackendServiceProvider(PosixFileSegment.class.getName());
         storeConfig.setBrokerName("brokerName");
         metadataStore = new DefaultMetadataStore(storeConfig);
+        messageStore = Mockito.mock(TieredMessageStore.class);
+        DefaultMessageStore defaultMessageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(defaultMessageStore.getMessageStoreConfig()).thenReturn(new org.apache.rocketmq.store.config.MessageStoreConfig());
+        Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultMessageStore);
     }
 
     @After
@@ -59,7 +66,7 @@ public class FlatFileStoreTest {
     public void flatFileStoreTest() {
         // Empty recover
         MessageStoreExecutor executor = new MessageStoreExecutor();
-        FlatFileStore fileStore = new FlatFileStore(storeConfig, metadataStore, executor);
+        FlatFileStore fileStore = new FlatFileStore(messageStore, storeConfig, metadataStore, executor);
         Assert.assertTrue(fileStore.load());
 
         Assert.assertEquals(storeConfig, fileStore.getStoreConfig());
@@ -75,7 +82,7 @@ public class FlatFileStoreTest {
         Assert.assertEquals(4, fileStore.deepCopyFlatFileToList().size());
         fileStore.shutdown();
 
-        fileStore = new FlatFileStore(storeConfig, metadataStore, executor);
+        fileStore = new FlatFileStore(messageStore, storeConfig, metadataStore, executor);
         Assert.assertTrue(fileStore.load());
         Assert.assertEquals(4, fileStore.deepCopyFlatFileToList().size());
 

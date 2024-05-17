@@ -65,6 +65,7 @@ public class FlatCommitLogFileTest {
     public void constructTest() {
         String filePath = MessageStoreUtil.toFilePath(queue);
         FlatAppendFile flatFile = flatFileFactory.createFlatFileForCommitLog(filePath);
+        flatFile.initOffset(0L);
         Assert.assertEquals(1L, flatFile.fileSegmentTable.size());
     }
 
@@ -72,6 +73,7 @@ public class FlatCommitLogFileTest {
     public void tryRollingFileTest() throws InterruptedException {
         String filePath = MessageStoreUtil.toFilePath(queue);
         FlatCommitLogFile flatFile = flatFileFactory.createFlatFileForCommitLog(filePath);
+        flatFile.initOffset(0L);
         for (int i = 0; i < 3; i++) {
             ByteBuffer byteBuffer = MessageFormatUtilTest.buildMockedMessageBuffer();
             byteBuffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, i);
@@ -88,6 +90,7 @@ public class FlatCommitLogFileTest {
     public void getMinOffsetFromFileAsyncTest() {
         String filePath = MessageStoreUtil.toFilePath(queue);
         FlatCommitLogFile flatFile = flatFileFactory.createFlatFileForCommitLog(filePath);
+        flatFile.initOffset(0L);
 
         // append some messages
         for (int i = 6; i < 9; i++) {

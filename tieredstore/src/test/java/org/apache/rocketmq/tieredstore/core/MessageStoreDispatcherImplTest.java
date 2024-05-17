@@ -79,7 +79,7 @@ public class MessageStoreDispatcherImplTest {
         mq = new MessageQueue("StoreTest", storeConfig.getBrokerName(), 1);
         metadataStore = new DefaultMetadataStore(storeConfig);
         executor = new MessageStoreExecutor();
-        fileStore = new FlatFileStore(storeConfig, metadataStore, executor);
+        fileStore = new FlatFileStore(messageStore, storeConfig, metadataStore, executor);
     }
 
     @After
@@ -95,14 +95,15 @@ public class MessageStoreDispatcherImplTest {
         MessageStore defaultStore = Mockito.mock(MessageStore.class);
         Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
         Mockito.when(defaultStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(200L);
+        Mockito.when(defaultStore.getMessageStoreConfig()).thenReturn(new org.apache.rocketmq.store.config.MessageStoreConfig());
 
         messageStore = Mockito.mock(TieredMessageStore.class);
-        IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
         Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
         Mockito.when(messageStore.getFlatFileStore()).thenReturn(fileStore);
+        IndexService indexService =
+                new IndexStoreService(messageStore, new FlatFileFactory(metadataStore, storeConfig), storePath);
         Mockito.when(messageStore.getIndexService()).thenReturn(indexService);
 
         // mock message
@@ -160,13 +161,14 @@ public class MessageStoreDispatcherImplTest {
     public void dispatchServiceTest() {
         MessageStore defaultStore = Mockito.mock(MessageStore.class);
         messageStore = Mockito.mock(TieredMessageStore.class);
-        IndexService indexService =
-            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
         Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
         Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
         Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
         Mockito.when(messageStore.getFlatFileStore()).thenReturn(fileStore);
+        IndexService indexService =
+                new IndexStoreService(messageStore, new FlatFileFactory(metadataStore, storeConfig), storePath);
         Mockito.when(messageStore.getIndexService()).thenReturn(indexService);
+        Mockito.when(defaultStore.getMessageStoreConfig()).thenReturn(new org.apache.rocketmq.store.config.MessageStoreConfig());
 
         // construct flat file
         ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();

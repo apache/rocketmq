@@ -95,6 +95,7 @@ public class MessageStoreConfig {
     private int tieredStoreIndexFileRollingIdleInterval = 3 * 60 * 60 * 1000;
     private String tieredMetadataServiceProvider = "org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore";
     private String tieredBackendServiceProvider = "org.apache.rocketmq.tieredstore.provider.MemoryFileSegment";
+    private String tieredRecoverServiceProvider = "org.apache.rocketmq.tieredstore.file.DumpRecoverService";
     // file reserved time, default is 72 hour
     private int tieredStoreFileReservedTime = 72;
     // time of forcing commitLog to roll to next file, default is 24 hour
@@ -119,6 +120,10 @@ public class MessageStoreConfig {
     private int readAheadMessageSizeThreshold = 16 * 1024 * 1024;
     private long readAheadCacheExpireDuration = 15 * 1000;
     private double readAheadCacheSizeThresholdRate = 0.3;
+    private int dispatchRequestGroupSyncCount = 10000;
+    private int syncDispatchRequestThreadPoolSize = 32;
+    private int syncDispatchRequestQueueCapacity = 50000;
+    private long slaveBuildIndexInterval = 500;
 
     private int tieredStoreMaxPendingLimit = 10000;
     private boolean tieredStoreCrcCheckEnable = false;
@@ -248,6 +253,38 @@ public class MessageStoreConfig {
 
     public void setTieredBackendServiceProvider(String tieredBackendServiceProvider) {
         this.tieredBackendServiceProvider = tieredBackendServiceProvider;
+    }
+
+    public String getTieredRecoverServiceProvider() {
+        return tieredRecoverServiceProvider;
+    }
+
+    public void setTieredRecoverServiceProvider(String tieredRecoverServiceProvider) {
+        this.tieredRecoverServiceProvider = tieredRecoverServiceProvider;
+    }
+
+    public int getSyncDispatchRequestThreadPoolSize() {
+        return syncDispatchRequestThreadPoolSize;
+    }
+
+    public void setSyncDispatchRequestThreadPoolSize(int syncDispatchRequestThreadPoolSize) {
+        this.syncDispatchRequestThreadPoolSize = syncDispatchRequestThreadPoolSize;
+    }
+
+    public int getSyncDispatchRequestQueueCapacity() {
+        return syncDispatchRequestQueueCapacity;
+    }
+
+    public void setSyncDispatchRequestQueueCapacity(int syncDispatchRequestQueueCapacity) {
+        this.syncDispatchRequestQueueCapacity = syncDispatchRequestQueueCapacity;
+    }
+
+    public long getSlaveBuildIndexInterval() {
+        return slaveBuildIndexInterval;
+    }
+
+    public void setSlaveBuildIndexInterval(long slaveBuildIndexInterval) {
+        this.slaveBuildIndexInterval = slaveBuildIndexInterval;
     }
 
     public int getTieredStoreFileReservedTime() {
@@ -424,5 +461,13 @@ public class MessageStoreConfig {
 
     public String getObjectStoreEndpoint() {
         return objectStoreEndpoint;
+    }
+
+    public int getDispatchRequestGroupSyncCount() {
+        return dispatchRequestGroupSyncCount;
+    }
+
+    public void setDispatchRequestGroupSyncCount(int dispatchRequestGroupSyncCount) {
+        this.dispatchRequestGroupSyncCount = dispatchRequestGroupSyncCount;
     }
 }

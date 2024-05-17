@@ -24,8 +24,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,10 +37,12 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
@@ -46,6 +51,7 @@ import org.apache.rocketmq.tieredstore.file.FlatAppendFile;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
 import org.apache.rocketmq.tieredstore.provider.FileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,18 +72,95 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     private final AtomicLong compactTimestamp;
     private final String filePath;
     private final FlatFileFactory fileAllocator;
+    private final TieredMessageStore messageStore;
+    private final ReentrantLock masterListLock;
+    private final ReentrantLock slaveListLock;
+    /**
+     * For master: add DispatchRequest to synchronize with slave
+     * For slave: accept DispatchRequest and putKey to local
+     * */
+    private final List<DispatchRequestExt> masterDispatchRequestList;
+    private List<DispatchRequestExt> slaveDispatchRequestList;
 
     private IndexFile currentWriteFile;
     private FlatAppendFile flatAppendFile;
 
-    public IndexStoreService(FlatFileFactory flatFileFactory, String filePath) {
+    public IndexStoreService(TieredMessageStore messageStore, FlatFileFactory flatFileFactory, String filePath) {
+        this.messageStore = messageStore;
         this.storeConfig = flatFileFactory.getStoreConfig();
         this.filePath = filePath;
         this.fileAllocator = flatFileFactory;
         this.timeStoreTable = new ConcurrentSkipListMap<>();
         this.compactTimestamp = new AtomicLong(0L);
         this.readWriteLock = new ReentrantReadWriteLock();
+        this.masterDispatchRequestList = new LinkedList<>();
+        this.slaveDispatchRequestList = new LinkedList<>();
+        this.masterListLock = new ReentrantLock();
+        this.slaveListLock = new ReentrantLock();
         this.recover();
+    }
+
+    @Override
+    public void recoverWhenBecomeMaster() {
+        while (!slaveDispatchRequestList.isEmpty()) {
+            emptySlaveDispatchRequestList();
+        }
+        recover();
+    }
+
+    @Override
+    public List<Long> getIndexFileTimestamp() {
+        return new ArrayList<>(timeStoreTable.keySet());
+    }
+
+    public List<DispatchRequestExt> getDispatchRequestToSync() {
+        List<DispatchRequestExt> result;
+        masterListLock.lock();
+        try {
+            int num = Math.min(this.storeConfig.getDispatchRequestGroupSyncCount(), masterDispatchRequestList.size());
+            if (num > 0) {
+                result = new LinkedList<>(masterDispatchRequestList.subList(0, num));
+                masterDispatchRequestList.subList(0, num).clear();
+            } else {
+                result = Collections.emptyList();
+            }
+        } finally {
+            masterListLock.unlock();
+        }
+        return result;
+    }
+
+    @Override
+    public boolean needToSync() {
+        return masterDispatchRequestList.size() > storeConfig.getDispatchRequestGroupSyncCount();
+    }
+
+
+    @Override
+    public void syncDispatchRequest(List<DispatchRequestExt> requestExtList) {
+        slaveListLock.lock();
+        try {
+            slaveDispatchRequestList.addAll(requestExtList);
+        } finally {
+            slaveListLock.unlock();
+        }
+    }
+    @Override
+    public void emptySlaveDispatchRequestList() {
+        List<DispatchRequestExt> requestExtListCopy = new LinkedList<>();
+        slaveListLock.lock();
+        try {
+            requestExtListCopy.addAll(slaveDispatchRequestList);
+            slaveDispatchRequestList = new LinkedList<>();
+        } finally {
+            slaveListLock.unlock();
+        }
+        log.debug("Slave dispatch {} requests to build IndexFile", requestExtListCopy.size());
+        requestExtListCopy.forEach(requestExt -> {
+            DispatchRequest request = requestExt.getDispatchRequest();
+            this.putKey(request.getTopic(), (int) requestExt.getTopicId(), request.getQueueId(), requestExt.getKeySet(),
+                    request.getCommitLogOffset(), request.getMsgSize(), request.getStoreTimestamp());
+        });
     }
 
     private void doConvertOldFormatFile(String filePath) {
@@ -143,9 +226,28 @@ public class IndexStoreService extends ServiceThread implements IndexService {
 
         for (FileSegment fileSegment : flatAppendFile.getFileSegmentList()) {
             IndexFile indexFile = new IndexStoreFile(storeConfig, fileSegment);
-            IndexFile localFile = timeStoreTable.get(indexFile.getTimestamp());
-            if (localFile != null) {
-                localFile.destroy();
+            long timestamp = indexFile.getTimestamp();
+            // for recoverWhenBecomeMaster
+            if (!timeStoreTable.containsKey(timestamp)) {
+                // higherTimestamp and lowerTimestamp will not be null at same time
+                Long higherTimestamp = timeStoreTable.higherKey(timestamp);
+                Long lowerTimestamp = timeStoreTable.lowerKey(timestamp);
+                Long removeTimestamp;
+                if (higherTimestamp == null) {
+                    removeTimestamp = lowerTimestamp;
+                } else if (lowerTimestamp == null) {
+                    removeTimestamp = higherTimestamp;
+                } else {
+                    removeTimestamp =
+                        higherTimestamp - timestamp < timestamp - lowerTimestamp ? higherTimestamp : lowerTimestamp;
+                }
+                if (Math.abs(removeTimestamp - timestamp) < 3 * storeConfig.getSlaveBuildIndexInterval() &&
+                    removeTimestamp != this.currentWriteFile.getTimestamp()) {
+                    IndexFile removeFile = timeStoreTable.remove(removeTimestamp);
+                    log.info("IndexStoreService remove dirty local data, remove timestamp: {}, status: {}",
+                        removeTimestamp, removeFile.getFileStatus());
+                    removeFile.destroy();
+                }
             }
             timeStoreTable.put(indexFile.getTimestamp(), indexFile);
             log.info("IndexStoreService recover load remote file, timestamp: {}, end timestamp: {}",
@@ -197,6 +299,18 @@ public class IndexStoreService extends ServiceThread implements IndexService {
                 topic, topicId, queueId, keySet, offset, size, timestamp);
 
             if (AppendResult.SUCCESS.equals(result)) {
+                if (MessageStoreUtil.isMaster(messageStore.getDefaultStore().getMessageStoreConfig())) {
+                    DispatchRequest dispatchRequest = new DispatchRequest(
+                            topic, queueId, offset, size,
+                            0L, timestamp, 0L, "", "",
+                            0, 0, new HashMap<>());
+                    try {
+                        masterListLock.lock();
+                        this.masterDispatchRequestList.add(new DispatchRequestExt(dispatchRequest, topicId, keySet));
+                    } finally {
+                        masterListLock.unlock();
+                    }
+                }
                 return AppendResult.SUCCESS;
             } else if (AppendResult.FILE_FULL.equals(result)) {
                 // use current time to ensure the order of file
@@ -261,38 +375,52 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         }
 
         Stopwatch stopwatch = Stopwatch.createStarted();
-        if (flatAppendFile.getCommitOffset() == flatAppendFile.getAppendOffset()) {
-            ByteBuffer byteBuffer = indexFile.doCompaction();
-            if (byteBuffer == null) {
-                log.error("IndexStoreService found compaction buffer is null, timestamp: {}", indexFile.getTimestamp());
-                return false;
+        if (MessageStoreUtil.isMaster(this.messageStore.getDefaultStore().getMessageStoreConfig())) {
+            if (flatAppendFile.getCommitOffset() == flatAppendFile.getAppendOffset()) {
+                ByteBuffer byteBuffer = indexFile.doCompaction();
+                if (byteBuffer == null) {
+                    log.error("IndexStoreService found compaction buffer is null, timestamp: {}", indexFile.getTimestamp());
+                    return false;
+                }
+                flatAppendFile.rollingNewFile(Math.max(0L, flatAppendFile.getAppendOffset()));
+                flatAppendFile.append(byteBuffer, indexFile.getTimestamp());
+                flatAppendFile.getFileToWrite().setMinTimestamp(indexFile.getTimestamp());
+                flatAppendFile.getFileToWrite().setMaxTimestamp(indexFile.getEndTimestamp());
             }
-            flatAppendFile.rollingNewFile(Math.max(0L, flatAppendFile.getAppendOffset()));
-            flatAppendFile.append(byteBuffer, indexFile.getTimestamp());
-            flatAppendFile.getFileToWrite().setMinTimestamp(indexFile.getTimestamp());
-            flatAppendFile.getFileToWrite().setMaxTimestamp(indexFile.getEndTimestamp());
-        }
-        boolean result = flatAppendFile.commitAsync().join();
+            boolean result = flatAppendFile.commitAsync().join();
 
-        List<FileSegment> fileSegmentList = flatAppendFile.getFileSegmentList();
-        FileSegment fileSegment = fileSegmentList.get(fileSegmentList.size() - 1);
-        if (!result || fileSegment == null || fileSegment.getMinTimestamp() != indexFile.getTimestamp()) {
-            log.warn("IndexStoreService upload compacted file error, timestamp: {}", indexFile.getTimestamp());
-            return false;
+            List<FileSegment> fileSegmentList = flatAppendFile.getFileSegmentList();
+            FileSegment fileSegment = fileSegmentList.get(fileSegmentList.size() - 1);
+            if (!result || fileSegment == null || fileSegment.getMinTimestamp() != indexFile.getTimestamp()) {
+                log.warn("IndexStoreService upload compacted file error, timestamp: {}", indexFile.getTimestamp());
+                return false;
+            } else {
+                log.info("IndexStoreService upload compacted file success, timestamp: {}", indexFile.getTimestamp());
+            }
+
+            readWriteLock.writeLock().lock();
+            try {
+                IndexFile storeFile = new IndexStoreFile(storeConfig, fileSegment);
+                timeStoreTable.put(storeFile.getTimestamp(), storeFile);
+                indexFile.destroy();
+            } catch (Exception e) {
+                log.error("IndexStoreService rolling file error, timestamp: {}, cost: {}ms",
+                        indexFile.getTimestamp(), stopwatch.elapsed(TimeUnit.MILLISECONDS), e);
+            } finally {
+                readWriteLock.writeLock().unlock();
+            }
         } else {
-            log.info("IndexStoreService upload compacted file success, timestamp: {}", indexFile.getTimestamp());
-        }
-
-        readWriteLock.writeLock().lock();
-        try {
-            IndexFile storeFile = new IndexStoreFile(storeConfig, fileSegment);
-            timeStoreTable.put(storeFile.getTimestamp(), storeFile);
-            indexFile.destroy();
-        } catch (Exception e) {
-            log.error("IndexStoreService rolling file error, timestamp: {}, cost: {}ms",
-                indexFile.getTimestamp(), stopwatch.elapsed(TimeUnit.MILLISECONDS), e);
-        } finally {
-            readWriteLock.writeLock().unlock();
+            readWriteLock.writeLock().lock();
+            try {
+                timeStoreTable.remove(indexFile.getTimestamp());
+                indexFile.destroy();
+            } catch (Exception e) {
+                log.error("IndexStoreService remove file error, timestamp: {}, cost: {}ms",
+                        indexFile.getTimestamp(), stopwatch.elapsed(TimeUnit.MILLISECONDS), e);
+            } finally {
+                readWriteLock.writeLock().unlock();
+            }
+            log.info("IndexStoreService Slave remove SEALED file, timestamp = {}", indexFile.getTimestamp());
         }
         return true;
     }
@@ -376,6 +504,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
 
             IndexFile indexFile = this.getNextSealedFile();
             if (indexFile != null) {
+                log.info("Get next upload file timestamp = {}, status = {}", indexFile.getTimestamp(), indexFile.getFileStatus());
                 if (this.doCompactThenUploadFile(indexFile)) {
                     this.setCompactTimestamp(indexFile.getTimestamp());
                     continue;

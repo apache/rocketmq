@@ -23,6 +23,8 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public class MessageStoreUtil {
 
@@ -98,5 +100,14 @@ public class MessageStoreUtil {
 
     public static long fileName2Offset(final String fileName) {
         return Long.parseLong(fileName.substring(fileName.length() - 20));
+    }
+
+    public static boolean isSlave(MessageStoreConfig storeConfig) {
+        return storeConfig.getBrokerRole().equals(BrokerRole.SLAVE) ||
+            storeConfig.isEnableDLegerCommitLog() && storeConfig.getBrokerRole().equals(BrokerRole.ASYNC_MASTER);
+    }
+
+    public static boolean isMaster(MessageStoreConfig storeConfig) {
+        return !isSlave(storeConfig);
     }
 }

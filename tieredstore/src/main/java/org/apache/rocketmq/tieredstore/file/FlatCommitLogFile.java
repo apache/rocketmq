@@ -30,7 +30,9 @@ public class FlatCommitLogFile extends FlatAppendFile {
 
     public FlatCommitLogFile(FileSegmentFactory fileSegmentFactory, String filePath) {
         super(fileSegmentFactory, FileSegmentType.COMMIT_LOG, filePath);
-        this.initOffset(0L);
+        // 1. If constructor is called on master to create a new CommitLog, there is no need to initOffset in constructor for its offset will be initialized sooner
+        // 2. If constructor is called on slave to recover an exist CommitLog when becoming a master, there should not be a initOffset(0L)
+        // this.initOffset(0L);
     }
 
     public boolean tryRollingFile(long interval) {

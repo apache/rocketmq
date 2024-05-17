@@ -34,6 +34,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
+import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
+
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
@@ -46,6 +49,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +70,7 @@ public class IndexStoreServiceTest {
     private MessageStoreConfig storeConfig;
     private FlatFileFactory fileAllocator;
     private IndexStoreService indexService;
+    private TieredMessageStore messageStore;
 
     @Before
     public void init() throws IOException, ClassNotFoundException, NoSuchMethodException {
@@ -79,6 +84,11 @@ public class IndexStoreServiceTest {
         storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.PosixFileSegment");
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
         fileAllocator = new FlatFileFactory(metadataStore, storeConfig);
+
+        messageStore = Mockito.mock(TieredMessageStore.class);
+        DefaultMessageStore defaultMessageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(defaultMessageStore.getMessageStoreConfig()).thenReturn(new org.apache.rocketmq.store.config.MessageStoreConfig());
+        Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultMessageStore);
     }
 
     @After
@@ -92,7 +102,7 @@ public class IndexStoreServiceTest {
 
     @Test
     public void basicServiceTest() throws InterruptedException {
-        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService = new IndexStoreService(messageStore, fileAllocator, filePath);
         for (int i = 0; i < 50; i++) {
             Assert.assertEquals(AppendResult.SUCCESS, indexService.putKey(
                 TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, i * 100, MESSAGE_SIZE, System.currentTimeMillis()));
@@ -104,7 +114,7 @@ public class IndexStoreServiceTest {
 
     @Test
     public void doConvertOldFormatTest() throws IOException {
-        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService = new IndexStoreService(messageStore, fileAllocator, filePath);
         long timestamp = indexService.getTimeStoreTable().firstKey();
         Assert.assertEquals(AppendResult.SUCCESS, indexService.putKey(
             TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, timestamp));
@@ -115,7 +125,7 @@ public class IndexStoreServiceTest {
         mappedFile.renameTo(String.valueOf(new File(file.getParent(), "0000")));
         mappedFile.shutdown(10 * 1000);
 
-        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService = new IndexStoreService(messageStore, fileAllocator, filePath);
         ConcurrentSkipListMap<Long, IndexFile> timeStoreTable = indexService.getTimeStoreTable();
         Assert.assertEquals(1, timeStoreTable.size());
         Assert.assertEquals(Long.valueOf(timestamp), timeStoreTable.firstKey());
@@ -128,7 +138,7 @@ public class IndexStoreServiceTest {
             4, new ThreadFactoryImpl("ConcurrentPutTest"));
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(500);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000);
-        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService = new IndexStoreService(messageStore, fileAllocator, filePath);
         long timestamp = System.currentTimeMillis();
 
         // first item is invalid
@@ -204,7 +214,7 @@ public class IndexStoreServiceTest {
 
     @Test
     public void restartServiceTest() throws InterruptedException {
-        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService = new IndexStoreService(messageStore, fileAllocator, filePath);
         for (int i = 0; i < 20; i++) {
             AppendResult result = indexService.putKey(
                 TOPIC_NAME, TOPIC_ID, QUEUE_ID, Collections.singleton(String.valueOf(i)),
@@ -214,7 +224,7 @@ public class IndexStoreServiceTest {
         }
         long timestamp = indexService.getTimeStoreTable().firstKey();
         indexService.shutdown();
-        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService = new IndexStoreService(messageStore, fileAllocator, filePath);
         Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
 
         indexService.start();
@@ -224,7 +234,7 @@ public class IndexStoreServiceTest {
         });
         indexService.shutdown();
 
-        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService = new IndexStoreService(messageStore, fileAllocator, filePath);
         Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
         Assert.assertEquals(2, indexService.getTimeStoreTable().size());
         Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD,
@@ -234,7 +244,7 @@ public class IndexStoreServiceTest {
     @Test
     public void queryFromFileTest() throws InterruptedException, ExecutionException {
         long timestamp = System.currentTimeMillis();
-        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService = new IndexStoreService(messageStore, fileAllocator, filePath);
 
         // three files, echo contains 19 items
         for (int i = 0; i < 3; i++) {
@@ -268,7 +278,7 @@ public class IndexStoreServiceTest {
     @Test
     public void concurrentGetTest() throws InterruptedException {
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000);
-        indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService = new IndexStoreService(messageStore, fileAllocator, filePath);
         indexService.start();
 
         int fileCount = 10;

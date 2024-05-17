@@ -212,6 +212,11 @@ import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.LibC;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
+import org.apache.rocketmq.tieredstore.index.DispatchRequestExt;
+import org.apache.rocketmq.tieredstore.index.IndexStoreService;
+import org.apache.rocketmq.tieredstore.index.SyncTieredIndexRequestBody;
+import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -379,6 +384,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getAcl(ctx, request);
             case RequestCode.AUTH_LIST_ACL:
                 return this.listAcl(ctx, request);
+            case RequestCode.GET_TIERED_METADATA:
+                return this.getTieredMetadata(ctx, request);
+            case RequestCode.SYNC_TIERED_INDEX:
+                return this.syncTieredIndex(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -2784,6 +2793,33 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark("Can not get HARuntimeInfo, may be duplicationEnable is true");
         }
+        return response;
+    }
+
+    private RemotingCommand getTieredMetadata(ChannelHandlerContext ctx,
+        RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        if (this.brokerController.getMessageStore() instanceof TieredMessageStore) {
+            TieredMessageStore tieredMessageStore = (TieredMessageStore) this.brokerController.getMessageStore();
+            if (tieredMessageStore.getMetadataStore() instanceof DefaultMetadataStore) {
+                String content = ((DefaultMetadataStore) tieredMessageStore.getMetadataStore()).encode();
+                try {
+                    response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
+                } catch (UnsupportedEncodingException e) {
+                    LOGGER.error("UnsupportedEncodingException getTieredMetadata, client = {}", ctx.channel().remoteAddress(), e);
+
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("UnsupportedEncodingException " + e.getMessage());
+                    return response;
+                }
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark(null);
+            }
+        } else {
+            response.setCode(ResponseCode.REQUEST_CODE_NOT_SUPPORTED);
+            response.setRemark("Master's Message store plugin is not supported for sync metadata");
+        }
 
         return response;
     }
@@ -3166,5 +3202,28 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
         return false;
+    }
+
+    private RemotingCommand syncTieredIndex(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        if (this.brokerController.getMessageStore() instanceof TieredMessageStore &&
+            ((TieredMessageStore) this.brokerController.getMessageStore()).getIndexService() instanceof IndexStoreService) {
+            if (request.getBody() != null) {
+                SyncTieredIndexRequestBody body = SyncTieredIndexRequestBody.decode(request.getBody(), SyncTieredIndexRequestBody.class);
+                List<DispatchRequestExt> requestExtList = body.getRequestExtList();
+                IndexStoreService indexStoreService =
+                        (IndexStoreService) ((TieredMessageStore) this.brokerController.getMessageStore()).getIndexService();
+                indexStoreService.syncDispatchRequest(requestExtList);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setRemark(null);
+            } else {
+                response.setRemark("Request body is null");
+            }
+        } else {
+            response.setCode(ResponseCode.REQUEST_CODE_NOT_SUPPORTED);
+            response.setRemark("Master's Message store plugin is not supported for sync indexFile");
+        }
+        return response;
     }
 }

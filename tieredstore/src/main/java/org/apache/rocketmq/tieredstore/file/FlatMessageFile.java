@@ -36,6 +36,7 @@ import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.entity.QueueMetadata;
 import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
+import org.apache.rocketmq.tieredstore.provider.FileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtil;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
 import org.slf4j.Logger;
@@ -174,6 +175,14 @@ public class FlatMessageFile implements FlatFileInterface {
 
         this.dispatchRequestList.add(request);
         return consumeQueue.append(buffer, request.getStoreTimestamp());
+    }
+
+    public void addCommitLogFileSegment(FileSegment fileSegment) {
+        this.commitLog.fileSegmentTable.add(fileSegment);
+    }
+
+    public void addConsumeQueueFileSegment(FileSegment fileSegment) {
+        this.consumeQueue.fileSegmentTable.add(fileSegment);
     }
 
     @Override

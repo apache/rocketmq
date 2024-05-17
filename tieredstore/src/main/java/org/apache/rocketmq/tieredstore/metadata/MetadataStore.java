@@ -74,4 +74,6 @@ public interface MetadataStore {
     void deleteFileSegment(String basePath, FileSegmentType fileType, long baseOffset);
 
     void destroy();
+
+    void recoverWhenBecomeMaster();
 }

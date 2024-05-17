@@ -14,24 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.tieredstore.index;
+package org.apache.rocketmq.tieredstore.file;
 
-import java.nio.ByteBuffer;
-
-public interface IndexFile extends IndexInterface {
-
-    /**
-     * Enumeration for the status of the index file.
-     */
-    enum IndexStatusEnum {
-        SHUTDOWN, UNSEALED, SEALED, UPLOAD
+public class DumpRecoverService implements RecoverService {
+    @Override
+    public void recoverMetadataWhenBecomeMaster() {
     }
 
-    long getTimestamp();
+    @Override
+    public void recoverFlatFileWhenBecomeMaster() {
+    }
 
-    long getEndTimestamp();
-
-    IndexStatusEnum getFileStatus();
-
-    ByteBuffer doCompaction();
+    @Override
+    public void recoverIndexFileWhenBecomeMaster() {
+    }
 }

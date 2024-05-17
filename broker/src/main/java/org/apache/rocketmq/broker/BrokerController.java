@@ -81,6 +81,7 @@ import org.apache.rocketmq.broker.offset.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.RocksDBLmqConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
+import org.apache.rocketmq.broker.tiered.SyncTieredIndexService;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
 import org.apache.rocketmq.broker.processor.AdminBrokerProcessor;
 import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
@@ -291,6 +292,7 @@ public class BrokerController {
     private TransactionMetricsFlushService transactionMetricsFlushService;
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
+    private SyncTieredIndexService syncTieredIndexService;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -881,6 +883,10 @@ public class BrokerController {
 
             initialRequestPipeline();
 
+            if (brokerConfig.getMessageStorePlugIn().equals("org.apache.rocketmq.tieredstore.TieredMessageStore")) {
+                this.syncTieredIndexService = new SyncTieredIndexService(this);
+            }
+
             if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
                 // Register a listener to reload SslContext
                 try {
@@ -1416,6 +1422,11 @@ public class BrokerController {
         if (this.timerMessageStore != null) {
             this.timerMessageStore.shutdown();
         }
+
+        if (this.syncTieredIndexService != null) {
+            this.syncTieredIndexService.shutdown();
+        }
+
         if (this.fileWatchService != null) {
             this.fileWatchService.shutdown();
         }
@@ -1653,6 +1664,10 @@ public class BrokerController {
 
         if (this.topicQueueMappingCleanService != null) {
             this.topicQueueMappingCleanService.start();
+        }
+
+        if (this.syncTieredIndexService != null) {
+            this.syncTieredIndexService.start();
         }
 
         if (this.fileWatchService != null) {

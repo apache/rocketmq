@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import org.apache.rocketmq.common.ConfigManager;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.metadata.entity.FileSegmentMetadata;
@@ -38,7 +37,7 @@ import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
 
 public class DefaultMetadataStore extends ConfigManager implements MetadataStore {
 
-    private static final int DEFAULT_CAPACITY = 1024;
+    protected static final int DEFAULT_CAPACITY = 1024;
     private static final String DEFAULT_CONFIG_NAME = "config";
     private static final String DEFAULT_FILE_NAME = "tieredStoreMetadata.json";
 
@@ -204,6 +203,23 @@ public class DefaultMetadataStore extends ConfigManager implements MetadataStore
         persist();
     }
 
+    public void syncMetadata(TieredMetadataSerializeWrapper wrapper) {
+        topicSequenceNumber.set(-1L);
+        topicMetadataTable.clear();
+        queueMetadataTable.clear();
+        commitLogFileSegmentTable.clear();
+        consumeQueueFileSegmentTable.clear();
+        indexFileSegmentTable.clear();
+
+        topicSequenceNumber.set(wrapper.getTopicSerialNumber().get());
+        topicMetadataTable.putAll(wrapper.getTopicMetadataTable());
+        queueMetadataTable.putAll(wrapper.getQueueMetadataTable());
+        commitLogFileSegmentTable.putAll(wrapper.getCommitLogFileSegmentTable());
+        consumeQueueFileSegmentTable.putAll(wrapper.getConsumeQueueFileSegmentTable());
+        indexFileSegmentTable.putAll(wrapper.getIndexFileSegmentTable());
+    }
+
+
     @VisibleForTesting
     public Map<String, ConcurrentMap<Long, FileSegmentMetadata>> getTableByFileType(
         FileSegmentType fileType) {
@@ -282,78 +298,8 @@ public class DefaultMetadataStore extends ConfigManager implements MetadataStore
         persist();
     }
 
-    static class TieredMetadataSerializeWrapper extends RemotingSerializable {
-
-        private AtomicLong topicSerialNumber = new AtomicLong(0L);
-
-        private ConcurrentMap<String /* topic */, TopicMetadata> topicMetadataTable;
-        private ConcurrentMap<String /* topic */, ConcurrentMap<Integer /* queueId */, QueueMetadata>> queueMetadataTable;
-
-        // Declare concurrent mapping tables to store file segment metadata
-        // Key: filePath -> Value: <baseOffset, metadata>
-        private ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> commitLogFileSegmentTable;
-        private ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> consumeQueueFileSegmentTable;
-        private ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> indexFileSegmentTable;
-
-        public TieredMetadataSerializeWrapper() {
-            this.topicMetadataTable = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
-            this.queueMetadataTable = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
-            this.commitLogFileSegmentTable = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
-            this.consumeQueueFileSegmentTable = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
-            this.indexFileSegmentTable = new ConcurrentHashMap<>(DEFAULT_CAPACITY);
-        }
-
-        public AtomicLong getTopicSerialNumber() {
-            return topicSerialNumber;
-        }
-
-        public void setTopicSerialNumber(AtomicLong topicSerialNumber) {
-            this.topicSerialNumber = topicSerialNumber;
-        }
-
-        public ConcurrentMap<String, TopicMetadata> getTopicMetadataTable() {
-            return topicMetadataTable;
-        }
-
-        public void setTopicMetadataTable(
-            ConcurrentMap<String, TopicMetadata> topicMetadataTable) {
-            this.topicMetadataTable = topicMetadataTable;
-        }
-
-        public ConcurrentMap<String, ConcurrentMap<Integer, QueueMetadata>> getQueueMetadataTable() {
-            return queueMetadataTable;
-        }
-
-        public void setQueueMetadataTable(
-            ConcurrentMap<String, ConcurrentMap<Integer, QueueMetadata>> queueMetadataTable) {
-            this.queueMetadataTable = queueMetadataTable;
-        }
-
-        public ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> getCommitLogFileSegmentTable() {
-            return commitLogFileSegmentTable;
-        }
-
-        public void setCommitLogFileSegmentTable(
-            ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> commitLogFileSegmentTable) {
-            this.commitLogFileSegmentTable = commitLogFileSegmentTable;
-        }
-
-        public ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> getConsumeQueueFileSegmentTable() {
-            return consumeQueueFileSegmentTable;
-        }
-
-        public void setConsumeQueueFileSegmentTable(
-            ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> consumeQueueFileSegmentTable) {
-            this.consumeQueueFileSegmentTable = consumeQueueFileSegmentTable;
-        }
-
-        public ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> getIndexFileSegmentTable() {
-            return indexFileSegmentTable;
-        }
-
-        public void setIndexFileSegmentTable(
-            ConcurrentMap<String, ConcurrentMap<Long, FileSegmentMetadata>> indexFileSegmentTable) {
-            this.indexFileSegmentTable = indexFileSegmentTable;
-        }
+    @Override
+    public void recoverWhenBecomeMaster() {
+        this.load();
     }
 }

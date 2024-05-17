@@ -98,6 +98,10 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
 
     @Override
     public void dispatch(DispatchRequest request) {
+        // Slave shouldn't dispatch
+        if (MessageStoreUtil.isSlave(defaultStore.getMessageStoreConfig())) {
+            return;
+        }
         if (stopped || topicFilter != null && topicFilter.filterTopic(request.getTopic())) {
             return;
         }

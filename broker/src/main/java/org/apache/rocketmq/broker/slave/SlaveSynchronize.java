@@ -37,9 +37,14 @@ import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerialize
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMetrics;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
+import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
+import org.apache.rocketmq.tieredstore.metadata.TieredMetadataSerializeWrapper;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
 
 public class SlaveSynchronize {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger TIERED_LOG = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
     private final BrokerController brokerController;
     private volatile String masterAddr = null;
 
@@ -67,6 +72,9 @@ public class SlaveSynchronize {
 
         if (brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
             this.syncTimerMetrics();
+        }
+        if (brokerController.getMessageStore() instanceof TieredMessageStore) {
+            this.syncTieredMetadata();
         }
     }
 
@@ -246,6 +254,27 @@ public class SlaveSynchronize {
                 }
             } catch (Exception e) {
                 LOGGER.error("SyncTimerMetrics Exception, {}", masterAddrBak, e);
+            }
+        }
+    }
+
+    private void syncTieredMetadata() {
+        if (this.brokerController.getMessageStore() instanceof TieredMessageStore) {
+            TieredMessageStore tieredMessageStore = (TieredMessageStore) this.brokerController.getMessageStore();
+            if (tieredMessageStore.getMetadataStore() instanceof DefaultMetadataStore) {
+                String masterAddrBak = this.masterAddr;
+                if (masterAddrBak != null  && !masterAddrBak.equals(brokerController.getBrokerAddr())) {
+                    try {
+                        TieredMetadataSerializeWrapper tieredMetadataSerializeWrapper =
+                            this.brokerController.getBrokerOuterAPI().getTieredMetadata(masterAddrBak);
+                        DefaultMetadataStore metadataStore = (DefaultMetadataStore) tieredMessageStore.getMetadataStore();
+                        metadataStore.syncMetadata(tieredMetadataSerializeWrapper);
+                        metadataStore.persist();
+                        TIERED_LOG.info("Update Tiered metadata from master, {}", masterAddrBak);
+                    } catch (Exception e) {
+                        TIERED_LOG.error("SyncTieredMetadata Exception, {}", masterAddrBak, e);
+                    }
+                }
             }
         }
     }

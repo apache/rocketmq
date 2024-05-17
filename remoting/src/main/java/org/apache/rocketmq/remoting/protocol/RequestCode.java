@@ -301,4 +301,6 @@ public class RequestCode {
     public static final int AUTH_DELETE_ACL = 3008;
     public static final int AUTH_GET_ACL = 3009;
     public static final int AUTH_LIST_ACL = 3010;
+    public static final int GET_TIERED_METADATA = 4000;
+    public static final int SYNC_TIERED_INDEX = 4001;
 }
