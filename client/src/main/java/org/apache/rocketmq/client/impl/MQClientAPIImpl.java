@@ -207,7 +207,6 @@ import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.TieredStoreUpdateTopicMetadataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UnlockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
@@ -3465,23 +3464,6 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 return RemotingSerializable.decodeList(response.getBody(), AclInfo.class);
-            }
-            default:
-                break;
-        }
-        throw new MQBrokerException(response.getCode(), response.getRemark());
-    }
-
-    public void tieredStoreUpdateTopicMetadata(String addr, String topic, long reserveTime, long millis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
-        TieredStoreUpdateTopicMetadataRequestHeader requestHeader = new TieredStoreUpdateTopicMetadataRequestHeader();
-        requestHeader.setTopic(topic);
-        requestHeader.setReserveTime(reserveTime);
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.TIERED_STORE_UPDATE_TOPIC_METADATA, requestHeader);
-        RemotingCommand response = this.remotingClient.invokeSync(addr, request, millis);
-        assert response != null;
-        switch (response.getCode()) {
-            case ResponseCode.SUCCESS: {
-                return;
             }
             default:
                 break;

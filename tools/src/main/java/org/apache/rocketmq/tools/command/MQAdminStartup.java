@@ -104,7 +104,6 @@ import org.apache.rocketmq.tools.command.offset.SkipAccumulationSubCommand;
 import org.apache.rocketmq.tools.command.producer.ProducerSubCommand;
 import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
-import org.apache.rocketmq.tools.command.tieredstore.TieredStoreUpdateTopicMetadataCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
 import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
 import org.apache.rocketmq.tools.command.topic.RemappingStaticTopicSubCommand;
@@ -299,8 +298,6 @@ public class MQAdminStartup {
         initCommand(new GetAclSubCommand());
         initCommand(new ListAclSubCommand());
         initCommand(new CopyAclsSubCommand());
-
-        initCommand(new TieredStoreUpdateTopicMetadataCommand());
     }
 
     private static void printHelp() {

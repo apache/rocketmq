@@ -935,9 +935,4 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public List<AclInfo> listAcl(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         return defaultMQAdminExtImpl.listAcl(brokerAddr, subjectFilter, resourceFilter);
     }
-
-    @Override
-    public void tieredStoreUpdateTopicMetadata(String brokerAddr, String topic, long reserveTime) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
-        defaultMQAdminExtImpl.tieredStoreUpdateTopicMetadata(brokerAddr, topic, reserveTime);
-    }
 }

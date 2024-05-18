@@ -181,7 +181,6 @@ import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResumeCheckHalfMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
-import org.apache.rocketmq.remoting.protocol.header.TieredStoreUpdateTopicMetadataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGroupForbiddenRequestHeader;
@@ -213,9 +212,6 @@ import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.LibC;
-import org.apache.rocketmq.tieredstore.TieredMessageStore;
-import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
-import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -383,8 +379,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getAcl(ctx, request);
             case RequestCode.AUTH_LIST_ACL:
                 return this.listAcl(ctx, request);
-            case RequestCode.TIERED_STORE_UPDATE_TOPIC_METADATA:
-                return this.tieredStoreUpdateTopicMetadata(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -3166,49 +3160,5 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
         return false;
-    }
-
-    private synchronized RemotingCommand tieredStoreUpdateTopicMetadata(ChannelHandlerContext ctx,
-                                                                        RemotingCommand request) throws RemotingCommandException {
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-
-        if (!(brokerController.getMessageStore() instanceof TieredMessageStore)) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("tiered storage is not enabled");
-            return response;
-        }
-
-        final TieredStoreUpdateTopicMetadataRequestHeader requestHeader = request.decodeCommandCustomHeader(TieredStoreUpdateTopicMetadataRequestHeader.class);
-
-        LOGGER.info("Broker receive request to update tiered storage topic metadata={}, caller address={}",
-            requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-
-        String topic = requestHeader.getTopic();
-
-        TieredMessageStore tieredMessageStore = (TieredMessageStore) brokerController.getMessageStore();
-        MetadataStore metadataStore = tieredMessageStore.getMetadataStore();
-        TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topic);
-        if (topicConfig == null) {
-            response.setCode(ResponseCode.TOPIC_NOT_EXIST);
-            response.setRemark("topic[" + requestHeader.getTopic() + "] not exist");
-            return response;
-        }
-
-        try {
-            TopicMetadata topicMetadata = metadataStore.getTopic(topic);
-            if (topicMetadata == null) {
-                metadataStore.addTopic(topic, requestHeader.getReserveTime());
-            } else {
-                topicMetadata.setReserveTime(requestHeader.getReserveTime());
-                metadataStore.updateTopic(topicMetadata);
-            }
-            response.setCode(ResponseCode.SUCCESS);
-        } catch (Exception e) {
-            LOGGER.error("Update topic metadata failed for [{}]", request, e);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(e.getMessage());
-        }
-
-        return response;
     }
 }
