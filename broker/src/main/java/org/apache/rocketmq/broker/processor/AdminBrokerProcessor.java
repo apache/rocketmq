@@ -59,6 +59,7 @@ import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
+import org.apache.rocketmq.broker.ratelimit.RatelimitConverter;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -90,6 +91,8 @@ import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.filter.util.BitsArray;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.ratelimit.exception.RatelimitException;
+import org.apache.rocketmq.ratelimit.model.RatelimitRule;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
@@ -126,6 +129,7 @@ import org.apache.rocketmq.remoting.protocol.body.QueryConsumeTimeSpanBody;
 import org.apache.rocketmq.remoting.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.remoting.protocol.body.QuerySubscriptionResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
+import org.apache.rocketmq.remoting.protocol.body.RatelimitInfo;
 import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
@@ -136,10 +140,12 @@ import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeade
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CreateRatelimitRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAclRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.DeleteRatelimitRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteUserRequestHeader;
@@ -184,6 +190,7 @@ import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGlobalWhiteAddrsConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateGroupForbiddenRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.UpdateRatelimitRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ViewBrokerStatsDataRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -379,6 +386,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getAcl(ctx, request);
             case RequestCode.AUTH_LIST_ACL:
                 return this.listAcl(ctx, request);
+            case RequestCode.CREATE_RATELIMIT:
+                return this.createRatelimit(ctx, request);
+            case RequestCode.UPDATE_RATELIMIT:
+                return this.updateRatelimit(ctx, request);
+            case RequestCode.DELETE_RATELIMIT:
+                return this.deleteRatelimit(ctx, request);
+            case RequestCode.LIST_RATELIMIT:
+                return this.listRatelimit(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -3166,5 +3181,110 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
         return false;
+    }
+
+    private RemotingCommand createRatelimit(ChannelHandlerContext ctx,
+                                            RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        CreateRatelimitRequestHeader requestHeader = request.decodeCommandCustomHeader(CreateRatelimitRequestHeader.class);
+        RatelimitInfo ratelimitInfo = RemotingSerializable.decode(request.getBody(), RatelimitInfo.class);
+        if (ratelimitInfo == null) {
+            throw new RatelimitException("The body of ratelimit is null");
+        }
+
+        RatelimitRule rule = RatelimitConverter.convertRatelimit(ratelimitInfo);
+        if (rule != null && rule.getName() == null) {
+            rule.setName(requestHeader.getName());
+        }
+
+        this.brokerController.getRatelimitMetadataManager().createRule(rule)
+                .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
+                .exceptionally(ex -> {
+                    LOGGER.error("create ratelimit for {} error", ratelimitInfo.getName(), ex);
+                    return handleRatelimitException(response, ex);
+                })
+                .join();
+        return response;
+    }
+
+    private RemotingCommand updateRatelimit(ChannelHandlerContext ctx,
+                                            RemotingCommand request) throws RemotingCommandException {
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        UpdateRatelimitRequestHeader requestHeader = request.decodeCommandCustomHeader(UpdateRatelimitRequestHeader.class);
+        RatelimitInfo ratelimitInfo = RemotingSerializable.decode(request.getBody(), RatelimitInfo.class);
+        if (ratelimitInfo == null) {
+            throw new RatelimitException("The body of ratelimit is null");
+        }
+        RatelimitRule rule = RatelimitConverter.convertRatelimit(ratelimitInfo);
+        if (rule != null && rule.getName() == null) {
+            rule.setName(requestHeader.getName());
+        }
+
+        this.brokerController.getRatelimitMetadataManager().updateRule(rule)
+                .thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
+                .exceptionally(ex -> {
+                    LOGGER.error("update ratelimit for {} error", rule.getName(), ex);
+                    return handleRatelimitException(response, ex);
+                })
+                .join();
+
+        return response;
+    }
+
+    private RemotingCommand deleteRatelimit(ChannelHandlerContext ctx,
+                                            RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        DeleteRatelimitRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteRatelimitRequestHeader.class);
+
+        this.brokerController.getRatelimitMetadataManager().deleteRule(requestHeader.getName())
+                .thenAccept(nil -> {
+                    response.setCode(ResponseCode.SUCCESS);
+                })
+                .exceptionally(ex -> {
+                    LOGGER.error("delete ratelimit for {} error", requestHeader.getName(), ex);
+                    return handleRatelimitException(response, ex);
+                })
+                .join();
+
+        return response;
+    }
+
+    private RemotingCommand listRatelimit(ChannelHandlerContext ctx,
+                                          RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+
+        this.brokerController.getRatelimitMetadataManager()
+                .listRule()
+                .thenAccept(rules -> {
+                    response.setCode(ResponseCode.SUCCESS);
+                    if (CollectionUtils.isNotEmpty(rules)) {
+                        List<RatelimitInfo> ratelimitInfos = RatelimitConverter.convertRatelimit(rules);
+                        String body = JSON.toJSONString(ratelimitInfos);
+                        response.setBody(body.getBytes(StandardCharsets.UTF_8));
+                    }
+                })
+                .exceptionally(ex -> {
+                    LOGGER.error("list ratelimit error", ex);
+                    return handleRatelimitException(response, ex);
+                })
+                .join();
+
+        return response;
+    }
+
+    private Void handleRatelimitException(RemotingCommand response, Throwable ex) {
+        Throwable throwable = ExceptionUtils.getRealException(ex);
+        if (throwable instanceof RatelimitException) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(throwable.getMessage());
+        } else {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("An system error occurred, please try again later.");
+            LOGGER.error("An system error occurred when processing auth admin request.", ex);
+        }
+        return null;
     }
 }

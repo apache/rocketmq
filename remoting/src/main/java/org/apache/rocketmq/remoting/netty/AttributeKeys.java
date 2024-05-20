@@ -46,6 +46,8 @@ public class AttributeKeys {
     public static final AttributeKey<String> PROXY_PROTOCOL_SERVER_PORT =
             AttributeKey.valueOf(HAProxyConstants.PROXY_PROTOCOL_SERVER_PORT);
 
+    public static final AttributeKey<Integer> FOUND_MSGS_KEY = AttributeKey.valueOf("FoundMsgs");
+
     private static final Map<String, AttributeKey<String>> ATTRIBUTE_KEY_MAP = new ConcurrentHashMap<>();
 
     public static AttributeKey<String> valueOf(String name) {

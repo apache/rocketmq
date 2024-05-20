@@ -227,6 +227,9 @@ public class BrokerStatsManager {
 
         this.statsTable.put(CHANNEL_ACTIVITY, new StatsItemSet(CHANNEL_ACTIVITY, this.scheduledExecutorService, log));
 
+        this.statsTable.put(Stats.TOPIC_PUT_RATELIMIT_NUMS, new StatsItemSet(Stats.TOPIC_PUT_RATELIMIT_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.TOPIC_GET_RATELIMIT_NUMS, new StatsItemSet(Stats.TOPIC_GET_RATELIMIT_NUMS, this.scheduledExecutorService, log));
+
         StatisticsItemFormatter formatter = new StatisticsItemFormatter();
         accountStatManager.setBriefMeta(new Pair[] {
             Pair.of(RT, new long[][] {{50, 50}, {100, 10}, {1000, 10}}),
@@ -634,6 +637,14 @@ public class BrokerStatsManager {
         final long... incValues) {
         final String key = buildAccountStatKey(owner, instanceId, topic, group, msgType, flowlimitThreshold);
         this.accountStatManager.inc(statType, key, incValues);
+    }
+
+    public void incTopicPutRatelimitNums(final String topic) {
+        this.statsTable.get(Stats.TOPIC_PUT_RATELIMIT_NUMS).addValue(topic, 1, 1);
+    }
+
+    public void incTopicGetRatelimitNums(final String topic) {
+        this.statsTable.get(Stats.TOPIC_GET_RATELIMIT_NUMS).addValue(topic, 1, 1);
     }
 
     public String buildCommercialStatsKey(String owner, String topic, String group, String type) {

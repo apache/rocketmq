@@ -44,6 +44,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.netty.AttributeKeys;
 import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
@@ -546,6 +547,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             return finalResponse;
                         }
                         brokerController.getColdDataCgCtrService().coldAcc(requestHeader.getConsumerGroup(), result.getColdDataSum());
+                        RemotingHelper.setPropertyToAttr(channel, AttributeKeys.FOUND_MSGS_KEY, result.getMessageBufferList().size());
                         return pullMessageResultHandler.handle(
                             result,
                             request,

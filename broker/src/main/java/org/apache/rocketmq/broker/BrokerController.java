@@ -18,6 +18,8 @@ package org.apache.rocketmq.broker;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
+
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
@@ -97,6 +99,7 @@ import org.apache.rocketmq.broker.processor.QueryAssignmentProcessor;
 import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
 import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
 import org.apache.rocketmq.broker.processor.SendMessageProcessor;
+import org.apache.rocketmq.broker.ratelimit.RatelimitPipeline;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
@@ -134,6 +137,9 @@ import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.ratelimit.config.RatelimitConfig;
+import org.apache.rocketmq.ratelimit.factory.RatelimitFactory;
+import org.apache.rocketmq.ratelimit.manager.RatelimitMetadataManager;
 import org.apache.rocketmq.remoting.Configuration;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.RemotingServer;
@@ -188,6 +194,7 @@ public class BrokerController {
     private final NettyClientConfig nettyClientConfig;
     protected final MessageStoreConfig messageStoreConfig;
     private final AuthConfig authConfig;
+    private RatelimitConfig ratelimitConfig;
     protected final ConsumerOffsetManager consumerOffsetManager;
     protected final BroadcastOffsetManager broadcastOffsetManager;
     protected final ConsumerManager consumerManager;
@@ -291,6 +298,7 @@ public class BrokerController {
     private TransactionMetricsFlushService transactionMetricsFlushService;
     private AuthenticationMetadataManager authenticationMetadataManager;
     private AuthorizationMetadataManager authorizationMetadataManager;
+    private RatelimitMetadataManager ratelimitMetadataManager;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
@@ -1049,20 +1057,19 @@ public class BrokerController {
     }
 
     private void initialRequestPipeline() {
-        if (this.authConfig == null) {
-            return;
-        }
-        RequestPipeline pipeline = (ctx, request) -> {
-        };
-        // add pipeline
         // the last pipe add will execute at the first
-        try {
-            pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig))
-                .pipe(new AuthenticationPipeline(authConfig));
-            this.setRequestPipeline(pipeline);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        // the execute order of a.pipe(b):
+        // b.execute -> a.execute -> processRequest -> a.executeResponse -> b.executeResponse
+        RequestPipeline pipeline = new RatelimitPipeline(ratelimitConfig, brokerStatsManager);
+        if (this.authConfig != null) {
+            try {
+                pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig))
+                        .pipe(new AuthenticationPipeline(authConfig));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
+        this.setRequestPipeline(pipeline);
     }
 
     public void registerProcessor() {
@@ -1551,6 +1558,10 @@ public class BrokerController {
 
         if (this.authorizationMetadataManager != null) {
             this.authorizationMetadataManager.shutdown();
+        }
+
+        if (this.ratelimitMetadataManager != null) {
+            this.ratelimitMetadataManager.shutdown();
         }
 
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
@@ -2240,6 +2251,15 @@ public class BrokerController {
         this.authorizationMetadataManager = authorizationMetadataManager;
     }
 
+    public RatelimitMetadataManager getRatelimitMetadataManager() {
+        return ratelimitMetadataManager;
+    }
+
+    @VisibleForTesting
+    public void setRatelimitMetadataManager(RatelimitMetadataManager ratelimitMetadataManager) {
+        this.ratelimitMetadataManager = ratelimitMetadataManager;
+    }
+
     public String getHAServerAddr() {
         return this.brokerConfig.getBrokerIP2() + ":" + this.messageStoreConfig.getHaListenPort();
     }
@@ -2518,5 +2538,12 @@ public class BrokerController {
 
     public void setColdDataCgCtrService(ColdDataCgCtrService coldDataCgCtrService) {
         this.coldDataCgCtrService = coldDataCgCtrService;
+    }
+
+    public void initialRatelimit(RatelimitConfig ratelimitConfig) {
+        this.ratelimitConfig = ratelimitConfig;
+        this.configuration.registerConfig(ratelimitConfig);
+        ratelimitConfig.setRatelimitConfigPath(messageStoreConfig.getStorePathRootDir() + File.separator + "ratelimit");
+        this.ratelimitMetadataManager = RatelimitFactory.getMetadataManager(ratelimitConfig);
     }
 }

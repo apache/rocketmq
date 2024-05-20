@@ -44,4 +44,7 @@ public class Stats {
     public static final String GROUP_GET_FALL_SIZE = "GROUP_GET_FALL_SIZE";
     public static final String GROUP_GET_FALL_TIME = "GROUP_GET_FALL_TIME";
     public static final String GROUP_GET_LATENCY = "GROUP_GET_LATENCY";
+
+    public static final String TOPIC_PUT_RATELIMIT_NUMS = "TOPIC_PUT_RATELIMIT_NUMS";
+    public static final String TOPIC_GET_RATELIMIT_NUMS = "TOPIC_GET_RATELIMIT_NUMS";
 }

@@ -200,6 +200,7 @@
         <module>controller</module>
         <module>proxy</module>
         <module>tieredstore</module>
+        <module>ratelimit</module>
     </modules>
 
     <build>
@@ -608,6 +609,11 @@
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-tiered-store</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-ratelimit</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

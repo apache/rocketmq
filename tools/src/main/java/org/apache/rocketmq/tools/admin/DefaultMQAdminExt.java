@@ -60,6 +60,7 @@ import org.apache.rocketmq.remoting.protocol.body.ProducerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.remoting.protocol.body.QueryConsumeQueueResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
+import org.apache.rocketmq.remoting.protocol.body.RatelimitInfo;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
@@ -934,5 +935,25 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     @Override
     public List<AclInfo> listAcl(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         return defaultMQAdminExtImpl.listAcl(brokerAddr, subjectFilter, resourceFilter);
+    }
+
+    @Override
+    public void createRatelimit(String brokerAddr, RatelimitInfo ratelimitInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.createRatelimit(brokerAddr, ratelimitInfo);
+    }
+
+    @Override
+    public void updateRatelimit(String brokerAddr, RatelimitInfo ratelimitInfo) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.updateRatelimit(brokerAddr, ratelimitInfo);
+    }
+
+    @Override
+    public void deleteRatelimit(String brokerAddr, String name) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.deleteRatelimit(brokerAddr, name);
+    }
+
+    @Override
+    public List<RatelimitInfo> listRatelimit(String brokerAddr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return defaultMQAdminExtImpl.listRatelimit(brokerAddr);
     }
 }

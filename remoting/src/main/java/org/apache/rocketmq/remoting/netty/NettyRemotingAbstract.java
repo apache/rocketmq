@@ -340,6 +340,10 @@ public abstract class NettyRemotingAbstract {
                     response = RemotingCommand.createResponseCommand(RemotingSysResponseCode.SYSTEM_ERROR, null);
                 }
 
+                if (this.requestPipeline != null) {
+                    this.requestPipeline.executeResponse(ctx, cmd, response);
+                }
+
                 try {
                     doAfterRpcHooks(remoteAddr, cmd, response);
                 } catch (AbortProcessException e) {

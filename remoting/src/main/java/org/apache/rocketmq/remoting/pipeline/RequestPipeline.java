@@ -24,10 +24,25 @@ public interface RequestPipeline {
 
     void execute(ChannelHandlerContext ctx, RemotingCommand request) throws Exception;
 
+    default void executeResponse(ChannelHandlerContext ctx, RemotingCommand request, RemotingCommand response) throws Exception {
+    }
+
     default RequestPipeline pipe(RequestPipeline source) {
-        return (ctx, request) -> {
-            source.execute(ctx, request);
-            execute(ctx, request);
+        if (source == null) {
+            return this;
+        }
+        return new RequestPipeline() {
+            @Override
+            public void execute(ChannelHandlerContext ctx, RemotingCommand request) throws Exception {
+                source.execute(ctx, request);
+                RequestPipeline.this.execute(ctx, request);
+            }
+
+            @Override
+            public void executeResponse(ChannelHandlerContext ctx, RemotingCommand request, RemotingCommand response) throws Exception {
+                RequestPipeline.this.executeResponse(ctx, request, response);
+                source.executeResponse(ctx, request, response);
+            }
         };
     }
 }

@@ -103,6 +103,10 @@ import org.apache.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import org.apache.rocketmq.tools.command.offset.SkipAccumulationSubCommand;
 import org.apache.rocketmq.tools.command.producer.ProducerSubCommand;
 import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
+import org.apache.rocketmq.tools.command.ratelimit.CreateRatelimitSubCommand;
+import org.apache.rocketmq.tools.command.ratelimit.DeleteRatelimitSubCommand;
+import org.apache.rocketmq.tools.command.ratelimit.ListRatelimitSubCommand;
+import org.apache.rocketmq.tools.command.ratelimit.UpdateRatelimitSubCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
 import org.apache.rocketmq.tools.command.topic.DeleteTopicSubCommand;
@@ -298,6 +302,11 @@ public class MQAdminStartup {
         initCommand(new GetAclSubCommand());
         initCommand(new ListAclSubCommand());
         initCommand(new CopyAclsSubCommand());
+
+        initCommand(new CreateRatelimitSubCommand());
+        initCommand(new UpdateRatelimitSubCommand());
+        initCommand(new DeleteRatelimitSubCommand());
+        initCommand(new ListRatelimitSubCommand());
     }
 
     private static void printHelp() {

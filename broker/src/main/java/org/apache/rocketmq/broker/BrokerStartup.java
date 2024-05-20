@@ -36,6 +36,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.ratelimit.config.RatelimitConfig;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -89,6 +90,7 @@ public class BrokerStartup {
         final NettyClientConfig nettyClientConfig = new NettyClientConfig();
         final MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         final AuthConfig authConfig = new AuthConfig();
+        final RatelimitConfig ratelimitConfig = new RatelimitConfig();
         nettyServerConfig.setListenPort(10911);
         messageStoreConfig.setHaListenPort(0);
 
@@ -116,6 +118,7 @@ public class BrokerStartup {
             MixAll.properties2Object(properties, nettyClientConfig);
             MixAll.properties2Object(properties, messageStoreConfig);
             MixAll.properties2Object(properties, authConfig);
+            MixAll.properties2Object(properties, ratelimitConfig);
         }
 
         MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), brokerConfig);
@@ -192,6 +195,7 @@ public class BrokerStartup {
             MixAll.printObjectProperties(console, nettyServerConfig);
             MixAll.printObjectProperties(console, nettyClientConfig);
             MixAll.printObjectProperties(console, messageStoreConfig);
+            MixAll.printObjectProperties(console, ratelimitConfig);
             System.exit(0);
         } else if (commandLine.hasOption('m')) {
             Logger console = LoggerFactory.getLogger(LoggerName.BROKER_CONSOLE_NAME);
@@ -199,6 +203,7 @@ public class BrokerStartup {
             MixAll.printObjectProperties(console, nettyServerConfig, true);
             MixAll.printObjectProperties(console, nettyClientConfig, true);
             MixAll.printObjectProperties(console, messageStoreConfig, true);
+            MixAll.printObjectProperties(console, ratelimitConfig, true);
             System.exit(0);
         }
 
@@ -207,6 +212,7 @@ public class BrokerStartup {
         MixAll.printObjectProperties(log, nettyServerConfig);
         MixAll.printObjectProperties(log, nettyClientConfig);
         MixAll.printObjectProperties(log, messageStoreConfig);
+        MixAll.printObjectProperties(log, ratelimitConfig);
 
         authConfig.setConfigName(brokerConfig.getBrokerName());
         authConfig.setClusterName(brokerConfig.getBrokerClusterName());
@@ -214,6 +220,7 @@ public class BrokerStartup {
 
         final BrokerController controller = new BrokerController(
             brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig, authConfig);
+        controller.initialRatelimit(ratelimitConfig);
 
         // Remember all configs to prevent discard
         controller.getConfiguration().registerConfig(properties);
