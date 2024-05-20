@@ -1070,7 +1070,7 @@ public class MQClientInstance {
                         balanced = false;
                     }
                 } catch (Throwable e) {
-                    log.error("doRebalance exception", e);
+                    log.error("doRebalance for consumer group [{}] exception", entry.getKey(), e);
                 }
             }
         }
