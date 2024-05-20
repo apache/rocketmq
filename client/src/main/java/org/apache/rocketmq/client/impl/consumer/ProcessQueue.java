@@ -191,7 +191,7 @@ public class ProcessQueue {
         try {
             this.treeMapLock.writeLock().lockInterruptibly();
         } catch (InterruptedException e) {
-            log.error("removeMessage failed", e);
+            log.error("removeMessage exception", e);
             return result;
         }
         try {
