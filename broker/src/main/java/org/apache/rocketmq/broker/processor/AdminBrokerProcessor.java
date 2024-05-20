@@ -455,6 +455,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private synchronized RemotingCommand updateAndCreateTopic(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
+        long startTime = System.currentTimeMillis();
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final CreateTopicRequestHeader requestHeader =
             (CreateTopicRequestHeader) request.decodeCommandCustomHeader(CreateTopicRequestHeader.class);
@@ -514,8 +515,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             LOGGER.error("Update / create topic failed for [{}]", request, e);
             response.setCode(ResponseCode.SYSTEM_ERROR);
             response.setRemark(e.getMessage());
+            return response;
         }
-
+        long executionTime = System.currentTimeMillis() - startTime;
+        LOGGER.info("executionTime of create topic:{} is {} ms" , topic, executionTime);
         return response;
     }
 
@@ -1450,6 +1453,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand updateAndCreateSubscriptionGroup(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
+        long startTime = System.currentTimeMillis();
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         LOGGER.info("AdminBrokerProcessor#updateAndCreateSubscriptionGroup called by {}",
@@ -1462,6 +1466,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
+        long executionTime = System.currentTimeMillis() - startTime;
+        LOGGER.info("executionTime of create subscriptionGroup:{} is {} ms" ,config.getGroupName() ,executionTime);
         return response;
     }
 
@@ -3154,7 +3160,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
     private boolean validateBlackListConfigExist(Properties properties) {
-        for (String blackConfig:configBlackList) {
+        for (String blackConfig : configBlackList) {
             if (properties.containsKey(blackConfig)) {
                 return true;
             }
