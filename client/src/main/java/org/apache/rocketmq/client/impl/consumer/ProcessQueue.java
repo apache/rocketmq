@@ -186,34 +186,35 @@ public class ProcessQueue {
 
     public long removeMessage(final List<MessageExt> msgs) {
         long result = -1;
-        final long now = System.currentTimeMillis();
+        this.lastConsumeTimestamp = System.currentTimeMillis();
+
         try {
             this.treeMapLock.writeLock().lockInterruptibly();
-            this.lastConsumeTimestamp = now;
-            try {
-                if (!msgTreeMap.isEmpty()) {
-                    result = this.queueOffsetMax + 1;
-                    int removedCnt = 0;
-                    for (MessageExt msg : msgs) {
-                        MessageExt prev = msgTreeMap.remove(msg.getQueueOffset());
-                        if (prev != null) {
-                            removedCnt--;
-                            msgSize.addAndGet(-msg.getBody().length);
-                        }
-                    }
-                    if (msgCount.addAndGet(removedCnt) == 0) {
-                        msgSize.set(0);
-                    }
-
-                    if (!msgTreeMap.isEmpty()) {
-                        result = msgTreeMap.firstKey();
+        } catch (InterruptedException e) {
+            log.error("removeMessage failed", e);
+            return result;
+        }
+        try {
+            if (!msgTreeMap.isEmpty()) {
+                result = this.queueOffsetMax + 1;
+                int removedCnt = 0;
+                for (MessageExt msg : msgs) {
+                    MessageExt prev = msgTreeMap.remove(msg.getQueueOffset());
+                    if (prev != null) {
+                        removedCnt--;
+                        msgSize.addAndGet(-msg.getBody().length);
                     }
                 }
-            } finally {
-                this.treeMapLock.writeLock().unlock();
+                if (msgCount.addAndGet(removedCnt) == 0) {
+                    msgSize.set(0);
+                }
+
+                if (!msgTreeMap.isEmpty()) {
+                    result = msgTreeMap.firstKey();
+                }
             }
-        } catch (Throwable t) {
-            log.error("removeMessage exception", t);
+        } finally {
+            this.treeMapLock.writeLock().unlock();
         }
 
         return result;
