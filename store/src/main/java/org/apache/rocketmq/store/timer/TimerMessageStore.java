@@ -964,26 +964,11 @@ public class TimerMessageStore {
             if (!isRunningDequeue()) {
                 return -1;
             }
-            CountDownLatch deleteLatch = new CountDownLatch(deleteMsgStack.size());
             //read the delete msg: the msg used to mark another msg is deleted
-            for (List<TimerRequest> deleteList : splitIntoLists(deleteMsgStack)) {
-                for (TimerRequest tr : deleteList) {
-                    tr.setLatch(deleteLatch);
-                }
-                dequeueGetQueue.put(deleteList);
-            }
-            //do we need to use loop with tryAcquire
-            checkDequeueLatch(deleteLatch, currReadTimeMs);
-
-            CountDownLatch normalLatch = new CountDownLatch(normalMsgStack.size());
+            splitAndCheckLatchForDequeue(deleteMsgStack);
             //read the normal msg
-            for (List<TimerRequest> normalList : splitIntoLists(normalMsgStack)) {
-                for (TimerRequest tr : normalList) {
-                    tr.setLatch(normalLatch);
-                }
-                dequeueGetQueue.put(normalList);
-            }
-            checkDequeueLatch(normalLatch, currReadTimeMs);
+            splitAndCheckLatchForDequeue(normalMsgStack);
+
             // if master -> slave -> master, then the read time move forward, and messages will be lossed
             if (dequeueStatusChangeFlag) {
                 return -1;
@@ -1001,37 +986,46 @@ public class TimerMessageStore {
         return 1;
     }
 
-    private List<List<TimerRequest>> splitIntoLists(List<TimerRequest> origin) {
-        //this method assume that the origin is not null;
-        List<List<TimerRequest>> lists = new LinkedList<>();
-        if (origin.size() < 100) {
-            lists.add(origin);
-            return lists;
+    private void splitAndCheckLatchForDequeue(List<TimerRequest> origin) throws Exception {
+        if(origin.size() == 0){
+            return;
         }
-        List<TimerRequest> currList = null;
+        CountDownLatch latch = new CountDownLatch(origin.size());
+        //read the msg
+        splitIntoQueue(origin, dequeueGetQueue, latch);
+        //do we need to use loop with tryAcquire
+        checkDequeueLatch(latch, currReadTimeMs);
+    }
+
+    private void splitIntoQueue(List<TimerRequest> origin,BlockingQueue<List<TimerRequest>> queue, CountDownLatch latch) {
+        if(origin.size() == 0){
+            return;
+        }
+        List<TimerRequest> currList = new LinkedList<>();
         int fileIndexPy = -1;
         int msgIndex = 0;
         for (TimerRequest tr : origin) {
-            if (fileIndexPy != tr.getOffsetPy() / commitLogFileSize) {
-                msgIndex = 0;
-                if (null != currList && currList.size() > 0) {
-                    lists.add(currList);
+            tr.setLatch(latch);
+            if(origin.size() > 100){
+                if(fileIndexPy != tr.getOffsetPy() / commitLogFileSize){
+                    if(currList.size() > 0){
+                        queue.add(currList);
+                        currList = new LinkedList<>();
+                        msgIndex = 0;
+                    }
+                    fileIndexPy = (int) (tr.getOffsetPy() / commitLogFileSize);
                 }
-                currList = new LinkedList<>();
                 currList.add(tr);
-                fileIndexPy = (int) (tr.getOffsetPy() / commitLogFileSize);
-            } else {
-                currList.add(tr);
-                if (++msgIndex % 2000 == 0) {
-                    lists.add(currList);
+                if (++msgIndex % 2000 == 0 ) {
+                    queue.add(currList);
                     currList = new ArrayList<>();
                 }
             }
         }
-        if (null != currList && currList.size() > 0) {
-            lists.add(currList);
+
+        if (currList.size() > 0) {
+            queue.add(currList);
         }
-        return lists;
     }
 
     private MessageExt getMessageByCommitOffset(long offsetPy, int sizePy) {
