@@ -177,7 +177,4 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
         return null;
     }
 
-    public ProcessQueue createProcessQueue(String topicName) {
-        return createProcessQueue();
-    }
 }

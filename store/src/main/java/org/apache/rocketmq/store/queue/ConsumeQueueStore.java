@@ -455,48 +455,52 @@ public class ConsumeQueueStore extends AbstractConsumeQueueStore {
         }
 
         // Correct unSubmit consumeOffset
-        if (messageStoreConfig.isDuplicationEnable()) {
-            SelectMappedBufferResult lastBuffer = null;
-            long startReadOffset = messageStore.getCommitLog().getConfirmOffset() == -1 ? 0 : messageStore.getCommitLog().getConfirmOffset();
-            while ((lastBuffer = messageStore.selectOneMessageByOffset(startReadOffset)) != null) {
-                try {
-                    if (lastBuffer.getStartOffset() > startReadOffset) {
-                        startReadOffset = lastBuffer.getStartOffset();
-                        continue;
-                    }
-
-                    ByteBuffer bb = lastBuffer.getByteBuffer();
-                    int magicCode = bb.getInt(bb.position() + 4);
-                    if (magicCode == CommitLog.BLANK_MAGIC_CODE) {
-                        startReadOffset += bb.getInt(bb.position());
-                        continue;
-                    } else if (magicCode != MessageDecoder.MESSAGE_MAGIC_CODE) {
-                        throw new RuntimeException("Unknown magicCode: " + magicCode);
-                    }
-
-                    lastBuffer.getByteBuffer().mark();
-                    DispatchRequest dispatchRequest = messageStore.getCommitLog().checkMessageAndReturnSize(lastBuffer.getByteBuffer(), true, true, true);
-                    if (!dispatchRequest.isSuccess())
-                        break;
-                    lastBuffer.getByteBuffer().reset();
-
-                    MessageExt msg = MessageDecoder.decode(lastBuffer.getByteBuffer(), true, false, false, false, true);
-                    if (msg == null)
-                        break;
-
-                    String key = msg.getTopic() + "-" + msg.getQueueId();
-                    cqOffsetTable.put(key, msg.getQueueOffset() + 1);
-                    startReadOffset += msg.getStoreSize();
-                } finally {
-                    if (lastBuffer != null)
-                        lastBuffer.release();
-                }
-
-            }
+        if (messageStoreConfig.isDuplicationEnable() || messageStore.getBrokerConfig().isEnableControllerMode()) {
+            compensateForHA(cqOffsetTable);
         }
 
         this.setTopicQueueTable(cqOffsetTable);
         this.setBatchTopicQueueTable(bcqOffsetTable);
+    }
+    private void compensateForHA(ConcurrentMap<String, Long> cqOffsetTable) {
+        SelectMappedBufferResult lastBuffer = null;
+        long startReadOffset = messageStore.getCommitLog().getConfirmOffset() == -1 ? 0 : messageStore.getCommitLog().getConfirmOffset();
+        log.info("Correct unsubmitted offset...StartReadOffset = {}", startReadOffset);
+        while ((lastBuffer = messageStore.selectOneMessageByOffset(startReadOffset)) != null) {
+            try {
+                if (lastBuffer.getStartOffset() > startReadOffset) {
+                    startReadOffset = lastBuffer.getStartOffset();
+                    continue;
+                }
+
+                ByteBuffer bb = lastBuffer.getByteBuffer();
+                int magicCode = bb.getInt(bb.position() + 4);
+                if (magicCode == CommitLog.BLANK_MAGIC_CODE) {
+                    startReadOffset += bb.getInt(bb.position());
+                    continue;
+                } else if (magicCode != MessageDecoder.MESSAGE_MAGIC_CODE) {
+                    throw new RuntimeException("Unknown magicCode: " + magicCode);
+                }
+
+                lastBuffer.getByteBuffer().mark();
+                DispatchRequest dispatchRequest = messageStore.getCommitLog().checkMessageAndReturnSize(lastBuffer.getByteBuffer(), true, messageStoreConfig.isDuplicationEnable(), true);
+                if (!dispatchRequest.isSuccess())
+                    break;
+                lastBuffer.getByteBuffer().reset();
+
+                MessageExt msg = MessageDecoder.decode(lastBuffer.getByteBuffer(), true, false, false, false, true);
+                if (msg == null)
+                    break;
+
+                String key = msg.getTopic() + "-" + msg.getQueueId();
+                cqOffsetTable.put(key, msg.getQueueOffset() + 1);
+                startReadOffset += msg.getStoreSize();
+                log.info("Correcting. Key:{}, start read Offset: {}", key, startReadOffset);
+            } finally {
+                if (lastBuffer != null)
+                    lastBuffer.release();
+            }
+        }
     }
 
     @Override

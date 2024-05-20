@@ -181,7 +181,7 @@ public class MQAdminImpl {
                 e);
         }
 
-        throw new MQClientException("Unknow why, Can not find Message Queue for this topic, " + topic, null);
+        throw new MQClientException("Unknown why, Can not find Message Queue for this topic, " + topic, null);
     }
 
     public long searchOffset(MessageQueue mq, long timestamp) throws MQClientException {
@@ -262,16 +262,16 @@ public class MQAdminImpl {
         throw new MQClientException("The broker[" + mq.getBrokerName() + "] not exist", null);
     }
 
-    public MessageExt viewMessage(String msgId)
+    public MessageExt viewMessage(String topic, String msgId)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
-        MessageId messageId = null;
+        MessageId messageId;
         try {
             messageId = MessageDecoder.decodeMessageId(msgId);
         } catch (Exception e) {
             throw new MQClientException(ResponseCode.NO_MESSAGE, "query message by id finished, but no message.");
         }
         return this.mQClientFactory.getMQClientAPIImpl().viewMessage(NetworkUtil.socketAddress2String(messageId.getAddress()),
-            messageId.getOffset(), timeoutMillis);
+            topic, messageId.getOffset(), timeoutMillis);
     }
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin,

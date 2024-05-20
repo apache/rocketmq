@@ -17,8 +17,6 @@
 
 package org.apache.rocketmq.controller;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Properties;
 import org.apache.rocketmq.common.ControllerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.controller.processor.ControllerRequestProcessor;
@@ -29,6 +27,9 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -64,7 +65,28 @@ public class ControllerRequestProcessorTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
-        assertThat(response.getRemark()).contains("Can not update config path");
+        assertThat(response.getRemark()).contains("Can not update config in black list.");
 
+        // Update disallowed value
+        properties.clear();
+        properties.setProperty("rocketmqHome", "test/path");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        response = controllerRequestProcessor.processRequest(null, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).contains("Can not update config in black list.");
+
+        // Update disallowed value
+        properties.clear();
+        properties.setProperty("configBlackList", "test;path");
+        updateConfigRequest.setBody(MixAll.properties2String(properties).getBytes(StandardCharsets.UTF_8));
+
+        response = controllerRequestProcessor.processRequest(null, updateConfigRequest);
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+        assertThat(response.getRemark()).contains("Can not update config in black list.");
     }
 }

@@ -64,10 +64,6 @@ public class GrpcConverter {
         return instance;
     }
 
-    public String wrapResourceWithNamespace(Resource resource) {
-        return NamespaceUtil.wrapNamespace(resource.getResourceNamespace(), resource.getName());
-    }
-
     public MessageQueue buildMessageQueue(MessageExt messageExt, String brokerName) {
         Broker broker = Broker.getDefaultInstance();
         if (!StringUtils.isEmpty(brokerName)) {

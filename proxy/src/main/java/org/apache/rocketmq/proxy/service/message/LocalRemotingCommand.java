@@ -16,12 +16,10 @@
  */
 package org.apache.rocketmq.proxy.service.message;
 
+import java.util.HashMap;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
-import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-
-import java.util.HashMap;
 
 public class LocalRemotingCommand extends RemotingCommand {
 
@@ -32,13 +30,7 @@ public class LocalRemotingCommand extends RemotingCommand {
         cmd.writeCustomHeader(customHeader);
         cmd.setExtFields(new HashMap<>());
         setCmdVersion(cmd);
+        cmd.makeCustomHeaderToNet();
         return cmd;
     }
-
-    @Override
-    public CommandCustomHeader decodeCommandCustomHeader(
-        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
-        return classHeader.cast(readCustomHeader());
-    }
-    
 }

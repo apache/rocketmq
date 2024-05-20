@@ -16,9 +16,12 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
+import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.local.LocalChannel;
+
+import java.lang.reflect.Field;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -50,6 +53,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -289,5 +293,17 @@ public class NettyRemotingClientTest {
 
         verify(rpcHookMock).doBeforeRequest(anyString(), eq(request));
         verify(rpcHookMock, never()).doAfterResponse(anyString(), eq(request), any());
+    }
+
+    @Test
+    public void testIsAddressReachableFail() throws NoSuchFieldException, IllegalAccessException {
+        Bootstrap bootstrap = spy(Bootstrap.class);
+        Field field = NettyRemotingClient.class.getDeclaredField("bootstrap");
+        field.setAccessible(true);
+        field.set(remotingClient, bootstrap);
+        assertThat(remotingClient.isAddressReachable("0.0.0.0:8080")).isFalse();
+        verify(bootstrap).connect(eq("0.0.0.0"), eq(8080));
+        assertThat(remotingClient.isAddressReachable("[fe80::]:8080")).isFalse();
+        verify(bootstrap).connect(eq("[fe80::]"), eq(8080));
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.out;
 
+import com.alibaba.fastjson2.JSON;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -30,6 +31,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.acl.common.AclClientRPCHook;
+import org.apache.rocketmq.acl.common.SessionCredentials;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -102,11 +106,13 @@ import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.LockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.UnlockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.AlterSyncStateSetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
@@ -152,15 +158,28 @@ public class BrokerOuterAPI {
     private final RpcClient rpcClient;
     private String nameSrvAddr = null;
 
-    public BrokerOuterAPI(final NettyClientConfig nettyClientConfig) {
-        this(nettyClientConfig, new DynamicalExtFieldRPCHook(), new ClientMetadata());
+    public BrokerOuterAPI(final NettyClientConfig nettyClientConfig, AuthConfig authConfig) {
+        this(nettyClientConfig, authConfig, new DynamicalExtFieldRPCHook(), new ClientMetadata());
     }
 
-    private BrokerOuterAPI(final NettyClientConfig nettyClientConfig, RPCHook rpcHook, ClientMetadata clientMetadata) {
+    private BrokerOuterAPI(final NettyClientConfig nettyClientConfig, AuthConfig authConfig, RPCHook rpcHook, ClientMetadata clientMetadata) {
         this.remotingClient = new NettyRemotingClient(nettyClientConfig);
         this.clientMetadata = clientMetadata;
         this.remotingClient.registerRPCHook(rpcHook);
+        this.remotingClient.registerRPCHook(newAclRPCHook(authConfig));
         this.rpcClient = new RpcClientImpl(this.clientMetadata, this.remotingClient);
+    }
+
+    private RPCHook newAclRPCHook(AuthConfig config) {
+        if (config == null || StringUtils.isBlank(config.getInnerClientAuthenticationCredentials())) {
+            return null;
+        }
+        SessionCredentials sessionCredentials =
+            JSON.parseObject(config.getInnerClientAuthenticationCredentials(), SessionCredentials.class);
+        if (StringUtils.isBlank(sessionCredentials.getAccessKey()) || StringUtils.isBlank(sessionCredentials.getSecretKey())) {
+            return null;
+        }
+        return new AclClientRPCHook(sessionCredentials);
     }
 
     public void start() {
@@ -906,7 +925,7 @@ public class BrokerOuterAPI {
         final LockBatchRequestBody requestBody,
         final long timeoutMillis,
         final LockCallback callback) throws RemotingException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.LOCK_BATCH_MQ, new LockBatchMqRequestHeader());
 
         request.setBody(requestBody.encode());
         this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
@@ -945,7 +964,7 @@ public class BrokerOuterAPI {
         final UnlockBatchRequestBody requestBody,
         final long timeoutMillis,
         final UnlockCallback callback) throws RemotingException, InterruptedException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UNLOCK_BATCH_MQ, new UnlockBatchMqRequestHeader());
 
         request.setBody(requestBody.encode());
 
@@ -1377,7 +1396,7 @@ public class BrokerOuterAPI {
         requestHeader.setSubVersion(System.currentTimeMillis());
         requestHeader.setMaxMsgBytes(Integer.MAX_VALUE);
         requestHeader.setExpressionType(ExpressionType.TAG);
-        requestHeader.setBname(brokerName);
+        requestHeader.setBrokerName(brokerName);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
         CompletableFuture<PullResult> pullResultFuture = new CompletableFuture<>();

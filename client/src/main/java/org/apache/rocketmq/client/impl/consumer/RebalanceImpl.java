@@ -242,9 +242,15 @@ public abstract class RebalanceImpl {
                 final String topic = entry.getKey();
                 try {
                     if (!clientRebalance(topic) && tryQueryAssignment(topic)) {
-                        balanced = this.getRebalanceResultFromBroker(topic, isOrder);
+                        boolean result = this.getRebalanceResultFromBroker(topic, isOrder);
+                        if (!result) {
+                            balanced = false;
+                        }
                     } else {
-                        balanced = this.rebalanceByTopic(topic, isOrder);
+                        boolean result = this.rebalanceByTopic(topic, isOrder);
+                        if (!result) {
+                            balanced = false;
+                        }
                     }
                 } catch (Throwable e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -519,7 +525,7 @@ public abstract class RebalanceImpl {
                 }
 
                 this.removeDirtyOffset(mq);
-                ProcessQueue pq = createProcessQueue(topic);
+                ProcessQueue pq = createProcessQueue();
                 pq.setLocked(true);
                 long nextOffset = this.computePullFromWhere(mq);
                 if (nextOffset >= 0) {
@@ -772,8 +778,6 @@ public abstract class RebalanceImpl {
     public abstract ProcessQueue createProcessQueue();
 
     public abstract PopProcessQueue createPopProcessQueue();
-
-    public abstract ProcessQueue createProcessQueue(String topicName);
 
     public void removeProcessQueue(final MessageQueue mq) {
         ProcessQueue prev = this.processQueueTable.remove(mq);

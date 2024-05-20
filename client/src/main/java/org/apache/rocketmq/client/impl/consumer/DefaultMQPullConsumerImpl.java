@@ -387,6 +387,14 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
     }
 
     @Override
+    public boolean tryRebalance() {
+        if (this.rebalanceImpl != null) {
+            return this.rebalanceImpl.doRebalance(false);
+        }
+        return false;
+    }
+
+    @Override
     public void persistConsumerOffset() {
         try {
             this.isRunning();
@@ -580,6 +588,21 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, pullCallback, true,
             this.getDefaultMQPullConsumer().getConsumerPullTimeoutMillis());
     }
+
+    public void pullBlockIfNotFoundWithMessageSelector(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums,
+        PullCallback pullCallback)
+        throws MQClientException, RemotingException, InterruptedException {
+        SubscriptionData subscriptionData = getSubscriptionData(mq, messageSelector);
+        this.pullAsyncImpl(mq, subscriptionData, offset, maxNums, pullCallback, true,
+            this.getDefaultMQPullConsumer().getConsumerPullTimeoutMillis());
+    }
+
+    public PullResult pullBlockIfNotFoundWithMessageSelector(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums)
+        throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
+        SubscriptionData subscriptionData = getSubscriptionData(mq, messageSelector);
+        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, this.getDefaultMQPullConsumer().getConsumerPullTimeoutMillis());
+    }
+
 
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
@@ -796,10 +819,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         this.offsetStore.updateOffset(mq, offset, false);
     }
 
-    public MessageExt viewMessage(String msgId)
+    public MessageExt viewMessage(String topic, String msgId)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         this.isRunning();
-        return this.mQClientFactory.getMQAdminImpl().viewMessage(msgId);
+        return this.mQClientFactory.getMQAdminImpl().viewMessage(topic, msgId);
     }
 
     public void registerFilterMessageHook(final FilterMessageHook hook) {

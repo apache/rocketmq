@@ -16,9 +16,14 @@
  */
 package org.apache.rocketmq.remoting.protocol.header.controller;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.CONTROLLER_GET_REPLICA_INFO, resource = ResourceType.CLUSTER, action = Action.GET)
 public class GetReplicaInfoRequestHeader implements CommandCustomHeader {
     private String brokerName;
 

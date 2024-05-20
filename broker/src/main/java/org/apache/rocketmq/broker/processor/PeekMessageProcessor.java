@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.pagecache.ManyMessageTransfer;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;
@@ -80,6 +81,7 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend)
         throws RemotingCommandException {
+        final long beginTimeMills = this.brokerController.getMessageStore().now();
         RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
         final PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
         final PeekMessageRequestHeader requestHeader =
@@ -133,8 +135,10 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
         boolean needRetry = randomQ % 5 == 0;
         long popTime = System.currentTimeMillis();
         long restNum = 0;
+        BrokerConfig brokerConfig = brokerController.getBrokerConfig();
         if (needRetry) {
-            TopicConfig retryTopicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
+            TopicConfig retryTopicConfig = this.brokerController.getTopicConfigManager()
+                .selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2()));
             if (retryTopicConfig != null) {
                 for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
                     int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
@@ -154,7 +158,8 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
         }
         // if not full , fetch retry again
         if (!needRetry && getMessageResult.getMessageMapedList().size() < requestHeader.getMaxMsgNums()) {
-            TopicConfig retryTopicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()));
+            TopicConfig retryTopicConfig = this.brokerController.getTopicConfigManager()
+                .selectTopicConfig(KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerConfig.isEnableRetryTopicV2()));
             if (retryTopicConfig != null) {
                 for (int i = 0; i < retryTopicConfig.getReadQueueNums(); i++) {
                     int queueId = (randomQ + i) % retryTopicConfig.getReadQueueNums();
@@ -184,7 +189,6 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), getMessageResult.getMessageCount());
 
                 if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
-                    final long beginTimeMills = this.brokerController.getMessageStore().now();
                     final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
                     this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(),
                         requestHeader.getTopic(), requestHeader.getQueueId(),
@@ -226,7 +230,9 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
     private long peekMsgFromQueue(boolean isRetry, GetMessageResult getMessageResult,
         PeekMessageRequestHeader requestHeader, int queueId, long restNum, int reviveQid, Channel channel,
         long popTime) {
-        String topic = isRetry ? KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup()) : requestHeader.getTopic();
+        String topic = isRetry ?
+            KeyBuilder.buildPopRetryTopic(requestHeader.getTopic(), requestHeader.getConsumerGroup(), brokerController.getBrokerConfig().isEnableRetryTopicV2())
+            : requestHeader.getTopic();
         GetMessageResult getMessageTmpResult;
         long offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId);
         restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;

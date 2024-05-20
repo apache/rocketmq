@@ -31,6 +31,18 @@ import org.apache.rocketmq.tools.command.acl.ClusterAclConfigVersionListSubComma
 import org.apache.rocketmq.tools.command.acl.DeleteAccessConfigSubCommand;
 import org.apache.rocketmq.tools.command.acl.UpdateAccessConfigSubCommand;
 import org.apache.rocketmq.tools.command.acl.UpdateGlobalWhiteAddrSubCommand;
+import org.apache.rocketmq.tools.command.auth.CopyAclsSubCommand;
+import org.apache.rocketmq.tools.command.auth.CopyUsersSubCommand;
+import org.apache.rocketmq.tools.command.auth.CreateAclSubCommand;
+import org.apache.rocketmq.tools.command.auth.CreateUserSubCommand;
+import org.apache.rocketmq.tools.command.auth.DeleteAclSubCommand;
+import org.apache.rocketmq.tools.command.auth.DeleteUserSubCommand;
+import org.apache.rocketmq.tools.command.auth.GetAclSubCommand;
+import org.apache.rocketmq.tools.command.auth.GetUserSubCommand;
+import org.apache.rocketmq.tools.command.auth.ListAclSubCommand;
+import org.apache.rocketmq.tools.command.auth.ListUserSubCommand;
+import org.apache.rocketmq.tools.command.auth.UpdateAclSubCommand;
+import org.apache.rocketmq.tools.command.auth.UpdateUserSubCommand;
 import org.apache.rocketmq.tools.command.broker.BrokerConsumeStatsSubCommad;
 import org.apache.rocketmq.tools.command.broker.BrokerStatusSubCommand;
 import org.apache.rocketmq.tools.command.broker.CleanExpiredCQSubCommand;
@@ -65,6 +77,7 @@ import org.apache.rocketmq.tools.command.controller.ReElectMasterSubCommand;
 import org.apache.rocketmq.tools.command.controller.UpdateControllerConfigSubCommand;
 import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
+import org.apache.rocketmq.tools.command.export.ExportMetadataInRocksDBCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
 import org.apache.rocketmq.tools.command.ha.GetSyncStateSetSubCommand;
 import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
@@ -79,7 +92,6 @@ import org.apache.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByUniqueKeySubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgTraceByIdSubCommand;
 import org.apache.rocketmq.tools.command.message.SendMessageCommand;
-import org.apache.rocketmq.tools.command.export.ExportMetadataInRocksDBCommand;
 import org.apache.rocketmq.tools.command.namesrv.AddWritePermSubCommand;
 import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
@@ -272,6 +284,20 @@ public class MQAdminStartup {
         initCommand(new UpdateColdDataFlowCtrGroupConfigSubCommand());
         initCommand(new RemoveColdDataFlowCtrGroupConfigSubCommand());
         initCommand(new CommitLogSetReadAheadSubCommand());
+
+        initCommand(new CreateUserSubCommand());
+        initCommand(new UpdateUserSubCommand());
+        initCommand(new DeleteUserSubCommand());
+        initCommand(new GetUserSubCommand());
+        initCommand(new ListUserSubCommand());
+        initCommand(new CopyUsersSubCommand());
+
+        initCommand(new CreateAclSubCommand());
+        initCommand(new UpdateAclSubCommand());
+        initCommand(new DeleteAclSubCommand());
+        initCommand(new GetAclSubCommand());
+        initCommand(new ListAclSubCommand());
+        initCommand(new CopyAclsSubCommand());
     }
 
     private static void printHelp() {

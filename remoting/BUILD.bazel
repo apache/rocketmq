@@ -39,6 +39,7 @@ java_library(
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
         "@maven//:commons_collections_commons_collections",
+        "@maven//:org_reflections_reflections",
     ],
 )
 
@@ -65,6 +66,8 @@ java_library(
         "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
         "@maven//:org_apache_tomcat_annotations_api",
         "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:org_jetbrains_annotations",
+        "@maven//:org_reflections_reflections",
     ],
     resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
 )

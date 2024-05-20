@@ -24,7 +24,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
@@ -168,6 +168,12 @@ public class ProxyConfig implements ConfigFile {
     private int subscriptionGroupConfigCacheExpiredSeconds = 300;
     private int subscriptionGroupConfigCacheRefreshSeconds = 20;
     private int subscriptionGroupConfigCacheMaxNum = 20000;
+    private int userCacheExpiredSeconds = 300;
+    private int userCacheRefreshSeconds = 20;
+    private int userCacheMaxNum = 20000;
+    private int aclCacheExpiredSeconds = 300;
+    private int aclCacheRefreshSeconds = 20;
+    private int aclCacheMaxNum = 20000;
     private int metadataThreadPoolNums = 3;
     private int metadataThreadPoolQueueCapacity = 100000;
 
@@ -199,7 +205,7 @@ public class ProxyConfig implements ConfigFile {
 
     private boolean useDelayLevel = false;
     private String messageDelayLevel = "1s 5s 10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h";
-    private transient Map<Integer /* level */, Long/* delay timeMillis */> delayLevelTable = new ConcurrentHashMap<>();
+    private transient ConcurrentSkipListMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable = new ConcurrentSkipListMap<>();
 
     private String metricCollectorMode = MetricCollectorMode.OFF.getModeString();
     // Example address: 127.0.0.1:1234
@@ -291,7 +297,7 @@ public class ProxyConfig implements ConfigFile {
     }
 
     public void parseDelayLevel() {
-        this.delayLevelTable = new ConcurrentHashMap<>();
+        this.delayLevelTable = new ConcurrentSkipListMap<>();
         Map<String, Long> timeUnitTable = new HashMap<>();
         timeUnitTable.put("s", 1000L);
         timeUnitTable.put("m", 1000L * 60);
@@ -900,6 +906,54 @@ public class ProxyConfig implements ConfigFile {
         this.subscriptionGroupConfigCacheMaxNum = subscriptionGroupConfigCacheMaxNum;
     }
 
+    public int getUserCacheExpiredSeconds() {
+        return userCacheExpiredSeconds;
+    }
+
+    public void setUserCacheExpiredSeconds(int userCacheExpiredSeconds) {
+        this.userCacheExpiredSeconds = userCacheExpiredSeconds;
+    }
+
+    public int getUserCacheRefreshSeconds() {
+        return userCacheRefreshSeconds;
+    }
+
+    public void setUserCacheRefreshSeconds(int userCacheRefreshSeconds) {
+        this.userCacheRefreshSeconds = userCacheRefreshSeconds;
+    }
+
+    public int getUserCacheMaxNum() {
+        return userCacheMaxNum;
+    }
+
+    public void setUserCacheMaxNum(int userCacheMaxNum) {
+        this.userCacheMaxNum = userCacheMaxNum;
+    }
+
+    public int getAclCacheExpiredSeconds() {
+        return aclCacheExpiredSeconds;
+    }
+
+    public void setAclCacheExpiredSeconds(int aclCacheExpiredSeconds) {
+        this.aclCacheExpiredSeconds = aclCacheExpiredSeconds;
+    }
+
+    public int getAclCacheRefreshSeconds() {
+        return aclCacheRefreshSeconds;
+    }
+
+    public void setAclCacheRefreshSeconds(int aclCacheRefreshSeconds) {
+        this.aclCacheRefreshSeconds = aclCacheRefreshSeconds;
+    }
+
+    public int getAclCacheMaxNum() {
+        return aclCacheMaxNum;
+    }
+
+    public void setAclCacheMaxNum(int aclCacheMaxNum) {
+        this.aclCacheMaxNum = aclCacheMaxNum;
+    }
+
     public int getMetadataThreadPoolNums() {
         return metadataThreadPoolNums;
     }
@@ -1124,7 +1178,7 @@ public class ProxyConfig implements ConfigFile {
         this.messageDelayLevel = messageDelayLevel;
     }
 
-    public Map<Integer, Long> getDelayLevelTable() {
+    public ConcurrentSkipListMap<Integer, Long> getDelayLevelTable() {
         return delayLevelTable;
     }
 

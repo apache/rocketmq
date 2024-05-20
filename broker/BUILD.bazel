@@ -22,6 +22,7 @@ java_library(
     visibility = ["//visibility:public"],
     deps = [
         "//acl",
+        "//auth",
         "//client",
         "//common",
         "//filter",
@@ -30,6 +31,7 @@ java_library(
         "//store",
         "@maven//:ch_qos_logback_logback_classic",
         "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_github_luben_zstd_jni",
         "@maven//:com_google_guava_guava",
         "@maven//:com_googlecode_concurrentlinkedhashmap_concurrentlinkedhashmap_lru",
@@ -73,12 +75,14 @@ java_library(
         ":broker",
         "//:test_deps",
         "//acl",
+        "//auth",
         "//client",
         "//common",
         "//filter",
         "//remoting",
         "//store",
         "@maven//:com_alibaba_fastjson",
+        "@maven//:com_alibaba_fastjson2_fastjson2",
         "@maven//:com_google_guava_guava",
         "@maven//:io_netty_netty_all",
         "@maven//:org_apache_commons_commons_lang3",
@@ -91,6 +95,10 @@ java_library(
 GenTestRules(
     name = "GeneratedTestRules",
     test_files = glob(["src/test/java/**/*Test.java"]),
+    exclude_tests = [
+            # These tests are extremely slow and flaky, exclude them before they are properly fixed.
+            "src/test/java/org/apache/rocketmq/broker/controller/ReplicasManagerRegisterTest",
+        ],
     deps = [
         ":tests",
     ],

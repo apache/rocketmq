@@ -34,8 +34,8 @@ import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.channel.ChannelHelper;
-import org.apache.rocketmq.proxy.common.utils.ExceptionUtils;
-import org.apache.rocketmq.proxy.common.utils.FutureUtils;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.processor.channel.ChannelExtendAttributeGetter;
 import org.apache.rocketmq.proxy.processor.channel.ChannelProtocolType;
@@ -123,6 +123,7 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
         CompletableFuture<Void> writeFuture = new CompletableFuture<>();
         try {
             CheckTransactionStateRequestHeader requestHeader = new CheckTransactionStateRequestHeader();
+            requestHeader.setTopic(messageExt.getTopic());
             requestHeader.setCommitLogOffset(transactionData.getCommitLogOffset());
             requestHeader.setTranStateTableOffset(transactionData.getTranStateTableOffset());
             requestHeader.setTransactionId(transactionData.getTransactionId());

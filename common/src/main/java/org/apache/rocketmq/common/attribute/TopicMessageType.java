@@ -50,7 +50,8 @@ public enum TopicMessageType {
             return TopicMessageType.TRANSACTION;
         } else if (messageProperty.get(MessageConst.PROPERTY_DELAY_TIME_LEVEL) != null
             || messageProperty.get(MessageConst.PROPERTY_TIMER_DELIVER_MS) != null
-            || messageProperty.get(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
+            || messageProperty.get(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null
+            || messageProperty.get(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
             return TopicMessageType.DELAY;
         } else if (messageProperty.get(MessageConst.PROPERTY_SHARDING_KEY) != null) {
             return TopicMessageType.FIFO;

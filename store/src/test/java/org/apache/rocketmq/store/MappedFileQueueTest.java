@@ -477,6 +477,21 @@ public class MappedFileQueueTest {
         TimeUnit.SECONDS.sleep(3);
     }
 
+    @Test
+    public void testReset() {
+        final String fixedMsg = "0123456789abcdef";
+        MappedFileQueue mappedFileQueue =
+                new MappedFileQueue(storePath + File.separator + "a/", 64, null);
+        for (int i = 0; i < 8; i++) {
+            MappedFile mappedFile = mappedFileQueue.getLastMappedFile(0);
+            assertThat(mappedFile).isNotNull();
+            assertThat(mappedFile.appendMessage(fixedMsg.getBytes())).isTrue();
+        }
+        assertThat(mappedFileQueue.getMappedFiles().size()).isEqualTo(2);
+        assertThat(mappedFileQueue.resetOffset(0)).isTrue();
+        assertThat(mappedFileQueue.getMappedFiles().size()).isEqualTo(1);
+    }
+
     @After
     public void destroy() {
         File file = new File(storePath);

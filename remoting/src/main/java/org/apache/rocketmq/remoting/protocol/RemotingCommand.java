@@ -95,7 +95,7 @@ public class RemotingCommand {
 
     private transient byte[] body;
     private boolean suspended;
-    private Stopwatch processTimer;
+    private transient Stopwatch processTimer;
 
     protected RemotingCommand() {
     }
@@ -259,32 +259,29 @@ public class RemotingCommand {
         this.customHeader = customHeader;
     }
 
-    public CommandCustomHeader decodeCommandCustomHeader(
-        Class<? extends CommandCustomHeader> classHeader) throws RemotingCommandException {
+    public <T extends CommandCustomHeader> T decodeCommandCustomHeader(
+        Class<T> classHeader) throws RemotingCommandException {
         return decodeCommandCustomHeader(classHeader, false);
     }
 
-    public CommandCustomHeader decodeCommandCustomHeader(
-        Class<? extends CommandCustomHeader> classHeader, boolean isCached) throws RemotingCommandException {
+    public <T extends CommandCustomHeader> T decodeCommandCustomHeader(
+        Class<T> classHeader, boolean isCached) throws RemotingCommandException {
         if (isCached && cachedHeader != null) {
-            return cachedHeader;
+            return classHeader.cast(cachedHeader);
         }
         cachedHeader = decodeCommandCustomHeaderDirectly(classHeader, true);
-        return cachedHeader;
+        if (cachedHeader == null) {
+            return null;
+        }
+        return classHeader.cast(cachedHeader);
     }
 
-    public CommandCustomHeader decodeCommandCustomHeaderDirectly(Class<? extends CommandCustomHeader> classHeader,
+    public <T extends CommandCustomHeader> T decodeCommandCustomHeaderDirectly(Class<T> classHeader,
         boolean useFastEncode) throws RemotingCommandException {
-        CommandCustomHeader objectHeader;
+        T objectHeader;
         try {
             objectHeader = classHeader.getDeclaredConstructor().newInstance();
-        } catch (InstantiationException e) {
-            return null;
-        } catch (IllegalAccessException e) {
-            return null;
-        } catch (InvocationTargetException e) {
-            return null;
-        } catch (NoSuchMethodException e) {
+        } catch (Exception e) {
             return null;
         }
 

@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -82,7 +83,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -355,7 +356,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        boolean result = mqClientAPI.resumeCheckHalfMessage(brokerAddr, "test", 3000);
+        boolean result = mqClientAPI.resumeCheckHalfMessage(brokerAddr, "topic,", "test", 3000);
         assertThat(result).isEqualTo(false);
     }
 
@@ -369,7 +370,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        boolean result = mqClientAPI.resumeCheckHalfMessage(brokerAddr, "test", 3000);
+        boolean result = mqClientAPI.resumeCheckHalfMessage(brokerAddr, "topic", "test", 3000);
 
         assertThat(result).isEqualTo(true);
     }
@@ -386,7 +387,7 @@ public class MQClientAPIImplTest {
                 callback.operationSucceed(responseFuture.getResponseCommand());
                 return null;
             }
-        }).when(remotingClient).invokeAsync(Matchers.anyString(), Matchers.any(RemotingCommand.class), Matchers.anyLong(), Matchers.any(InvokeCallback.class));
+        }).when(remotingClient).invokeAsync(ArgumentMatchers.anyString(), ArgumentMatchers.any(RemotingCommand.class), ArgumentMatchers.anyLong(), ArgumentMatchers.any(InvokeCallback.class));
         SendMessageContext sendMessageContext = new SendMessageContext();
         sendMessageContext.setProducer(new DefaultMQProducerImpl(new DefaultMQProducer()));
         msg.getProperties().put("MSG_TYPE", "reply");
@@ -446,10 +447,10 @@ public class MQClientAPIImplTest {
                 responseHeader.setReviveQid(0);
                 responseHeader.setRestNum(1);
                 StringBuilder startOffsetInfo = new StringBuilder(64);
-                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, false, 0, 0L);
+                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, topic, 0, 0L);
                 responseHeader.setStartOffsetInfo(startOffsetInfo.toString());
                 StringBuilder msgOffsetInfo = new StringBuilder(64);
-                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, false, 0, Collections.singletonList(0L));
+                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, topic, 0, Collections.singletonList(0L));
                 responseHeader.setMsgOffsetInfo(msgOffsetInfo.toString());
                 response.setRemark("FOUND");
                 response.makeCustomHeaderToNet();
@@ -515,10 +516,10 @@ public class MQClientAPIImplTest {
                 responseHeader.setReviveQid(0);
                 responseHeader.setRestNum(1);
                 StringBuilder startOffsetInfo = new StringBuilder(64);
-                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, false, 0, 0L);
+                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, topic, 0, 0L);
                 responseHeader.setStartOffsetInfo(startOffsetInfo.toString());
                 StringBuilder msgOffsetInfo = new StringBuilder(64);
-                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, false, 0, Collections.singletonList(0L));
+                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, topic, 0, Collections.singletonList(0L));
                 responseHeader.setMsgOffsetInfo(msgOffsetInfo.toString());
                 response.setRemark("FOUND");
                 response.makeCustomHeaderToNet();
@@ -558,6 +559,86 @@ public class MQClientAPIImplTest {
                 assertThat(popResult.getMsgFoundList().get(0).getTopic()).isEqualTo(lmqTopic);
                 assertThat(popResult.getMsgFoundList().get(0).getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))
                     .isEqualTo(lmqTopic);
+                done.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                Assertions.fail("want no exception but got one", e);
+                done.countDown();
+            }
+        });
+        done.await();
+    }
+
+    @Test
+    public void testPopMultiLmqMessage_async() throws Exception {
+        final long popTime = System.currentTimeMillis();
+        final int invisibleTime = 10 * 1000;
+        final String lmqTopic = MixAll.LMQ_PREFIX + "lmq1";
+        final String lmqTopic2 = MixAll.LMQ_PREFIX + "lmq2";
+        final String multiDispatch = String.join(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER, lmqTopic, lmqTopic2);
+        final String multiOffset = String.join(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER, "0", "0");
+        doAnswer(new Answer<Void>() {
+            @Override
+            public Void answer(InvocationOnMock mock) throws Throwable {
+                InvokeCallback callback = mock.getArgument(3);
+                RemotingCommand request = mock.getArgument(1);
+                ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
+                RemotingCommand response = RemotingCommand.createResponseCommand(PopMessageResponseHeader.class);
+                response.setCode(ResponseCode.SUCCESS);
+                response.setOpaque(request.getOpaque());
+
+                PopMessageResponseHeader responseHeader = (PopMessageResponseHeader) response.readCustomHeader();
+                responseHeader.setInvisibleTime(invisibleTime);
+                responseHeader.setPopTime(popTime);
+                responseHeader.setReviveQid(0);
+                responseHeader.setRestNum(1);
+                StringBuilder startOffsetInfo = new StringBuilder(64);
+                ExtraInfoUtil.buildStartOffsetInfo(startOffsetInfo, topic, 0, 0L);
+                responseHeader.setStartOffsetInfo(startOffsetInfo.toString());
+                StringBuilder msgOffsetInfo = new StringBuilder(64);
+                ExtraInfoUtil.buildMsgOffsetInfo(msgOffsetInfo, topic, 0, Collections.singletonList(0L));
+                responseHeader.setMsgOffsetInfo(msgOffsetInfo.toString());
+                response.setRemark("FOUND");
+                response.makeCustomHeaderToNet();
+
+                MessageExt message = new MessageExt();
+                message.setQueueId(0);
+                message.setFlag(0);
+                message.setQueueOffset(10L);
+                message.setCommitLogOffset(10000L);
+                message.setSysFlag(0);
+                message.setBornTimestamp(System.currentTimeMillis());
+                message.setBornHost(new InetSocketAddress("127.0.0.1", 10));
+                message.setStoreTimestamp(System.currentTimeMillis());
+                message.setStoreHost(new InetSocketAddress("127.0.0.1", 11));
+                message.setBody("body".getBytes());
+                message.setTopic(topic);
+                MessageAccessor.putProperty(message, MessageConst.PROPERTY_INNER_MULTI_DISPATCH, multiDispatch);
+                MessageAccessor.putProperty(message, MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET, multiOffset);
+                response.setBody(MessageDecoder.encode(message, false));
+                responseFuture.setResponseCommand(response);
+                callback.operationSucceed(responseFuture.getResponseCommand());
+                return null;
+            }
+        }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+        final CountDownLatch done = new CountDownLatch(1);
+        final PopMessageRequestHeader requestHeader = new PopMessageRequestHeader();
+        requestHeader.setTopic(lmqTopic);
+        mqClientAPI.popMessageAsync(brokerName, brokerAddr, requestHeader, 10 * 1000, new PopCallback() {
+            @Override
+            public void onSuccess(PopResult popResult) {
+                assertThat(popResult.getPopStatus()).isEqualTo(PopStatus.FOUND);
+                assertThat(popResult.getRestNum()).isEqualTo(1);
+                assertThat(popResult.getInvisibleTime()).isEqualTo(invisibleTime);
+                assertThat(popResult.getPopTime()).isEqualTo(popTime);
+                assertThat(popResult.getMsgFoundList()).size().isEqualTo(1);
+                assertThat(popResult.getMsgFoundList().get(0).getTopic()).isEqualTo(lmqTopic);
+                assertThat(popResult.getMsgFoundList().get(0).getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))
+                    .isEqualTo(multiDispatch);
+                assertThat(popResult.getMsgFoundList().get(0).getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET))
+                    .isEqualTo(multiOffset);
                 done.countDown();
             }
 
@@ -726,7 +807,7 @@ public class MQClientAPIImplTest {
             }
         }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
 
-        MessageExt messageExt = mqClientAPI.viewMessage(brokerAddr, 100L, 10000);
+        MessageExt messageExt = mqClientAPI.viewMessage(brokerAddr, "topic", 100L, 10000);
         assertThat(messageExt.getTopic()).isEqualTo(topic);
     }
 

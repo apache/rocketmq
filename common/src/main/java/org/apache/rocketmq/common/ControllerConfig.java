@@ -21,10 +21,14 @@ import java.util.Arrays;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
 
 public class ControllerConfig {
-
     private String rocketmqHome = System.getProperty(MixAll.ROCKETMQ_HOME_PROPERTY, System.getenv(MixAll.ROCKETMQ_HOME_ENV));
     private String configStorePath = System.getProperty("user.home") + File.separator + "controller" + File.separator + "controller.properties";
+    public static final String DLEDGER_CONTROLLER = "DLedger";
+    public static final String JRAFT_CONTROLLER = "jRaft";
 
+    private JraftConfig jraftConfig = new JraftConfig();
+
+    private String controllerType = DLEDGER_CONTROLLER;
     /**
      * Interval of periodic scanning for non-active broker;
      * Unit: millisecond
@@ -45,7 +49,13 @@ public class ControllerConfig {
     private String controllerDLegerPeers;
     private String controllerDLegerSelfId;
     private int mappedFileSize = 1024 * 1024 * 1024;
-    private String controllerStorePath = System.getProperty("user.home") + File.separator + "DledgerController";
+    private String controllerStorePath = "";
+
+    /**
+     * Max retry count for electing master when failed because of network or system error.
+     */
+    private int electMasterMaxRetryCount = 3;
+
 
     /**
      * Whether the controller can elect a master which is not in the syncStateSet.
@@ -82,6 +92,21 @@ public class ControllerConfig {
     private String metricsLabel = "";
 
     private boolean metricsInDelta = false;
+
+    /**
+     * Config in this black list will be not allowed to update by command.
+     * Try to update this config black list by restart process.
+     * Try to update configures in black list by restart process.
+     */
+    private String configBlackList = "configBlackList;configStorePath";
+
+    public String getConfigBlackList() {
+        return configBlackList;
+    }
+
+    public void setConfigBlackList(String configBlackList) {
+        this.configBlackList = configBlackList;
+    }
 
     public String getRocketmqHome() {
         return rocketmqHome;
@@ -156,6 +181,9 @@ public class ControllerConfig {
     }
 
     public String getControllerStorePath() {
+        if (controllerStorePath.isEmpty()) {
+            controllerStorePath = System.getProperty("user.home") + File.separator + controllerType + "Controller";
+        }
         return controllerStorePath;
     }
 
@@ -207,6 +235,14 @@ public class ControllerConfig {
 
     public void setMetricsExporterType(MetricsExporterType metricsExporterType) {
         this.metricsExporterType = metricsExporterType;
+    }
+
+    public void setMetricsExporterType(int metricsExporterType) {
+        this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
+    }
+
+    public void setMetricsExporterType(String metricsExporterType) {
+        this.metricsExporterType = MetricsExporterType.valueOf(metricsExporterType);
     }
 
     public String getMetricsGrpcExporterTarget() {
@@ -279,5 +315,29 @@ public class ControllerConfig {
 
     public void setMetricsInDelta(boolean metricsInDelta) {
         this.metricsInDelta = metricsInDelta;
+    }
+
+    public String getControllerType() {
+        return controllerType;
+    }
+
+    public void setControllerType(String controllerType) {
+        this.controllerType = controllerType;
+    }
+
+    public JraftConfig getJraftConfig() {
+        return jraftConfig;
+    }
+
+    public void setJraftConfig(JraftConfig jraftConfig) {
+        this.jraftConfig = jraftConfig;
+    }
+
+    public int getElectMasterMaxRetryCount() {
+        return this.electMasterMaxRetryCount;
+    }
+
+    public void setElectMasterMaxRetryCount(int electMasterMaxRetryCount) {
+        this.electMasterMaxRetryCount = electMasterMaxRetryCount;
     }
 }

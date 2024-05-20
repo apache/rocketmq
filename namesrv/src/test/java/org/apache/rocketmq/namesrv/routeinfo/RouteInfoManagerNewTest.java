@@ -130,7 +130,6 @@ public class RouteInfoManagerNewTest {
         topicList = TopicList.decode(content, TopicList.class);
         assertThat(topicList.getTopicList()).contains("TestTopic", "TestTopic1", "TestTopic2");
     }
-
     @Test
     public void registerBroker() {
         // Register master broker

@@ -50,12 +50,13 @@ public abstract class AbstractTransactionalMessageCheckListener {
 
     public void sendCheckMessage(MessageExt msgExt) throws Exception {
         CheckTransactionStateRequestHeader checkTransactionStateRequestHeader = new CheckTransactionStateRequestHeader();
+        checkTransactionStateRequestHeader.setTopic(msgExt.getTopic());
         checkTransactionStateRequestHeader.setCommitLogOffset(msgExt.getCommitLogOffset());
         checkTransactionStateRequestHeader.setOffsetMsgId(msgExt.getMsgId());
         checkTransactionStateRequestHeader.setMsgId(msgExt.getUserProperty(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
         checkTransactionStateRequestHeader.setTransactionId(checkTransactionStateRequestHeader.getMsgId());
         checkTransactionStateRequestHeader.setTranStateTableOffset(msgExt.getQueueOffset());
-        checkTransactionStateRequestHeader.setBname(brokerController.getBrokerConfig().getBrokerName());
+        checkTransactionStateRequestHeader.setBrokerName(brokerController.getBrokerConfig().getBrokerName());
         msgExt.setTopic(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
         msgExt.setQueueId(Integer.parseInt(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_QUEUE_ID)));
         msgExt.setStoreSize(0);

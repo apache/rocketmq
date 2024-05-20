@@ -276,13 +276,29 @@ public class RequestCode {
      * clean broker data
      */
     public static final int CLEAN_BROKER_DATA = 1011;
+    public static final int CONTROLLER_GET_NEXT_BROKER_ID = 1012;
+
+    public static final int CONTROLLER_APPLY_BROKER_ID = 1013;
+    public static final short BROKER_CLOSE_CHANNEL_REQUEST = 1014;
+    public static final short CHECK_NOT_ACTIVE_BROKER_REQUEST = 1015;
+    public static final short GET_BROKER_LIVE_INFO_REQUEST = 1016;
+    public static final short GET_SYNC_STATE_DATA_REQUEST = 1017;
+    public static final short RAFT_BROKER_HEART_BEAT_EVENT_REQUEST = 1018;
 
     public static final int UPDATE_COLD_DATA_FLOW_CTR_CONFIG = 2001;
     public static final int REMOVE_COLD_DATA_FLOW_CTR_CONFIG = 2002;
     public static final int GET_COLD_DATA_FLOW_CTR_INFO = 2003;
     public static final int SET_COMMITLOG_READ_MODE = 2004;
 
-    public static final int CONTROLLER_GET_NEXT_BROKER_ID = 1012;
+    public static final int AUTH_CREATE_USER = 3001;
+    public static final int AUTH_UPDATE_USER = 3002;
+    public static final int AUTH_DELETE_USER = 3003;
+    public static final int AUTH_GET_USER = 3004;
+    public static final int AUTH_LIST_USER = 3005;
 
-    public static final int CONTROLLER_APPLY_BROKER_ID = 1013;
+    public static final int AUTH_CREATE_ACL = 3006;
+    public static final int AUTH_UPDATE_ACL = 3007;
+    public static final int AUTH_DELETE_ACL = 3008;
+    public static final int AUTH_GET_ACL = 3009;
+    public static final int AUTH_LIST_ACL = 3010;
 }

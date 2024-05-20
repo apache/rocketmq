@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.broker;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
@@ -40,11 +42,16 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.Lists;
-
 import org.apache.rocketmq.acl.AccessValidator;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
+import org.apache.rocketmq.auth.authentication.factory.AuthenticationFactory;
+import org.apache.rocketmq.auth.authentication.manager.AuthenticationMetadataManager;
+import org.apache.rocketmq.auth.authorization.factory.AuthorizationFactory;
+import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
+import org.apache.rocketmq.auth.config.AuthConfig;
+import org.apache.rocketmq.auth.migration.AuthMigrator;
+import org.apache.rocketmq.broker.auth.pipeline.AuthenticationPipeline;
+import org.apache.rocketmq.broker.auth.pipeline.AuthorizationPipeline;
 import org.apache.rocketmq.broker.client.ClientHousekeepingService;
 import org.apache.rocketmq.broker.client.ConsumerIdsChangeListener;
 import org.apache.rocketmq.broker.client.ConsumerManager;
@@ -104,6 +111,7 @@ import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
 import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.broker.transaction.AbstractTransactionalMessageCheckListener;
+import org.apache.rocketmq.broker.transaction.TransactionMetricsFlushService;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageCheckService;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.broker.transaction.queue.DefaultTransactionalMessageCheckListener;
@@ -136,11 +144,13 @@ import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
+import org.apache.rocketmq.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.BrokerSyncInfo;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.RequestHeaderRegistry;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
@@ -177,6 +187,7 @@ public class BrokerController {
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
     protected final MessageStoreConfig messageStoreConfig;
+    private final AuthConfig authConfig;
     protected final ConsumerOffsetManager consumerOffsetManager;
     protected final BroadcastOffsetManager broadcastOffsetManager;
     protected final ConsumerManager consumerManager;
@@ -277,15 +288,19 @@ public class BrokerController {
     private BrokerMetricsManager brokerMetricsManager;
     private ColdDataPullRequestHoldService coldDataPullRequestHoldService;
     private ColdDataCgCtrService coldDataCgCtrService;
+    private TransactionMetricsFlushService transactionMetricsFlushService;
+    private AuthenticationMetadataManager authenticationMetadataManager;
+    private AuthorizationMetadataManager authorizationMetadataManager;
 
     public BrokerController(
         final BrokerConfig brokerConfig,
         final NettyServerConfig nettyServerConfig,
         final NettyClientConfig nettyClientConfig,
         final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig,
         final ShutdownHook shutdownHook
     ) {
-        this(brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig);
+        this(brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig, authConfig);
         this.shutdownHook = shutdownHook;
     }
 
@@ -293,7 +308,7 @@ public class BrokerController {
         final BrokerConfig brokerConfig,
         final MessageStoreConfig messageStoreConfig
     ) {
-        this(brokerConfig, null, null, messageStoreConfig);
+        this(brokerConfig, null, null, messageStoreConfig, null);
     }
 
     public BrokerController(
@@ -302,10 +317,21 @@ public class BrokerController {
         final NettyClientConfig nettyClientConfig,
         final MessageStoreConfig messageStoreConfig
     ) {
+        this(brokerConfig, nettyServerConfig, nettyClientConfig, messageStoreConfig, null);
+    }
+
+    public BrokerController(
+        final BrokerConfig brokerConfig,
+        final NettyServerConfig nettyServerConfig,
+        final NettyClientConfig nettyClientConfig,
+        final MessageStoreConfig messageStoreConfig,
+        final AuthConfig authConfig
+    ) {
         this.brokerConfig = brokerConfig;
         this.nettyServerConfig = nettyServerConfig;
         this.nettyClientConfig = nettyClientConfig;
         this.messageStoreConfig = messageStoreConfig;
+        this.authConfig = authConfig;
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat()) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
         this.broadcastOffsetManager = new BroadcastOffsetManager(this);
@@ -319,6 +345,8 @@ public class BrokerController {
             this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new LmqConsumerOffsetManager(this) : new ConsumerOffsetManager(this);
         }
         this.topicQueueMappingManager = new TopicQueueMappingManager(this);
+        this.authenticationMetadataManager = AuthenticationFactory.getMetadataManager(this.authConfig);
+        this.authorizationMetadataManager = AuthorizationFactory.getMetadataManager(this.authConfig);
         this.pullMessageProcessor = new PullMessageProcessor(this);
         this.peekMessageProcessor = new PeekMessageProcessor(this);
         this.pullRequestHoldService = messageStoreConfig.isEnableLmq() ? new LmqPullRequestHoldService(this) : new PullRequestHoldService(this);
@@ -343,7 +371,7 @@ public class BrokerController {
         this.coldDataCgCtrService = new ColdDataCgCtrService(this);
 
         if (nettyClientConfig != null) {
-            this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig);
+            this.brokerOuterAPI = new BrokerOuterAPI(nettyClientConfig, authConfig);
         }
 
         this.queryAssignmentProcessor = new QueryAssignmentProcessor(this);
@@ -380,7 +408,7 @@ public class BrokerController {
             this.brokerConfig, this.nettyServerConfig, this.nettyClientConfig, this.messageStoreConfig
         );
 
-        this.brokerStatsManager.setProduerStateGetter(new BrokerStatsManager.StateGetter() {
+        this.brokerStatsManager.setProducerStateGetter(new BrokerStatsManager.StateGetter() {
             @Override
             public boolean online(String instanceId, String group, String topic) {
                 if (getTopicConfigManager().getTopicConfigTable().containsKey(NamespaceUtil.wrapNamespace(instanceId, topic))) {
@@ -412,6 +440,14 @@ public class BrokerController {
         if (this.brokerConfig.isEnableSlaveActingMaster() && !this.brokerConfig.isSkipPreOnline()) {
             this.brokerPreOnlineService = new BrokerPreOnlineService(this);
         }
+
+        if (this.authConfig != null && this.authConfig.isMigrateAuthFromV1Enabled()) {
+            new AuthMigrator(this.authConfig).migrate();
+        }
+    }
+
+    public AuthConfig getAuthConfig() {
+        return authConfig;
     }
 
     public BrokerConfig getBrokerConfig() {
@@ -488,7 +524,7 @@ public class BrokerController {
             1000 * 60,
             TimeUnit.MILLISECONDS,
             this.putThreadPoolQueue,
-            new ThreadFactoryImpl("SendMessageThread_", getBrokerIdentity()));
+            new ThreadFactoryImpl("PutMessageThread_", getBrokerIdentity()));
 
         this.ackMessageExecutor = ThreadUtils.newThreadPoolExecutor(
             this.brokerConfig.getAckMessageThreadPoolNums(),
@@ -843,6 +879,8 @@ public class BrokerController {
 
             initialRpcHooks();
 
+            initialRequestPipeline();
+
             if (TlsSystemConfig.tlsMode != TlsMode.DISABLED) {
                 // Register a listener to reload SslContext
                 try {
@@ -963,6 +1001,9 @@ public class BrokerController {
         }
         this.transactionalMessageCheckListener.setBrokerController(this);
         this.transactionalMessageCheckService = new TransactionalMessageCheckService(this);
+        this.transactionMetricsFlushService = new TransactionMetricsFlushService(this);
+        this.transactionMetricsFlushService.start();
+
     }
 
     private void initialAcl() {
@@ -1004,6 +1045,23 @@ public class BrokerController {
         }
         for (RPCHook rpcHook : rpcHooks) {
             this.registerServerRPCHook(rpcHook);
+        }
+    }
+
+    private void initialRequestPipeline() {
+        if (this.authConfig == null) {
+            return;
+        }
+        RequestPipeline pipeline = (ctx, request) -> {
+        };
+        // add pipeline
+        // the last pipe add will execute at the first
+        try {
+            pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig))
+                .pipe(new AuthenticationPipeline(authConfig));
+            this.setRequestPipeline(pipeline);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -1124,6 +1182,11 @@ public class BrokerController {
         AdminBrokerProcessor adminProcessor = new AdminBrokerProcessor(this);
         this.remotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
         this.fastRemotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
+
+        /*
+         * Initialize the mapping of request codes to request headers.
+         */
+        RequestHeaderRegistry.getInstance().initialize();
     }
 
     public BrokerStats getBrokerStats() {
@@ -1440,6 +1503,10 @@ public class BrokerController {
             this.endTransactionExecutor.shutdown();
         }
 
+        if (this.transactionMetricsFlushService != null) {
+            this.transactionMetricsFlushService.shutdown();
+        }
+
         if (this.escapeBridge != null) {
             escapeBridge.shutdown();
         }
@@ -1476,6 +1543,14 @@ public class BrokerController {
         if (this.consumerOffsetManager != null) {
             this.consumerOffsetManager.persist();
             this.consumerOffsetManager.stop();
+        }
+
+        if (this.authenticationMetadataManager != null) {
+            this.authenticationMetadataManager.shutdown();
+        }
+
+        if (this.authorizationMetadataManager != null) {
+            this.authorizationMetadataManager.shutdown();
         }
 
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
@@ -2108,6 +2183,7 @@ public class BrokerController {
             isScheduleServiceStart = shouldStart;
 
             if (timerMessageStore != null) {
+                timerMessageStore.syncLastReadTimeMs();
                 timerMessageStore.setShouldRunningDequeue(shouldStart);
             }
         }
@@ -2142,6 +2218,26 @@ public class BrokerController {
 
     public TopicQueueMappingManager getTopicQueueMappingManager() {
         return topicQueueMappingManager;
+    }
+
+    public AuthenticationMetadataManager getAuthenticationMetadataManager() {
+        return authenticationMetadataManager;
+    }
+
+    @VisibleForTesting
+    public void setAuthenticationMetadataManager(
+        AuthenticationMetadataManager authenticationMetadataManager) {
+        this.authenticationMetadataManager = authenticationMetadataManager;
+    }
+
+    public AuthorizationMetadataManager getAuthorizationMetadataManager() {
+        return authorizationMetadataManager;
+    }
+
+    @VisibleForTesting
+    public void setAuthorizationMetadataManager(
+        AuthorizationMetadataManager authorizationMetadataManager) {
+        this.authorizationMetadataManager = authorizationMetadataManager;
     }
 
     public String getHAServerAddr() {
@@ -2205,6 +2301,11 @@ public class BrokerController {
     public void registerServerRPCHook(RPCHook rpcHook) {
         getRemotingServer().registerRPCHook(rpcHook);
         this.fastRemotingServer.registerRPCHook(rpcHook);
+    }
+
+    public void setRequestPipeline(RequestPipeline pipeline) {
+        this.getRemotingServer().setRequestPipeline(pipeline);
+        this.fastRemotingServer.setRequestPipeline(pipeline);
     }
 
     public RemotingServer getRemotingServer() {

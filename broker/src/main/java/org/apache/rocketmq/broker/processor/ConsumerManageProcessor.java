@@ -124,7 +124,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
             LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), globalOffset, true);
             requestHeader.setQueueId(mappingItem.getQueueId());
             requestHeader.setLo(false);
-            requestHeader.setBname(mappingItem.getBname());
+            requestHeader.setBrokerName(mappingItem.getBname());
             requestHeader.setCommitOffset(mappingItem.computePhysicalQueueOffset(globalOffset));
             //leader, let it go, do not need to rewrite the response
             if (mappingDetail.getBname().equals(mappingItem.getBname())) {
@@ -163,6 +163,12 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
         String group = requestHeader.getConsumerGroup();
         Integer queueId = requestHeader.getQueueId();
         Long offset = requestHeader.getCommitOffset();
+
+        if (!this.brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(group)) {
+            response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
+            response.setRemark("Group " + group + " not exist!");
+            return response;
+        }
 
         if (!this.brokerController.getTopicConfigManager().containsTopic(requestHeader.getTopic())) {
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
@@ -237,7 +243,7 @@ public class ConsumerManageProcessor implements NettyRequestProcessor {
                     }
                 } else {
                     //maybe we need to reconstruct an object
-                    requestHeader.setBname(mappingItem.getBname());
+                    requestHeader.setBrokerName(mappingItem.getBname());
                     requestHeader.setQueueId(mappingItem.getQueueId());
                     requestHeader.setLo(false);
                     requestHeader.setSetZeroIfNotFound(false);

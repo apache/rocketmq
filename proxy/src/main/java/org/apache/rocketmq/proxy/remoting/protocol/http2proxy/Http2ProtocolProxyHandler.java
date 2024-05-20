@@ -32,6 +32,7 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import javax.net.ssl.SSLException;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -39,10 +40,7 @@ import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.remoting.protocol.ProtocolHandler;
 import org.apache.rocketmq.remoting.common.TlsMode;
-import org.apache.rocketmq.remoting.netty.AttributeKeys;
 import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
-
-import javax.net.ssl.SSLException;
 
 public class Http2ProtocolProxyHandler implements ProtocolHandler {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
@@ -121,15 +119,17 @@ public class Http2ProtocolProxyHandler implements ProtocolHandler {
         }
 
         final Channel outboundChannel = f.channel();
-        if (inboundChannel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
-            ctx.pipeline().addLast(new HAProxyMessageForwarder(outboundChannel));
-            outboundChannel.pipeline().addFirst(HAProxyMessageEncoder.INSTANCE);
-        }
+        configPipeline(inboundChannel, outboundChannel);
 
         SslHandler sslHandler = null;
         if (sslContext != null) {
             sslHandler = sslContext.newHandler(outboundChannel.alloc(), LOCAL_HOST, config.getGrpcServerPort());
         }
         ctx.pipeline().addLast(new Http2ProxyFrontendHandler(outboundChannel, sslHandler));
+    }
+
+    protected void configPipeline(Channel inboundChannel, Channel outboundChannel) {
+        inboundChannel.pipeline().addLast(new HAProxyMessageForwarder(outboundChannel));
+        outboundChannel.pipeline().addFirst(HAProxyMessageEncoder.INSTANCE);
     }
 }

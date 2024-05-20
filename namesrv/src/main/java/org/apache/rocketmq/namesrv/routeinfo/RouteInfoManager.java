@@ -67,7 +67,7 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 
 public class RouteInfoManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
-    private final static long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
+    private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private final Map<String/* topic */, Map<String, QueueData>> topicQueueTable;
     private final Map<String/* brokerName */, BrokerData> brokerAddrTable;
@@ -281,7 +281,7 @@ public class RouteInfoManager {
                     long oldStateVersion = oldBrokerInfo.getDataVersion().getStateVersion();
                     long newStateVersion = topicConfigWrapper.getDataVersion().getStateVersion();
                     if (oldStateVersion > newStateVersion) {
-                        log.warn("Registered Broker conflicts with the existed one, just ignore.: Cluster:{}, BrokerName:{}, BrokerId:{}, " +
+                        log.warn("Registering Broker conflicts with the existed one, just ignore.: Cluster:{}, BrokerName:{}, BrokerId:{}, " +
                                 "Old BrokerAddr:{}, Old Version:{}, New BrokerAddr:{}, New Version:{}.",
                             clusterName, brokerName, brokerId, oldBrokerAddr, oldStateVersion, brokerAddr, newStateVersion);
                         //Remove the rejected brokerAddr from brokerLiveTable.
@@ -301,6 +301,7 @@ public class RouteInfoManager {
             registerFirst = registerFirst || (StringUtils.isEmpty(oldAddr));
 
             boolean isMaster = MixAll.MASTER_ID == brokerId;
+
             boolean isPrimeSlave = !isOldVersionBroker && !isMaster
                 && brokerId == Collections.min(brokerAddrsMap.keySet());
 
@@ -339,7 +340,8 @@ public class RouteInfoManager {
                             topicConfigWrapper.getDataVersion(), brokerName,
                             entry.getValue().getTopicName())) {
                             final TopicConfig topicConfig = entry.getValue();
-                            if (isPrimeSlave) {
+                            // In Slave Acting Master mode, Namesrv will regard the surviving Slave with the smallest brokerId as the "agent" Master, and modify the brokerPermission to read-only.
+                            if (isPrimeSlave && brokerData.isEnableActingMaster()) {
                                 // Wipe write perm for prime slave
                                 topicConfig.setPerm(topicConfig.getPerm() & (~PermName.PERM_WRITE));
                             }
