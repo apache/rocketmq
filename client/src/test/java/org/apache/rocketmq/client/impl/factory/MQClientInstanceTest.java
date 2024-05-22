@@ -42,6 +42,7 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,14 +59,25 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQClientInstanceTest {
-    private final MQClientInstance mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
+    private MQClientInstance mqClientInstance;
+    
     private String topic = "FooBar";
+    
     private String group = "FooBarGroup";
+    
     private ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
+
+    private final ClientConfig clientConfig = new ClientConfig();
 
     @Before
     public void init() throws Exception {
+        mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(clientConfig);
         FieldUtils.writeDeclaredField(mqClientInstance, "brokerAddrTable", brokerAddrTable, true);
+    }
+    
+    @After
+    public void clearMqClientInstance() {
+        MQClientManager.getInstance().removeClientFactory(clientConfig.buildMQClientId());
     }
 
     @Test
