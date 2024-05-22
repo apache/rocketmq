@@ -58,7 +58,7 @@ public class RMQPopConsumer extends RMQNormalConsumer {
     @Override
     public void start() {
         client = ConsumerFactory.getRMQPopClient();
-        log.info(String.format("consumer[%s] started!", consumerGroup));
+        log.info("consumer[{}] started!", consumerGroup);
     }
 
     @Override

@@ -125,8 +125,8 @@ public class MQClientInstance {
     private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
 
     private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable = new ConcurrentHashMap<>();
-    private final Set<String/* Broker address */> brokerSupportV2HeartbeatSet = new HashSet();
-    private final ConcurrentMap<String, Integer> brokerAddrHeartbeatFingerprintTable = new ConcurrentHashMap();
+    private final Set<String/* Broker address */> brokerSupportV2HeartbeatSet = new HashSet<>();
+    private final ConcurrentMap<String, Integer> brokerAddrHeartbeatFingerprintTable = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "MQClientFactoryScheduledThread"));
     private final ScheduledExecutorService fetchRemoteConfigExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
         @Override
@@ -1070,7 +1070,7 @@ public class MQClientInstance {
                         balanced = false;
                     }
                 } catch (Throwable e) {
-                    log.error("doRebalance exception", e);
+                    log.error("doRebalance for consumer group [{}] exception", entry.getKey(), e);
                 }
             }
         }
@@ -1161,7 +1161,7 @@ public class MQClientInstance {
                 Entry<Long, String> entry = map.entrySet().iterator().next();
                 brokerAddr = entry.getValue();
                 slave = entry.getKey() != MixAll.MASTER_ID;
-                found = true;
+                found = brokerAddr != null;
             }
         }
 
@@ -1222,8 +1222,7 @@ public class MQClientInstance {
         if (topicRouteData != null) {
             List<BrokerData> brokers = topicRouteData.getBrokerDatas();
             if (!brokers.isEmpty()) {
-                int index = random.nextInt(brokers.size());
-                BrokerData bd = brokers.get(index % brokers.size());
+                BrokerData bd = brokers.get(random.nextInt(brokers.size()));
                 return bd.selectBrokerAddr();
             }
         }

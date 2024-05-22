@@ -65,7 +65,8 @@ public class SimpleSubscriptionData {
         this.version = version;
     }
 
-    @Override public boolean equals(Object o) {
+    @Override
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -73,11 +74,12 @@ public class SimpleSubscriptionData {
             return false;
         }
         SimpleSubscriptionData that = (SimpleSubscriptionData) o;
-        return version == that.version && Objects.equals(topic, that.topic);
+        return Objects.equals(topic, that.topic) && Objects.equals(expressionType, that.expressionType) && Objects.equals(expression, that.expression);
     }
 
-    @Override public int hashCode() {
-        return Objects.hash(topic, version);
+    @Override
+    public int hashCode() {
+        return Objects.hash(topic, expressionType, expression);
     }
 
     @Override public String toString() {
