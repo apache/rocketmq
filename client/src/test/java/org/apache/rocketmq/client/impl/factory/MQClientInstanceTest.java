@@ -153,7 +153,6 @@ public class MQClientInstanceTest {
         assertThat(flag).isTrue();
     }
 
-
     @Test
     public void testConsumerRunningInfoWhenConsumersIsEmptyOrNot() throws RemotingException, InterruptedException, MQBrokerException {
         MQConsumerInner mockConsumerInner = mock(MQConsumerInner.class);
@@ -190,12 +189,11 @@ public class MQClientInstanceTest {
         flag = mqClientInstance.registerAdminExt(group, mock(MQAdminExtInner.class));
         assertThat(flag).isTrue();
     }
-    
+
     @Test
-    public void testUpdateTopicRouteInfoFromNameServer() throws Exception{
+    public void testUpdateTopicRouteInfoFromNameServer() throws Exception {
 
         MQClientAPIImpl mqClientAPI = mock(MQClientAPIImpl.class);
-
 
         TopicRouteData topicRouteData = new TopicRouteData();
 
@@ -219,8 +217,8 @@ public class MQClientInstanceTest {
         queueData.setTopicSysFlag(0);
         queueDataList.add(queueData);
         topicRouteData.setQueueDatas(queueDataList);
-        
-        when(mqClientAPI.getTopicRouteInfoFromNameServer(anyString(),anyLong())).thenReturn(topicRouteData);
+
+        when(mqClientAPI.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(topicRouteData);
         FieldUtils.writeDeclaredField(mqClientInstance, "mQClientAPIImpl", mqClientAPI, true);
 
         AtomicInteger trueCount = new AtomicInteger(0);
@@ -234,7 +232,6 @@ public class MQClientInstanceTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    // 调用 updateTopicRouteInfoFromNameServer 方法
                     boolean result = mqClientInstance.updateTopicRouteInfoFromNameServer(topic);
                     if (result) {
                         trueCount.incrementAndGet();
@@ -250,9 +247,6 @@ public class MQClientInstanceTest {
 
         verify(mqClientAPI, times(1)).getTopicRouteInfoFromNameServer(anyString(), anyLong());
         Assert.assertEquals("Only one call should return true", 1, trueCount.get());
-
-
-
 
     }
 
