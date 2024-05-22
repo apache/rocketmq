@@ -244,7 +244,7 @@ public class MQClientInstanceTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    boolean result = mqClientInstance.updateTopicRouteInfoFromNameServer(topic);
+                    boolean result = mqClientInstance.updateTopicRouteInfoFromNameServer(topic, false);
                     if (result) {
                         trueCount.incrementAndGet();
                     }
