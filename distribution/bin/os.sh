@@ -50,7 +50,7 @@ sysctl vm.max_map_count
 sysctl vm.dirty_background_ratio
 sysctl vm.dirty_ratio
 sysctl vm.dirty_writeback_centisecs
-sysctl vm.page-clusterH
+sysctl vm.page-cluster
 sysctl vm.swappiness
 
 su - admin -c 'ulimit -n'
