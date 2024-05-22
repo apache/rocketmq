@@ -68,7 +68,7 @@ public class DefaultAuthenticationProvider implements AuthenticationProvider<Def
             .addNext(new DefaultAuthenticationHandler(this.authConfig, metadataService));
     }
 
-    private void doAuditLog(DefaultAuthenticationContext context, Throwable ex) {
+    protected void doAuditLog(DefaultAuthenticationContext context, Throwable ex) {
         if (StringUtils.isBlank(context.getUsername())) {
             return;
         }

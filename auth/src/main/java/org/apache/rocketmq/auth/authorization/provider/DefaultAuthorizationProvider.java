@@ -78,7 +78,7 @@ public class DefaultAuthorizationProvider implements AuthorizationProvider<Defau
             .addNext(new AclAuthorizationHandler(authConfig, metadataService));
     }
 
-    private void doAuditLog(DefaultAuthorizationContext context, Throwable ex) {
+    protected void doAuditLog(DefaultAuthorizationContext context, Throwable ex) {
         if (context.getSubject() == null) {
             return;
         }

@@ -153,11 +153,11 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
             result.setConsumeResult(CMResult.CR_THROW_EXCEPTION);
             result.setRemark(UtilAll.exceptionSimpleDesc(e));
 
-            log.warn(String.format("consumeMessageDirectly exception: %s Group: %s Msgs: %s MQ: %s",
+            log.warn("consumeMessageDirectly exception: {} Group: {} Msgs: {} MQ: {}",
                 UtilAll.exceptionSimpleDesc(e),
                 ConsumeMessagePopConcurrentlyService.this.consumerGroup,
                 msgs,
-                mq), e);
+                mq, e);
         }
 
         result.setSpentTimeMills(System.currentTimeMillis() - beginTime);
