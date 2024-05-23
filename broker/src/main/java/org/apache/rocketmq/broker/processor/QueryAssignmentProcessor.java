@@ -134,9 +134,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
             for (MessageQueue messageQueue : messageQueues) {
                 MessageQueueAssignment messageQueueAssignment = new MessageQueueAssignment();
                 messageQueueAssignment.setMessageQueue(messageQueue);
-                if (setMessageRequestModeRequestBody != null) {
-                    messageQueueAssignment.setMode(setMessageRequestModeRequestBody.getMode());
-                }
+                messageQueueAssignment.setMode(setMessageRequestModeRequestBody.getMode());
                 assignments.add(messageQueueAssignment);
             }
         }
