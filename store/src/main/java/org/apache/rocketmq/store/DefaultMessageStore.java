@@ -1840,6 +1840,18 @@ public class DefaultMessageStore implements MessageStore {
             }
         }, 1000 * 60, this.messageStoreConfig.getCleanResourceInterval(), TimeUnit.MILLISECONDS);
 
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                if (DefaultMessageStore.this.getMessageStoreConfig().isReopenInactiveMmap()) {
+                    try {
+                        DefaultMessageStore.this.commitLog.checkInactiveAndRefresh();
+                    } catch (Exception e) {
+
+                    }
+                }
+            }
+        }, 10, 10, TimeUnit.MINUTES);
 
         // this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
         // @Override
