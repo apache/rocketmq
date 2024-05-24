@@ -27,6 +27,8 @@ public class BrokerMetricsConstant {
     public static final String COUNTER_THROUGHPUT_IN_TOTAL = "rocketmq_throughput_in_total";
     public static final String COUNTER_THROUGHPUT_OUT_TOTAL = "rocketmq_throughput_out_total";
     public static final String HISTOGRAM_MESSAGE_SIZE = "rocketmq_message_size";
+    public static final String HISTOGRAM_CREATE_TOPIC_TIME = "rocketmq_create_topic_time";
+    public static final String HISTOGRAM_CREATE_SUBSCRIPTION_TIME = "rocketmq_create_subscription_time";
 
     public static final String GAUGE_PRODUCER_CONNECTIONS = "rocketmq_producer_connections";
     public static final String GAUGE_CONSUMER_CONNECTIONS = "rocketmq_consumer_connections";
@@ -53,6 +55,7 @@ public class BrokerMetricsConstant {
 
     public static final String LABEL_TOPIC = "topic";
     public static final String LABEL_IS_RETRY = "is_retry";
+    public static final String LABEL_REQUEST_IS_SUCCESS = "request_is_success";
     public static final String LABEL_IS_SYSTEM = "is_system";
     public static final String LABEL_CONSUMER_GROUP = "consumer_group";
     public static final String LABEL_MESSAGE_TYPE = "message_type";

@@ -353,7 +353,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean useStaticSubscription = false;
 
-    private MetricsExporterType metricsExporterType = MetricsExporterType.DISABLE;
+    private MetricsExporterType metricsExporterType = MetricsExporterType.PROM;
 
     private int metricsOtelCardinalityLimit = 50 * 1000;
     private String metricsGrpcExporterTarget = "";
@@ -363,7 +363,7 @@ public class BrokerConfig extends BrokerIdentity {
     private long metricLoggingExporterIntervalInMills = 10 * 1000;
 
     private int metricsPromExporterPort = 5557;
-    private String metricsPromExporterHost = "";
+    private String metricsPromExporterHost = "127.0.0.1";
 
     // Label pairs in CSV. Each label follows pattern of Key:Value. eg: instance_id:xxx,uid:xxx
     private String metricsLabel = "";

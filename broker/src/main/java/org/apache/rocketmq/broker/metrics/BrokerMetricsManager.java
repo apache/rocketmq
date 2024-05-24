@@ -92,6 +92,8 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PRO
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PRODUCER_CONNECTIONS;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_FINISH_MSG_LATENCY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_MESSAGE_SIZE;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_CREATE_TOPIC_TIME;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_CREATE_SUBSCRIPTION_TIME;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_AGGREGATION;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLUSTER_NAME;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
@@ -135,6 +137,8 @@ public class BrokerMetricsManager {
     public static LongCounter throughputInTotal = new NopLongCounter();
     public static LongCounter throughputOutTotal = new NopLongCounter();
     public static LongHistogram messageSize = new NopLongHistogram();
+    public static LongHistogram createTopicTime = new NopLongHistogram();
+    public static LongHistogram createSubscriptionTime = new NopLongHistogram();
 
     // client connection metrics
     public static ObservableLongGauge producerConnection = new NopObservableLongGauge();
@@ -482,6 +486,16 @@ public class BrokerMetricsManager {
             .setDescription("Incoming messages size")
             .ofLongs()
             .build();
+
+        createTopicTime = brokerMeter.histogramBuilder(HISTOGRAM_CREATE_TOPIC_TIME)
+                .setDescription("The distribution of create topic time")
+                .ofLongs()
+                .build();
+
+        createSubscriptionTime = brokerMeter.histogramBuilder(HISTOGRAM_CREATE_SUBSCRIPTION_TIME)
+                .setDescription("The distribution of create subscription time")
+                .ofLongs()
+                .build();
     }
 
     private void initConnectionMetrics() {
