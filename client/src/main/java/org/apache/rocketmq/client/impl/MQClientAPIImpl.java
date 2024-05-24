@@ -704,9 +704,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                         onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                             retryTimesWhenSendFailed, times, ex, context, true, producer);
                     } else {
-                        MQClientException ex = new MQClientException("unknow reseaon", throwable);
+                        MQClientException ex = new MQClientException("unknown reason", throwable);
+                        boolean needRetry = !(throwable instanceof RemotingTooMuchRequestException);
                         onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
-                            retryTimesWhenSendFailed, times, ex, context, true, producer);
+                            retryTimesWhenSendFailed, times, ex, context, needRetry, producer);
                     }
                 }
             });
