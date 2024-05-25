@@ -1004,7 +1004,9 @@ public class TimerMessageStore {
         int msgIndex = 0;
         for (TimerRequest tr : origin) {
             tr.setLatch(latch);
-            if (origin.size() > 100) {
+            if (origin.size() <= 100) {
+                currList.add(tr);
+            } else {
                 if (fileIndexPy != tr.getOffsetPy() / commitLogFileSize) {
                     if (currList.size() > 0) {
                         queue.add(currList);
