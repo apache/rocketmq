@@ -968,7 +968,6 @@ public class TimerMessageStore {
             splitAndCheckLatchForDequeue(deleteMsgStack);
             //read the normal msg
             splitAndCheckLatchForDequeue(normalMsgStack);
-
             // if master -> slave -> master, then the read time move forward, and messages will be lossed
             if (dequeueStatusChangeFlag) {
                 return -1;
@@ -987,7 +986,7 @@ public class TimerMessageStore {
     }
 
     private void splitAndCheckLatchForDequeue(List<TimerRequest> origin) throws Exception {
-        if(origin.size() == 0){
+        if (origin.size() == 0) {
             return;
         }
         CountDownLatch latch = new CountDownLatch(origin.size());
@@ -997,18 +996,17 @@ public class TimerMessageStore {
         checkDequeueLatch(latch, currReadTimeMs);
     }
 
-    private void splitIntoQueue(List<TimerRequest> origin,BlockingQueue<List<TimerRequest>> queue, CountDownLatch latch) {
-        if(origin.size() == 0){
-            return;
-        }
+    private void splitIntoQueue(List<TimerRequest> origin, BlockingQueue<List<TimerRequest>> queue,
+        CountDownLatch latch) {
+
         List<TimerRequest> currList = new LinkedList<>();
         int fileIndexPy = -1;
         int msgIndex = 0;
         for (TimerRequest tr : origin) {
             tr.setLatch(latch);
-            if(origin.size() > 100){
-                if(fileIndexPy != tr.getOffsetPy() / commitLogFileSize){
-                    if(currList.size() > 0){
+            if (origin.size() > 100) {
+                if (fileIndexPy != tr.getOffsetPy() / commitLogFileSize) {
+                    if (currList.size() > 0) {
                         queue.add(currList);
                         currList = new LinkedList<>();
                         msgIndex = 0;
@@ -1016,7 +1014,7 @@ public class TimerMessageStore {
                     fileIndexPy = (int) (tr.getOffsetPy() / commitLogFileSize);
                 }
                 currList.add(tr);
-                if (++msgIndex % 2000 == 0 ) {
+                if (++msgIndex % 2000 == 0) {
                     queue.add(currList);
                     currList = new ArrayList<>();
                 }
