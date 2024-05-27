@@ -41,7 +41,7 @@ public class GenericMapSuperclassDeserializer implements ObjectDeserializer {
         try {
             map = (Map) clz.newInstance();
         } catch (Exception e) {
-            throw new JSONException("unsupport type " + type, e);
+            throw new JSONException("unsupported type " + type, e);
         }
         ParameterizedType parameterizedType = (ParameterizedType) genericSuperclass;
         Type keyType = parameterizedType.getActualTypeArguments()[0];

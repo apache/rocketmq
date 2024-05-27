@@ -108,7 +108,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private final AtomicReference<List<String>> namesrvAddrList = new AtomicReference<>();
     private final ConcurrentMap<String, Boolean> availableNamesrvAddrMap = new ConcurrentHashMap<>();
-    private final AtomicReference<String> namesrvAddrChoosed = new AtomicReference<>();
+    private final AtomicReference<String> nameserverChosen = new AtomicReference<>();
     private final AtomicInteger namesrvIndex = new AtomicInteger(initValueIndex());
     private final Lock namesrvChannelLock = new ReentrantLock();
 
@@ -518,9 +518,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 LOGGER.info("name server address updated. NEW : {} , OLD: {}", addrs, old);
                 this.namesrvAddrList.set(addrs);
 
-                // should close the channel if choosed addr is not exist.
-                if (this.namesrvAddrChoosed.get() != null && !addrs.contains(this.namesrvAddrChoosed.get())) {
-                    String namesrvAddr = this.namesrvAddrChoosed.get();
+                // should close the channel if chose addr is not exist.
+                if (this.nameserverChosen.get() != null && !addrs.contains(this.nameserverChosen.get())) {
+                    String namesrvAddr = this.nameserverChosen.get();
                     for (String addr : this.channelTables.keySet()) {
                         if (addr.contains(namesrvAddr)) {
                             ChannelWrapper channelWrapper = this.channelTables.get(addr);
@@ -601,7 +601,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     private void updateChannelLastResponseTime(final String addr) {
         String address = addr;
         if (address == null) {
-            address = this.namesrvAddrChoosed.get();
+            address = this.nameserverChosen.get();
         }
         if (address == null) {
             LOGGER.warn("[updateChannelLastResponseTime] could not find address!!");
@@ -635,7 +635,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     }
 
     private ChannelFuture getAndCreateNameserverChannelAsync() throws InterruptedException {
-        String addr = this.namesrvAddrChoosed.get();
+        String addr = this.nameserverChosen.get();
         if (addr != null) {
             ChannelWrapper cw = this.channelTables.get(addr);
             if (cw != null && cw.isOK()) {
@@ -646,7 +646,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         final List<String> addrList = this.namesrvAddrList.get();
         if (this.namesrvChannelLock.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
             try {
-                addr = this.namesrvAddrChoosed.get();
+                addr = this.nameserverChosen.get();
                 if (addr != null) {
                     ChannelWrapper cw = this.channelTables.get(addr);
                     if (cw != null && cw.isOK()) {
@@ -660,7 +660,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     index = index % addrList.size();
                     String newAddr = addrList.get(index);
 
-                    this.namesrvAddrChoosed.set(newAddr);
+                    this.nameserverChosen.set(newAddr);
                     LOGGER.info("new name server is chosen. OLD: {} , NEW: {}. namesrvIndex = {}", addr, newAddr, namesrvIndex);
                     return this.createChannelAsync(newAddr);
                 }

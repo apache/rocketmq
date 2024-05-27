@@ -138,39 +138,11 @@ public class RemotingHelper {
                 sendRequestOK = true;
 
                 ByteBuffer byteBufferSize = ByteBuffer.allocate(4);
-                while (byteBufferSize.hasRemaining()) {
-                    int length = socketChannel.read(byteBufferSize);
-                    if (length > 0) {
-                        if (byteBufferSize.hasRemaining()) {
-                            if ((System.currentTimeMillis() - beginTime) > timeoutMillis) {
-
-                                throw new RemotingTimeoutException(addr, timeoutMillis);
-                            }
-                        }
-                    } else {
-                        throw new RemotingTimeoutException(addr, timeoutMillis);
-                    }
-
-                    Thread.sleep(1);
-                }
+                readFromChannel(addr, timeoutMillis, beginTime, socketChannel, byteBufferSize);
 
                 int size = byteBufferSize.getInt(0);
                 ByteBuffer byteBufferBody = ByteBuffer.allocate(size);
-                while (byteBufferBody.hasRemaining()) {
-                    int length = socketChannel.read(byteBufferBody);
-                    if (length > 0) {
-                        if (byteBufferBody.hasRemaining()) {
-                            if ((System.currentTimeMillis() - beginTime) > timeoutMillis) {
-
-                                throw new RemotingTimeoutException(addr, timeoutMillis);
-                            }
-                        }
-                    } else {
-                        throw new RemotingTimeoutException(addr, timeoutMillis);
-                    }
-
-                    Thread.sleep(1);
-                }
+                readFromChannel(addr, timeoutMillis, beginTime, socketChannel, byteBufferBody);
 
                 byteBufferBody.flip();
                 return RemotingCommand.decode(byteBufferBody);
@@ -191,6 +163,25 @@ public class RemotingHelper {
             }
         } else {
             throw new RemotingConnectException(addr);
+        }
+    }
+
+    private static void readFromChannel(String addr, long timeoutMillis, long beginTime, SocketChannel socketChannel
+            , ByteBuffer byteBufferSize) throws IOException, RemotingTimeoutException, InterruptedException {
+        while (byteBufferSize.hasRemaining()) {
+            int length = socketChannel.read(byteBufferSize);
+            if (length > 0) {
+                if (byteBufferSize.hasRemaining()) {
+                    if ((System.currentTimeMillis() - beginTime) > timeoutMillis) {
+
+                        throw new RemotingTimeoutException(addr, timeoutMillis);
+                    }
+                }
+            } else {
+                throw new RemotingTimeoutException(addr, timeoutMillis);
+            }
+
+            Thread.sleep(1);
         }
     }
 
@@ -229,9 +220,13 @@ public class RemotingHelper {
 
     private static String parseChannelRemoteAddr0(final Channel channel) {
         SocketAddress remote = channel.remoteAddress();
+        return parseRemoteAddr(remote);
+    }
+
+    private static String parseRemoteAddr(SocketAddress remote) {
         final String addr = remote != null ? remote.toString() : "";
 
-        if (addr.length() > 0) {
+        if (!addr.isEmpty()) {
             int index = addr.lastIndexOf("/");
             if (index >= 0) {
                 return addr.substring(index + 1);
@@ -245,18 +240,7 @@ public class RemotingHelper {
 
     public static String parseChannelLocalAddr(final Channel channel) {
         SocketAddress remote = channel.localAddress();
-        final String addr = remote != null ? remote.toString() : "";
-
-        if (addr.length() > 0) {
-            int index = addr.lastIndexOf("/");
-            if (index >= 0) {
-                return addr.substring(index + 1);
-            }
-
-            return addr;
-        }
-
-        return "";
+        return parseRemoteAddr(remote);
     }
 
     public static String parseHostFromAddress(String address) {
