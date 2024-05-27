@@ -64,6 +64,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -385,6 +386,14 @@ public class BrokerMetricsManager {
                 1d * 12 * 60 * 60, //12h
                 1d * 24 * 60 * 60 //24h
         );
+
+        List<Double> createTimeBuckets = Arrays.asList(
+                (double) Duration.ofMillis(10).toMillis(), //10ms
+                (double) Duration.ofMillis(100).toMillis(), //100ms
+                (double) Duration.ofSeconds(1).toMillis(), //1s
+                (double) Duration.ofSeconds(3).toMillis(), //3s
+                (double) Duration.ofSeconds(5).toMillis() //5s
+        );
         InstrumentSelector messageSizeSelector = InstrumentSelector.builder()
             .setType(InstrumentType.HISTOGRAM)
             .setName(HISTOGRAM_MESSAGE_SIZE)
@@ -404,6 +413,24 @@ public class BrokerMetricsManager {
         // To config the cardinalityLimit for openTelemetry metrics exporting.
         SdkMeterProviderUtil.setCardinalityLimit(commitLatencyViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
         providerBuilder.registerView(commitLatencySelector, commitLatencyViewBuilder.build());
+
+        InstrumentSelector createTopicTimeSelector = InstrumentSelector.builder()
+                .setType(InstrumentType.HISTOGRAM)
+                .setName(HISTOGRAM_CREATE_TOPIC_TIME)
+                .build();
+        InstrumentSelector createSubGroupTimeSelector = InstrumentSelector.builder()
+                .setType(InstrumentType.HISTOGRAM)
+                .setName(HISTOGRAM_CREATE_SUBSCRIPTION_TIME)
+                .build();
+        ViewBuilder createTopicTimeViewBuilder = View.builder()
+                .setAggregation(Aggregation.explicitBucketHistogram(createTimeBuckets));
+        ViewBuilder createSubGroupTimeViewBuilder = View.builder()
+                .setAggregation(Aggregation.explicitBucketHistogram(createTimeBuckets));
+        // To config the cardinalityLimit for openTelemetry metrics exporting.
+        SdkMeterProviderUtil.setCardinalityLimit(createTopicTimeViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+        providerBuilder.registerView(createTopicTimeSelector, createTopicTimeViewBuilder.build());
+        SdkMeterProviderUtil.setCardinalityLimit(createSubGroupTimeViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+        providerBuilder.registerView(createSubGroupTimeSelector, createSubGroupTimeViewBuilder.build());
 
         for (Pair<InstrumentSelector, ViewBuilder> selectorViewPair : RemotingMetricsManager.getMetricsView()) {
             ViewBuilder viewBuilder = selectorViewPair.getObject2();
@@ -490,11 +517,13 @@ public class BrokerMetricsManager {
         createTopicTime = brokerMeter.histogramBuilder(HISTOGRAM_CREATE_TOPIC_TIME)
                 .setDescription("The distribution of create topic time")
                 .ofLongs()
+                .setUnit("milliseconds")
                 .build();
 
         createSubscriptionTime = brokerMeter.histogramBuilder(HISTOGRAM_CREATE_SUBSCRIPTION_TIME)
                 .setDescription("The distribution of create subscription time")
                 .ofLongs()
+                .setUnit("milliseconds")
                 .build();
     }
 
