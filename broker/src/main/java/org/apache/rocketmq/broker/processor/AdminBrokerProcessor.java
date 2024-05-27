@@ -469,45 +469,46 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         String topic = requestHeader.getTopic();
 
-        TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
-        if (!result.isValid()) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark(result.getRemark());
-            return response;
-        }
-        if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
-            if (TopicValidator.isSystemTopic(topic)) {
+        long executionTime;
+        try {
+            TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
+            if (!result.isValid()) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("The topic[" + topic + "] is conflict with system topic.");
+                response.setRemark(result.getRemark());
                 return response;
             }
-        }
+            if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
+                if (TopicValidator.isSystemTopic(topic)) {
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("The topic[" + topic + "] is conflict with system topic.");
+                    return response;
+                }
+            }
 
-        TopicConfig topicConfig = new TopicConfig(topic);
-        topicConfig.setReadQueueNums(requestHeader.getReadQueueNums());
-        topicConfig.setWriteQueueNums(requestHeader.getWriteQueueNums());
-        topicConfig.setTopicFilterType(requestHeader.getTopicFilterTypeEnum());
-        topicConfig.setPerm(requestHeader.getPerm());
-        topicConfig.setTopicSysFlag(requestHeader.getTopicSysFlag() == null ? 0 : requestHeader.getTopicSysFlag());
-        topicConfig.setOrder(requestHeader.getOrder());
-        String attributesModification = requestHeader.getAttributes();
-        topicConfig.setAttributes(AttributeParser.parseToMap(attributesModification));
+            TopicConfig topicConfig = new TopicConfig(topic);
+            topicConfig.setReadQueueNums(requestHeader.getReadQueueNums());
+            topicConfig.setWriteQueueNums(requestHeader.getWriteQueueNums());
+            topicConfig.setTopicFilterType(requestHeader.getTopicFilterTypeEnum());
+            topicConfig.setPerm(requestHeader.getPerm());
+            topicConfig.setTopicSysFlag(requestHeader.getTopicSysFlag() == null ? 0 : requestHeader.getTopicSysFlag());
+            topicConfig.setOrder(requestHeader.getOrder());
+            String attributesModification = requestHeader.getAttributes();
+            topicConfig.setAttributes(AttributeParser.parseToMap(attributesModification));
 
-        if (topicConfig.getTopicMessageType() == TopicMessageType.MIXED
-            && !brokerController.getBrokerConfig().isEnableMixedMessageType()) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("MIXED message type is not supported.");
-            return response;
-        }
+            if (topicConfig.getTopicMessageType() == TopicMessageType.MIXED
+                && !brokerController.getBrokerConfig().isEnableMixedMessageType()) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setRemark("MIXED message type is not supported.");
+                return response;
+            }
 
-        if (topicConfig.equals(this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic))) {
-            LOGGER.info("Broker receive request to update or create topic={}, but topicConfig has  no changes , so idempotent, caller address={}",
-                requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
-            response.setCode(ResponseCode.SUCCESS);
-            return response;
-        }
+            if (topicConfig.equals(this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic))) {
+                LOGGER.info("Broker receive request to update or create topic={}, but topicConfig has  no changes , so idempotent, caller address={}",
+                    requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+                response.setCode(ResponseCode.SUCCESS);
+                return response;
+            }
 
-        try {
             this.brokerController.getTopicConfigManager().updateTopicConfig(topicConfig);
             if (brokerController.getBrokerConfig().isEnableSingleTopicRegister()) {
                 this.brokerController.registerSingleTopicAll(topicConfig);
@@ -521,14 +522,16 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setRemark(e.getMessage());
             return response;
         }
-        long executionTime = System.currentTimeMillis() - startTime;
+        finally {
+            executionTime = System.currentTimeMillis() - startTime;
+            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                    .put(LABEL_REQUEST_IS_SUCCESS, response.getCode() == ResponseCode.SUCCESS)
+                    .put(LABEL_NODE_ID, brokerController.getBrokerConfig().getBrokerName())
+                    .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topic))
+                    .build();
+            BrokerMetricsManager.createTopicTime.record(executionTime, attributes);
+        }
         LOGGER.info("executionTime of create topic:{} is {} ms" , topic, executionTime);
-        Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
-                .put(LABEL_REQUEST_IS_SUCCESS, response.getCode() == ResponseCode.SUCCESS)
-                .put(LABEL_NODE_ID, brokerController.getBrokerConfig().getBrokerName())
-                .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topic))
-                .build();
-        BrokerMetricsManager.createTopicTime.record(executionTime, attributes);
         return response;
     }
 
