@@ -215,6 +215,8 @@ public class IndexService {
             String topic = msg.getTopic();
             String keys = msg.getKeys();
             if (msg.getCommitLogOffset() < endPhyOffset) {
+                LOGGER.error("build index error, message offset is greater than index last offset. CommitLogOffset={},EndPhyOffset={}",
+                    msg.getCommitLogOffset(), endPhyOffset);
                 return;
             }
 
