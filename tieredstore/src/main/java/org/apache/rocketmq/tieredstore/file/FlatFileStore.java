@@ -68,7 +68,7 @@ public class FlatFileStore {
                         this.destroyFile(flatFile.getMessageQueue());
                     }
                 }
-            }, 60, 60, TimeUnit.SECONDS);
+            }, 60, 60 * 30, TimeUnit.SECONDS);
             log.info("FlatFileStore recover finished, total cost={}ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } catch (Exception e) {
             long costTime = stopwatch.elapsed(TimeUnit.MILLISECONDS);
