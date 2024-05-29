@@ -21,6 +21,8 @@ public class BrokerMetricsConstant {
 
     public static final String GAUGE_PROCESSOR_WATERMARK = "rocketmq_processor_watermark";
     public static final String GAUGE_BROKER_PERMISSION = "rocketmq_broker_permission";
+    public static final String GAUGE_ACTIVE_TOPIC_NUM = "rocketmq_active_topic_number";
+    public static final String GAUGE_ACTIVE_SUBGROUP_NUM = "rocketmq_active_subscription_number";
 
     public static final String COUNTER_MESSAGES_IN_TOTAL = "rocketmq_messages_in_total";
     public static final String COUNTER_MESSAGES_OUT_TOTAL = "rocketmq_messages_out_total";

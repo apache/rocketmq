@@ -81,6 +81,8 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_M
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_ROLLBACK_MESSAGES_TOTAL;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_THROUGHPUT_IN_TOTAL;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.COUNTER_THROUGHPUT_OUT_TOTAL;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_ACTIVE_TOPIC_NUM;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_ACTIVE_SUBGROUP_NUM;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_BROKER_PERMISSION;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_CONNECTIONS;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_CONSUMER_INFLIGHT_MESSAGES;
@@ -131,6 +133,9 @@ public class BrokerMetricsManager {
     // broker stats metrics
     public static ObservableLongGauge processorWatermark = new NopObservableLongGauge();
     public static ObservableLongGauge brokerPermission = new NopObservableLongGauge();
+    public static ObservableLongGauge activeTopicNum = new NopObservableLongGauge();
+    public static ObservableLongGauge activeSubGroupNum = new NopObservableLongGauge();
+
 
     // request metrics
     public static LongCounter messagesInTotal = new NopLongCounter();
@@ -490,6 +495,16 @@ public class BrokerMetricsManager {
             .setDescription("Broker permission")
             .ofLongs()
             .buildWithCallback(measurement -> measurement.record(brokerConfig.getBrokerPermission(), newAttributesBuilder().build()));
+
+        activeTopicNum = brokerMeter.gaugeBuilder(GAUGE_ACTIVE_TOPIC_NUM)
+            .setDescription("Active topic number")
+            .ofLongs()
+            .buildWithCallback(measurement -> measurement.record(brokerController.getTopicConfigManager().getTopicConfigTable().size(), newAttributesBuilder().build()));
+
+        activeSubGroupNum = brokerMeter.gaugeBuilder(GAUGE_ACTIVE_SUBGROUP_NUM)
+            .setDescription("Active subscription group number")
+            .ofLongs()
+            .buildWithCallback(measurement -> measurement.record(brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().size(), newAttributesBuilder().build()));
     }
 
     private void initRequestMetrics() {
