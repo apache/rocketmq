@@ -709,6 +709,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         long beginTimestampFirst = System.currentTimeMillis();
         long beginTimestampPrev = beginTimestampFirst;
         long endTimestamp = beginTimestampFirst;
+        long costTime = 0;
         TopicPublishInfo topicPublishInfo = this.tryToFindTopicPublishInfo(msg.getTopic());
         if (topicPublishInfo != null && topicPublishInfo.ok()) {
             boolean callTimeout = false;
@@ -734,7 +735,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             //Reset topic with namespace during resend.
                             msg.setTopic(this.defaultMQProducer.withNamespace(msg.getTopic()));
                         }
-                        long costTime = beginTimestampPrev - beginTimestampFirst;
+                        costTime = beginTimestampPrev - beginTimestampFirst;
                         if (timeout < costTime) {
                             callTimeout = true;
                             break;
@@ -825,7 +826,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
             MQClientException mqClientException = new MQClientException(info, exception);
             if (callTimeout) {
-                throw new RemotingTooMuchRequestException("sendDefaultImpl call timeout");
+                String callTimeoutMsg = String.format("sendDefaultImpl call timeout, timeout config [%d]ms, costTime [%d]ms", timeout, costTime);
+                throw new RemotingTooMuchRequestException(callTimeoutMsg);
             }
 
             if (exception instanceof MQBrokerException) {
