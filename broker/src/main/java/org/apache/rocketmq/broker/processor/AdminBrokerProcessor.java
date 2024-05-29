@@ -60,6 +60,7 @@ import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
+import org.apache.rocketmq.broker.metrics.InvocationStatus;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
@@ -216,7 +217,7 @@ import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.LibC;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_ID;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_REQUEST_IS_SUCCESS;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_INVOCATION_STATUS;
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
 public class AdminBrokerProcessor implements NettyRequestProcessor {
@@ -524,12 +525,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
         finally {
             executionTime = System.currentTimeMillis() - startTime;
+            InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
+                    InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
             Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
-                    .put(LABEL_REQUEST_IS_SUCCESS, response.getCode() == ResponseCode.SUCCESS)
+                    .put(LABEL_INVOCATION_STATUS, status.getName())
                     .put(LABEL_NODE_ID, brokerController.getBrokerConfig().getBrokerName())
                     .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topic))
                     .build();
-            BrokerMetricsManager.createTopicTime.record(executionTime, attributes);
+            BrokerMetricsManager.topicCreateExecuteTime.record(executionTime, attributes);
         }
         LOGGER.info("executionTime of create topic:{} is {} ms" , topic, executionTime);
         return response;
@@ -1481,11 +1484,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setRemark(null);
         long executionTime = System.currentTimeMillis() - startTime;
         LOGGER.info("executionTime of create subscriptionGroup:{} is {} ms" ,config.getGroupName() ,executionTime);
+        InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
+                InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
         Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
-                .put(LABEL_REQUEST_IS_SUCCESS, response.getCode() == ResponseCode.SUCCESS)
+                .put(LABEL_INVOCATION_STATUS, status.getName())
                 .put(LABEL_NODE_ID, brokerController.getBrokerConfig().getBrokerName())
                 .build();
-        BrokerMetricsManager.createSubscriptionTime.record(executionTime, attributes);
+        BrokerMetricsManager.consumerGroupCreateExecuteTime.record(executionTime, attributes);
         return response;
     }
 
