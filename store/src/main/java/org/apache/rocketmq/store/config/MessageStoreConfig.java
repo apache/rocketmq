@@ -50,7 +50,7 @@ public class MessageStoreConfig {
     // CommitLog file size,default is 1G
     private int mappedFileSizeCommitLog = 1024 * 1024 * 1024;
 
-    // CompactinLog file size, default is 100M
+    // CompactionLog file size, default is 100M
     private int compactionMappedFileSize = 100 * 1024 * 1024;
 
     // CompactionLog consumeQueue file size, default is 10M
