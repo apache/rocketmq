@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.file;
 
-public class DumpRecoverService implements RecoverService {
+public class MockRecoverService implements RecoverService {
     @Override
     public void recoverMetadataWhenBecomeMaster() {
     }
