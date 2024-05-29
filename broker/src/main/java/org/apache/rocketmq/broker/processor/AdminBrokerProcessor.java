@@ -2483,6 +2483,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         runtimeInfo.put("remainTransientStoreBufferNumbs", String.valueOf(messageStore.remainTransientStoreBufferNumbs()));
         if (this.brokerController.getMessageStore() instanceof DefaultMessageStore && ((DefaultMessageStore) this.brokerController.getMessageStore()).isTransientStorePoolEnable()) {
             runtimeInfo.put("remainHowManyDataToCommit", MixAll.humanReadableByteCount(messageStore.remainHowManyDataToCommit(), false));
+        } else if (this.brokerController.getMessageStore() instanceof TieredMessageStore &&
+            ((TieredMessageStore) this.brokerController.getMessageStore()).getDefaultStore() instanceof DefaultMessageStore &&
+            ((DefaultMessageStore) ((TieredMessageStore) this.brokerController.getMessageStore()).getDefaultStore()).isTransientStorePoolEnable()) {
+            runtimeInfo.put("remainHowManyDataToCommit", MixAll.humanReadableByteCount(messageStore.remainHowManyDataToCommit(), false));
         }
         runtimeInfo.put("remainHowManyDataToFlush", MixAll.humanReadableByteCount(messageStore.remainHowManyDataToFlush(), false));
 
