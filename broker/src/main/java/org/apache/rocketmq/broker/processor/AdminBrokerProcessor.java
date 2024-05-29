@@ -215,7 +215,6 @@ import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.LibC;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_NODE_ID;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_REQUEST_IS_SUCCESS;
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
@@ -526,7 +525,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             executionTime = System.currentTimeMillis() - startTime;
             Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
                     .put(LABEL_REQUEST_IS_SUCCESS, response.getCode() == ResponseCode.SUCCESS)
-                    .put(LABEL_NODE_ID, brokerController.getBrokerConfig().getBrokerName())
                     .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topic))
                     .build();
             BrokerMetricsManager.createTopicTime.record(executionTime, attributes);
@@ -1483,7 +1481,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         LOGGER.info("executionTime of create subscriptionGroup:{} is {} ms" ,config.getGroupName() ,executionTime);
         Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
                 .put(LABEL_REQUEST_IS_SUCCESS, response.getCode() == ResponseCode.SUCCESS)
-                .put(LABEL_NODE_ID, brokerController.getBrokerConfig().getBrokerName())
                 .build();
         BrokerMetricsManager.createSubscriptionTime.record(executionTime, attributes);
         return response;
