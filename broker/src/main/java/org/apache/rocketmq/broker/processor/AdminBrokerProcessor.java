@@ -529,7 +529,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
             Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
                     .put(LABEL_INVOCATION_STATUS, status.getName())
-                    .put(LABEL_NODE_ID, brokerController.getBrokerConfig().getBrokerName())
                     .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(topic))
                     .build();
             BrokerMetricsManager.topicCreateExecuteTime.record(executionTime, attributes);
@@ -1488,7 +1487,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
         Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
                 .put(LABEL_INVOCATION_STATUS, status.getName())
-                .put(LABEL_NODE_ID, brokerController.getBrokerConfig().getBrokerName())
                 .build();
         BrokerMetricsManager.consumerGroupCreateExecuteTime.record(executionTime, attributes);
         return response;
