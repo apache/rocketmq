@@ -93,8 +93,8 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PRO
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PRODUCER_CONNECTIONS;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_FINISH_MSG_LATENCY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_MESSAGE_SIZE;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_CREATE_TOPIC_TIME;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_CREATE_SUBSCRIPTION_TIME;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_TOPIC_CREATE_EXECUTE_TIME;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_CONSUMER_GROUP_CREATE_EXECUTE_TIME;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_AGGREGATION;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLUSTER_NAME;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
@@ -138,8 +138,8 @@ public class BrokerMetricsManager {
     public static LongCounter throughputInTotal = new NopLongCounter();
     public static LongCounter throughputOutTotal = new NopLongCounter();
     public static LongHistogram messageSize = new NopLongHistogram();
-    public static LongHistogram createTopicTime = new NopLongHistogram();
-    public static LongHistogram createSubscriptionTime = new NopLongHistogram();
+    public static LongHistogram topicCreateExecuteTime = new NopLongHistogram();
+    public static LongHistogram consumerGroupCreateExecuteTime = new NopLongHistogram();
 
     // client connection metrics
     public static ObservableLongGauge producerConnection = new NopObservableLongGauge();
@@ -416,11 +416,11 @@ public class BrokerMetricsManager {
 
         InstrumentSelector createTopicTimeSelector = InstrumentSelector.builder()
                 .setType(InstrumentType.HISTOGRAM)
-                .setName(HISTOGRAM_CREATE_TOPIC_TIME)
+                .setName(HISTOGRAM_TOPIC_CREATE_EXECUTE_TIME)
                 .build();
         InstrumentSelector createSubGroupTimeSelector = InstrumentSelector.builder()
                 .setType(InstrumentType.HISTOGRAM)
-                .setName(HISTOGRAM_CREATE_SUBSCRIPTION_TIME)
+                .setName(HISTOGRAM_CONSUMER_GROUP_CREATE_EXECUTE_TIME)
                 .build();
         ViewBuilder createTopicTimeViewBuilder = View.builder()
                 .setAggregation(Aggregation.explicitBucketHistogram(createTimeBuckets));
@@ -514,13 +514,13 @@ public class BrokerMetricsManager {
             .ofLongs()
             .build();
 
-        createTopicTime = brokerMeter.histogramBuilder(HISTOGRAM_CREATE_TOPIC_TIME)
+        topicCreateExecuteTime = brokerMeter.histogramBuilder(HISTOGRAM_TOPIC_CREATE_EXECUTE_TIME)
                 .setDescription("The distribution of create topic time")
                 .ofLongs()
                 .setUnit("milliseconds")
                 .build();
 
-        createSubscriptionTime = brokerMeter.histogramBuilder(HISTOGRAM_CREATE_SUBSCRIPTION_TIME)
+        consumerGroupCreateExecuteTime = brokerMeter.histogramBuilder(HISTOGRAM_CONSUMER_GROUP_CREATE_EXECUTE_TIME)
                 .setDescription("The distribution of create subscription time")
                 .ofLongs()
                 .setUnit("milliseconds")
