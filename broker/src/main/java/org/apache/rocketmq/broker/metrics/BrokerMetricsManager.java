@@ -64,6 +64,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsConstant;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -92,6 +93,8 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PRO
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.GAUGE_PRODUCER_CONNECTIONS;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_FINISH_MSG_LATENCY;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_MESSAGE_SIZE;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_TOPIC_CREATE_EXECUTE_TIME;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.HISTOGRAM_CONSUMER_GROUP_CREATE_EXECUTE_TIME;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_AGGREGATION;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CLUSTER_NAME;
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_CONSUMER_GROUP;
@@ -135,6 +138,8 @@ public class BrokerMetricsManager {
     public static LongCounter throughputInTotal = new NopLongCounter();
     public static LongCounter throughputOutTotal = new NopLongCounter();
     public static LongHistogram messageSize = new NopLongHistogram();
+    public static LongHistogram topicCreateExecuteTime = new NopLongHistogram();
+    public static LongHistogram consumerGroupCreateExecuteTime = new NopLongHistogram();
 
     // client connection metrics
     public static ObservableLongGauge producerConnection = new NopObservableLongGauge();
@@ -381,6 +386,14 @@ public class BrokerMetricsManager {
                 1d * 12 * 60 * 60, //12h
                 1d * 24 * 60 * 60 //24h
         );
+
+        List<Double> createTimeBuckets = Arrays.asList(
+                (double) Duration.ofMillis(10).toMillis(), //10ms
+                (double) Duration.ofMillis(100).toMillis(), //100ms
+                (double) Duration.ofSeconds(1).toMillis(), //1s
+                (double) Duration.ofSeconds(3).toMillis(), //3s
+                (double) Duration.ofSeconds(5).toMillis() //5s
+        );
         InstrumentSelector messageSizeSelector = InstrumentSelector.builder()
             .setType(InstrumentType.HISTOGRAM)
             .setName(HISTOGRAM_MESSAGE_SIZE)
@@ -400,6 +413,24 @@ public class BrokerMetricsManager {
         // To config the cardinalityLimit for openTelemetry metrics exporting.
         SdkMeterProviderUtil.setCardinalityLimit(commitLatencyViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
         providerBuilder.registerView(commitLatencySelector, commitLatencyViewBuilder.build());
+
+        InstrumentSelector createTopicTimeSelector = InstrumentSelector.builder()
+                .setType(InstrumentType.HISTOGRAM)
+                .setName(HISTOGRAM_TOPIC_CREATE_EXECUTE_TIME)
+                .build();
+        InstrumentSelector createSubGroupTimeSelector = InstrumentSelector.builder()
+                .setType(InstrumentType.HISTOGRAM)
+                .setName(HISTOGRAM_CONSUMER_GROUP_CREATE_EXECUTE_TIME)
+                .build();
+        ViewBuilder createTopicTimeViewBuilder = View.builder()
+                .setAggregation(Aggregation.explicitBucketHistogram(createTimeBuckets));
+        ViewBuilder createSubGroupTimeViewBuilder = View.builder()
+                .setAggregation(Aggregation.explicitBucketHistogram(createTimeBuckets));
+        // To config the cardinalityLimit for openTelemetry metrics exporting.
+        SdkMeterProviderUtil.setCardinalityLimit(createTopicTimeViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+        providerBuilder.registerView(createTopicTimeSelector, createTopicTimeViewBuilder.build());
+        SdkMeterProviderUtil.setCardinalityLimit(createSubGroupTimeViewBuilder, brokerConfig.getMetricsOtelCardinalityLimit());
+        providerBuilder.registerView(createSubGroupTimeSelector, createSubGroupTimeViewBuilder.build());
 
         for (Pair<InstrumentSelector, ViewBuilder> selectorViewPair : RemotingMetricsManager.getMetricsView()) {
             ViewBuilder viewBuilder = selectorViewPair.getObject2();
@@ -482,6 +513,18 @@ public class BrokerMetricsManager {
             .setDescription("Incoming messages size")
             .ofLongs()
             .build();
+
+        topicCreateExecuteTime = brokerMeter.histogramBuilder(HISTOGRAM_TOPIC_CREATE_EXECUTE_TIME)
+                .setDescription("The distribution of create topic time")
+                .ofLongs()
+                .setUnit("milliseconds")
+                .build();
+
+        consumerGroupCreateExecuteTime = brokerMeter.histogramBuilder(HISTOGRAM_CONSUMER_GROUP_CREATE_EXECUTE_TIME)
+                .setDescription("The distribution of create subscription time")
+                .ofLongs()
+                .setUnit("milliseconds")
+                .build();
     }
 
     private void initConnectionMetrics() {
