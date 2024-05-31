@@ -43,7 +43,7 @@ import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import java.util.Collections;
+import java.util.ArrayList;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -683,7 +683,7 @@ public class UtilAll {
         }
 
         if (StringUtils.isBlank(str)) {
-            return Collections.EMPTY_LIST;
+            return new ArrayList<>();
         }
 
         String[] addrArray = str.split(splitter);
