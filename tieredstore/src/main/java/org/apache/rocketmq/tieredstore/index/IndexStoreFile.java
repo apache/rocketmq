@@ -493,7 +493,7 @@ public class IndexStoreFile implements IndexFile {
                     if (this.compactMappedFile != null) {
                         this.compactMappedFile.destroy(TimeUnit.SECONDS.toMillis(10));
                     }
-                    log.debug("IndexStoreService destroy local file, timestamp: {}, status: {}", this.getTimestamp(), fileStatus.get());
+                    log.info("IndexStoreService destroy local file, timestamp: {}, status: {}", this.getTimestamp(), fileStatus.get());
                     break;
                 case UPLOAD:
                     log.warn("[BUG] IndexStoreService destroy remote file, timestamp: {}", this.getTimestamp());

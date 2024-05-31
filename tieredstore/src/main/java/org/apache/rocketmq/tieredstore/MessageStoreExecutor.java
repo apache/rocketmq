@@ -29,11 +29,13 @@ public class MessageStoreExecutor {
     public final BlockingQueue<Runnable> bufferCommitThreadPoolQueue;
     public final BlockingQueue<Runnable> bufferFetchThreadPoolQueue;
     public final BlockingQueue<Runnable> fileRecyclingThreadPoolQueue;
+    public final BlockingQueue<Runnable> indexFileThreadPoolQueue;
 
     public final ScheduledExecutorService commonExecutor;
     public final ExecutorService bufferCommitExecutor;
     public final ExecutorService bufferFetchExecutor;
     public final ExecutorService fileRecyclingExecutor;
+    public final ExecutorService indexFileExecutor;
 
     private static class SingletonHolder {
         private static final MessageStoreExecutor INSTANCE = new MessageStoreExecutor();
@@ -76,6 +78,14 @@ public class MessageStoreExecutor {
             TimeUnit.MINUTES.toMillis(1), TimeUnit.MILLISECONDS,
             this.fileRecyclingThreadPoolQueue,
             new ThreadFactoryImpl("BufferFetchExecutor_"));
+
+        this.indexFileThreadPoolQueue = new LinkedBlockingQueue<>(maxQueueCapacity);
+        this.indexFileExecutor = ThreadUtils.newThreadPoolExecutor(
+            Math.max(4, Runtime.getRuntime().availableProcessors()),
+            Math.max(4, Runtime.getRuntime().availableProcessors()),
+            TimeUnit.MINUTES.toMillis(1), TimeUnit.MILLISECONDS,
+            this.indexFileThreadPoolQueue,
+            new ThreadFactoryImpl("IndexFileExecutor_"));
     }
 
     private void shutdownExecutor(ExecutorService executor) {
@@ -89,5 +99,6 @@ public class MessageStoreExecutor {
         this.shutdownExecutor(this.bufferCommitExecutor);
         this.shutdownExecutor(this.bufferFetchExecutor);
         this.shutdownExecutor(this.fileRecyclingExecutor);
+        this.shutdownExecutor(this.indexFileExecutor);
     }
 }

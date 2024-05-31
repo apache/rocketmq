@@ -96,6 +96,7 @@ public class TieredMessageStoreTest {
 
         defaultStore = Mockito.mock(DefaultMessageStore.class);
         Mockito.when(defaultStore.load()).thenReturn(true);
+        Mockito.when(defaultStore.getMessageStoreConfig()).thenReturn(new org.apache.rocketmq.store.config.MessageStoreConfig());
 
         currentStore = new TieredMessageStore(context, defaultStore);
         Assert.assertNotNull(currentStore.getStoreConfig());

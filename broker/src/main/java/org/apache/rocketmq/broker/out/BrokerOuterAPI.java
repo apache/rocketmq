@@ -144,6 +144,9 @@ import org.apache.rocketmq.remoting.rpc.RpcClientImpl;
 import org.apache.rocketmq.remoting.rpchook.DynamicalExtFieldRPCHook;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMetrics;
+import org.apache.rocketmq.tieredstore.index.DispatchRequestExt;
+import org.apache.rocketmq.tieredstore.index.SyncTieredIndexRequestBody;
+import org.apache.rocketmq.tieredstore.metadata.TieredMetadataSerializeWrapper;
 
 import static org.apache.rocketmq.remoting.protocol.RemotingSysResponseCode.SUCCESS;
 import static org.apache.rocketmq.remoting.protocol.ResponseCode.CONTROLLER_MASTER_STILL_EXIST;
@@ -1491,4 +1494,39 @@ public class BrokerOuterAPI {
         return pullResult;
     }
 
+    public TieredMetadataSerializeWrapper getTieredMetadata(
+        final String addr) throws RemotingSendRequestException, RemotingConnectException,
+        MQBrokerException, RemotingTimeoutException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_TIERED_METADATA, null);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return TieredMetadataSerializeWrapper.decode(response.getBody(), TieredMetadataSerializeWrapper.class);
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+    }
+
+    public RemotingCommand syncTieredIndex(List<DispatchRequestExt> requestExtList,
+        final String addr) throws RemotingSendRequestException, RemotingConnectException,
+        MQBrokerException, RemotingTimeoutException, InterruptedException {
+        SyncTieredIndexRequestBody body = new SyncTieredIndexRequestBody(requestExtList);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SYNC_TIERED_INDEX, null);
+        request.setBody(body.encode());
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, 3000);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return response;
+            }
+            default:
+                break;
+        }
+
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+    }
 }

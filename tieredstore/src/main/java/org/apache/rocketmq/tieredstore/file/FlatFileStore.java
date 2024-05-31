@@ -30,6 +30,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
@@ -40,13 +41,15 @@ public class FlatFileStore {
 
     private static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
 
+    private final TieredMessageStore messageStore;
     private final MetadataStore metadataStore;
     private final MessageStoreConfig storeConfig;
     private final MessageStoreExecutor executor;
     private final FlatFileFactory flatFileFactory;
     private final ConcurrentMap<MessageQueue, FlatMessageFile> flatFileConcurrentMap;
 
-    public FlatFileStore(MessageStoreConfig storeConfig, MetadataStore metadataStore, MessageStoreExecutor executor) {
+    public FlatFileStore(TieredMessageStore messageStore, MessageStoreConfig storeConfig, MetadataStore metadataStore, MessageStoreExecutor executor) {
+        this.messageStore = messageStore;
         this.storeConfig = storeConfig;
         this.metadataStore = metadataStore;
         this.executor = executor;
@@ -58,7 +61,9 @@ public class FlatFileStore {
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
             this.flatFileConcurrentMap.clear();
-            this.recover();
+            if (MessageStoreUtil.isMaster(this.messageStore.getDefaultStore().getMessageStoreConfig())) {
+                this.recover();
+            }
             this.executor.commonExecutor.scheduleWithFixedDelay(() -> {
                 for (FlatMessageFile flatFile : deepCopyFlatFileToList()) {
                     long expiredTimeStamp = System.currentTimeMillis() -
@@ -158,6 +163,11 @@ public class FlatFileStore {
     public void destroy() {
         this.shutdown();
         flatFileConcurrentMap.values().forEach(FlatMessageFile::destroy);
+        flatFileConcurrentMap.clear();
+    }
+
+    public void clear() {
+        this.shutdown();
         flatFileConcurrentMap.clear();
     }
 }

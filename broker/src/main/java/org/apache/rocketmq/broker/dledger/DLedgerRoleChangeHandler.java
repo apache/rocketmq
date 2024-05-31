@@ -32,10 +32,13 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
 
 public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChangeHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger TIERED_LOG = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
     private ExecutorService executorService;
     private BrokerController brokerController;
     private DefaultMessageStore messageStore;
@@ -163,6 +166,10 @@ public class DLedgerRoleChangeHandler implements DLedgerLeaderElector.RoleChange
         handleSlaveSynchronize(role);
 
         this.brokerController.changeSpecialServiceStatus(true);
+
+        if (this.brokerController.getMessageStore() instanceof TieredMessageStore) {
+            ((TieredMessageStore) this.brokerController.getMessageStore()).recoverWhenBecomeMaster();
+        }
 
         //if the operations above are totally successful, we change to master
         this.brokerController.getBrokerConfig().setBrokerId(0); //TO DO check

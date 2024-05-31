@@ -50,6 +50,8 @@ import org.apache.rocketmq.tieredstore.core.MessageStoreFilter;
 import org.apache.rocketmq.tieredstore.core.MessageStoreTopicFilter;
 import org.apache.rocketmq.tieredstore.file.FlatFileStore;
 import org.apache.rocketmq.tieredstore.file.FlatMessageFile;
+import org.apache.rocketmq.tieredstore.file.RecoverService;
+import org.apache.rocketmq.tieredstore.index.IndexFileSyncService;
 import org.apache.rocketmq.tieredstore.index.IndexService;
 import org.apache.rocketmq.tieredstore.index.IndexStoreService;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
@@ -75,6 +77,8 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     protected final MessageStoreFilter topicFilter;
     protected final MessageStoreFetcher fetcher;
     protected final MessageStoreDispatcher dispatcher;
+    protected final IndexFileSyncService indexFileSyncService;
+    protected RecoverService recoverService;
 
     public TieredMessageStore(MessageStorePluginContext context, MessageStore next) {
         super(context, next);
@@ -88,12 +92,27 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         this.metadataStore = this.getMetadataStore(this.storeConfig);
         this.topicFilter = new MessageStoreTopicFilter(this.storeConfig);
         this.storeExecutor = new MessageStoreExecutor();
-        this.flatFileStore = new FlatFileStore(this.storeConfig, this.metadataStore, this.storeExecutor);
-        this.indexService = new IndexStoreService(this.flatFileStore.getFlatFileFactory(),
+        this.flatFileStore = new FlatFileStore(this, this.storeConfig, this.metadataStore, this.storeExecutor);
+        this.indexService = new IndexStoreService(this, this.flatFileStore.getFlatFileFactory(),
             MessageStoreUtil.getIndexFilePath(this.storeConfig.getBrokerName()));
+        this.indexFileSyncService = new IndexFileSyncService(this, this.indexService);
+        try {
+            Class<? extends RecoverService> clazz = Class.forName(this.storeConfig.getTieredRecoverServiceProvider()).asSubclass(RecoverService.class);
+            Constructor<? extends RecoverService> constructor = clazz.getConstructor(
+                MessageStoreConfig.class, FlatFileStore.class, MetadataStore.class, IndexService.class);
+            this.recoverService = constructor.newInstance(this.storeConfig, this.flatFileStore, this.metadataStore, this.indexService);
+        } catch (Exception e) {
+            log.error("RecoverService constructor failed, ", e);
+        }
         this.fetcher = new MessageStoreFetcherImpl(this);
         this.dispatcher = new MessageStoreDispatcherImpl(this);
         next.addDispatcher(dispatcher);
+    }
+
+    public void recoverWhenBecomeMaster() {
+        this.recoverService.recoverMetadataWhenBecomeMaster();
+        this.recoverService.recoverFlatFileWhenBecomeMaster();
+        this.recoverService.recoverIndexFileWhenBecomeMaster();
     }
 
     @Override
@@ -103,6 +122,7 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         boolean result = loadFlatFile && loadNextStore;
         if (result) {
             indexService.start();
+            indexFileSyncService.start();
             dispatcher.start();
         }
         return result;
@@ -462,6 +482,12 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         }
         if (storeExecutor != null) {
             storeExecutor.shutdown();
+        }
+        if (indexService != null) {
+            indexService.shutdown();
+        }
+        if (indexFileSyncService != null) {
+            indexFileSyncService.shutdown();
         }
     }
 

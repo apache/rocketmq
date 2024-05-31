@@ -16,22 +16,22 @@
  */
 package org.apache.rocketmq.tieredstore.index;
 
-import java.nio.ByteBuffer;
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public interface IndexFile extends IndexInterface {
+import java.util.List;
 
-    /**
-     * Enumeration for the status of the index file.
-     */
-    enum IndexStatusEnum {
-        SHUTDOWN, UNSEALED, SEALED, UPLOAD
+public class SyncTieredIndexRequestBody extends RemotingSerializable {
+    private List<DispatchRequestExt> requestExtList;
+
+    public SyncTieredIndexRequestBody(List<DispatchRequestExt> requestExtList) {
+        this.requestExtList = requestExtList;
     }
 
-    long getTimestamp();
+    public List<DispatchRequestExt> getRequestExtList() {
+        return requestExtList;
+    }
 
-    long getEndTimestamp();
-
-    IndexStatusEnum getFileStatus();
-
-    ByteBuffer doCompaction();
+    public void setRequestExtList(List<DispatchRequestExt> requestExtList) {
+        this.requestExtList = requestExtList;
+    }
 }

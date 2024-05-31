@@ -27,6 +27,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
@@ -52,6 +54,7 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.mockito.Mockito;
 
 @Ignore
 @State(Scope.Benchmark)
@@ -78,7 +81,12 @@ public class IndexStoreServiceBenchTest {
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000 * 1000);
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
         FlatFileFactory flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
-        indexStoreService = new IndexStoreService(flatFileFactory, storePath);
+
+        TieredMessageStore messageStore = Mockito.mock(TieredMessageStore.class);
+        DefaultMessageStore defaultMessageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(defaultMessageStore.getMessageStoreConfig()).thenReturn(new org.apache.rocketmq.store.config.MessageStoreConfig());
+        Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultMessageStore);
+        indexStoreService = new IndexStoreService(messageStore, flatFileFactory, storePath);
         indexStoreService.start();
     }
 
