@@ -174,7 +174,7 @@ public class SendMessageProcessorTest {
     public void testProcessRequest_PageCacheBusy() throws Exception {
         when(messageStore.asyncPutMessage(any(MessageExtBrokerInner.class))).
             thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGE_CACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))));
-        assertPutResult(ResponseCode.SYSTEM_ERROR);
+        assertPutResult(ResponseCode.SYSTEM_BUSY);
     }
 
     @Test
