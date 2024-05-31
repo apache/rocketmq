@@ -120,7 +120,6 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         } else {
             this.defaultRemotingServer = new NettyRemotingServer(defaultServerConfig, this.clientHousekeepingService);
         }
-        this.registerRemotingServer(this.defaultRemotingServer);
 
         this.sendMessageExecutor = ThreadPoolMonitor.createAndMonitor(
             config.getRemotingSendMessageThreadPoolNums(),
@@ -186,6 +185,8 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
             new ThreadFactoryBuilder().setNameFormat("RemotingServerScheduler-%d").build()
         );
         this.timerExecutor.scheduleAtFixedRate(this::cleanExpireRequest, 10, 10, TimeUnit.SECONDS);
+
+        this.registerRemotingServer(this.defaultRemotingServer);
     }
 
     protected void registerRemotingServer(RemotingServer remotingServer) {
