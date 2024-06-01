@@ -543,10 +543,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return response;
             }
         }
-        boolean force = false;
-        if (requestHeader.getForce() != null && requestHeader.getForce()) {
-            force = true;
-        }
+        boolean force = requestHeader.getForce() != null && requestHeader.getForce();
 
         TopicConfig topicConfig = new TopicConfig(topic);
         topicConfig.setReadQueueNums(requestHeader.getReadQueueNums());
@@ -782,7 +779,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         topicConfigAndMappingSerializeWrapper.setTopicQueueMappingDetailMap(this.brokerController.getTopicQueueMappingManager().getTopicQueueMappingTable());
 
         String content = topicConfigAndMappingSerializeWrapper.toJson();
-        if (content != null && content.length() > 0) {
+        if (content != null && !content.isEmpty()) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
@@ -847,13 +844,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 Properties properties = MixAll.string2Properties(bodyStr);
                 if (properties != null) {
                     LOGGER.info("updateColdDataFlowCtrGroupConfig new config: {}, client: {}", properties, ctx.channel().remoteAddress());
-                    properties.entrySet().stream().forEach(i -> {
+                    properties.forEach((key, value) -> {
                         try {
-                            String consumerGroup = String.valueOf(i.getKey());
-                            Long threshold = Long.valueOf(String.valueOf(i.getValue()));
+                            String consumerGroup = String.valueOf(key);
+                            Long threshold = Long.valueOf(String.valueOf(value));
                             this.brokerController.getColdDataCgCtrService().addOrUpdateGroupConfig(consumerGroup, threshold);
                         } catch (Exception e) {
-                            LOGGER.error("updateColdDataFlowCtrGroupConfig properties on entry error, key: {}, val: {}", i.getKey(), i.getValue(), e);
+                            LOGGER.error("updateColdDataFlowCtrGroupConfig properties on entry error, key: {}, val: {}", key, value, e);
                         }
                     });
                 } else {
@@ -1013,7 +1010,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final GetBrokerConfigResponseHeader responseHeader = (GetBrokerConfigResponseHeader) response.readCustomHeader();
 
         String content = this.brokerController.getConfiguration().getAllConfigsFormatString();
-        if (content != null && content.length() > 0) {
+        if (content != null && !content.isEmpty()) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
@@ -1489,7 +1486,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         String content = this.brokerController.getSubscriptionGroupManager().encode();
-        if (content != null && content.length() > 0) {
+        if (content != null && !content.isEmpty()) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
@@ -1779,7 +1776,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         String content = this.brokerController.getConsumerOffsetManager().encode();
-        if (content != null && content.length() > 0) {
+        if (content != null && !content.isEmpty()) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
