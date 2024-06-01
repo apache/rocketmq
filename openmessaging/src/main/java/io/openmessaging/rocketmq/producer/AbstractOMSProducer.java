@@ -92,8 +92,7 @@ abstract class AbstractOMSProducer implements ServiceLifecycle, MessageFactory {
     OMSRuntimeException checkProducerException(String topic, String msgId, Throwable e) {
         if (e instanceof MQClientException) {
             if (e.getCause() != null) {
-                if (e.getCause()
-                        instanceof RemotingTimeoutException) {
+                if (e.getCause() instanceof RemotingTimeoutException) {
                     return new OMSTimeOutException("-1", String.format("Send message to broker timeout, %dms, Topic=%s, msgId=%s",
                         this.rocketmqProducer.getSendMsgTimeout(), topic, msgId), e);
                 } else if (e.getCause() instanceof MQBrokerException || e.getCause() instanceof RemotingConnectException) {
