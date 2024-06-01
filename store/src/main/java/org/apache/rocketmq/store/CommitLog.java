@@ -651,7 +651,7 @@ public class CommitLog implements Swappable {
         } else if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
             return this.confirmOffset;
         } else {
-            return getMaxOffset();
+            return this.defaultMessageStore.isSyncDiskFlush() ? getFlushedWhere() : getMaxOffset();
         }
     }
 
@@ -1483,7 +1483,7 @@ public class CommitLog implements Swappable {
         }
     }
 
-    class FlushRealTimeService extends FlushCommitLogService {
+    public class FlushRealTimeService extends FlushCommitLogService {
         private long lastFlushTimestamp = 0;
         private long printTimes = 0;
 
@@ -1610,7 +1610,7 @@ public class CommitLog implements Swappable {
     /**
      * GroupCommit Service
      */
-    class GroupCommitService extends FlushCommitLogService {
+    public class GroupCommitService extends FlushCommitLogService {
         private volatile LinkedList<GroupCommitRequest> requestsWrite = new LinkedList<>();
         private volatile LinkedList<GroupCommitRequest> requestsRead = new LinkedList<>();
         private final PutMessageSpinLock lock = new PutMessageSpinLock();
