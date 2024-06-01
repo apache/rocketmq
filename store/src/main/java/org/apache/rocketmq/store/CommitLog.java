@@ -1483,7 +1483,7 @@ public class CommitLog implements Swappable {
         }
     }
 
-    public class FlushRealTimeService extends FlushCommitLogService {
+    class FlushRealTimeService extends FlushCommitLogService {
         private long lastFlushTimestamp = 0;
         private long printTimes = 0;
 
@@ -1610,7 +1610,7 @@ public class CommitLog implements Swappable {
     /**
      * GroupCommit Service
      */
-    public class GroupCommitService extends FlushCommitLogService {
+    class GroupCommitService extends FlushCommitLogService {
         private volatile LinkedList<GroupCommitRequest> requestsWrite = new LinkedList<>();
         private volatile LinkedList<GroupCommitRequest> requestsRead = new LinkedList<>();
         private final PutMessageSpinLock lock = new PutMessageSpinLock();
