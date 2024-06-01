@@ -2116,7 +2116,8 @@ public class CommitLog implements Swappable {
             this.commitRealTimeService = new CommitLog.CommitRealTimeService();
         }
 
-        @Override public void start() {
+        @Override
+        public void start() {
             this.flushCommitLogService.start();
 
             if (defaultMessageStore.isTransientStorePoolEnable()) {
@@ -2124,6 +2125,7 @@ public class CommitLog implements Swappable {
             }
         }
 
+        @Override
         public void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult,
             MessageExt messageExt) {
             // Synchronization flush
