@@ -42,7 +42,7 @@ public class AllocateMessageQueueAveragely extends AbstractAllocateMessageQueueS
         int startIndex = (mod > 0 && index < mod) ? index * averageSize : index * averageSize + mod;
         int range = Math.min(averageSize, mqAll.size() - startIndex);
         for (int i = 0; i < range; i++) {
-            result.add(mqAll.get((startIndex + i) % mqAll.size()));
+            result.add(mqAll.get(startIndex + i));
         }
         return result;
     }

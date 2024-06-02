@@ -111,9 +111,7 @@ public class TopicPublishInfo {
             return selectOneMessageQueue();
         } else {
             for (int i = 0; i < this.messageQueueList.size(); i++) {
-                int index = this.sendWhichQueue.incrementAndGet();
-                int pos = index % this.messageQueueList.size();
-                MessageQueue mq = this.messageQueueList.get(pos);
+                MessageQueue mq = selectOneMessageQueue();
                 if (!mq.getBrokerName().equals(lastBrokerName)) {
                     return mq;
                 }

@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclException;
@@ -160,6 +161,9 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         List<DefaultAuthorizationContext> result = new ArrayList<>();
         try {
             HashMap<String, String> fields = command.getExtFields();
+            if (MapUtils.isEmpty(fields)) {
+                return result;
+            }
             Subject subject = null;
             if (fields.containsKey(SessionCredentials.ACCESS_KEY)) {
                 subject = User.of(fields.get(SessionCredentials.ACCESS_KEY));

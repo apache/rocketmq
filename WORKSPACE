@@ -111,6 +111,7 @@ maven_install(
         "com.alipay.sofa:jraft-core:1.3.14",
         "com.alipay.sofa:hessian:3.3.6",
         "io.netty:netty-tcnative-boringssl-static:2.0.48.Final",
+        "org.mockito:mockito-junit-jupiter:4.11.0",
     ],
     fetch_sources = True,
     repositories = [

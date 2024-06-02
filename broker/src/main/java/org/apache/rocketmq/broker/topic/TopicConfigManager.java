@@ -51,6 +51,9 @@ import org.apache.rocketmq.remoting.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
+import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
+import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -501,6 +504,7 @@ public class TopicConfigManager extends ConfigManager {
             ImmutableMap.copyOf(newAttributes));
 
         topicConfig.setAttributes(finalAttributes);
+        updateTieredStoreTopicMetadata(topicConfig, newAttributes);
 
         TopicConfig old = putTopicConfig(topicConfig);
         if (old != null) {
@@ -513,6 +517,33 @@ public class TopicConfigManager extends ConfigManager {
         dataVersion.nextVersion(stateMachineVersion);
 
         this.persist(topicConfig.getTopicName(), topicConfig);
+    }
+
+    private synchronized void updateTieredStoreTopicMetadata(final TopicConfig topicConfig, Map<String, String> newAttributes) {
+        if (!(brokerController.getMessageStore() instanceof TieredMessageStore)) {
+            if (newAttributes.get(TopicAttributes.TOPIC_RESERVE_TIME_ATTRIBUTE.getName()) != null) {
+                throw new IllegalArgumentException("Update topic reserveTime not supported");
+            }
+            return;
+        }
+
+        String topic = topicConfig.getTopicName();
+        long reserveTime = TopicAttributes.TOPIC_RESERVE_TIME_ATTRIBUTE.getDefaultValue();
+        String attr = topicConfig.getAttributes().get(TopicAttributes.TOPIC_RESERVE_TIME_ATTRIBUTE.getName());
+        if (attr != null) {
+            reserveTime = Long.parseLong(attr);
+        }
+
+        log.info("Update tiered storage metadata, topic {}, reserveTime {}", topic, reserveTime);
+        TieredMessageStore tieredMessageStore = (TieredMessageStore) brokerController.getMessageStore();
+        MetadataStore metadataStore = tieredMessageStore.getMetadataStore();
+        TopicMetadata topicMetadata = metadataStore.getTopic(topic);
+        if (topicMetadata == null) {
+            metadataStore.addTopic(topic, reserveTime);
+        } else if (topicMetadata.getReserveTime() != reserveTime) {
+            topicMetadata.setReserveTime(reserveTime);
+            metadataStore.updateTopic(topicMetadata);
+        }
     }
 
     public void updateOrderTopicConfig(final KVTable orderKVTableFromNs) {

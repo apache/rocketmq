@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.Validators;
@@ -703,9 +704,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                         onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                             retryTimesWhenSendFailed, times, ex, context, true, producer);
                     } else {
-                        MQClientException ex = new MQClientException("unknow reseaon", throwable);
+                        MQClientException ex = new MQClientException("unknown reason", throwable);
+                        boolean needRetry = !(throwable instanceof RemotingTooMuchRequestException);
                         onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
-                            retryTimesWhenSendFailed, times, ex, context, true, producer);
+                            retryTimesWhenSendFailed, times, ex, context, needRetry, producer);
                     }
                 }
             });
@@ -1155,16 +1157,19 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                         final Long msgQueueOffset;
                         if (MixAll.isLmq(topic) && messageExt.getReconsumeTimes() == 0 && StringUtils.isNotEmpty(
                             messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))) {
-                            // process LMQ, LMQ topic has only 1 queue, which queue id is 0
+                            // process LMQ
+                            String[] queues = messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)
+                                .split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+                            String[] queueOffsets = messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET)
+                                .split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+                            long offset = Long.parseLong(queueOffsets[ArrayUtils.indexOf(queues, topic)]);
+                            // LMQ topic has only 1 queue, which queue id is 0
                             queueIdKey = ExtraInfoUtil.getStartOffsetInfoMapKey(topic, MixAll.LMQ_QUEUE_ID);
-                            queueOffsetKey = ExtraInfoUtil.getQueueOffsetMapKey(topic, MixAll.LMQ_QUEUE_ID, Long.parseLong(
-                                messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET)));
-                            index = sortMap.get(queueIdKey).indexOf(
-                                Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET)));
+                            queueOffsetKey = ExtraInfoUtil.getQueueOffsetMapKey(topic, MixAll.LMQ_QUEUE_ID, offset);
+                            index = sortMap.get(queueIdKey).indexOf(offset);
                             msgQueueOffset = msgOffsetInfo.get(queueIdKey).get(index);
-                            if (msgQueueOffset != Long.parseLong(
-                                messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET))) {
-                                log.warn("Queue offset[%d] of msg is strange, not equal to the stored in msg, %s",
+                            if (msgQueueOffset != offset) {
+                                log.warn("Queue offset[{}] of msg is strange, not equal to the stored in msg, {}",
                                     msgQueueOffset, messageExt);
                             }
                             messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
@@ -1177,7 +1182,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                             index = sortMap.get(queueIdKey).indexOf(messageExt.getQueueOffset());
                             msgQueueOffset = msgOffsetInfo.get(queueIdKey).get(index);
                             if (msgQueueOffset != messageExt.getQueueOffset()) {
-                                log.warn("Queue offset[%d] of msg is strange, not equal to the stored in msg, %s", msgQueueOffset, messageExt);
+                                log.warn("Queue offset[{}] of msg is strange, not equal to the stored in msg, {}", msgQueueOffset, messageExt);
                             }
                             messageExt.getProperties().put(MessageConst.PROPERTY_POP_CK,
                                 ExtraInfoUtil.buildExtraInfo(startOffsetInfo.get(queueIdKey), responseHeader.getPopTime(), responseHeader.getInvisibleTime(),
@@ -1217,14 +1222,15 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             final String key;
             if (MixAll.isLmq(topic) && messageExt.getReconsumeTimes() == 0
                 && StringUtils.isNotEmpty(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))) {
-                // process LMQ, LMQ topic has only 1 queue, which queue id is 0
-                key = ExtraInfoUtil.getStartOffsetInfoMapKey(
-                    messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH), 0);
-                if (!sortMap.containsKey(key)) {
-                    sortMap.put(key, new ArrayList<>(4));
-                }
-                sortMap.get(key).add(
-                    Long.parseLong(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET)));
+                // process LMQ
+                String[] queues = messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)
+                    .split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+                String[] queueOffsets = messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET)
+                    .split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+                // LMQ topic has only 1 queue, which queue id is 0
+                key = ExtraInfoUtil.getStartOffsetInfoMapKey(topic, MixAll.LMQ_QUEUE_ID);
+                sortMap.putIfAbsent(key, new ArrayList<>(4));
+                sortMap.get(key).add(Long.parseLong(queueOffsets[ArrayUtils.indexOf(queues, topic)]));
                 continue;
             }
             // Value of POP_CK is used to determine whether it is a pop retry,

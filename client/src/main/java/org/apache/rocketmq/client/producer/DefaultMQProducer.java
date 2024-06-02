@@ -36,6 +36,9 @@ import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.EndTransactionTraceHookImpl;
 import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.compression.CompressionType;
+import org.apache.rocketmq.common.compression.Compressor;
+import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -72,6 +75,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         ResponseCode.TOPIC_NOT_EXIST,
         ResponseCode.SERVICE_NOT_AVAILABLE,
         ResponseCode.SYSTEM_ERROR,
+        ResponseCode.SYSTEM_BUSY,
         ResponseCode.NO_PERMISSION,
         ResponseCode.NO_BUYER_ID,
         ResponseCode.NOT_IN_CURRENT_UNIT
@@ -167,6 +171,23 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     private int backPressureForAsyncSendSize = 100 * 1024 * 1024;
 
+    private RPCHook rpcHook = null;
+
+    /**
+     * Compress level of compress algorithm.
+     */
+    private int compressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
+
+    /**
+     * Compress type of compress algorithm, default using ZLIB.
+     */
+    private CompressionType compressType = CompressionType.of(System.getProperty(MixAll.MESSAGE_COMPRESS_TYPE, "ZLIB"));
+
+    /**
+     * Compressor of compress algorithm.
+     */
+    private Compressor compressor = CompressorFactory.getCompressor(compressType);
+
     /**
      * Default constructor.
      */
@@ -202,6 +223,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
         this.producerGroup = producerGroup;
+        this.rpcHook = rpcHook;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
         produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
@@ -243,20 +265,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,
         final String customizedTraceTopic) {
         this(producerGroup, rpcHook);
-        //if client open the message trace feature
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
-                dispatcher.setHostProducer(this.defaultMQProducerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQProducerImpl.registerSendMessageHook(
-                    new SendMessageTraceHookImpl(traceDispatcher));
-                this.defaultMQProducerImpl.registerEndTransactionHook(
-                    new EndTransactionTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
     }
 
     /**
@@ -298,6 +308,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.producerGroup = producerGroup;
+        this.rpcHook = rpcHook;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
         produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
@@ -318,27 +329,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         boolean enableMsgTrace, final String customizedTraceTopic) {
         this(namespace, producerGroup, rpcHook);
         //if client open the message trace feature
-        if (enableMsgTrace) {
-            try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, customizedTraceTopic, rpcHook);
-                dispatcher.setHostProducer(this.defaultMQProducerImpl);
-                traceDispatcher = dispatcher;
-                this.defaultMQProducerImpl.registerSendMessageHook(
-                    new SendMessageTraceHookImpl(traceDispatcher));
-                this.defaultMQProducerImpl.registerEndTransactionHook(
-                    new EndTransactionTraceHookImpl(traceDispatcher));
-            } catch (Throwable e) {
-                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
-            }
-        }
-    }
-
-    @Override
-    public void setUseTLS(boolean useTLS) {
-        super.setUseTLS(useTLS);
-        if (traceDispatcher instanceof AsyncTraceDispatcher) {
-            ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(useTLS);
-        }
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
     }
 
     /**
@@ -356,7 +348,24 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         if (this.produceAccumulator != null) {
             this.produceAccumulator.start();
         }
+        if (enableTrace) {
+            try {
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, traceTopic, rpcHook);
+                dispatcher.setHostProducer(this.defaultMQProducerImpl);
+                dispatcher.setNamespaceV2(this.namespaceV2);
+                traceDispatcher = dispatcher;
+                this.defaultMQProducerImpl.registerSendMessageHook(
+                    new SendMessageTraceHookImpl(traceDispatcher));
+                this.defaultMQProducerImpl.registerEndTransactionHook(
+                    new EndTransactionTraceHookImpl(traceDispatcher));
+            } catch (Throwable e) {
+                logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
+            }
+        }
         if (null != traceDispatcher) {
+            if (traceDispatcher instanceof AsyncTraceDispatcher) {
+                ((AsyncTraceDispatcher) traceDispatcher).getTraceProducer().setUseTLS(isUseTLS());
+            }
             try {
                 traceDispatcher.start(this.getNamesrvAddr(), this.getAccessChannel());
             } catch (MQClientException e) {
@@ -1352,5 +1361,26 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void setStartDetectorEnable(boolean startDetectorEnable) {
         super.setStartDetectorEnable(startDetectorEnable);
         this.defaultMQProducerImpl.getMqFaultStrategy().setStartDetectorEnable(startDetectorEnable);
+    }
+
+    public int getCompressLevel() {
+        return compressLevel;
+    }
+
+    public void setCompressLevel(int compressLevel) {
+        this.compressLevel = compressLevel;
+    }
+
+    public CompressionType getCompressType() {
+        return compressType;
+    }
+
+    public void setCompressType(CompressionType compressType) {
+        this.compressType = compressType;
+        this.compressor = CompressorFactory.getCompressor(compressType);
+    }
+
+    public Compressor getCompressor() {
+        return compressor;
     }
 }
