@@ -184,7 +184,7 @@ public class ProduceAccumulator {
     }
 
     long getTotalBatchMaxBytes() {
-        return holdSize;
+        return totalHoldSize;
     }
 
     void totalBatchMaxBytes(long totalHoldSize) {
