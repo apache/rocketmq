@@ -308,7 +308,7 @@ public class PopReviveService extends ServiceThread {
         int noMsgCount = 0;
         long firstRt = 0;
         // offset self amend
-        while (true) {
+        while (!this.isStopped()) {
             if (!shouldRunPopRevive) {
                 POP_LOGGER.info("slave skip scan, revive topic={}, reviveQueueId={}", reviveTopic, queueId);
                 break;
@@ -330,7 +330,7 @@ public class PopReviveService extends ServiceThread {
                 noMsgCount++;
                 // Fixme: why sleep is useful here?
                 try {
-                    Thread.sleep(100);
+                    waitForRunning(100);
                 } catch (Throwable ignore) {
                 }
                 if (noMsgCount * 100L > 4 * PopAckConstants.SECOND) {
