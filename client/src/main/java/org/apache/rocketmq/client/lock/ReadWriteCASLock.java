@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ReadWriteCASLock {
+    //true : can lock ; false : not lock
     private final AtomicBoolean writeLock = new AtomicBoolean(true);
 
     private final AtomicInteger readLock = new AtomicInteger(0);
