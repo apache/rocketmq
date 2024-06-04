@@ -655,10 +655,12 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     class SubRemotingServer extends NettyRemotingAbstract implements RemotingServer {
         private volatile int listenPort;
         private volatile Channel serverChannel;
+        private final HashedWheelTimer timer;
 
         SubRemotingServer(final int port, final int permitsOnway, final int permitsAsync) {
             super(permitsOnway, permitsAsync);
             listenPort = port;
+            timer = new HashedWheelTimer(r -> new Thread(r, "ServerHouseKeepingService_" + port));
         }
 
         @Override
@@ -734,6 +736,21 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     InetSocketAddress addr = (InetSocketAddress) this.serverChannel.localAddress();
                     this.listenPort = addr.getPort();
                 }
+
+                TimerTask timerScanResponseTable = new TimerTask() {
+                    @Override
+                    public void run(Timeout timeout) {
+                        try {
+                            SubRemotingServer.this.scanResponseTable();
+                        } catch (Throwable e) {
+                            log.error("scanResponseTable exception in sub remoting server", e);
+                        } finally {
+                            timer.newTimeout(this, 1000, TimeUnit.MILLISECONDS);
+                        }
+                    }
+                };
+                timer.newTimeout(timerScanResponseTable, 1000 * 3, TimeUnit.MILLISECONDS);
+
             } catch (InterruptedException e) {
                 throw new RuntimeException("this.subRemotingServer.serverBootstrap.bind().sync() InterruptedException", e);
             }
@@ -748,6 +765,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                 } catch (InterruptedException ignored) {
                 }
             }
+            this.timer.stop();
         }
 
         @Override
