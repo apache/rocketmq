@@ -202,6 +202,14 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         semaphoreAsyncSendSize = new Semaphore(size, true);
     }
 
+    public int getSemaphoreAsyncSendNumAvailablePermits(){
+        return semaphoreAsyncSendNum == null ? 0 : semaphoreAsyncSendNum.availablePermits();
+    }
+
+    public int getSemaphoreAsyncSendSizeAvailablePermits(){
+        return semaphoreAsyncSendSize == null ? 0 : semaphoreAsyncSendSize.availablePermits();
+    }
+
     public void initTransactionEnv() {
         TransactionMQProducer producer = (TransactionMQProducer) this.defaultMQProducer;
         if (producer.getExecutorService() != null) {
@@ -593,24 +601,37 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         public void semaphoreProcessor() {
             if (isSemaphoreAsyncSizeAcquired) {
+                defaultMQProducer.acquireBackPressureForAsyncSendSizeLock();
                 semaphoreAsyncSendSize.release(msgLen);
+                defaultMQProducer.releaseBackPressureForAsyncSendSizeLock();
             }
             if (isSemaphoreAsyncNumAcquired) {
+                defaultMQProducer.acquireBackPressureForAsyncSendNumLock();
                 semaphoreAsyncSendNum.release();
+                defaultMQProducer.releaseBackPressureForAsyncSendNumLock();
             }
         }
 
         public void semaphoreAsyncAdjust(int semaphoreAsyncNum, int semaphoreAsyncSize) throws InterruptedException {
+            defaultMQProducer.acquireBackPressureForAsyncSendNumLock();
             if (semaphoreAsyncNum > 0) {
                 semaphoreAsyncSendNum.release(semaphoreAsyncNum);
             } else {
                 semaphoreAsyncSendNum.acquire(- semaphoreAsyncNum);
             }
+            defaultMQProducer.setBackPressureForAsyncSendNumInsideAdjust(defaultMQProducer.getBackPressureForAsyncSendNum()
+                    + semaphoreAsyncNum);
+            defaultMQProducer.releaseBackPressureForAsyncSendNumLock();
+
+            defaultMQProducer.acquireBackPressureForAsyncSendSizeLock();
             if (semaphoreAsyncSize > 0) {
                 semaphoreAsyncSendSize.release(semaphoreAsyncSize);
             } else {
                 semaphoreAsyncSendSize.acquire(- semaphoreAsyncSize);
             }
+            defaultMQProducer.setBackPressureForAsyncSendSizeInsideAdjust(defaultMQProducer.getBackPressureForAsyncSendSize()
+                    + semaphoreAsyncSize);
+            defaultMQProducer.releaseBackPressureForAsyncSendSizeLock();
         }
     }
 
@@ -627,9 +648,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         try {
             if (isEnableBackpressureForAsyncMode) {
                 long costTime = System.currentTimeMillis() - beginStartTime;
+                defaultMQProducer.acquireBackPressureForAsyncSendNumLock();
+
                 isSemaphoreAsyncNumAcquired = timeout - costTime > 0
                     && semaphoreAsyncSendNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
                 sendCallback.isSemaphoreAsyncNumAcquired = isSemaphoreAsyncNumAcquired;
+                defaultMQProducer.releaseBackPressureForAsyncSendNumLock();
                 if (!isSemaphoreAsyncNumAcquired) {
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncNum timeout"));
@@ -637,9 +661,12 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 }
 
                 costTime = System.currentTimeMillis() - beginStartTime;
+                defaultMQProducer.acquireBackPressureForAsyncSendSizeLock();
+
                 isSemaphoreAsyncSizeAcquired = timeout - costTime > 0
                     && semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
                 sendCallback.isSemaphoreAsyncSizeAcquired = isSemaphoreAsyncSizeAcquired;
+                defaultMQProducer.releaseBackPressureForAsyncSendSizeLock();
                 if (!isSemaphoreAsyncSizeAcquired) {
                     sendCallback.onException(
                         new RemotingTooMuchRequestException("send message tryAcquire semaphoreAsyncSize timeout"));
