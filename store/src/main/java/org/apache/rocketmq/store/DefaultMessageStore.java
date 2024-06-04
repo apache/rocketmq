@@ -3107,8 +3107,8 @@ public class DefaultMessageStore implements MessageStore {
             this.dispatchService.start();
         }
 
-        int batchDispatchRequestStart = -1;
-        int batchDispatchRequestSize = -1;
+        private int batchDispatchRequestStart = -1;
+        private int batchDispatchRequestSize = -1;
         public void resetBatchDispatchRequest(int start,int size) {
             batchDispatchRequestStart = start;
             batchDispatchRequestSize = size;
@@ -3129,7 +3129,7 @@ public class DefaultMessageStore implements MessageStore {
                     break;
                 }
 
-
+                resetBatchDispatchRequest(-1,-1);
                 try {
                     this.reputFromOffset = result.getStartOffset();
 
