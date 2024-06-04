@@ -404,6 +404,8 @@ public class MessageStoreConfig {
 
     private int batchDispatchRequestThreadPoolNums = 16;
 
+    private int batchDataBlockSize = 1024 * 1024 * 4;
+
     // rocksdb mode
     private long cleanRocksDBDirtyCQIntervalMin = 60;
     private long statRocksDBCQIntervalSec = 10;
@@ -1818,5 +1820,13 @@ public class MessageStoreConfig {
 
     public void setTopicQueueLockNum(int topicQueueLockNum) {
         this.topicQueueLockNum = topicQueueLockNum;
+    }
+
+    public int getBatchDataBlockSize() {
+        return batchDataBlockSize;
+    }
+
+    public void setBatchDataBlockSize(int batchDataBlockSize) {
+        this.batchDataBlockSize = batchDataBlockSize;
     }
 }

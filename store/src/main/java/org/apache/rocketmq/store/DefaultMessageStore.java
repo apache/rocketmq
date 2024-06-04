@@ -3077,7 +3077,7 @@ public class DefaultMessageStore implements MessageStore {
 
     class ConcurrentReputMessageService extends ReputMessageService {
 
-        private static final int BATCH_SIZE = 1024 * 1024 * 4;
+        private final int BATCH_SIZE =  DefaultMessageStore.this.getMessageStoreConfig().getBatchDataBlockSize();
 
         private long batchId = 0;
 
@@ -3107,6 +3107,13 @@ public class DefaultMessageStore implements MessageStore {
             this.dispatchService.start();
         }
 
+        int batchDispatchRequestStart = -1;
+        int batchDispatchRequestSize = -1;
+        public void resetBatchDispatchRequest(int start,int size) {
+            batchDispatchRequestStart = start;
+            batchDispatchRequestSize = size;
+        }
+
         @Override
         public void doReput() {
             if (this.reputFromOffset < DefaultMessageStore.this.commitLog.getMinOffset()) {
@@ -3122,26 +3129,24 @@ public class DefaultMessageStore implements MessageStore {
                     break;
                 }
 
-                int batchDispatchRequestStart = -1;
-                int batchDispatchRequestSize = -1;
+
                 try {
                     this.reputFromOffset = result.getStartOffset();
 
+                    ByteBuffer byteBuffer;
                     for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
-                        ByteBuffer byteBuffer = result.getByteBuffer();
+                        byteBuffer = result.getByteBuffer();
 
                         int totalSize = preCheckMessageAndReturnSize(byteBuffer);
 
                         if (totalSize > 0) {
                             if (batchDispatchRequestStart == -1) {
-                                batchDispatchRequestStart = byteBuffer.position();
-                                batchDispatchRequestSize = 0;
+                                resetBatchDispatchRequest(byteBuffer.position(), 0);
                             }
                             batchDispatchRequestSize += totalSize;
                             if (batchDispatchRequestSize > BATCH_SIZE) {
                                 this.createBatchDispatchRequest(byteBuffer, batchDispatchRequestStart, batchDispatchRequestSize);
-                                batchDispatchRequestStart = -1;
-                                batchDispatchRequestSize = -1;
+                                resetBatchDispatchRequest(-1, -1);
                             }
                             byteBuffer.position(byteBuffer.position() + totalSize);
                             this.reputFromOffset += totalSize;
@@ -3152,8 +3157,7 @@ public class DefaultMessageStore implements MessageStore {
                                 this.reputFromOffset = DefaultMessageStore.this.commitLog.rollNextFile(this.reputFromOffset);
                             }
                             this.createBatchDispatchRequest(byteBuffer, batchDispatchRequestStart, batchDispatchRequestSize);
-                            batchDispatchRequestStart = -1;
-                            batchDispatchRequestSize = -1;
+                            resetBatchDispatchRequest(-1, -1);
                         }
                     }
                 } finally {
