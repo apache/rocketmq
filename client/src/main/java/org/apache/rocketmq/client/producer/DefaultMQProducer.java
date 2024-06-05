@@ -1379,30 +1379,30 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     /**
      * Used for system internal adjust backPressureForAsyncSendSize
      */
-    public void setBackPressureForAsyncSendSizeInsideAdjust(int backPressureForAsyncSendSize){
+    public void setBackPressureForAsyncSendSizeInsideAdjust(int backPressureForAsyncSendSize) {
         this.backPressureForAsyncSendSize = backPressureForAsyncSendSize;
     }
 
     /**
      * Used for system internal adjust backPressureForAsyncSendNum
      */
-    public void setBackPressureForAsyncSendNumInsideAdjust(int backPressureForAsyncSendNum){
+    public void setBackPressureForAsyncSendNumInsideAdjust(int backPressureForAsyncSendNum) {
         this.backPressureForAsyncSendNum = backPressureForAsyncSendNum;
     }
 
-    public void acquireBackPressureForAsyncSendSizeLock(){
+    public void acquireBackPressureForAsyncSendSizeLock() {
         this.backPressureForAsyncSendSizeLock.acquireReadLock();
     }
 
-    public void releaseBackPressureForAsyncSendSizeLock(){
+    public void releaseBackPressureForAsyncSendSizeLock() {
         this.backPressureForAsyncSendSizeLock.releaseReadLock();
     }
 
-    public void acquireBackPressureForAsyncSendNumLock(){
+    public void acquireBackPressureForAsyncSendNumLock() {
         this.backPressureForAsyncSendNumLock.acquireReadLock();
     }
 
-    public void releaseBackPressureForAsyncSendNumLock(){
+    public void releaseBackPressureForAsyncSendNumLock() {
         this.backPressureForAsyncSendNumLock.releaseReadLock();
     }
 

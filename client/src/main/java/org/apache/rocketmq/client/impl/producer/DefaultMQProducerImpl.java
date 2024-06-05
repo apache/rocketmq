@@ -194,11 +194,11 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         semaphoreAsyncSendSize = new Semaphore(size, true);
     }
 
-    public int getSemaphoreAsyncSendNumAvailablePermits(){
+    public int getSemaphoreAsyncSendNumAvailablePermits() {
         return semaphoreAsyncSendNum == null ? 0 : semaphoreAsyncSendNum.availablePermits();
     }
 
-    public int getSemaphoreAsyncSendSizeAvailablePermits(){
+    public int getSemaphoreAsyncSendSizeAvailablePermits() {
         return semaphoreAsyncSendSize == null ? 0 : semaphoreAsyncSendSize.availablePermits();
     }
 
