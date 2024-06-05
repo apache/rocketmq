@@ -60,9 +60,9 @@ public class FlatFileStore {
             this.flatFileConcurrentMap.clear();
             this.recover();
             this.executor.commonExecutor.scheduleWithFixedDelay(() -> {
-                long expiredTimeStamp = System.currentTimeMillis() -
-                    TimeUnit.HOURS.toMillis(storeConfig.getTieredStoreFileReservedTime());
                 for (FlatMessageFile flatFile : deepCopyFlatFileToList()) {
+                    long expiredTimeStamp = System.currentTimeMillis() -
+                        TimeUnit.HOURS.toMillis(flatFile.getFileReservedHours());
                     flatFile.destroyExpiredFile(expiredTimeStamp);
                     if (flatFile.consumeQueue.fileSegmentTable.isEmpty()) {
                         this.destroyFile(flatFile.getMessageQueue());

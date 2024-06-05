@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.rocketmq.acl.AccessResource;
 import org.apache.rocketmq.acl.common.AclException;
@@ -268,7 +269,9 @@ public class PlainAccessResource implements AccessResource {
                 }
             } else if (NotifyClientTerminationRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 NotifyClientTerminationRequest request = (NotifyClientTerminationRequest) messageV3;
-                accessResource.addGroupResourceAndPerm(request.getGroup(), Permission.SUB);
+                if (StringUtils.isNotBlank(request.getGroup().getName())) {
+                    accessResource.addGroupResourceAndPerm(request.getGroup(), Permission.SUB);
+                }
             } else if (QueryRouteRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 QueryRouteRequest request = (QueryRouteRequest) messageV3;
                 accessResource.addResourceAndPerm(request.getTopic(), Permission.ANY);
