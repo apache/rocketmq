@@ -580,9 +580,9 @@ public class DefaultMQProducerTest {
             }).start();
         }
         producer.setBackPressureForAsyncSendNum(15);
-        producer.setBackPressureForAsyncSendSize(1024 * 1024);
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(producer.defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits() + countDownLatch.getCount()).isEqualTo(15);
+        producer.setEnableBackpressureForAsyncMode(false);
     }
 
     public static TopicRouteData createTopicRoute() {
