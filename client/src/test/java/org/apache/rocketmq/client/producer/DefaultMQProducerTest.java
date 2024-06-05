@@ -540,6 +540,43 @@ public class DefaultMQProducerTest {
         producer.setAutoBatch(false);
     }
 
+
+    @Test
+    public void testRunningSetBackCompress() throws RemotingException, InterruptedException, MQClientException {
+        final CountDownLatch countDownLatch = new CountDownLatch(5);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
+        SendCallback sendCallback = new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                countDownLatch.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                e.printStackTrace();
+                countDownLatch.countDown();
+            }
+        };
+
+        // on enableBackpressureForAsyncMode
+        producer.setEnableBackpressureForAsyncMode(true);
+        producer.setBackPressureForAsyncSendNum(10);
+        producer.setBackPressureForAsyncSendSize(50 * 1024 * 1024);
+        Message message = new Message();
+        message.setTopic("test");
+        message.setBody("hello world".getBytes());
+
+        //this message is send success
+        for (int i = 0; i < 5; i++) {
+            producer.send(message, sendCallback, 1000);
+        }
+        producer.setBackPressureForAsyncSendNum(15);
+        producer.setBackPressureForAsyncSendSize(1024 * 1024);
+        countDownLatch.await();
+        assertThat(producer.defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits()).isEqualTo(15);
+        assertThat(producer.defaultMQProducerImpl.getSemaphoreAsyncSendSizeAvailablePermits()).isEqualTo(1024 * 1024);
+    }
+
     public static TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 

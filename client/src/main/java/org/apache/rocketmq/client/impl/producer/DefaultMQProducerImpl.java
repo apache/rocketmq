@@ -639,8 +639,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
         try {
             if (isEnableBackpressureForAsyncMode) {
-                long costTime = System.currentTimeMillis() - beginStartTime;
                 defaultMQProducer.acquireBackPressureForAsyncSendNumLock();
+                long costTime = System.currentTimeMillis() - beginStartTime;
 
                 isSemaphoreAsyncNumAcquired = timeout - costTime > 0
                     && semaphoreAsyncSendNum.tryAcquire(timeout - costTime, TimeUnit.MILLISECONDS);
@@ -652,8 +652,8 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                     return;
                 }
 
-                costTime = System.currentTimeMillis() - beginStartTime;
                 defaultMQProducer.acquireBackPressureForAsyncSendSizeLock();
+                costTime = System.currentTimeMillis() - beginStartTime;
 
                 isSemaphoreAsyncSizeAcquired = timeout - costTime > 0
                     && semaphoreAsyncSendSize.tryAcquire(msgLen, timeout - costTime, TimeUnit.MILLISECONDS);
