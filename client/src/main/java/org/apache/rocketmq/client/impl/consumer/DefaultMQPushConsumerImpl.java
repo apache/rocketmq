@@ -581,8 +581,6 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                         DefaultMQPushConsumerImpl.this.executePopPullRequestImmediately(popRequest);
                         break;
                     case POLLING_FULL:
-                        DefaultMQPushConsumerImpl.this.executePopPullRequestLater(popRequest, pullTimeDelayMillsWhenException);
-                        break;
                     default:
                         DefaultMQPushConsumerImpl.this.executePopPullRequestLater(popRequest, pullTimeDelayMillsWhenException);
                         break;
