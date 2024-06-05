@@ -1355,7 +1355,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         int acquiredBackPressureForAsyncSendNum = this.backPressureForAsyncSendNum
                 - defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits();
         this.backPressureForAsyncSendNum = backPressureForAsyncSendNum;
-        defaultMQProducerImpl.setSemaphoreAsyncSendNum(acquiredBackPressureForAsyncSendNum);
+        defaultMQProducerImpl.setSemaphoreAsyncSendNum(backPressureForAsyncSendNum - acquiredBackPressureForAsyncSendNum);
         this.backPressureForAsyncSendNumLock.releaseWriteLock();
     }
 
@@ -1372,7 +1372,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         int acquiredBackPressureForAsyncSendSize = this.backPressureForAsyncSendSize
                 - defaultMQProducerImpl.getSemaphoreAsyncSendSizeAvailablePermits();
         this.backPressureForAsyncSendSize = backPressureForAsyncSendSize;
-        defaultMQProducerImpl.setSemaphoreAsyncSendSize(acquiredBackPressureForAsyncSendSize);
+        defaultMQProducerImpl.setSemaphoreAsyncSendSize(backPressureForAsyncSendSize - acquiredBackPressureForAsyncSendSize);
         this.backPressureForAsyncSendSizeLock.releaseWriteLock();
     }
 
