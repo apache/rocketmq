@@ -544,7 +544,6 @@ public class DefaultMQProducerTest {
     @Test
     public void testRunningSetBackCompress() throws RemotingException, InterruptedException, MQClientException {
         final CountDownLatch countDownLatch = new CountDownLatch(5);
-        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         SendCallback sendCallback = new SendCallback() {
             @Override
             public void onSuccess(SendResult sendResult) {
