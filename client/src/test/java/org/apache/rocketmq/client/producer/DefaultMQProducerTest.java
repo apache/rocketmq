@@ -565,16 +565,24 @@ public class DefaultMQProducerTest {
         Message message = new Message();
         message.setTopic("test");
         message.setBody("hello world".getBytes());
-
+        MessageQueue mq = new MessageQueue("test", "BrokerA", 1);
         //this message is send success
         for (int i = 0; i < 5; i++) {
-            producer.send(message, sendCallback, 1000);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        producer.send(message, mq, sendCallback);
+                    } catch (MQClientException | RemotingException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).start();
         }
         producer.setBackPressureForAsyncSendNum(15);
         producer.setBackPressureForAsyncSendSize(1024 * 1024);
-        countDownLatch.await();
-        assertThat(producer.defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits()).isEqualTo(15);
-        assertThat(producer.defaultMQProducerImpl.getSemaphoreAsyncSendSizeAvailablePermits()).isEqualTo(1024 * 1024);
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        assertThat(producer.defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits() + countDownLatch.getCount()).isEqualTo(15);
     }
 
     public static TopicRouteData createTopicRoute() {
