@@ -3077,7 +3077,7 @@ public class DefaultMessageStore implements MessageStore {
 
     class ConcurrentReputMessageService extends ReputMessageService {
 
-        private final int BATCH_SIZE =  DefaultMessageStore.this.getMessageStoreConfig().getBatchDataBlockSize();
+        private int batchSize =  DefaultMessageStore.this.getMessageStoreConfig().getBatchDataBlockSize();
 
         private long batchId = 0;
 
@@ -3144,7 +3144,7 @@ public class DefaultMessageStore implements MessageStore {
                                 resetBatchDispatchRequest(byteBuffer.position(), 0);
                             }
                             batchDispatchRequestSize += totalSize;
-                            if (batchDispatchRequestSize > BATCH_SIZE) {
+                            if (batchDispatchRequestSize > batchSize) {
                                 this.createBatchDispatchRequest(byteBuffer, batchDispatchRequestStart, batchDispatchRequestSize);
                                 resetBatchDispatchRequest(-1, -1);
                             }
