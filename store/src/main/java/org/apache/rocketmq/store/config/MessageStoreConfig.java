@@ -413,6 +413,12 @@ public class MessageStoreConfig {
 
     private int topicQueueLockNum = 32;
 
+     /**
+      * If readUnCommitted is true, the dispatch of the consume queue will exceed the confirmOffset, which may cause the client to read uncommitted messages.
+      * For example, reput offset exceeding the flush offset during synchronous disk flushing.
+      */
+     private boolean readUnCommitted = false;
+
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
     }
@@ -671,7 +677,6 @@ public class MessageStoreConfig {
     public void setForceVerifyPropCRC(boolean forceVerifyPropCRC) {
         this.forceVerifyPropCRC = forceVerifyPropCRC;
     }
-
 
     public String getStorePathCommitLog() {
         if (storePathCommitLog == null) {
@@ -1818,5 +1823,13 @@ public class MessageStoreConfig {
 
     public void setTopicQueueLockNum(int topicQueueLockNum) {
         this.topicQueueLockNum = topicQueueLockNum;
+    }
+
+    public boolean isReadUnCommitted() {
+        return readUnCommitted;
+    }
+
+    public void setReadUnCommitted(boolean readUnCommitted) {
+        this.readUnCommitted = readUnCommitted;
     }
 }

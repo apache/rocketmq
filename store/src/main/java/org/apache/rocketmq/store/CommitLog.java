@@ -651,7 +651,7 @@ public class CommitLog implements Swappable {
         } else if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
             return this.confirmOffset;
         } else {
-            return this.defaultMessageStore.isSyncDiskFlush() ? getFlushedWhere() : getMaxOffset();
+            return this.defaultMessageStore.isSyncDiskFlush()  ? getFlushedWhere() : getMaxOffset();
         }
     }
 
