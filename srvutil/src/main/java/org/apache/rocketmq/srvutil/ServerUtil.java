@@ -34,7 +34,7 @@ public class ServerUtil {
         opt =
             new Option("n", "namesrvAddr", true,
                 "Name server address list, eg: '192.168.0.1:9876;192.168.0.2:9876'");
-        opt.setRequired(false);
+        opt.setRequired(true);
         options.addOption(opt);
 
         return options;
