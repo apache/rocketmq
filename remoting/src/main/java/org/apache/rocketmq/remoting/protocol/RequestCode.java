@@ -28,6 +28,7 @@ public class RequestCode {
     public static final int QUERY_CONSUMER_OFFSET = 14;
     public static final int UPDATE_CONSUMER_OFFSET = 15;
     public static final int UPDATE_AND_CREATE_TOPIC = 17;
+    public static final int UPDATE_AND_CREATE_TOPIC_LIST = 18;
     public static final int GET_ALL_TOPIC_CONFIG = 21;
     public static final int GET_TOPIC_CONFIG_LIST = 22;
 
