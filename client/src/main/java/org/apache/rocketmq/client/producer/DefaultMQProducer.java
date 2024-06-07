@@ -36,6 +36,9 @@ import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.EndTransactionTraceHookImpl;
 import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.compression.CompressionType;
+import org.apache.rocketmq.common.compression.Compressor;
+import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -169,6 +172,21 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private int backPressureForAsyncSendSize = 100 * 1024 * 1024;
 
     private RPCHook rpcHook = null;
+
+    /**
+     * Compress level of compress algorithm.
+     */
+    private int compressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
+
+    /**
+     * Compress type of compress algorithm, default using ZLIB.
+     */
+    private CompressionType compressType = CompressionType.of(System.getProperty(MixAll.MESSAGE_COMPRESS_TYPE, "ZLIB"));
+
+    /**
+     * Compressor of compress algorithm.
+     */
+    private Compressor compressor = CompressorFactory.getCompressor(compressType);
 
     /**
      * Default constructor.
@@ -1343,5 +1361,26 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void setStartDetectorEnable(boolean startDetectorEnable) {
         super.setStartDetectorEnable(startDetectorEnable);
         this.defaultMQProducerImpl.getMqFaultStrategy().setStartDetectorEnable(startDetectorEnable);
+    }
+
+    public int getCompressLevel() {
+        return compressLevel;
+    }
+
+    public void setCompressLevel(int compressLevel) {
+        this.compressLevel = compressLevel;
+    }
+
+    public CompressionType getCompressType() {
+        return compressType;
+    }
+
+    public void setCompressType(CompressionType compressType) {
+        this.compressType = compressType;
+        this.compressor = CompressorFactory.getCompressor(compressType);
+    }
+
+    public Compressor getCompressor() {
+        return compressor;
     }
 }

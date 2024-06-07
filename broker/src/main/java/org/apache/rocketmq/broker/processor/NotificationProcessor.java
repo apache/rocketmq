@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
@@ -58,8 +59,16 @@ public class NotificationProcessor implements NettyRequestProcessor {
         return false;
     }
 
+    // When a new message is written to CommitLog, this method would be called.
+    // Suspended long polling will receive notification and be wakeup.
+    public void notifyMessageArriving(final String topic, final int queueId,
+        Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+        this.popLongPollingService.notifyMessageArrivingWithRetryTopic(
+            topic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
+    }
+
     public void notifyMessageArriving(final String topic, final int queueId) {
-        popLongPollingService.notifyMessageArrivingWithRetryTopic(topic, queueId);
+        this.popLongPollingService.notifyMessageArrivingWithRetryTopic(topic, queueId);
     }
 
     @Override

@@ -113,6 +113,7 @@ import org.apache.rocketmq.tools.command.topic.TopicRouteSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicStatusSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateOrderConfCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
+import org.apache.rocketmq.tools.command.topic.UpdateTopicListSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
@@ -187,6 +188,7 @@ public class MQAdminStartup {
 
     public static void initCommand() {
         initCommand(new UpdateTopicSubCommand());
+        initCommand(new UpdateTopicListSubCommand());
         initCommand(new DeleteTopicSubCommand());
         initCommand(new UpdateSubGroupSubCommand());
         initCommand(new SetConsumeModeSubCommand());

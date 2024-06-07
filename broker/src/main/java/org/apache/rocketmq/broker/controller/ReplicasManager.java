@@ -30,7 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
@@ -803,7 +803,10 @@ public class ReplicasManager {
 
     private void updateControllerAddr() {
         if (brokerConfig.isFetchControllerAddrByDnsLookup()) {
-            this.controllerAddresses = brokerOuterAPI.dnsLookupAddressByDomain(this.brokerConfig.getControllerAddr());
+            List<String> adders = brokerOuterAPI.dnsLookupAddressByDomain(this.brokerConfig.getControllerAddr());
+            if (CollectionUtils.isNotEmpty(adders)) {
+                this.controllerAddresses = adders;
+            }
         } else {
             final String controllerPaths = this.brokerConfig.getControllerAddr();
             final String[] controllers = controllerPaths.split(";");

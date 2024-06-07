@@ -118,6 +118,7 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.body.CreateTopicListRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
@@ -150,6 +151,7 @@ import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResult
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CreateTopicListRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAccessConfigRequestHeader;
@@ -430,6 +432,24 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
+    public void createTopicList(final String address, final List<TopicConfig> topicConfigList, final long timeoutMillis)
+        throws InterruptedException, RemotingException, MQClientException {
+        CreateTopicListRequestHeader requestHeader = new CreateTopicListRequestHeader();
+        CreateTopicListRequestBody requestBody = new CreateTopicListRequestBody(topicConfigList);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, requestHeader);
+        request.setBody(requestBody.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(
+            MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), address), request, timeoutMillis);
+        assert response != null;
+        if (response.getCode() == ResponseCode.SUCCESS) {
+            return;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
     public void createPlainAccessConfig(final String addr, final PlainAccessConfig plainAccessConfig,
         final long timeoutMillis)
         throws RemotingException, InterruptedException, MQClientException {
@@ -704,9 +724,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
                         onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                             retryTimesWhenSendFailed, times, ex, context, true, producer);
                     } else {
-                        MQClientException ex = new MQClientException("unknow reseaon", throwable);
+                        MQClientException ex = new MQClientException("unknown reason", throwable);
+                        boolean needRetry = !(throwable instanceof RemotingTooMuchRequestException);
                         onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
-                            retryTimesWhenSendFailed, times, ex, context, true, producer);
+                            retryTimesWhenSendFailed, times, ex, context, needRetry, producer);
                     }
                 }
             });

@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -180,7 +181,7 @@ public class TieredStoreMetricsManager {
                     MessageQueue mq = flatFile.getMessageQueue();
                     long maxOffset = next.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId());
                     long maxTimestamp = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), maxOffset - 1);
-                    if (maxTimestamp > 0 && System.currentTimeMillis() - maxTimestamp > (long) storeConfig.getTieredStoreFileReservedTime() * 60 * 60 * 1000) {
+                    if (maxTimestamp > 0 && System.currentTimeMillis() - maxTimestamp > TimeUnit.HOURS.toMillis(flatFile.getFileReservedHours())) {
                         continue;
                     }
 
@@ -209,7 +210,7 @@ public class TieredStoreMetricsManager {
                     MessageQueue mq = flatFile.getMessageQueue();
                     long maxOffset = next.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId());
                     long maxTimestamp = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), maxOffset - 1);
-                    if (maxTimestamp > 0 && System.currentTimeMillis() - maxTimestamp > (long) storeConfig.getTieredStoreFileReservedTime() * 60 * 60 * 1000) {
+                    if (maxTimestamp > 0 && System.currentTimeMillis() - maxTimestamp > TimeUnit.HOURS.toMillis(flatFile.getFileReservedHours())) {
                         continue;
                     }
 

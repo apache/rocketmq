@@ -70,9 +70,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.compression.CompressionType;
-import org.apache.rocketmq.common.compression.Compressor;
-import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
@@ -117,11 +114,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     private ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<>();
     private MQFaultStrategy mqFaultStrategy;
     private ExecutorService asyncSenderExecutor;
-
-    // compression related
-    private int compressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
-    private CompressionType compressType = CompressionType.of(System.getProperty(MixAll.MESSAGE_COMPRESS_TYPE, "ZLIB"));
-    private final Compressor compressor = CompressorFactory.getCompressor(compressType);
 
     // backpressure related
     private Semaphore semaphoreAsyncSendNum;
@@ -900,7 +892,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                 boolean msgBodyCompressed = false;
                 if (this.tryToCompressMessage(msg)) {
                     sysFlag |= MessageSysFlag.COMPRESSED_FLAG;
-                    sysFlag |= compressType.getCompressionFlag();
+                    sysFlag |= this.defaultMQProducer.getCompressType().getCompressionFlag();
                     msgBodyCompressed = true;
                 }
 
@@ -1070,7 +1062,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         if (body != null) {
             if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
                 try {
-                    byte[] data = compressor.compress(body, compressLevel);
+                    byte[] data = this.defaultMQProducer.getCompressor().compress(body, this.defaultMQProducer.getCompressLevel());
                     if (data != null) {
                         msg.setBody(data);
                         return true;
@@ -1761,22 +1753,6 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     public ConcurrentMap<String, TopicPublishInfo> getTopicPublishInfoTable() {
         return topicPublishInfoTable;
-    }
-
-    public int getCompressLevel() {
-        return compressLevel;
-    }
-
-    public void setCompressLevel(int compressLevel) {
-        this.compressLevel = compressLevel;
-    }
-
-    public CompressionType getCompressType() {
-        return compressType;
-    }
-
-    public void setCompressType(CompressionType compressType) {
-        this.compressType = compressType;
     }
 
     public ServiceState getServiceState() {
