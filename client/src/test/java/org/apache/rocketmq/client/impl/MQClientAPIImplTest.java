@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.impl;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -1068,4 +1069,26 @@ public class MQClientAPIImplTest {
         int topicCnt = mqClientAPI.addWritePermOfBroker("127.0.0.1", "default-broker", 1000);
         assertThat(topicCnt).isEqualTo(7);
     }
+
+    @Test
+    public void testCreateTopicList_Success() throws RemotingException, InterruptedException, MQClientException {
+        doAnswer((Answer<RemotingCommand>) mock -> {
+            RemotingCommand request = mock.getArgument(1);
+
+            RemotingCommand response = RemotingCommand.createResponseCommand(null);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setOpaque(request.getOpaque());
+            return response;
+        }).when(remotingClient).invokeSync(anyString(), any(RemotingCommand.class), anyLong());
+
+        final List<TopicConfig> topicConfigList = new LinkedList<>();
+        for (int i = 0; i < 16; i++) {
+            TopicConfig topicConfig = new TopicConfig();
+            topicConfig.setTopicName("Topic" + i);
+            topicConfigList.add(topicConfig);
+        }
+
+        mqClientAPI.createTopicList(brokerAddr, topicConfigList, 10000);
+    }
+
 }
