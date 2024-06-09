@@ -17,8 +17,6 @@
 package org.apache.rocketmq.broker.slave;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
