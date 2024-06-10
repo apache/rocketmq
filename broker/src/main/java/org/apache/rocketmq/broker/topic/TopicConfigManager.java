@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.topic;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -490,7 +491,7 @@ public class TopicConfigManager extends ConfigManager {
         }
     }
 
-    public void updateTopicConfig(final TopicConfig topicConfig) {
+    private void updateSingleTopicConfigWithoutPersist(final TopicConfig topicConfig) {
         checkNotNull(topicConfig, "topicConfig shouldn't be null");
 
         Map<String, String> newAttributes = request(topicConfig);
@@ -515,8 +516,16 @@ public class TopicConfigManager extends ConfigManager {
 
         long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
         dataVersion.nextVersion(stateMachineVersion);
+    }
 
+    public void updateTopicConfig(final TopicConfig topicConfig) {
+        updateSingleTopicConfigWithoutPersist(topicConfig);
         this.persist(topicConfig.getTopicName(), topicConfig);
+    }
+
+    public void updateTopicConfigList(final List<TopicConfig> topicConfigList) {
+        topicConfigList.forEach(this::updateSingleTopicConfigWithoutPersist);
+        this.persist();
     }
 
     private synchronized void updateTieredStoreTopicMetadata(final TopicConfig topicConfig, Map<String, String> newAttributes) {

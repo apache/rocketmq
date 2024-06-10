@@ -92,6 +92,9 @@ public interface MQAdminExt extends MQAdmin {
         final TopicConfig config) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
+    void createAndUpdateTopicConfigList(final String addr,
+        final List<TopicConfig> topicConfigList) throws InterruptedException, RemotingException, MQClientException;
+
     void createAndUpdatePlainAccessConfig(final String addr,
         final PlainAccessConfig plainAccessConfig) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
