@@ -129,7 +129,9 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
         }
         if (message instanceof NotifyClientTerminationRequest) {
             NotifyClientTerminationRequest request = (NotifyClientTerminationRequest) message;
-            result = newGroupSubContexts(metadata, request.getGroup());
+            if (StringUtils.isNotBlank(request.getGroup().getName())) {
+                result = newGroupSubContexts(metadata, request.getGroup());
+            }
         }
         if (message instanceof ChangeInvisibleDurationRequest) {
             ChangeInvisibleDurationRequest request = (ChangeInvisibleDurationRequest) message;
