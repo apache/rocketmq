@@ -21,11 +21,11 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.srvutil.ServerUtil;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class UpdateTopicListSubCommandTest {
+public class UpdateTopicListSubCommandTest {
 
     @Test
     public void testArguments() {
