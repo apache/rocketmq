@@ -16,19 +16,6 @@
  */
 package org.apache.rocketmq.client.producer;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -41,9 +28,11 @@ import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -58,13 +47,33 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -639,5 +648,62 @@ public class DefaultMQProducerTest {
             assertionErrors[0] = e;
         }
         return assertionErrors[0];
+    }
+
+    @Test
+    public void assertCreateDefaultMQProducer() {
+        String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
+        DefaultMQProducer producer1 = new DefaultMQProducer(producerGroupTemp);
+        assertNotNull(producer1);
+        assertEquals(producerGroupTemp, producer1.getProducerGroup());
+        assertNotNull(producer1.getDefaultMQProducerImpl());
+        assertTrue(producer1.getTotalBatchMaxBytes() > 0);
+        assertTrue(producer1.getBatchMaxBytes() > 0);
+        assertTrue(producer1.getBatchMaxDelayMs() > 0);
+        assertNull(producer1.getTopics());
+        assertFalse(producer1.isEnableTrace());
+        assertTrue(UtilAll.isBlank(producer1.getTraceTopic()));
+        DefaultMQProducer producer2 = new DefaultMQProducer(producerGroupTemp, mock(RPCHook.class));
+        assertNotNull(producer2);
+        assertEquals(producerGroupTemp, producer2.getProducerGroup());
+        assertNotNull(producer2.getDefaultMQProducerImpl());
+        assertTrue(producer2.getTotalBatchMaxBytes() > 0);
+        assertTrue(producer2.getBatchMaxBytes() > 0);
+        assertTrue(producer2.getBatchMaxDelayMs() > 0);
+        assertNull(producer2.getTopics());
+        assertFalse(producer2.isEnableTrace());
+        assertTrue(UtilAll.isBlank(producer2.getTraceTopic()));
+        DefaultMQProducer producer3 = new DefaultMQProducer(producerGroupTemp, mock(RPCHook.class), Collections.singletonList("custom_topic"));
+        assertNotNull(producer3);
+        assertEquals(producerGroupTemp, producer3.getProducerGroup());
+        assertNotNull(producer3.getDefaultMQProducerImpl());
+        assertTrue(producer3.getTotalBatchMaxBytes() > 0);
+        assertTrue(producer3.getBatchMaxBytes() > 0);
+        assertTrue(producer3.getBatchMaxDelayMs() > 0);
+        assertNotNull(producer3.getTopics());
+        assertEquals(1, producer3.getTopics().size());
+        assertFalse(producer3.isEnableTrace());
+        assertTrue(UtilAll.isBlank(producer3.getTraceTopic()));
+        DefaultMQProducer producer4 = new DefaultMQProducer(producerGroupTemp, mock(RPCHook.class), true, "custom_trace_topic");
+        assertNotNull(producer4);
+        assertEquals(producerGroupTemp, producer4.getProducerGroup());
+        assertNotNull(producer4.getDefaultMQProducerImpl());
+        assertTrue(producer4.getTotalBatchMaxBytes() > 0);
+        assertTrue(producer4.getBatchMaxBytes() > 0);
+        assertTrue(producer4.getBatchMaxDelayMs() > 0);
+        assertNull(producer4.getTopics());
+        assertTrue(producer4.isEnableTrace());
+        assertEquals("custom_trace_topic", producer4.getTraceTopic());
+        DefaultMQProducer producer5 = new DefaultMQProducer(producerGroupTemp, mock(RPCHook.class), Collections.singletonList("custom_topic"), true, "custom_trace_topic");
+        assertNotNull(producer5);
+        assertEquals(producerGroupTemp, producer5.getProducerGroup());
+        assertNotNull(producer5.getDefaultMQProducerImpl());
+        assertTrue(producer5.getTotalBatchMaxBytes() > 0);
+        assertTrue(producer5.getBatchMaxBytes() > 0);
+        assertTrue(producer5.getBatchMaxDelayMs() > 0);
+        assertNotNull(producer5.getTopics());
+        assertEquals(1, producer5.getTopics().size());
+        assertTrue(producer5.isEnableTrace());
+        assertEquals("custom_trace_topic", producer5.getTraceTopic());
     }
 }
