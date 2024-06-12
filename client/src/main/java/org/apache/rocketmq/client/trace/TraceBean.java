@@ -21,7 +21,7 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageType;
 
 public class TraceBean {
-    private static final String LOCAL_ADDRESS = UtilAll.ipToIPv4Str(UtilAll.getIP());
+    private static final String LOCAL_ADDRESS;
     private String topic = "";
     private String msgId = "";
     private String offsetMsgId = "";
@@ -36,6 +36,15 @@ public class TraceBean {
     private LocalTransactionState transactionState;
     private String transactionId;
     private boolean fromTransactionCheck;
+
+    static {
+        byte[] ip = UtilAll.getIP();
+        if (UtilAll.isInternalIP(ip)) {
+            LOCAL_ADDRESS = UtilAll.ipToIPv4Str(ip);
+        } else {
+            LOCAL_ADDRESS = UtilAll.ipToIPv6Str(ip);
+        }
+    }
 
     public MessageType getMsgType() {
         return msgType;
