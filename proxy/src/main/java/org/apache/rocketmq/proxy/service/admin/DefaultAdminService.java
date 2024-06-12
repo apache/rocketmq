@@ -73,7 +73,7 @@ public class DefaultAdminService implements AdminService {
         try {
             sampleTopicRouteData = this.getTopicRouteDataDirectlyFromNameServer(sampleTopic);
         } catch (Exception e) {
-            log.error("create topic {} failed.", createTopic, e);
+            log.error("get cur topic route {} failed.", sampleTopic, e);
             return false;
         }
 
