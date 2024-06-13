@@ -678,10 +678,6 @@ public class UtilAll {
     }
 
     public static List<String> split(String str, String splitter) {
-        if (str == null) {
-            return null;
-        }
-
         if (StringUtils.isBlank(str)) {
             return new ArrayList<>();
         }
