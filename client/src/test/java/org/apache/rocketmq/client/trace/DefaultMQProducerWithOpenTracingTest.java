@@ -89,6 +89,8 @@ public class DefaultMQProducerWithOpenTracingTest {
                 new SendMessageOpenTracingHookImpl(tracer));
         producer.setNamesrvAddr("127.0.0.1:9876");
         message = new Message(topic, new byte[] {'a', 'b', 'c'});
+        // disable trace to let mock trace work
+        producer.setEnableTrace(false);
 
         producer.start();
 

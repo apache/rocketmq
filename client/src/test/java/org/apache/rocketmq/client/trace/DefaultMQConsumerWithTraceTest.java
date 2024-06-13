@@ -128,10 +128,8 @@ public class DefaultMQConsumerWithTraceTest {
         normalPushConsumer = new DefaultMQPushConsumer(consumerGroupNormal, false, "");
         customTraceTopicpushConsumer = new DefaultMQPushConsumer(consumerGroup, true, customerTraceTopic);
         pushConsumer.setNamesrvAddr("127.0.0.1:9876");
+        pushConsumer.setUseTLS(true);
         pushConsumer.setPullInterval(60 * 1000);
-
-        asyncTraceDispatcher = (AsyncTraceDispatcher) pushConsumer.getTraceDispatcher();
-        traceProducer = asyncTraceDispatcher.getTraceProducer();
 
         pushConsumer.registerMessageListener(new MessageListenerConcurrently() {
             @Override
@@ -156,6 +154,9 @@ public class DefaultMQConsumerWithTraceTest {
         pushConsumer.subscribe(topic, "*");
 
         pushConsumer.start();
+
+        asyncTraceDispatcher = (AsyncTraceDispatcher) pushConsumer.getTraceDispatcher();
+        traceProducer = asyncTraceDispatcher.getTraceProducer();
 
         mQClientFactory = spy(pushConsumerImpl.getmQClientFactory());
         mQClientTraceFactory = spy(pushConsumerImpl.getmQClientFactory());
@@ -242,9 +243,6 @@ public class DefaultMQConsumerWithTraceTest {
     
     @Test
     public void testPushConsumerWithTraceTLS() {
-        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("consumerGroup", true);
-        consumer.setUseTLS(true);
-        AsyncTraceDispatcher asyncTraceDispatcher = (AsyncTraceDispatcher) consumer.getTraceDispatcher();
         Assert.assertTrue(asyncTraceDispatcher.getTraceProducer().isUseTLS());
     }
 
