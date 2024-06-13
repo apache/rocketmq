@@ -16,20 +16,6 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.io.ByteArrayOutputStream;
-import java.lang.reflect.Field;
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
@@ -37,6 +23,8 @@ import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
 import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragelyByCircle;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.CommunicationMode;
@@ -53,6 +41,7 @@ import org.apache.rocketmq.client.impl.consumer.PullRequest;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.impl.consumer.RebalanceImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -62,7 +51,6 @@ import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -71,8 +59,27 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
+import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -80,6 +87,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -206,7 +214,7 @@ public class DefaultMQPushConsumerTest {
 
     @Test
     public void testStart_OffsetShouldNotNUllAfterStart() {
-        Assert.assertNotNull(pushConsumer.getOffsetStore());
+        assertNotNull(pushConsumer.getOffsetStore());
     }
 
     @Test
@@ -387,5 +395,23 @@ public class DefaultMQPushConsumerTest {
         PullMessageService pullMessageService = mQClientFactory.getPullMessageService();
         pullMessageService.executePullRequestImmediately(createPullRequest());
         assertThat(messageExts[0]).isNull();
+    }
+
+    @Test
+    public void assertCreatePushConsumer() {
+        DefaultMQPushConsumer pushConsumer1 = new DefaultMQPushConsumer(consumerGroup, mock(RPCHook.class));
+        assertNotNull(pushConsumer1);
+        assertEquals(consumerGroup, pushConsumer1.getConsumerGroup());
+        assertTrue(pushConsumer1.getAllocateMessageQueueStrategy() instanceof AllocateMessageQueueAveragely);
+        assertNotNull(pushConsumer1.defaultMQPushConsumerImpl);
+        assertFalse(pushConsumer1.isEnableTrace());
+        assertTrue(UtilAll.isBlank(pushConsumer1.getTraceTopic()));
+        DefaultMQPushConsumer pushConsumer2 = new DefaultMQPushConsumer(consumerGroup, mock(RPCHook.class), new AllocateMessageQueueAveragelyByCircle());
+        assertNotNull(pushConsumer2);
+        assertEquals(consumerGroup, pushConsumer2.getConsumerGroup());
+        assertTrue(pushConsumer2.getAllocateMessageQueueStrategy() instanceof AllocateMessageQueueAveragelyByCircle);
+        assertNotNull(pushConsumer2.defaultMQPushConsumerImpl);
+        assertFalse(pushConsumer2.isEnableTrace());
+        assertTrue(UtilAll.isBlank(pushConsumer2.getTraceTopic()));
     }
 }
