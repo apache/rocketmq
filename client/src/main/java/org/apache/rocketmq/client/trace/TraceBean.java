@@ -39,7 +39,7 @@ public class TraceBean {
 
     static {
         byte[] ip = UtilAll.getIP();
-        if (UtilAll.isInternalIP(ip)) {
+        if (ip.length == 4) {
             LOCAL_ADDRESS = UtilAll.ipToIPv4Str(ip);
         } else {
             LOCAL_ADDRESS = UtilAll.ipToIPv6Str(ip);
