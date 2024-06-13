@@ -39,19 +39,23 @@ public class ListDataCollectorImpl implements DataCollector {
         }
     }
 
+    @Override
     public Collection<Object> getAllData() {
         return datas;
     }
 
+    @Override
     public synchronized void resetData() {
         datas.clear();
         unlockIncrement();
     }
 
+    @Override
     public long getDataSizeWithoutDuplicate() {
         return getAllDataWithoutDuplicate().size();
     }
 
+    @Override
     public synchronized void addData(Object data) {
         if (lock) {
             return;
@@ -59,18 +63,22 @@ public class ListDataCollectorImpl implements DataCollector {
         datas.add(data);
     }
 
+    @Override
     public long getDataSize() {
         return datas.size();
     }
 
+    @Override
     public boolean isRepeatedData(Object data) {
         return Collections.frequency(datas, data) == 1;
     }
 
+    @Override
     public synchronized Collection<Object> getAllDataWithoutDuplicate() {
         return new HashSet<Object>(datas);
     }
 
+    @Override
     public int getRepeatedTimeForData(Object data) {
         int res = 0;
         for (Object obj : datas) {
@@ -81,14 +89,17 @@ public class ListDataCollectorImpl implements DataCollector {
         return res;
     }
 
+    @Override
     public synchronized void removeData(Object data) {
         datas.remove(data);
     }
 
+    @Override
     public void lockIncrement() {
         lock = true;
     }
 
+    @Override
     public void unlockIncrement() {
         lock = false;
     }
