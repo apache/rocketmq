@@ -322,7 +322,7 @@ public class PopReviveService extends ServiceThread {
                 if (endTime != 0 && System.currentTimeMillis() - endTime > 3 * PopAckConstants.SECOND && timerDelay <= 0 && commitLogDelay <= 0) {
                     endTime = System.currentTimeMillis();
                 }
-                POP_LOGGER.info("reviveQueueId={}, offset is {}, can not get new msg, old endTime {}, new endTime {}, timerDelay={}, commitLogDelay={} ",
+                POP_LOGGER.debug("reviveQueueId={}, offset is {}, can not get new msg, old endTime {}, new endTime {}, timerDelay={}, commitLogDelay={} ",
                     queueId, offset, old, endTime, timerDelay, commitLogDelay);
                 if (endTime - firstRt > PopAckConstants.ackTimeInterval + PopAckConstants.SECOND) {
                     break;
@@ -528,7 +528,7 @@ public class PopReviveService extends ServiceThread {
                     GetMessageStatus getMessageStatus = resultPair.getObject1();
                     MessageExt message = resultPair.getObject2();
                     if (message == null) {
-                        POP_LOGGER.warn("reviveQueueId={}, can not get biz msg topic is {}, offset is {}, then continue",
+                        POP_LOGGER.debug("reviveQueueId={}, can not get biz msg topic is {}, offset is {}, then continue",
                             queueId, popCheckPoint.getTopic(), msgOffset);
                         switch (getMessageStatus) {
                             case MESSAGE_WAS_REMOVING:
