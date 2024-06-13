@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import com.google.common.util.concurrent.RateLimiter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
@@ -131,6 +132,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private ConsumeMessageService consumeMessagePopService;
     private long queueFlowControlTimes = 0;
     private long queueMaxSpanFlowControlTimes = 0;
+    private RateLimiter consumeRateLimiter;
 
     //10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
     private final int[] popDelayLevel = new int[] {10, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 1200, 1800, 3600, 7200};
@@ -241,6 +243,10 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void setOffsetStore(OffsetStore offsetStore) {
         this.offsetStore = offsetStore;
+    }
+
+    public RateLimiter getConsumeRateLimiter() {
+        return consumeRateLimiter;
     }
 
     public void pullMessage(final PullRequest pullRequest) {
@@ -982,6 +988,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 }
 
                 mQClientFactory.start();
+                this.consumeRateLimiter = RateLimiter.create(this.defaultMQPushConsumer.getConsumptionRate());
                 log.info("the consumer [{}] start OK.", this.defaultMQPushConsumer.getConsumerGroup());
                 this.serviceState = ServiceState.RUNNING;
                 break;
