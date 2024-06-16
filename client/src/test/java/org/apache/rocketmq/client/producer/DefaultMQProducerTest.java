@@ -85,16 +85,14 @@ public class DefaultMQProducerTest {
     private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
-    @Mock
-    private NettyRemotingClient nettyRemotingClient;
 
     private DefaultMQProducer producer;
     private Message message;
     private Message zeroMsg;
     private Message bigMessage;
-    private String topic = "FooBar";
-    private String producerGroupPrefix = "FooBar_PID";
-    private long defaultTimeout = 3000L;
+    private final String topic = "FooBar";
+    private final String producerGroupPrefix = "FooBar_PID";
+    private final long defaultTimeout = 3000L;
 
     @Before
     public void init() throws Exception {
@@ -739,7 +737,7 @@ public class DefaultMQProducerTest {
         setDefaultMQProducerImpl();
         MessageQueue mq = mock(MessageQueue.class);
         long result = producer.searchOffset(mq, System.currentTimeMillis());
-        assertEquals(0, result);
+        assertEquals(0L, result);
     }
 
     @Test
