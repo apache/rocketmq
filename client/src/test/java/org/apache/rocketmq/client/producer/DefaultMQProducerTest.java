@@ -744,24 +744,55 @@ public class DefaultMQProducerTest {
 
     @Test
     public void assertBatchMaxDelayMs() throws NoSuchFieldException, IllegalAccessException {
-        setProduceAccumulator();
+        setProduceAccumulator(true);
+        assertEquals(0, producer.getBatchMaxDelayMs());
+        setProduceAccumulator(false);
+        assertEquals(10, producer.getBatchMaxDelayMs());
         producer.batchMaxDelayMs(1000);
         assertEquals(1000, producer.getBatchMaxDelayMs());
     }
 
     @Test
     public void assertBatchMaxBytes() throws NoSuchFieldException, IllegalAccessException {
-        setProduceAccumulator();
-        producer.batchMaxBytes(2 * 1024);
-        assertEquals(2 * 1024, producer.getBatchMaxBytes());
+        setProduceAccumulator(true);
+        assertEquals(0L, producer.getBatchMaxBytes());
+        setProduceAccumulator(false);
+        assertEquals(32 * 1024L, producer.getBatchMaxBytes());
+        producer.batchMaxBytes(64 * 1024L);
+        assertEquals(64 * 1024L, producer.getBatchMaxBytes());
     }
 
-    //    @Test
-    //    public void assertTotalBatchMaxBytes() throws NoSuchFieldException, IllegalAccessException {
-    //        setProduceAccumulator();
-    //        producer.totalBatchMaxBytes(32 * 1024 * 1024);
-    //        assertEquals(32 * 1024 * 1024, producer.getTotalBatchMaxBytes());
-    //    }
+    @Test
+    public void assertTotalBatchMaxBytes() throws NoSuchFieldException, IllegalAccessException {
+        setProduceAccumulator(true);
+        assertEquals(0L, producer.getTotalBatchMaxBytes());
+    }
+
+    @Test
+    public void assertGetRetryResponseCodes() {
+        assertNotNull(producer.getRetryResponseCodes());
+        assertEquals(7, producer.getRetryResponseCodes().size());
+    }
+
+    @Test
+    public void assertIsSendLatencyFaultEnable() {
+        assertFalse(producer.isSendLatencyFaultEnable());
+    }
+
+    @Test
+    public void assertGetLatencyMax() {
+        assertNotNull(producer.getLatencyMax());
+    }
+
+    @Test
+    public void assertGetNotAvailableDuration() {
+        assertNotNull(producer.getNotAvailableDuration());
+    }
+
+    @Test
+    public void assertIsRetryAnotherBrokerWhenNotStoreOK() {
+        assertFalse(producer.isRetryAnotherBrokerWhenNotStoreOK());
+    }
 
     private void setOtherParam() {
         producer.setCreateTopicKey("createTopicKey");
@@ -782,8 +813,11 @@ public class DefaultMQProducerTest {
         producer.setAsyncSenderExecutor(executorService);
     }
 
-    private void setProduceAccumulator() throws NoSuchFieldException, IllegalAccessException {
-        ProduceAccumulator accumulator = new ProduceAccumulator("instanceName");
+    private void setProduceAccumulator(final boolean isDefault) throws NoSuchFieldException, IllegalAccessException {
+        ProduceAccumulator accumulator = null;
+        if (!isDefault) {
+            accumulator = new ProduceAccumulator("instanceName");
+        }
         setField(producer, "produceAccumulator", accumulator);
     }
 
