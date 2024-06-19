@@ -260,7 +260,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             continue;
                         }
 
-                        if (needDiscard(msgExt, transactionCheckMax) || needSkip(msgExt)) {
+                        if (needSkip(msgExt)) {
                             listener.resolveDiscardMsg(msgExt);
                             newOffset = i + 1;
                             i++;
@@ -296,7 +296,13 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                             || opMsg != null && opMsg.get(opMsg.size() - 1).getBornTimestamp() - startTime > transactionTimeout
                             || valueOfCurrentMinusBorn <= -1;
 
-                        if (isNeedCheck) {
+                        if (isNeedCheck) {   
+                            if (needDiscard(msgExt, transactionCheckMax)) {
+                                listener.resolveDiscardMsg(msgExt);
+                                newOffset = i + 1;
+                                i++;
+                                continue;
+                            }
 
                             if (!putBackHalfMsgQueue(msgExt, i)) {
                                 continue;
