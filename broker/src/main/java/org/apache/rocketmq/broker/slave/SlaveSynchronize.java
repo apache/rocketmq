@@ -17,8 +17,6 @@
 package org.apache.rocketmq.broker.slave;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
@@ -85,12 +83,7 @@ public class SlaveSynchronize {
                     ConcurrentMap<String, TopicConfig> newTopicConfigTable = topicWrapper.getTopicConfigTable();
                     //delete
                     ConcurrentMap<String, TopicConfig> topicConfigTable = this.brokerController.getTopicConfigManager().getTopicConfigTable();
-                    for (Iterator<Map.Entry<String, TopicConfig>> it = topicConfigTable.entrySet().iterator(); it.hasNext(); ) {
-                        Map.Entry<String, TopicConfig> item = it.next();
-                        if (!newTopicConfigTable.containsKey(item.getKey())) {
-                            it.remove();
-                        }
-                    }
+                    topicConfigTable.entrySet().removeIf(item -> !newTopicConfigTable.containsKey(item.getKey()));
                     //update
                     topicConfigTable.putAll(newTopicConfigTable);
 
@@ -104,12 +97,7 @@ public class SlaveSynchronize {
                     ConcurrentMap<String, TopicConfig> newTopicConfigTable = topicWrapper.getTopicConfigTable();
                     //delete
                     ConcurrentMap<String, TopicConfig> topicConfigTable = this.brokerController.getTopicConfigManager().getTopicConfigTable();
-                    for (Iterator<Map.Entry<String, TopicConfig>> it = topicConfigTable.entrySet().iterator(); it.hasNext(); ) {
-                        Map.Entry<String, TopicConfig> item = it.next();
-                        if (!newTopicConfigTable.containsKey(item.getKey())) {
-                            it.remove();
-                        }
-                    }
+                    topicConfigTable.entrySet().removeIf(item -> !newTopicConfigTable.containsKey(item.getKey()));
                     //update
                     topicConfigTable.putAll(newTopicConfigTable);
 
