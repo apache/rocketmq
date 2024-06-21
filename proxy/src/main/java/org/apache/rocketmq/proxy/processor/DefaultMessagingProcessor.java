@@ -334,6 +334,12 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public void addTransactionData(ProxyContext ctx, String brokerName, String topic, String producerGroup,
+        long tranStateTableOffset, long commitLogOffset, String transactionId) {
+        this.transactionProcessor.addTransactionData(ctx, brokerName, topic, producerGroup, tranStateTableOffset, commitLogOffset, transactionId);
+    }
+
+    @Override
     public ProxyRelayService getProxyRelayService() {
         return this.serviceManager.getProxyRelayService();
     }

@@ -20,10 +20,17 @@ package org.apache.rocketmq.proxy.remoting.activity;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -33,6 +40,7 @@ import org.apache.rocketmq.proxy.service.channel.SimpleChannel;
 import org.apache.rocketmq.proxy.service.channel.SimpleChannelHandlerContext;
 import org.apache.rocketmq.proxy.service.metadata.MetadataService;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -97,6 +105,47 @@ public class SendMessageActivityTest extends InitConfigTest {
             .thenReturn(CompletableFuture.completedFuture(expectResponse));
         RemotingCommand response = sendMessageActivity.processRequest0(ctx, remotingCommand, null);
         assertThat(response).isNull();
+        verify(ctx, times(1)).writeAndFlush(eq(expectResponse));
+    }
+
+    @Test
+    public void testSendTransactionMessage() throws Exception {
+        when(metadataServiceMock.getTopicMessageType(any(), eq(topic))).thenReturn(TopicMessageType.TRANSACTION);
+        Message message = new Message(topic, "test transaction".getBytes());
+        MessageAccessor.putProperty(message, MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+        MessageClientIDSetter.setUniqID(message);
+        SendMessageRequestHeader sendMessageRequestHeader = new SendMessageRequestHeader();
+        sendMessageRequestHeader.setTopic(topic);
+        sendMessageRequestHeader.setProducerGroup(producerGroup);
+        sendMessageRequestHeader.setDefaultTopic("");
+        sendMessageRequestHeader.setDefaultTopicQueueNums(0);
+        sendMessageRequestHeader.setQueueId(0);
+        sendMessageRequestHeader.setSysFlag(MessageSysFlag.TRANSACTION_PREPARED_TYPE);
+        sendMessageRequestHeader.setBrokerName(brokerName);
+        sendMessageRequestHeader.setProperties(MessageDecoder.messageProperties2String(message.getProperties()));
+        sendMessageRequestHeader.setFlag(message.getFlag());
+        sendMessageRequestHeader.setBornTimestamp(System.currentTimeMillis());
+        RemotingCommand remotingCommand = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, sendMessageRequestHeader);
+        remotingCommand.setBody(message.getBody());
+        remotingCommand.makeCustomHeaderToNet();
+
+        long queueOffset = 10;
+        long commitLogOffset = 1000000;
+        String transactionId = MessageClientIDSetter.getUniqID(message);
+        String offsetId = MessageDecoder.createMessageId(ByteBuffer.allocate(16), MessageExt.socketAddress2ByteBuffer(new InetSocketAddress("127.0.0.1", 10911)), commitLogOffset);
+        SendMessageResponseHeader responseHeader = new SendMessageResponseHeader();
+        responseHeader.setMsgId(offsetId);
+        responseHeader.setTransactionId(transactionId);
+        responseHeader.setQueueId(0);
+        responseHeader.setQueueOffset(queueOffset);
+        RemotingCommand expectResponse = RemotingCommand.createResponseCommandWithHeader(ResponseCode.SUCCESS, responseHeader);
+        expectResponse.makeCustomHeaderToNet();
+
+        when(messagingProcessorMock.request(any(), eq(brokerName), eq(remotingCommand), anyLong()))
+            .thenReturn(CompletableFuture.completedFuture(expectResponse));
+        RemotingCommand response = sendMessageActivity.processRequest0(ctx, remotingCommand, null);
+        assertThat(response).isNull();
+        verify(messagingProcessorMock, times(1)).addTransactionData(any(), eq(brokerName), eq(topic), eq(producerGroup), eq(queueOffset), eq(commitLogOffset), eq(transactionId));
         verify(ctx, times(1)).writeAndFlush(eq(expectResponse));
     }
 }

@@ -20,10 +20,14 @@ package org.apache.rocketmq.proxy.remoting.activity;
 import io.netty.channel.ChannelHandlerContext;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageId;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -32,6 +36,7 @@ import org.apache.rocketmq.proxy.processor.validator.DefaultTopicMessageTypeVali
 import org.apache.rocketmq.proxy.processor.validator.TopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 
 public class SendMessageActivity extends AbstractRemotingActivity {
     TopicMessageTypeValidator topicMessageTypeValidator;
@@ -80,11 +85,34 @@ public class SendMessageActivity extends AbstractRemotingActivity {
                 messagingProcessor.addTransactionSubscription(context, requestHeader.getProducerGroup(), requestHeader.getTopic());
             }
         }
-        return request(ctx, request, context, Duration.ofSeconds(3).toMillis());
+        return request(ctx, request, context, Duration.ofSeconds(3).toMillis(), r -> addTransactionData(context, requestHeader, r));
     }
 
     protected RemotingCommand consumerSendMessage(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
         return request(ctx, request, context, Duration.ofSeconds(3).toMillis());
+    }
+
+    protected void addTransactionData(ProxyContext ctx, SendMessageRequestHeader requestHeader, RemotingCommand response) {
+        int tranType = MessageSysFlag.getTransactionValue(requestHeader.getSysFlag());
+        if (tranType != MessageSysFlag.TRANSACTION_PREPARED_TYPE || response.getCode() != ResponseCode.SUCCESS) {
+            return;
+        }
+        try {
+            SendMessageResponseHeader responseHeader = response.decodeCommandCustomHeader(SendMessageResponseHeader.class);
+            Objects.requireNonNull(responseHeader.getTransactionId());
+            MessageId messageId = MessageDecoder.decodeMessageId(responseHeader.getMsgId());
+            messagingProcessor.addTransactionData(
+                ctx,
+                requestHeader.getBrokerName(),
+                requestHeader.getTopic(),
+                requestHeader.getProducerGroup(),
+                responseHeader.getQueueOffset(),
+                messageId.getOffset(),
+                responseHeader.getTransactionId()
+            );
+        } catch (Throwable e) {
+            log.error("addTransactionData failed, request: {}, response: {}", requestHeader, response, e);
+        }
     }
 }

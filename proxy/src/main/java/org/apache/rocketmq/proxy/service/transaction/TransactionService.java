@@ -17,7 +17,6 @@
 package org.apache.rocketmq.proxy.service.transaction;
 
 import java.util.List;
-import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 
 public interface TransactionService {
@@ -30,11 +29,9 @@ public interface TransactionService {
 
     void unSubscribeAllTransactionTopic(ProxyContext ctx, String group);
 
-    TransactionData addTransactionDataByBrokerAddr(ProxyContext ctx, String brokerAddr, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
-        Message message);
+    TransactionData addTransactionDataByBrokerAddr(ProxyContext ctx, String brokerAddr, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId);
 
-    TransactionData addTransactionDataByBrokerName(ProxyContext ctx, String brokerName, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
-        Message message);
+    TransactionData addTransactionDataByBrokerName(ProxyContext ctx, String brokerName, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId);
 
     EndTransactionRequestData genEndTransactionRequestHeader(ProxyContext ctx, String topic, String producerGroup, Integer commitOrRollback,
         boolean fromTransactionCheck, String msgId, String transactionId);

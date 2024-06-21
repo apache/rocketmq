@@ -74,4 +74,10 @@ public class TransactionProcessor extends AbstractProcessor {
     public void addTransactionSubscription(ProxyContext ctx, String producerGroup, String topic) {
         this.serviceManager.getTransactionService().addTransactionSubscription(ctx, producerGroup, topic);
     }
+
+    public void addTransactionData(ProxyContext ctx, String brokerName, String topic, String producerGroup,
+        long tranStateTableOffset, long commitLogOffset, String transactionId) {
+        this.serviceManager.getTransactionService().addTransactionDataByBrokerName(
+            ctx, brokerName, topic, producerGroup, tranStateTableOffset, commitLogOffset, transactionId);
+    }
 }

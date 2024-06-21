@@ -88,8 +88,7 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
             PRODUCER_GROUP,
             RANDOM.nextLong(),
             RANDOM.nextLong(),
-            txId,
-            message
+            txId
         );
         assertNotNull(transactionData);
 
@@ -132,8 +131,7 @@ public class AbstractTransactionServiceTest extends InitConfigTest {
             PRODUCER_GROUP,
             RANDOM.nextLong(),
             RANDOM.nextLong(),
-            txId,
-            message
+            txId
         );
         transactionService.onSendCheckTransactionStateFailed(ProxyContext.createForInner(this.getClass()), PRODUCER_GROUP, transactionData);
         assertNull(transactionService.genEndTransactionRequestHeader(

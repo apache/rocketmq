@@ -103,7 +103,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
             anyString(),
             tranStateTableOffsetCaptor.capture(),
             commitLogOffsetCaptor.capture(),
-            anyString(), any())).thenReturn(mock(TransactionData.class));
+            anyString())).thenReturn(mock(TransactionData.class));
 
         List<SendResult> sendResultList = this.producerProcessor.sendMessage(
             createContext(),
@@ -159,7 +159,7 @@ public class ProducerProcessorTest extends BaseProcessorTest {
             anyString(),
             tranStateTableOffsetCaptor.capture(),
             commitLogOffsetCaptor.capture(),
-            anyString(), any())).thenReturn(mock(TransactionData.class));
+            anyString())).thenReturn(mock(TransactionData.class));
 
         List<SendResult> sendResultList = this.producerProcessor.sendMessage(
             createContext(),
