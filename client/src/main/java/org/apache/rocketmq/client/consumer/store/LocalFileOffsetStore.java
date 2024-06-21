@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -27,13 +28,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.client.log.ClientLogger;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.help.FAQUrl;
-import org.apache.rocketmq.logging.InternalLogger;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
  * Local storage implementation
@@ -42,12 +43,12 @@ public class LocalFileOffsetStore implements OffsetStore {
     public final static String LOCAL_OFFSET_STORE_DIR = System.getProperty(
         "rocketmq.client.localOffsetStoreDir",
         System.getProperty("user.home") + File.separator + ".rocketmq_offsets");
-    private final static InternalLogger log = ClientLogger.getLog();
+    private final static Logger log = LoggerFactory.getLogger(LocalFileOffsetStore.class);
     private final MQClientInstance mQClientFactory;
     private final String groupName;
     private final String storePath;
-    private ConcurrentMap<MessageQueue, AtomicLong> offsetTable =
-        new ConcurrentHashMap<MessageQueue, AtomicLong>();
+    private ConcurrentMap<MessageQueue, ControllableOffset> offsetTable =
+        new ConcurrentHashMap<>();
 
     public LocalFileOffsetStore(MQClientInstance mQClientFactory, String groupName) {
         this.mQClientFactory = mQClientFactory;
@@ -62,14 +63,13 @@ public class LocalFileOffsetStore implements OffsetStore {
     public void load() throws MQClientException {
         OffsetSerializeWrapper offsetSerializeWrapper = this.readLocalOffset();
         if (offsetSerializeWrapper != null && offsetSerializeWrapper.getOffsetTable() != null) {
-            offsetTable.putAll(offsetSerializeWrapper.getOffsetTable());
-
-            for (MessageQueue mq : offsetSerializeWrapper.getOffsetTable().keySet()) {
-                AtomicLong offset = offsetSerializeWrapper.getOffsetTable().get(mq);
+            for (Entry<MessageQueue, AtomicLong> mqEntry : offsetSerializeWrapper.getOffsetTable().entrySet()) {
+                AtomicLong offset = mqEntry.getValue();
+                offsetTable.put(mqEntry.getKey(), new ControllableOffset(offset.get()));
                 log.info("load consumer's offset, {} {} {}",
-                    this.groupName,
-                    mq,
-                    offset.get());
+                        this.groupName,
+                        mqEntry.getKey(),
+                        offset.get());
             }
         }
     }
@@ -77,18 +77,26 @@ public class LocalFileOffsetStore implements OffsetStore {
     @Override
     public void updateOffset(MessageQueue mq, long offset, boolean increaseOnly) {
         if (mq != null) {
-            AtomicLong offsetOld = this.offsetTable.get(mq);
+            ControllableOffset offsetOld = this.offsetTable.get(mq);
             if (null == offsetOld) {
-                offsetOld = this.offsetTable.putIfAbsent(mq, new AtomicLong(offset));
+                offsetOld = this.offsetTable.putIfAbsent(mq, new ControllableOffset(offset));
             }
 
             if (null != offsetOld) {
                 if (increaseOnly) {
-                    MixAll.compareAndIncreaseOnly(offsetOld, offset);
+                    offsetOld.update(offset, true);
                 } else {
-                    offsetOld.set(offset);
+                    offsetOld.update(offset);
                 }
             }
+        }
+    }
+
+    @Override
+    public void updateAndFreezeOffset(MessageQueue mq, long offset) {
+        if (mq != null) {
+            this.offsetTable.computeIfAbsent(mq, k -> new ControllableOffset(offset))
+                .updateAndFreeze(offset);
         }
     }
 
@@ -98,9 +106,9 @@ public class LocalFileOffsetStore implements OffsetStore {
             switch (type) {
                 case MEMORY_FIRST_THEN_STORE:
                 case READ_FROM_MEMORY: {
-                    AtomicLong offset = this.offsetTable.get(mq);
+                    ControllableOffset offset = this.offsetTable.get(mq);
                     if (offset != null) {
-                        return offset.get();
+                        return offset.getOffset();
                     } else if (ReadOffsetType.READ_FROM_MEMORY == type) {
                         return -1;
                     }
@@ -130,13 +138,23 @@ public class LocalFileOffsetStore implements OffsetStore {
 
     @Override
     public void persistAll(Set<MessageQueue> mqs) {
-        if (null == mqs || mqs.isEmpty())
+        if (null == mqs || mqs.isEmpty()) {
             return;
+        }
+        OffsetSerializeWrapper offsetSerializeWrapper = null;
+        try {
+            offsetSerializeWrapper = readLocalOffset();
+        } catch (MQClientException e) {
+            log.error("readLocalOffset exception", e);
+            return;
+        }
 
-        OffsetSerializeWrapper offsetSerializeWrapper = new OffsetSerializeWrapper();
-        for (Map.Entry<MessageQueue, AtomicLong> entry : this.offsetTable.entrySet()) {
+        if (offsetSerializeWrapper == null) {
+            offsetSerializeWrapper = new OffsetSerializeWrapper();
+        }
+        for (Map.Entry<MessageQueue, ControllableOffset> entry : this.offsetTable.entrySet()) {
             if (mqs.contains(entry.getKey())) {
-                AtomicLong offset = entry.getValue();
+                AtomicLong offset = new AtomicLong(entry.getValue().getOffset());
                 offsetSerializeWrapper.getOffsetTable().put(entry.getKey(), offset);
             }
         }
@@ -153,11 +171,40 @@ public class LocalFileOffsetStore implements OffsetStore {
 
     @Override
     public void persist(MessageQueue mq) {
+        if (mq == null) {
+            return;
+        }
+        ControllableOffset offset = this.offsetTable.get(mq);
+        if (offset != null) {
+            OffsetSerializeWrapper offsetSerializeWrapper = null;
+            try {
+                offsetSerializeWrapper = readLocalOffset();
+            } catch (MQClientException e) {
+                log.error("readLocalOffset exception", e);
+                return;
+            }
+            if (offsetSerializeWrapper == null) {
+                offsetSerializeWrapper = new OffsetSerializeWrapper();
+            }
+            offsetSerializeWrapper.getOffsetTable().put(mq, new AtomicLong(offset.getOffset()));
+            String jsonString = offsetSerializeWrapper.toJson(true);
+            if (jsonString != null) {
+                try {
+                    MixAll.string2File(jsonString, this.storePath);
+                } catch (IOException e) {
+                    log.error("persist consumer offset exception, " + this.storePath, e);
+                }
+            }
+        }
     }
 
     @Override
     public void removeOffset(MessageQueue mq) {
-
+        if (mq != null) {
+            this.offsetTable.remove(mq);
+            log.info("remove unnecessary messageQueue offset. group={}, mq={}, offsetTableSize={}", this.groupName, mq,
+                offsetTable.size());
+        }
     }
 
     @Override
@@ -168,13 +215,13 @@ public class LocalFileOffsetStore implements OffsetStore {
 
     @Override
     public Map<MessageQueue, Long> cloneOffsetTable(String topic) {
-        Map<MessageQueue, Long> cloneOffsetTable = new HashMap<MessageQueue, Long>();
-        for (Map.Entry<MessageQueue, AtomicLong> entry : this.offsetTable.entrySet()) {
+        Map<MessageQueue, Long> cloneOffsetTable = new HashMap<>(this.offsetTable.size(), 1);
+        for (Map.Entry<MessageQueue, ControllableOffset> entry : this.offsetTable.entrySet()) {
             MessageQueue mq = entry.getKey();
             if (!UtilAll.isBlank(topic) && !topic.equals(mq.getTopic())) {
                 continue;
             }
-            cloneOffsetTable.put(mq, entry.getValue().get());
+            cloneOffsetTable.put(mq, entry.getValue().getOffset());
 
         }
         return cloneOffsetTable;

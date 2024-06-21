@@ -17,15 +17,17 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.clientinterface.AbstractMQConsumer;
 import org.apache.rocketmq.test.listener.AbstractListener;
 import org.apache.rocketmq.test.util.RandomUtil;
 
 public class RMQNormalConsumer extends AbstractMQConsumer {
-    private static Logger logger = Logger.getLogger(RMQNormalConsumer.class);
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RMQNormalConsumer.class);
     protected DefaultMQPushConsumer consumer = null;
 
     public RMQNormalConsumer(String nsAddr, String topic, String subExpression,
@@ -33,38 +35,44 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
         super(nsAddr, topic, subExpression, consumerGroup, listener);
     }
 
+    @Override
     public AbstractListener getListener() {
         return listener;
     }
 
+    @Override
     public void setListener(AbstractListener listener) {
         this.listener = listener;
     }
 
+    @Override
     public void create() {
         create(false);
     }
 
+    @Override
     public void create(boolean useTLS) {
         consumer = new DefaultMQPushConsumer(consumerGroup);
         consumer.setInstanceName(RandomUtil.getStringByUUID());
         consumer.setNamesrvAddr(nsAddr);
+        consumer.setPollNameServerInterval(100);
         try {
             consumer.subscribe(topic, subExpression);
         } catch (MQClientException e) {
-            logger.error("consumer subscribe failed!");
+            LOGGER.error("consumer subscribe failed!");
             e.printStackTrace();
         }
         consumer.setMessageListener(listener);
         consumer.setUseTLS(useTLS);
     }
 
+    @Override
     public void start() {
         try {
             consumer.start();
-            logger.info(String.format("consumer[%s] started!", consumer.getConsumerGroup()));
+            LOGGER.info(String.format("consumer[%s] started!", consumer.getConsumerGroup()));
         } catch (MQClientException e) {
-            logger.error("consumer start failed!");
+            LOGGER.error("consumer start failed!");
             e.printStackTrace();
         }
     }
@@ -73,11 +81,12 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
         try {
             consumer.subscribe(topic, subExpression);
         } catch (MQClientException e) {
-            logger.error("consumer subscribe failed!");
+            LOGGER.error("consumer subscribe failed!");
             e.printStackTrace();
         }
     }
 
+    @Override
     public void shutdown() {
         consumer.shutdown();
     }
@@ -91,5 +100,9 @@ public class RMQNormalConsumer extends AbstractMQConsumer {
         consumer.shutdown();
         create();
         start();
+    }
+
+    public DefaultMQPushConsumer getConsumer() {
+        return consumer;
     }
 }

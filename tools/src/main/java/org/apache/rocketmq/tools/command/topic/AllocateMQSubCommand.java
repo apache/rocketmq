@@ -26,9 +26,9 @@ import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -41,7 +41,7 @@ public class AllocateMQSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Allocate MQ";
+        return "Allocate MQ.";
     }
 
     @Override
@@ -67,7 +67,7 @@ public class AllocateMQSubCommand implements SubCommand {
             String topic = commandLine.getOptionValue('t').trim();
             String ips = commandLine.getOptionValue('i').trim();
             final String[] split = ips.split(",");
-            final List<String> ipList = new LinkedList<String>();
+            final List<String> ipList = new LinkedList<>();
             for (String ip : split) {
                 ipList.add(ip);
             }
@@ -80,7 +80,7 @@ public class AllocateMQSubCommand implements SubCommand {
             RebalanceResult rr = new RebalanceResult();
 
             for (String i : ipList) {
-                final List<MessageQueue> mqResult = averagely.allocate("aa", i, new ArrayList<MessageQueue>(mqs), ipList);
+                final List<MessageQueue> mqResult = averagely.allocate("aa", i, new ArrayList<>(mqs), ipList);
                 rr.getResult().put(i, mqResult);
             }
 

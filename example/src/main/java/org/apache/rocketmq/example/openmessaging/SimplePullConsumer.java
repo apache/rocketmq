@@ -23,18 +23,25 @@ import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.consumer.PullConsumer;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.SendResult;
+import java.nio.charset.StandardCharsets;
 
 public class SimplePullConsumer {
+
+    public static final String URL = "oms:rocketmq://localhost:9876/default:default";
+    public static final String QUEUE = "OMS_CONSUMER";
+
     public static void main(String[] args) {
+        // You need to set the environment variable OMS_RMQ_DIRECT_NAME_SRV=true
+
         final MessagingAccessPoint messagingAccessPoint =
-            OMS.getMessagingAccessPoint("oms:rocketmq://localhost:9876/default:default");
+            OMS.getMessagingAccessPoint(URL);
 
         messagingAccessPoint.startup();
 
         final Producer producer = messagingAccessPoint.createProducer();
 
         final PullConsumer consumer = messagingAccessPoint.createPullConsumer(
-            OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, "OMS_CONSUMER"));
+            OMS.newKeyValue().put(OMSBuiltinKeys.CONSUMER_ID, QUEUE));
 
         messagingAccessPoint.startup();
         System.out.printf("MessagingAccessPoint startup OK%n");
@@ -42,7 +49,7 @@ public class SimplePullConsumer {
         final String queueName = "TopicTest";
 
         producer.startup();
-        Message msg = producer.createBytesMessage(queueName, "Hello Open Messaging".getBytes());
+        Message msg = producer.createBytesMessage(queueName, "Hello Open Messaging".getBytes(StandardCharsets.UTF_8));
         SendResult sendResult = producer.send(msg);
         System.out.printf("Send Message OK. MsgId: %s%n", sendResult.messageId());
         producer.shutdown();

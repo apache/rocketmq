@@ -1,0 +1,34 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field arg : private java.lang.Object null
+Field consumerGroup : private java.lang.String null
+Field mq : private org.apache.rocketmq.common.message.MessageQueue null
+Field msgList : private java.util.List null
+Field unitMode : private boolean false
+Method getArg() : public throws (java.lang.Object)
+Method getConsumerGroup() : public throws (java.lang.String)
+Method getMq() : public throws (org.apache.rocketmq.common.message.MessageQueue)
+Method getMsgList() : public throws (java.util.List)
+Method isUnitMode() : public throws (boolean)
+Method setArg(java.lang.Object) : public throws (void)
+Method setConsumerGroup(java.lang.String) : public throws (void)
+Method setMq(org.apache.rocketmq.common.message.MessageQueue) : public throws (void)
+Method setMsgList(java.util.List) : public throws (void)
+Method setUnitMode(boolean) : public throws (void)
+Method toString() : public throws (java.lang.String)

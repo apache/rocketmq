@@ -1,0 +1,69 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+startup --host_jvm_args=-Xmx2g
+
+run --color=yes
+
+build --color=yes
+build --enable_platform_specific_config
+
+test --action_env=TEST_TMPDIR=/tmp
+
+test  --experimental_strict_java_deps=warn
+test  --experimental_ui_max_stdouterr_bytes=10485760
+build --experimental_strict_java_deps=warn
+
+test --test_output=errors
+
+
+# This .bazelrc file contains all of the flags required for the provided
+# toolchain with Remote Build Execution.
+# Note your WORKSPACE must contain an rbe_autoconfig target with
+# name="rbe_default" to use these flags as-is.
+
+# Depending on how many machines are in the remote execution instance, setting
+# this higher can make builds faster by allowing more jobs to run in parallel.
+# Setting it too high can result in jobs that timeout, however, while waiting
+# for a remote machine to execute them.
+build:remote --jobs=150
+
+build:remote --remote_executor=grpcs://remote.buildbuddy.io
+build:remote --host_platform=@buildbuddy_toolchain//:platform
+build:remote --platforms=@buildbuddy_toolchain//:platform
+build:remote --extra_execution_platforms=@buildbuddy_toolchain//:platform
+build:remote --crosstool_top=@buildbuddy_toolchain//:toolchain
+build:remote --extra_toolchains=@buildbuddy_toolchain//:cc_toolchain
+build:remote --javabase=@buildbuddy_toolchain//:javabase_jdk8
+build:remote --host_javabase=@buildbuddy_toolchain//:javabase_jdk8
+build:remote --java_toolchain=@buildbuddy_toolchain//:toolchain_jdk8
+build:remote --host_java_toolchain=@buildbuddy_toolchain//:toolchain_jdk8
+build:remote --define=EXECUTOR=remote
+
+# Enable remote execution so actions are performed on the remote systems.
+build:remote --remote_executor=grpcs://remote.buildbuddy.io
+
+# Enforce stricter environment rules, which eliminates some non-hermetic
+# behavior and therefore improves both the remote cache hit rate and the
+# correctness and repeatability of the build.
+build:remote --incompatible_strict_action_env=true
+
+# Set a higher timeout value, just in case.
+build:remote --remote_timeout=3600
+
+# Use a pre-configured account, such that we may have pull-request replacing pull-request-target
+build:remote --remote_header=x-buildbuddy-api-key=FD819nUEY7WjvqmoufsU
+test:remote --remote_header=x-buildbuddy-api-key=FD819nUEY7WjvqmoufsU

@@ -24,17 +24,28 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class TraceProducer {
+
+    public static final String PRODUCER_GROUP = "ProducerGroupName";
+    public static final String DEFAULT_NAMESRVADDR = "127.0.0.1:9876";
+    public static final String TOPIC = "TopicTest";
+    public static final String TAG = "TagA";
+    public static final String KEY = "OrderID188";
+    public static final int MESSAGE_COUNT = 128;
+
     public static void main(String[] args) throws MQClientException, InterruptedException {
 
-        DefaultMQProducer producer = new DefaultMQProducer("ProducerGroupName",true);
+        DefaultMQProducer producer = new DefaultMQProducer(PRODUCER_GROUP, true, null);
+
+        // Uncomment the following line while debugging, namesrvAddr should be set to your local address
+//        producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.start();
 
-        for (int i = 0; i < 128; i++)
+        for (int i = 0; i < MESSAGE_COUNT; i++) {
             try {
                 {
-                    Message msg = new Message("TopicTest",
-                        "TagA",
-                        "OrderID188",
+                    Message msg = new Message(TOPIC,
+                        TAG,
+                        KEY,
                         "Hello world".getBytes(RemotingHelper.DEFAULT_CHARSET));
                     SendResult sendResult = producer.send(msg);
                     System.out.printf("%s%n", sendResult);
@@ -43,6 +54,7 @@ public class TraceProducer {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
 
         producer.shutdown();
     }

@@ -39,7 +39,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 
 public class RemotingServerTest {
     private static RemotingServer remotingServer;
@@ -95,8 +95,8 @@ public class RemotingServerTest {
         requestHeader.setCount(1);
         requestHeader.setMessageTitle("Welcome");
         RemotingCommand request = RemotingCommand.createRequestCommand(0, requestHeader);
-        RemotingCommand response = remotingClient.invokeSync("localhost:8888", request, 1000 * 3);
-        assertTrue(response != null);
+        RemotingCommand response = remotingClient.invokeSync("localhost:" + remotingServer.localListenPort(), request, 1000 * 3);
+        assertNotNull(response);
         assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
         assertThat(response.getExtFields()).hasSize(2);
 
@@ -108,7 +108,7 @@ public class RemotingServerTest {
 
         RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
         request.setRemark("messi");
-        remotingClient.invokeOneway("localhost:8888", request, 1000 * 3);
+        remotingClient.invokeOneway("localhost:" + remotingServer.localListenPort(), request, 1000 * 3);
     }
 
     @Test
@@ -118,13 +118,22 @@ public class RemotingServerTest {
         final CountDownLatch latch = new CountDownLatch(1);
         RemotingCommand request = RemotingCommand.createRequestCommand(0, null);
         request.setRemark("messi");
-        remotingClient.invokeAsync("localhost:8888", request, 1000 * 3, new InvokeCallback() {
+        remotingClient.invokeAsync("localhost:" + remotingServer.localListenPort(), request, 1000 * 3, new InvokeCallback() {
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
+
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
                 latch.countDown();
-                assertTrue(responseFuture != null);
-                assertThat(responseFuture.getResponseCommand().getLanguage()).isEqualTo(LanguageCode.JAVA);
-                assertThat(responseFuture.getResponseCommand().getExtFields()).hasSize(2);
+                assertThat(response.getLanguage()).isEqualTo(LanguageCode.JAVA);
+                assertThat(response.getExtFields()).hasSize(2);
+            }
+
+            @Override
+            public void operationFail(Throwable throwable) {
+
             }
         });
         latch.await();

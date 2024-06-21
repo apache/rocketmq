@@ -1,0 +1,54 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field commitOffset : private java.lang.Long null
+Field consumerGroup : private java.lang.String null
+Field expressionType : private java.lang.String null
+Field maxMsgNums : private java.lang.Integer null
+Field queueId : private java.lang.Integer null
+Field queueOffset : private java.lang.Long null
+Field subVersion : private java.lang.Long null
+Field subscription : private java.lang.String null
+Field suspendTimeoutMillis : private java.lang.Long null
+Field sysFlag : private java.lang.Integer null
+Field topic : private java.lang.String null
+Method checkFields() : public throws (void)
+Method decode(java.util.HashMap) : public throws (void)
+Method encode(io.netty.buffer.ByteBuf) : public throws (void)
+Method getCommitOffset() : public throws (java.lang.Long)
+Method getConsumerGroup() : public throws (java.lang.String)
+Method getExpressionType() : public throws (java.lang.String)
+Method getMaxMsgNums() : public throws (java.lang.Integer)
+Method getQueueId() : public throws (java.lang.Integer)
+Method getQueueOffset() : public throws (java.lang.Long)
+Method getSubVersion() : public throws (java.lang.Long)
+Method getSubscription() : public throws (java.lang.String)
+Method getSuspendTimeoutMillis() : public throws (java.lang.Long)
+Method getSysFlag() : public throws (java.lang.Integer)
+Method getTopic() : public throws (java.lang.String)
+Method setCommitOffset(java.lang.Long) : public throws (void)
+Method setConsumerGroup(java.lang.String) : public throws (void)
+Method setExpressionType(java.lang.String) : public throws (void)
+Method setMaxMsgNums(java.lang.Integer) : public throws (void)
+Method setQueueId(java.lang.Integer) : public throws (void)
+Method setQueueOffset(java.lang.Long) : public throws (void)
+Method setSubVersion(java.lang.Long) : public throws (void)
+Method setSubscription(java.lang.String) : public throws (void)
+Method setSuspendTimeoutMillis(java.lang.Long) : public throws (void)
+Method setSysFlag(java.lang.Integer) : public throws (void)
+Method setTopic(java.lang.String) : public throws (void)

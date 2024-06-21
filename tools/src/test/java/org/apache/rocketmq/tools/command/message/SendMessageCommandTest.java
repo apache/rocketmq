@@ -17,9 +17,12 @@
 
 package org.apache.rocketmq.tools.command.message;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.lang.reflect.Field;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -34,10 +37,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.lang.reflect.Field;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -77,11 +76,13 @@ public class SendMessageCommandTest {
         System.setOut(new PrintStream(bos));
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-t mytopic","-p 'send message test'","-c tagA","-k order-16546745756"};
-        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + sendMessageCommand.commandName(), subargs, sendMessageCommand.buildCommandlineOptions(options), new PosixParser());
+        CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin " + sendMessageCommand.commandName(),
+            subargs, sendMessageCommand.buildCommandlineOptions(options), new DefaultParser());
         sendMessageCommand.execute(commandLine, options, null);
 
         subargs = new String[] {"-t mytopic","-p 'send message test'","-c tagA","-k order-16546745756","-b brokera","-i 1"};
-        commandLine = ServerUtil.parseCmdLine("mqadmin " + sendMessageCommand.commandName(), subargs, sendMessageCommand.buildCommandlineOptions(options), new PosixParser());
+        commandLine = ServerUtil.parseCmdLine("mqadmin " + sendMessageCommand.commandName(), subargs,
+            sendMessageCommand.buildCommandlineOptions(options), new DefaultParser());
         sendMessageCommand.execute(commandLine, options, null);
         System.setOut(out);
         String s = new String(bos.toByteArray());

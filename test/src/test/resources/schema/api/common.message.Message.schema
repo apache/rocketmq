@@ -1,0 +1,49 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field body : private [B null
+Field flag : private int 0
+Field properties : private java.util.Map null
+Field serialVersionUID : private long 8445773977080406428
+Field topic : private java.lang.String null
+Field transactionId : private java.lang.String null
+Method getBody() : public throws ([B)
+Method getBuyerId() : public throws (java.lang.String)
+Method getDelayTimeLevel() : public throws (int)
+Method getFlag() : public throws (int)
+Method getKeys() : public throws (java.lang.String)
+Method getProperties() : public throws (java.util.Map)
+Method getProperty(java.lang.String) : public throws (java.lang.String)
+Method getTags() : public throws (java.lang.String)
+Method getTopic() : public throws (java.lang.String)
+Method getTransactionId() : public throws (java.lang.String)
+Method getUserProperty(java.lang.String) : public throws (java.lang.String)
+Method isWaitStoreMsgOK() : public throws (boolean)
+Method putUserProperty(java.lang.String,java.lang.String) : public throws (void)
+Method setBody([B) : public throws (void)
+Method setBuyerId(java.lang.String) : public throws (void)
+Method setDelayTimeLevel(int) : public throws (void)
+Method setFlag(int) : public throws (void)
+Method setInstanceId(java.lang.String) : public throws (void)
+Method setKeys(java.lang.String) : public throws (void)
+Method setKeys(java.util.Collection) : public throws (void)
+Method setTags(java.lang.String) : public throws (void)
+Method setTopic(java.lang.String) : public throws (void)
+Method setTransactionId(java.lang.String) : public throws (void)
+Method setWaitStoreMsgOK(boolean) : public throws (void)
+Method toString() : public throws (java.lang.String)

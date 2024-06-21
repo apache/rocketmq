@@ -23,6 +23,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
+
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.junit.After;
 import org.junit.Test;
@@ -44,10 +46,61 @@ public class StatsItemSetTest {
         assertEquals(10, test_unit_moment().longValue());
     }
 
-    private AtomicLong test_unit() throws InterruptedException {
+    @Test
+    public void test_statsOfFirstStatisticsCycle() throws InterruptedException {
+        final String tpsStatKey = "tpsTest";
+        final String rtStatKey = "rtTest";
+        final StatsItemSet statsItemSet = new StatsItemSet(tpsStatKey, scheduler, null);
+        executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("testMultiThread"));
+        for (int i = 0; i < 10; i++) {
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    statsItemSet.addValue(tpsStatKey, 2, 1);
+                    statsItemSet.addRTValue(rtStatKey, 2, 1);
+                }
+            });
+        }
+        while (true) {
+            if (executor.getCompletedTaskCount() == 10) {
+                break;
+            }
+            Thread.sleep(1000);
+        }
+        // simulate schedule task execution , tps stat
+        {
+            statsItemSet.getStatsItem(tpsStatKey).samplingInSeconds();
+            statsItemSet.getStatsItem(tpsStatKey).samplingInMinutes();
+            statsItemSet.getStatsItem(tpsStatKey).samplingInHour();
+
+            assertEquals(20L, statsItemSet.getStatsDataInMinute(tpsStatKey).getSum());
+            assertEquals(20L, statsItemSet.getStatsDataInHour(tpsStatKey).getSum());
+            assertEquals(20L, statsItemSet.getStatsDataInDay(tpsStatKey).getSum());
+            assertEquals(10L, statsItemSet.getStatsDataInDay(tpsStatKey).getTimes());
+            assertEquals(10L, statsItemSet.getStatsDataInHour(tpsStatKey).getTimes());
+            assertEquals(10L, statsItemSet.getStatsDataInDay(tpsStatKey).getTimes());
+        }
+
+        // simulate schedule task execution , rt stat
+        {
+            statsItemSet.getStatsItem(rtStatKey).samplingInSeconds();
+            statsItemSet.getStatsItem(rtStatKey).samplingInMinutes();
+            statsItemSet.getStatsItem(rtStatKey).samplingInHour();
+
+            assertEquals(20L, statsItemSet.getStatsDataInMinute(rtStatKey).getSum());
+            assertEquals(20L, statsItemSet.getStatsDataInHour(rtStatKey).getSum());
+            assertEquals(20L, statsItemSet.getStatsDataInDay(rtStatKey).getSum());
+            assertEquals(10L, statsItemSet.getStatsDataInDay(rtStatKey).getTimes());
+            assertEquals(10L, statsItemSet.getStatsDataInHour(rtStatKey).getTimes());
+            assertEquals(10L, statsItemSet.getStatsDataInDay(rtStatKey).getTimes());
+        }
+    }
+
+    private LongAdder test_unit() throws InterruptedException {
         final StatsItemSet statsItemSet = new StatsItemSet("topicTest", scheduler, null);
         executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(100), new ThreadFactoryImpl("testMultiThread"));
+            new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("testMultiThread"));
         for (int i = 0; i < 10; i++) {
             executor.submit(new Runnable() {
                 @Override
@@ -68,7 +121,7 @@ public class StatsItemSetTest {
     private AtomicLong test_unit_moment() throws InterruptedException {
         final MomentStatsItemSet statsItemSet = new MomentStatsItemSet("topicTest", scheduler, null);
         executor = new ThreadPoolExecutor(10, 20, 10, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(100), new ThreadFactoryImpl("testMultiThread"));
+            new ArrayBlockingQueue<>(100), new ThreadFactoryImpl("testMultiThread"));
         for (int i = 0; i < 10; i++) {
             executor.submit(new Runnable() {
                 @Override

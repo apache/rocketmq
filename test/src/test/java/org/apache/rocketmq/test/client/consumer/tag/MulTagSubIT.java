@@ -18,7 +18,9 @@
 package org.apache.rocketmq.test.client.consumer.tag;
 
 import java.util.List;
-import org.apache.log4j.Logger;
+
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -35,7 +37,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class MulTagSubIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
@@ -44,7 +46,7 @@ public class MulTagSubIT extends BaseConf {
         topic = initTopic();
         String consumerId = initConsumerGroup();
         logger.info(String.format("use topic: %s; consumerId: %s !", topic, consumerId));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -57,11 +59,11 @@ public class MulTagSubIT extends BaseConf {
         String tag = "jueyin1";
         String subExpress = String.format("%s||jueyin2", tag);
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all sent succeeded", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -74,7 +76,7 @@ public class MulTagSubIT extends BaseConf {
         String tag2 = "jueyin2";
         String subExpress = String.format("%s||noExistTag", tag2);
         int msgSize = 10;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         producer.send(tag1, msgSize);
@@ -84,7 +86,7 @@ public class MulTagSubIT extends BaseConf {
         Assert.assertEquals("Not all sent succeeded", msgSize * 2, producer.getAllUndupMsgBody().size());
 
         consumer.getListener().waitForMessageConsume(MQMessageFactory.getMessageBody(tag2Msgs),
-            consumeTime);
+            CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(MQMessageFactory.getMessageBody(tag2Msgs));
@@ -92,19 +94,19 @@ public class MulTagSubIT extends BaseConf {
 
     @Test
     public void testSubTwoTabAndMatchTwo() {
-        String tags[] = {"jueyin1", "jueyin2"};
+        String[] tags = {"jueyin1", "jueyin2"};
         String subExpress = String.format("%s||%s", tags[0], tags[1]);
         int msgSize = 10;
 
         TagMessage tagMessage = new TagMessage(tags, topic, msgSize);
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         producer.send(tagMessage.getMixedTagMessages());
         Assert.assertEquals("Not all sent succeeded", msgSize * tags.length,
             producer.getAllUndupMsgBody().size());
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -113,12 +115,12 @@ public class MulTagSubIT extends BaseConf {
 
     @Test
     public void testSubThreeTabAndMatchTwo() {
-        String tags[] = {"jueyin1", "jueyin2", "jueyin3"};
+        String[] tags = {"jueyin1", "jueyin2", "jueyin3"};
         String subExpress = String.format("%s||%s", tags[0], tags[1]);
         int msgSize = 10;
 
         TagMessage tagMessage = new TagMessage(tags, topic, msgSize);
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         producer.send(tagMessage.getMixedTagMessages());
@@ -126,7 +128,7 @@ public class MulTagSubIT extends BaseConf {
             producer.getAllUndupMsgBody().size());
 
         consumer.getListener().waitForMessageConsume(
-            tagMessage.getMessageBodyByTag(tags[0], tags[1]), consumeTime);
+            tagMessage.getMessageBodyByTag(tags[0], tags[1]), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody())).containsExactlyElementsIn(
@@ -135,12 +137,12 @@ public class MulTagSubIT extends BaseConf {
 
     @Test
     public void testNoMatch() {
-        String tags[] = {"jueyin1", "jueyin2", "jueyin3"};
+        String[] tags = {"jueyin1", "jueyin2", "jueyin3"};
         String subExpress = "no_match";
         int msgSize = 10;
 
         TagMessage tagMessage = new TagMessage(tags, topic, msgSize);
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, subExpress,
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, subExpress,
             new RMQNormalListener());
 
         producer.send(tagMessage.getMixedTagMessages());

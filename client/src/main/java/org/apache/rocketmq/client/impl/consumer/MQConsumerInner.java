@@ -19,10 +19,10 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.util.Set;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 /**
  * Consumer inner interface
@@ -39,6 +39,8 @@ public interface MQConsumerInner {
     Set<SubscriptionData> subscriptions();
 
     void doRebalance();
+
+    boolean tryRebalance();
 
     void persistConsumerOffset();
 

@@ -20,12 +20,16 @@
     <parent>
         <artifactId>rocketmq-all</artifactId>
         <groupId>org.apache.rocketmq</groupId>
-        <version>4.6.0</version>
+        <version>5.2.0</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
+    <modelVersion>4.0.0</modelVersion>
     <artifactId>rocketmq-openmessaging</artifactId>
     <name>rocketmq-openmessaging ${project.version}</name>
+
+    <properties>
+        <project.root>${basedir}/..</project.root>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -33,8 +37,9 @@
             <artifactId>openmessaging-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.rocketmq</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-client</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

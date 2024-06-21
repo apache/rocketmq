@@ -18,10 +18,11 @@
 package org.apache.rocketmq.test.client.producer.async;
 
 import java.util.List;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
@@ -35,7 +36,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
     private RMQAsyncSendProducer producer = null;
     private String topic = null;
 
@@ -43,7 +44,7 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("user topic[%s]!", topic));
-        producer = getAsyncProducer(nsAddr, topic);
+        producer = getAsyncProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -55,13 +56,13 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
     public void testSendWithSelector() {
         int msgSize = 20;
         final int queueId = 0;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
 
         producer.asyncSend(msgSize, new MessageQueueSelector() {
             @Override
             public MessageQueue select(List<MessageQueue> list, Message message, Object o) {
                 for (MessageQueue mq : list) {
-                    if (mq.getQueueId() == queueId && mq.getBrokerName().equals(broker1Name)) {
+                    if (mq.getQueueId() == queueId && mq.getBrokerName().equals(BROKER1_NAME)) {
                         return mq;
                     }
                 }
@@ -71,7 +72,7 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
         producer.waitForResponse(5 * 1000);
         assertThat(producer.getSuccessMsgCount()).isEqualTo(msgSize);
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
@@ -86,7 +87,7 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
             @Override
             public MessageQueue select(List<MessageQueue> list, Message message, Object o) {
                 for (MessageQueue mq : list) {
-                    if (mq.getQueueId() == queueId && mq.getBrokerName().equals(broker2Name)) {
+                    if (mq.getQueueId() == queueId && mq.getBrokerName().equals(BROKER2_NAME)) {
                         return mq;
                     }
                 }
@@ -96,7 +97,7 @@ public class AsyncSendWithMessageQueueSelectorIT extends BaseConf {
         producer.waitForResponse(5 * 1000);
         assertThat(producer.getSuccessMsgCount()).isEqualTo(msgSize);
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());

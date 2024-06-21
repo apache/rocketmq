@@ -16,12 +16,14 @@
  */
 package org.apache.rocketmq.client.consumer;
 
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public interface LitePullConsumer {
 
@@ -36,6 +38,19 @@ public interface LitePullConsumer {
     void shutdown();
 
     /**
+     * This consumer is still running
+     *
+     * @return true if consumer is still running
+     */
+    boolean isRunning();
+
+    /**
+     * Subscribe some topic with all tags
+     * @throws MQClientException if there is any client error.
+     */
+    void subscribe(final String topic) throws MQClientException;
+
+    /**
      * Subscribe some topic with subExpression
      *
      * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
@@ -43,6 +58,14 @@ public interface LitePullConsumer {
      * @throws MQClientException if there is any client error.
      */
     void subscribe(final String topic, final String subExpression) throws MQClientException;
+
+    /**
+     * Subscribe some topic with subExpression and messageQueueListener
+     * @param topic
+     * @param subExpression
+     * @param messageQueueListener
+     */
+    void subscribe(final String topic, final String subExpression, final MessageQueueListener messageQueueListener) throws MQClientException;
 
     /**
      * Subscribe some topic with selector.
@@ -59,6 +82,14 @@ public interface LitePullConsumer {
      */
     void unsubscribe(final String topic);
 
+
+    /**
+     * subscribe mode, get assigned MessageQueue
+     * @return
+     * @throws MQClientException
+     */
+    Set<MessageQueue> assignment() throws MQClientException;
+
     /**
      * Manually assign a list of message queues to this consumer. This interface does not allow for incremental
      * assignment and will replace the previous assignment (if there is one).
@@ -66,6 +97,15 @@ public interface LitePullConsumer {
      * @param messageQueues Message queues that needs to be assigned.
      */
     void assign(Collection<MessageQueue> messageQueues);
+
+    /**
+     * Set topic subExpression for assign mode. This interface does not allow be call after start(). Default value is * if not set.
+     * assignment and will replace the previous assignment (if there is one).
+     *
+     * @param subExpression subscription expression.it only support or operation such as "tag1 || tag2 || tag3" <br> if
+     *      * null or * expression,meaning subscribe all
+     */
+    void setSubExpressionForAssign(final String topic, final String subExpression);
 
     /**
      * Fetch data for the topics or partitions specified using assign API
@@ -148,10 +188,44 @@ public interface LitePullConsumer {
      */
     Long offsetForTimestamp(MessageQueue messageQueue, Long timestamp) throws MQClientException;
 
+    @Deprecated
     /**
-     * Manually commit consume offset.
+     * The method is deprecated because its name is ambiguous, this method relies on the background thread commit consumerOffset rather than the synchronous commit offset.
+     * The method is expected to be removed after version 5.1.0. It is recommended to use the {@link #commit()} method.
+     *
+     * Manually commit consume offset saved by the system.
      */
     void commitSync();
+
+    @Deprecated
+    /**
+     * The method is deprecated because its name is ambiguous, this method relies on the background thread commit consumerOffset rather than the synchronous commit offset.
+     * The method is expected to be removed after version 5.1.0. It is recommended to use the {@link #commit(java.util.Map, boolean)} method.
+     *
+     * @param offsetMap Offset specified by batch commit
+     */
+    void commitSync(Map<MessageQueue, Long> offsetMap, boolean persist);
+
+    /**
+     * Manually commit consume offset saved by the system. This is a non-blocking method.
+     */
+    void commit();
+
+    /**
+     * Offset specified by batch commit
+     *
+     * @param offsetMap Offset specified by batch commit
+     * @param persist Whether to persist to the broker
+     */
+    void commit(Map<MessageQueue, Long> offsetMap, boolean persist);
+
+    /**
+     * Manually commit consume offset saved by the system.
+     *
+     * @param messageQueues Message queues that need to submit consumer offset
+     * @param persist hether to persist to the broker
+     */
+    void commit(final Set<MessageQueue> messageQueues, boolean persist);
 
     /**
      * Get the last committed offset for the given message queue.
@@ -172,4 +246,27 @@ public interface LitePullConsumer {
      */
     void registerTopicMessageQueueChangeListener(String topic,
         TopicMessageQueueChangeListener topicMessageQueueChangeListener) throws MQClientException;
+
+    /**
+     * Update name server addresses.
+     */
+    void updateNameServerAddress(String nameServerAddress);
+
+    /**
+     * Overrides the fetch offsets with the begin offset that the consumer will use on the next poll. If this API is
+     * invoked for the same message queue more than once, the latest offset will be used on the next poll(). Note that
+     * you may lose data if this API is arbitrarily used in the middle of consumption.
+     *
+     * @param messageQueue
+     */
+    void seekToBegin(MessageQueue messageQueue)throws MQClientException;
+
+    /**
+     * Overrides the fetch offsets with the end offset that the consumer will use on the next poll. If this API is
+     * invoked for the same message queue more than once, the latest offset will be used on the next poll(). Note that
+     * you may lose data if this API is arbitrarily used in the middle of consumption.
+     *
+     * @param messageQueue
+     */
+    void seekToEnd(MessageQueue messageQueue)throws MQClientException;
 }

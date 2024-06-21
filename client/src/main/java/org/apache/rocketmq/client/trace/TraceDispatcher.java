@@ -24,15 +24,18 @@ import java.io.IOException;
  * Interface of asynchronous transfer data
  */
 public interface TraceDispatcher {
-
+    enum Type {
+        PRODUCE,
+        CONSUME
+    }
     /**
      * Initialize asynchronous transfer data module
      */
     void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException;
 
     /**
-     * Append the transfering data
-     * @param ctx data infomation
+     * Append the transferring data
+     * @param ctx data information
      * @return
      */
     boolean append(Object ctx);

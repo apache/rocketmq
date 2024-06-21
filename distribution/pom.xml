@@ -20,11 +20,15 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.6.0</version>
+        <version>5.2.0</version>
     </parent>
     <artifactId>rocketmq-distribution</artifactId>
     <name>rocketmq-distribution ${project.version}</name>
     <packaging>pom</packaging>
+
+    <properties>
+        <project.root>${basedir}/..</project.root>
+    </properties>
 
     <profiles>
         <profile>
@@ -32,7 +36,19 @@
             <dependencies>
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
+                    <artifactId>rocketmq-container</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.rocketmq</groupId>
+                    <artifactId>rocketmq-controller</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-broker</artifactId>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.rocketmq</groupId>
+                    <artifactId>rocketmq-proxy</artifactId>
                 </dependency>
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
@@ -79,7 +95,6 @@
                 <dependency>
                     <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-client</artifactId>
-                    <version>${project.version}</version>
                 </dependency>
             </dependencies>
 

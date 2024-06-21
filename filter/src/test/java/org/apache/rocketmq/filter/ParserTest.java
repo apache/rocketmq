@@ -37,7 +37,7 @@ public class ParserTest {
     private static String equalNullExpression = "a is null";
     private static String notEqualNullExpression = "a is not null";
     private static String nowExpression = "a <= now";
-
+    private static String containsExpression = "a=3 and b contains 'xxx' and c not contains 'xxx'";
     private static String invalidExpression = "a and between 2 and 10";
     private static String illegalBetween = " a between 10 and 0";
 
@@ -45,7 +45,7 @@ public class ParserTest {
     public void testParse_valid() {
         for (String expr : Arrays.asList(
             andExpression, orExpression, inExpression, notInExpression, betweenExpression,
-            equalNullExpression, notEqualNullExpression, nowExpression
+            equalNullExpression, notEqualNullExpression, nowExpression, containsExpression
         )) {
 
             try {
@@ -84,7 +84,7 @@ public class ParserTest {
     @Test
     public void testParse_floatOverFlow() {
         try {
-            StringBuffer sb = new StringBuffer(210000);
+            StringBuilder sb = new StringBuilder(210000);
             sb.append("1");
             for (int i = 0; i < 2048; i ++) {
                 sb.append("111111111111111111111111111111111111111111111111111");

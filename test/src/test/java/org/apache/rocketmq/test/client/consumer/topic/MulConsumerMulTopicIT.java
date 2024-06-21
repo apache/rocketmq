@@ -35,7 +35,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
 
     @Before
     public void setUp() {
-        producer = getProducer(nsAddr, null);
+        producer = getProducer(NAMESRV_ADDR, null);
     }
 
     @After
@@ -48,9 +48,9 @@ public class MulConsumerMulTopicIT extends BaseConf {
         int msgSize = 10;
         String topic1 = initTopic();
         String topic2 = initTopic();
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic1, "*", new RMQNormalListener());
         consumer1.subscribe(topic2, "*");
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic1,
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic1,
             "*", new RMQNormalListener());
         consumer2.subscribe(topic2, "*");
 
@@ -58,7 +58,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
         producer.send(MQMessageFactory.getMsg(topic2, msgSize));
         Assert.assertEquals("Not all sent succeeded", msgSize * 2, producer.getAllUndupMsgBody().size());
 
-        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
@@ -69,9 +69,9 @@ public class MulConsumerMulTopicIT extends BaseConf {
         String topic1 = initTopic();
         String topic2 = initTopic();
         String tag = "jueyin_tag";
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic1, "*", new RMQNormalListener());
         consumer1.subscribe(topic2, tag);
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic1,
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic1,
             "*", new RMQNormalListener());
         consumer2.subscribe(topic2, tag);
 
@@ -79,7 +79,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag));
         Assert.assertEquals("Not all sent succeeded", msgSize * 2, producer.getAllUndupMsgBody().size());
 
-        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }
@@ -91,9 +91,9 @@ public class MulConsumerMulTopicIT extends BaseConf {
         String topic2 = initTopic();
         String tag1 = "jueyin_tag_1";
         String tag2 = "jueyin_tag_2";
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic1, "*", new RMQNormalListener());
         consumer1.subscribe(topic2, tag1);
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, topic1, "*", new RMQNormalListener());
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, topic1, "*", new RMQNormalListener());
         consumer2.subscribe(topic2, tag1);
 
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag2));
@@ -101,7 +101,7 @@ public class MulConsumerMulTopicIT extends BaseConf {
         producer.send(MQMessageFactory.getMsg(topic1, msgSize));
         producer.send(MQMessageFactory.getMsg(topic2, msgSize, tag1));
 
-        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
     }

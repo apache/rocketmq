@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.6.0</version>
+        <version>5.2.0</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -27,13 +27,21 @@
     <artifactId>rocketmq-namesrv</artifactId>
     <name>rocketmq-namesrv ${project.version}</name>
 
+    <properties>
+        <project.root>${basedir}/..</project.root>
+    </properties>
+
     <dependencies>
         <dependency>
-            <groupId>org.apache.rocketmq</groupId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-controller</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-client</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.rocketmq</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>rocketmq-tools</artifactId>
         </dependency>
         <dependency>
@@ -41,16 +49,20 @@
             <artifactId>rocketmq-srvutil</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <version>1.19</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <version>1.19</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk15on</artifactId>
         </dependency>
     </dependencies>
 </project>

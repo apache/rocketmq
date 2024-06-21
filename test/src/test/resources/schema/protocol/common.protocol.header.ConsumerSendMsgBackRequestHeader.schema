@@ -1,0 +1,41 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field delayLevel : private java.lang.Integer null
+Field group : private java.lang.String null
+Field maxReconsumeTimes : private java.lang.Integer null
+Field offset : private java.lang.Long null
+Field originMsgId : private java.lang.String null
+Field originTopic : private java.lang.String null
+Field unitMode : private boolean false
+Method checkFields() : public throws (void)
+Method getDelayLevel() : public throws (java.lang.Integer)
+Method getGroup() : public throws (java.lang.String)
+Method getMaxReconsumeTimes() : public throws (java.lang.Integer)
+Method getOffset() : public throws (java.lang.Long)
+Method getOriginMsgId() : public throws (java.lang.String)
+Method getOriginTopic() : public throws (java.lang.String)
+Method isUnitMode() : public throws (boolean)
+Method setDelayLevel(java.lang.Integer) : public throws (void)
+Method setGroup(java.lang.String) : public throws (void)
+Method setMaxReconsumeTimes(java.lang.Integer) : public throws (void)
+Method setOffset(java.lang.Long) : public throws (void)
+Method setOriginMsgId(java.lang.String) : public throws (void)
+Method setOriginTopic(java.lang.String) : public throws (void)
+Method setUnitMode(boolean) : public throws (void)
+Method toString() : public throws (java.lang.String)

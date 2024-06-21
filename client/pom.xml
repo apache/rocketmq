@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.6.0</version>
+        <version>5.2.0</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -28,14 +28,13 @@
     <name>rocketmq-client ${project.version}</name>
 
     <properties>
-        <maven.compiler.source>1.6</maven.compiler.source>
-        <maven.compiler.target>1.6</maven.compiler.target>
+        <project.root>${basedir}/..</project.root>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-common</artifactId>
+            <artifactId>rocketmq-remoting</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>io.netty</groupId>
@@ -44,23 +43,28 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <scope>test</scope>
+            <groupId>io.opentracing</groupId>
+            <artifactId>opentracing-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId>
-            <scope>test</scope>
+            <groupId>io.opentracing</groupId>
+            <artifactId>opentracing-mock</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.aliyunmq</groupId>
+            <artifactId>rocketmq-slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.aliyunmq</groupId>
+            <artifactId>rocketmq-logback-classic</artifactId>
         </dependency>
     </dependencies>
 </project>

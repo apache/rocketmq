@@ -25,13 +25,13 @@ import org.apache.commons.cli.Options;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.protocol.body.ClusterInfo;
-import org.apache.rocketmq.common.protocol.body.GroupList;
-import org.apache.rocketmq.common.protocol.body.TopicList;
-import org.apache.rocketmq.common.protocol.route.BrokerData;
-import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
+import org.apache.rocketmq.remoting.protocol.body.GroupList;
+import org.apache.rocketmq.remoting.protocol.body.TopicList;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -45,7 +45,7 @@ public class TopicListSubCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch all topic list from name server";
+        return "Fetch all topic list from name server.";
     }
 
     @Override
@@ -96,10 +96,10 @@ public class TopicListSubCommand implements SubCommand {
                     }
 
                     for (String group : groupList.getGroupList()) {
-                        System.out.printf("%-20s  %-48s  %-48s%n",
+                        System.out.printf("%-20s  %-64s  %-64s%n",
                             UtilAll.frontStringAtLeast(clusterName, 20),
-                            UtilAll.frontStringAtLeast(topic, 48),
-                            UtilAll.frontStringAtLeast(group, 48)
+                            UtilAll.frontStringAtLeast(topic, 64),
+                            UtilAll.frontStringAtLeast(group, 64)
                         );
                     }
                 }

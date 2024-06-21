@@ -17,19 +17,21 @@
 
 package org.apache.rocketmq.test.client.rmq;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.clientinterface.AbstractMQProducer;
 import org.apache.rocketmq.test.sendresult.ResultWrapper;
 
 public class RMQNormalProducer extends AbstractMQProducer {
-    private static Logger logger = Logger.getLogger(RMQNormalProducer.class);
+    private static Logger logger = LoggerFactory.getLogger(RMQNormalProducer.class);
     private DefaultMQProducer producer = null;
     private String nsAddr = null;
 
@@ -73,6 +75,7 @@ public class RMQNormalProducer extends AbstractMQProducer {
         producer.setProducerGroup(getProducerGroupName());
         producer.setInstanceName(getProducerInstanceName());
         producer.setUseTLS(useTLS);
+        producer.setPollNameServerInterval(100);
 
         if (nsAddr != null) {
             producer.setNamesrvAddr(nsAddr);
@@ -92,21 +95,21 @@ public class RMQNormalProducer extends AbstractMQProducer {
     }
 
     public ResultWrapper send(Object msg, Object orderKey) {
-        org.apache.rocketmq.client.producer.SendResult metaqResult = null;
+        org.apache.rocketmq.client.producer.SendResult internalSendResult = null;
         Message message = (Message) msg;
         try {
             long start = System.currentTimeMillis();
-            metaqResult = producer.send(message);
+            internalSendResult = producer.send(message);
             this.msgRTs.addData(System.currentTimeMillis() - start);
             if (isDebug) {
-                logger.info(metaqResult);
+                logger.info("SendResult: {}", internalSendResult);
             }
-            sendResult.setMsgId(metaqResult.getMsgId());
-            sendResult.setSendResult(metaqResult.getSendStatus().equals(SendStatus.SEND_OK));
-            sendResult.setBrokerIp(metaqResult.getMessageQueue().getBrokerName());
-            msgBodys.addData(new String(message.getBody()));
+            sendResult.setMsgId(internalSendResult.getMsgId());
+            sendResult.setSendResult(internalSendResult.getSendStatus().equals(SendStatus.SEND_OK));
+            sendResult.setBrokerIp(internalSendResult.getMessageQueue().getBrokerName());
+            msgBodys.addData(new String(message.getBody(), StandardCharsets.UTF_8));
             originMsgs.addData(msg);
-            originMsgIndex.put(new String(message.getBody()), metaqResult);
+            originMsgIndex.put(new String(message.getBody(), StandardCharsets.UTF_8), internalSendResult);
         } catch (Exception e) {
             if (isDebug) {
                 e.printStackTrace();
@@ -132,21 +135,27 @@ public class RMQNormalProducer extends AbstractMQProducer {
         }
     }
 
+    public void send(int num, MessageQueue mq) {
+        for (int i = 0; i < num; i++) {
+            sendMQ((Message) getMessageByTag(null), mq);
+        }
+    }
+
     public ResultWrapper sendMQ(Message msg, MessageQueue mq) {
-        org.apache.rocketmq.client.producer.SendResult metaqResult = null;
+        org.apache.rocketmq.client.producer.SendResult internalSendResult = null;
         try {
             long start = System.currentTimeMillis();
-            metaqResult = producer.send(msg, mq);
+            internalSendResult = producer.send(msg, mq);
             this.msgRTs.addData(System.currentTimeMillis() - start);
             if (isDebug) {
-                logger.info(metaqResult);
+                logger.info("SendResult: {}", internalSendResult);
             }
-            sendResult.setMsgId(metaqResult.getMsgId());
-            sendResult.setSendResult(metaqResult.getSendStatus().equals(SendStatus.SEND_OK));
-            sendResult.setBrokerIp(metaqResult.getMessageQueue().getBrokerName());
-            msgBodys.addData(new String(msg.getBody()));
+            sendResult.setMsgId(internalSendResult.getMsgId());
+            sendResult.setSendResult(internalSendResult.getSendStatus().equals(SendStatus.SEND_OK));
+            sendResult.setBrokerIp(internalSendResult.getMessageQueue().getBrokerName());
+            msgBodys.addData(new String(msg.getBody(), StandardCharsets.UTF_8));
             originMsgs.addData(msg);
-            originMsgIndex.put(new String(msg.getBody()), metaqResult);
+            originMsgIndex.put(new String(msg.getBody(), StandardCharsets.UTF_8), internalSendResult);
         } catch (Exception e) {
             if (isDebug) {
                 e.printStackTrace();

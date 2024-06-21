@@ -20,11 +20,12 @@ package org.apache.rocketmq.test.util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class VerifyUtils {
-    private static Logger logger = Logger.getLogger(VerifyUtils.class);
+    private static Logger logger = LoggerFactory.getLogger(VerifyUtils.class);
 
     public static int verify(Collection<Object> sendMsgs, Collection<Object> recvMsgs) {
         int miss = 0;
@@ -40,18 +41,18 @@ public class VerifyUtils {
     public static Collection<Object> getFilterdMessage(Collection<Object> sendMsgs,
         Collection<Object> recvMsgs) {
         Collection<Object> recvMsgsSync = Collections.synchronizedCollection(recvMsgs);
-        Collection<Object> filterdMsgs = new ArrayList<Object>();
+        Collection<Object> filteredMsgs = new ArrayList<Object>();
         int filterNum = 0;
         for (Object msg : recvMsgsSync) {
             if (sendMsgs.contains(msg)) {
-                filterdMsgs.add(msg);
+                filteredMsgs.add(msg);
             } else {
                 filterNum++;
             }
         }
 
-        logger.info(String.format("[%s] messages is filterd!", filterNum));
-        return filterdMsgs;
+        logger.info(String.format("[%s] messages is filtered!", filterNum));
+        return filteredMsgs;
     }
 
     public static int verifyUserProperty(Collection<Object> sendMsgs, Collection<Object> recvMsgs) {
@@ -81,22 +82,18 @@ public class VerifyUtils {
         return verifyBalance(msgSize, 0.1f, recvSize);
     }
 
-    public static boolean verifyDelay(long delayTimeMills, Collection<Object> recvMsgTimes,
-        int errorMills) {
+    public static boolean verifyDelay(long delayTimeMills, long nextLevelDelayTimeMills,
+        Collection<Object> recvMsgTimes) {
         boolean delay = true;
         for (Object timeObj : recvMsgTimes) {
             long time = (Long) timeObj;
-            if (Math.abs(time - delayTimeMills) > errorMills) {
+            if (time < delayTimeMills || time > nextLevelDelayTimeMills) {
                 delay = false;
                 logger.info(String.format("delay error:%s", Math.abs(time - delayTimeMills)));
+                break;
             }
         }
         return delay;
-    }
-
-    public static boolean verifyDelay(long delayTimeMills, Collection<Object> recvMsgTimes) {
-        int errorMills = 500;
-        return verifyDelay(delayTimeMills, recvMsgTimes, errorMills);
     }
 
     public static boolean verifyOrder(Collection<Collection<Object>> queueMsgs) {
@@ -140,7 +137,7 @@ public class VerifyUtils {
         return rtExpect;
     }
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         verifyBalance(400, 0.1f, 230, 190);
     }
 }

@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.factory;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -30,13 +31,11 @@ public class MessageFactory {
     }
 
     public static Message getStringMessage(String topic, String body) {
-        Message msg = new Message(topic, body.getBytes());
-        return msg;
+        return new Message(topic, body.getBytes(StandardCharsets.UTF_8));
     }
 
     public static Message getStringMessageByTag(String topic, String tags, String body) {
-        Message msg = new Message(topic, tags, body.getBytes());
-        return msg;
+        return new Message(topic, tags, body.getBytes(StandardCharsets.UTF_8));
     }
 
     public static Message getRandomMessageByTag(String topic, String tags) {

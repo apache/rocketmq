@@ -1,0 +1,183 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+Field SEND_MESSAGE_WITH_VIP_CHANNEL_PROPERTY : public java.lang.String com.rocketmq.sendMessageWithVIPChannel
+Field accessChannel : protected org.apache.rocketmq.client.AccessChannel LOCAL
+Field adjustThreadPoolNumsThreshold : private long 100000
+Field allocateMessageQueueStrategy : private org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy null
+Field awaitTerminationMillisWhenShutdown : private long 0
+Field clientCallbackExecutorThreads : private int null
+Field clientIP : private java.lang.String null
+Field consumeConcurrentlyMaxSpan : private int 2000
+Field consumeFromWhere : private org.apache.rocketmq.common.consumer.ConsumeFromWhere CONSUME_FROM_LAST_OFFSET
+Field consumeMessageBatchMaxSize : private int 1
+Field consumeThreadMax : private int 20
+Field consumeThreadMin : private int 20
+Field consumeTimeout : private long 15
+Field consumeTimestamp : private java.lang.String null
+Field consumerGroup : private java.lang.String DEFAULT_CONSUMER
+Field defaultMQPushConsumerImpl : protected org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl null
+Field enableStreamRequestType : protected boolean false
+Field heartbeatBrokerInterval : private int 30000
+Field instanceName : private java.lang.String DEFAULT
+Field language : private org.apache.rocketmq.remoting.protocol.LanguageCode JAVA
+Field log : private org.apache.rocketmq.logging.InternalLogger null
+Field maxReconsumeTimes : private int -1
+Field messageListener : private org.apache.rocketmq.client.consumer.listener.MessageListener null
+Field messageModel : private org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel CLUSTERING
+Field mqClientApiTimeout : private int 3000
+Field namespace : protected java.lang.String null
+Field namespaceInitialized : private boolean false
+Field namesrvAddr : private java.lang.String null
+Field offsetStore : private org.apache.rocketmq.client.consumer.store.OffsetStore null
+Field persistConsumerOffsetInterval : private int 5000
+Field pollNameServerInterval : private int 30000
+Field postSubscriptionWhenPull : private boolean false
+Field pullBatchSize : private int 32
+Field pullInterval : private long 0
+Field pullThresholdForQueue : private int 1000
+Field pullThresholdForTopic : private int -1
+Field pullThresholdSizeForQueue : private int 100
+Field pullThresholdSizeForTopic : private int -1
+Field pullTimeDelayMillsWhenException : private long 1000
+Field subscription : private java.util.Map null
+Field suspendCurrentQueueTimeMillis : private long 1000
+Field traceDispatcher : private org.apache.rocketmq.client.trace.TraceDispatcher null
+Field unitMode : private boolean false
+Field unitName : private java.lang.String null
+Field useTLS : private boolean false
+Field vipChannelEnabled : private boolean false
+Method buildMQClientId() : public throws (java.lang.String)
+Method changeInstanceNameToPID() : public throws (void)
+Method cloneClientConfig() : public throws (org.apache.rocketmq.client.ClientConfig)
+Method createTopic(int,int,java.lang.String,java.lang.String) : public throws (void)
+Method createTopic(int,java.lang.String,java.lang.String) : public throws (void)
+Method earliestMsgStoreTime(org.apache.rocketmq.common.message.MessageQueue) : public throws (long)
+Method fetchSubscribeMessageQueues(java.lang.String) : public throws (java.util.Set)
+Method getAccessChannel() : public throws (org.apache.rocketmq.client.AccessChannel)
+Method getAdjustThreadPoolNumsThreshold() : public throws (long)
+Method getAllocateMessageQueueStrategy() : public throws (org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy)
+Method getAwaitTerminationMillisWhenShutdown() : public throws (long)
+Method getClientCallbackExecutorThreads() : public throws (int)
+Method getClientIP() : public throws (java.lang.String)
+Method getConsumeConcurrentlyMaxSpan() : public throws (int)
+Method getConsumeFromWhere() : public throws (org.apache.rocketmq.common.consumer.ConsumeFromWhere)
+Method getConsumeMessageBatchMaxSize() : public throws (int)
+Method getConsumeThreadMax() : public throws (int)
+Method getConsumeThreadMin() : public throws (int)
+Method getConsumeTimeout() : public throws (long)
+Method getConsumeTimestamp() : public throws (java.lang.String)
+Method getConsumerGroup() : public throws (java.lang.String)
+Method getDefaultMQPushConsumerImpl() : public throws (org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl)
+Method getHeartbeatBrokerInterval() : public throws (int)
+Method getInstanceName() : public throws (java.lang.String)
+Method getLanguage() : public throws (org.apache.rocketmq.remoting.protocol.LanguageCode)
+Method getMaxReconsumeTimes() : public throws (int)
+Method getMessageListener() : public throws (org.apache.rocketmq.client.consumer.listener.MessageListener)
+Method getMessageModel() : public throws (org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel)
+Method getMqClientApiTimeout() : public throws (int)
+Method getNamespace() : public throws (java.lang.String)
+Method getNamesrvAddr() : public throws (java.lang.String)
+Method getOffsetStore() : public throws (org.apache.rocketmq.client.consumer.store.OffsetStore)
+Method getPersistConsumerOffsetInterval() : public throws (int)
+Method getPollNameServerInterval() : public throws (int)
+Method getPullBatchSize() : public throws (int)
+Method getPullInterval() : public throws (long)
+Method getPullThresholdForQueue() : public throws (int)
+Method getPullThresholdForTopic() : public throws (int)
+Method getPullThresholdSizeForQueue() : public throws (int)
+Method getPullThresholdSizeForTopic() : public throws (int)
+Method getPullTimeDelayMillsWhenException() : public throws (long)
+Method getSubscription() : public throws (java.util.Map)
+Method getSuspendCurrentQueueTimeMillis() : public throws (long)
+Method getTraceDispatcher() : public throws (org.apache.rocketmq.client.trace.TraceDispatcher)
+Method getUnitName() : public throws (java.lang.String)
+Method isEnableStreamRequestType() : public throws (boolean)
+Method isPostSubscriptionWhenPull() : public throws (boolean)
+Method isUnitMode() : public throws (boolean)
+Method isUseTLS() : public throws (boolean)
+Method isVipChannelEnabled() : public throws (boolean)
+Method maxOffset(org.apache.rocketmq.common.message.MessageQueue) : public throws (long)
+Method minOffset(org.apache.rocketmq.common.message.MessageQueue) : public throws (long)
+Method queryMessage(int,java.lang.String,java.lang.String,long,long) : public throws (org.apache.rocketmq.client.QueryResult)
+Method queueWithNamespace(org.apache.rocketmq.common.message.MessageQueue) : public throws (org.apache.rocketmq.common.message.MessageQueue)
+Method queuesWithNamespace(java.util.Collection) : public throws (java.util.Collection)
+Method registerMessageListener(org.apache.rocketmq.client.consumer.listener.MessageListener) : public throws (void)
+Method registerMessageListener(org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently) : public throws (void)
+Method registerMessageListener(org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly) : public throws (void)
+Method resetClientConfig(org.apache.rocketmq.client.ClientConfig) : public throws (void)
+Method resume() : public throws (void)
+Method searchOffset(long,org.apache.rocketmq.common.message.MessageQueue) : public throws (long)
+Method sendMessageBack(int,java.lang.String,org.apache.rocketmq.common.message.MessageExt) : public throws (void)
+Method sendMessageBack(int,org.apache.rocketmq.common.message.MessageExt) : public throws (void)
+Method setAccessChannel(org.apache.rocketmq.client.AccessChannel) : public throws (void)
+Method setAdjustThreadPoolNumsThreshold(long) : public throws (void)
+Method setAllocateMessageQueueStrategy(org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy) : public throws (void)
+Method setAwaitTerminationMillisWhenShutdown(long) : public throws (void)
+Method setClientCallbackExecutorThreads(int) : public throws (void)
+Method setClientIP(java.lang.String) : public throws (void)
+Method setConsumeConcurrentlyMaxSpan(int) : public throws (void)
+Method setConsumeFromWhere(org.apache.rocketmq.common.consumer.ConsumeFromWhere) : public throws (void)
+Method setConsumeMessageBatchMaxSize(int) : public throws (void)
+Method setConsumeThreadMax(int) : public throws (void)
+Method setConsumeThreadMin(int) : public throws (void)
+Method setConsumeTimeout(long) : public throws (void)
+Method setConsumeTimestamp(java.lang.String) : public throws (void)
+Method setConsumerGroup(java.lang.String) : public throws (void)
+Method setEnableStreamRequestType(boolean) : public throws (void)
+Method setHeartbeatBrokerInterval(int) : public throws (void)
+Method setInstanceName(java.lang.String) : public throws (void)
+Method setLanguage(org.apache.rocketmq.remoting.protocol.LanguageCode) : public throws (void)
+Method setMaxReconsumeTimes(int) : public throws (void)
+Method setMessageListener(org.apache.rocketmq.client.consumer.listener.MessageListener) : public throws (void)
+Method setMessageModel(org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel) : public throws (void)
+Method setMqClientApiTimeout(int) : public throws (void)
+Method setNamespace(java.lang.String) : public throws (void)
+Method setNamesrvAddr(java.lang.String) : public throws (void)
+Method setOffsetStore(org.apache.rocketmq.client.consumer.store.OffsetStore) : public throws (void)
+Method setPersistConsumerOffsetInterval(int) : public throws (void)
+Method setPollNameServerInterval(int) : public throws (void)
+Method setPostSubscriptionWhenPull(boolean) : public throws (void)
+Method setPullBatchSize(int) : public throws (void)
+Method setPullInterval(long) : public throws (void)
+Method setPullThresholdForQueue(int) : public throws (void)
+Method setPullThresholdForTopic(int) : public throws (void)
+Method setPullThresholdSizeForQueue(int) : public throws (void)
+Method setPullThresholdSizeForTopic(int) : public throws (void)
+Method setPullTimeDelayMillsWhenException(long) : public throws (void)
+Method setSubscription(java.util.Map) : public throws (void)
+Method setSuspendCurrentQueueTimeMillis(long) : public throws (void)
+Method setUnitMode(boolean) : public throws (void)
+Method setUnitName(java.lang.String) : public throws (void)
+Method setUseTLS(boolean) : public throws (void)
+Method setVipChannelEnabled(boolean) : public throws (void)
+Method shutdown() : public throws (void)
+Method start() : public throws (void)
+Method subscribe(java.lang.String,java.lang.String) : public throws (void)
+Method subscribe(java.lang.String,java.lang.String,java.lang.String) : public throws (void)
+Method subscribe(java.lang.String,org.apache.rocketmq.client.consumer.MessageSelector) : public throws (void)
+Method suspend() : public throws (void)
+Method toString() : public throws (java.lang.String)
+Method unsubscribe(java.lang.String) : public throws (void)
+Method updateCorePoolSize(int) : public throws (void)
+Method viewMessage(java.lang.String) : public throws (org.apache.rocketmq.common.message.MessageExt)
+Method viewMessage(java.lang.String,java.lang.String) : public throws (org.apache.rocketmq.common.message.MessageExt)
+Method withNamespace(java.lang.String) : public throws (java.lang.String)
+Method withNamespace(java.util.Set) : public throws (java.util.Set)
+Method withoutNamespace(java.lang.String) : public throws (java.lang.String)
+Method withoutNamespace(java.util.Set) : public throws (java.util.Set)

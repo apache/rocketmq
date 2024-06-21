@@ -21,12 +21,13 @@ import io.openmessaging.storage.dledger.DLedgerServer;
 import java.io.File;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
@@ -56,18 +57,19 @@ public class MessageStoreTestBase extends StoreTestBase {
         storeConfig.setdLegerGroup(group);
         storeConfig.setdLegerPeers(peers);
         storeConfig.setdLegerSelfId(selfId);
-        DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLedgerCommitlogTest"), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
-        }, new BrokerConfig());
+        storeConfig.setRecheckReputOffsetFromCq(true);
+        DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("DLedgerCommitlogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
+
+        }, new BrokerConfig(), new ConcurrentHashMap<>());
         DLedgerServer dLegerServer = ((DLedgerCommitLog) defaultMessageStore.getCommitLog()).getdLedgerServer();
         if (leaderId != null) {
             dLegerServer.getdLedgerConfig().setEnableLeaderElector(false);
             if (selfId.equals(leaderId)) {
-                dLegerServer.getMemberState().changeToLeader(-1);
+                dLegerServer.getMemberState().changeToLeader(0);
             } else {
-                dLegerServer.getMemberState().changeToFollower(-1, leaderId);
+                dLegerServer.getMemberState().changeToFollower(0, leaderId);
             }
-
         }
         if (createAbort) {
             String fileName = StorePathConfigHelper.getAbortFile(storeConfig.getStorePathRootDir());
@@ -106,9 +108,9 @@ public class MessageStoreTestBase extends StoreTestBase {
         storeConfig.setStorePathRootDir(base);
         storeConfig.setStorePathCommitLog(base + File.separator + "commitlog");
         storeConfig.setFlushDiskType(FlushDiskType.ASYNC_FLUSH);
-        DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("CommitlogTest"), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
+        DefaultMessageStore defaultMessageStore = new DefaultMessageStore(storeConfig,  new BrokerStatsManager("CommitlogTest", true), (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {
 
-        }, new BrokerConfig());
+        }, new BrokerConfig(), new ConcurrentHashMap<>());
 
         if (createAbort) {
             String fileName = StorePathConfigHelper.getAbortFile(storeConfig.getStorePathRootDir());

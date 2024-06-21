@@ -24,14 +24,33 @@ set BASE_DIR=%~dp0
 set BASE_DIR=%BASE_DIR:~0,-1%
 for %%d in (%BASE_DIR%) do set BASE_DIR=%%~dpd
 
-set CLASSPATH=.;%BASE_DIR%conf;%CLASSPATH%
+set CLASSPATH=.;%BASE_DIR%conf;%BASE_DIR%lib\*;%CLASSPATH%
 
-set "JAVA_OPT=%JAVA_OPT% -server -Xms2g -Xmx2g -Xmn1g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
-set "JAVA_OPT=%JAVA_OPT% -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8 -XX:-UseParNewGC"
-set "JAVA_OPT=%JAVA_OPT% -verbose:gc -Xloggc:"%USERPROFILE%\rmq_srv_gc.log" -XX:+PrintGCDetails"
-set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
-set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages"
-set "JAVA_OPT=%JAVA_OPT% -Djava.ext.dirs=%BASE_DIR%lib"
-set "JAVA_OPT=%JAVA_OPT% -cp "%CLASSPATH%""
+REM Example of JAVA_MAJOR_VERSION value: '1', '9', '10', '11', ...
+REM '1' means releases before Java 9
+
+for /f "tokens=2 delims=" %%v in ('java -version 2^>^&1 ^| findstr /i "version"') do (
+    for /f "tokens=1 delims=." %%m in ("%%v") do set "JAVA_MAJOR_VERSION=%%m"
+)
+
+if "%JAVA_MAJOR_VERSION%"=="" (
+    set "JAVA_MAJOR_VERSION=0"
+)
+
+if %JAVA_MAJOR_VERSION% lss 17 (
+   set "JAVA_OPT=%JAVA_OPT% -server -Xms2g -Xmx2g -Xmn1g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
+   set "JAVA_OPT=%JAVA_OPT% -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8 -XX:-UseParNewGC"
+   set "JAVA_OPT=%JAVA_OPT% -verbose:gc -Xloggc:"%USERPROFILE%\rmq_srv_gc.log" -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
+   set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
+   set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages"
+   set "JAVA_OPT=%JAVA_OPT% %JAVA_OPT_EXT% -cp "%CLASSPATH%""
+) else (
+   set "JAVA_OPT=%JAVA_OPT% -server -Xms2g -Xmx2g -Xmn1g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
+   rem set "JAVA_OPT=%JAVA_OPT% -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8 -XX:-UseParNewGC"
+   rem set "JAVA_OPT=%JAVA_OPT% -verbose:gc -Xloggc:"%USERPROFILE%\rmq_srv_gc.log" -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
+   set "JAVA_OPT=%JAVA_OPT% -XX:-OmitStackTraceInFastThrow"
+   set "JAVA_OPT=%JAVA_OPT% -XX:-UseLargePages"
+   set "JAVA_OPT=%JAVA_OPT% %JAVA_OPT_EXT% -cp "%CLASSPATH%""
+)
 
 "%JAVA%" %JAVA_OPT% %*

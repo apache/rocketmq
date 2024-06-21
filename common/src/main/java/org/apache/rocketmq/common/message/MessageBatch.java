@@ -27,7 +27,7 @@ public class MessageBatch extends Message implements Iterable<Message> {
     private static final long serialVersionUID = 621335151046335557L;
     private final List<Message> messages;
 
-    private MessageBatch(List<Message> messages) {
+    public MessageBatch(List<Message> messages) {
         this.messages = messages;
     }
 
@@ -39,10 +39,10 @@ public class MessageBatch extends Message implements Iterable<Message> {
         return messages.iterator();
     }
 
-    public static MessageBatch generateFromList(Collection<Message> messages) {
+    public static MessageBatch generateFromList(Collection<? extends Message> messages) {
         assert messages != null;
         assert messages.size() > 0;
-        List<Message> messageList = new ArrayList<Message>(messages.size());
+        List<Message> messageList = new ArrayList<>(messages.size());
         Message first = null;
         for (Message message : messages) {
             if (message.getDelayTimeLevel() > 0) {

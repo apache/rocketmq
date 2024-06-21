@@ -20,8 +20,7 @@ import java.util.List;
 import org.apache.rocketmq.common.message.MessageExt;
 
 /**
- * A MessageListenerConcurrently object is used to receive asynchronously delivered messages orderly.one queue,one
- * thread
+ * A MessageListenerOrderly object is used to receive messages orderly. One queue by one thread
  */
 public interface MessageListenerOrderly extends MessageListener {
     /**

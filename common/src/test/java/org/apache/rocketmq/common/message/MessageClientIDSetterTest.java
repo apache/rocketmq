@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.common.message;
 
+import org.apache.rocketmq.common.UtilAll;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,13 +25,45 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class MessageClientIDSetterTest {
 
     @Test
-    public void testGetIPStrFromID() {
-        String ipv4HostMsgId = "C0A803CA00002A9F0000000000031367";
-        String ipv6HostMsgId = "24084004018081003FAA1DDE2B3F898A00002A9F0000000000000CA0";
-        String v4Ip = "192.168.3.202";
-        String v6Ip = "2408:4004:0180:8100:3faa:1dde:2b3f:898a";
-        assertThat(MessageClientIDSetter.getIPStrFromID(ipv4HostMsgId)).isEqualTo(v4Ip);
-        assertThat(MessageClientIDSetter.getIPStrFromID(ipv6HostMsgId)).isEqualTo(v6Ip);
+    public void testGetTimeFromID() {
+        long t = System.currentTimeMillis();
+        String uniqID = MessageClientIDSetter.createUniqID();
+        long t2 = MessageClientIDSetter.getNearlyTimeFromID(uniqID).getTime();
+        assertThat(t2 - t < 20).isTrue();
     }
 
+    @Test
+    public void testGetCountFromID() {
+        String uniqID = MessageClientIDSetter.createUniqID();
+        String uniqID2 = MessageClientIDSetter.createUniqID();
+        String idHex = uniqID.substring(uniqID.length() - 4);
+        String idHex2 = uniqID2.substring(uniqID2.length() - 4);
+        int s1 = Integer.parseInt(idHex, 16);
+        int s2 = Integer.parseInt(idHex2, 16);
+        assertThat(s1 == s2 - 1).isTrue();
+    }
+
+
+    @Test
+    public void testGetIPStrFromID() {
+        byte[] ip = UtilAll.getIP();
+        String ipStr = (4 == ip.length) ? UtilAll.ipToIPv4Str(ip) : UtilAll.ipToIPv6Str(ip);
+
+        String uniqID = MessageClientIDSetter.createUniqID();
+        String ipStrFromID = MessageClientIDSetter.getIPStrFromID(uniqID);
+
+        assertThat(ipStr).isEqualTo(ipStrFromID);
+    }
+
+
+    @Test
+    public void testGetPidFromID() {
+        // Temporary fix on MacOS
+        short pid = (short) UtilAll.getPid();
+
+        String uniqID = MessageClientIDSetter.createUniqID();
+        short pidFromID = (short) MessageClientIDSetter.getPidFromID(uniqID);
+
+        assertThat(pid).isEqualTo(pidFromID);
+    }
 }

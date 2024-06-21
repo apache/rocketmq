@@ -17,32 +17,37 @@
 package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.ChannelHandlerContext;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
 import org.apache.rocketmq.broker.transaction.OperationResult;
+import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.ResponseCode;
-import org.apache.rocketmq.common.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.config.BrokerRole;
+
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOPIC;
 
 /**
  * EndTransaction processor: process commit and rollback message
  */
 public class EndTransactionProcessor implements NettyRequestProcessor {
-    private static final InternalLogger LOGGER = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
     private final BrokerController brokerController;
 
     public EndTransactionProcessor(final BrokerController brokerController) {
@@ -54,7 +59,7 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final EndTransactionRequestHeader requestHeader =
-            (EndTransactionRequestHeader)request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
+            (EndTransactionRequestHeader) request.decodeCommandCustomHeader(EndTransactionRequestHeader.class);
         LOGGER.debug("Transaction request:{}", requestHeader);
         if (BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole()) {
             response.setCode(ResponseCode.SLAVE_NOT_AVAILABLE);
@@ -125,6 +130,12 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         if (MessageSysFlag.TRANSACTION_COMMIT_TYPE == requestHeader.getCommitOrRollback()) {
             result = this.brokerController.getTransactionalMessageService().commitMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
+                if (rejectCommitOrRollback(requestHeader, result.getPrepareMessage())) {
+                    response.setCode(ResponseCode.ILLEGAL_OPERATION);
+                    LOGGER.warn("Message commit fail [producer end]. currentTimeMillis - bornTime > checkImmunityTime, msgId={},commitLogOffset={}, wait check",
+                            requestHeader.getMsgId(), requestHeader.getCommitLogOffset());
+                    return response;
+                }
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
                     MessageExtBrokerInner msgInner = endMessageTransaction(result.getPrepareMessage());
@@ -132,9 +143,20 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     msgInner.setQueueOffset(requestHeader.getTranStateTableOffset());
                     msgInner.setPreparedTransactionOffset(requestHeader.getCommitLogOffset());
                     msgInner.setStoreTimestamp(result.getPrepareMessage().getStoreTimestamp());
+                    MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_TRANSACTION_PREPARED);
                     RemotingCommand sendResult = sendFinalMessage(msgInner);
                     if (sendResult.getCode() == ResponseCode.SUCCESS) {
                         this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
+                        // successful committed, then total num of half-messages minus 1
+                        this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(msgInner.getTopic(), -1);
+                        BrokerMetricsManager.commitMessagesTotal.add(1, BrokerMetricsManager.newAttributesBuilder()
+                                .put(LABEL_TOPIC, msgInner.getTopic())
+                                .build());
+                        // record the commit latency.
+                        Long commitLatency = (System.currentTimeMillis() - result.getPrepareMessage().getBornTimestamp()) / 1000;
+                        BrokerMetricsManager.transactionFinishLatency.record(commitLatency, BrokerMetricsManager.newAttributesBuilder()
+                                .put(LABEL_TOPIC, msgInner.getTopic())
+                                .build());
                     }
                     return sendResult;
                 }
@@ -143,9 +165,20 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {
+                if (rejectCommitOrRollback(requestHeader, result.getPrepareMessage())) {
+                    response.setCode(ResponseCode.ILLEGAL_OPERATION);
+                    LOGGER.warn("Message rollback fail [producer end]. currentTimeMillis - bornTime > checkImmunityTime, msgId={},commitLogOffset={}, wait check",
+                            requestHeader.getMsgId(), requestHeader.getCommitLogOffset());
+                    return response;
+                }
                 RemotingCommand res = checkPrepareMessage(result.getPrepareMessage(), requestHeader);
                 if (res.getCode() == ResponseCode.SUCCESS) {
                     this.brokerController.getTransactionalMessageService().deletePrepareMessage(result.getPrepareMessage());
+                    // roll back, then total num of half-messages minus 1
+                    this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(result.getPrepareMessage().getProperty(MessageConst.PROPERTY_REAL_TOPIC), -1);
+                    BrokerMetricsManager.rollBackMessagesTotal.add(1, BrokerMetricsManager.newAttributesBuilder()
+                            .put(LABEL_TOPIC, result.getPrepareMessage().getProperty(MessageConst.PROPERTY_REAL_TOPIC))
+                            .build());
                 }
                 return res;
             }
@@ -153,6 +186,30 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
         response.setCode(result.getResponseCode());
         response.setRemark(result.getResponseRemark());
         return response;
+    }
+
+    /**
+     * If you specify a custom first check time CheckImmunityTimeInSeconds,
+     * And the commit/rollback request whose validity period exceeds CheckImmunityTimeInSeconds and is not checked back will be processed and failed
+     * returns ILLEGAL_OPERATION 604 error
+     * @param requestHeader
+     * @param messageExt
+     * @return
+     */
+    public boolean rejectCommitOrRollback(EndTransactionRequestHeader requestHeader, MessageExt messageExt) {
+        if (requestHeader.getFromTransactionCheck()) {
+            return false;
+        }
+        long transactionTimeout = brokerController.getBrokerConfig().getTransactionTimeOut();
+
+        String checkImmunityTimeStr = messageExt.getUserProperty(MessageConst.PROPERTY_CHECK_IMMUNITY_TIME_IN_SECONDS);
+        if (StringUtils.isNotEmpty(checkImmunityTimeStr)) {
+            long valueOfCurrentMinusBorn = System.currentTimeMillis() - messageExt.getBornTimestamp();
+            long checkImmunityTime = TransactionalMessageUtil.getImmunityTime(checkImmunityTimeStr, transactionTimeout);
+            //Non-check requests that exceed the specified custom first check time fail to return
+            return valueOfCurrentMinusBorn > checkImmunityTime;
+        }
+        return false;
     }
 
     @Override
@@ -229,26 +286,50 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
                     response.setRemark(null);
                     break;
                 // Failed
-                case CREATE_MAPEDFILE_FAILED:
+                case CREATE_MAPPED_FILE_FAILED:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("Create mapped file failed.");
                     break;
                 case MESSAGE_ILLEGAL:
                 case PROPERTIES_SIZE_EXCEEDED:
                     response.setCode(ResponseCode.MESSAGE_ILLEGAL);
-                    response.setRemark("The message is illegal, maybe msg body or properties length not matched. msg body length limit 128k, msg properties length limit 32k.");
+                    response.setRemark(String.format("The message is illegal, maybe msg body or properties length not matched. msg body length limit %dB, msg properties length limit 32KB.",
+                        this.brokerController.getMessageStoreConfig().getMaxMessageSize()));
                     break;
                 case SERVICE_NOT_AVAILABLE:
                     response.setCode(ResponseCode.SERVICE_NOT_AVAILABLE);
                     response.setRemark("Service not available now.");
                     break;
-                case OS_PAGECACHE_BUSY:
+                case OS_PAGE_CACHE_BUSY:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("OS page cache busy, please try another machine");
+                    break;
+                case WHEEL_TIMER_MSG_ILLEGAL:
+                    response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                    response.setRemark(String.format("timer message illegal, the delay time should not be bigger than the max delay %dms; or if set del msg, the delay time should be bigger than the current time",
+                        this.brokerController.getMessageStoreConfig().getTimerMaxDelaySec() * 1000L));
+                    break;
+                case WHEEL_TIMER_FLOW_CONTROL:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark(String.format("timer message is under flow control, max num limit is %d or the current value is greater than %d and less than %d, trigger random flow control",
+                        this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot() * 2L, this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot(), this.brokerController.getMessageStoreConfig().getTimerCongestNumEachSlot() * 2L));
+                    break;
+                case WHEEL_TIMER_NOT_ENABLE:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark(String.format("accurate timer message is not enabled, timerWheelEnable is %s",
+                        this.brokerController.getMessageStoreConfig().isTimerWheelEnable()));
                     break;
                 case UNKNOWN_ERROR:
                     response.setCode(ResponseCode.SYSTEM_ERROR);
                     response.setRemark("UNKNOWN_ERROR");
+                    break;
+                case IN_SYNC_REPLICAS_NOT_ENOUGH:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("in-sync replicas not enough");
+                    break;
+                case PUT_TO_REMOTE_BROKER_FAIL:
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("put to remote broker fail");
                     break;
                 default:
                     response.setCode(ResponseCode.SYSTEM_ERROR);

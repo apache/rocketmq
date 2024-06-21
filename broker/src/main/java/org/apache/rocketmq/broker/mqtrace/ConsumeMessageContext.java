@@ -17,6 +17,8 @@
 package org.apache.rocketmq.broker.mqtrace;
 
 import java.util.Map;
+
+import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 
 public class ConsumeMessageContext {
@@ -30,13 +32,22 @@ public class ConsumeMessageContext {
     private boolean success;
     private String status;
     private Object mqTraceContext;
+    private TopicConfig topicConfig;
+
+    private String accountAuthType;
+    private String accountOwnerParent;
+    private String accountOwnerSelf;
+    private int rcvMsgNum;
+    private int rcvMsgSize;
+    private BrokerStatsManager.StatsType rcvStat;
+    private int commercialRcvMsgNum;
 
     private String commercialOwner;
     private BrokerStatsManager.StatsType commercialRcvStats;
     private int commercialRcvTimes;
     private int commercialRcvSize;
-    private String namespace;
 
+    private String namespace;
     public String getConsumerGroup() {
         return consumerGroup;
     }
@@ -109,12 +120,76 @@ public class ConsumeMessageContext {
         this.mqTraceContext = mqTraceContext;
     }
 
+    public TopicConfig getTopicConfig() {
+        return topicConfig;
+    }
+
+    public void setTopicConfig(TopicConfig topicConfig) {
+        this.topicConfig = topicConfig;
+    }
+
     public int getBodyLength() {
         return bodyLength;
     }
 
     public void setBodyLength(int bodyLength) {
         this.bodyLength = bodyLength;
+    }
+
+    public String getAccountAuthType() {
+        return accountAuthType;
+    }
+
+    public void setAccountAuthType(String accountAuthType) {
+        this.accountAuthType = accountAuthType;
+    }
+
+    public String getAccountOwnerParent() {
+        return accountOwnerParent;
+    }
+
+    public void setAccountOwnerParent(String accountOwnerParent) {
+        this.accountOwnerParent = accountOwnerParent;
+    }
+
+    public String getAccountOwnerSelf() {
+        return accountOwnerSelf;
+    }
+
+    public void setAccountOwnerSelf(String accountOwnerSelf) {
+        this.accountOwnerSelf = accountOwnerSelf;
+    }
+
+    public int getRcvMsgNum() {
+        return rcvMsgNum;
+    }
+
+    public void setRcvMsgNum(int rcvMsgNum) {
+        this.rcvMsgNum = rcvMsgNum;
+    }
+
+    public int getRcvMsgSize() {
+        return rcvMsgSize;
+    }
+
+    public void setRcvMsgSize(int rcvMsgSize) {
+        this.rcvMsgSize = rcvMsgSize;
+    }
+
+    public BrokerStatsManager.StatsType getRcvStat() {
+        return rcvStat;
+    }
+
+    public void setRcvStat(BrokerStatsManager.StatsType rcvStat) {
+        this.rcvStat = rcvStat;
+    }
+
+    public int getCommercialRcvMsgNum() {
+        return commercialRcvMsgNum;
+    }
+
+    public void setCommercialRcvMsgNum(int commercialRcvMsgNum) {
+        this.commercialRcvMsgNum = commercialRcvMsgNum;
     }
 
     public String getCommercialOwner() {

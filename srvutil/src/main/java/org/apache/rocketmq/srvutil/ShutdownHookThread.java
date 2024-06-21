@@ -17,7 +17,7 @@
 
 package org.apache.rocketmq.srvutil;
 
-import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ShutdownHookThread extends Thread {
     private volatile boolean hasShutdown = false;
     private AtomicInteger shutdownTimes = new AtomicInteger(0);
-    private final InternalLogger log;
+    private final Logger log;
     private final Callable callback;
 
     /**
@@ -38,7 +38,7 @@ public class ShutdownHookThread extends Thread {
      * @param log The log instance is used in hook thread.
      * @param callback The call back function.
      */
-    public ShutdownHookThread(InternalLogger log, Callable callback) {
+    public ShutdownHookThread(Logger log, Callable callback) {
         super("ShutdownHook");
         this.log = log;
         this.callback = callback;

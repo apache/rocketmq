@@ -26,7 +26,7 @@ import org.junit.Test;
 public class MessageBatchTest {
 
     public List<Message> generateMessages() {
-        List<Message> messages = new ArrayList<Message>();
+        List<Message> messages = new ArrayList<>();
         Message message1 = new Message("topic1", "body".getBytes());
         Message message2 = new Message("topic1", "body".getBytes());
 

@@ -105,7 +105,7 @@
         <option name="METHOD_PARAMETERS_WRAP" value="1"/>
         <option name="ARRAY_INITIALIZER_LBRACE_ON_NEXT_LINE" value="true"/>
         <option name="LABELED_STATEMENT_WRAP" value="1"/>
-        <option name="METHOD_ANNOTATION_WRAP" value="1"/>
+        <option name="METHOD_ANNOTATION_WRAP" value="2"/>
         <option name="CLASS_ANNOTATION_WRAP" value="1"/>
         <option name="FIELD_ANNOTATION_WRAP" value="1"/>
         <option name="PARENT_SETTINGS_INSTALLED" value="true"/>

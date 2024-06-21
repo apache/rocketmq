@@ -28,6 +28,12 @@ public class MessageQueue implements Comparable<MessageQueue>, Serializable {
 
     }
 
+    public MessageQueue(MessageQueue other) {
+        this.topic = other.topic;
+        this.brokerName = other.brokerName;
+        this.queueId = other.queueId;
+    }
+
     public MessageQueue(String topic, String brokerName, int queueId) {
         this.topic = topic;
         this.brokerName = brokerName;

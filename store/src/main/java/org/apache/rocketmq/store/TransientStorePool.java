@@ -22,24 +22,22 @@ import java.nio.ByteBuffer;
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
 public class TransientStorePool {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     private final int poolSize;
     private final int fileSize;
     private final Deque<ByteBuffer> availableBuffers;
-    private final MessageStoreConfig storeConfig;
+    private volatile boolean isRealCommit = true;
 
-    public TransientStorePool(final MessageStoreConfig storeConfig) {
-        this.storeConfig = storeConfig;
-        this.poolSize = storeConfig.getTransientStorePoolSize();
-        this.fileSize = storeConfig.getMappedFileSizeCommitLog();
+    public TransientStorePool(final int poolSize, final int fileSize) {
+        this.poolSize = poolSize;
+        this.fileSize = fileSize;
         this.availableBuffers = new ConcurrentLinkedDeque<>();
     }
 
@@ -81,9 +79,14 @@ public class TransientStorePool {
     }
 
     public int availableBufferNums() {
-        if (storeConfig.isTransientStorePoolEnable()) {
-            return availableBuffers.size();
-        }
-        return Integer.MAX_VALUE;
+        return availableBuffers.size();
+    }
+
+    public boolean isRealCommit() {
+        return isRealCommit;
+    }
+
+    public void setRealCommit(boolean realCommit) {
+        isRealCommit = realCommit;
     }
 }

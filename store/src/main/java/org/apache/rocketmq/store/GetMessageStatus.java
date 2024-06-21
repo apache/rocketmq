@@ -35,4 +35,6 @@ public enum GetMessageStatus {
     NO_MATCHED_LOGIC_QUEUE,
 
     NO_MESSAGE_IN_QUEUE,
+
+    OFFSET_RESET
 }

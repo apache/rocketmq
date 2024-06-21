@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.rocketmq</groupId>
         <artifactId>rocketmq-all</artifactId>
-        <version>4.6.0</version>
+        <version>5.2.0</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -27,39 +27,49 @@
     <artifactId>rocketmq-store</artifactId>
     <name>rocketmq-store ${project.version}</name>
 
+    <properties>
+        <project.root>${basedir}/..</project.root>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>io.openmessaging.storage</groupId>
             <artifactId>dledger</artifactId>
-            <version>0.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.rocketmq</groupId>
                     <artifactId>rocketmq-remoting</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>rocketmq-common</artifactId>
+            <artifactId>rocketmq-remoting</artifactId>
         </dependency>
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <scope>test</scope>
+            <groupId>com.conversantmedia</groupId>
+            <artifactId>disruptor</artifactId>
         </dependency>
         <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <scope>test</scope>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+        <!-- Required by DLedger -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.aliyunmq</groupId>
+            <artifactId>rocketmq-shaded-slf4j-api-bridge</artifactId>
         </dependency>
     </dependencies>
 </project>

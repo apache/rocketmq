@@ -25,6 +25,8 @@ import com.sun.jna.Pointer;
 public interface LibC extends Library {
     LibC INSTANCE = (LibC) Native.loadLibrary(Platform.isWindows() ? "msvcrt" : "c", LibC.class);
 
+    int MADV_NORMAL = 0;
+    int MADV_RANDOM = 1;
     int MADV_WILLNEED = 3;
     int MADV_DONTNEED = 4;
 
@@ -50,4 +52,8 @@ public interface LibC extends Library {
     int mlockall(int flags);
 
     int msync(Pointer p, NativeLong length, int flags);
+
+    int mincore(Pointer p, NativeLong length, byte[] vec);
+
+    int getpagesize();
 }

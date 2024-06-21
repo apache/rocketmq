@@ -17,10 +17,17 @@
 
 package org.apache.rocketmq.store;
 
+import org.rocksdb.RocksDBException;
+
 /**
  * Dispatcher of commit log.
  */
 public interface CommitLogDispatcher {
 
-    void dispatch(final DispatchRequest request);
+    /**
+     *  Dispatch messages from store to build consume queues, indexes, and filter data
+     * @param request dispatch message request
+     * @throws RocksDBException only in rocksdb mode
+     */
+    void dispatch(final DispatchRequest request) throws RocksDBException;
 }

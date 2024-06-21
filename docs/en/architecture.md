@@ -6,18 +6,18 @@
 The RocketMQ architecture is divided into four parts, as shown in the figure above:
 
 
-- Producer：The role of message publishing supports distributed cluster mode deployment. Producer selects the corresponding Broker cluster queue for message delivery through MQ's load balancing module. The delivery process supports fast failure and low latency.
+- Producer: The role of message publishing supports distributed cluster mode deployment. Producer selects the corresponding Broker cluster queue for message delivery through MQ's load balancing module. The delivery process supports fast failure and low latency.
 
-- Consumer：The role of message consumption supports distributed cluster deployment. Support push, pull two modes to consume messages. It also supports cluster mode and broadcast mode consumption, and it provides a real-time message subscription mechanism to meet the needs of most users.
+- Consumer: The role of message consumption supports distributed cluster deployment. Support push, pull two modes to consume messages. It also supports cluster mode and broadcast mode consumption, and it provides a real-time message subscription mechanism to meet the needs of most users.
 
-- NameServer：NameServer is a very simple Topic routing registry with a role similar to ZooKeeper in Dubbo, which supports dynamic registration and discovery of Broker. It mainly includes two functions: Broker management, NameServer accepts the registration information of the Broker cluster and saves it as the basic data of the routing information. Then provide a heartbeat detection mechanism to check whether the broker is still alive; routing information management, each NameServer will save the entire routing information about the Broker cluster and the queue information for the client query. Then the Producer and Consumer can know the routing information of the entire Broker cluster through the NameServer, so as to deliver and consume the message. The NameServer is usually deployed in a cluster mode, and each instance does not communicate with each other. Broker registers its own routing information with each NameServer, so each NameServer instance stores a complete routing information. When a NameServer is offline for some reason, the Broker can still synchronize its routing information with other NameServers. The Producer and Consumer can still dynamically sense the information of the Broker's routing.
+- NameServer: NameServer is a very simple Topic routing registry with a role similar to ZooKeeper in Dubbo, which supports dynamic registration and discovery of Broker. It mainly includes two functions: Broker management, NameServer accepts the registration information of the Broker cluster and saves it as the basic data of the routing information. Then provide a heartbeat detection mechanism to check whether the broker is still alive; routing information management, each NameServer will save the entire routing information about the Broker cluster and the queue information for the client query. Then the Producer and Consumer can know the routing information of the entire Broker cluster through the NameServer, so as to deliver and consume the message. The NameServer is usually deployed in a cluster mode, and each instance does not communicate with each other. Broker registers its own routing information with each NameServer, so each NameServer instance stores a complete routing information. When a NameServer is offline for some reason, the Broker can still synchronize its routing information with other NameServers. The Producer and Consumer can still dynamically sense the information of the Broker's routing.
 
-- BrokerServer：Broker is responsible for the storage, delivery and query of messages and high availability guarantees. In order to achieve these functions, Broker includes the following important sub-modules.
-1. Remoting Module：The entire broker entity handles requests from the clients side.
-2. Client Manager：Topic subscription information for managing the client (Producer/Consumer) and maintaining the Consumer
-3. Store Service：Provides a convenient and simple API interface for handling message storage to physical hard disks and query functions.
-4. HA Service：Highly available service that provides data synchronization between Master Broker and Slave Broker.
-5. Index Service：The message delivered to the Broker is indexed according to a specific Message key to provide a quick query of the message.
+- BrokerServer: Broker is responsible for the storage, delivery and query of messages and high availability guarantees. In order to achieve these functions, Broker includes the following important sub-modules.
+1. Remoting Module: The entire broker entity handles requests from the clients side.
+2. Client Manager: Topic subscription information for managing the client (Producer/Consumer) and maintaining the Consumer
+3. Store Service: Provides a convenient and simple API interface for handling message storage to physical hard disks and query functions.
+4. HA Service: Highly available service that provides data synchronization between Master Broker and Slave Broker.
+5. Index Service: The message delivered to the Broker is indexed according to a specific Message key to provide a quick query of the message.
 
 ![](image/rocketmq_architecture_2.png)
 

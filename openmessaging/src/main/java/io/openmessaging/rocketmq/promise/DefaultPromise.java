@@ -19,14 +19,14 @@ package io.openmessaging.rocketmq.promise;
 import io.openmessaging.Promise;
 import io.openmessaging.FutureListener;
 import io.openmessaging.exception.OMSRuntimeException;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class DefaultPromise<V> implements Promise<V> {
-    private static final InternalLogger LOG = InternalLoggerFactory.getLogger(DefaultPromise.class);
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultPromise.class);
     private final Object lock = new Object();
     private volatile FutureState state = FutureState.DOING;
     private V result = null;
@@ -157,7 +157,7 @@ public class DefaultPromise<V> implements Promise<V> {
     }
 
     private boolean isSuccess() {
-        return isDone() && (exception == null);
+        return isDone() && exception == null;
     }
 
     private void timeoutSoCancel() {

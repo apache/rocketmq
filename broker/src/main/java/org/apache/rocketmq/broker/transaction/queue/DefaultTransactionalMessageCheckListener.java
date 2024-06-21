@@ -24,14 +24,16 @@ import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.logging.InternalLogger;
-import org.apache.rocketmq.logging.InternalLoggerFactory;
-import org.apache.rocketmq.store.MessageExtBrokerInner;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public class DefaultTransactionalMessageCheckListener extends AbstractTransactionalMessageCheckListener {
-    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.TRANSACTION_LOGGER_NAME);
 
     public DefaultTransactionalMessageCheckListener() {
         super();
@@ -47,6 +49,8 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
             if (putMessageResult != null && putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK) {
                 log.info("Put checked-too-many-time half message to TRANS_CHECK_MAXTIME_TOPIC OK. Restored in queueOffset={}, " +
                     "commitLogOffset={}, real topic={}", msgExt.getQueueOffset(), msgExt.getCommitLogOffset(), msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC));
+                // discarded, then the num of half-messages minus 1
+                this.getBrokerController().getTransactionalMessageService().getTransactionMetrics().addAndGet(msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC), -1);
             } else {
                 log.error("Put checked-too-many-time half message to TRANS_CHECK_MAXTIME_TOPIC failed, real topic={}, msgId={}", msgExt.getTopic(), msgExt.getMsgId());
             }
@@ -58,7 +62,7 @@ public class DefaultTransactionalMessageCheckListener extends AbstractTransactio
 
     private MessageExtBrokerInner toMessageExtBrokerInner(MessageExt msgExt) {
         TopicConfig topicConfig = this.getBrokerController().getTopicConfigManager().createTopicOfTranCheckMaxTime(TCMT_QUEUE_NUMS, PermName.PERM_READ | PermName.PERM_WRITE);
-        int queueId = Math.abs(random.nextInt() % 99999999) % TCMT_QUEUE_NUMS;
+        int queueId = ThreadLocalRandom.current().nextInt(99999999) % TCMT_QUEUE_NUMS;
         MessageExtBrokerInner inner = new MessageExtBrokerInner();
         inner.setTopic(topicConfig.getTopicName());
         inner.setBody(msgExt.getBody());

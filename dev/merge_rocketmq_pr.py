@@ -17,8 +17,8 @@
 # limitations under the License.
 #
 
-# This script is a modified version of the one created by the Spark 
-# project (https://github.com/apache/spark/blob/master/dev/merge_spark_pr.py).
+# This script is a modified version of the one created by the RocketMQ
+# project (https://github.com/apache/rocketmq/blob/master/dev/merge_rocketmq_pr.py).
 
 # Utility for creating well-formed pull request merges and pushing them to Apache.
 #   usage: ./merge_rocketmq_pr.py    (see config env vars below)

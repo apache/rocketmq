@@ -17,7 +17,8 @@
 
 package org.apache.rocketmq.test.client.consumer.tag;
 
-import org.apache.log4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -33,7 +34,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class TagMessageWithSameGroupConsumerIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
     private String tag = "tag";
@@ -42,7 +43,7 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s !", topic));
-        producer = getProducer(nsAddr, topic);
+        producer = getProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -55,13 +56,13 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
         int msgSize = 20;
         String originMsgDCName = RandomUtils.getStringByUUID();
         String msgBodyDCName = RandomUtils.getStringByUUID();
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, tag,
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, tag,
             new RMQNormalListener(originMsgDCName, msgBodyDCName));
-        getConsumer(nsAddr, consumer1.getConsumerGroup(), tag,
+        getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), tag,
             new RMQNormalListener(originMsgDCName, msgBodyDCName));
         producer.send(tag, msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
-        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
@@ -74,15 +75,15 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
         String originMsgDCName = RandomUtils.getStringByUUID();
         String msgBodyDCName = RandomUtils.getStringByUUID();
 
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, tag,
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, tag,
             new RMQNormalListener(originMsgDCName, msgBodyDCName));
         producer.send(tag, msgSize, 100);
         TestUtils.waitForMoment(5);
-        getConsumer(nsAddr, consumer1.getConsumerGroup(), tag,
+        getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), tag,
             new RMQNormalListener(originMsgDCName, msgBodyDCName));
         TestUtils.waitForMoment(5);
 
-        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
@@ -94,9 +95,9 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
         String originMsgDCName = RandomUtils.getStringByUUID();
         String msgBodyDCName = RandomUtils.getStringByUUID();
 
-        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, tag,
+        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, tag,
             new RMQNormalListener(originMsgDCName, msgBodyDCName));
-        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), tag,
+        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), tag,
             new RMQNormalListener(originMsgDCName, msgBodyDCName));
 
         producer.send(tag, msgSize, 100);
@@ -105,7 +106,7 @@ public class TagMessageWithSameGroupConsumerIT extends BaseConf {
         mqClients.remove(1);
         TestUtils.waitForMoment(5);
 
-        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer1.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer1.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());

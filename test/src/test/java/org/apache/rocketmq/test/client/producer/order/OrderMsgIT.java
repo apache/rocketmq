@@ -18,8 +18,9 @@
 package org.apache.rocketmq.test.client.producer.order;
 
 import java.util.List;
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -34,7 +35,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class OrderMsgIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(OrderMsgIT.class);
+    private static Logger logger = LoggerFactory.getLogger(OrderMsgIT.class);
     private RMQNormalProducer producer = null;
     private RMQNormalConsumer consumer = null;
     private String topic = null;
@@ -43,8 +44,8 @@ public class OrderMsgIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(nsAddr, topic);
-        consumer = getConsumer(nsAddr, topic, "*", new RMQOrderListener());
+        producer = getProducer(NAMESRV_ADDR, topic);
+        consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQOrderListener());
     }
 
     @After
@@ -59,7 +60,7 @@ public class OrderMsgIT extends BaseConf {
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -77,7 +78,7 @@ public class OrderMsgIT extends BaseConf {
             msgSize);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -96,7 +97,7 @@ public class OrderMsgIT extends BaseConf {
             msgSize);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))

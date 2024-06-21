@@ -63,6 +63,10 @@ public class UpdateKvConfigCommand implements SubCommand {
             // key name
             String value = commandLine.getOptionValue('v').trim();
 
+            if (commandLine.hasOption('n')) {
+                defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
+            }
+
             defaultMQAdminExt.start();
             defaultMQAdminExt.createAndUpdateKvConfig(namespace, key, value);
             System.out.printf("create or update kv config to namespace success.%n");

@@ -22,11 +22,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
+import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class ResponseFuture {
+    private final Channel channel;
     private final int opaque;
-    private final Channel processChannel;
+    private final RemotingCommand request;
     private final long timeoutMillis;
     private final InvokeCallback invokeCallback;
     private final long beginTimestamp = System.currentTimeMillis();
@@ -38,11 +42,18 @@ public class ResponseFuture {
     private volatile RemotingCommand responseCommand;
     private volatile boolean sendRequestOK = true;
     private volatile Throwable cause;
+    private volatile boolean interrupted = false;
 
     public ResponseFuture(Channel channel, int opaque, long timeoutMillis, InvokeCallback invokeCallback,
-        SemaphoreReleaseOnlyOnce once) {
+                          SemaphoreReleaseOnlyOnce once) {
+        this(channel, opaque, null, timeoutMillis, invokeCallback, once);
+    }
+
+    public ResponseFuture(Channel channel, int opaque, RemotingCommand request, long timeoutMillis, InvokeCallback invokeCallback,
+                          SemaphoreReleaseOnlyOnce once) {
+        this.channel = channel;
         this.opaque = opaque;
-        this.processChannel = channel;
+        this.request = request;
         this.timeoutMillis = timeoutMillis;
         this.invokeCallback = invokeCallback;
         this.once = once;
@@ -51,9 +62,26 @@ public class ResponseFuture {
     public void executeInvokeCallback() {
         if (invokeCallback != null) {
             if (this.executeCallbackOnlyOnce.compareAndSet(false, true)) {
+                RemotingCommand response = getResponseCommand();
+                if (response != null) {
+                    invokeCallback.operationSucceed(response);
+                } else {
+                    if (!isSendRequestOK()) {
+                        invokeCallback.operationFail(new RemotingSendRequestException(channel.remoteAddress().toString(), getCause()));
+                    } else if (isTimeout()) {
+                        invokeCallback.operationFail(new RemotingTimeoutException(channel.remoteAddress().toString(), getTimeoutMillis(), getCause()));
+                    } else {
+                        invokeCallback.operationFail(new RemotingException(getRequestCommand().toString(), getCause()));
+                    }
+                }
                 invokeCallback.operationComplete(this);
             }
         }
+    }
+
+    public void interrupt() {
+        interrupted = true;
+        executeInvokeCallback();
     }
 
     public void release() {
@@ -117,20 +145,23 @@ public class ResponseFuture {
         return opaque;
     }
 
-    public Channel getProcessChannel() {
-        return processChannel;
+    public RemotingCommand getRequestCommand() {
+        return request;
+    }
+
+    public Channel getChannel() {
+        return channel;
+    }
+
+    public boolean isInterrupted() {
+        return interrupted;
     }
 
     @Override
     public String toString() {
-        return "ResponseFuture [responseCommand=" + responseCommand
-            + ", sendRequestOK=" + sendRequestOK
-            + ", cause=" + cause
-            + ", opaque=" + opaque
-            + ", processChannel=" + processChannel
-            + ", timeoutMillis=" + timeoutMillis
-            + ", invokeCallback=" + invokeCallback
-            + ", beginTimestamp=" + beginTimestamp
+        return "ResponseFuture [responseCommand=" + responseCommand + ", sendRequestOK=" + sendRequestOK
+            + ", cause=" + cause + ", opaque=" + opaque + ", timeoutMillis=" + timeoutMillis
+            + ", invokeCallback=" + invokeCallback + ", beginTimestamp=" + beginTimestamp
             + ", countDownLatch=" + countDownLatch + "]";
     }
 }

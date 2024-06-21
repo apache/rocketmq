@@ -53,7 +53,6 @@ import org.apache.rocketmq.filter.expression.LogicExpression;
 import org.apache.rocketmq.filter.expression.MQFilterException;
 import org.apache.rocketmq.filter.expression.PropertyExpression;
 import org.apache.rocketmq.filter.expression.UnaryExpression;
-import org.apache.rocketmq.filter.util.LRUCache;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -170,6 +169,9 @@ TOKEN [IGNORE_CASE] :
   | <  FALSE   : "FALSE" >
   | <  NULL    : "NULL" >
   | <  IS      : "IS" >
+  | <  CONTAINS    : "CONTAINS">
+  | <  STARTSWITH  : "STARTSWITH">
+  | <  ENDSWITH    : "ENDSWITH">
 }
 
 /* Literals */
@@ -193,7 +195,7 @@ TOKEN [IGNORE_CASE] :
 }
 
 // ----------------------------------------------------------------------------
-// Grammer
+// Grammar
 // ----------------------------------------------------------------------------
 BooleanExpression JmsSelector() :
 {
@@ -321,6 +323,39 @@ Expression comparisonExpression() :
                 "<=" right = unaryExpr()
                 {
                     left = ComparisonExpression.createLessThanEqual(left, right);
+                }
+            |
+                <CONTAINS> t = stringLitteral()
+                {
+                    left = ComparisonExpression.createContains(left, t);
+                }
+            |
+                LOOKAHEAD(2)
+                <NOT> <CONTAINS> t = stringLitteral()
+                {
+                    left = ComparisonExpression.createNotContains(left, t);
+                }
+            |
+                <STARTSWITH> t = stringLitteral()
+                {
+                    left = ComparisonExpression.createStartsWith(left, t);
+                }
+            |
+                LOOKAHEAD(2)
+                <NOT> <STARTSWITH> t = stringLitteral()
+                {
+                    left = ComparisonExpression.createNotStartsWith(left, t);
+                }
+            |
+                <ENDSWITH> t = stringLitteral()
+                {
+                    left = ComparisonExpression.createEndsWith(left, t);
+                }
+            |
+                LOOKAHEAD(2)
+                <NOT> <ENDSWITH> t = stringLitteral()
+                {
+                    left = ComparisonExpression.createNotEndsWith(left, t);
                 }
             |
                 <BETWEEN> low = unaryExpr() <AND> high = unaryExpr()

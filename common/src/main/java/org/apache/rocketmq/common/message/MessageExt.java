@@ -27,6 +27,8 @@ import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 public class MessageExt extends Message {
     private static final long serialVersionUID = 5720810158625748049L;
 
+    private String brokerName;
+
     private int queueId;
 
     private int storeSize;
@@ -107,6 +109,14 @@ public class MessageExt extends Message {
         return socketAddress2ByteBuffer(this.storeHost, byteBuffer);
     }
 
+    public String getBrokerName() {
+        return brokerName;
+    }
+
+    public void setBrokerName(String brokerName) {
+        this.brokerName = brokerName;
+    }
+
     public int getQueueId() {
         return queueId;
     }
@@ -132,18 +142,24 @@ public class MessageExt extends Message {
     }
 
     public String getBornHostString() {
-        if (this.bornHost != null) {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
-            return inetSocketAddress.getAddress().getHostAddress();
+        if (null != this.bornHost) {
+            InetAddress inetAddress = ((InetSocketAddress) this.bornHost).getAddress();
+
+            return null != inetAddress ? inetAddress.getHostAddress() : null;
         }
 
         return null;
     }
 
     public String getBornHostNameString() {
-        if (this.bornHost != null) {
-            InetSocketAddress inetSocketAddress = (InetSocketAddress) this.bornHost;
-            return inetSocketAddress.getAddress().getHostName();
+        if (null != this.bornHost) {
+            if (bornHost instanceof InetSocketAddress) {
+                // without reverse dns lookup
+                return ((InetSocketAddress) bornHost).getHostString();
+            }
+            InetAddress inetAddress = ((InetSocketAddress) this.bornHost).getAddress();
+
+            return null != inetAddress ? inetAddress.getHostName() : null;
         }
 
         return null;
@@ -233,9 +249,64 @@ public class MessageExt extends Message {
         this.preparedTransactionOffset = preparedTransactionOffset;
     }
 
+    /**
+     *
+     * achieves topicSysFlag value from transient properties
+     *
+     * @return
+     */
+    public Integer getTopicSysFlag() {
+        String topicSysFlagString = getProperty(MessageConst.PROPERTY_TRANSIENT_TOPIC_CONFIG);
+        if (topicSysFlagString != null && topicSysFlagString.length() > 0) {
+            return Integer.valueOf(topicSysFlagString);
+        }
+        return null;
+    }
+
+    /**
+     * set topicSysFlag to transient properties, or clear it
+     *
+     * @param topicSysFlag
+     */
+    public void setTopicSysFlag(Integer topicSysFlag) {
+        if (topicSysFlag == null) {
+            clearProperty(MessageConst.PROPERTY_TRANSIENT_TOPIC_CONFIG);
+        } else {
+            putProperty(MessageConst.PROPERTY_TRANSIENT_TOPIC_CONFIG, String.valueOf(topicSysFlag));
+        }
+    }
+
+    /**
+     *
+     * achieves groupSysFlag value from transient properties
+     *
+     * @return
+     */
+    public Integer getGroupSysFlag() {
+        String groupSysFlagString = getProperty(MessageConst.PROPERTY_TRANSIENT_GROUP_CONFIG);
+        if (groupSysFlagString != null && groupSysFlagString.length() > 0) {
+            return Integer.valueOf(groupSysFlagString);
+        }
+        return null;
+    }
+
+    /**
+     *
+     * set groupSysFlag to transient properties, or clear it
+     *
+     * @param groupSysFlag
+     */
+    public void setGroupSysFlag(Integer groupSysFlag) {
+        if (groupSysFlag == null) {
+            clearProperty(MessageConst.PROPERTY_TRANSIENT_GROUP_CONFIG);
+        } else {
+            putProperty(MessageConst.PROPERTY_TRANSIENT_GROUP_CONFIG, String.valueOf(groupSysFlag));
+        }
+    }
+
     @Override
     public String toString() {
-        return "MessageExt [queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
+        return "MessageExt [brokerName=" + brokerName + ", queueId=" + queueId + ", storeSize=" + storeSize + ", queueOffset=" + queueOffset
             + ", sysFlag=" + sysFlag + ", bornTimestamp=" + bornTimestamp + ", bornHost=" + bornHost
             + ", storeTimestamp=" + storeTimestamp + ", storeHost=" + storeHost + ", msgId=" + msgId
             + ", commitLogOffset=" + commitLogOffset + ", bodyCRC=" + bodyCRC + ", reconsumeTimes="

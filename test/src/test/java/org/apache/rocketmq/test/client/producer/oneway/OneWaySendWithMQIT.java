@@ -17,8 +17,9 @@
 
 package org.apache.rocketmq.test.client.producer.oneway;
 
-import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
 import org.apache.rocketmq.test.client.rmq.RMQAsyncSendProducer;
@@ -32,7 +33,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class OneWaySendWithMQIT extends BaseConf {
-    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
     private static boolean sendFail = false;
     private RMQAsyncSendProducer producer = null;
     private String topic = null;
@@ -41,7 +42,7 @@ public class OneWaySendWithMQIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("user topic[%s]!", topic));
-        producer = getAsyncProducer(nsAddr, topic);
+        producer = getAsyncProducer(NAMESRV_ADDR, topic);
     }
 
     @After
@@ -53,27 +54,17 @@ public class OneWaySendWithMQIT extends BaseConf {
     public void testAsyncSendWithMQ() {
         int msgSize = 20;
         int queueId = 0;
-        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
-        MessageQueue mq = new MessageQueue(topic, broker1Name, queueId);
+        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
+        MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, queueId);
 
         producer.sendOneWay(msgSize, mq);
         producer.waitForResponse(5 * 1000);
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
 
-        producer.clearMsg();
-        consumer.clearMsg();
 
-        mq = new MessageQueue(topic, broker2Name, queueId);
-        producer.asyncSend(msgSize, mq);
-        producer.waitForResponse(5 * 1000);
-
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
-        assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
-            consumer.getListener().getAllMsgBody()))
-            .containsExactlyElementsIn(producer.getAllMsgBody());
     }
 }

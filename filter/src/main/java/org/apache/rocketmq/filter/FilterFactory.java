@@ -27,7 +27,7 @@ public class FilterFactory {
 
     public static final FilterFactory INSTANCE = new FilterFactory();
 
-    protected static final Map<String, FilterSpi> FILTER_SPI_HOLDER = new HashMap<String, FilterSpi>(4);
+    protected static final Map<String, FilterSpi> FILTER_SPI_HOLDER = new HashMap<>(4);
 
     static {
         FilterFactory.INSTANCE.register(new SqlFilter());

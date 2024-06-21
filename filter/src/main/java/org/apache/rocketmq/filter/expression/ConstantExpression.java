@@ -30,21 +30,6 @@ package org.apache.rocketmq.filter.expression;
  */
 public class ConstantExpression implements Expression {
 
-    static class BooleanConstantExpression extends ConstantExpression implements BooleanExpression {
-        public BooleanConstantExpression(Object value) {
-            super(value);
-        }
-
-        public boolean matches(EvaluationContext context) throws Exception {
-            Object object = evaluate(context);
-            return object != null && object == Boolean.TRUE;
-        }
-    }
-
-    public static final BooleanConstantExpression NULL = new BooleanConstantExpression(null);
-    public static final BooleanConstantExpression TRUE = new BooleanConstantExpression(Boolean.TRUE);
-    public static final BooleanConstantExpression FALSE = new BooleanConstantExpression(Boolean.FALSE);
-
     private Object value;
 
     public ConstantExpression(Object value) {
@@ -60,16 +45,10 @@ public class ConstantExpression implements Expression {
 
         // only support Long.MIN_VALUE ~ Long.MAX_VALUE
         Number value = new Long(text);
-//        try {
-//            value = new Long(text);
-//        } catch (NumberFormatException e) {
-//            // The number may be too big to fit in a long.
-//            value = new BigDecimal(text);
-//        }
 
         long l = value.longValue();
         if (Integer.MIN_VALUE <= l && l <= Integer.MAX_VALUE) {
-            value = Integer.valueOf(value.intValue());
+            value = value.intValue();
         }
         return new ConstantExpression(value);
     }
@@ -106,7 +85,7 @@ public class ConstantExpression implements Expression {
             return "NULL";
         }
         if (value instanceof Boolean) {
-            return ((Boolean) value).booleanValue() ? "TRUE" : "FALSE";
+            return (Boolean) value ? "TRUE" : "FALSE";
         }
         if (value instanceof String) {
             return encodeString((String) value);
@@ -138,17 +117,19 @@ public class ConstantExpression implements Expression {
      * it was provided in a selector.
      */
     public static String encodeString(String s) {
-        StringBuffer b = new StringBuffer();
-        b.append('\'');
+
+        StringBuilder builder = new StringBuilder();
+
+        builder.append('\'');
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             if (c == '\'') {
-                b.append(c);
+                builder.append(c);
             }
-            b.append(c);
+            builder.append(c);
         }
-        b.append('\'');
-        return b.toString();
+        builder.append('\'');
+        return builder.toString();
     }
 
 }

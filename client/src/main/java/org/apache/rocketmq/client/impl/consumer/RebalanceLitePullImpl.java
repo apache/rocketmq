@@ -16,15 +16,19 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
-import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
-import org.apache.rocketmq.client.consumer.MessageQueueListener;
-import org.apache.rocketmq.client.impl.factory.MQClientInstance;
-import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-
 import java.util.List;
 import java.util.Set;
+import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.client.consumer.MessageQueueListener;
+import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.impl.factory.MQClientInstance;
+import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
+import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 public class RebalanceLitePullImpl extends RebalanceImpl {
 
@@ -70,13 +74,110 @@ public class RebalanceLitePullImpl extends RebalanceImpl {
         this.litePullConsumerImpl.getOffsetStore().removeOffset(mq);
     }
 
+    @Deprecated
     @Override
     public long computePullFromWhere(MessageQueue mq) {
-        return 0;
+        long result = -1L;
+        try {
+            result = computePullFromWhereWithException(mq);
+        } catch (MQClientException e) {
+            log.warn("Compute consume offset exception, mq={}", mq);
+        }
+        return result;
     }
 
     @Override
-    public void dispatchPullRequest(List<PullRequest> pullRequestList) {
+    public long computePullFromWhereWithException(MessageQueue mq) throws MQClientException {
+        ConsumeFromWhere consumeFromWhere = litePullConsumerImpl.getDefaultLitePullConsumer().getConsumeFromWhere();
+        long result = -1;
+        switch (consumeFromWhere) {
+            case CONSUME_FROM_LAST_OFFSET: {
+                long lastOffset = litePullConsumerImpl.getOffsetStore().readOffset(mq, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
+                if (lastOffset >= 0) {
+                    result = lastOffset;
+                } else if (-1 == lastOffset) {
+                    if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) { // First start, no offset
+                        result = 0L;
+                    } else {
+                        try {
+                            result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+                        } catch (MQClientException e) {
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            throw e;
+                        }
+                    }
+                } else {
+                    result = -1;
+                }
+                break;
+            }
+            case CONSUME_FROM_FIRST_OFFSET: {
+                long lastOffset = litePullConsumerImpl.getOffsetStore().readOffset(mq, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
+                if (lastOffset >= 0) {
+                    result = lastOffset;
+                } else if (-1 == lastOffset) {
+                    result = 0L;
+                } else {
+                    result = -1;
+                }
+                break;
+            }
+            case CONSUME_FROM_TIMESTAMP: {
+                long lastOffset = litePullConsumerImpl.getOffsetStore().readOffset(mq, ReadOffsetType.MEMORY_FIRST_THEN_STORE);
+                if (lastOffset >= 0) {
+                    result = lastOffset;
+                } else if (-1 == lastOffset) {
+                    if (mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                        try {
+                            result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
+                        } catch (MQClientException e) {
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            throw e;
+                        }
+                    } else {
+                        try {
+                            long timestamp = UtilAll.parseDate(this.litePullConsumerImpl.getDefaultLitePullConsumer().getConsumeTimestamp(),
+                                UtilAll.YYYYMMDDHHMMSS).getTime();
+                            result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
+                        } catch (MQClientException e) {
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            throw e;
+                        }
+                    }
+                } else {
+                    result = -1;
+                }
+                break;
+            }
+        }
+        return result;
     }
 
+    @Override
+    public int getConsumeInitMode() {
+        throw new UnsupportedOperationException("no initMode for Pull");
+    }
+
+    @Override
+    public void dispatchPullRequest(final List<PullRequest> pullRequestList, final long delay) {
+    }
+
+    @Override
+    public void dispatchPopPullRequest(List<PopRequest> pullRequestList, long delay) {
+
+    }
+
+    @Override
+    public ProcessQueue createProcessQueue() {
+        return new ProcessQueue();
+    }
+
+    @Override
+    public PopProcessQueue createPopProcessQueue() {
+        return null;
+    }
+
+    public ProcessQueue createProcessQueue(String topicName) {
+        return createProcessQueue();
+    }
 }

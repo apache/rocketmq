@@ -17,11 +17,11 @@
 package org.apache.rocketmq.example.operation;
 
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -89,7 +89,7 @@ public class Producer {
         opt.setRequired(true);
         options.addOption(opt);
 
-        PosixParser parser = new PosixParser();
+        DefaultParser parser = new DefaultParser();
         HelpFormatter hf = new HelpFormatter();
         hf.setWidth(110);
         CommandLine commandLine = null;

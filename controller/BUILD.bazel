@@ -1,0 +1,93 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+load("//bazel:GenTestRules.bzl", "GenTestRules")
+
+java_library(
+    name = "controller",
+    srcs = glob(["src/main/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common",
+        "//remoting",
+        "//client",
+        "//srvutil", 
+        "@maven//:io_openmessaging_storage_dledger",
+        "@maven//:org_apache_commons_commons_lang3",
+        "@maven//:commons_validator_commons_validator",
+        "@maven//:commons_collections_commons_collections",
+        "@maven//:commons_codec_commons_codec",
+        "@maven//:com_github_luben_zstd_jni",
+        "@maven//:org_lz4_lz4_java",
+        "@maven//:com_alibaba_fastjson",
+        "@maven//:io_netty_netty_all",
+        "@maven//:com_google_guava_guava",
+        "@maven//:org_slf4j_slf4j_api",
+        "@maven//:ch_qos_logback_logback_core",
+        "@maven//:ch_qos_logback_logback_classic",
+        "@maven//:commons_cli_commons_cli",
+        "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
+        "@maven//:io_github_aliyunmq_rocketmq_logback_classic",
+        "@maven//:io_opentelemetry_opentelemetry_api",
+        "@maven//:io_opentelemetry_opentelemetry_context",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_otlp",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_prometheus",
+        "@maven//:io_opentelemetry_opentelemetry_sdk",
+        "@maven//:io_opentelemetry_opentelemetry_sdk_common",
+        "@maven//:io_opentelemetry_opentelemetry_sdk_metrics",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_logging",
+        "@maven//:io_opentelemetry_opentelemetry_exporter_logging_otlp",
+        "@maven//:org_slf4j_jul_to_slf4j",
+        "@maven//:com_alipay_sofa_jraft_core",
+        "@maven//:com_alipay_sofa_hessian",
+        "@maven//:commons_io_commons_io",
+    ],
+)
+
+java_library(
+    name = "tests",
+    srcs = glob(["src/test/java/**/*.java"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        ":controller",
+        "//common",
+        "//remoting",
+        "//client",
+        "//srvutil", 
+        "@maven//:io_openmessaging_storage_dledger",
+        "//:test_deps",
+        "@maven//:org_apache_commons_commons_lang3", 
+        "@maven//:io_netty_netty_all",    
+        "@maven//:com_google_guava_guava",  
+        "@maven//:com_alibaba_fastjson",     
+    ],
+    resources = glob(["src/test/resources/certs/*.pem"]) + glob(["src/test/resources/certs/*.key"])
+)
+
+GenTestRules(
+    name = "GeneratedTestRules",
+    test_files = glob(["src/test/java/**/*Test.java"]),
+    deps = [
+        ":tests",
+    ],
+    exclude_tests = [
+        # This test is buggy, exclude it.
+        "src/test/java/org/apache/rocketmq/controller/impl/DLedgerControllerTest",
+    ],
+    medium_tests = [
+        "src/test/java/org/apache/rocketmq/controller/impl/controller/impl/DLedgerControllerTest",
+    ],
+)

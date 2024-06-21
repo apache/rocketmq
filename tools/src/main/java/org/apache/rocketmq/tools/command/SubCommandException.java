@@ -26,6 +26,10 @@ public class SubCommandException extends Exception {
         super(msg);
     }
 
+    public SubCommandException(String format, Object... args) {
+        super(String.format(format, args));
+    }
+
     /**
      * @param msg Message.
      * @param cause Cause.

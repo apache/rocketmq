@@ -1,0 +1,22 @@
+name: Build and Run Tests by Bazel
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  push:
+    branches:
+      - master
+      - develop
+      - bazel
+jobs:
+  build:
+    name: "bazel-compile (${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: bazel build --config=remote //...
+      - name: Run Tests
+        run: bazel test --config=remote //...

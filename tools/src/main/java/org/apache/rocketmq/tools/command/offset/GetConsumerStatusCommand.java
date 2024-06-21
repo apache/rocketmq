@@ -67,6 +67,11 @@ public class GetConsumerStatusCommand implements SubCommand {
             if (commandLine.hasOption("i")) {
                 originClientId = commandLine.getOptionValue("i").trim();
             }
+
+            if (commandLine.hasOption('n')) {
+                defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
+            }
+
             defaultMQAdminExt.start();
 
             Map<String, Map<MessageQueue, Long>> consumerStatusTable =

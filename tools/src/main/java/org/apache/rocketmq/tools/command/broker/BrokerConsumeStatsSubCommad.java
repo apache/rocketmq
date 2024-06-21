@@ -25,11 +25,11 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.admin.ConsumeStats;
-import org.apache.rocketmq.common.admin.OffsetWrapper;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
+import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
+import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -61,7 +61,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Fetch broker consume stats data";
+        return "Fetch broker consume stats data.";
     }
 
     @Override
@@ -105,7 +105,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
             }
 
             ConsumeStatsList consumeStatsList = defaultMQAdminExt.fetchConsumeStatsInBroker(brokerAddr, isOrder, timeoutMillis);
-            System.out.printf("%-32s  %-32s  %-32s  %-4s  %-20s  %-20s  %-20s  %s%n",
+            System.out.printf("%-64s  %-64s  %-32s  %-4s  %-20s  %-20s  %-20s  %s%n",
                 "#Topic",
                 "#Group",
                 "#Broker Name",
@@ -119,7 +119,7 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
                     String group = entry.getKey();
                     List<ConsumeStats> consumeStatsArray = entry.getValue();
                     for (ConsumeStats consumeStats : consumeStatsArray) {
-                        List<MessageQueue> mqList = new LinkedList<MessageQueue>();
+                        List<MessageQueue> mqList = new LinkedList<>();
                         mqList.addAll(consumeStats.getOffsetTable().keySet());
                         Collections.sort(mqList);
                         for (MessageQueue mq : mqList) {
@@ -136,8 +136,8 @@ public class BrokerConsumeStatsSubCommad implements SubCommand {
 
                             }
                             if (offsetWrapper.getLastTimestamp() > 0)
-                                System.out.printf("%-32s  %-32s  %-32s  %-4d  %-20d  %-20d  %-20d  %s%n",
-                                    UtilAll.frontStringAtLeast(mq.getTopic(), 32),
+                                System.out.printf("%-64s  %-64s  %-32s  %-4d  %-20d  %-20d  %-20d  %s%n",
+                                    UtilAll.frontStringAtLeast(mq.getTopic(), 64),
                                     group,
                                     UtilAll.frontStringAtLeast(mq.getBrokerName(), 32),
                                     mq.getQueueId(),

@@ -15,4 +15,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-sh ./runclass.sh org.apache.rocketmq.example.benchmark.TransactionProducer  $@
+sh ./runclass.sh org.apache.rocketmq.example.benchmark.TransactionProducer $@ &

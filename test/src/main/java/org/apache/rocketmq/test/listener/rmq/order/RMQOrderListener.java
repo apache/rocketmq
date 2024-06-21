@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.test.listener.rmq.order;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -56,7 +57,7 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
             msgQueue = msgs.get(key);
         }
 
-        msgQueue.add(new String(msg.getBody()));
+        msgQueue.add(new String(msg.getBody(), StandardCharsets.UTF_8));
         msgs.put(key, msgQueue);
     }
 
@@ -64,19 +65,20 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
         return String.format("%s_%s", queueId, brokerIp);
     }
 
+    @Override
     public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs,
-        ConsumeOrderlyContext context) {
+                                               ConsumeOrderlyContext context) {
         for (MessageExt msg : msgs) {
             if (isDebug) {
                 if (listenerName != null && listenerName != "") {
-                    logger.info(listenerName + ": " + msg);
+                    LOGGER.info(listenerName + ": " + msg);
                 } else {
-                    logger.info(msg);
+                    LOGGER.info("{}", msg);
                 }
             }
 
             putMsg(msg);
-            msgBodys.addData(new String(msg.getBody()));
+            msgBodys.addData(new String(msg.getBody(), StandardCharsets.UTF_8));
             originMsgs.addData(msg);
         }
 

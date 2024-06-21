@@ -18,8 +18,28 @@
 package org.apache.rocketmq.common.message;
 
 public enum MessageType {
-    Normal_Msg,
-    Trans_Msg_Half,
-    Trans_msg_Commit,
-    Delay_Msg,
+    Normal_Msg("Normal"),
+    Trans_Msg_Half("Trans"),
+    Trans_msg_Commit("TransCommit"),
+    Delay_Msg("Delay"),
+    Order_Msg("Order");
+
+    private final String shortName;
+
+    MessageType(String shortName) {
+        this.shortName = shortName;
+    }
+
+    public String getShortName() {
+        return shortName;
+    }
+
+    public static MessageType getByShortName(String shortName) {
+        for (MessageType msgType : MessageType.values()) {
+            if (msgType.getShortName().equals(shortName)) {
+                return msgType;
+            }
+        }
+        return Normal_Msg;
+    }
 }

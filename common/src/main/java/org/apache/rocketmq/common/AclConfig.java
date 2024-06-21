@@ -40,4 +40,12 @@ public class AclConfig {
     public void setPlainAccessConfigs(List<PlainAccessConfig> plainAccessConfigs) {
         this.plainAccessConfigs = plainAccessConfigs;
     }
+
+    @Override
+    public String toString() {
+        return "AclConfig{" +
+            "globalWhiteAddrs=" + globalWhiteAddrs +
+            ", plainAccessConfigs=" + plainAccessConfigs +
+            '}';
+    }
 }

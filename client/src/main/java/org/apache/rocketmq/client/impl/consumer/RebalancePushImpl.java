@@ -20,21 +20,25 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
+import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
 import org.apache.rocketmq.client.consumer.store.ReadOffsetType;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
-import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 public class RebalancePushImpl extends RebalanceImpl {
     private final static long UNLOCK_DELAY_TIME_MILLS = Long.parseLong(System.getProperty("rocketmq.client.unlockDelayTimeMills", "20000"));
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
+
 
     public RebalancePushImpl(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
         this(null, null, null, null, defaultMQPushConsumerImpl);
@@ -49,7 +53,7 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     @Override
     public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqDivided) {
-        /**
+        /*
          * When rebalance result changed, should update subscription's version to notify broker.
          * Fix: inconsistency subscription may lead to consumer miss messages.
          */
@@ -78,52 +82,65 @@ public class RebalancePushImpl extends RebalanceImpl {
         }
 
         // notify broker
-        this.getmQClientFactory().sendHeartbeatToAllBrokerWithLock();
+        this.getmQClientFactory().sendHeartbeatToAllBrokerWithLockV2(true);
+
+        MessageQueueListener messageQueueListener = defaultMQPushConsumerImpl.getMessageQueueListener();
+        if (null != messageQueueListener) {
+            messageQueueListener.messageQueueChanged(topic, mqAll, mqDivided);
+        }
     }
 
     @Override
-    public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
-        this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
-        this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
+    public boolean removeUnnecessaryMessageQueue(final MessageQueue mq, final ProcessQueue pq) {
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
             && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
-            try {
-                if (pq.getLockConsume().tryLock(1000, TimeUnit.MILLISECONDS)) {
-                    try {
-                        return this.unlockDelay(mq, pq);
-                    } finally {
-                        pq.getLockConsume().unlock();
-                    }
-                } else {
-                    log.warn("[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}",
-                        mq,
-                        pq.getTryUnlockTimes());
 
-                    pq.incTryUnlockTimes();
-                }
-            } catch (Exception e) {
-                log.error("removeUnnecessaryMessageQueue Exception", e);
-            }
+            // commit offset immediately
+            this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
 
-            return false;
+            // remove order message queue: unlock & remove
+            return tryRemoveOrderMessageQueue(mq, pq);
+        } else {
+            this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
+            this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
+            return true;
         }
-        return true;
     }
 
-    private boolean unlockDelay(final MessageQueue mq, final ProcessQueue pq) {
+    private boolean tryRemoveOrderMessageQueue(final MessageQueue mq, final ProcessQueue pq) {
+        try {
+            // unlock & remove when no message is consuming or UNLOCK_DELAY_TIME_MILLS timeout (Backwards compatibility)
+            boolean forceUnlock = pq.isDropped() && System.currentTimeMillis() > pq.getLastLockTimestamp() + UNLOCK_DELAY_TIME_MILLS;
+            if (forceUnlock || pq.getConsumeLock().writeLock().tryLock(500, TimeUnit.MILLISECONDS)) {
+                try {
+                    RebalancePushImpl.this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
+                    RebalancePushImpl.this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
 
-        if (pq.hasTempMessage()) {
-            log.info("[{}]unlockDelay, begin {} ", mq.hashCode(), mq);
-            this.defaultMQPushConsumerImpl.getmQClientFactory().getScheduledExecutorService().schedule(new Runnable() {
-                @Override
-                public void run() {
-                    log.info("[{}]unlockDelay, execute at once {}", mq.hashCode(), mq);
+                    pq.setLocked(false);
                     RebalancePushImpl.this.unlock(mq, true);
+                    return true;
+                } finally {
+                    if (!forceUnlock) {
+                        pq.getConsumeLock().writeLock().unlock();
+                    }
                 }
-            }, UNLOCK_DELAY_TIME_MILLS, TimeUnit.MILLISECONDS);
-        } else {
-            this.unlock(mq, true);
+            } else {
+                pq.incTryUnlockTimes();
+            }
+        } catch (Exception e) {
+            pq.incTryUnlockTimes();
         }
+
+        return false;
+    }
+
+    @Override
+    public boolean clientRebalance(String topic) {
+        // POPTODO order pop consume not implement yet
+        return defaultMQPushConsumerImpl.getDefaultMQPushConsumer().isClientRebalance() || defaultMQPushConsumerImpl.isConsumeOrderly() || MessageModel.BROADCASTING.equals(messageModel);
+    }
+
+    public boolean removeUnnecessaryPopMessageQueue(final MessageQueue mq, final PopProcessQueue pq) {
         return true;
     }
 
@@ -137,8 +154,20 @@ public class RebalancePushImpl extends RebalanceImpl {
         this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
     }
 
+    @Deprecated
     @Override
     public long computePullFromWhere(MessageQueue mq) {
+        long result = -1L;
+        try {
+            result = computePullFromWhereWithException(mq);
+        } catch (MQClientException e) {
+            log.warn("Compute consume offset exception, mq={}", mq);
+        }
+        return result;
+    }
+
+    @Override
+    public long computePullFromWhereWithException(MessageQueue mq) throws MQClientException {
         long result = -1;
         final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
         final OffsetStore offsetStore = this.defaultMQPushConsumerImpl.getOffsetStore();
@@ -159,11 +188,13 @@ public class RebalancePushImpl extends RebalanceImpl {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
-                            result = -1;
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            throw e;
                         }
                     }
                 } else {
-                    result = -1;
+                    throw new MQClientException(ResponseCode.QUERY_NOT_FOUND, "Failed to query consume offset from " +
+                            "offset store");
                 }
                 break;
             }
@@ -172,9 +203,11 @@ public class RebalancePushImpl extends RebalanceImpl {
                 if (lastOffset >= 0) {
                     result = lastOffset;
                 } else if (-1 == lastOffset) {
+                    //the offset will be fixed by the OFFSET_ILLEGAL process
                     result = 0L;
                 } else {
-                    result = -1;
+                    throw new MQClientException(ResponseCode.QUERY_NOT_FOUND, "Failed to query offset from offset " +
+                            "store");
                 }
                 break;
             }
@@ -187,7 +220,8 @@ public class RebalancePushImpl extends RebalanceImpl {
                         try {
                             result = this.mQClientFactory.getMQAdminImpl().maxOffset(mq);
                         } catch (MQClientException e) {
-                            result = -1;
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            throw e;
                         }
                     } else {
                         try {
@@ -195,11 +229,13 @@ public class RebalancePushImpl extends RebalanceImpl {
                                 UtilAll.YYYYMMDDHHMMSS).getTime();
                             result = this.mQClientFactory.getMQAdminImpl().searchOffset(mq, timestamp);
                         } catch (MQClientException e) {
-                            result = -1;
+                            log.warn("Compute consume offset from last offset exception, mq={}, exception={}", mq, e);
+                            throw e;
                         }
                     }
                 } else {
-                    result = -1;
+                    throw new MQClientException(ResponseCode.QUERY_NOT_FOUND, "Failed to query offset from offset " +
+                            "store");
                 }
                 break;
             }
@@ -208,14 +244,57 @@ public class RebalancePushImpl extends RebalanceImpl {
                 break;
         }
 
+        if (result < 0) {
+            throw new MQClientException(ResponseCode.SYSTEM_ERROR, "Found unexpected result " + result);
+        }
+
         return result;
     }
 
     @Override
-    public void dispatchPullRequest(List<PullRequest> pullRequestList) {
-        for (PullRequest pullRequest : pullRequestList) {
-            this.defaultMQPushConsumerImpl.executePullRequestImmediately(pullRequest);
-            log.info("doRebalance, {}, add a new pull request {}", consumerGroup, pullRequest);
+    public int getConsumeInitMode() {
+        final ConsumeFromWhere consumeFromWhere = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer().getConsumeFromWhere();
+        if (ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET == consumeFromWhere) {
+            return ConsumeInitMode.MIN;
+        } else {
+            return ConsumeInitMode.MAX;
         }
+    }
+
+    @Override
+    public void dispatchPullRequest(final List<PullRequest> pullRequestList, final long delay) {
+        for (PullRequest pullRequest : pullRequestList) {
+            if (delay <= 0) {
+                this.defaultMQPushConsumerImpl.executePullRequestImmediately(pullRequest);
+            } else {
+                this.defaultMQPushConsumerImpl.executePullRequestLater(pullRequest, delay);
+            }
+        }
+    }
+
+    @Override
+    public void dispatchPopPullRequest(final List<PopRequest> pullRequestList, final long delay) {
+        for (PopRequest pullRequest : pullRequestList) {
+            if (delay <= 0) {
+                this.defaultMQPushConsumerImpl.executePopPullRequestImmediately(pullRequest);
+            } else {
+                this.defaultMQPushConsumerImpl.executePopPullRequestLater(pullRequest, delay);
+            }
+        }
+    }
+
+    @Override
+    public ProcessQueue createProcessQueue() {
+        return new ProcessQueue();
+    }
+
+    @Override
+    public ProcessQueue createProcessQueue(String topicName) {
+        return createProcessQueue();
+    }
+
+    @Override
+    public PopProcessQueue createPopProcessQueue() {
+        return new PopProcessQueue();
     }
 }
