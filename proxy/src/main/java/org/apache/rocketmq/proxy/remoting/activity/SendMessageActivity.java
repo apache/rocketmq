@@ -85,7 +85,7 @@ public class SendMessageActivity extends AbstractRemotingActivity {
                 messagingProcessor.addTransactionSubscription(context, requestHeader.getProducerGroup(), requestHeader.getTopic());
             }
         }
-        return request(ctx, request, context, Duration.ofSeconds(3).toMillis(), r -> addTransactionData(context, requestHeader, r));
+        return request(ctx, request, context, Duration.ofSeconds(3).toMillis(), response -> addTransactionData(context, requestHeader, response));
     }
 
     protected RemotingCommand consumerSendMessage(ChannelHandlerContext ctx, RemotingCommand request,
