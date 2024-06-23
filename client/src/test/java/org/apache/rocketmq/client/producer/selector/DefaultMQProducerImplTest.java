@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.client.producer.selector;
 
-import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.hook.CheckForbiddenContext;
@@ -24,7 +23,6 @@ import org.apache.rocketmq.client.impl.MQAdminImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
-import org.apache.rocketmq.client.latency.MQFaultStrategy;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.RequestCallback;
 import org.apache.rocketmq.client.producer.SendCallback;
@@ -116,15 +114,12 @@ public class DefaultMQProducerImplTest {
             return null;
         }, () -> defaultMQProducerImpl.request(message, selector, 1, defaultTimeout));
         ExecutorService executorService = Executors.newFixedThreadPool(1);
-        Message actual = executorService.invokeAny(callables);
-        assertNull(actual);
+        assertNull(executorService.invokeAny(callables));
     }
 
     @Test
     public void testCheckTransactionState() {
-        MessageExt msg = mock(MessageExt.class);
-        CheckTransactionStateRequestHeader header = mock(CheckTransactionStateRequestHeader.class);
-        defaultMQProducerImpl.checkTransactionState(defaultBrokerAddr, msg, header);
+        defaultMQProducerImpl.checkTransactionState(defaultBrokerAddr, mock(MessageExt.class), mock(CheckTransactionStateRequestHeader.class));
     }
 
     @Test
@@ -144,8 +139,7 @@ public class DefaultMQProducerImplTest {
 
     @Test(expected = MQClientException.class)
     public void testSendOnewayByQueueSelector() throws MQClientException, RemotingException, InterruptedException {
-        MessageQueueSelector selector = mock(MessageQueueSelector.class);
-        defaultMQProducerImpl.sendOneway(message, selector, 1);
+        defaultMQProducerImpl.sendOneway(message, mock(MessageQueueSelector.class), 1);
     }
 
     @Test
@@ -161,8 +155,7 @@ public class DefaultMQProducerImplTest {
                     return null;
                 });
         ExecutorService executorService = Executors.newFixedThreadPool(1);
-        SendResult actual = executorService.invokeAny(callables);
-        assertNull(actual);
+        assertNull(executorService.invokeAny(callables));
     }
 
     @Test
@@ -174,44 +167,37 @@ public class DefaultMQProducerImplTest {
 
     @Test
     public void assertSearchOffset() throws MQClientException {
-        long actual = defaultMQProducerImpl.searchOffset(messageQueue, System.currentTimeMillis());
-        assertEquals(0, actual);
+        assertEquals(0, defaultMQProducerImpl.searchOffset(messageQueue, System.currentTimeMillis()));
     }
 
     @Test
     public void assertMaxOffset() throws MQClientException {
-        long actual = defaultMQProducerImpl.maxOffset(messageQueue);
-        assertEquals(0, actual);
+        assertEquals(0, defaultMQProducerImpl.maxOffset(messageQueue));
     }
 
     @Test
     public void assertMinOffset() throws MQClientException {
-        long actual = defaultMQProducerImpl.minOffset(messageQueue);
-        assertEquals(0, actual);
+        assertEquals(0, defaultMQProducerImpl.minOffset(messageQueue));
     }
 
     @Test
     public void assertEarliestMsgStoreTime() throws MQClientException {
-        long actual = defaultMQProducerImpl.earliestMsgStoreTime(messageQueue);
-        assertEquals(0, actual);
+        assertEquals(0, defaultMQProducerImpl.earliestMsgStoreTime(messageQueue));
     }
 
     @Test
     public void assertViewMessage() throws MQClientException, MQBrokerException, RemotingException, InterruptedException {
-        MessageExt actual = defaultMQProducerImpl.viewMessage(defaultTopic, "msgId");
-        assertNull(actual);
+        assertNull(defaultMQProducerImpl.viewMessage(defaultTopic, "msgId"));
     }
 
     @Test
     public void assertQueryMessage() throws MQClientException, InterruptedException {
-        QueryResult actual = defaultMQProducerImpl.queryMessage(defaultTopic, "key", 1, 0L, 10L);
-        assertNull(actual);
+        assertNull(defaultMQProducerImpl.queryMessage(defaultTopic, "key", 1, 0L, 10L));
     }
 
     @Test
     public void assertQueryMessageByUniqKey() throws MQClientException, InterruptedException {
-        MessageExt actual = defaultMQProducerImpl.queryMessageByUniqKey(defaultTopic, "key");
-        assertNull(actual);
+        assertNull(defaultMQProducerImpl.queryMessageByUniqKey(defaultTopic, "key"));
     }
 
     @Test
@@ -263,8 +249,7 @@ public class DefaultMQProducerImplTest {
 
     @Test
     public void assertGetMqFaultStrategy() {
-        MQFaultStrategy actual = defaultMQProducerImpl.getMqFaultStrategy();
-        assertNotNull(actual);
+        assertNotNull(defaultMQProducerImpl.getMqFaultStrategy());
     }
 
     private void setMQClientFactory() throws IllegalAccessException, NoSuchFieldException {
@@ -280,10 +265,8 @@ public class DefaultMQProducerImplTest {
     }
 
     private void setCheckExecutor() throws NoSuchFieldException, IllegalAccessException {
-        ExecutorService executorService = mock(ExecutorService.class);
-        setField(defaultMQProducerImpl, "checkExecutor", executorService);
+        setField(defaultMQProducerImpl, "checkExecutor", mock(ExecutorService.class));
     }
-
 
     private void setField(final Object target, final String fieldName, final Object newValue) throws NoSuchFieldException, IllegalAccessException {
         Class<?> clazz = target.getClass();
