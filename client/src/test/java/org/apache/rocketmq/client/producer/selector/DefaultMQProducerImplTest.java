@@ -39,6 +39,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.junit.Before;
 import org.junit.Test;
@@ -88,7 +89,7 @@ public class DefaultMQProducerImplTest {
 
     private DefaultMQProducerImpl defaultMQProducerImpl;
 
-    private final long defaultTimeout = 30000L;
+    private final long defaultTimeout = 3000L;
 
     private final String defaultBrokerAddr = "127.0.0.1:10911";
 
@@ -113,7 +114,6 @@ public class DefaultMQProducerImplTest {
         TransactionMQProducer producer = new TransactionMQProducer("test-producer-group");
         producer.setTransactionListener(mock(TransactionListener.class));
         producer.setTopics(Collections.singletonList(defaultTopic));
-        producer.setSendMsgTimeout(3000 * 10);
         defaultMQProducerImpl = new DefaultMQProducerImpl(producer);
         setMQClientFactory();
         setCheckExecutor();
@@ -196,8 +196,8 @@ public class DefaultMQProducerImplTest {
         assertNull(defaultMQProducerImpl.request(message, queueSelector, 1, defaultTimeout));
     }
 
-    @Test(expected = RequestTimeoutException.class)
-    public void assertRequestRequestTimeoutByQueue() throws Exception {
+    @Test(expected = RemotingTooMuchRequestException.class)
+    public void assertRemotingTooMuchRequestExceptionByQueue() throws Exception {
         assertNull(defaultMQProducerImpl.request(message, messageQueue, defaultTimeout));
     }
 
