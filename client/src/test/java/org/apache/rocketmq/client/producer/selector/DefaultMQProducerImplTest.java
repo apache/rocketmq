@@ -16,24 +16,17 @@
  */
 package org.apache.rocketmq.client.producer.selector;
 
-import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
-import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.hook.CheckForbiddenContext;
 import org.apache.rocketmq.client.impl.MQAdminImpl;
-import org.apache.rocketmq.client.impl.MQClientAPIImpl;
-import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.latency.MQFaultStrategy;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.RequestCallback;
-import org.apache.rocketmq.client.producer.RequestFutureHolder;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.TransactionListener;
@@ -48,9 +41,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -66,18 +59,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.AdditionalMatchers.or;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.doNothing;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.support.membermodification.MemberMatcher.field;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({Validators.class, MQClientManager.class, RequestFutureHolder.class})
+@RunWith(MockitoJUnitRunner.class)
 public class DefaultMQProducerImplTest {
 
     @Mock
@@ -90,22 +75,7 @@ public class DefaultMQProducerImplTest {
     private RequestCallback requestCallback;
 
     @Mock
-    private DefaultMQProducer defaultMQProducer;
-
-    @Mock
     private MQClientInstance mQClientFactory;
-
-    @Mock
-    private MQClientManager mqClientManager;
-
-    @Mock
-    private RequestFutureHolder requestResponseFuture;
-
-    @Mock
-    private ClientConfig clientConfig;
-
-    @Mock
-    private MQClientAPIImpl mQClientAPIImpl;
 
     @Mock
     private SendCallback sendCallback;
@@ -116,58 +86,37 @@ public class DefaultMQProducerImplTest {
 
     private final String defaultBrokerAddr = "127.0.0.1:10911";
 
-    private final String defaultNsAddr = "127.0.0.1:9876";
-
     private final String defaultTopic = "testTopic";
 
     @Before
     public void init() throws Exception {
-        mockStatic(Validators.class);
-        doNothing().when(Validators.class, "checkGroup", anyString());
-        mockStatic(MQClientManager.class);
-        mockStatic(RequestFutureHolder.class);
-        when(RequestFutureHolder.getInstance()).thenReturn(requestResponseFuture);
-        ConcurrentHashMap requestFutureTable = mock(ConcurrentHashMap.class);
-        when(RequestFutureHolder.getInstance().getRequestFutureTable()).thenReturn(requestFutureTable);
-        when(MQClientManager.getInstance()).thenReturn(mqClientManager);
-        when(MQClientManager.getInstance().getOrCreateMQClientInstance(any(), any())).thenReturn(mQClientFactory);
-        when(mQClientFactory.registerProducer(anyString(), any())).thenReturn(true);
         when(mQClientFactory.getTopicRouteTable()).thenReturn(mock(ConcurrentMap.class));
-        when(mQClientFactory.findBrokerAddressInPublish(or(isNull(), anyString()))).thenReturn(defaultBrokerAddr);
-        when(clientConfig.queueWithNamespace(any())).thenReturn(messageQueue);
-        when(mQClientFactory.getClientConfig()).thenReturn(clientConfig);
         when(mQClientFactory.getClientId()).thenReturn("client-id");
         when(mQClientFactory.getMQAdminImpl()).thenReturn(mock(MQAdminImpl.class));
-        when(clientConfig.getNamespace()).thenReturn("namespace");
         when(message.getTopic()).thenReturn(defaultTopic);
-        List<String> nsAddrList = Collections.singletonList(defaultNsAddr);
-        when(mQClientAPIImpl.getNameServerAddressList()).thenReturn(nsAddrList);
-        when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mQClientAPIImpl);
-        when(defaultMQProducer.cloneClientConfig()).thenReturn(clientConfig);
         TransactionMQProducer producer = new TransactionMQProducer("test-producer-group");
         producer.setTransactionListener(mock(TransactionListener.class));
         producer.setTopics(Collections.singletonList(defaultTopic));
-        defaultMQProducerImpl = producer.getDefaultMQProducerImpl();
-        setTopicPublishInfoTable(defaultMQProducerImpl, false);
-        setMQClientFactory(defaultMQProducerImpl);
-        producer.start();
+        defaultMQProducerImpl = new DefaultMQProducerImpl(producer);
+        setTopicPublishInfoTable(false);
+        setMQClientFactory();
+        setCheckExecutor();
+        defaultMQProducerImpl.setServiceState(ServiceState.RUNNING);
     }
 
-    @Test(expected = RequestTimeoutException.class)
+    @Test(expected = ExecutionException.class)
     public void testRequest() throws Exception {
-        setTopicPublishInfoTable(defaultMQProducerImpl, true);
-        defaultMQProducerImpl.request(message, messageQueue, requestCallback, defaultTimeout);
-        defaultMQProducerImpl.request(message, messageQueue, requestCallback, defaultTimeout);
-        Message actual = defaultMQProducerImpl.request(message, messageQueue, defaultTimeout);
-        assertNull(actual);
-    }
-
-    @Test(expected = RequestTimeoutException.class)
-    public void testRequestByQueueSelector() throws Exception {
-        setTopicPublishInfoTable(defaultMQProducerImpl, true);
+        setTopicPublishInfoTable(true);
         MessageQueueSelector selector = mock(MessageQueueSelector.class);
-        defaultMQProducerImpl.request(message, selector, 1, requestCallback, defaultTimeout);
-        Message actual = defaultMQProducerImpl.request(message, selector, 1, defaultTimeout);
+        List<Callable<Message>> callables = Arrays.asList(() -> {
+            defaultMQProducerImpl.request(message, messageQueue, requestCallback, defaultTimeout);
+            return null;
+        }, () -> defaultMQProducerImpl.request(message, messageQueue, defaultTimeout), () -> {
+            defaultMQProducerImpl.request(message, selector, 1, requestCallback, defaultTimeout);
+            return null;
+        }, () -> defaultMQProducerImpl.request(message, selector, 1, defaultTimeout));
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        Message actual = executorService.invokeAny(callables);
         assertNull(actual);
     }
 
@@ -318,15 +267,28 @@ public class DefaultMQProducerImplTest {
         assertNotNull(actual);
     }
 
-    private void setMQClientFactory(final DefaultMQProducerImpl defaultMQProducerImpl) throws IllegalAccessException {
-        field(DefaultMQProducerImpl.class, "mQClientFactory").set(defaultMQProducerImpl, mQClientFactory);
+    private void setMQClientFactory() throws IllegalAccessException, NoSuchFieldException {
+        setField(defaultMQProducerImpl, "mQClientFactory", mQClientFactory);
     }
 
-    private void setTopicPublishInfoTable(final DefaultMQProducerImpl defaultMQProducerImpl, final boolean isOk) throws IllegalAccessException {
+    private void setTopicPublishInfoTable(final boolean isOk) throws IllegalAccessException, NoSuchFieldException {
         ConcurrentMap<String, TopicPublishInfo> topicPublishInfoTable = new ConcurrentHashMap<>();
         TopicPublishInfo topicPublishInfo = mock(TopicPublishInfo.class);
         when(topicPublishInfo.ok()).thenReturn(isOk);
         topicPublishInfoTable.put(defaultTopic, topicPublishInfo);
-        field(DefaultMQProducerImpl.class, "topicPublishInfoTable").set(defaultMQProducerImpl, topicPublishInfoTable);
+        setField(defaultMQProducerImpl, "topicPublishInfoTable", topicPublishInfoTable);
+    }
+
+    private void setCheckExecutor() throws NoSuchFieldException, IllegalAccessException {
+        ExecutorService executorService = mock(ExecutorService.class);
+        setField(defaultMQProducerImpl, "checkExecutor", executorService);
+    }
+
+
+    private void setField(final Object target, final String fieldName, final Object newValue) throws NoSuchFieldException, IllegalAccessException {
+        Class<?> clazz = target.getClass();
+        Field field = clazz.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, newValue);
     }
 }
