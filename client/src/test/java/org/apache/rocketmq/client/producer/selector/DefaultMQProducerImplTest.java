@@ -19,6 +19,7 @@ package org.apache.rocketmq.client.producer.selector;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.hook.CheckForbiddenContext;
+import org.apache.rocketmq.client.hook.CheckForbiddenHook;
 import org.apache.rocketmq.client.impl.MQAdminImpl;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
@@ -42,6 +43,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -99,6 +103,7 @@ public class DefaultMQProducerImplTest {
         setTopicPublishInfoTable(false);
         setMQClientFactory();
         setCheckExecutor();
+        setCheckForbiddenHookList();
         defaultMQProducerImpl.setServiceState(ServiceState.RUNNING);
     }
 
@@ -142,20 +147,38 @@ public class DefaultMQProducerImplTest {
         defaultMQProducerImpl.sendOneway(message, mock(MessageQueueSelector.class), 1);
     }
 
+    @Test(expected = MQClientException.class)
+    public void testSendOnewayByQueue() throws MQClientException, RemotingException, InterruptedException {
+        defaultMQProducerImpl.sendOneway(message, mock(MessageQueue.class));
+    }
+
     @Test
     public void assertSend() throws InterruptedException, ExecutionException {
         MessageQueueSelector selector = mock(MessageQueueSelector.class);
-        List<Callable<SendResult>> callables = Arrays.asList(
-                () -> defaultMQProducerImpl.send(message),
-                () -> defaultMQProducerImpl.send(message, selector, 1),
-                () -> defaultMQProducerImpl.send(message, selector, 1, defaultTimeout),
-                () -> defaultMQProducerImpl.send(message, mock(MessageQueue.class), defaultTimeout),
+        MessageQueue messageQueue = mock(MessageQueue.class);
+        List<Callable<SendResult>> callables = Arrays.asList(() -> defaultMQProducerImpl.send(message), () -> defaultMQProducerImpl.send(message, messageQueue),
+                () -> defaultMQProducerImpl.send(message, selector, 1), () -> defaultMQProducerImpl.send(message, selector, 1, defaultTimeout), () -> defaultMQProducerImpl.send(message,
+                        messageQueue, defaultTimeout),
                 () -> {
                     defaultMQProducerImpl.send(message, selector, 1, sendCallback);
                     return null;
                 });
         ExecutorService executorService = Executors.newFixedThreadPool(1);
         assertNull(executorService.invokeAny(callables));
+    }
+
+    @Test
+    public void testRegisterCheckForbiddenHook() {
+        CheckForbiddenHook checkForbiddenHook = mock(CheckForbiddenHook.class);
+        defaultMQProducerImpl.registerCheckForbiddenHook(checkForbiddenHook);
+    }
+
+    @Test
+    public void testInitTopicRoute() throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Class<?> clazz = defaultMQProducerImpl.getClass();
+        Method method = clazz.getDeclaredMethod("initTopicRoute");
+        method.setAccessible(true);
+        method.invoke(defaultMQProducerImpl);
     }
 
     @Test
@@ -252,6 +275,11 @@ public class DefaultMQProducerImplTest {
         assertNotNull(defaultMQProducerImpl.getMqFaultStrategy());
     }
 
+    @Test
+    public void assertCheckListener() {
+        assertNull(defaultMQProducerImpl.checkListener());
+    }
+
     private void setMQClientFactory() throws IllegalAccessException, NoSuchFieldException {
         setField(defaultMQProducerImpl, "mQClientFactory", mQClientFactory);
     }
@@ -266,6 +294,12 @@ public class DefaultMQProducerImplTest {
 
     private void setCheckExecutor() throws NoSuchFieldException, IllegalAccessException {
         setField(defaultMQProducerImpl, "checkExecutor", mock(ExecutorService.class));
+    }
+
+    private void setCheckForbiddenHookList() throws NoSuchFieldException, IllegalAccessException {
+        ArrayList<CheckForbiddenHook> checkForbiddenHookList = new ArrayList<>();
+        checkForbiddenHookList.add(mock(CheckForbiddenHook.class));
+        setField(defaultMQProducerImpl, "checkForbiddenHookList", checkForbiddenHookList);
     }
 
     private void setField(final Object target, final String fieldName, final Object newValue) throws NoSuchFieldException, IllegalAccessException {
