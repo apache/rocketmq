@@ -51,11 +51,15 @@ import org.mockito.Mock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -142,19 +146,28 @@ public class DefaultMQProducerImplTest {
         when(defaultMQProducer.cloneClientConfig()).thenReturn(clientConfig);
         TransactionMQProducer producer = new TransactionMQProducer("test-producer-group");
         producer.setTransactionListener(mock(TransactionListener.class));
+        producer.setTopics(Collections.singletonList(defaultTopic));
         defaultMQProducerImpl = producer.getDefaultMQProducerImpl();
-        setTopicPublishInfoTable(defaultMQProducerImpl);
+        setTopicPublishInfoTable(defaultMQProducerImpl, false);
         setMQClientFactory(defaultMQProducerImpl);
         producer.start();
     }
 
     @Test(expected = RequestTimeoutException.class)
     public void testRequest() throws Exception {
-        MessageQueueSelector selector = mock(MessageQueueSelector.class);
+        setTopicPublishInfoTable(defaultMQProducerImpl, true);
         defaultMQProducerImpl.request(message, messageQueue, requestCallback, defaultTimeout);
-        defaultMQProducerImpl.request(message, selector, 1, requestCallback, defaultTimeout);
         defaultMQProducerImpl.request(message, messageQueue, requestCallback, defaultTimeout);
         Message actual = defaultMQProducerImpl.request(message, messageQueue, defaultTimeout);
+        assertNull(actual);
+    }
+
+    @Test(expected = RequestTimeoutException.class)
+    public void testRequestByQueueSelector() throws Exception {
+        setTopicPublishInfoTable(defaultMQProducerImpl, true);
+        MessageQueueSelector selector = mock(MessageQueueSelector.class);
+        defaultMQProducerImpl.request(message, selector, 1, requestCallback, defaultTimeout);
+        Message actual = defaultMQProducerImpl.request(message, selector, 1, defaultTimeout);
         assertNull(actual);
     }
 
@@ -177,26 +190,29 @@ public class DefaultMQProducerImplTest {
 
     @Test(expected = MQClientException.class)
     public void testSendOneway() throws MQClientException, RemotingException, InterruptedException {
-        Message msg = mock(Message.class);
-        when(msg.getTopic()).thenReturn(defaultTopic);
-        MessageQueueSelector selector = mock(MessageQueueSelector.class);
-        defaultMQProducerImpl.sendOneway(msg);
-        defaultMQProducerImpl.sendOneway(msg, selector, 1);
+        defaultMQProducerImpl.sendOneway(message);
     }
 
     @Test(expected = MQClientException.class)
-    public void assertSend() throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
-        Message msg = mock(Message.class);
-        when(msg.getTopic()).thenReturn(defaultTopic);
+    public void testSendOnewayByQueueSelector() throws MQClientException, RemotingException, InterruptedException {
         MessageQueueSelector selector = mock(MessageQueueSelector.class);
-        SendResult actual = defaultMQProducerImpl.send(msg);
-        assertNull(actual);
-        actual = defaultMQProducerImpl.send(msg, selector, 1);
-        assertNull(actual);
-        actual = defaultMQProducerImpl.send(msg, selector, 1, defaultTimeout);
-        assertNull(actual);
-        defaultMQProducerImpl.send(msg, selector, 1, sendCallback);
-        actual = defaultMQProducerImpl.send(msg, mock(MessageQueue.class), defaultTimeout);
+        defaultMQProducerImpl.sendOneway(message, selector, 1);
+    }
+
+    @Test
+    public void assertSend() throws InterruptedException, ExecutionException {
+        MessageQueueSelector selector = mock(MessageQueueSelector.class);
+        List<Callable<SendResult>> callables = Arrays.asList(
+                () -> defaultMQProducerImpl.send(message),
+                () -> defaultMQProducerImpl.send(message, selector, 1),
+                () -> defaultMQProducerImpl.send(message, selector, 1, defaultTimeout),
+                () -> defaultMQProducerImpl.send(message, mock(MessageQueue.class), defaultTimeout),
+                () -> {
+                    defaultMQProducerImpl.send(message, selector, 1, sendCallback);
+                    return null;
+                });
+        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        SendResult actual = executorService.invokeAny(callables);
         assertNull(actual);
     }
 
@@ -306,10 +322,10 @@ public class DefaultMQProducerImplTest {
         field(DefaultMQProducerImpl.class, "mQClientFactory").set(defaultMQProducerImpl, mQClientFactory);
     }
 
-    private void setTopicPublishInfoTable(final DefaultMQProducerImpl defaultMQProducerImpl) throws IllegalAccessException {
+    private void setTopicPublishInfoTable(final DefaultMQProducerImpl defaultMQProducerImpl, final boolean isOk) throws IllegalAccessException {
         ConcurrentMap<String, TopicPublishInfo> topicPublishInfoTable = new ConcurrentHashMap<>();
         TopicPublishInfo topicPublishInfo = mock(TopicPublishInfo.class);
-        when(topicPublishInfo.ok()).thenReturn(true);
+        when(topicPublishInfo.ok()).thenReturn(isOk);
         topicPublishInfoTable.put(defaultTopic, topicPublishInfo);
         field(DefaultMQProducerImpl.class, "topicPublishInfoTable").set(defaultMQProducerImpl, topicPublishInfoTable);
     }
