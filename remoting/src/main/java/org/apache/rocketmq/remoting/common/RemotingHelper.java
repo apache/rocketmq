@@ -51,33 +51,31 @@ public class RemotingHelper {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
 
-    public static final Map<Integer, String> REQUEST_CODE_MAP = new HashMap<Integer, String>() {
-        {
-            try {
-                Field[] f = RequestCode.class.getFields();
-                for (Field field : f) {
-                    if (field.getType() == int.class) {
-                        put((int) field.get(null), field.getName().toLowerCase());
-                    }
-                }
-            } catch (IllegalAccessException ignore) {
-            }
-        }
-    };
+    public static final Map<Integer, String> REQUEST_CODE_MAP = new HashMap<>(256) ;
 
-    public static final Map<Integer, String> RESPONSE_CODE_MAP = new HashMap<Integer, String>() {
-        {
-            try {
-                Field[] f = ResponseCode.class.getFields();
-                for (Field field : f) {
-                    if (field.getType() == int.class) {
-                        put((int) field.get(null), field.getName().toLowerCase());
-                    }
+    public static final Map<Integer, String> RESPONSE_CODE_MAP = new HashMap<>(128);
+
+    static {
+        try {
+            Field[] f = RequestCode.class.getFields();
+            for (Field field : f) {
+                if (field.getType() == int.class) {
+                    REQUEST_CODE_MAP.put((int) field.get(null), field.getName().toLowerCase());
                 }
-            } catch (IllegalAccessException ignore) {
             }
+        } catch (IllegalAccessException ignore) {
         }
-    };
+
+        try {
+            Field[] f = ResponseCode.class.getFields();
+            for (Field field : f) {
+                if (field.getType() == int.class) {
+                    RESPONSE_CODE_MAP.put((int) field.get(null), field.getName().toLowerCase());
+                }
+            }
+        } catch (IllegalAccessException ignore) {
+        }
+    }
 
     public static <T> T getAttributeValue(AttributeKey<T> key, final Channel channel) {
         if (channel.hasAttr(key)) {
