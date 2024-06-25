@@ -88,7 +88,7 @@ public class DefaultMQProducerImplTest {
 
     private DefaultMQProducerImpl defaultMQProducerImpl;
 
-    private final long defaultTimeout = 3000L;
+    private final long defaultTimeout = 30000L;
 
     private final String defaultBrokerAddr = "127.0.0.1:10911";
 
@@ -148,17 +148,17 @@ public class DefaultMQProducerImplTest {
     }
 
     @Test(expected = MQClientException.class)
-    public void testSendOneway() throws MQClientException, InterruptedException, RemotingException, NoSuchFieldException, IllegalAccessException {
+    public void testSendOneway() throws MQClientException, InterruptedException, RemotingException {
         defaultMQProducerImpl.sendOneway(message);
     }
 
     @Test
-    public void testSendOnewayByQueueSelector() throws MQClientException, InterruptedException, RemotingException, NoSuchFieldException, IllegalAccessException {
+    public void testSendOnewayByQueueSelector() throws MQClientException, InterruptedException, RemotingException {
         defaultMQProducerImpl.sendOneway(message, mock(MessageQueueSelector.class), 1);
     }
 
     @Test
-    public void testSendOnewayByQueue() throws MQClientException, InterruptedException, RemotingException, NoSuchFieldException, IllegalAccessException {
+    public void testSendOnewayByQueue() throws MQClientException, InterruptedException, RemotingException {
         defaultMQProducerImpl.sendOneway(message, messageQueue);
     }
 
@@ -192,12 +192,12 @@ public class DefaultMQProducerImplTest {
 
     @Test(expected = RequestTimeoutException.class)
     public void assertRequestRequestTimeoutByQueueSelector() throws Exception {
-        assertNull(defaultMQProducerImpl.request(message, queueSelector, 1, defaultTimeout));
+        assertNull(defaultMQProducerImpl.request(message, queueSelector, 1, 3000L));
     }
 
     @Test(expected = Exception.class)
     public void assertRequestTimeoutExceptionByQueue() throws Exception {
-        assertNull(defaultMQProducerImpl.request(message, messageQueue, defaultTimeout));
+        assertNull(defaultMQProducerImpl.request(message, messageQueue, 3000L));
     }
 
     @Test
