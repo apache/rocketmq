@@ -137,7 +137,6 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setExp(subscriptionData.getSubString());
             requestHeader.setOrder(fifo);
             requestHeader.setAttemptId(attemptId);
-            requestHeader.setBornTime(System.currentTimeMillis());
 
             future = this.serviceManager.getMessageService().popMessage(
                     ctx,
