@@ -666,7 +666,6 @@ public class MessageDecoder {
         byte[] propertiesBytes = properties.getBytes(CHARSET_UTF8);
         //note properties length must not more than Short.MAX
         short propertiesLength = (short) propertiesBytes.length;
-        int sysFlag = message.getFlag();
         int storeSize = 4 // 1 TOTALSIZE
             + 4 // 2 MAGICCOD
             + 4 // 3 BODYCRC
