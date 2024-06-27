@@ -226,6 +226,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                 ByteBuffer byteBuffer = message.getByteBuffer();
                 AppendResult result = flatFile.appendCommitLog(message);
                 if (!AppendResult.SUCCESS.equals(result)) {
+                    message.release();
                     break;
                 }
 
@@ -241,8 +242,10 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
 
                 result = flatFile.appendConsumeQueue(dispatchRequest);
                 if (!AppendResult.SUCCESS.equals(result)) {
+                    message.release();
                     break;
                 }
+                flatFile.addMessage(message);
             }
 
             // If there are many messages waiting to be uploaded, call the upload logic immediately.

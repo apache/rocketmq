@@ -144,6 +144,11 @@ public class FlatMessageFile implements FlatFileInterface {
     }
 
     @Override
+    public void addMessage(SelectMappedBufferResult message) {
+        this.bufferResultList.add(message);
+    }
+
+    @Override
     public AppendResult appendCommitLog(ByteBuffer message) {
         if (closed) {
             return AppendResult.FILE_CLOSED;
@@ -156,7 +161,6 @@ public class FlatMessageFile implements FlatFileInterface {
         if (closed) {
             return AppendResult.FILE_CLOSED;
         }
-        this.bufferResultList.add(message);
         return this.appendCommitLog(message.getByteBuffer());
     }
 

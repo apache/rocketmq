@@ -80,6 +80,8 @@ public interface FlatFileInterface {
 
     long getConsumeQueueCommitOffset();
 
+    void addMessage(SelectMappedBufferResult bufferResult);
+
     /**
      * Persist commit log file and consume queue file
      */
