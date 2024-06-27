@@ -184,27 +184,35 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
 
             ConsumeQueueInterface consumeQueue = defaultStore.getConsumeQueue(topic, queueId);
             CqUnit cqUnit = consumeQueue.get(currentOffset);
-            SelectMappedBufferResult message =
-                defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
-            boolean timeout = MessageFormatUtil.getStoreTimeStamp(message.getByteBuffer()) +
-                storeConfig.getTieredStoreGroupCommitTimeout() < System.currentTimeMillis();
-            boolean bufferFull = maxOffsetInQueue - currentOffset > storeConfig.getTieredStoreGroupCommitCount();
 
-            if (!timeout && !bufferFull && !force) {
-                log.debug("MessageDispatcher#dispatch hold, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
-                    topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
-                return CompletableFuture.completedFuture(false);
-            } else {
-                if (MessageFormatUtil.getStoreTimeStamp(message.getByteBuffer()) +
-                    TimeUnit.MINUTES.toMillis(5) < System.currentTimeMillis()) {
-                    log.warn("MessageDispatcher#dispatch behind too much, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
-                        topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+            SelectMappedBufferResult message = null;
+            boolean timeout;
+            boolean bufferFull;
+            try {
+                message = defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
+                timeout = MessageFormatUtil.getStoreTimeStamp(message.getByteBuffer()) +
+                        storeConfig.getTieredStoreGroupCommitTimeout() < System.currentTimeMillis();
+                bufferFull = maxOffsetInQueue - currentOffset > storeConfig.getTieredStoreGroupCommitCount();
+
+                if (!timeout && !bufferFull && !force) {
+                    log.debug("MessageDispatcher#dispatch hold, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                            topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+                    return CompletableFuture.completedFuture(false);
                 } else {
-                    log.info("MessageDispatcher#dispatch, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
-                        topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+                    if (MessageFormatUtil.getStoreTimeStamp(message.getByteBuffer()) +
+                            TimeUnit.MINUTES.toMillis(5) < System.currentTimeMillis()) {
+                        log.warn("MessageDispatcher#dispatch behind too much, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                                topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+                    } else {
+                        log.info("MessageDispatcher#dispatch, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                                topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+                    }
+                }
+            } finally {
+                if (message != null) {
+                    message.release();
                 }
             }
-            message.release();
 
             long offset = currentOffset;
             for (; offset < targetOffset; offset++) {
