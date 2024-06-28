@@ -177,9 +177,9 @@ public class ClusterListSubCommand implements SubCommand {
     }
 
     private void printClusterBaseInfo(final Set<String> clusterNames,
-                                      final DefaultMQAdminExt defaultMQAdminExt,
-                                      final ClusterInfo clusterInfo) {
-        System.out.printf("%-22s  %-22s  %-4s  %-22s %-16s  %16s  %16s  %-22s  %-11s  %-12s  %-8s  %-10s%n",
+        final DefaultMQAdminExt defaultMQAdminExt,
+        final ClusterInfo clusterInfo) {
+        System.out.printf("%-22s  %-22s  %-4s  %-22s %-16s  %16s  %30s  %-22s  %-11s  %-12s  %-8s  %-10s%n",
             "#Cluster Name",
             "#Broker Name",
             "#BID",
@@ -233,11 +233,11 @@ public class ClusterListSubCommand implements SubCommand {
 
                             sendThreadPoolQueueSize = kvTable.getTable().get("sendThreadPoolQueueSize");
                             pullThreadPoolQueueSize = kvTable.getTable().get("pullThreadPoolQueueSize");
-                            ackThreadPoolQueueSize = kvTable.getTable().get("ackThreadPoolQueueSize");
+                            ackThreadPoolQueueSize = kvTable.getTable().getOrDefault("ackThreadPoolQueueSize", "N");
 
                             sendThreadPoolQueueHeadWaitTimeMills = kvTable.getTable().get("sendThreadPoolQueueHeadWaitTimeMills");
                             pullThreadPoolQueueHeadWaitTimeMills = kvTable.getTable().get("pullThreadPoolQueueHeadWaitTimeMills");
-                            ackThreadPoolQueueHeadWaitTimeMills = kvTable.getTable().get("ackThreadPoolQueueHeadWaitTimeMills");
+                            ackThreadPoolQueueHeadWaitTimeMills = kvTable.getTable().getOrDefault("ackThreadPoolQueueHeadWaitTimeMills", "N");
                             pageCacheLockTimeMills = kvTable.getTable().get("pageCacheLockTimeMills");
                             earliestMessageTimeStamp = kvTable.getTable().get("earliestMessageTimeStamp");
                             commitLogDiskRatio = kvTable.getTable().get("commitLogDiskRatio");
@@ -282,14 +282,14 @@ public class ClusterListSubCommand implements SubCommand {
                             space = Double.parseDouble(commitLogDiskRatio);
                         }
 
-                        System.out.printf("%-22s  %-22s  %-4s  %-22s %-16s  %16s  %24s  %-22s  %11s  %-12s  %-8s  %10s%n",
+                        System.out.printf("%-22s  %-22s  %-4s  %-22s %-16s  %16s  %30s  %-22s  %11s  %-12s  %-8s  %10s%n",
                             clusterName,
                             brokerName,
                             next1.getKey(),
                             next1.getValue(),
                             version,
                             String.format("%9.2f(%s,%sms)", in, sendThreadPoolQueueSize, sendThreadPoolQueueHeadWaitTimeMills),
-                            String.format("%9.2f(%s,%sms | %s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills, ackThreadPoolQueueSize, ackThreadPoolQueueHeadWaitTimeMills),
+                            String.format("%9.2f(%s,%sms|%s,%sms)", out, pullThreadPoolQueueSize, pullThreadPoolQueueHeadWaitTimeMills, ackThreadPoolQueueSize, ackThreadPoolQueueHeadWaitTimeMills),
                             String.format("%d-%d(%.1fw, %.1f, %.1f)", timerReadBehind, timerOffsetBehind, timerCongestNum / 10000.0f, timerEnqueueTps, timerDequeueTps),
                             pageCacheLockTimeMills,
                             String.format("%2.2f", hour),
