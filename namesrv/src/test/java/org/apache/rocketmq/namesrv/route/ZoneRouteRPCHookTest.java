@@ -101,18 +101,16 @@ public class ZoneRouteRPCHookTest {
         HashMap<Long,String> brokeraddrs = new HashMap<>();
         brokeraddrs.put(MixAll.MASTER_ID,"127.0.0.1:10911");
         topicRouteData.getBrokerDatas().get(0).setBrokerAddrs(brokeraddrs);
-        topicRouteData.getBrokerDatas().get(0).setZoneName("zone1");
         response.setBody(RemotingSerializable.encode(topicRouteData));
         zoneRouteRPCHook.doAfterResponse("", request, response);
 
-        topicRouteData.getQueueDatas().get(0).setBrokerName("BrokerB");
-        BrokerData brokerData1 = new BrokerData();
-        brokerData1.setBrokerName("BrokerB");
+        topicRouteData.getQueueDatas().add(createQueueData("BrokerB"));
         HashMap<Long,String> brokeraddrsB = new HashMap<>();
         brokeraddrsB.put(MixAll.MASTER_ID,"127.0.0.1:10912");
-        brokerData1.setBrokerAddrs(brokeraddrsB);
-        brokerData1.setZoneName("zone3");
+        BrokerData brokerData1 = createBrokerData("BrokerB","zone2",brokeraddrsB);
+        BrokerData brokerData2 = createBrokerData("BrokerC","zone1",null);
         topicRouteData.getBrokerDatas().add(brokerData1);
+        topicRouteData.getBrokerDatas().add(brokerData2);
         response.setBody(RemotingSerializable.encode(topicRouteData));
         zoneRouteRPCHook.doAfterResponse("", request, response);
 
@@ -136,18 +134,30 @@ public class ZoneRouteRPCHookTest {
     private TopicRouteData createSampleTopicRouteData() {
         TopicRouteData topicRouteData = new TopicRouteData();
         List<BrokerData> brokerDatas = new ArrayList<>();
-        BrokerData brokerData = new BrokerData();
-        brokerData.setBrokerName("BrokerA");
-        brokerData.setBrokerAddrs(new HashMap<>());
+        BrokerData brokerData = createBrokerData("BrokerA","zone1",new HashMap<>());
         List<QueueData> queueDatas = new ArrayList<>();
-        QueueData queueData = new QueueData();
-        queueData.setReadQueueNums(8);
-        queueData.setWriteQueueNums(8);
-        queueData.setPerm(6);
+        QueueData queueData = createQueueData("BrokerA");
         queueDatas.add(queueData);
         brokerDatas.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDatas);
         topicRouteData.setQueueDatas(queueDatas);
         return topicRouteData;
+    }
+
+    private BrokerData createBrokerData(String brokerName,String zoneName,HashMap<Long,String> brokerAddrs){
+        BrokerData brokerData = new BrokerData();
+        brokerData.setBrokerName(brokerName);
+        brokerData.setZoneName(zoneName);
+        brokerData.setBrokerAddrs(brokerAddrs);
+        return  brokerData;
+    }
+
+    private QueueData createQueueData(String brokerName){
+        QueueData queueData = new QueueData();
+        queueData.setBrokerName(brokerName);
+        queueData.setReadQueueNums(8);
+        queueData.setWriteQueueNums(8);
+        queueData.setPerm(6);
+        return queueData;
     }
 }
