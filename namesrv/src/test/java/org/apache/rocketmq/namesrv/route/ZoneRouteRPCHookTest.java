@@ -144,7 +144,7 @@ public class ZoneRouteRPCHookTest {
         return topicRouteData;
     }
 
-    private BrokerData createBrokerData(String brokerName,String zoneName,HashMap<Long,String> brokerAddrs){
+    private BrokerData createBrokerData(String brokerName,String zoneName,HashMap<Long,String> brokerAddrs) {
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName(brokerName);
         brokerData.setZoneName(zoneName);
@@ -152,7 +152,7 @@ public class ZoneRouteRPCHookTest {
         return  brokerData;
     }
 
-    private QueueData createQueueData(String brokerName){
+    private QueueData createQueueData(String brokerName) {
         QueueData queueData = new QueueData();
         queueData.setBrokerName(brokerName);
         queueData.setReadQueueNums(8);
