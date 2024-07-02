@@ -70,7 +70,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int putMessageFutureThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
     private int pullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int litePullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
-    private int ackMessageThreadPoolNums = 3;
+    private int ackMessageThreadPoolNums = 16;
     private int processReplyMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int queryMessageThreadPoolNums = 8 + PROCESSOR_NUMBER;
 
