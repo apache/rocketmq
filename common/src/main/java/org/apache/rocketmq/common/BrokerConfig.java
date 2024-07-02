@@ -70,7 +70,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int putMessageFutureThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
     private int pullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int litePullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
-    private int ackMessageThreadPoolNums = 3;
+    private int ackMessageThreadPoolNums = 16;
     private int processReplyMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int queryMessageThreadPoolNums = 8 + PROCESSOR_NUMBER;
 
@@ -148,7 +148,7 @@ public class BrokerConfig extends BrokerIdentity {
     private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
     private long waitTimeMillsInTransactionQueue = 3 * 1000;
     private long waitTimeMillsInAckQueue = 3000;
-
+    private long waitTimeMillsInAdminBrokerQueue = 5 * 1000;
     private long startAcceptSendRequestTimeStamp = 0L;
 
     private boolean traceOn = true;
@@ -1165,6 +1165,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public String getMsgTraceTopicName() {
         return msgTraceTopicName;
+    }
+
+    public long getWaitTimeMillsInAdminBrokerQueue() {
+        return waitTimeMillsInAdminBrokerQueue;
+    }
+
+    public void setWaitTimeMillsInAdminBrokerQueue(long waitTimeMillsInAdminBrokerQueue) {
+        this.waitTimeMillsInAdminBrokerQueue = waitTimeMillsInAdminBrokerQueue;
     }
 
     public void setMsgTraceTopicName(String msgTraceTopicName) {
