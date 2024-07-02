@@ -52,8 +52,8 @@ public abstract class ConfigManager {
     private boolean loadBak() {
         String fileName = null;
         try {
-            fileName = this.configFilePath();
-            String jsonString = MixAll.file2String(fileName + ".bak");
+            fileName = this.configFilePath() + ".bak";
+            String jsonString = MixAll.file2String(fileName);
             if (jsonString != null && jsonString.length() > 0) {
                 this.decode(jsonString);
                 log.info("load " + fileName + " OK");

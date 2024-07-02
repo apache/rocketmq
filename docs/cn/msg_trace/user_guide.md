@@ -103,7 +103,7 @@ RocketMQ的消息轨迹特性支持两种存储轨迹数据的方式：
 ### 4.4 使用mqadmin命令发送和查看轨迹
 - 发送消息
 ```shell
-./mqadmin sendMessage -m true --topic some-topic-name -n 127.0.0.1:9876 -p "your meesgae content"
+./mqadmin sendMessage -m true --topic some-topic-name -n 127.0.0.1:9876 -p "your message content"
 ```
 - 查询轨迹
 ```shell

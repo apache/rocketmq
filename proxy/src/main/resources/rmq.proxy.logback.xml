@@ -52,7 +52,7 @@
             <maxFileSize>128MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
-            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8}%m%n</pattern>
+            <pattern>%d{yyy-MM-dd HH:mm:ss,GMT+8} %m%n</pattern>
             <charset class="java.nio.charset.Charset">UTF-8</charset>
         </encoder>
     </appender>

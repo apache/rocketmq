@@ -16,13 +16,6 @@
  */
 package org.apache.rocketmq.client.producer;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.concurrent.ExecutorService;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
@@ -36,6 +29,9 @@ import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.EndTransactionTraceHookImpl;
 import org.apache.rocketmq.client.trace.hook.SendMessageTraceHookImpl;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.compression.CompressionType;
+import org.apache.rocketmq.common.compression.Compressor;
+import org.apache.rocketmq.common.compression.CompressorFactory;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageClientIDSetter;
@@ -43,11 +39,19 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutorService;
 
 /**
  * This class is the entry point for applications intending to send messages. </p>
@@ -171,6 +175,21 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     private RPCHook rpcHook = null;
 
     /**
+     * Compress level of compress algorithm.
+     */
+    private int compressLevel = Integer.parseInt(System.getProperty(MixAll.MESSAGE_COMPRESS_LEVEL, "5"));
+
+    /**
+     * Compress type of compress algorithm, default using ZLIB.
+     */
+    private CompressionType compressType = CompressionType.of(System.getProperty(MixAll.MESSAGE_COMPRESS_TYPE, "ZLIB"));
+
+    /**
+     * Compressor of compress algorithm.
+     */
+    private Compressor compressor = CompressorFactory.getCompressor(compressType);
+
+    /**
      * Default constructor.
      */
     public DefaultMQProducer() {
@@ -192,9 +211,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param producerGroup Producer group, see the name-sake field.
      */
     public DefaultMQProducer(final String producerGroup) {
-        this.producerGroup = producerGroup;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, null);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+        this(producerGroup, (RPCHook) null);
     }
 
     /**
@@ -204,10 +221,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      * @param rpcHook       RPC hook to execute per each remoting command execution.
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook) {
-        this.producerGroup = producerGroup;
-        this.rpcHook = rpcHook;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+        this(producerGroup, rpcHook, null);
     }
 
     /**
@@ -219,8 +233,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook,
         final List<String> topics) {
-        this(producerGroup, rpcHook);
-        this.topics = topics;
+        this(producerGroup, rpcHook, topics, false, null);
     }
 
     /**
@@ -246,9 +259,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, boolean enableMsgTrace,
         final String customizedTraceTopic) {
-        this(producerGroup, rpcHook);
-        this.enableTrace = enableMsgTrace;
-        this.traceTopic = customizedTraceTopic;
+        this(producerGroup, rpcHook, null, enableMsgTrace, customizedTraceTopic);
     }
 
     /**
@@ -264,8 +275,13 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String producerGroup, RPCHook rpcHook, final List<String> topics,
         boolean enableMsgTrace, final String customizedTraceTopic) {
-        this(producerGroup, rpcHook, enableMsgTrace, customizedTraceTopic);
+        this.producerGroup = producerGroup;
+        this.rpcHook = rpcHook;
         this.topics = topics;
+        this.enableTrace = enableMsgTrace;
+        this.traceTopic = customizedTraceTopic;
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
 
     /**
@@ -1343,5 +1359,26 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     public void setStartDetectorEnable(boolean startDetectorEnable) {
         super.setStartDetectorEnable(startDetectorEnable);
         this.defaultMQProducerImpl.getMqFaultStrategy().setStartDetectorEnable(startDetectorEnable);
+    }
+
+    public int getCompressLevel() {
+        return compressLevel;
+    }
+
+    public void setCompressLevel(int compressLevel) {
+        this.compressLevel = compressLevel;
+    }
+
+    public CompressionType getCompressType() {
+        return compressType;
+    }
+
+    public void setCompressType(CompressionType compressType) {
+        this.compressType = compressType;
+        this.compressor = CompressorFactory.getCompressor(compressType);
+    }
+
+    public Compressor getCompressor() {
+        return compressor;
     }
 }
