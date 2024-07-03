@@ -245,7 +245,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                     message.release();
                     break;
                 }
-                flatFile.addMessage(message);
+                flatFile.addMessageToBufferList(message);
             }
 
             // If there are many messages waiting to be uploaded, call the upload logic immediately.

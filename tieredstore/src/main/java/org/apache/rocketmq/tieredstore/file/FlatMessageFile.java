@@ -144,7 +144,7 @@ public class FlatMessageFile implements FlatFileInterface {
     }
 
     @Override
-    public void addMessage(SelectMappedBufferResult message) {
+    public void addMessageToBufferList(SelectMappedBufferResult message) {
         this.bufferResultList.add(message);
     }
 
