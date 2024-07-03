@@ -80,7 +80,6 @@ public class ConsumeMessageOrderlyService implements ConsumeMessageService {
             public void messageQueueChanged(String topic, Set<MessageQueue> mqAll, Set<MessageQueue> mqAssigned) {
                 int queueSize = defaultMQPushConsumerImpl.getRebalanceImpl().processQueueTable.size();
                 updateCorePoolSize(queueSize);
-                System.out.println("spacex_consumeExecutor queueSize: " + queueSize + ", corePoolSize: " + consumeExecutor.getCorePoolSize());
             }
         });
 
