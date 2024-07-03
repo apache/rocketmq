@@ -67,7 +67,8 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         this.defaultMQPushConsumer = this.defaultMQPushConsumerImpl.getDefaultMQPushConsumer();
         this.consumerGroup = this.defaultMQPushConsumer.getConsumerGroup();
-        int queueSize = this.defaultMQPushConsumer.getPullThresholdForQueue() * this.defaultMQPushConsumerImpl.getSubscriptionInner().size();
+        int subTopics = Math.max(this.defaultMQPushConsumerImpl.getSubscriptionInner().size(), 1);
+        int queueSize = this.defaultMQPushConsumer.getPullThresholdForQueue() * subTopics;
         this.consumeRequestQueue = new LinkedBlockingQueue<>(queueSize);
 
         String consumerGroupTag = (consumerGroup.length() > 100 ? consumerGroup.substring(0, 100) : consumerGroup) + "_";
