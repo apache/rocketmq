@@ -120,21 +120,21 @@ public class MixAll {
     private static final String OS = System.getProperty("os.name").toLowerCase();
 
     public static boolean isWindows() {
-        return OS.indexOf("win") >= 0;
+        return OS.contains("win");
     }
 
     public static boolean isMac() {
-        return OS.indexOf("mac") >= 0;
+        return OS.contains("mac");
     }
 
     public static boolean isUnix() {
-        return OS.indexOf("nix") >= 0
-                || OS.indexOf("nux") >= 0
-                || OS.indexOf("aix") > 0;
+        return OS.contains("nix")
+            || OS.contains("nux")
+            || OS.contains("aix");
     }
 
     public static boolean isSolaris() {
-        return OS.indexOf("sunos") >= 0;
+        return OS.contains("sunos");
     }
 
     public static String getWSAddr() {
@@ -205,7 +205,7 @@ public class MixAll {
         if (fileParent != null) {
             fileParent.mkdirs();
         }
-        IOTinyUtils.writeStringToFile(file, str, "UTF-8");
+        IOTinyUtils.writeStringToFile(file, str, DEFAULT_CHARSET);
     }
 
     public static String file2String(final String fileName) throws IOException {
@@ -224,7 +224,7 @@ public class MixAll {
             }
 
             if (result) {
-                return new String(data, "UTF-8");
+                return new String(data, DEFAULT_CHARSET);
             }
         }
         return null;
@@ -364,9 +364,9 @@ public class MixAll {
                     String property = p.getProperty(key);
                     if (property != null) {
                         Class<?>[] pt = method.getParameterTypes();
-                        if (pt != null && pt.length > 0) {
+                        if (pt.length > 0) {
                             String cn = pt[0].getSimpleName();
-                            Object arg = null;
+                            Object arg;
                             if (cn.equals("int") || cn.equals("Integer")) {
                                 arg = Integer.parseInt(property);
                             } else if (cn.equals("long") || cn.equals("Long")) {
@@ -464,7 +464,7 @@ public class MixAll {
             return candidatesHost.get(0);
         }
 
-        // Fallback to loopback 
+        // Fallback to loopback
         return localhost();
     }
 
