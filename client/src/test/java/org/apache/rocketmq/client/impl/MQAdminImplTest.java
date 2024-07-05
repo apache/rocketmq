@@ -22,17 +22,27 @@ import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.exception.RemotingException;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.header.QueryMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.remoting.protocol.route.QueueData;
 import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -43,11 +53,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class MQAdminImplTest {
+
+    @Mock
+    private MQClientInstance mQClientFactory;
+
+    @Mock
+    private MQClientAPIImpl mQClientAPIImpl;
 
     private MQAdminImpl mqAdminImpl;
 
@@ -61,11 +78,10 @@ public class MQAdminImplTest {
 
     @Before
     public void init() throws RemotingException, InterruptedException, MQClientException {
-        MQClientInstance mQClientFactory = mock(MQClientInstance.class);
-        MQClientAPIImpl mqClientAPI = mock(MQClientAPIImpl.class);
-        when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mqClientAPI);
-        when(mqClientAPI.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createRouteData());
+        when(mQClientFactory.getMQClientAPIImpl()).thenReturn(mQClientAPIImpl);
+        when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createRouteData());
         ClientConfig clientConfig = mock(ClientConfig.class);
+        when(clientConfig.getNamespace()).thenReturn("namespace");
         when(mQClientFactory.getClientConfig()).thenReturn(clientConfig);
         when(mQClientFactory.findBrokerAddressInPublish(any())).thenReturn(defaultBrokerAddr);
         when(mQClientFactory.getAnExistTopicRouteData(any())).thenReturn(createRouteData());
@@ -132,10 +148,24 @@ public class MQAdminImplTest {
         assertNotNull(actual);
     }
 
-    @Test(expected = MQClientException.class)
-    public void assertQueryMessage() throws InterruptedException, MQClientException {
-        QueryResult actual = mqAdminImpl.queryMessage(defaultTopic, "", 100, 1L, 50L);
+    @Test
+    public void assertQueryMessage() throws InterruptedException, MQClientException, MQBrokerException, RemotingException {
+        doAnswer(invocation -> {
+            InvokeCallback callback = invocation.getArgument(3);
+            QueryMessageResponseHeader responseHeader = new QueryMessageResponseHeader();
+            responseHeader.setIndexLastUpdatePhyoffset(1L);
+            responseHeader.setIndexLastUpdateTimestamp(System.currentTimeMillis());
+            RemotingCommand response = mock(RemotingCommand.class);
+            when(response.decodeCommandCustomHeader(QueryMessageResponseHeader.class)).thenReturn(responseHeader);
+            when(response.getBody()).thenReturn(getMessageResult());
+            when(response.getCode()).thenReturn(ResponseCode.SUCCESS);
+            callback.operationSucceed(response);
+            return null;
+        }).when(mQClientAPIImpl).queryMessage(anyString(), any(), anyLong(), any(InvokeCallback.class), any());
+        QueryResult actual = mqAdminImpl.queryMessage(defaultTopic, "keys", 100, 1L, 50L, false);
         assertNotNull(actual);
+        assertEquals(1, actual.getMessageList().size());
+        assertEquals(defaultTopic, actual.getMessageList().get(0).getTopic());
     }
 
     @Test(expected = MQClientException.class)
@@ -164,5 +194,22 @@ public class MQAdminImplTest {
         queueData.setReadQueueNums(6);
         queueData.setWriteQueueNums(6);
         return Collections.singletonList(queueData);
+    }
+
+    private byte[] getMessageResult() throws Exception {
+        MessageExt messageExt = new MessageExt();
+        messageExt.setBody("body".getBytes(StandardCharsets.UTF_8));
+        messageExt.setTopic(defaultTopic);
+        messageExt.setBrokerName(defaultBroker);
+        messageExt.putUserProperty("key", "value");
+        messageExt.setKeys("keys");
+        SocketAddress bornHost = new InetSocketAddress("127.0.0.1", 12911);
+        SocketAddress storeHost = new InetSocketAddress("127.0.0.1", 10911);
+        messageExt.setBornHost(bornHost);
+        messageExt.setStoreHost(storeHost);
+        byte[] bytes = MessageDecoder.encode(messageExt, false);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length);
+        byteBuffer.put(bytes);
+        return byteBuffer.array();
     }
 }
