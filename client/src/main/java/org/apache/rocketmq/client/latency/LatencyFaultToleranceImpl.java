@@ -25,9 +25,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.common.ThreadLocalIndex;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
@@ -39,12 +39,7 @@ public class LatencyFaultToleranceImpl implements LatencyFaultTolerance<String> 
     private final ThreadLocalIndex whichItemWorst = new ThreadLocalIndex();
 
     private volatile boolean startDetectorEnable = false;
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            return new Thread(r, "LatencyFaultToleranceScheduledThread");
-        }
-    });
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("LatencyFaultToleranceScheduledThread"));
 
     private final Resolver resolver;
 
