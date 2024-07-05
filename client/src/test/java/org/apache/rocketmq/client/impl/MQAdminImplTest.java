@@ -25,6 +25,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -71,6 +72,8 @@ public class MQAdminImplTest {
     private final String defaultTopic = "defaultTopic";
 
     private final String defaultBroker = "defaultBroker";
+
+    private final String defaultCluster = "defaultCluster";
 
     private final String defaultBrokerAddr = "127.0.0.1:10911";
 
@@ -168,10 +171,41 @@ public class MQAdminImplTest {
         assertEquals(defaultTopic, actual.getMessageList().get(0).getTopic());
     }
 
-    @Test(expected = MQClientException.class)
-    public void assertQueryMessageByUniqKey() throws InterruptedException, MQClientException {
-        MessageExt actual = mqAdminImpl.queryMessageByUniqKey(defaultTopic, "");
+    @Test
+    public void assertQueryMessageByUniqKey() throws InterruptedException, MQClientException, MQBrokerException, RemotingException {
+        doAnswer(invocation -> {
+            InvokeCallback callback = invocation.getArgument(3);
+            QueryMessageResponseHeader responseHeader = new QueryMessageResponseHeader();
+            responseHeader.setIndexLastUpdatePhyoffset(1L);
+            responseHeader.setIndexLastUpdateTimestamp(System.currentTimeMillis());
+            RemotingCommand response = mock(RemotingCommand.class);
+            when(response.decodeCommandCustomHeader(QueryMessageResponseHeader.class)).thenReturn(responseHeader);
+            when(response.getBody()).thenReturn(getMessageResult());
+            when(response.getCode()).thenReturn(ResponseCode.SUCCESS);
+            callback.operationSucceed(response);
+            return null;
+        }).when(mQClientAPIImpl).queryMessage(anyString(), any(), anyLong(), any(InvokeCallback.class), any());
+        String msgId = buildMsgId();
+        MessageExt actual = mqAdminImpl.queryMessageByUniqKey(defaultTopic, msgId);
         assertNotNull(actual);
+        assertEquals(msgId, actual.getMsgId());
+        assertEquals(defaultTopic, actual.getTopic());
+        actual = mqAdminImpl.queryMessageByUniqKey(defaultCluster, defaultTopic, msgId);
+        assertNotNull(actual);
+        assertEquals(msgId, actual.getMsgId());
+        assertEquals(defaultTopic, actual.getTopic());
+        QueryResult queryResult = mqAdminImpl.queryMessageByUniqKey(defaultTopic, msgId, 1, 0L, 1L);
+        assertNotNull(queryResult);
+        assertEquals(1, queryResult.getMessageList().size());
+        assertEquals(defaultTopic, queryResult.getMessageList().get(0).getTopic());
+    }
+
+    private String buildMsgId() {
+        MessageExt msgExt = createMessageExt();
+        int storeHostIPLength = (msgExt.getFlag() & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 : 16;
+        int msgIDLength = storeHostIPLength + 4 + 8;
+        ByteBuffer byteBufferMsgId = ByteBuffer.allocate(msgIDLength);
+        return MessageDecoder.createMessageId(byteBufferMsgId, msgExt.getStoreHostBytes(), msgExt.getCommitLogOffset());
     }
 
     private TopicRouteData createRouteData() {
@@ -184,7 +218,7 @@ public class MQAdminImplTest {
     private List<BrokerData> createBrokerData() {
         HashMap<Long, String> brokerAddrs = new HashMap<>();
         brokerAddrs.put(MixAll.MASTER_ID, defaultBrokerAddr);
-        return Collections.singletonList(new BrokerData("defaultCluster", defaultBroker, brokerAddrs));
+        return Collections.singletonList(new BrokerData(defaultCluster, defaultBroker, brokerAddrs));
     }
 
     private List<QueueData> createQueueData() {
@@ -197,19 +231,23 @@ public class MQAdminImplTest {
     }
 
     private byte[] getMessageResult() throws Exception {
-        MessageExt messageExt = new MessageExt();
-        messageExt.setBody("body".getBytes(StandardCharsets.UTF_8));
-        messageExt.setTopic(defaultTopic);
-        messageExt.setBrokerName(defaultBroker);
-        messageExt.putUserProperty("key", "value");
-        messageExt.setKeys("keys");
-        SocketAddress bornHost = new InetSocketAddress("127.0.0.1", 12911);
-        SocketAddress storeHost = new InetSocketAddress("127.0.0.1", 10911);
-        messageExt.setBornHost(bornHost);
-        messageExt.setStoreHost(storeHost);
-        byte[] bytes = MessageDecoder.encode(messageExt, false);
+        byte[] bytes = MessageDecoder.encode(createMessageExt(), false);
         ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length);
         byteBuffer.put(bytes);
         return byteBuffer.array();
+    }
+
+    private MessageExt createMessageExt() {
+        MessageExt result = new MessageExt();
+        result.setBody("body".getBytes(StandardCharsets.UTF_8));
+        result.setTopic(defaultTopic);
+        result.setBrokerName(defaultBroker);
+        result.putUserProperty("key", "value");
+        result.setKeys("keys");
+        SocketAddress bornHost = new InetSocketAddress("127.0.0.1", 12911);
+        SocketAddress storeHost = new InetSocketAddress("127.0.0.1", 10911);
+        result.setBornHost(bornHost);
+        result.setStoreHost(storeHost);
+        return result;
     }
 }
