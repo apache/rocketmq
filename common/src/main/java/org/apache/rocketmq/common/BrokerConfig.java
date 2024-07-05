@@ -68,6 +68,8 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private int sendMessageThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
     private int putMessageFutureThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
+
+    private int returnResultThreadPoolNums = PROCESSOR_NUMBER - sendMessageThreadPoolNums;
     private int pullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int litePullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int ackMessageThreadPoolNums = 16;
@@ -709,6 +711,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public int getPutMessageFutureThreadPoolNums() {
         return putMessageFutureThreadPoolNums;
+    }
+
+    public int getReturnResultThreadPoolNums() {
+        return returnResultThreadPoolNums;
+    }
+
+    public void setReturnResultThreadNums(int returnResultThreadPoolNums) {
+        this.returnResultThreadPoolNums = returnResultThreadPoolNums;
     }
 
     public void setPutMessageFutureThreadPoolNums(int putMessageFutureThreadPoolNums) {
