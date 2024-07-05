@@ -20,8 +20,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.canary.CanaryAlgorithm;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.CanaryConstants;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.NameServerAddressUtils;
 import org.apache.rocketmq.common.utils.NetworkUtil;
@@ -29,6 +32,8 @@ import org.apache.rocketmq.remoting.netty.TlsSystemConfig;
 import org.apache.rocketmq.remoting.protocol.LanguageCode;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RequestType;
+
+import javax.annotation.Nonnull;
 
 /**
  * Client Common configuration
@@ -108,6 +113,17 @@ public class ClientConfig {
      */
     protected String traceTopic;
 
+    /**
+     * the switch for canary message
+     */
+    private boolean enableCanary;
+
+
+    /**
+     * The algorithm used to determine which message queues are canary (gray release) queues.
+     */
+    private CanaryAlgorithm canaryAlgorithm;
+
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());
@@ -124,6 +140,10 @@ public class ClientConfig {
             sb.append(RequestType.STREAM);
         }
 
+        if (enableCanary) {
+            sb.append("@");
+            sb.append(canaryAlgorithm.isCanary() ? CanaryConstants.CANARY_TAG : CanaryConstants.DEFAULT_TAG);
+        }
         return sb.toString();
     }
 
@@ -504,39 +524,57 @@ public class ClientConfig {
         this.traceTopic = traceTopic;
     }
 
+
+    public boolean isEnableCanary() {
+        return enableCanary;
+    }
+
+    public void setEnableCanary(boolean enableCanary, CanaryAlgorithm canaryAlgorithm) {
+        this.enableCanary = enableCanary;
+        if (this.enableCanary && canaryAlgorithm == null) {
+            throw new IllegalArgumentException("canaryAlgorithm can't be null");
+        }
+        this.canaryAlgorithm = canaryAlgorithm;
+    }
+
+
+    public CanaryAlgorithm getCanaryAlgorithm() {
+        return canaryAlgorithm;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig{" +
-            "namesrvAddr='" + namesrvAddr + '\'' +
-            ", clientIP='" + clientIP + '\'' +
-            ", instanceName='" + instanceName + '\'' +
-            ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads +
-            ", namespace='" + namespace + '\'' +
-            ", namespaceInitialized=" + namespaceInitialized +
-            ", namespaceV2='" + namespaceV2 + '\'' +
-            ", accessChannel=" + accessChannel +
-            ", pollNameServerInterval=" + pollNameServerInterval +
-            ", heartbeatBrokerInterval=" + heartbeatBrokerInterval +
-            ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval +
-            ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException +
-            ", unitMode=" + unitMode +
-            ", unitName='" + unitName + '\'' +
-            ", decodeReadBody=" + decodeReadBody +
-            ", decodeDecompressBody=" + decodeDecompressBody +
-            ", vipChannelEnabled=" + vipChannelEnabled +
-            ", useHeartbeatV2=" + useHeartbeatV2 +
-            ", useTLS=" + useTLS +
-            ", socksProxyConfig='" + socksProxyConfig + '\'' +
-            ", mqClientApiTimeout=" + mqClientApiTimeout +
-            ", detectTimeout=" + detectTimeout +
-            ", detectInterval=" + detectInterval +
-            ", language=" + language +
-            ", enableStreamRequestType=" + enableStreamRequestType +
-            ", sendLatencyEnable=" + sendLatencyEnable +
-            ", startDetectorEnable=" + startDetectorEnable +
-            ", enableHeartbeatChannelEventListener=" + enableHeartbeatChannelEventListener +
-            ", enableTrace=" + enableTrace +
-            ", traceTopic='" + traceTopic + '\'' +
-            '}';
+                "namesrvAddr='" + namesrvAddr + '\'' +
+                ", clientIP='" + clientIP + '\'' +
+                ", instanceName='" + instanceName + '\'' +
+                ", clientCallbackExecutorThreads=" + clientCallbackExecutorThreads +
+                ", namespace='" + namespace + '\'' +
+                ", namespaceInitialized=" + namespaceInitialized +
+                ", namespaceV2='" + namespaceV2 + '\'' +
+                ", accessChannel=" + accessChannel +
+                ", pollNameServerInterval=" + pollNameServerInterval +
+                ", heartbeatBrokerInterval=" + heartbeatBrokerInterval +
+                ", persistConsumerOffsetInterval=" + persistConsumerOffsetInterval +
+                ", pullTimeDelayMillsWhenException=" + pullTimeDelayMillsWhenException +
+                ", unitMode=" + unitMode +
+                ", unitName='" + unitName + '\'' +
+                ", decodeReadBody=" + decodeReadBody +
+                ", decodeDecompressBody=" + decodeDecompressBody +
+                ", vipChannelEnabled=" + vipChannelEnabled +
+                ", useHeartbeatV2=" + useHeartbeatV2 +
+                ", useTLS=" + useTLS +
+                ", socksProxyConfig='" + socksProxyConfig + '\'' +
+                ", mqClientApiTimeout=" + mqClientApiTimeout +
+                ", detectTimeout=" + detectTimeout +
+                ", detectInterval=" + detectInterval +
+                ", language=" + language +
+                ", enableStreamRequestType=" + enableStreamRequestType +
+                ", sendLatencyEnable=" + sendLatencyEnable +
+                ", startDetectorEnable=" + startDetectorEnable +
+                ", enableHeartbeatChannelEventListener=" + enableHeartbeatChannelEventListener +
+                ", enableTrace=" + enableTrace +
+                ", traceTopic='" + traceTopic + '\'' +
+                '}';
     }
 }
