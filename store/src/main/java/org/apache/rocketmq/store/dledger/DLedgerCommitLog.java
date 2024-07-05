@@ -568,16 +568,12 @@ public class DLedgerCommitLog extends CommitLog {
         AppendFuture<AppendEntryResponse> dledgerFuture;
         EncodeResult encodeResult;
 
-        String topicQueueKey = msg.getTopic() + "-" + msg.getQueueId();
-        topicQueueLock.lock(topicQueueKey);
+        encodeResult = this.messageSerializer.serialize(msg);
+        if (encodeResult.status != AppendMessageStatus.PUT_OK) {
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
+        }
+        putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
         try {
-            defaultMessageStore.assignOffset(msg);
-
-            encodeResult = this.messageSerializer.serialize(msg);
-            if (encodeResult.status != AppendMessageStatus.PUT_OK) {
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
-            }
-            putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
             long elapsedTimeInLock;
             long queueOffset;
             try {
@@ -608,13 +604,9 @@ public class DLedgerCommitLog extends CommitLog {
             if (elapsedTimeInLock > 500) {
                 log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, appendResult);
             }
-
-            defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
         } catch (Exception e) {
             log.error("Put message error", e);
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
-        } finally {
-            topicQueueLock.unlock(topicQueueKey);
         }
 
         return dledgerFuture.thenApply(appendEntryResponse -> {
@@ -691,11 +683,7 @@ public class DLedgerCommitLog extends CommitLog {
                 .status)));
         }
 
-        int batchNum = encodeResult.batchData.size();
-        topicQueueLock.lock(encodeResult.queueOffsetKey);
         try {
-            defaultMessageStore.assignOffset(messageExtBatch);
-
             putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
             msgIdBuilder.setLength(0);
             long elapsedTimeInLock;
@@ -740,7 +728,7 @@ public class DLedgerCommitLog extends CommitLog {
 
                 elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
                 appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, firstWroteOffset, encodeResult.totalMsgLen,
-                    msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
+                        msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
                 appendResult.setMsgNum(msgNum);
             } finally {
                 beginTimeInDledgerLock = 0;
@@ -749,16 +737,11 @@ public class DLedgerCommitLog extends CommitLog {
 
             if (elapsedTimeInLock > 500) {
                 log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}",
-                    elapsedTimeInLock, messageExtBatch.getBody().length, appendResult);
+                        elapsedTimeInLock, messageExtBatch.getBody().length, appendResult);
             }
-
-            defaultMessageStore.increaseOffset(messageExtBatch, (short) batchNum);
-
         } catch (Exception e) {
             log.error("Put message error", e);
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
-        }  finally {
-            topicQueueLock.unlock(encodeResult.queueOffsetKey);
         }
 
         return dledgerFuture.thenApply(appendEntryResponse -> {
@@ -891,7 +874,7 @@ public class DLedgerCommitLog extends CommitLog {
         }
 
         public EncodeResult(AppendMessageStatus status, String queueOffsetKey, List<byte[]> batchData,
-            int totalMsgLen) {
+                            int totalMsgLen) {
             this.batchData = batchData;
             this.status = status;
             this.queueOffsetKey = queueOffsetKey;
@@ -929,7 +912,7 @@ public class DLedgerCommitLog extends CommitLog {
              * Serialize message
              */
             final byte[] propertiesData =
-                msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
+                    msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
 
             final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
 
@@ -950,7 +933,7 @@ public class DLedgerCommitLog extends CommitLog {
             // Exceeds the maximum message
             if (bodyLength > this.maxMessageBodySize) {
                 DLedgerCommitLog.log.warn("message body size exceeded, msg total size: " + msgLen + ", msg body size: " + bodyLength
-                    + ", maxMessageBodySize: " + this.maxMessageBodySize);
+                        + ", maxMessageBodySize: " + this.maxMessageBodySize);
                 return new EncodeResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED, null, key);
             }
             // Initialization of storage space
@@ -1011,7 +994,7 @@ public class DLedgerCommitLog extends CommitLog {
             int totalLength = messagesByteBuff.limit();
             if (totalLength > this.maxMessageBodySize) {
                 CommitLog.log.warn("message body size exceeded, msg body size: " + totalLength
-                    + ", maxMessageBodySize: " + this.maxMessageBodySize);
+                        + ", maxMessageBodySize: " + this.maxMessageBodySize);
                 throw new RuntimeException("message size exceeded");
             }
 

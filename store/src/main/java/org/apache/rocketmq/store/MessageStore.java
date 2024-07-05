@@ -741,23 +741,6 @@ public interface MessageStore {
     boolean isSyncMaster();
 
     /**
-     * Assign a message to queue offset. If there is a race condition, you need to lock/unlock this method
-     * yourself.
-     *
-     * @param msg        message
-     * @throws RocksDBException
-     */
-    void assignOffset(MessageExtBrokerInner msg) throws RocksDBException;
-
-    /**
-     * Increase queue offset in memory table. If there is a race condition, you need to lock/unlock this method
-     *
-     * @param msg        message
-     * @param messageNum message num
-     */
-    void increaseOffset(MessageExtBrokerInner msg, short messageNum);
-
-    /**
      * Get master broker message store in process in broker container
      *
      * @return
