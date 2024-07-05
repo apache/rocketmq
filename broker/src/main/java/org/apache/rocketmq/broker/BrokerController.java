@@ -221,6 +221,8 @@ public class BrokerController {
     protected ScheduledExecutorService brokerHeartbeatExecutorService;
     protected final SlaveSynchronize slaveSynchronize;
     protected final BlockingQueue<Runnable> sendThreadPoolQueue;
+
+    protected final BlockingQueue<Runnable> returnResultThreadPoolQueue;
     protected final BlockingQueue<Runnable> putThreadPoolQueue;
     protected final BlockingQueue<Runnable> ackThreadPoolQueue;
     protected final BlockingQueue<Runnable> pullThreadPoolQueue;
@@ -244,6 +246,8 @@ public class BrokerController {
     protected SubscriptionGroupManager subscriptionGroupManager;
     protected TopicQueueMappingManager topicQueueMappingManager;
     protected ExecutorService sendMessageExecutor;
+
+    protected ExecutorService returnResultExecutor;
     protected ExecutorService pullMessageExecutor;
     protected ExecutorService litePullMessageExecutor;
     protected ExecutorService putMessageFutureExecutor;
@@ -379,6 +383,7 @@ public class BrokerController {
         this.slaveSynchronize = new SlaveSynchronize(this);
         this.endTransactionProcessor = new EndTransactionProcessor(this);
 
+        this.returnResultThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getSendThreadPoolQueueCapacity());
         this.sendThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getSendThreadPoolQueueCapacity());
         this.putThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getPutThreadPoolQueueCapacity());
         this.pullThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getPullThreadPoolQueueCapacity());
@@ -501,6 +506,14 @@ public class BrokerController {
             TimeUnit.MILLISECONDS,
             this.sendThreadPoolQueue,
             new ThreadFactoryImpl("SendMessageThread_", getBrokerIdentity()));
+
+        this.returnResultExecutor = ThreadUtils.newThreadPoolExecutor(
+            this.brokerConfig.getReturnResultThreadPoolNums(),
+            this.brokerConfig.getReturnResultThreadPoolNums(),
+            1000 * 60,
+            TimeUnit.MILLISECONDS,
+            this.returnResultThreadPoolQueue,
+            new ThreadFactoryImpl("returnResultThread_", getBrokerIdentity()));
 
         this.pullMessageExecutor = ThreadUtils.newThreadPoolExecutor(
             this.brokerConfig.getPullMessageThreadPoolNums(),
@@ -2387,6 +2400,9 @@ public class BrokerController {
         return sendMessageExecutor;
     }
 
+    public ExecutorService getReturnResultExecutor() {
+        return returnResultExecutor;
+    }
     public SendMessageProcessor getSendMessageProcessor() {
         return sendMessageProcessor;
     }
