@@ -20,7 +20,6 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.BoundaryType;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.rocksdb.RocksDBException;
 
@@ -169,19 +168,22 @@ public interface ConsumeQueueStoreInterface {
      */
     ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> getConsumeQueueTable();
 
-    /**
-     * Assign queue offset.
-     * @param msg message itself
-     * @throws RocksDBException only in rocksdb mode
-     */
-    void assignQueueOffset(MessageExtBrokerInner msg) throws RocksDBException;
+
 
     /**
      * Increase queue offset.
-     * @param msg message itself
      * @param messageNum message number
      */
-    void increaseQueueOffset(MessageExtBrokerInner msg, short messageNum);
+    void increaseQueueOffset(String topic, int queueId, short messageNum);
+
+    /**
+     * Get queue offset.
+     * @param topic topic
+     * @param queueId queue id
+     * @throws RocksDBException only in rocksdb mode
+     * @return queue offset
+     */
+    long getQueueOffset(String topic, int queueId) throws RocksDBException;
 
     /**
      * Increase lmq offset

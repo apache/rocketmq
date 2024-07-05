@@ -19,7 +19,6 @@ package org.apache.rocketmq.store.queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -62,16 +61,18 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
         return this.queueOffsetOperator.getTopicQueueTable();
     }
 
+
+
     @Override
-    public void assignQueueOffset(MessageExtBrokerInner msg) throws RocksDBException {
-        ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(msg.getTopic(), msg.getQueueId());
-        consumeQueue.assignQueueOffset(this.queueOffsetOperator, msg);
+    public void increaseQueueOffset(String topic, int queueId, short messageNum) {
+        ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(topic, queueId);
+        consumeQueue.increaseQueueOffset(this.queueOffsetOperator, messageNum);
     }
 
     @Override
-    public void increaseQueueOffset(MessageExtBrokerInner msg, short messageNum) {
-        ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(msg.getTopic(), msg.getQueueId());
-        consumeQueue.increaseQueueOffset(this.queueOffsetOperator, msg, messageNum);
+    public long getQueueOffset(String topic, int queueId) throws RocksDBException {
+        ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(topic, queueId);
+        return consumeQueue.getQueueOffset(this.queueOffsetOperator);
     }
 
     @Override

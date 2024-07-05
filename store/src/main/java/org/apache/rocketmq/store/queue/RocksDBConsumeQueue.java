@@ -23,7 +23,6 @@ import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.ConsumeQueue;
@@ -204,21 +203,20 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
     }
 
     @Override
-    public void assignQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg) throws RocksDBException {
-        String topicQueueKey = getTopic() + "-" + getQueueId();
+    public void increaseQueueOffset(QueueOffsetOperator queueOffsetOperator, short messageNum) {
+        queueOffsetOperator.increaseQueueOffset(topic + "-" + queueId, messageNum);
+    }
+
+    @Override
+    public long getQueueOffset(QueueOffsetOperator queueOffsetOperator) throws RocksDBException {
+        String topicQueueKey = topic + "-" + queueId;
         Long queueOffset = queueOffsetOperator.getTopicQueueNextOffset(topicQueueKey);
         if (queueOffset == null) {
             // we will recover topic queue table from rocksdb when we use it.
             queueOffset = this.messageStore.getQueueStore().getMaxOffsetInQueue(topic, queueId);
             queueOffsetOperator.updateQueueOffset(topicQueueKey, queueOffset);
         }
-        msg.setQueueOffset(queueOffset);
-    }
-
-    @Override
-    public void increaseQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg, short messageNum) {
-        String topicQueueKey = getTopic() + "-" + getQueueId();
-        queueOffsetOperator.increaseQueueOffset(topicQueueKey, messageNum);
+        return queueOffset;
     }
 
     @Override

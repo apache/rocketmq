@@ -20,7 +20,6 @@ package org.apache.rocketmq.store.queue;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.attribute.CQType;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageFilter;
 import org.rocksdb.RocksDBException;
@@ -174,20 +173,19 @@ public interface ConsumeQueueInterface extends FileQueueLifeCycle {
     void putMessagePositionInfoWrapper(DispatchRequest request);
 
     /**
-     * Assign queue offset.
-     * @param queueOffsetAssigner the delegated queue offset assigner
-     * @param msg message itself
-     * @throws RocksDBException only in rocksdb mode
-     */
-    void assignQueueOffset(QueueOffsetOperator queueOffsetAssigner, MessageExtBrokerInner msg) throws RocksDBException;
-
-    /**
      * Increase queue offset.
      * @param queueOffsetAssigner the delegated queue offset assigner
-     * @param msg message itself
      * @param messageNum message number
      */
-    void increaseQueueOffset(QueueOffsetOperator queueOffsetAssigner, MessageExtBrokerInner msg, short messageNum);
+    void increaseQueueOffset(QueueOffsetOperator queueOffsetAssigner, short messageNum);
+
+    /**
+     * Get queue offset.
+     * @param queueOffsetAssigner the delegated queue offset assigner
+     * @throws RocksDBException only in rocksdb mode
+     * @return queue offset
+     */
+    long getQueueOffset(QueueOffsetOperator queueOffsetAssigner) throws RocksDBException;
 
     /**
      * Estimate number of records matching given filter.
