@@ -463,12 +463,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     for (Map.Entry<String, ChannelWrapper> entry : channelTables.entrySet()) {
                         String key = entry.getKey();
                         ChannelWrapper prev = entry.getValue();
-                        if (prev.getChannel() != null) {
-                            if (prev.getChannel() == channel) {
-                                prevCW = prev;
-                                addrRemote = key;
-                                break;
-                            }
+                        if (prev.isWrapperOf(channel)) {
+                            prevCW = prev;
+                            addrRemote = key;
+                            break;
                         }
                     }
 
@@ -1020,6 +1018,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         public boolean isWritable() {
             return getChannel().isWritable();
+        }
+
+        public boolean isWrapperOf(Channel channel) {
+            if (this.channelFuture.channel() != null && this.channelFuture.channel() == channel) {
+                return true;
+            }
+            return false;
         }
 
         private Channel getChannel() {
