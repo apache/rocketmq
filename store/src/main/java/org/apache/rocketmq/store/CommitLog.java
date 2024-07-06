@@ -61,7 +61,7 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
-import org.apache.rocketmq.store.lock.CollisionRetreatLock;
+import org.apache.rocketmq.store.lock.PutMessageCollisionRetreatLock;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
@@ -96,8 +96,6 @@ public class CommitLog implements Swappable {
 
     protected final PutMessageLock putMessageLock;
 
-    protected final TopicQueueLock topicQueueLock;
-
     private volatile Set<String> fullStorePaths = Collections.emptySet();
 
     private final FlushDiskWatcher flushDiskWatcher;
@@ -131,12 +129,9 @@ public class CommitLog implements Swappable {
                 return new PutMessageThreadLocal(defaultMessageStore.getMessageStoreConfig());
             }
         };
-        this.putMessageLock = new CollisionRetreatLock();
-                //messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
+        this.putMessageLock = messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageCollisionRetreatLock();
 
         this.flushDiskWatcher = new FlushDiskWatcher();
-
-        this.topicQueueLock = new TopicQueueLock(messageStore.getMessageStoreConfig().getTopicQueueLockNum());
 
         this.commitLogSize = messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
 
@@ -1805,7 +1800,7 @@ public class CommitLog implements Swappable {
         }
 
         public AppendMessageResult handlePropertiesForLmqMsg(ByteBuffer preEncodeBuffer,
-                                                             final MessageExtBrokerInner msgInner) {
+            final MessageExtBrokerInner msgInner) {
             if (msgInner.isEncodeCompleted()) {
                 return null;
             }
@@ -1860,7 +1855,7 @@ public class CommitLog implements Swappable {
         }
 
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
-                                            final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
+            final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
@@ -1893,9 +1888,9 @@ public class CommitLog implements Swappable {
             long queueOffset = 0L;
             try {
                 queueOffset = (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) ?
-                        CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(msgInner.getTopic(), msgInner.getQueueId()) : 0L;
+                    CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(msgInner.getTopic(), msgInner.getQueueId()) : 0L;
             } catch (RocksDBException ex) {
-                log.warn("doAppend in Rocksdb mode");
+                log.warn("append message in Rocksdb mode :{}", ex);
             }
             msgInner.setQueueOffset(queueOffset);
             // this msg maybe an inner-batch msg.
@@ -1913,9 +1908,9 @@ public class CommitLog implements Swappable {
                 final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
                 byteBuffer.put(this.msgStoreItemMemory.array(), 0, 8);
                 return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset,
-                        maxBlank, /* only wrote 8 bytes, but declare wrote maxBlank for compute write position */
-                        msgIdSupplier, msgInner.getStoreTimestamp(),
-                        queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
+                    maxBlank, /* only wrote 8 bytes, but declare wrote maxBlank for compute write position */
+                    msgIdSupplier, msgInner.getStoreTimestamp(),
+                    queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             }
 
             int pos = 4 + 4 + 4 + 4 + 4;
@@ -1969,7 +1964,7 @@ public class CommitLog implements Swappable {
                 queueOffset = CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(messageExtBatch.getTopic(),
                         messageExtBatch.getQueueId());
             } catch (RocksDBException ex) {
-                log.warn("doAppend in Rocksdb mode");
+                log.warn("append message in Rocksdb mode:{]", ex);
             }
             messageExtBatch.setQueueOffset(queueOffset);
             long beginQueueOffset = queueOffset;
@@ -2024,7 +2019,7 @@ public class CommitLog implements Swappable {
                     byteBuffer.reset(); //ignore the previous appended messages
                     byteBuffer.put(this.msgStoreItemMemory.array(), 0, 8);
                     return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset, maxBlank, msgIdSupplier, messageExtBatch.getStoreTimestamp(),
-                            beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
+                        beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
                 }
                 //move to add queue offset and commitlog offset
                 int pos = msgPos + 20;
@@ -2056,10 +2051,10 @@ public class CommitLog implements Swappable {
             byteBuffer.put(messagesByteBuff);
             messageExtBatch.setEncodedBuff(null);
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, totalMsgLen, msgIdSupplier,
-                    messageExtBatch.getStoreTimestamp(), beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
+                messageExtBatch.getStoreTimestamp(), beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             result.setMsgNum(msgNum);
             CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(messageExtBatch.getTopic(),
-                    messageExtBatch.getQueueId(), (short) msgNum);
+                messageExtBatch.getQueueId(), (short) msgNum);
             return result;
         }
 
@@ -2093,7 +2088,7 @@ public class CommitLog implements Swappable {
 
         @Override
         public void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult,
-                                    MessageExt messageExt) {
+            MessageExt messageExt) {
             // Synchronization flush
             if (FlushDiskType.SYNC_FLUSH == CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
                 final GroupCommitService service = (GroupCommitService) this.flushCommitLogService;
@@ -2333,7 +2328,7 @@ public class CommitLog implements Swappable {
             int mincore = LibC.INSTANCE.mincore(new Pointer(address), new NativeLong(fileSize), pageCacheRst);
             if (mincore != 0) {
                 log.error("checkFileInPageCache call the LibC.INSTANCE.mincore error, fileName: {}, fileSize: {}",
-                        mappedFile.getFileName(), fileSize);
+                    mappedFile.getFileName(), fileSize);
                 for (int i = 0; i < pageNums; i++) {
                     pageCacheRst[i] = 1;
                 }
@@ -2378,7 +2373,7 @@ public class CommitLog implements Swappable {
                 return defaultMessageStore.checkInColdAreaByCommitOffset(offsetPy, getMaxOffset());
             } catch (Exception e) {
                 log.error("isMsgInColdArea group: {}, topic: {}, queueId: {}, offset: {}",
-                        group, topic, queueId, offset, e);
+                    group, topic, queueId, offset, e);
             }
             return false;
         }
