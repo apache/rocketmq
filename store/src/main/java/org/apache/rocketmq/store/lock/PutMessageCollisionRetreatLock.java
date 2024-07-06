@@ -21,7 +21,7 @@ import org.apache.rocketmq.store.PutMessageLock;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class CollisionRetreatLock implements PutMessageLock {
+public class PutMessageCollisionRetreatLock implements PutMessageLock {
 
     private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
 
