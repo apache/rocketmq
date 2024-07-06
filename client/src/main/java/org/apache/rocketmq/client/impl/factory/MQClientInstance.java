@@ -152,6 +152,7 @@ public class MQClientInstance {
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
         this.nettyClientConfig.setSocksProxyConfig(clientConfig.getSocksProxyConfig());
+        this.nettyClientConfig.setScanAvailableNameSrv(false);
         ClientRemotingProcessor clientRemotingProcessor = new ClientRemotingProcessor(this);
         ChannelEventListener channelEventListener;
         if (clientConfig.isEnableHeartbeatChannelEventListener()) {
