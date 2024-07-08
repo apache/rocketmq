@@ -418,8 +418,7 @@ public class MqClientAdminImplTest {
         setResponseSuccess(RemotingSerializable.encode(responseBody));
         QuerySubscriptionByConsumerRequestHeader requestHeader = mock(QuerySubscriptionByConsumerRequestHeader.class);
         CompletableFuture<SubscriptionData> actual = mqClientAdminImpl.querySubscriptionByConsumer(defaultBrokerAddr, requestHeader, defaultTimeout);
-        SubscriptionData result = actual.get();
-        assertNull(result);
+        assertNull(actual.get());
     }
 
     @Test
