@@ -25,10 +25,17 @@ public class PutMessageCollisionRetreatLock implements PutMessageLock {
 
     private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
 
+    private int optimalDegree;
+
+    public PutMessageCollisionRetreatLock(int optimalDegree) {
+        this.optimalDegree = optimalDegree;
+    }
+
     @Override
     public void lock() {
+        int spinDegree = this.optimalDegree;
         while (true) {
-            for (int i = 0; i < 10000; i++) {
+            for (int i = 0; i < spinDegree; i++) {
                 if (this.putMessageSpinLock.compareAndSet(true, false)) {
                     return;
                 }

@@ -419,6 +419,12 @@ public class MessageStoreConfig {
      */
     private boolean readUnCommitted = false;
 
+    /**
+     * Spin number in the retreat strategy of spin lock
+     * Default is 1000
+     */
+    private int spinLockCollisionRetreatOptimalDegree = 1000;
+
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
     }
@@ -1832,4 +1838,13 @@ public class MessageStoreConfig {
     public void setReadUnCommitted(boolean readUnCommitted) {
         this.readUnCommitted = readUnCommitted;
     }
+
+    public int getSpinLockCollisionRetreatOptimalDegree() {
+        return spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setSpinLockCollisionRetreatOptimalDegree(int optimalDegree) {
+        this.spinLockCollisionRetreatOptimalDegree = optimalDegree;
+    }
+
 }

@@ -129,7 +129,8 @@ public class CommitLog implements Swappable {
                 return new PutMessageThreadLocal(defaultMessageStore.getMessageStoreConfig());
             }
         };
-        this.putMessageLock = messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageCollisionRetreatLock();
+        this.putMessageLock = messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock()
+                : new PutMessageCollisionRetreatLock(defaultMessageStore.getMessageStoreConfig().getSpinLockCollisionRetreatOptimalDegree());
 
         this.flushDiskWatcher = new FlushDiskWatcher();
 
@@ -974,10 +975,10 @@ public class CommitLog implements Swappable {
         PutMessageContext putMessageContext = new PutMessageContext(topicQueueKey);
 
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
-        long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
-        this.beginTimeInLock = beginLockTimestamp;
-        try {
 
+        try {
+            long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+            this.beginTimeInLock = beginLockTimestamp;
             // Here settings are stored timestamp, in order to ensure an orderly
             // global
             if (!defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
@@ -1025,14 +1026,15 @@ public class CommitLog implements Swappable {
                     beginTimeInLock = 0;
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
             }
+            elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            beginTimeInLock = 0;
         } finally {
             putMessageLock.unlock();
         }
         if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
             onCommitLogAppend(msg, result, mappedFile);
         }
-        elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-        beginTimeInLock = 0;
+
         if (elapsedTimeInLock > 500) {
             log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, msg.getBody().length, result);
         }
@@ -1125,9 +1127,10 @@ public class CommitLog implements Swappable {
         messageExtBatch.setEncodedBuff(batchEncoder.encode(messageExtBatch, putMessageContext));
 
         putMessageLock.lock();
-        long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
-        this.beginTimeInLock = beginLockTimestamp;
+
         try {
+            long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+            this.beginTimeInLock = beginLockTimestamp;
             // Here settings are stored timestamp, in order to ensure an orderly
             // global
             messageExtBatch.setStoreTimestamp(beginLockTimestamp);
@@ -1172,11 +1175,12 @@ public class CommitLog implements Swappable {
                     beginTimeInLock = 0;
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
             }
+            elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+            beginTimeInLock = 0;
         } finally {
             putMessageLock.unlock();
         }
-        elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-        beginTimeInLock = 0;
+
         if (elapsedTimeInLock > 500) {
             log.warn("[NOTIFYME]putMessages in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}", elapsedTimeInLock, messageExtBatch.getBody().length, result);
         }
