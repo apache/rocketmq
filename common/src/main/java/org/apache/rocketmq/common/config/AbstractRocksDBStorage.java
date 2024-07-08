@@ -478,11 +478,7 @@ public abstract class AbstractRocksDBStorage {
             }
             Map<Integer, StringBuilder> map = Maps.newHashMap();
             for (LiveFileMetaData metaData : liveFileMetaDataList) {
-                StringBuilder sb = map.get(metaData.level());
-                if (sb == null) {
-                    sb = new StringBuilder(256);
-                    map.put(metaData.level(), sb);
-                }
+                StringBuilder sb = map.computeIfAbsent(metaData.level(), k -> new StringBuilder(256));
                 sb.append(new String(metaData.columnFamilyName(), DataConverter.CHARSET_UTF8)).append(SPACE).
                         append(metaData.fileName()).append(SPACE).
                         append("s: ").append(metaData.size()).append(SPACE).
@@ -491,9 +487,8 @@ public abstract class AbstractRocksDBStorage {
                         append("d: ").append(metaData.numDeletions()).append(SPACE).
                         append(metaData.beingCompacted()).append("\n");
             }
-            for (Map.Entry<Integer, StringBuilder> entry : map.entrySet()) {
-                logger.info("level: {}\n{}", entry.getKey(), entry.getValue().toString());
-            }
+
+            map.forEach((key, value) -> logger.info("level: {}\n{}", key, value.toString()));
 
             String blockCacheMemUsage = this.db.getProperty("rocksdb.block-cache-usage");
             String indexesAndFilterBlockMemUsage = this.db.getProperty("rocksdb.estimate-table-readers-mem");
