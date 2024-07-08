@@ -428,6 +428,12 @@ public class MessageStoreConfig {
         return enabledAppendPropCRC;
     }
 
+    /**
+     * Spin number in the retreat strategy of spin lock
+     * Default is 1000
+     */
+    private int spinLockCollisionRetreatOptimalDegree = 1000;
+
     public void setEnabledAppendPropCRC(boolean enabledAppendPropCRC) {
         this.enabledAppendPropCRC = enabledAppendPropCRC;
     }
