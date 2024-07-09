@@ -123,12 +123,7 @@ public class RaftReplicasInfoManager extends ReplicasInfoManager {
                 log.warn("Broker expired, brokerInfo {}, expired {}ms", next.getKey(), timeoutMillis);
             }
         }
-        List<String> needReElectBrokerNames = scanNeedReelectBrokerSets(new BrokerValidPredicate() {
-            @Override
-            public boolean check(String clusterName, String brokerName, Long brokerId) {
-                return !isBrokerActive(clusterName, brokerName, brokerId, checkTime);
-            }
-        });
+        List<String> needReElectBrokerNames = scanNeedReelectBrokerSets((clusterName, brokerName, brokerId) -> isBrokerActive(clusterName, brokerName, brokerId, checkTime));
         Set<String> alreadyReportedBrokerName = notActiveBrokerIdentityInfoList.stream()
             .map(BrokerIdentityInfo::getBrokerName)
             .collect(Collectors.toSet());
