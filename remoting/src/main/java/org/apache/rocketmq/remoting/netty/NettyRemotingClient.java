@@ -421,7 +421,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     if (null == prevCW) {
                         LOGGER.info("closeChannel: the channel[{}] has been removed from the channel table before", addrRemote);
                         removeItemFromTable = false;
-                    } else if (prevCW.getChannel() != channel) {
+                    } else if (prevCW.isWrapperOf(channel)) {
                         LOGGER.info("closeChannel: the channel[{}] has been closed before, and has been created again, nothing to do.",
                             addrRemote);
                         removeItemFromTable = false;
