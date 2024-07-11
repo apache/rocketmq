@@ -63,8 +63,8 @@ public class ClientConfigTest {
         assertTrue(clientConfig.isDecodeDecompressBody());
         assertTrue(clientConfig.isEnableStreamRequestType());
         assertTrue(clientConfig.isSendLatencyEnable());
-        assertTrue(clientConfig.isEnableHeartbeatChannelEventListener());
         assertFalse(clientConfig.isUseHeartbeatV2());
+        assertTrue(clientConfig.isEnableHeartbeatChannelEventListener());
     }
 
     @Test
