@@ -400,6 +400,33 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         return future;
     }
 
+    public CompletableFuture<Void> updateConsumerOffsetAsync(
+        String brokerAddr,
+        UpdateConsumerOffsetRequestHeader header,
+        long timeoutMillis
+    ) {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_CONSUMER_OFFSET, header);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        invoke(brokerAddr, request, timeoutMillis).whenComplete((response, t) -> {
+            if (t != null) {
+                log.error("updateConsumerOffsetAsync failed, brokerAddr={}, requestHeader={}", brokerAddr, header, t);
+                future.completeExceptionally(t);
+                return;
+            }
+            switch (response.getCode()) {
+                case ResponseCode.SUCCESS: {
+                    future.complete(null);
+                }
+                case ResponseCode.SYSTEM_ERROR:
+                case ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST:
+                case ResponseCode.TOPIC_NOT_EXIST: {
+                    future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
+                }
+            }
+        });
+        return future;
+    }
+
     public CompletableFuture<List<String>> getConsumerListByGroupAsync(
         String brokerAddr,
         GetConsumerListByGroupRequestHeader requestHeader,
