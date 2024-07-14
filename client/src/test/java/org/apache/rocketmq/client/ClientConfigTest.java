@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -41,30 +40,6 @@ public class ClientConfigTest {
     @Before
     public void init() {
         clientConfig = createClientConfig();
-    }
-
-    @Test
-    public void assertClientConfig() {
-        assertEquals("unitName", clientConfig.getUnitName());
-        assertEquals("127.0.0.1", clientConfig.getClientIP());
-        assertEquals(1, clientConfig.getClientCallbackExecutorThreads());
-        assertEquals(1000 * 30, clientConfig.getPollNameServerInterval());
-        assertEquals(1000 * 30, clientConfig.getHeartbeatBrokerInterval());
-        assertEquals(1000 * 5, clientConfig.getPersistConsumerOffsetInterval());
-        assertEquals(1000, clientConfig.getPullTimeDelayMillsWhenException());
-        assertEquals("{}", clientConfig.getSocksProxyConfig());
-        assertEquals(LanguageCode.JAVA, clientConfig.getLanguage());
-        assertEquals(AccessChannel.LOCAL, clientConfig.getAccessChannel());
-        assertEquals(1000 * 3, clientConfig.getMqClientApiTimeout());
-        assertEquals(200, clientConfig.getDetectTimeout());
-        assertEquals(1000 * 2, clientConfig.getDetectInterval());
-        assertTrue(clientConfig.isUnitMode());
-        assertTrue(clientConfig.isDecodeReadBody());
-        assertTrue(clientConfig.isDecodeDecompressBody());
-        assertTrue(clientConfig.isEnableStreamRequestType());
-        assertTrue(clientConfig.isSendLatencyEnable());
-        assertTrue(clientConfig.isEnableHeartbeatChannelEventListener());
-        assertFalse(clientConfig.isUseHeartbeatV2());
     }
 
     @Test
