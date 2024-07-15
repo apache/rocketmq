@@ -383,7 +383,7 @@ public class BrokerController {
         this.slaveSynchronize = new SlaveSynchronize(this);
         this.endTransactionProcessor = new EndTransactionProcessor(this);
 
-        this.returnResultThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getSendThreadPoolQueueCapacity());
+        this.returnResultThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getReturnResultQueueCapacity());
         this.sendThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getSendThreadPoolQueueCapacity());
         this.putThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getPutThreadPoolQueueCapacity());
         this.pullThreadPoolQueue = new LinkedBlockingQueue<>(this.brokerConfig.getPullThreadPoolQueueCapacity());

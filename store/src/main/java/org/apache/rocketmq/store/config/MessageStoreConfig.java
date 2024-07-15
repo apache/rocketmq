@@ -138,7 +138,7 @@ public class MessageStoreConfig {
     /**
      * introduced since 4.0.x. Determine whether to use mutex reentrantLock when putting message.<br/>
      */
-    private boolean useReentrantLockWhenPutMessage = true;
+    private boolean useReentrantLockWhenPutMessage = false;
 
     // Whether schedule flush
     @ImportantField
