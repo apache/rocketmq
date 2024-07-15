@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import org.apache.commons.lang3.StringUtils;
@@ -130,7 +129,7 @@ public class CommitLog implements Swappable {
             }
         };
         this.putMessageLock = messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock()
-                : new PutMessageCollisionRetreatLock(defaultMessageStore.getMessageStoreConfig().getSpinLockCollisionRetreatOptimalDegree());
+            : new PutMessageCollisionRetreatLock(defaultMessageStore.getMessageStoreConfig().getSpinLockCollisionRetreatOptimalDegree());
 
         this.flushDiskWatcher = new FlushDiskWatcher();
 
@@ -1410,7 +1409,7 @@ public class CommitLog implements Swappable {
                 int commitDataLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogLeastPages();
 
                 int commitDataThoroughInterval =
-                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
+                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getCommitCommitLogThoroughInterval();
 
                 long begin = System.currentTimeMillis();
                 if (begin >= (this.lastCommitTimestamp + commitDataThoroughInterval)) {
@@ -1459,7 +1458,7 @@ public class CommitLog implements Swappable {
                 int flushPhysicQueueLeastPages = CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogLeastPages();
 
                 int flushPhysicQueueThoroughInterval =
-                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
+                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getFlushCommitLogThoroughInterval();
 
                 boolean printFlushProgress = false;
 
@@ -1695,10 +1694,10 @@ public class CommitLog implements Swappable {
                 waitPoint.countDown(); // notify
             }
             boolean flag = this.requestsWrite.size() >
-                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests();
+                CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests();
             if (flag) {
                 log.info("Async requests {} exceeded the threshold {}", requestsWrite.size(),
-                        CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests());
+                CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests());
             }
 
             return flag;
@@ -1814,10 +1813,10 @@ public class CommitLog implements Swappable {
             msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 
             final byte[] propertiesData =
-                    msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
+                msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
 
             boolean needAppendLastPropertySeparator = enabledAppendPropCRC && propertiesData != null && propertiesData.length > 0
-                    && propertiesData[propertiesData.length - 1] != MessageDecoder.PROPERTY_SEPARATOR;
+                && propertiesData[propertiesData.length - 1] != MessageDecoder.PROPERTY_SEPARATOR;
 
             final int propertiesLength = (propertiesData == null ? 0 : propertiesData.length) + (needAppendLastPropertySeparator ? 1 : 0) + crc32ReservedLength;
 
@@ -1858,6 +1857,7 @@ public class CommitLog implements Swappable {
             return null;
         }
 
+        @Override
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
             final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
@@ -1894,7 +1894,8 @@ public class CommitLog implements Swappable {
                 queueOffset = (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) ?
                     CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(msgInner.getTopic(), msgInner.getQueueId()) : 0L;
             } catch (RocksDBException ex) {
-                log.warn("append message in Rocksdb mode :{}", ex);
+                log.error("append message in Rocksdb mode");
+                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR, wroteOffset, 0, msgInner.getStoreTimestamp());
             }
             msgInner.setQueueOffset(queueOffset);
             // this msg maybe an inner-batch msg.
@@ -1946,10 +1947,13 @@ public class CommitLog implements Swappable {
             msgInner.setEncodedBuff(null);
 
             // transaction messages that require special handling
-            CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(msgInner.getTopic(), msgInner.getQueueId(), messageNum);
-            // for lmq
-            if (isMultiDispatchMsg) {
-                CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
+            if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+                CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(msgInner.getTopic(),
+                    msgInner.getQueueId(), messageNum);
+                // for lmq
+                if (isMultiDispatchMsg) {
+                    CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
+                }
             }
 
             return new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgIdSupplier,
@@ -1958,7 +1962,7 @@ public class CommitLog implements Swappable {
 
         @Override
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
-                                            final MessageExtBatch messageExtBatch, PutMessageContext putMessageContext) {
+            final MessageExtBatch messageExtBatch, PutMessageContext putMessageContext) {
             byteBuffer.mark();
             long queueOffset = 0L;
             //physical offset
@@ -1966,9 +1970,10 @@ public class CommitLog implements Swappable {
             // Record ConsumeQueue information
             try {
                 queueOffset = CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(messageExtBatch.getTopic(),
-                        messageExtBatch.getQueueId());
+                    messageExtBatch.getQueueId());
             } catch (RocksDBException ex) {
-                log.warn("append message in Rocksdb mode:{]", ex);
+                log.error("append message in Rocksdb mode");
+                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR, wroteOffset, 0, messageExtBatch.getStoreTimestamp());
             }
             messageExtBatch.setQueueOffset(queueOffset);
             long beginQueueOffset = queueOffset;
