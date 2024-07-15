@@ -36,9 +36,12 @@ public class NotifyMessageArrivingListener implements MessageArrivingListener {
     @Override
     public void arriving(String topic, int queueId, long logicOffset, long tagsCode,
                          long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
-        this.pullRequestHoldService.notifyMessageArriving(topic, queueId, logicOffset, tagsCode,
-            msgStoreTime, filterBitMap, properties);
-        this.popMessageProcessor.notifyMessageArriving(topic, queueId);
-        this.notificationProcessor.notifyMessageArriving(topic, queueId);
+
+        this.pullRequestHoldService.notifyMessageArriving(
+            topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties);
+        this.popMessageProcessor.notifyMessageArriving(
+            topic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
+        this.notificationProcessor.notifyMessageArriving(
+            topic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
     }
 }
