@@ -1834,7 +1834,7 @@ public class CommitLog implements Swappable {
         private static final int END_FILE_MIN_BLANK_LENGTH = 4 + 4;
         // Store the message content
         private final ByteBuffer msgStoreItemMemory;
-        private final int crc32ReservedLength = CommitLog.CRC32_RESERVED_LEN;
+        private final int crc32ReservedLength = enabledAppendPropCRC ? CommitLog.CRC32_RESERVED_LEN : 0;
         private final MessageStoreConfig messageStoreConfig;
 
         DefaultAppendMessageCallback(MessageStoreConfig messageStoreConfig) {
