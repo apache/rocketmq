@@ -123,8 +123,8 @@ public class DefaultMQProducerWithOpenTracingTest {
         assertThat(span.tags().get(TraceConstants.ROCKETMQ_MSG_ID)).isEqualTo("123");
         assertThat(span.tags().get(TraceConstants.ROCKETMQ_BODY_LENGTH)).isEqualTo(3);
         assertThat(span.tags().get(TraceConstants.ROCKETMQ_REGION_ID)).isEqualTo("HZ");
-        assertThat(span.tags().get(TraceConstants.ROCKETMQ_MSG_TYPE)).isEqualTo(MessageType.Normal_Msg.name());
         assertThat(span.tags().get(TraceConstants.ROCKETMQ_STORE_HOST)).isEqualTo("127.0.0.1:10911");
+        assertThat(span.tags().get(TraceConstants.ROCKETMQ_MSG_TYPE)).isEqualTo(MessageType.Normal_Msg.name());
     }
 
     @After
