@@ -1697,7 +1697,7 @@ public class CommitLog implements Swappable {
                 CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests();
             if (flag) {
                 log.info("Async requests {} exceeded the threshold {}", requestsWrite.size(),
-                CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests());
+                    CommitLog.this.defaultMessageStore.getMessageStoreConfig().getMaxAsyncPutMessageRequests());
             }
 
             return flag;
@@ -1741,6 +1741,7 @@ public class CommitLog implements Swappable {
             }
         }
 
+        @Override
         public void run() {
             CommitLog.log.info(this.getServiceName() + " service started");
 

@@ -16,6 +16,8 @@
  */
 package org.apache.rocketmq.store;
 
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+
 /**
  * Used when trying to put message
  */
@@ -23,4 +25,8 @@ public interface PutMessageLock {
     void lock();
 
     void unlock();
+
+    default void update(MessageStoreConfig messageStoreConfig) {
+        //update config
+    }
 }
