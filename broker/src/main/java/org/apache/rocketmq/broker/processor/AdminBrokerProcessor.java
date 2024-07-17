@@ -1941,7 +1941,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         String content = this.brokerController.getQueryAssignmentProcessor().getMessageRequestModeManager().encode();
-        if (content != null && content.length() > 0) {
+        if (content != null && !content.isEmpty()) {
             try {
                 response.setBody(content.getBytes(MixAll.DEFAULT_CHARSET));
             } catch (UnsupportedEncodingException e) {
