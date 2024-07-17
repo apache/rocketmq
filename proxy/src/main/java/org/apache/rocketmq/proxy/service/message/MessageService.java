@@ -120,6 +120,13 @@ public interface MessageService {
         long timeoutMillis
     );
 
+    CompletableFuture<Void> updateConsumerOffsetAsync(
+        ProxyContext ctx,
+        AddressableMessageQueue messageQueue,
+        UpdateConsumerOffsetRequestHeader requestHeader,
+        long timeoutMillis
+    );
+
     CompletableFuture<Set<MessageQueue>> lockBatchMQ(
         ProxyContext ctx,
         AddressableMessageQueue messageQueue,
