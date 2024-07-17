@@ -26,7 +26,6 @@ import java.net.NetworkInterface;
 import java.net.SocketAddress;
 import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
-import java.util.ArrayList;
 import java.util.Enumeration;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -92,8 +91,6 @@ public class NetworkUtil {
         try {
             // Traversal Network interface to get the first non-loopback and non-private address
             Enumeration<NetworkInterface> enumeration = NetworkInterface.getNetworkInterfaces();
-            ArrayList<String> ipv4Result = new ArrayList<>();
-            ArrayList<String> ipv6Result = new ArrayList<>();
             while (enumeration.hasMoreElements()) {
                 final NetworkInterface nif = enumeration.nextElement();
                 if (isBridge(nif) || nif.isVirtual() || nif.isPointToPoint() || !nif.isUp()) {
@@ -103,31 +100,21 @@ public class NetworkUtil {
                 final Enumeration<InetAddress> en = nif.getInetAddresses();
                 while (en.hasMoreElements()) {
                     final InetAddress address = en.nextElement();
+
                     if (!address.isLoopbackAddress()) {
+                        String hostAddress = normalizeHostAddress(address);
                         if (address instanceof Inet6Address) {
-                            ipv6Result.add(normalizeHostAddress(address));
+                            return hostAddress;
                         } else {
-                            ipv4Result.add(normalizeHostAddress(address));
+                            byte[] ipAddressBytes = address.getAddress();
+                            if (!isPrivateAddress(ipAddressBytes)) {
+                                return hostAddress;
+                            }
                         }
                     }
                 }
             }
 
-            // prefer ipv4
-            if (!ipv4Result.isEmpty()) {
-                for (String ip : ipv4Result) {
-                    if (ip.startsWith("127.0") || ip.startsWith("192.168") || ip.startsWith("0.")) {
-                        continue;
-                    }
-
-                    return ip;
-                }
-
-                return ipv4Result.get(ipv4Result.size() - 1);
-            } else if (!ipv6Result.isEmpty()) {
-                return ipv6Result.get(0);
-            }
-            //If failed to find,fall back to localhost
             final InetAddress localHost = InetAddress.getLocalHost();
             return normalizeHostAddress(localHost);
         } catch (Exception e) {
@@ -135,6 +122,19 @@ public class NetworkUtil {
         }
 
         return null;
+    }
+
+    public static boolean isPrivateAddress(byte[] ipAddressBytes) {
+        if ((ipAddressBytes[0] & 0xFF) == 10) {
+            return true;
+        }
+        if ((ipAddressBytes[0] & 0xFF) == 172 && (ipAddressBytes[1] & 0xFF) >= 16 && (ipAddressBytes[1] & 0xFF) <= 31) {
+            return true;
+        }
+        if ((ipAddressBytes[0] & 0xFF) == 192 && (ipAddressBytes[1] & 0xFF) == 168) {
+            return true;
+        }
+        return false;
     }
 
     public static String normalizeHostAddress(final InetAddress localHost) {
