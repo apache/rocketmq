@@ -16,8 +16,8 @@
  */
 package org.apache.rocketmq.store.lock;
 
-
 import org.apache.rocketmq.store.PutMessageLock;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -47,5 +47,10 @@ public class PutMessageCollisionRetreatLock implements PutMessageLock {
     @Override
     public void unlock() {
         this.putMessageSpinLock.compareAndSet(false, true);
+    }
+
+    @Override
+    public void update(MessageStoreConfig messageStoreConfig) {
+        this.optimalDegree = messageStoreConfig.getSpinLockCollisionRetreatOptimalDegree();
     }
 }
