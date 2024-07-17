@@ -60,7 +60,7 @@ public class SendMessageOpenTracingHookImpl implements SendMessageHook {
         span.setTag(Tags.MESSAGE_BUS_DESTINATION, msg.getTopic());
         span.setTag(TraceConstants.ROCKETMQ_TAGS, msg.getTags());
         span.setTag(TraceConstants.ROCKETMQ_KEYS, msg.getKeys());
-        span.setTag(TraceConstants.ROCKETMQ_SOTRE_HOST, context.getBrokerAddr());
+        span.setTag(TraceConstants.ROCKETMQ_STORE_HOST, context.getBrokerAddr());
         span.setTag(TraceConstants.ROCKETMQ_MSG_TYPE, context.getMsgType().name());
         span.setTag(TraceConstants.ROCKETMQ_BODY_LENGTH, msg.getBody().length);
         context.setMqTraceContext(span);
