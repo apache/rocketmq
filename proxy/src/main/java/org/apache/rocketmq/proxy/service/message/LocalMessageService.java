@@ -441,6 +441,12 @@ public class LocalMessageService implements MessageService {
     }
 
     @Override
+    public CompletableFuture<Void> updateConsumerOffsetAsync(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
+        throw new NotImplementedException("updateConsumerOffsetAsync is not implemented in LocalMessageService");
+    }
+
+    @Override
     public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, AddressableMessageQueue messageQueue,
         LockBatchRequestBody requestBody, long timeoutMillis) {
         throw new NotImplementedException("lockBatchMQ is not implemented in LocalMessageService");
