@@ -106,11 +106,11 @@ public class PullMessageProcessor implements NettyRequestProcessor {
             LogicQueueMappingItem mappingItem = TopicQueueMappingUtils.findLogicQueueMappingItem(mappingContext.getMappingItemList(), globalOffset, true);
             mappingContext.setCurrentItem(mappingItem);
 
-            if (globalOffset < mappingItem.getLogicOffset()) {
+            //if (globalOffset < mappingItem.getLogicOffset()) {
                 //handleOffsetMoved
                 //If the physical queue is reused, we should handle the PULL_OFFSET_MOVED independently
                 //Otherwise, we could just transfer it to the physical process
-            }
+            //}
             //below are physical info
             String bname = mappingItem.getBname();
             Integer phyQueueId = mappingItem.getQueueId();
@@ -536,14 +536,13 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 getMessageResult.setNextBeginOffset(broadcastInitOffset);
             } else {
                 SubscriptionData finalSubscriptionData = subscriptionData;
-                RemotingCommand finalResponse = response;
                 messageStore.getMessageAsync(group, topic, queueId, requestHeader.getQueueOffset(),
                         requestHeader.getMaxMsgNums(), messageFilter)
                     .thenApply(result -> {
                         if (null == result) {
-                            finalResponse.setCode(ResponseCode.SYSTEM_ERROR);
-                            finalResponse.setRemark("store getMessage return null");
-                            return finalResponse;
+                            response.setCode(ResponseCode.SYSTEM_ERROR);
+                            response.setRemark("store getMessage return null");
+                            return response;
                         }
                         brokerController.getColdDataCgCtrService().coldAcc(requestHeader.getConsumerGroup(), result.getColdDataSum());
                         return pullMessageResultHandler.handle(
@@ -555,7 +554,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             subscriptionGroupConfig,
                             brokerAllowSuspend,
                             messageFilter,
-                            finalResponse,
+                            response,
                             mappingContext,
                             beginTimeMills
                         );
