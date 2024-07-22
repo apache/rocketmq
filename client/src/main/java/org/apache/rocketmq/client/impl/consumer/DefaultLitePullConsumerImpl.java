@@ -982,6 +982,11 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         case OFFSET_ILLEGAL:
                             log.warn("The pull request offset illegal, {}", pullResult.toString());
                             break;
+                        case NO_NEW_MSG:
+                        case NO_MATCHED_MSG:
+                            if (0L == processQueue.getMsgCount().get()) {
+                                assignedMessageQueue.updateConsumeOffset(messageQueue, pullResult.getNextBeginOffset());
+                            }
                         default:
                             break;
                     }
