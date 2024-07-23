@@ -125,7 +125,7 @@ public class PopReviveService extends ServiceThread {
             msgInner.getProperties().put(MessageConst.PROPERTY_FIRST_POP_TIME, String.valueOf(popCheckPoint.getPopTime()));
         }
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-        addRetryTopicIfNoExit(msgInner.getTopic(), popCheckPoint.getCId());
+        addRetryTopicIfNotExist(msgInner.getTopic(), popCheckPoint.getCId());
         PutMessageResult putMessageResult = brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
         PopMetricsManager.incPopReviveRetryMessageCount(popCheckPoint, putMessageResult.getPutMessageStatus());
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
@@ -153,7 +153,7 @@ public class PopReviveService extends ServiceThread {
         }
     }
 
-    private void addRetryTopicIfNoExit(String topic, String consumerGroup) {
+    public void addRetryTopicIfNotExist(String topic, String consumerGroup) {
         if (brokerController != null) {
             TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topic);
             if (topicConfig != null) {
