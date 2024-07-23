@@ -175,8 +175,14 @@ public class FlatAppendFile {
             FileSegment fileSegment = this.getFileToWrite();
             result = fileSegment.append(buffer, timestamp);
             if (result == AppendResult.FILE_FULL) {
-                fileSegment.commitAsync().join();
-                return this.rollingNewFile(this.getAppendOffset()).append(buffer, timestamp);
+                boolean commitResult = fileSegment.commitAsync().join();
+                log.info("FlatAppendFile#append not successful for the file {} is full, commit result={}",
+                    fileSegment.getPath(), commitResult);
+                if (commitResult) {
+                    return this.rollingNewFile(this.getAppendOffset()).append(buffer, timestamp);
+                } else {
+                    return AppendResult.UNKNOWN_ERROR;
+                }
             }
         } finally {
             fileSegmentLock.writeLock().unlock();
