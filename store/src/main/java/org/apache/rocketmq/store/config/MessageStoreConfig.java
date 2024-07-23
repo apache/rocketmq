@@ -419,6 +419,8 @@ public class MessageStoreConfig {
      */
     private boolean readUnCommitted = false;
 
+    private boolean putConsumeQueueDataByFileChannel = true;
+
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
     }
@@ -1831,5 +1833,13 @@ public class MessageStoreConfig {
 
     public void setReadUnCommitted(boolean readUnCommitted) {
         this.readUnCommitted = readUnCommitted;
+    }
+
+    public boolean isPutConsumeQueueDataByFileChannel() {
+        return putConsumeQueueDataByFileChannel;
+    }
+
+    public void setPutConsumeQueueDataByFileChannel(boolean putConsumeQueueDataByFileChannel) {
+        this.putConsumeQueueDataByFileChannel = putConsumeQueueDataByFileChannel;
     }
 }

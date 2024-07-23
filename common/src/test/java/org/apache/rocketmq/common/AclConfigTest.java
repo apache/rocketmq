@@ -28,19 +28,12 @@ import static org.junit.Assert.assertNotNull;
 
 public class AclConfigTest {
 
-    /**
-     * Test to verify that getGlobalWhiteAddrs returns null when no addresses have been set.
-     *
-     */
     @Test
     public void testGetGlobalWhiteAddrsWhenNull() {
         AclConfig aclConfig = new AclConfig();
         Assert.assertNull("The globalWhiteAddrs should return null", aclConfig.getGlobalWhiteAddrs());
     }
 
-    /**
-     * Test to verify that getGlobalWhiteAddrs returns an empty list when an empty list is set.
-     */
     @Test
     public void testGetGlobalWhiteAddrsWhenEmpty() {
         AclConfig aclConfig = new AclConfig();
@@ -50,9 +43,6 @@ public class AclConfigTest {
         assertEquals("The globalWhiteAddrs list should be empty", 0, aclConfig.getGlobalWhiteAddrs().size());
     }
 
-    /**
-     * Test to verify that getGlobalWhiteAddrs correctly returns a list of set global white addresses.
-     */
     @Test
     public void testGetGlobalWhiteAddrs() {
         AclConfig aclConfig = new AclConfig();
@@ -62,18 +52,12 @@ public class AclConfigTest {
         assertEquals("The globalWhiteAddrs list should be equal to 2", 2, aclConfig.getGlobalWhiteAddrs().size());
     }
 
-    /**
-     * Test to verify that getPlainAccessConfigs returns null when no configurations have been set.
-     */
     @Test
     public void testGetPlainAccessConfigsWhenNull() {
         AclConfig aclConfig = new AclConfig();
         Assert.assertNull("The plainAccessConfigs should return null", aclConfig.getPlainAccessConfigs());
     }
 
-    /**
-     * Test to verify that getPlainAccessConfigs returns an empty list when an empty list is set.
-     */
     @Test
     public void testGetPlainAccessConfigsWhenEmpty() {
         AclConfig aclConfig = new AclConfig();
@@ -83,9 +67,6 @@ public class AclConfigTest {
         assertEquals("The plainAccessConfigs list should be empty", 0, aclConfig.getPlainAccessConfigs().size());
     }
 
-    /**
-     * Test to verify that getPlainAccessConfigs correctly returns a list of set plain access configurations.
-     */
     @Test
     public void testGetPlainAccessConfigs() {
         AclConfig aclConfig = new AclConfig();
@@ -95,9 +76,6 @@ public class AclConfigTest {
         assertEquals("The plainAccessConfigs list should be equal to 2", 2, aclConfig.getPlainAccessConfigs().size());
     }
 
-    /**
-     * Test the toString method when global white addresses and plain access configurations are null.
-     */
     @Test
     public void testToStringWithNullValues() {
         AclConfig aclConfig = new AclConfig();
@@ -114,10 +92,7 @@ public class AclConfigTest {
         String expected = "AclConfig{globalWhiteAddrs=[], plainAccessConfigs=[]}";
         assertEquals(expected, aclConfig.toString());
     }
-
-    /**
-     * Test the toString method to ensure it correctly represents the state of the AclConfig instance.
-     */
+    
     @Test
     public void testToStringWithNonEmptyGlobalWhiteAddrsAndPlainAccessConfigs() {
         AclConfig aclConfig = new AclConfig();
