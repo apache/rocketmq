@@ -1863,6 +1863,18 @@ public class CommitLog implements Swappable {
             final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
             final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
+
+            // Record ConsumeQueue information
+            long queueOffset = 0L;
+            try {
+                queueOffset = (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) ?
+                        CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(msgInner.getTopic(), msgInner.getQueueId()) : 0L;
+            } catch (RocksDBException ex) {
+                log.error("append message in Rocksdb mode");
+                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR, fileFromOffset + byteBuffer.position(),
+                    0, msgInner.getStoreTimestamp());
+            }
+
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
             boolean isMultiDispatchMsg = messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner);
             if (isMultiDispatchMsg) {
@@ -1889,15 +1901,7 @@ public class CommitLog implements Swappable {
                 return UtilAll.bytes2string(msgIdBuffer.array());
             };
 
-            // Record ConsumeQueue information
-            long queueOffset = 0L;
-            try {
-                queueOffset = (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) ?
-                    CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(msgInner.getTopic(), msgInner.getQueueId()) : 0L;
-            } catch (RocksDBException ex) {
-                log.error("append message in Rocksdb mode");
-                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR, wroteOffset, 0, msgInner.getStoreTimestamp());
-            }
+
             msgInner.setQueueOffset(queueOffset);
             // this msg maybe an inner-batch msg.
             short messageNum = getMessageNum(msgInner);
