@@ -244,8 +244,6 @@ public class BrokerController {
     protected SubscriptionGroupManager subscriptionGroupManager;
     protected TopicQueueMappingManager topicQueueMappingManager;
     protected ExecutorService sendMessageExecutor;
-
-    protected ExecutorService returnResultExecutor;
     protected ExecutorService pullMessageExecutor;
     protected ExecutorService litePullMessageExecutor;
     protected ExecutorService putMessageFutureExecutor;
