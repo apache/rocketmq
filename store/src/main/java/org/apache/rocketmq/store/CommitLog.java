@@ -1874,6 +1874,7 @@ public class CommitLog implements Swappable {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR, fileFromOffset + byteBuffer.position(),
                     0, msgInner.getStoreTimestamp());
             }
+            msgInner.setQueueOffset(queueOffset);
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
             boolean isMultiDispatchMsg = messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner);
@@ -1902,7 +1903,6 @@ public class CommitLog implements Swappable {
             };
 
 
-            msgInner.setQueueOffset(queueOffset);
             // this msg maybe an inner-batch msg.
             short messageNum = getMessageNum(msgInner);
 
