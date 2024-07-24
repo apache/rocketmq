@@ -90,6 +90,7 @@ public class FlatAppendFile {
     public void initOffset(long offset) {
         if (this.fileSegmentTable.isEmpty()) {
             FileSegment fileSegment = fileSegmentFactory.createSegment(fileType, filePath, offset);
+            fileSegment.initPosition(fileSegment.getSize());
             this.flushFileSegmentMeta(fileSegment);
             this.fileSegmentTable.add(fileSegment);
         }
