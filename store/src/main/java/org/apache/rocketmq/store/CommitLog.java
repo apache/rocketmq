@@ -1871,8 +1871,7 @@ public class CommitLog implements Swappable {
                         CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(msgInner.getTopic(), msgInner.getQueueId()) : 0L;
             } catch (RocksDBException ex) {
                 log.error("append message in Rocksdb mode");
-                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR, fileFromOffset + byteBuffer.position(),
-                    0, msgInner.getStoreTimestamp());
+                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
             msgInner.setQueueOffset(queueOffset);
 
@@ -1901,7 +1900,6 @@ public class CommitLog implements Swappable {
                 msgIdBuffer.putLong(msgIdLen - 8, wroteOffset);
                 return UtilAll.bytes2string(msgIdBuffer.array());
             };
-
 
             // this msg maybe an inner-batch msg.
             short messageNum = getMessageNum(msgInner);
@@ -1954,11 +1952,11 @@ public class CommitLog implements Swappable {
             // transaction messages that require special handling
             if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
                 CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(msgInner.getTopic(),
-                    msgInner.getQueueId(), messageNum);
-                // for lmq
-                if (isMultiDispatchMsg) {
-                    CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
-                }
+                        msgInner.getQueueId(), messageNum);
+            }
+            // for lmq
+            if (isMultiDispatchMsg) {
+                CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
             }
 
             return new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgIdSupplier,
@@ -1978,7 +1976,7 @@ public class CommitLog implements Swappable {
                     messageExtBatch.getQueueId());
             } catch (RocksDBException ex) {
                 log.error("append message in Rocksdb mode");
-                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR, wroteOffset, 0, messageExtBatch.getStoreTimestamp());
+                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
             messageExtBatch.setQueueOffset(queueOffset);
             long beginQueueOffset = queueOffset;
