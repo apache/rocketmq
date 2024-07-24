@@ -135,7 +135,7 @@ public class MessageStoreConfig {
     /**
      * introduced since 4.0.x. Determine whether to use mutex reentrantLock when putting message.<br/>
      */
-    private boolean useReentrantLockWhenPutMessage = false;
+    private boolean useReentrantLockWhenPutMessage = true;
 
     // Whether schedule flush
     @ImportantField
@@ -419,11 +419,7 @@ public class MessageStoreConfig {
      */
     private boolean readUnCommitted = false;
 
-    /**
-     * Spin number in the retreat strategy of spin lock
-     * Default is 1000
-     */
-    private int spinLockCollisionRetreatOptimalDegree = 1000;
+    private boolean putConsumeQueueDataByFileChannel = true;
 
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
@@ -1839,12 +1835,11 @@ public class MessageStoreConfig {
         this.readUnCommitted = readUnCommitted;
     }
 
-    public int getSpinLockCollisionRetreatOptimalDegree() {
-        return spinLockCollisionRetreatOptimalDegree;
+    public boolean isPutConsumeQueueDataByFileChannel() {
+        return putConsumeQueueDataByFileChannel;
     }
 
-    public void setSpinLockCollisionRetreatOptimalDegree(int optimalDegree) {
-        this.spinLockCollisionRetreatOptimalDegree = optimalDegree;
+    public void setPutConsumeQueueDataByFileChannel(boolean putConsumeQueueDataByFileChannel) {
+        this.putConsumeQueueDataByFileChannel = putConsumeQueueDataByFileChannel;
     }
-
 }
