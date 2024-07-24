@@ -288,11 +288,9 @@ public class IndexStoreFile implements IndexFile {
                     buffer.get(bytes);
                     IndexItem indexItem = new IndexItem(bytes);
                     long storeTimestamp = indexItem.getTimeDiff() + beginTimestamp.get();
-                    if (hashCode == indexItem.getHashCode()) {
-                        if (hashCode == indexItem.getHashCode() &&
-                            beginTime <= storeTimestamp && storeTimestamp <= endTime) {
-                            result.add(indexItem);
-                        }
+                    if (hashCode == indexItem.getHashCode() &&
+                        beginTime <= storeTimestamp && storeTimestamp <= endTime) {
+                        result.add(indexItem);
                         if (result.size() > maxCount) {
                             break;
                         }
