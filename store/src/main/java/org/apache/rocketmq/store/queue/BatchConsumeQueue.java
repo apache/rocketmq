@@ -532,7 +532,7 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public long getQueueOffset(QueueOffsetOperator queueOffsetOperator) {
-        return queueOffsetOperator.getQueueOffset(topic + "-" + queueId);
+        return queueOffsetOperator.getBatchQueueOffset(topic + "-" + queueId);
     }
 
     @Override
