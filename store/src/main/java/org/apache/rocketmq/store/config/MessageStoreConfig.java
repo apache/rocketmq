@@ -424,15 +424,15 @@ public class MessageStoreConfig {
 
     private boolean putConsumeQueueDataByFileChannel = true;
 
-    public boolean isEnabledAppendPropCRC() {
-        return enabledAppendPropCRC;
-    }
-
     /**
      * Spin number in the retreat strategy of spin lock
      * Default is 1000
      */
     private int spinLockCollisionRetreatOptimalDegree = 1000;
+
+    public boolean isEnabledAppendPropCRC() {
+        return enabledAppendPropCRC;
+    }
 
     public void setEnabledAppendPropCRC(boolean enabledAppendPropCRC) {
         this.enabledAppendPropCRC = enabledAppendPropCRC;
@@ -1860,4 +1860,11 @@ public class MessageStoreConfig {
         this.transferMetadataJsonToRocksdb = transferMetadataJsonToRocksdb;
     }
 
+    public int getSpinLockCollisionRetreatOptimalDegree() {
+        return spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setSpinLockCollisionRetreatOptimalDegree(int optimalDegree) {
+        this.spinLockCollisionRetreatOptimalDegree = optimalDegree;
+    }
 }
