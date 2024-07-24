@@ -1971,8 +1971,8 @@ public class CommitLog implements Swappable {
             long wroteOffset = fileFromOffset + byteBuffer.position();
             // Record ConsumeQueue information
             try {
-                queueOffset = CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(messageExtBatch.getTopic(),
-                    messageExtBatch.getQueueId());
+                queueOffset = (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) ?
+                        CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(messageExtBatch.getTopic(), messageExtBatch.getQueueId()) : 0L;
             } catch (RocksDBException ex) {
                 log.error("append message in Rocksdb mode");
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
