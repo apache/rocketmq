@@ -740,7 +740,7 @@ public class DLedgerCommitLog extends CommitLog {
                     msgIdBuilder.toString(), System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
             appendResult.setMsgNum(msgNum);
 
-            defaultMessageStore.getQueueStore().increaseQueueOffset(messageExtBatch.getTopic(), messageExtBatch.getQueueId(), getMessageNum(messageExtBatch));
+            defaultMessageStore.getQueueStore().increaseQueueOffset(messageExtBatch.getTopic(), messageExtBatch.getQueueId(), (short) encodeResult.batchData.size());
             if (elapsedTimeInLock > 500) {
                 log.warn("[NOTIFYME]putMessage in lock cost time(ms)={}, bodyLength={} AppendMessageResult={}",
                         elapsedTimeInLock, messageExtBatch.getBody().length, appendResult);
