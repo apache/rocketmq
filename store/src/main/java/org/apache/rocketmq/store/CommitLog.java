@@ -1949,9 +1949,9 @@ public class CommitLog implements Swappable {
             CommitLog.this.getMessageStore().getPerfCounter().endTick("WRITE_MEMORY_TIME_MS");
             msgInner.setEncodedBuff(null);
 
-            // transaction messages that require special handling
-            CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(msgInner.getTopic(), msgInner.getQueueId(), messageNum);
-
+            if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+                CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(msgInner.getTopic(), msgInner.getQueueId(), messageNum);
+            }
             // for lmq
             if (isMultiDispatchMsg) {
                 CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
@@ -1965,6 +1965,7 @@ public class CommitLog implements Swappable {
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
             final MessageExtBatch messageExtBatch, PutMessageContext putMessageContext) {
             byteBuffer.mark();
+            final int tranType = MessageSysFlag.getTransactionValue(messageExtBatch.getSysFlag());
             long queueOffset = 0L;
             //physical offset
             long wroteOffset = fileFromOffset + byteBuffer.position();
@@ -2063,8 +2064,10 @@ public class CommitLog implements Swappable {
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, totalMsgLen, msgIdSupplier,
                 messageExtBatch.getStoreTimestamp(), beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             result.setMsgNum(msgNum);
-            CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(messageExtBatch.getTopic(),
-                messageExtBatch.getQueueId(), (short) msgNum);
+            if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+                CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(messageExtBatch.getTopic(),
+                    messageExtBatch.getQueueId(), (short) msgNum);
+            }
             return result;
         }
 
