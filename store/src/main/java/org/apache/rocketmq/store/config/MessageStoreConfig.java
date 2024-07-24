@@ -421,6 +421,12 @@ public class MessageStoreConfig {
 
     private boolean putConsumeQueueDataByFileChannel = true;
 
+    /**
+     * Spin number in the retreat strategy of spin lock
+     * Default is 1000
+     */
+    private int spinLockCollisionRetreatOptimalDegree = 1000;
+
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
     }
@@ -1841,5 +1847,13 @@ public class MessageStoreConfig {
 
     public void setPutConsumeQueueDataByFileChannel(boolean putConsumeQueueDataByFileChannel) {
         this.putConsumeQueueDataByFileChannel = putConsumeQueueDataByFileChannel;
+    }
+
+    public int getSpinLockCollisionRetreatOptimalDegree() {
+        return spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setSpinLockCollisionRetreatOptimalDegree(int optimalDegree) {
+        this.spinLockCollisionRetreatOptimalDegree = optimalDegree;
     }
 }
