@@ -1950,10 +1950,8 @@ public class CommitLog implements Swappable {
             msgInner.setEncodedBuff(null);
 
             // transaction messages that require special handling
-            if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-                CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(msgInner.getTopic(),
-                        msgInner.getQueueId(), messageNum);
-            }
+            CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(msgInner.getTopic(), msgInner.getQueueId(), messageNum);
+
             // for lmq
             if (isMultiDispatchMsg) {
                 CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
