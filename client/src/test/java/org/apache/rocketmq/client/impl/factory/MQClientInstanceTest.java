@@ -497,8 +497,8 @@ public class MQClientInstanceTest {
         String defaultCluster = "defaultCluster";
         brokerData.setCluster(defaultCluster);
         HashMap<Long, String> brokerAddrs = new HashMap<>();
-        brokerAddrs.put(MixAll.MASTER_ID, defaultBrokerAddr);
         brokerData.setBrokerAddrs(brokerAddrs);
+        brokerAddrs.put(MixAll.MASTER_ID, defaultBrokerAddr);
         return Collections.singletonList(brokerData);
     }
 }
