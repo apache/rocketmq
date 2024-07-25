@@ -972,7 +972,7 @@ public class CommitLog implements Swappable {
                 MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_BASE, String.valueOf(CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(msg.getTopic(), msg.getQueueId())));
                 msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
             }
-        } catch (Exception e){
+        } catch (Exception e) {
         }
         PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
         if (encodeResult != null) {
@@ -1124,7 +1124,7 @@ public class CommitLog implements Swappable {
                 MessageAccessor.putProperty(messageExtBatch, MessageConst.PROPERTY_INNER_BASE, String.valueOf(CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(messageExtBatch.getTopic(), messageExtBatch.getQueueId())));
                 messageExtBatch.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBatch.getProperties()));
             }
-        } catch (Exception e){
+        } catch (Exception e) {
         }
 
         messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V1);
