@@ -1891,7 +1891,7 @@ public class CommitLog implements Swappable {
             long queueOffset = 0L;
             try {
                 queueOffset = (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) ?
-                        CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(msgInner.getTopic(), msgInner.getQueueId()) : 0L;
+                    CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(msgInner.getTopic(), msgInner.getQueueId()) : 0L;
             } catch (RocksDBException ex) {
                 log.error("append message in Rocksdb mode");
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
@@ -2015,7 +2015,7 @@ public class CommitLog implements Swappable {
             // Record ConsumeQueue information
             try {
                 queueOffset = (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) ?
-                        CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(messageExtBatch.getTopic(), messageExtBatch.getQueueId()) : 0L;
+                    CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(messageExtBatch.getTopic(), messageExtBatch.getQueueId()) : 0L;
             } catch (RocksDBException ex) {
                 log.error("append message in Rocksdb mode");
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
