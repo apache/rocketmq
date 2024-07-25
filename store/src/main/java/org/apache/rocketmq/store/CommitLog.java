@@ -1962,7 +1962,7 @@ public class CommitLog implements Swappable {
             // 11 STORETIMESTAMP refresh store time stamp in lock
             preEncodeBuffer.putLong(pos, msgInner.getStoreTimestamp());
 
-            if (msgInner.getPropertiesString() != null) {
+            if(msgInner.getPropertiesString() != null) {
                 int storeHostLen = msgInner.getStoreHostBytes().array().length;
                 //12 STOREHOSTADDRESS, 13 RECONSUMETIMES, 14 Prepared Transaction Offset, batch does not support transaction, 15 BODY
                 pos += 8 + storeHostLen + 4 + 8;
