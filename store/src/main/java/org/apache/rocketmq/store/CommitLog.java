@@ -898,6 +898,7 @@ public class CommitLog implements Swappable {
     }
 
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
+        final int tranType = MessageSysFlag.getTransactionValue(msg.getSysFlag());
         // Set the storage time
         if (!defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
             msg.setStoreTimestamp(System.currentTimeMillis());
@@ -1027,6 +1028,10 @@ public class CommitLog implements Swappable {
             }
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
             beginTimeInLock = 0;
+            if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
+                CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(msg.getTopic(),
+                    msg.getQueueId(), getMessageNum(msg));
+            }
         } finally {
             putMessageLock.unlock();
         }
@@ -1176,6 +1181,7 @@ public class CommitLog implements Swappable {
             }
             elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
             beginTimeInLock = 0;
+            CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(messageExtBatch.getTopic(), messageExtBatch.getQueueId(), (short) putMessageContext.getBatchSize());
         } finally {
             putMessageLock.unlock();
         }
@@ -1954,9 +1960,6 @@ public class CommitLog implements Swappable {
             CommitLog.this.getMessageStore().getPerfCounter().endTick("WRITE_MEMORY_TIME_MS");
             msgInner.setEncodedBuff(null);
 
-            if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-                CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(msgInner.getTopic(), msgInner.getQueueId(), messageNum);
-            }
             // for lmq
             if (isMultiDispatchMsg) {
                 CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
@@ -2069,10 +2072,7 @@ public class CommitLog implements Swappable {
             AppendMessageResult result = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, totalMsgLen, msgIdSupplier,
                 messageExtBatch.getStoreTimestamp(), beginQueueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             result.setMsgNum(msgNum);
-            if (tranType == MessageSysFlag.TRANSACTION_NOT_TYPE || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
-                CommitLog.this.defaultMessageStore.getQueueStore().increaseQueueOffset(messageExtBatch.getTopic(),
-                    messageExtBatch.getQueueId(), (short) msgNum);
-            }
+
             return result;
         }
 
