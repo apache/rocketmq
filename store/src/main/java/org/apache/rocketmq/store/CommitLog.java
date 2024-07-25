@@ -1962,21 +1962,23 @@ public class CommitLog implements Swappable {
             // 11 STORETIMESTAMP refresh store time stamp in lock
             preEncodeBuffer.putLong(pos, msgInner.getStoreTimestamp());
 
-            int storeHostLen = msgInner.getStoreHostBytes().array().length;
-            //12 STOREHOSTADDRESS, 13 RECONSUMETIMES, 14 Prepared Transaction Offset, batch does not support transaction, 15 BODY
-            pos += 8 + storeHostLen + 4 + 8;
-            // 16 TOPIC
-            pos += 4 + preEncodeBuffer.getInt(pos);
-            // 17 PROPERTIES
-            if (MessageVersion.MESSAGE_VERSION_V2.equals(msgInner.getVersion())) {
-                pos += preEncodeBuffer.getShort(pos) + 2;
-            } else {
-                pos += preEncodeBuffer.get(pos) + 1;
+            if(msgInner.getPropertiesString() != null) {
+                int storeHostLen = msgInner.getStoreHostBytes().array().length;
+                //12 STOREHOSTADDRESS, 13 RECONSUMETIMES, 14 Prepared Transaction Offset, batch does not support transaction, 15 BODY
+                pos += 8 + storeHostLen + 4 + 8;
+                // 16 TOPIC
+                pos += 4 + preEncodeBuffer.getInt(pos);
+                // 17 PROPERTIES
+                if (MessageVersion.MESSAGE_VERSION_V2.equals(msgInner.getVersion())) {
+                    pos += preEncodeBuffer.getShort(pos) + 2;
+                } else {
+                    pos += preEncodeBuffer.get(pos) + 1;
+                }
+                pos += 2;
+                preEncodeBuffer.position(pos);
+                preEncodeBuffer.put(msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8));
+                preEncodeBuffer.position(0);
             }
-            pos += 2;
-            preEncodeBuffer.position(pos);
-            preEncodeBuffer.put(msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8));
-            preEncodeBuffer.position(0);
 
             if (enabledAppendPropCRC) {
                 // 18 CRC32
@@ -2088,22 +2090,23 @@ public class CommitLog implements Swappable {
                 // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST, 11 STORETIMESTAMP
                 pos += 8 + 4 + 8 + bornHostLength;
 
-                int storeHostLen = messageExtBatch.getStoreHostBytes().array().length;
-                //12 STOREHOSTADDRESS, 13 RECONSUMETIMES, 14 Prepared Transaction Offset, batch does not support transaction, 15 BODY
-                pos += 8 + storeHostLen + 4 + 8;
-                // 16 TOPIC
-                pos += 4 + messagesByteBuff.getInt(pos);
-                // 17 PROPERTIES
-                if (MessageVersion.MESSAGE_VERSION_V2.equals(messageExtBatch.getVersion())) {
-                    pos += messagesByteBuff.getShort(pos) + 2;
-                } else {
-                    pos += messagesByteBuff.get(pos) + 1;
+                if(messageExtBatch.getPropertiesString() != null) {
+                    int storeHostLen = messageExtBatch.getStoreHostBytes().array().length;
+                    //12 STOREHOSTADDRESS, 13 RECONSUMETIMES, 14 Prepared Transaction Offset, batch does not support transaction, 15 BODY
+                    pos += 8 + storeHostLen + 4 + 8;
+                    // 16 TOPIC
+                    pos += 4 + messagesByteBuff.getInt(pos);
+                    // 17 PROPERTIES
+                    if (MessageVersion.MESSAGE_VERSION_V2.equals(messageExtBatch.getVersion())) {
+                        pos += messagesByteBuff.getShort(pos) + 2;
+                    } else {
+                        pos += messagesByteBuff.get(pos) + 1;
+                    }
+                    pos += 2;
+                    messagesByteBuff.position(pos);
+                    messagesByteBuff.put(messageExtBatch.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8));
+                    messagesByteBuff.position(msgPos);
                 }
-                pos += 2;
-                messagesByteBuff.position(pos);
-                messagesByteBuff.put(messageExtBatch.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8));
-                messagesByteBuff.position(msgPos);
-
                 // refresh store time stamp in lock
                 messagesByteBuff.putLong(pos, messageExtBatch.getStoreTimestamp());
                 if (enabledAppendPropCRC) {
