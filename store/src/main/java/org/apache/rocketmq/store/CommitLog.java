@@ -973,6 +973,7 @@ public class CommitLog implements Swappable {
                 msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
             }
         } catch (Exception e) {
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null));
         }
         PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
         if (encodeResult != null) {
@@ -1121,10 +1122,12 @@ public class CommitLog implements Swappable {
         }
         try {
             if (MessageSysFlag.check(messageExtBatch.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
-                MessageAccessor.putProperty(messageExtBatch, MessageConst.PROPERTY_INNER_BASE, String.valueOf(CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(messageExtBatch.getTopic(), messageExtBatch.getQueueId())));
+                MessageAccessor.putProperty(messageExtBatch, MessageConst.PROPERTY_INNER_BASE, String.valueOf(CommitLog.
+                        this.defaultMessageStore.getQueueStore().getQueueOffset(messageExtBatch.getTopic(), messageExtBatch.getQueueId())));
                 messageExtBatch.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBatch.getProperties()));
             }
         } catch (Exception e) {
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null));
         }
 
         messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V1);
