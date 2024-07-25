@@ -46,6 +46,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.common.message.MessageAccessor;
 import org.apache.rocketmq.common.message.MessageExtBatch;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.message.MessageVersion;
@@ -966,7 +967,13 @@ public class CommitLog implements Swappable {
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
             }
         }
-
+        try {
+            if (MessageSysFlag.check(msg.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
+                MessageAccessor.putProperty(msg, MessageConst.PROPERTY_INNER_BASE, String.valueOf(CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(msg.getTopic(), msg.getQueueId())));
+                msg.setPropertiesString(MessageDecoder.messageProperties2String(msg.getProperties()));
+            }
+        } catch (Exception e){
+        }
         PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
         if (encodeResult != null) {
             return CompletableFuture.completedFuture(encodeResult);
@@ -1111,6 +1118,13 @@ public class CommitLog implements Swappable {
                 // Tell the producer, don't have enough slaves to handle the send request
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.IN_SYNC_REPLICAS_NOT_ENOUGH, null));
             }
+        }
+        try {
+            if (MessageSysFlag.check(messageExtBatch.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
+                MessageAccessor.putProperty(messageExtBatch, MessageConst.PROPERTY_INNER_BASE, String.valueOf(CommitLog.this.defaultMessageStore.getQueueStore().getQueueOffset(messageExtBatch.getTopic(), messageExtBatch.getQueueId())));
+                messageExtBatch.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBatch.getProperties()));
+            }
+        } catch (Exception e){
         }
 
         messageExtBatch.setVersion(MessageVersion.MESSAGE_VERSION_V1);
@@ -1880,6 +1894,10 @@ public class CommitLog implements Swappable {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
             msgInner.setQueueOffset(queueOffset);
+            if (MessageSysFlag.check(msgInner.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
+                MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_INNER_BASE, String.valueOf(queueOffset));
+                msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
+            }
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
             boolean isMultiDispatchMsg = messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner);
@@ -1943,6 +1961,23 @@ public class CommitLog implements Swappable {
             pos += 4 + 8 + ipLen;
             // 11 STORETIMESTAMP refresh store time stamp in lock
             preEncodeBuffer.putLong(pos, msgInner.getStoreTimestamp());
+
+            int storeHostLen = msgInner.getStoreHostBytes().array().length;
+            //12 STOREHOSTADDRESS, 13 RECONSUMETIMES, 14 Prepared Transaction Offset, batch does not support transaction, 15 BODY
+            pos += 8 + storeHostLen + 4 + 8;
+            // 16 TOPIC
+            pos += 4 + preEncodeBuffer.getInt(pos);
+            // 17 PROPERTIES
+            if (MessageVersion.MESSAGE_VERSION_V2.equals(msgInner.getVersion())) {
+                pos += preEncodeBuffer.getShort(pos) + 2;
+            } else {
+                pos += preEncodeBuffer.get(pos) + 1;
+            }
+            pos += 2;
+            preEncodeBuffer.position(pos);
+            preEncodeBuffer.put(msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8));
+            preEncodeBuffer.position(0);
+
             if (enabledAppendPropCRC) {
                 // 18 CRC32
                 int checkSize = msgLen - crc32ReservedLength;
@@ -1986,6 +2021,11 @@ public class CommitLog implements Swappable {
                 return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
             }
             messageExtBatch.setQueueOffset(queueOffset);
+            if (MessageSysFlag.check(messageExtBatch.getSysFlag(), MessageSysFlag.INNER_BATCH_FLAG)) {
+                MessageAccessor.putProperty(messageExtBatch, MessageConst.PROPERTY_INNER_BASE, String.valueOf(queueOffset));
+                messageExtBatch.setPropertiesString(MessageDecoder.messageProperties2String(messageExtBatch.getProperties()));
+            }
+
             long beginQueueOffset = queueOffset;
             int totalMsgLen = 0;
             int msgNum = 0;
@@ -2047,6 +2087,23 @@ public class CommitLog implements Swappable {
                 messagesByteBuff.putLong(pos, wroteOffset + totalMsgLen - msgLen);
                 // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST, 11 STORETIMESTAMP
                 pos += 8 + 4 + 8 + bornHostLength;
+
+                int storeHostLen = messageExtBatch.getStoreHostBytes().array().length;
+                //12 STOREHOSTADDRESS, 13 RECONSUMETIMES, 14 Prepared Transaction Offset, batch does not support transaction, 15 BODY
+                pos += 8 + storeHostLen + 4 + 8;
+                // 16 TOPIC
+                pos += 4 + messagesByteBuff.getInt(pos);
+                // 17 PROPERTIES
+                if (MessageVersion.MESSAGE_VERSION_V2.equals(messageExtBatch.getVersion())) {
+                    pos += messagesByteBuff.getShort(pos) + 2;
+                } else {
+                    pos += messagesByteBuff.get(pos) + 1;
+                }
+                pos += 2;
+                messagesByteBuff.position(pos);
+                messagesByteBuff.put(messageExtBatch.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8));
+                messagesByteBuff.position(msgPos);
+
                 // refresh store time stamp in lock
                 messagesByteBuff.putLong(pos, messageExtBatch.getStoreTimestamp());
                 if (enabledAppendPropCRC) {
