@@ -287,7 +287,9 @@ public class IndexStoreFile implements IndexFile {
                     buffer.position(this.getItemPosition(slotValue));
                     buffer.get(bytes);
                     IndexItem indexItem = new IndexItem(bytes);
-                    if (hashCode == indexItem.getHashCode()) {
+                    long storeTimestamp = indexItem.getTimeDiff() + beginTimestamp.get();
+                    if (hashCode == indexItem.getHashCode() &&
+                        beginTime <= storeTimestamp && storeTimestamp <= endTime) {
                         result.add(indexItem);
                         if (result.size() > maxCount) {
                             break;
