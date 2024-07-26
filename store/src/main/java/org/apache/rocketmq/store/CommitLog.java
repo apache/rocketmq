@@ -1978,7 +1978,7 @@ public class CommitLog implements Swappable {
             int ipLen = (msgInner.getSysFlag() & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
             // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST
             pos += 4 + 8 + ipLen;
-            // 11 STORETIMESTAMP
+            // 11 STORETIMESTAMP refresh store time stamp in lock
             preEncodeBuffer.putLong(pos, msgInner.getStoreTimestamp());
             if (enabledAppendPropCRC) {
                 // 18 CRC32
