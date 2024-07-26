@@ -270,8 +270,6 @@ public abstract class NettyRemotingAbstract {
             return;
         }
 
-        Runnable run = buildProcessRequestHandler(ctx, cmd, pair, opaque);
-
         if (isShuttingDown.get()) {
             if (cmd.getVersion() > MQVersion.Version.V5_1_4.ordinal()) {
                 final RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.GO_AWAY,
@@ -289,6 +287,8 @@ public abstract class NettyRemotingAbstract {
             writeResponse(ctx.channel(), cmd, response);
             return;
         }
+
+        Runnable run = buildProcessRequestHandler(ctx, cmd, pair, opaque);
 
         try {
             final RequestTask requestTask = new RequestTask(run, ctx.channel(), cmd);
