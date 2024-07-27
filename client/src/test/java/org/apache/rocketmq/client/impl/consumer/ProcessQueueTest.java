@@ -129,7 +129,9 @@ public class ProcessQueueTest {
     @Test
     public void testPopRequest() throws MQBrokerException, RemotingException, InterruptedException, MQClientException {
         ProcessQueue processQueue = createProcessQueue();
-        processQueue.getMsgTreeMap().put(0L, createMessageList(1).get(0));
+        MessageExt messageExt = createMessageList(1).get(0);
+        messageExt.getProperties().put(MessageConst.PROPERTY_CONSUME_START_TIMESTAMP, System.currentTimeMillis() - 20 * 60 * 1000L + "");
+        processQueue.getMsgTreeMap().put(0L, messageExt);
         DefaultMQPushConsumer pushConsumer = mock(DefaultMQPushConsumer.class);
         processQueue.cleanExpiredMsg(pushConsumer);
         verify(pushConsumer).sendMessageBack(any(MessageExt.class), eq(3));
