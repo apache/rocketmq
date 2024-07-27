@@ -178,8 +178,8 @@ public class ProcessQueueTest {
             messageExt.setQueueOffset(i);
             messageExt.setBody(new byte[123]);
             messageExt.setKeys("keys" + i);
-            result.add(messageExt);
             messageExt.getProperties().put(MessageConst.PROPERTY_CONSUME_START_TIMESTAMP, System.currentTimeMillis() + "");
+            result.add(messageExt);
         }
         return result;
     }
