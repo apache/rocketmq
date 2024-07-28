@@ -263,7 +263,7 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
             .forEach(id -> {
                 map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
                 map.get(id.getClusterName()).compute(id.getBrokerName(), (broker, num) ->
-                    num == null ? 0 : num + 1
+                    num == null ? 1 : num + 1
                 );
             });
         return map;
