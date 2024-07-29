@@ -200,7 +200,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Constructor specifying consumer group, RPC hook
      *
      * @param consumerGroup Consumer group.
-     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param rpcHook       RPC hook to execute before each remoting command.
      */
     public DefaultLitePullConsumer(final String consumerGroup, RPCHook rpcHook) {
         this.consumerGroup = consumerGroup;
@@ -213,7 +213,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Constructor specifying namespace, consumer group and RPC hook.
      *
      * @param consumerGroup Consumer group.
-     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param rpcHook       RPC hook to execute before each remoting command.
      */
     @Deprecated
     public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
@@ -270,6 +270,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public void unsubscribe(String topic) {
         this.defaultLitePullConsumerImpl.unsubscribe(withNamespace(topic));
     }
+
     @Override
     public void assign(Collection<MessageQueue> messageQueues) {
         defaultLitePullConsumerImpl.assign(queuesWithNamespace(messageQueues));
@@ -338,7 +339,8 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.defaultLitePullConsumerImpl.commitAll();
     }
 
-    @Override public void commit(Map<MessageQueue, Long> offsetMap, boolean persist) {
+    @Override
+    public void commit(Map<MessageQueue, Long> offsetMap, boolean persist) {
         this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
     }
 
@@ -361,10 +363,10 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * @param messageQueueListener
      */
     @Override
-    public void subscribe(String topic, String subExpression, MessageQueueListener messageQueueListener) throws MQClientException {
+    public void subscribe(String topic, String subExpression,
+        MessageQueueListener messageQueueListener) throws MQClientException {
         this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression, messageQueueListener);
     }
-
 
     @Override
     public void commit(final Set<MessageQueue> messageQueues, boolean persist) {
@@ -589,7 +591,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     private void setTraceDispatcher() {
         if (enableTrace) {
             try {
-                AsyncTraceDispatcher traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, traceTopic, rpcHook);
+                AsyncTraceDispatcher traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, getTraceMsgBatchNum(), traceTopic, rpcHook);
                 traceDispatcher.getTraceProducer().setUseTLS(this.isUseTLS());
                 traceDispatcher.setNamespaceV2(namespaceV2);
                 this.traceDispatcher = traceDispatcher;
