@@ -348,7 +348,7 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         }
         if (enableTrace) {
             try {
-                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, traceTopic, rpcHook);
+                AsyncTraceDispatcher dispatcher = new AsyncTraceDispatcher(producerGroup, TraceDispatcher.Type.PRODUCE, getTraceMsgBatchNum(), traceTopic, rpcHook);
                 dispatcher.setHostProducer(this.defaultMQProducerImpl);
                 dispatcher.setNamespaceV2(this.namespaceV2);
                 traceDispatcher = dispatcher;
