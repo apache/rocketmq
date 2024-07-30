@@ -349,7 +349,7 @@ public class BrokerOuterAPITest {
             doReturn(future).when(mockClient).invokeImpl(any(Channel.class), any(RemotingCommand.class), anyLong());
             RemotingCommand response = mockPullMessageResponse(respCodes[i]);
             ResponseFuture responseFuture = new ResponseFuture(channel, 0, null, 1000,
-                    resp -> {}, new SemaphoreReleaseOnlyOnce(new Semaphore(1)));
+                    resp -> { }, new SemaphoreReleaseOnlyOnce(new Semaphore(1)));
             responseFuture.setResponseCommand(response);
             promise.trySuccess(null);
             future.complete(responseFuture);
@@ -384,7 +384,7 @@ public class BrokerOuterAPITest {
         // test one code here, skip others
         RemotingCommand response = mockPullMessageResponse(ResponseCode.SUBSCRIPTION_NOT_EXIST);
         ResponseFuture responseFuture = new ResponseFuture(channel, 0, null, 1000,
-                resp -> {}, new SemaphoreReleaseOnlyOnce(new Semaphore(1)));
+                resp -> { }, new SemaphoreReleaseOnlyOnce(new Semaphore(1)));
         responseFuture.setResponseCommand(response);
         promise.trySuccess(null);
         future.complete(responseFuture);

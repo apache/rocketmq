@@ -64,6 +64,7 @@ import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_TOP
 
 public class PopReviveService extends ServiceThread {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+    private final int[] ckRewriteIntervalsInSeconds = new int[] { 10, 20, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 1200, 1800, 3600, 7200 };
 
     private int queueId;
     private BrokerController brokerController;
@@ -493,6 +494,8 @@ public class PopReviveService extends ServiceThread {
                     PopCheckPoint oldCK = inflightReviveRequestMap.firstKey();
                     rePutCK(oldCK, pair);
                     inflightReviveRequestMap.remove(oldCK);
+                    POP_LOGGER.warn("stay too long, remove from reviveRequestMap, {}, {}, {}, {}", popCheckPoint.getTopic(),
+                            popCheckPoint.getBrokerName(), popCheckPoint.getQueueId(), popCheckPoint.getStartOffset());
                 }
             }
 
@@ -564,6 +567,13 @@ public class PopReviveService extends ServiceThread {
     }
 
     private void rePutCK(PopCheckPoint oldCK, Pair<Long, Boolean> pair) {
+        int rePutTimes = oldCK.parseRePutTimes();
+        if (rePutTimes >= ckRewriteIntervalsInSeconds.length) {
+            POP_LOGGER.warn("rePut CK reach max times, drop it. {}, {}, {}, {}-{}, {}, {}", oldCK.getTopic(), oldCK.getCId(),
+                    oldCK.getBrokerName(), oldCK.getQueueId(), pair.getObject1(), oldCK.getPopTime(), oldCK.getInvisibleTime());
+            return;
+        }
+
         PopCheckPoint newCk = new PopCheckPoint();
         newCk.setBitMap(0);
         newCk.setNum((byte) 1);
@@ -575,6 +585,11 @@ public class PopReviveService extends ServiceThread {
         newCk.setQueueId(oldCK.getQueueId());
         newCk.setBrokerName(oldCK.getBrokerName());
         newCk.addDiff(0);
+        newCk.setRePutTimes(String.valueOf(rePutTimes + 1)); // always increment even if removed from reviveRequestMap
+        if (oldCK.getReviveTime() <= System.currentTimeMillis()) {
+            // never expect an ACK matched in the future, we just use it to rewrite CK and try to revive retry message next time
+            newCk.setInvisibleTime(oldCK.getInvisibleTime() + ckRewriteIntervalsInSeconds[rePutTimes] * 1000);
+        }
         MessageExtBrokerInner ckMsg = brokerController.getPopMessageProcessor().buildCkMsg(newCk, queueId);
         brokerController.getMessageStore().putMessage(ckMsg);
     }

@@ -20,7 +20,6 @@ package org.apache.rocketmq.broker.failover;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -266,7 +265,7 @@ public class EscapeBridgeTest {
 
     @Test
     public void getMessageFromRemoteAsyncTest_message_found() throws Exception {
-        PullResult pullResult = new PullResult(PullStatus.FOUND, 1, 1, 1, new ArrayList<MessageExt>(1){{add(new MessageExt());}});
+        PullResult pullResult = new PullResult(PullStatus.FOUND, 1, 1, 1, Arrays.asList(new MessageExt()));
         when(brokerOuterAPI.pullMessageFromSpecificBrokerAsync(anyString(), anyString(), anyString(), anyString(), anyInt(), anyLong(), anyInt(), anyLong()))
                 .thenReturn(CompletableFuture.completedFuture(Triple.of(pullResult, "", false))); // right value is ignored
         Triple<MessageExt, String, Boolean> rst = escapeBridge.getMessageFromRemoteAsync(TEST_TOPIC, 1, DEFAULT_QUEUE_ID, BROKER_NAME).join();
