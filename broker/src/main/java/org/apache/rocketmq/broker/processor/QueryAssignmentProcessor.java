@@ -32,6 +32,7 @@ import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragelyByCircle;
+import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueByGray;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -68,6 +69,9 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         name2LoadStrategy.put(allocateMessageQueueAveragely.getName(), allocateMessageQueueAveragely);
         AllocateMessageQueueAveragelyByCircle allocateMessageQueueAveragelyByCircle = new AllocateMessageQueueAveragelyByCircle();
         name2LoadStrategy.put(allocateMessageQueueAveragelyByCircle.getName(), allocateMessageQueueAveragelyByCircle);
+        // Add the gray-scale partitioning strategy: AllocateMessageQueueByGray
+        AllocateMessageQueueByGray allocateMessageQueueByGray = new AllocateMessageQueueByGray();
+        name2LoadStrategy.put(allocateMessageQueueByGray.getName(), allocateMessageQueueByGray);
 
         this.messageRequestModeManager = new MessageRequestModeManager(brokerController);
         this.messageRequestModeManager.load();
@@ -234,9 +238,14 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
     }
 
     public List<MessageQueue> allocate4Pop(AllocateMessageQueueStrategy allocateMessageQueueStrategy,
-        final String consumerGroup, final String clientId, List<MessageQueue> mqAll, List<String> cidAll,
-        int popShareQueueNum) {
-
+                                           final String consumerGroup, final String clientId, List<MessageQueue> mqAll, List<String> cidAll,
+                                           int popShareQueueNum) {
+        if (allocateMessageQueueStrategy instanceof AllocateMessageQueueByGray) {
+            AllocateMessageQueueByGray allocateMessageQueueByGray = (AllocateMessageQueueByGray) allocateMessageQueueStrategy;
+            if (AllocateMessageQueueByGray.hasGrayTag(cidAll)) {
+                return allocateMessageQueueByGray.allocate4Pop(consumerGroup, clientId, mqAll, cidAll, popShareQueueNum);
+            }
+        }
         List<MessageQueue> allocateResult;
         if (popShareQueueNum <= 0 || popShareQueueNum >= cidAll.size() - 1) {
             //each client pop all messagequeue
@@ -270,7 +279,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
     }
 
     private List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
-        List<String> cidAll) {
+                                        List<String> cidAll) {
         if (StringUtils.isBlank(currentCID)) {
             throw new IllegalArgumentException("currentCID is empty");
         }

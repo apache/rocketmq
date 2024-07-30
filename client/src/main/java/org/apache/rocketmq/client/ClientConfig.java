@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.GrayConstants;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.utils.NameServerAddressUtils;
@@ -88,6 +89,20 @@ public class ClientConfig {
     protected boolean enableStreamRequestType = false;
 
     /**
+     * the switch for gray message
+     * Determines if gray messaging should be enabled.
+     */
+    protected boolean enableGraySwitch = false;
+
+    /**
+     *  Indicates whether the current client has a gray-scale tag.
+     *  Effective when enableGraySwitch is true
+     *  if true, the client will be treated as a gray client.
+     *  if false, the client will be treated as a normal client.
+     */
+    protected boolean grayTag = false;
+
+    /**
      * Enable the fault tolerance mechanism of the client sending process.
      * DO NOT OPEN when ORDER messages are required.
      * Turning on will interfere with the queue selection functionality,
@@ -124,6 +139,10 @@ public class ClientConfig {
             sb.append(RequestType.STREAM);
         }
 
+        if (enableGraySwitch && grayTag) {
+            sb.append("@");
+            sb.append(GrayConstants.GARY_TAG);
+        }
         return sb.toString();
     }
 
@@ -227,6 +246,8 @@ public class ClientConfig {
         this.namespaceV2 = cc.namespaceV2;
         this.enableTrace = cc.enableTrace;
         this.traceTopic = cc.traceTopic;
+        this.enableGraySwitch = cc.enableGraySwitch;
+        this.grayTag = cc.grayTag;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -259,6 +280,8 @@ public class ClientConfig {
         cc.namespaceV2 = namespaceV2;
         cc.enableTrace = enableTrace;
         cc.traceTopic = traceTopic;
+        cc.enableGraySwitch = enableGraySwitch;
+        cc.grayTag = grayTag;
         return cc;
     }
 
@@ -504,6 +527,22 @@ public class ClientConfig {
         this.traceTopic = traceTopic;
     }
 
+    public boolean isEnableGraySwitch() {
+        return enableGraySwitch;
+    }
+
+    public void setEnableGraySwitch(boolean enableGraySwitch) {
+        this.enableGraySwitch = enableGraySwitch;
+    }
+
+    public boolean isGrayTag() {
+        return grayTag;
+    }
+
+    public void setGrayTag(boolean grayTag) {
+        this.grayTag = grayTag;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig{" +
@@ -536,6 +575,8 @@ public class ClientConfig {
             ", startDetectorEnable=" + startDetectorEnable +
             ", enableHeartbeatChannelEventListener=" + enableHeartbeatChannelEventListener +
             ", enableTrace=" + enableTrace +
+            ", enableGraySwitch=" + enableGraySwitch +
+            ", grayTag=" + grayTag +
             ", traceTopic='" + traceTopic + '\'' +
             '}';
     }
