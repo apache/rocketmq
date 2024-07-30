@@ -23,7 +23,7 @@ set BASE_DIR=%~dp0
 set BASE_DIR=%BASE_DIR:~0,-1%
 for %%d in (%BASE_DIR%) do set BASE_DIR=%%~dpd
 
-set CLASSPATH=.;%BASE_DIR%conf;%BASE_DIR%lib\*;%CLASSPATH%
+set CLASSPATH=.;%BASE_DIR%conf;%BASE_DIR%lib\*;"%CLASSPATH%"
 
 rem ===========================================================================================
 rem  JVM Configuration
