@@ -431,6 +431,11 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 PollingResult pollingResult = popLongPollingService.polling(
                     ctx, request, new PollingHeader(requestHeader), finalSubscriptionData, finalMessageFilter);
                 if (PollingResult.POLLING_SUC == pollingResult) {
+                    if (restNum > 0) {
+                        popLongPollingService.notifyMessageArriving(
+                            requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getConsumerGroup(),
+                            null, 0L, null, null);
+                    }
                     return null;
                 } else if (PollingResult.POLLING_FULL == pollingResult) {
                     finalResponse.setCode(ResponseCode.POLLING_FULL);
