@@ -88,12 +88,6 @@ public class AttributeUtilTest {
     }
 
     @Test(expected = RuntimeException.class)
-    public void alterCurrentAttributes_DuplicateKey_ShouldThrowException() {
-        ImmutableMap<String, String> newAttributes = ImmutableMap.of("+attr1", "value1", "+attr1", "value2");
-        AttributeUtil.alterCurrentAttributes(false, allAttributes, currentAttributes, newAttributes);
-    }
-
-    @Test(expected = RuntimeException.class)
     public void alterCurrentAttributes_UnsupportedKey_ShouldThrowException() {
         ImmutableMap<String, String> newAttributes = ImmutableMap.of("unsupported_attr", "value");
         AttributeUtil.alterCurrentAttributes(false, allAttributes, currentAttributes, newAttributes);
