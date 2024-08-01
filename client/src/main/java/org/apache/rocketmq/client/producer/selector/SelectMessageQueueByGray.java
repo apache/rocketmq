@@ -37,6 +37,16 @@ public class SelectMessageQueueByGray implements MessageQueueSelector {
     private final List<MessageQueue> normalQueuesCache = new CopyOnWriteArrayList<>();
     private List<MessageQueue> cachedMqs = new CopyOnWriteArrayList<>();
     private final Random random = new Random(System.currentTimeMillis());
+    private double grayQueueRatio;
+
+    public SelectMessageQueueByGray() {
+        this(0.1);
+    }
+
+    public SelectMessageQueueByGray(double grayQueueRatio) {
+        this.grayQueueRatio = grayQueueRatio;
+    }
+
     @Override
     public MessageQueue select(List<MessageQueue> mqs, Message msg, Object arg) {
         if (CollectionUtils.isEmpty(mqs)) {
@@ -62,16 +72,20 @@ public class SelectMessageQueueByGray implements MessageQueueSelector {
         // Select a queue randomly from the selected list
         return selectedQueues.get(random.nextInt(selectedQueues.size()));
     }
+
+
     private boolean useGrayQueues(boolean arg) {
-        // Implement your logic here to decide whether to use gray queues
+        // Implement your logic here to decide whether to use gray queues  clientConfig#grayTag
         // For example, you might check an argument passed in 'arg' to determine this
-        return arg;
+        return arg && grayQueueRatio > 0;
     }
 
     private void refreshCache(List<MessageQueue> mqs) {
         // Clear caches
         grayQueuesCache.clear();
         normalQueuesCache.clear();
+        // Ensure grayQueueRatio is within the valid range [0, 1]
+        double validGrayQueueRatio = Math.max(0, Math.min(1, grayQueueRatio));
         // Group by broker name
         Map<String, List<MessageQueue>> brokerGroups = mqs.stream()
                 .collect(Collectors.groupingBy(MessageQueue::getBrokerName));
@@ -80,9 +94,19 @@ public class SelectMessageQueueByGray implements MessageQueueSelector {
         brokerGroups.forEach((brokerName, queues) -> {
             // Sort queues before splitting
             Collections.sort(queues);
-            // last queue is gray
-            grayQueuesCache.add(queues.get(queues.size() - 1));
-            normalQueuesCache.addAll(queues.subList(0, queues.size() - 1));
+            // Calculate the number of gray queues
+            int totalQueues = queues.size();
+            int numGrayQueues = (int) Math.ceil(totalQueues * validGrayQueueRatio);
+            // Determine gray and normal queues
+            if (numGrayQueues > 0) {
+                // Add the last `numGrayQueues` queues to grayQueuesCache
+                grayQueuesCache.addAll(queues.subList(totalQueues - numGrayQueues, totalQueues));
+                // Add the remaining queues to normalQueuesCache
+                normalQueuesCache.addAll(queues.subList(0, totalQueues - numGrayQueues));
+            } else {
+                // All queues are normal if no gray queues are designated
+                normalQueuesCache.addAll(queues);
+            }
         });
     }
 }

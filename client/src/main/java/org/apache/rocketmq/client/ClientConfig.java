@@ -103,6 +103,18 @@ public class ClientConfig {
     protected boolean grayTag = false;
 
     /**
+     * The ratio of gray  queues.
+     * Effective when enableGraySwitch is true.
+     * The value must be between 0 and 1.
+     * The proportion of gray queues in a topic's total queues.
+     * The grayQueueRatio divides queues into gray and regular queues on a per-broker basis.
+     * By default, this is set to 0.1, indicating 10%; if there are 8 queues, then there would be
+     * 7 normal queues and 1 (the result of 8*0.1 rounded up) gray queue.
+     * In most cases, no changes are needed, and you can use the default value.
+     */
+    protected double grayQueueRatio = 0.1;
+
+    /**
      * Enable the fault tolerance mechanism of the client sending process.
      * DO NOT OPEN when ORDER messages are required.
      * Turning on will interfere with the queue selection functionality,
@@ -142,6 +154,7 @@ public class ClientConfig {
         if (enableGraySwitch && grayTag) {
             sb.append("@");
             sb.append(GrayConstants.GARY_TAG);
+            sb.append("[").append(grayQueueRatio).append("]");
         }
         return sb.toString();
     }
@@ -248,6 +261,7 @@ public class ClientConfig {
         this.traceTopic = cc.traceTopic;
         this.enableGraySwitch = cc.enableGraySwitch;
         this.grayTag = cc.grayTag;
+        this.grayQueueRatio = cc.grayQueueRatio;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -282,6 +296,7 @@ public class ClientConfig {
         cc.traceTopic = traceTopic;
         cc.enableGraySwitch = enableGraySwitch;
         cc.grayTag = grayTag;
+        cc.grayQueueRatio = grayQueueRatio;
         return cc;
     }
 
@@ -527,6 +542,14 @@ public class ClientConfig {
         this.traceTopic = traceTopic;
     }
 
+    public double getGrayQueueRatio() {
+        return grayQueueRatio;
+    }
+
+    public void setGrayQueueRatio(double grayQueueRatio) {
+        this.grayQueueRatio = grayQueueRatio;
+    }
+
     public boolean isEnableGraySwitch() {
         return enableGraySwitch;
     }
@@ -577,6 +600,7 @@ public class ClientConfig {
             ", enableTrace=" + enableTrace +
             ", enableGraySwitch=" + enableGraySwitch +
             ", grayTag=" + grayTag +
+            ", grayQueueRatio=" + grayQueueRatio +
             ", traceTopic='" + traceTopic + '\'' +
             '}';
     }

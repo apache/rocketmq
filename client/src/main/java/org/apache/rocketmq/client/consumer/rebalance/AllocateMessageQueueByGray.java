@@ -20,7 +20,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.rocketmq.common.GrayConstants;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -38,7 +37,7 @@ import java.util.stream.Collectors;
  */
 public class AllocateMessageQueueByGray extends AllocateMessageQueueAveragely {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(AllocateMessageQueueByGray.class);
 
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll, List<String> cidAll) {
@@ -51,16 +50,19 @@ public class AllocateMessageQueueByGray extends AllocateMessageQueueAveragely {
         if (mqAll.stream().anyMatch(mq -> mq.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX))) {
             return super.allocate(consumerGroup, currentCID, mqAll, cidAll);
         }
+        double grayQueueRatio = getGrayQueueRatio(cidAll);
         // If there is no gray-scale service available, then allocation is performed according to the average distribution strategy.
-        if (!hasGrayTag(cidAll)) {
+        if (!hasGrayTag(cidAll) || grayQueueRatio <= 0) {
             List<MessageQueue> allocate = super.allocate(consumerGroup, currentCID, mqAll, cidAll);
             if (log.isInfoEnabled()) {
                 log.info("topic:{} reBalance, no gray release client, allocate {} message queue by average strategy.\n" +
                                 "current cid:{}\n" +
+                                "grayQueueRatio:{}\n" +
                                 "result:\n{}",
                         mqAll.get(0).getTopic(),
                         allocate.size(),
                         currentCID,
+                        grayQueueRatio,
                         allocate.stream()
                                 .collect(Collectors.groupingBy(MessageQueue::getBrokerName))
                                 .entrySet().stream()
@@ -73,8 +75,9 @@ public class AllocateMessageQueueByGray extends AllocateMessageQueueAveragely {
         }
         List<String> grayCids = getGrayCids(cidAll);
         List<String> normalCids = getNormalCids(cidAll);
-        List<MessageQueue> grayQueues = splitMessageQueues(mqAll).getObject1();
-        List<MessageQueue> normalQueues = splitMessageQueues(mqAll).getObject2();
+        Pair<List<MessageQueue>, List<MessageQueue>> splitMessageQueues = splitMessageQueues(mqAll, grayQueueRatio);
+        List<MessageQueue> grayQueues = splitMessageQueues.getObject1();
+        List<MessageQueue> normalQueues = splitMessageQueues.getObject2();
         sortLists(grayCids, normalCids, grayQueues, normalQueues);
 
         List<MessageQueue> result;
@@ -86,10 +89,12 @@ public class AllocateMessageQueueByGray extends AllocateMessageQueueAveragely {
         if (log.isDebugEnabled()) {
             log.info("topic:{} reBalance,allocate, has gary release client, allocate {} message queue by gray release strategy.\n" +
                             "current cid:{}\n" +
+                            "grayQueueRatio:{}\n" +
                             "result:\n{}",
                     mqAll.get(0).getTopic(),
                     result.size(),
                     currentCID,
+                    grayQueueRatio,
                     result.stream()
                             .collect(Collectors.groupingBy(MessageQueue::getBrokerName))
                             .entrySet().stream()
@@ -111,13 +116,15 @@ public class AllocateMessageQueueByGray extends AllocateMessageQueueAveragely {
         if (!check(consumerGroup, clientId, mqAll, cidAll)) {
             return Collections.emptyList();
         }
+        double grayQueueRatio = getGrayQueueRatio(cidAll);
         // Principle: Gray-scale clients should split and consume from gray-scale queues, while other clients are allocated non-gray-scale queues for consumption.
         List<String> grayCids = getGrayCids(cidAll);
         List<String> normalCids = getNormalCids(cidAll);
-        List<MessageQueue> grayQueues = splitMessageQueues(mqAll).getObject1();
-        List<MessageQueue> normalQueues = splitMessageQueues(mqAll).getObject2();
+        Pair<List<MessageQueue>, List<MessageQueue>> splitMessageQueues = splitMessageQueues(mqAll, grayQueueRatio);
+        List<MessageQueue> grayQueues = splitMessageQueues.getObject1();
+        List<MessageQueue> normalQueues = splitMessageQueues.getObject2();
         sortLists(grayCids, normalCids, grayQueues, normalQueues);
-        if (grayCids.contains(clientId)) {
+        if (grayCids.contains(clientId) && grayQueueRatio > 0) {
             mqAll = grayQueues;
             cidAll = grayCids;
         } else {
@@ -126,7 +133,8 @@ public class AllocateMessageQueueByGray extends AllocateMessageQueueAveragely {
         }
 
         if (log.isDebugEnabled()) {
-            log.warn("AllocateMessageQueueByGray allocate4Pop handle clientId:{},cidAll:{},mqAll:{}", clientId, cidAll, mqAll);
+            log.warn("AllocateMessageQueueByGray allocate4Pop handle clientId:{},cidAll:{},grayQueueRatio:{},mqAll:{}",
+                    clientId, cidAll, grayQueueRatio, mqAll);
         }
 
         List<MessageQueue> allocateResult;
@@ -163,10 +171,12 @@ public class AllocateMessageQueueByGray extends AllocateMessageQueueAveragely {
         if (log.isDebugEnabled()) {
             log.info("topic:{} reBalance,allocate4Pop, has gray release client, allocate {} message queue by gray release strategy.\n" +
                             "current cid:{}\n" +
+                            "grayQueueRatio:{}\n" +
                             "result:\n{}",
                     mqAll.get(0).getTopic(),
                     allocateResult.size(),
                     clientId,
+                    grayQueueRatio,
                     allocateResult.stream()
                             .collect(Collectors.groupingBy(MessageQueue::getBrokerName))
                             .entrySet().stream()
@@ -185,9 +195,10 @@ public class AllocateMessageQueueByGray extends AllocateMessageQueueAveragely {
      * Gray queues are the first queue of each broker group, while normal queues are the rest.
      *
      * @param source the list of MessageQueues to be split
+     * @param grayQueueRatio
      * @return a pair where the left element is the list of gray queues and the right element is the list of normal queues
      */
-    public static Pair<List<MessageQueue>, List<MessageQueue>> splitMessageQueues(List<MessageQueue> source) {
+    public Pair<List<MessageQueue>, List<MessageQueue>> splitMessageQueues(List<MessageQueue> source, double grayQueueRatio) {
         if (CollectionUtils.isEmpty(source)) {
             return new Pair<>(Collections.emptyList(), Collections.emptyList());
         }
@@ -197,13 +208,43 @@ public class AllocateMessageQueueByGray extends AllocateMessageQueueAveragely {
         List<MessageQueue> normalQueues = new ArrayList<>();
         brokerGroupQueues.forEach((brokerName, queues) -> {
             Collections.sort(queues);
-            // last queue is gray
-            grayQueues.add(queues.get(queues.size() - 1));
-            // Rest are normal
-            normalQueues.addAll(queues.subList(0, queues.size() - 1));
+            // Calculate the number of gray queues
+            int totalQueues = queues.size();
+            int numGrayQueues = (int) Math.ceil(totalQueues * grayQueueRatio);
+            if (numGrayQueues > 0) {
+                // Add the last `numGrayQueues` queues to grayQueuesCache
+                grayQueues.addAll(queues.subList(totalQueues - numGrayQueues, totalQueues));
+                // Add the remaining queues to normalQueuesCache
+                normalQueues.addAll(queues.subList(0, totalQueues - numGrayQueues));
+            } else {
+                // All queues are normal if no gray queues are designated
+                normalQueues.addAll(queues);
+            }
         });
-
         return new Pair<>(grayQueues, normalQueues);
+    }
+
+    public double getGrayQueueRatio(List<String> cidAll) {
+        double grayQueueRatio = 0.1;
+        // Extract grayQueueRatio from cidAll
+        for (String cid : cidAll) {
+            int grayIndex = cid.indexOf("@" + GrayConstants.GARY_TAG);
+            if (grayIndex != -1) {
+                int startIndex = cid.indexOf('[', grayIndex);
+                int endIndex = cid.indexOf(']', startIndex);
+                if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) {
+                    try {
+                        String ratioPart = cid.substring(startIndex + 1, endIndex);
+                        grayQueueRatio = Double.parseDouble(ratioPart);
+                    } catch (NumberFormatException e) {
+                        // If parsing fails, use default value
+                    }
+                }
+                break;
+            }
+        }
+        // Ensure grayQueueRatio is within the valid range [0, 1]
+        return Math.max(0, Math.min(1, grayQueueRatio));
     }
 
     public static boolean hasGrayTag(List<String> clientIds) {

@@ -70,9 +70,9 @@ public class GrayProducer {
          */
         producer.setGrayTag(true);
 
+        // or you can set the gray queue ratio
+        // SelectMessageQueueByGray selectMessageQueueByGray = new SelectMessageQueueByGray(producer.getGrayQueueRatio());
         SelectMessageQueueByGray selectMessageQueueByGray = new SelectMessageQueueByGray();
-
-
 
 
 
