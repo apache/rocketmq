@@ -533,6 +533,8 @@ public class PopReviveService extends ServiceThread {
                         switch (getMessageStatus) {
                             case MESSAGE_WAS_REMOVING:
                             case OFFSET_TOO_SMALL:
+                            case OFFSET_OVERFLOW_ONE:
+                            case OFFSET_OVERFLOW_BADLY:
                             case NO_MATCHED_LOGIC_QUEUE:
                             case NO_MESSAGE_IN_QUEUE:
                                 return new Pair<>(msgOffset, true);
