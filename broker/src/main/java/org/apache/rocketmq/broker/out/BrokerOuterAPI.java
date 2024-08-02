@@ -31,6 +31,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
 import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.auth.config.AuthConfig;
@@ -1378,7 +1379,8 @@ public class BrokerOuterAPI {
         });
     }
 
-    public CompletableFuture<PullResult> pullMessageFromSpecificBrokerAsync(String brokerName, String brokerAddr,
+    // Triple<PullResult, info, needRetry>, should check info and retry if and only if PullResult is null
+    public CompletableFuture<Triple<PullResult, String, Boolean>> pullMessageFromSpecificBrokerAsync(String brokerName, String brokerAddr,
         String consumerGroup, String topic, int queueId, long offset,
         int maxNums, long timeoutMillis) throws RemotingException, InterruptedException {
         PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
@@ -1397,7 +1399,7 @@ public class BrokerOuterAPI {
         requestHeader.setBrokerName(brokerName);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.PULL_MESSAGE, requestHeader);
-        CompletableFuture<PullResult> pullResultFuture = new CompletableFuture<>();
+        CompletableFuture<Triple<PullResult, String, Boolean>> pullResultFuture = new CompletableFuture<>();
         this.remotingClient.invokeAsync(brokerAddr, request, timeoutMillis, new InvokeCallback() {
             @Override
             public void operationComplete(ResponseFuture responseFuture) {
@@ -1409,15 +1411,16 @@ public class BrokerOuterAPI {
                 try {
                     PullResultExt pullResultExt = processPullResponse(response, brokerAddr);
                     processPullResult(pullResultExt, brokerName, queueId);
-                    pullResultFuture.complete(pullResultExt);
+                    pullResultFuture.complete(Triple.of(pullResultExt, pullResultExt.getPullStatus().name(), false)); // found or not found really, so no retry
                 } catch (Exception e) {
-                    pullResultFuture.complete(new PullResult(PullStatus.NO_MATCHED_MSG, -1, -1, -1, new ArrayList<>()));
+                    // retry when NO_PERMISSION, SUBSCRIPTION_GROUP_NOT_EXIST etc. even when TOPIC_NOT_EXIST
+                    pullResultFuture.complete(Triple.of(null, "Response Code:" + response.getCode(), true));
                 }
             }
 
             @Override
             public void operationFail(Throwable throwable) {
-                pullResultFuture.complete(new PullResult(PullStatus.NO_MATCHED_MSG, -1, -1, -1, new ArrayList<>()));
+                pullResultFuture.complete(Triple.of(null, throwable.getMessage(), true));
             }
         });
         return pullResultFuture;
