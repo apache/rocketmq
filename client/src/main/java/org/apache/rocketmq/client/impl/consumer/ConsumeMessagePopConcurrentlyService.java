@@ -471,7 +471,7 @@ public class ConsumeMessagePopConcurrentlyService implements ConsumeMessageServi
                     processQueue.decFoundMsg(-msgs.size());
                 }
 
-                log.warn("processQueue invalid. isDropped={}, isPopTimeout={}, messageQueue={}, msgs={}",
+                log.warn("processQueue invalid or popTimeout. isDropped={}, isPopTimeout={}, messageQueue={}, msgs={}",
                         processQueue.isDropped(), isPopTimeout(), messageQueue, msgs);
             }
         }

@@ -416,8 +416,11 @@ public class RouteInfoManagerNewTest {
     }
 
     @Test
-    public void scanNotActiveBroker() {
+    public void scanNotActiveBroker() throws InterruptedException {
         registerBrokerWithNormalTopic(BrokerBasicInfo.defaultBroker(), "TestTopic");
+        routeInfoManager.scanNotActiveBroker();
+        registerBrokerWithNormalTopicAndExpire(BrokerBasicInfo.defaultBroker(),"TestTopic");
+        Thread.sleep(30000);
         routeInfoManager.scanNotActiveBroker();
     }
 
@@ -590,6 +593,16 @@ public class RouteInfoManagerNewTest {
     }
 
     @Test
+    public void onChannelDestroyByBrokerInfo() {
+        registerBroker(BrokerBasicInfo.defaultBroker(), mock(Channel.class), null, "TestTopic", "TestTopic1");
+        BrokerAddrInfo brokerAddrInfo = new BrokerAddrInfo(DEFAULT_CLUSTER, DEFAULT_ADDR);
+        routeInfoManager.onChannelDestroy(brokerAddrInfo);
+        await().atMost(Duration.ofSeconds(5)).until(() -> routeInfoManager.blockedUnRegisterRequests() == 0);
+        assertThat(routeInfoManager.pickupTopicRouteData("TestTopic")).isNull();
+        assertThat(routeInfoManager.pickupTopicRouteData("TestTopic1")).isNull();
+    }
+
+    @Test
     public void switchBrokerRole_ChannelDestroy() {
         final BrokerBasicInfo masterBroker = BrokerBasicInfo.defaultBroker().enableActingMaster(false);
         final BrokerBasicInfo slaveBroker = BrokerBasicInfo.slaveBroker().enableActingMaster(false);
@@ -728,6 +741,23 @@ public class RouteInfoManagerNewTest {
         return registerBroker(brokerInfo, mock(Channel.class), topicConfigConcurrentHashMap, topics);
     }
 
+    private RegisterBrokerResult registerBrokerWithNormalTopicAndExpire(BrokerBasicInfo brokerInfo, String... topics) {
+        ConcurrentHashMap<String, TopicConfig> topicConfigConcurrentHashMap = new ConcurrentHashMap<>();
+        TopicConfig baseTopic = new TopicConfig("baseTopic");
+        topicConfigConcurrentHashMap.put(baseTopic.getTopicName(), baseTopic);
+        for (final String topic : topics) {
+            TopicConfig topicConfig = new TopicConfig();
+            topicConfig.setWriteQueueNums(8);
+            topicConfig.setTopicName(topic);
+            topicConfig.setPerm(6);
+            topicConfig.setReadQueueNums(8);
+            topicConfig.setOrder(false);
+            topicConfigConcurrentHashMap.put(topic, topicConfig);
+        }
+
+        return registerBrokerWithExpiredTime(brokerInfo, mock(Channel.class), topicConfigConcurrentHashMap, topics);
+    }
+
     private RegisterBrokerResult registerBrokerWithOrderTopic(BrokerBasicInfo brokerBasicInfo, String... topics) {
         ConcurrentHashMap<String, TopicConfig> topicConfigConcurrentHashMap = new ConcurrentHashMap<>();
 
@@ -785,7 +815,7 @@ public class RouteInfoManagerNewTest {
         topicConfigSerializeWrapper.setDataVersion(brokerInfo.dataVersion);
         topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
 
-        RegisterBrokerResult registerBrokerResult = routeInfoManager.registerBroker(
+        return routeInfoManager.registerBroker(
             brokerInfo.clusterName,
             brokerInfo.brokerAddr,
             brokerInfo.brokerName,
@@ -795,7 +825,40 @@ public class RouteInfoManagerNewTest {
             null,
             brokerInfo.enableActingMaster,
             topicConfigSerializeWrapper, new ArrayList<>(), channel);
-        return registerBrokerResult;
+    }
+
+    private RegisterBrokerResult registerBrokerWithExpiredTime(BrokerBasicInfo brokerInfo, Channel channel,
+                                                               ConcurrentMap<String, TopicConfig> topicConfigConcurrentHashMap, String... topics) {
+
+        if (topicConfigConcurrentHashMap == null) {
+            topicConfigConcurrentHashMap = new ConcurrentHashMap<>();
+            TopicConfig baseTopic = new TopicConfig("baseTopic");
+            topicConfigConcurrentHashMap.put(baseTopic.getTopicName(), baseTopic);
+            for (final String topic : topics) {
+                TopicConfig topicConfig = new TopicConfig();
+                topicConfig.setWriteQueueNums(8);
+                topicConfig.setTopicName(topic);
+                topicConfig.setPerm(6);
+                topicConfig.setReadQueueNums(8);
+                topicConfig.setOrder(false);
+                topicConfigConcurrentHashMap.put(topic, topicConfig);
+            }
+        }
+
+        TopicConfigSerializeWrapper topicConfigSerializeWrapper = new TopicConfigSerializeWrapper();
+        topicConfigSerializeWrapper.setDataVersion(brokerInfo.dataVersion);
+        topicConfigSerializeWrapper.setTopicConfigTable(topicConfigConcurrentHashMap);
+
+        return routeInfoManager.registerBroker(
+                brokerInfo.clusterName,
+                brokerInfo.brokerAddr,
+                brokerInfo.brokerName,
+                brokerInfo.brokerId,
+                brokerInfo.haAddr,
+                "",
+                30000L,
+                brokerInfo.enableActingMaster,
+                topicConfigSerializeWrapper, new ArrayList<>(), channel);
     }
 
     private void registerSingleTopicWithBrokerName(String brokerName, String... topics) {

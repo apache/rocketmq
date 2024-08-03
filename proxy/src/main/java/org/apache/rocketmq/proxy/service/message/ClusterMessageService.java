@@ -29,10 +29,10 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
-import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.service.route.AddressableMessageQueue;
 import org.apache.rocketmq.proxy.service.route.TopicRouteService;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
@@ -139,7 +139,8 @@ public class ClusterMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<AckResult> batchAckMessage(ProxyContext ctx, List<ReceiptHandleMessage> handleList, String consumerGroup,
+    public CompletableFuture<AckResult> batchAckMessage(ProxyContext ctx, List<ReceiptHandleMessage> handleList,
+        String consumerGroup,
         String topic, long timeoutMillis) {
         List<String> extraInfoList = handleList.stream().map(message -> message.getReceiptHandle().getReceiptHandle()).collect(Collectors.toList());
         return this.mqClientAPIFactory.getClient().batchAckMessageAsync(
@@ -175,6 +176,16 @@ public class ClusterMessageService implements MessageService {
     public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
         UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().updateConsumerOffsetOneWay(
+            messageQueue.getBrokerAddr(),
+            requestHeader,
+            timeoutMillis
+        );
+    }
+
+    @Override
+    public CompletableFuture<Void> updateConsumerOffsetAsync(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
+        return this.mqClientAPIFactory.getClient().updateConsumerOffsetAsync(
             messageQueue.getBrokerAddr(),
             requestHeader,
             timeoutMillis

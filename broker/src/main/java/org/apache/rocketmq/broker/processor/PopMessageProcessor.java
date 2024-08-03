@@ -431,6 +431,11 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 PollingResult pollingResult = popLongPollingService.polling(
                     ctx, request, new PollingHeader(requestHeader), finalSubscriptionData, finalMessageFilter);
                 if (PollingResult.POLLING_SUC == pollingResult) {
+                    if (restNum > 0) {
+                        popLongPollingService.notifyMessageArriving(
+                            requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getConsumerGroup(),
+                            null, 0L, null, null);
+                    }
                     return null;
                 } else if (PollingResult.POLLING_FULL == pollingResult) {
                     finalResponse.setCode(ResponseCode.POLLING_FULL);
@@ -723,8 +728,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
     private long getInitOffset(String topic, String group, int queueId, int initMode, boolean init) {
         long offset;
-        if (ConsumeInitMode.MIN == initMode) {
-            return this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
+        if (ConsumeInitMode.MIN == initMode || topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+            offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
         } else {
             if (this.brokerController.getBrokerConfig().isInitPopOffsetByCheckMsgInMem() &&
                 this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId) <= 0 &&
@@ -738,10 +743,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     offset = 0;
                 }
             }
-            if (init) {
-                this.brokerController.getConsumerOffsetManager().commitOffset(
+        }
+        if (init) { // whichever initMode
+            this.brokerController.getConsumerOffsetManager().commitOffset(
                     "getPopOffset", group, topic, queueId, offset);
-            }
         }
         return offset;
     }
