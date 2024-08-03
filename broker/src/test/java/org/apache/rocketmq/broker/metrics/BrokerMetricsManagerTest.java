@@ -21,8 +21,15 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -163,4 +170,120 @@ public class BrokerMetricsManagerTest {
         assertThat(result).isFalse();
     }
 
+    @Test
+    public void testGetMessageTypeAsNormal() {
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        requestHeader.setProperties("");
+
+        TopicMessageType result = BrokerMetricsManager.getMessageType(requestHeader);
+        assertThat(TopicMessageType.NORMAL).isEqualTo(result);
+    }
+
+    @Test
+    public void testGetMessageTypeAsTransaction() {
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+
+        Map<String, String> map = new HashMap<>();
+        map.put(MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
+
+        TopicMessageType result = BrokerMetricsManager.getMessageType(requestHeader);
+        assertThat(TopicMessageType.TRANSACTION).isEqualTo(result);
+    }
+
+    @Test
+    public void testGetMessageTypeAsFifo() {
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        Map<String, String> map = new HashMap<>();
+        map.put(MessageConst.PROPERTY_SHARDING_KEY, "shardingKey");
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
+
+        TopicMessageType result = BrokerMetricsManager.getMessageType(requestHeader);
+        assertThat(TopicMessageType.FIFO).isEqualTo(result);
+    }
+
+    @Test
+    public void testGetMessageTypeAsDelayLevel() {
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        Map<String, String> map = new HashMap<>();
+        map.put(MessageConst.PROPERTY_DELAY_TIME_LEVEL, "1");
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
+
+        TopicMessageType result = BrokerMetricsManager.getMessageType(requestHeader);
+        assertThat(TopicMessageType.DELAY).isEqualTo(result);
+    }
+
+    @Test
+    public void testGetMessageTypeAsDeliverMS() {
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        Map<String, String> map = new HashMap<>();
+        map.put(MessageConst.PROPERTY_TIMER_DELIVER_MS, "10");
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
+
+        TopicMessageType result = BrokerMetricsManager.getMessageType(requestHeader);
+        assertThat(TopicMessageType.DELAY).isEqualTo(result);
+    }
+
+    @Test
+    public void testGetMessageTypeAsDelaySEC() {
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        Map<String, String> map = new HashMap<>();
+        map.put(MessageConst.PROPERTY_TIMER_DELAY_SEC, "1");
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
+
+        TopicMessageType result = BrokerMetricsManager.getMessageType(requestHeader);
+        assertThat(TopicMessageType.DELAY).isEqualTo(result);
+    }
+
+    @Test
+    public void testGetMessageTypeAsDelayMS() {
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        Map<String, String> map = new HashMap<>();
+        map.put(MessageConst.PROPERTY_TIMER_DELAY_MS, "10");
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
+
+        TopicMessageType result = BrokerMetricsManager.getMessageType(requestHeader);
+        assertThat(TopicMessageType.DELAY).isEqualTo(result);
+    }
+
+    @Test
+    public void testGetMessageTypeWithUnknownProperty() {
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        Map<String, String> map = new HashMap<>();
+        map.put("unknownProperty", "unknownValue");
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
+
+        TopicMessageType result = BrokerMetricsManager.getMessageType(requestHeader);
+        assertThat(TopicMessageType.NORMAL).isEqualTo(result);
+    }
+
+    @Test
+    public void testGetMessageTypeWithMultipleProperties() {
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        Map<String, String> map = new HashMap<>();
+        map.put(MessageConst.PROPERTY_DELAY_TIME_LEVEL, "1");
+        map.put(MessageConst.PROPERTY_SHARDING_KEY, "shardingKey");
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
+
+        TopicMessageType result = BrokerMetricsManager.getMessageType(requestHeader);
+        assertThat(TopicMessageType.FIFO).isEqualTo(result);
+    }
+
+    @Test
+    public void testGetMessageTypeWithTransactionFlagButOtherPropertiesPresent() {
+        SendMessageRequestHeader requestHeader = new SendMessageRequestHeader();
+        Map<String, String> map = new HashMap<>();
+        map.put(MessageConst.PROPERTY_TRANSACTION_PREPARED, "true");
+        map.put(MessageConst.PROPERTY_SHARDING_KEY, "shardingKey");
+        requestHeader.setProperties(MessageDecoder.messageProperties2String(map));
+
+        TopicMessageType result = BrokerMetricsManager.getMessageType(requestHeader);
+        assertThat(TopicMessageType.TRANSACTION).isEqualTo(result);
+    }
+
+    @Test
+    public void testGetMessageTypeWithEmptyProperties() {
+        TopicMessageType result = BrokerMetricsManager.getMessageType(new SendMessageRequestHeader());
+        assertThat(TopicMessageType.NORMAL).isEqualTo(result);
+    }
 }
