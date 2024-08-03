@@ -20,16 +20,23 @@ package org.apache.rocketmq.broker.metrics;
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -285,5 +292,24 @@ public class BrokerMetricsManagerTest {
     public void testGetMessageTypeWithEmptyProperties() {
         TopicMessageType result = BrokerMetricsManager.getMessageType(new SendMessageRequestHeader());
         assertThat(TopicMessageType.NORMAL).isEqualTo(result);
+    }
+
+    @Test
+    public void testCreateMetricsManager() {
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        String storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-"
+                + UUID.randomUUID();
+        messageStoreConfig.setStorePathRootDir(storePathRootDir);
+        BrokerConfig brokerConfig = new BrokerConfig();
+
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig.setListenPort(0);
+
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig,
+                new NettyClientConfig(), messageStoreConfig);
+
+        BrokerMetricsManager metricsManager = new BrokerMetricsManager(brokerController);
+
+        assertThat(metricsManager.getBrokerMeter()).isNull();
     }
 }
