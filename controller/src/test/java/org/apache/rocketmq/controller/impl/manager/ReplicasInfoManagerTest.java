@@ -508,4 +508,17 @@ public class ReplicasInfoManagerTest {
             Field[] fields = oldReplicaInfo.getClass().getFields();
         }
     }
+
+    @Test
+    public void testScanNeedReelectBrokerSets(){
+        mockMetaData();
+        List<String> strings = this.replicasInfoManager.scanNeedReelectBrokerSets((clusterName, brokerName, brokerId) -> mockValidPredicate1(brokerId));
+        assertArrayEquals(strings.toArray(),new String[]{DEFAULT_BROKER_NAME});
+    }
+
+    private boolean mockValidPredicate1(Long brokerId) {
+        // mock only broker1(id=2) & broker2(id=3) is alive,master(id=1) is inactive
+        List<Long> inactiveBroker = Arrays.asList(1L);
+        return inactiveBroker.contains(brokerId);
+    }
 }
