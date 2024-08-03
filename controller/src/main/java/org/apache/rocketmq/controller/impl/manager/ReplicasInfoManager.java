@@ -471,10 +471,10 @@ public class ReplicasInfoManager {
             Long masterBrokerId = syncStateInfo.getMasterBrokerId();
             String clusterName = syncStateInfo.getClusterName();
             // Now master is inactive
-            if (masterBrokerId != null && validPredicate.check(clusterName, brokerName, masterBrokerId)) {
+            if (masterBrokerId != null && !validPredicate.check(clusterName, brokerName, masterBrokerId)) {
                 // Still at least one broker alive
                 Set<Long> brokerIds = this.replicaInfoTable.get(brokerName).getBrokerIdTable().keySet();
-                boolean alive = brokerIds.stream().anyMatch(id -> !validPredicate.check(clusterName, brokerName, id));
+                boolean alive = brokerIds.stream().anyMatch(id -> validPredicate.check(clusterName, brokerName, id));
                 if (alive) {
                     needReelectBrokerSets.add(brokerName);
                 }
