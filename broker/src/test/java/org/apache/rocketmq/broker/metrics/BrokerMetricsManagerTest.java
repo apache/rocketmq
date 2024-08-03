@@ -26,6 +26,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.metrics.MetricsExporterType;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
@@ -45,7 +46,7 @@ public class BrokerMetricsManagerTest {
     @Test
     public void testNewAttributesBuilder() {
         Attributes attributes = BrokerMetricsManager.newAttributesBuilder().put("a", "b")
-            .build();
+                .build();
         assertThat(attributes.get(AttributeKey.stringKey("a"))).isEqualTo("b");
     }
 
@@ -53,6 +54,7 @@ public class BrokerMetricsManagerTest {
     public void testCustomizedAttributesBuilder() {
         BrokerMetricsManager.attributesBuilderSupplier = () -> new AttributesBuilder() {
             private AttributesBuilder attributesBuilder = Attributes.builder();
+
             @Override
             public Attributes build() {
                 return attributesBuilder.put("customized", "value").build();
@@ -77,7 +79,7 @@ public class BrokerMetricsManagerTest {
             }
         };
         Attributes attributes = BrokerMetricsManager.newAttributesBuilder().put("a", "b")
-            .build();
+                .build();
         assertThat(attributes.get(AttributeKey.stringKey("a"))).isEqualTo("b");
         assertThat(attributes.get(AttributeKey.stringKey("customized"))).isEqualTo("value");
     }
@@ -311,5 +313,29 @@ public class BrokerMetricsManagerTest {
         BrokerMetricsManager metricsManager = new BrokerMetricsManager(brokerController);
 
         assertThat(metricsManager.getBrokerMeter()).isNull();
+    }
+
+    @Test
+    public void testCreateMetricsManagerLogType() throws CloneNotSupportedException {
+        BrokerConfig brokerConfig = new BrokerConfig();
+        brokerConfig.setMetricsExporterType(MetricsExporterType.LOG);
+        brokerConfig.setMetricsLabel("label1:value1;label2:value2");
+        brokerConfig.setMetricsOtelCardinalityLimit(1);
+
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        String storePathRootDir = System.getProperty("java.io.tmpdir") + File.separator + "store-"
+                + UUID.randomUUID();
+        messageStoreConfig.setStorePathRootDir(storePathRootDir);
+
+        NettyServerConfig nettyServerConfig = new NettyServerConfig();
+        nettyServerConfig.setListenPort(0);
+
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig,
+                new NettyClientConfig(), messageStoreConfig);
+        brokerController.initialize();
+
+        BrokerMetricsManager metricsManager = new BrokerMetricsManager(brokerController);
+
+        assertThat(metricsManager.getBrokerMeter()).isNotNull();
     }
 }
