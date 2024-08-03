@@ -79,8 +79,6 @@ public class ConsumerManagerTest {
         consumerManager = new ConsumerManager(defaultConsumerIdsChangeListener, brokerStatsManager, brokerConfig);
         broker2Client = new Broker2Client(brokerController);
         when(brokerController.getConsumerFilterManager()).thenReturn(consumerFilterManager);
-        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
-        when(brokerController.getBroker2Client()).thenReturn(broker2Client);
     }
 
     @Test
