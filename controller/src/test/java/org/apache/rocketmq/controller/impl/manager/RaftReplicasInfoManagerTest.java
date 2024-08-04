@@ -31,7 +31,9 @@ import java.util.List;
 import java.util.Map;
 
 
-import static org.apache.rocketmq.controller.ControllerTestBase.*;
+import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_BROKER_NAME;
+import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_CLUSTER_NAME;
+import static org.apache.rocketmq.controller.ControllerTestBase.DEFAULT_IP;
 import static org.junit.Assert.assertEquals;
 
 public class RaftReplicasInfoManagerTest extends ReplicasInfoManagerTest {
