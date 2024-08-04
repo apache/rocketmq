@@ -653,7 +653,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             Iterator<MessageExt> iterator = msgListFilterAgain.iterator();
             while (iterator.hasNext()) {
                 MessageExt msg = iterator.next();
-                if (msg.getReconsumeTimes() > getMaxReconsumeTimes()) {
+                if (msg.getReconsumeTimes() > defaultMQPushConsumer.getMaxReconsumeTimes()) {
                     iterator.remove();
                     log.info("Reconsume times has reached {}, so ack msg={}", msg.getReconsumeTimes(), msg);
                 }
