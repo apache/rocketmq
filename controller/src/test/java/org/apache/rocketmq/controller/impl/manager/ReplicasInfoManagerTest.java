@@ -64,11 +64,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class ReplicasInfoManagerTest {
-    private ReplicasInfoManager replicasInfoManager;
+    protected ReplicasInfoManager replicasInfoManager;
 
-    private DefaultBrokerHeartbeatManager heartbeatManager;
+    protected DefaultBrokerHeartbeatManager heartbeatManager;
 
-    private ControllerConfig config;
+    protected ControllerConfig config;
 
     @Before
     public void init() {
