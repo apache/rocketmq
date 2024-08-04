@@ -669,6 +669,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
             popResult.setMsgFoundList(msgListFilterAgain);
         }
+
         return popResult;
     }
 
