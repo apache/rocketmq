@@ -193,9 +193,10 @@ public class TraceDataEncoder {
                         .append(bean.getKeys()).append(TraceConstants.CONTENT_SPLITOR)//
                         .append(ctx.getContextCode()).append(TraceConstants.CONTENT_SPLITOR);
                     if (!ctx.getAccessChannel().equals(AccessChannel.CLOUD)) {
-                        sb.append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR)
-                            .append(ctx.getGroupName()).append(TraceConstants.FIELD_SPLITOR);
+                        sb.append(ctx.getTimeStamp()).append(TraceConstants.CONTENT_SPLITOR);
+                        sb.append(ctx.getGroupName());
                     }
+                    sb.append(TraceConstants.FIELD_SPLITOR);
                 }
             }
             break;
