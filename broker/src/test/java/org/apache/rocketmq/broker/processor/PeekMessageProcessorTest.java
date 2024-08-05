@@ -82,7 +82,6 @@ public class PeekMessageProcessorTest {
     @Mock
     private Channel channel;
 
-
     private TopicConfigManager topicConfigManager;
 
     @Before
