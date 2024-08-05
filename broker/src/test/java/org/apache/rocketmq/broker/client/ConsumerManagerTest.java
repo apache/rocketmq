@@ -42,6 +42,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -60,9 +61,6 @@ public class ConsumerManagerTest {
     @Mock
     private BrokerController brokerController;
 
-    @Mock
-    private ConsumerFilterManager consumerFilterManager;
-
     private final BrokerConfig brokerConfig = new BrokerConfig();
 
     private static final String GROUP = "DEFAULT_GROUP";
@@ -79,6 +77,7 @@ public class ConsumerManagerTest {
         DefaultConsumerIdsChangeListener defaultConsumerIdsChangeListener = new DefaultConsumerIdsChangeListener(brokerController);
         BrokerStatsManager brokerStatsManager = new BrokerStatsManager(brokerConfig);
         consumerManager = spy(new ConsumerManager(defaultConsumerIdsChangeListener, brokerStatsManager, brokerConfig));
+        ConsumerFilterManager consumerFilterManager = mock(ConsumerFilterManager.class);
         when(brokerController.getConsumerFilterManager()).thenReturn(consumerFilterManager);
     }
 
