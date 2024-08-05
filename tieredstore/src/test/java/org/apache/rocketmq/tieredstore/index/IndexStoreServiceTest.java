@@ -219,12 +219,10 @@ public class IndexStoreServiceTest {
         }
         long timestamp = indexService.getTimeStoreTable().firstKey();
         indexService.shutdown();
+
         indexService = new IndexStoreService(fileAllocator, filePath);
         indexService.start();
-
         Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
-
-        indexService.start();
         await().atMost(Duration.ofMinutes(1)).pollInterval(Duration.ofSeconds(1)).until(() -> {
             ArrayList<IndexFile> files = new ArrayList<>(indexService.getTimeStoreTable().values());
             return IndexFile.IndexStatusEnum.UPLOAD.equals(files.get(0).getFileStatus());
