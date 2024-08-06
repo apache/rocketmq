@@ -138,9 +138,13 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
 
             // If set to max offset here, some written messages may be lost
             if (!flatFile.isFlatFileInit()) {
-                currentOffset = Math.max(minOffsetInQueue,
-                    maxOffsetInQueue - storeConfig.getTieredStoreGroupCommitSize());
+                currentOffset = defaultStore.getOffsetInQueueByTime(
+                    topic, queueId, System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(2));
+                currentOffset = Math.max(currentOffset, minOffsetInQueue);
+                currentOffset = Math.min(currentOffset, maxOffsetInQueue);
                 flatFile.initOffset(currentOffset);
+                log.warn("MessageDispatcher#dispatch init, topic={}, queueId={}, offset={}-{}, current={}",
+                    topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset);
                 return CompletableFuture.completedFuture(true);
             }
 
