@@ -8,12 +8,18 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class RocksDBLmqConsumerOffsetManagerTest {
     private static final String LMQ_GROUP = MixAll.LMQ_PREFIX + "FooBarGroup";
+    private static final String NON_LMQ_GROUP = "nonLmqGroup";
     private static final String TOPIC = "FooBarTopic";
     private static final int QUEUE_ID = 0;
     private static final long OFFSET = 12345;
@@ -42,15 +48,50 @@ public class RocksDBLmqConsumerOffsetManagerTest {
 
     @Test
     public void testQueryOffsetForNonLmq() {
-        // Setup
-        when(brokerController.getConsumerOffsetManager()).thenReturn(offsetManager);
-        // Since we are mocking and not initializing a real offset manager,
-        // ensure your method has a default or mock behavior for non-LMQ offsets.
-        // Execute
-        long actualOffset = offsetManager.queryOffset(LMQ_GROUP, TOPIC, QUEUE_ID);
+        long actualOffset = offsetManager.queryOffset(NON_LMQ_GROUP, TOPIC, QUEUE_ID);
         // Verify
-        // The actual value here depends on your default/mocked behavior for non-LMQ offsets.
-        assertNotNull("Offset should not be null.", actualOffset);
+        assertEquals("Offset should not be null.", -1, actualOffset);
+    }
+
+
+    @Test
+    public void testQueryOffsetForLmqGroupWithExistingOffset() {
+        offsetManager.getLmqOffsetTable().put(getKey(), OFFSET);
+
+        // Act
+        Map<Integer, Long> actualOffsets = offsetManager.queryOffset(LMQ_GROUP, TOPIC);
+
+        // Assert
+        assertNotNull(actualOffsets);
+        assertEquals(1, actualOffsets.size());
+        assertEquals(OFFSET, (long) actualOffsets.get(0));
+    }
+
+    @Test
+    public void testQueryOffsetForLmqGroupWithoutExistingOffset() {
+        // Act
+        Map<Integer, Long> actualOffsets = offsetManager.queryOffset(LMQ_GROUP, "nonExistingTopic");
+
+        // Assert
+        assertNotNull(actualOffsets);
+        assertTrue("The map should be empty for non-existing offsets", actualOffsets.isEmpty());
+    }
+
+    @Test
+    public void testQueryOffsetForNonLmqGroup() {
+        when(brokerController.getBrokerConfig().getConsumerOffsetUpdateVersionStep()).thenReturn(1L);
+        // Arrange
+        Map<Integer, Long> mockOffsets = new HashMap<>();
+        mockOffsets.put(QUEUE_ID, OFFSET);
+
+        offsetManager.commitOffset("clientHost", NON_LMQ_GROUP, TOPIC, QUEUE_ID, OFFSET);
+
+        // Act
+        Map<Integer, Long> actualOffsets = offsetManager.queryOffset(NON_LMQ_GROUP, TOPIC);
+
+        // Assert
+        assertNotNull(actualOffsets);
+        assertEquals("Offsets should match the mocked return value for non-LMQ groups", mockOffsets, actualOffsets);
     }
 
     @Test
@@ -60,6 +101,14 @@ public class RocksDBLmqConsumerOffsetManagerTest {
         // Verify
         Long expectedOffset = offsetManager.getLmqOffsetTable().get(getKey());
         assertEquals("Offset should be updated correctly.", OFFSET, expectedOffset.longValue());
+    }
+
+    @Test
+    public void testEncode() {
+        offsetManager.setLmqOffsetTable(new ConcurrentHashMap<>(512));
+        offsetManager.getLmqOffsetTable().put(getKey(), OFFSET);
+        String encodedData = offsetManager.encode();
+        assertTrue(encodedData.contains(String.valueOf(OFFSET)));
     }
 
     private String getKey() {
