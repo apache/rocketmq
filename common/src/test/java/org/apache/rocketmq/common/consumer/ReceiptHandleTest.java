@@ -19,7 +19,8 @@ package org.apache.rocketmq.common.consumer;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ReceiptHandleTest {
 
@@ -95,10 +96,8 @@ public class ReceiptHandleTest {
             .topicType(ReceiptHandle.RETRY_TOPIC)
             .build();
 
-        // Act
         String realTopic = receiptHandle.getRealTopic(topic, groupName);
 
-        // Assert
         assertEquals(KeyBuilder.buildPopRetryTopicV1(topic, groupName), realTopic);
     }
 }

@@ -18,9 +18,6 @@ package org.apache.rocketmq.common.compression;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.opentest4j.AssertionFailedError;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class CompressorFactoryTest {
 
