@@ -33,9 +33,9 @@ public class CompressionTypeTest {
 
     @Test
     public void testCompressionTypeOf() {
-        assertEquals(CompressionType.LZ4, CompressionType.of("LZ4"), "CompressionType.of(\"LZ4\") should return LZ4");
-        assertEquals(CompressionType.ZSTD, CompressionType.of("ZSTD"), "CompressionType.of(\"ZSTD\") should return ZSTD");
-        assertEquals(CompressionType.ZLIB, CompressionType.of("ZLIB"), "CompressionType.of(\"ZLIB\") should return ZLIB");
+        assertEquals(CompressionType.LZ4, CompressionType.of("LZ4"), "CompressionType.of(LZ4) should return LZ4");
+        assertEquals(CompressionType.ZSTD, CompressionType.of("ZSTD"), "CompressionType.of(ZSTD) should return ZSTD");
+        assertEquals(CompressionType.ZLIB, CompressionType.of("ZLIB"), "CompressionType.of(ZLIB) should return ZLIB");
 
         assertThrows(RuntimeException.class, () -> CompressionType.of("UNKNOWN"), "Unsupported compression type should throw RuntimeException");
     }
