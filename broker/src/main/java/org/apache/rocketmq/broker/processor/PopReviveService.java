@@ -199,7 +199,7 @@ public class PopReviveService extends ServiceThread {
     }
 
     // Triple<MessageExt, info, needRetry>
-    private CompletableFuture<Triple<MessageExt, String, Boolean>> getBizMessage(String topic, long offset, int queueId,
+    public CompletableFuture<Triple<MessageExt, String, Boolean>> getBizMessage(String topic, long offset, int queueId,
         String brokerName) {
         return this.brokerController.getEscapeBridge().getMessageAsync(topic, offset, queueId, brokerName, false);
     }
