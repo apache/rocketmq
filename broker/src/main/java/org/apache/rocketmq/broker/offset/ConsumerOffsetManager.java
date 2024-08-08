@@ -31,6 +31,7 @@ import com.google.common.base.Strings;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -371,6 +372,25 @@ public class ConsumerOffsetManager extends ConfigManager {
 
     public void setDataVersion(DataVersion dataVersion) {
         this.dataVersion = dataVersion;
+    }
+
+    public boolean loadDataVersion() {
+        String fileName = null;
+        try {
+            fileName = this.configFilePath();
+            String jsonString = MixAll.file2String(fileName);
+            if (jsonString != null) {
+                ConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, ConsumerOffsetManager.class);
+                if (obj != null) {
+                    this.dataVersion = obj.dataVersion;
+                }
+                LOG.info("load consumer offset dataVersion success, " + fileName + " " + jsonString);
+            }
+            return true;
+        } catch (Exception e) {
+            LOG.error("load consumer offset dataVersion failed " + fileName, e);
+            return false;
+        }
     }
 
     public void removeOffset(final String group) {

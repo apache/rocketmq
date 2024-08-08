@@ -424,6 +424,37 @@ public class MessageStoreConfig {
 
     private boolean putConsumeQueueDataByFileChannel = true;
 
+    private boolean transferOffsetJsonToRocksdb = false;
+
+    private boolean rocksdbCQDoubleWriteEnable = false;
+
+    private boolean enableBatchWriteKvCq = false;
+
+
+    public boolean isEnableBatchWriteKvCq() {
+        return enableBatchWriteKvCq;
+    }
+
+    public void setEnableBatchWriteKvCq(boolean enableBatchWriteKvCq) {
+        this.enableBatchWriteKvCq = enableBatchWriteKvCq;
+    }
+
+    public boolean isRocksdbCQDoubleWriteEnable() {
+        return rocksdbCQDoubleWriteEnable;
+    }
+
+    public void setRocksdbCQDoubleWriteEnable(boolean rocksdbWriteEnable) {
+        this.rocksdbCQDoubleWriteEnable = rocksdbWriteEnable;
+    }
+
+    public boolean isTransferOffsetJsonToRocksdb() {
+        return transferOffsetJsonToRocksdb;
+    }
+
+    public void setTransferOffsetJsonToRocksdb(boolean transferOffsetJsonToRocksdb) {
+        this.transferOffsetJsonToRocksdb = transferOffsetJsonToRocksdb;
+    }
+
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
     }

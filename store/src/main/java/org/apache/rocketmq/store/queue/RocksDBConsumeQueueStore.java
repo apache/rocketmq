@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
@@ -78,6 +77,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private final Map<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> tempTopicQueueMaxOffsetMap;
     private volatile boolean isCQError = false;
 
+    private boolean enableBatchWriteKvCq;
+
     public RocksDBConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
 
@@ -87,6 +88,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         this.rocksDBConsumeQueueOffsetTable = new RocksDBConsumeQueueOffsetTable(rocksDBConsumeQueueTable, rocksDBStorage, messageStore);
 
         this.writeBatch = new WriteBatch();
+        this.enableBatchWriteKvCq = messageStoreConfig.isEnableBatchWriteKvCq();
         this.bufferDRList = new ArrayList(BATCH_SIZE);
         this.cqBBPairList = new ArrayList(BATCH_SIZE);
         this.offsetBBPairList = new ArrayList(BATCH_SIZE);
@@ -164,11 +166,11 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public void putMessagePositionInfoWrapper(DispatchRequest request) throws RocksDBException {
-        if (request == null || this.bufferDRList.size() >= BATCH_SIZE) {
-            putMessagePosition();
-        }
         if (request != null) {
             this.bufferDRList.add(request);
+        }
+        if (request == null || !enableBatchWriteKvCq || this.bufferDRList.size() >= BATCH_SIZE) {
+            putMessagePosition();
         }
     }
 
