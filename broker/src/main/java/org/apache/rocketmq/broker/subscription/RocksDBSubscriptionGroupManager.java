@@ -79,28 +79,30 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
     private boolean merge() {
         if (!brokerController.getMessageStoreConfig().isTransferMetadataJsonToRocksdb()) {
-            log.info("The switch is off, no merge operation is needed.");
+            log.info("the switch  transferMetadataJsonToRocksdb is off, no merge subGroup operation is needed.");
             return true;
         }
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
-            log.info("json file and json back file not exist, so skip merge");
+            log.info("subGroup json file is not exist, so skip merge");
             return true;
         }
-
-        if (!super.load()) {
-            log.error("load group and forbidden info from json file error, startup will exit");
+        if (!super.loadDataVersion()) {
+            log.error("load json subGroup dataVersion error, startup will exit");
             return false;
         }
-
-        final ConcurrentMap<String, SubscriptionGroupConfig> groupTable = this.getSubscriptionGroupTable();
-        final ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable = this.getForbiddenTable();
         final DataVersion dataVersion = super.getDataVersion();
         final DataVersion kvDataVersion = this.getDataVersion();
         if (dataVersion.getCounter().get() > kvDataVersion.getCounter().get()) {
+            if (!super.load()) {
+                log.error("load group and forbidden info from json file error, startup will exit");
+                return false;
+            }
+            final ConcurrentMap<String, SubscriptionGroupConfig> groupTable = this.getSubscriptionGroupTable();
             for (Map.Entry<String, SubscriptionGroupConfig> entry : groupTable.entrySet()) {
                 putSubscriptionGroupConfig(entry.getValue());
                 log.info("import subscription config to rocksdb, group={}", entry.getValue());
             }
+            final ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable = this.getForbiddenTable();
             for (Map.Entry<String, ConcurrentMap<String, Integer>> entry : forbiddenTable.entrySet()) {
                 try {
                     this.rocksDBConfigManager.updateForbidden(entry.getKey(), JSON.toJSONString(entry.getValue()));
@@ -110,8 +112,10 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
                     return false;
                 }
             }
-            this.rocksDBConfigManager.getKvDataVersion().assignNewOne(dataVersion);
+            this.getDataVersion().assignNewOne(dataVersion);
             updateDataVersion();
+        } else {
+            log.info("dataVersion is not greater than kvDataVersion, no need to merge group metaData, dataVersion={}, kvDataVersion={}", dataVersion, kvDataVersion);
         }
         log.info("finish marge subscription config from json file and merge to rocksdb");
         this.persist();

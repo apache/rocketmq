@@ -789,6 +789,9 @@ public class BrokerController {
                 defaultMessageStore = new RocksDBMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
             } else {
                 defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
+                if (messageStoreConfig.isRocksdbCQWriteEnable()) {
+                    defaultMessageStore.enableRocksdbCQWrite();
+                }
             }
 
             if (messageStoreConfig.isEnableDLegerCommitLog()) {
@@ -815,6 +818,8 @@ public class BrokerController {
         } catch (IOException e) {
             result = false;
             LOG.error("BrokerController#initialize: unexpected error occurs", e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         return result;
     }

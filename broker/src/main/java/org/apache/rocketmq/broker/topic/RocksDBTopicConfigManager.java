@@ -60,29 +60,35 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
 
     private boolean merge() {
         if (!brokerController.getMessageStoreConfig().isTransferMetadataJsonToRocksdb()) {
-            log.info("The switch is off, no merge operation is needed.");
+            log.info("the switch transferMetadataJsonToRocksdb is off, no merge topic operation is needed.");
             return true;
         }
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
-            log.info("json file and json back file not exist, so skip merge");
+            log.info("topic json file is not exist, so skip merge");
             return true;
         }
 
-        if (!super.load()) {
-            log.error("load topic config from json file error, startup will exit");
+        if (!super.loadDataVersion()) {
+            log.error("load json topic dataVersion error, startup will exit");
             return false;
         }
 
-        final ConcurrentMap<String, TopicConfig> topicConfigTable = this.getTopicConfigTable();
         final DataVersion dataVersion = super.getDataVersion();
         final DataVersion kvDataVersion = this.getDataVersion();
         if (dataVersion.getCounter().get() > kvDataVersion.getCounter().get()) {
+            if (!super.load()) {
+                log.error("load topic config from json file error, startup will exit");
+                return false;
+            }
+            final ConcurrentMap<String, TopicConfig> topicConfigTable = this.getTopicConfigTable();
             for (Map.Entry<String, TopicConfig> entry : topicConfigTable.entrySet()) {
                 putTopicConfig(entry.getValue());
                 log.info("import topic config to rocksdb, topic={}", entry.getValue());
             }
-            this.rocksDBConfigManager.getKvDataVersion().assignNewOne(dataVersion);
+            this.getDataVersion().assignNewOne(dataVersion);
             updateDataVersion();
+        } else {
+            log.info("dataVersion is not greater than kvDataVersion, no need to merge topic metaData, dataVersion={}, kvDataVersion={}", dataVersion, kvDataVersion);
         }
         log.info("finish read topic config from json file and merge to rocksdb");
         this.persist();

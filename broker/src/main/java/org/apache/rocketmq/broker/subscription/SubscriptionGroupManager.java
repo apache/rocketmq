@@ -334,6 +334,26 @@ public class SubscriptionGroupManager extends ConfigManager {
         return dataVersion;
     }
 
+    public boolean loadDataVersion() {
+        String fileName = null;
+        try {
+            fileName = this.configFilePath();
+            String jsonString = MixAll.file2String(fileName);
+            if (jsonString != null) {
+                SubscriptionGroupManager obj = RemotingSerializable.fromJson(jsonString, SubscriptionGroupManager.class);
+                if (obj != null) {
+                    this.dataVersion.assignNewOne(obj.dataVersion);
+                    this.printLoadDataWhenFirstBoot(obj);
+                }
+                log.info("load subGroup dataVersion success " + fileName + " " +  obj.dataVersion);
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("load subGroup dataVersion failed" + fileName , e);
+            return false;
+        }
+    }
+
     public void deleteSubscriptionGroupConfig(final String groupName) {
         SubscriptionGroupConfig old = removeSubscriptionGroupConfig(groupName);
         this.forbiddenTable.remove(groupName);

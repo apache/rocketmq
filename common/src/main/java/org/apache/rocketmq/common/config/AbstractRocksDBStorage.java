@@ -496,6 +496,7 @@ public abstract class AbstractRocksDBStorage {
             logger.info("MemUsage. blockCache: {}, indexesAndFilterBlock: {}, memtable: {}, blocksPinnedByIterator: {}",
                     blockCacheMemUsage, indexesAndFilterBlockMemUsage, memTableMemUsage, blocksPinnedByIteratorMemUsage);
         } catch (Exception ignored) {
+            throw new RuntimeException(ignored);
         }
     }
 }

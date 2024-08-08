@@ -637,6 +637,26 @@ public class TopicConfigManager extends ConfigManager {
         return encode(false);
     }
 
+    public boolean loadDataVersion() {
+        String fileName = null;
+        try {
+            fileName = this.configFilePath();
+            String jsonString = MixAll.file2String(fileName);
+            if (jsonString != null) {
+                TopicConfigSerializeWrapper topicConfigSerializeWrapper =
+                    TopicConfigSerializeWrapper.fromJson(jsonString, TopicConfigSerializeWrapper.class);
+                if (topicConfigSerializeWrapper != null) {
+                    this.dataVersion.assignNewOne(topicConfigSerializeWrapper.getDataVersion());
+                }
+                log.info("load topic metadata dataVersion success" + fileName + " " + topicConfigSerializeWrapper.getDataVersion());
+            }
+            return true;
+        } catch (Exception e) {
+            log.error("load topic metadata dataVersion failed" + fileName , e);
+            return false;
+        }
+    }
+
     @Override
     public String configFilePath() {
         return BrokerPathConfigHelper.getTopicConfigPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());

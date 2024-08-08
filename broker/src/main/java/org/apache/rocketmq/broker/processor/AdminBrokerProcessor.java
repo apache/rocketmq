@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -32,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,6 +71,7 @@ import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.LockCallback;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UnlockCallback;
@@ -209,6 +212,7 @@ import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.RocksDBMessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
@@ -339,6 +343,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return fetchAllConsumeStatsInBroker(ctx, request);
             case RequestCode.QUERY_CONSUME_QUEUE:
                 return queryConsumeQueue(ctx, request);
+            case RequestCode.DIFF_CONSUME_QUEUE:
+                return this.diffConsumeQueue(ctx, request);
             case RequestCode.UPDATE_AND_GET_GROUP_FORBIDDEN:
                 return this.updateAndGetGroupForbidden(ctx, request);
             case RequestCode.GET_SUBSCRIPTIONGROUP_CONFIG:
@@ -455,6 +461,79 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         groupForbidden.setTopic(topic);
         groupForbidden.setReadable(!groupManager.getForbidden(group, topic, PermName.INDEX_PERM_READ));
         response.setBody(groupForbidden.toJson().getBytes(StandardCharsets.UTF_8));
+        return response;
+    }
+
+    private RemotingCommand diffConsumeQueue(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "diff success, very good!")));
+
+        DefaultMessageStore messageStore = (DefaultMessageStore) brokerController.getMessageStore();
+        RocksDBMessageStore rocksDBMessageStore = messageStore.getRocksDBMessageStore();
+
+        if (!messageStore.getMessageStoreConfig().isRocksdbCQWriteEnable()) {
+            response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "RocksdbCQWriteEnable is false, diffConsumeQueue is invalid")));
+            return response;
+        }
+
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = messageStore.getConsumeQueueTable();
+        Random random = new Random();
+        for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicToCqListEntry : cqTable.entrySet()) {
+            String topic = topicToCqListEntry.getKey();
+            ConcurrentMap<Integer, ConsumeQueueInterface> queueIdToCqMap = topicToCqListEntry.getValue();
+            for (Map.Entry<Integer, ConsumeQueueInterface> queueIdToCqEntry : queueIdToCqMap.entrySet()) {
+                Integer queueId = queueIdToCqEntry.getKey();
+
+                ConsumeQueueInterface jsonCq = queueIdToCqEntry.getValue();
+                ConsumeQueueInterface kvCq = rocksDBMessageStore.getConsumeQueue(topic, queueId);
+
+                CqUnit kvCqEarliestUnit = kvCq.getEarliestUnit();
+                CqUnit kvCqLatestUnit = kvCq.getLatestUnit();
+                CqUnit jsonCqEarliestUnit = jsonCq.getEarliestUnit();
+                CqUnit jsonCqLatestUnit = jsonCq.getLatestUnit();
+                LOGGER.info("diffConsumeQueue topic:{}, queue:{}, kvCqEarliestUnit:{}, jsonCqEarliestUnit:{}, kvCqLatestUnit:{}, jsonCqLatestUnit:{}",
+                    topic, queueId, kvCqEarliestUnit, jsonCqEarliestUnit, kvCqLatestUnit, jsonCqLatestUnit);
+
+                long jsonOffset = jsonCq.getMaxOffsetInQueue() - 1;
+                int sampleCount = 10;
+
+                Set<Long> sampledOffsets = new HashSet<>();
+
+                if (jsonOffset > 100) {
+                    // Randomly sample 10 offsets from the last 100 entries
+                    long startOffset = jsonOffset - 100;
+                    while (sampledOffsets.size() < sampleCount) {
+                        long randomOffset = startOffset + random.nextInt(100);
+                        sampledOffsets.add(randomOffset);
+                    }
+                } else if (jsonOffset > 10) {
+                    // Take the last 10 entries
+                    long startOffset = jsonOffset - 10;
+                    for (long i = startOffset; i < jsonOffset; i++) {
+                        sampledOffsets.add(i);
+                    }
+                } else {
+                    // Take all available entries if less than 10
+                    for (long i = 0; i < jsonOffset; i++) {
+                        sampledOffsets.add(i);
+                    }
+                }
+
+                for (long currentOffset : sampledOffsets) {
+                    Pair<CqUnit, Long> kvCqUnitTime = kvCq.getCqUnitAndStoreTime(currentOffset);
+                    Pair<CqUnit, Long> jsonCqUnitTime = jsonCq.getCqUnitAndStoreTime(currentOffset);
+                    if (!checkCqUnitEqual(kvCqUnitTime.getObject1(), jsonCqUnitTime.getObject1())) {
+                        String diffInfo = String.format("Difference found at topic:%s, queue:%s, offset:%s - kvCqUnit:%s, jsonCqUnit:%s",
+                            topic, queueId, currentOffset, kvCqUnitTime.getObject1(), jsonCqUnitTime.getObject1());
+                        LOGGER.error(diffInfo);
+                        response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", diffInfo)));
+                        return response;
+                    }
+                }
+            }
+
+        }
         return response;
     }
 
@@ -3304,5 +3383,24 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
         return false;
+    }
+
+    private boolean checkCqUnitEqual(CqUnit cqUnit1, CqUnit cqUnit2) {
+        if (cqUnit1.getQueueOffset() != cqUnit2.getQueueOffset()) {
+            return false;
+        }
+        if (cqUnit1.getSize() != cqUnit2.getSize()) {
+            return false;
+        }
+        if (cqUnit1.getPos() != cqUnit2.getPos()) {
+            return false;
+        }
+        if (cqUnit1.getBatchNum() != cqUnit2.getBatchNum()) {
+            return false;
+        }
+        if (cqUnit1.getTagsCode() != cqUnit2.getTagsCode()) {
+            return false;
+        }
+        return true;
     }
 }

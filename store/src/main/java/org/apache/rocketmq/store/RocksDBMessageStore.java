@@ -39,6 +39,8 @@ import org.rocksdb.RocksDBException;
 
 public class RocksDBMessageStore extends DefaultMessageStore {
 
+    private CommitLogDispatcherBuildRocksdbConsumeQueue dispatcherBuildRocksdbConsumeQueue;
+
     public RocksDBMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
         final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable) throws
         IOException {
@@ -178,4 +180,30 @@ public class RocksDBMessageStore extends DefaultMessageStore {
         // Also add some metrics for rocksdb's monitoring.
         RocksDBStoreMetricsManager.init(meter, attributesBuilderSupplier, this);
     }
+
+    public CommitLogDispatcherBuildRocksdbConsumeQueue getDispatcherBuildRocksdbConsumeQueue() {
+        return dispatcherBuildRocksdbConsumeQueue;
+    }
+
+    class CommitLogDispatcherBuildRocksdbConsumeQueue implements CommitLogDispatcher {
+        @Override
+        public void dispatch(DispatchRequest request) throws RocksDBException {
+            putMessagePositionInfo(request);
+        }
+    }
+
+    public void loadAndStartConsumerServiceOnly() {
+        try {
+            this.dispatcherBuildRocksdbConsumeQueue = new CommitLogDispatcherBuildRocksdbConsumeQueue();
+            boolean loadResult = this.consumeQueueStore.load();
+            if (!loadResult) {
+                throw new RuntimeException("load consume queue failed");
+            }
+            super.loadCheckPoint();
+            this.consumeQueueStore.start();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
