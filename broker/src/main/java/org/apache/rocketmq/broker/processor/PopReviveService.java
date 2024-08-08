@@ -199,9 +199,8 @@ public class PopReviveService extends ServiceThread {
     }
 
     // Triple<MessageExt, info, needRetry>
-    public CompletableFuture<Triple<MessageExt, String, Boolean>> getBizMessage(String topic, long offset, int queueId,
-        String brokerName) {
-        return this.brokerController.getEscapeBridge().getMessageAsync(topic, offset, queueId, brokerName, false);
+    public CompletableFuture<Triple<MessageExt, String, Boolean>> getBizMessage(PopCheckPoint popCheckPoint, long offset) {
+        return this.brokerController.getEscapeBridge().getMessageAsync(popCheckPoint.getTopic(), offset, popCheckPoint.getQueueId(), popCheckPoint.getBrokerName(), false);
     }
 
     public PullResult getMessage(String group, String topic, int queueId, long offset, int nums,
@@ -528,7 +527,7 @@ public class PopReviveService extends ServiceThread {
 
             // retry msg
             long msgOffset = popCheckPoint.ackOffsetByIndex((byte) j);
-            CompletableFuture<Pair<Long, Boolean>> future = getBizMessage(popCheckPoint.getTopic(), msgOffset, popCheckPoint.getQueueId(), popCheckPoint.getBrokerName())
+            CompletableFuture<Pair<Long, Boolean>> future = getBizMessage(popCheckPoint, msgOffset)
                 .thenApply(rst -> {
                     MessageExt message = rst.getLeft();
                     if (message == null) {
