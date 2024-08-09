@@ -428,6 +428,7 @@ public class PopReviveServiceTest {
         ackMsg.setTopic(TOPIC);
         ackMsg.setQueueId(0);
         ackMsg.setPopTime(popTime);
+        ackMsg.setBrokerName("broker-a");
 
         return ackMsg;
     }
