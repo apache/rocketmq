@@ -190,9 +190,9 @@ jobs:
           test-code-branch: "master"
           test-code-path: golang
           test-cmd: |
-            cd ../common &&  mvn -Prelease -DskipTests clean package -U
-            cd ../rocketmq-admintools && source bin/env.sh
-            cd ../golang && go get -u github.com/apache/rocketmq-clients/golang && gotestsum --junitfile ./target/surefire-reports/TEST-report.xml ./mqgotest/... -timeout 2m  -v
+            cd ../../common && mvn -Prelease -DskipTests clean package -U
+            cd bin && source env.sh
+            cd ../../golang && go get -u github.com/apache/rocketmq-clients/golang && go test ./mqgotest/... -timeout 2m -v
           job-id: 0
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v3
