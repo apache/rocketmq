@@ -17,44 +17,41 @@
 package org.apache.rocketmq.common.compression;
 
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 public class CompressionTypeTest {
 
     @Test
     public void testCompressionTypeValues() {
-        assertEquals(1, CompressionType.LZ4.getValue(), "LZ4 value should be 1");
-        assertEquals(2, CompressionType.ZSTD.getValue(), "ZSTD value should be 2");
-        assertEquals(3, CompressionType.ZLIB.getValue(), "ZLIB value should be 3");
+        assertEquals(1, CompressionType.LZ4.getValue());
+        assertEquals(2, CompressionType.ZSTD.getValue());
+        assertEquals(3, CompressionType.ZLIB.getValue());
     }
 
     @Test
     public void testCompressionTypeOf() {
-        assertEquals(CompressionType.LZ4, CompressionType.of("LZ4"), "CompressionType.of(LZ4) should return LZ4");
-        assertEquals(CompressionType.ZSTD, CompressionType.of("ZSTD"), "CompressionType.of(ZSTD) should return ZSTD");
-        assertEquals(CompressionType.ZLIB, CompressionType.of("ZLIB"), "CompressionType.of(ZLIB) should return ZLIB");
-
-        assertThrows(RuntimeException.class, () -> CompressionType.of("UNKNOWN"), "Unsupported compression type should throw RuntimeException");
+        assertEquals(CompressionType.LZ4, CompressionType.of("LZ4"));
+        assertEquals(CompressionType.ZSTD, CompressionType.of("ZSTD"));
+        assertEquals(CompressionType.ZLIB, CompressionType.of("ZLIB"));
+        assertThrows(RuntimeException.class, () -> CompressionType.of("UNKNOWN"));
     }
 
     @Test
     public void testCompressionTypeFindByValue() {
-        assertEquals(CompressionType.LZ4, CompressionType.findByValue(1), "CompressionType.findByValue(1) should return LZ4");
-        assertEquals(CompressionType.ZSTD, CompressionType.findByValue(2), "CompressionType.findByValue(2) should return ZSTD");
-        assertEquals(CompressionType.ZLIB, CompressionType.findByValue(3), "CompressionType.findByValue(3) should return ZLIB");
-
-        assertEquals(CompressionType.ZLIB, CompressionType.findByValue(0), "CompressionType.findByValue(0) should return ZLIB for backward compatibility");
-
-        assertThrows(RuntimeException.class, () -> CompressionType.findByValue(99), "Invalid value should throw RuntimeException");
+        assertEquals(CompressionType.LZ4, CompressionType.findByValue(1));
+        assertEquals(CompressionType.ZSTD, CompressionType.findByValue(2));
+        assertEquals(CompressionType.ZLIB, CompressionType.findByValue(3));
+        assertEquals(CompressionType.ZLIB, CompressionType.findByValue(0));
+        assertThrows(RuntimeException.class, () -> CompressionType.findByValue(99));
     }
 
     @Test
     public void testCompressionFlag() {
-        assertEquals(MessageSysFlag.COMPRESSION_LZ4_TYPE, CompressionType.LZ4.getCompressionFlag(), "LZ4 compression flag is incorrect");
-        assertEquals(MessageSysFlag.COMPRESSION_ZSTD_TYPE, CompressionType.ZSTD.getCompressionFlag(), "ZSTD compression flag is incorrect");
-        assertEquals(MessageSysFlag.COMPRESSION_ZLIB_TYPE, CompressionType.ZLIB.getCompressionFlag(), "ZLIB compression flag is incorrect");
+        assertEquals(MessageSysFlag.COMPRESSION_LZ4_TYPE, CompressionType.LZ4.getCompressionFlag());
+        assertEquals(MessageSysFlag.COMPRESSION_ZSTD_TYPE, CompressionType.ZSTD.getCompressionFlag());
+        assertEquals(MessageSysFlag.COMPRESSION_ZLIB_TYPE, CompressionType.ZLIB.getCompressionFlag());
     }
 }
