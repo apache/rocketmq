@@ -51,7 +51,7 @@ public class CompressionTypeTest {
     @Test
     public void testCompressionFlag() {
         assertEquals(MessageSysFlag.COMPRESSION_LZ4_TYPE, CompressionType.LZ4.getCompressionFlag());
-        assertEquals(MessageSysFlag.COMPRESSION_ZSTD_TYPE, CompressionType.ZSTD.getCompressionFlag());
         assertEquals(MessageSysFlag.COMPRESSION_ZLIB_TYPE, CompressionType.ZLIB.getCompressionFlag());
+        assertEquals(MessageSysFlag.COMPRESSION_ZSTD_TYPE, CompressionType.ZSTD.getCompressionFlag());
     }
 }
