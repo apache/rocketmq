@@ -237,8 +237,8 @@ public class PullAPIWrapperTest {
         result.setSysFlag(result.getSysFlag() | MessageSysFlag.NEED_UNWRAP_FLAG);
         SocketAddress bornHost = new InetSocketAddress("127.0.0.1", 12911);
         SocketAddress storeHost = new InetSocketAddress("127.0.0.1", 10911);
-        result.setStoreHost(storeHost);
         result.setBornHost(bornHost);
+        result.setStoreHost(storeHost);
         return result;
     }
 }
