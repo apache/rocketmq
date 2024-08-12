@@ -106,6 +106,7 @@ public class ProduceAccumulatorTest {
         final MockMQProducer mockMQProducer = new MockMQProducer();
 
         final ProduceAccumulator produceAccumulator = new ProduceAccumulator("test");
+        produceAccumulator.batchMaxDelayMs(1000);
         produceAccumulator.start();
 
         List<Message> messages = new ArrayList<Message>();
