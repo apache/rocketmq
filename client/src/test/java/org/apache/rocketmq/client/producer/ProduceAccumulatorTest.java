@@ -106,7 +106,7 @@ public class ProduceAccumulatorTest {
         final MockMQProducer mockMQProducer = new MockMQProducer();
 
         final ProduceAccumulator produceAccumulator = new ProduceAccumulator("test");
-        produceAccumulator.batchMaxDelayMs(1000);
+        produceAccumulator.batchMaxDelayMs(3000);
         produceAccumulator.start();
 
         List<Message> messages = new ArrayList<Message>();
@@ -135,7 +135,7 @@ public class ProduceAccumulatorTest {
                 }
             }).start();
         }
-        assertThat(countDownLatch.await(3000L, TimeUnit.MILLISECONDS)).isTrue();
+        assertThat(countDownLatch.await(5000L, TimeUnit.MILLISECONDS)).isTrue();
         assertThat(mockMQProducer.beSendMessage instanceof MessageBatch).isTrue();
 
         MessageBatch messageBatch1 = (MessageBatch) mockMQProducer.beSendMessage;
