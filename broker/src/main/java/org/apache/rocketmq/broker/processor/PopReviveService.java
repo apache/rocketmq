@@ -199,9 +199,8 @@ public class PopReviveService extends ServiceThread {
     }
 
     // Triple<MessageExt, info, needRetry>
-    private CompletableFuture<Triple<MessageExt, String, Boolean>> getBizMessage(String topic, long offset, int queueId,
-        String brokerName) {
-        return this.brokerController.getEscapeBridge().getMessageAsync(topic, offset, queueId, brokerName, false);
+    public CompletableFuture<Triple<MessageExt, String, Boolean>> getBizMessage(PopCheckPoint popCheckPoint, long offset) {
+        return this.brokerController.getEscapeBridge().getMessageAsync(popCheckPoint.getTopic(), offset, popCheckPoint.getQueueId(), popCheckPoint.getBrokerName(), false);
     }
 
     public PullResult getMessage(String group, String topic, int queueId, long offset, int nums,
@@ -358,7 +357,7 @@ public class PopReviveService extends ServiceThread {
                     if (point.getTopic() == null || point.getCId() == null) {
                         continue;
                     }
-                    map.put(point.getTopic() + point.getCId() + point.getQueueId() + point.getStartOffset() + point.getPopTime(), point);
+                    map.put(point.getTopic() + point.getCId() + point.getQueueId() + point.getStartOffset() + point.getPopTime() + point.getBrokerName(), point);
                     PopMetricsManager.incPopReviveCkGetCount(point, queueId);
                     point.setReviveOffset(messageExt.getQueueOffset());
                     if (firstRt == 0) {
@@ -371,7 +370,7 @@ public class PopReviveService extends ServiceThread {
                     }
                     AckMsg ackMsg = JSON.parseObject(raw, AckMsg.class);
                     PopMetricsManager.incPopReviveAckGetCount(ackMsg, queueId);
-                    String mergeKey = ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime();
+                    String mergeKey = ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime() + ackMsg.getBrokerName();
                     PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
                         if (!brokerController.getBrokerConfig().isEnableSkipLongAwaitingAck()) {
@@ -396,7 +395,7 @@ public class PopReviveService extends ServiceThread {
 
                     BatchAckMsg bAckMsg = JSON.parseObject(raw, BatchAckMsg.class);
                     PopMetricsManager.incPopReviveAckGetCount(bAckMsg, queueId);
-                    String mergeKey = bAckMsg.getTopic() + bAckMsg.getConsumerGroup() + bAckMsg.getQueueId() + bAckMsg.getStartOffset() + bAckMsg.getPopTime();
+                    String mergeKey = bAckMsg.getTopic() + bAckMsg.getConsumerGroup() + bAckMsg.getQueueId() + bAckMsg.getStartOffset() + bAckMsg.getPopTime() + bAckMsg.getBrokerName();
                     PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
                         if (!brokerController.getBrokerConfig().isEnableSkipLongAwaitingAck()) {
@@ -528,7 +527,7 @@ public class PopReviveService extends ServiceThread {
 
             // retry msg
             long msgOffset = popCheckPoint.ackOffsetByIndex((byte) j);
-            CompletableFuture<Pair<Long, Boolean>> future = getBizMessage(popCheckPoint.getTopic(), msgOffset, popCheckPoint.getQueueId(), popCheckPoint.getBrokerName())
+            CompletableFuture<Pair<Long, Boolean>> future = getBizMessage(popCheckPoint, msgOffset)
                 .thenApply(rst -> {
                     MessageExt message = rst.getLeft();
                     if (message == null) {
@@ -568,9 +567,9 @@ public class PopReviveService extends ServiceThread {
 
     private void rePutCK(PopCheckPoint oldCK, Pair<Long, Boolean> pair) {
         int rePutTimes = oldCK.parseRePutTimes();
-        if (rePutTimes >= ckRewriteIntervalsInSeconds.length) {
-            POP_LOGGER.warn("rePut CK reach max times, drop it. {}, {}, {}, {}-{}, {}, {}", oldCK.getTopic(), oldCK.getCId(),
-                    oldCK.getBrokerName(), oldCK.getQueueId(), pair.getObject1(), oldCK.getPopTime(), oldCK.getInvisibleTime());
+        if (rePutTimes >= ckRewriteIntervalsInSeconds.length && brokerController.getBrokerConfig().isSkipWhenCKRePutReachMaxTimes()) {
+            POP_LOGGER.warn("rePut CK reach max times, drop it. {}, {}, {}, {}-{}, {}, {}, {}", oldCK.getTopic(), oldCK.getCId(),
+                    oldCK.getBrokerName(), oldCK.getQueueId(), pair.getObject1(), oldCK.getPopTime(), oldCK.getInvisibleTime(), rePutTimes);
             return;
         }
 
@@ -588,7 +587,8 @@ public class PopReviveService extends ServiceThread {
         newCk.setRePutTimes(String.valueOf(rePutTimes + 1)); // always increment even if removed from reviveRequestMap
         if (oldCK.getReviveTime() <= System.currentTimeMillis()) {
             // never expect an ACK matched in the future, we just use it to rewrite CK and try to revive retry message next time
-            newCk.setInvisibleTime(oldCK.getInvisibleTime() + ckRewriteIntervalsInSeconds[rePutTimes] * 1000);
+            int intervalIndex = rePutTimes >= ckRewriteIntervalsInSeconds.length ? ckRewriteIntervalsInSeconds.length - 1 : rePutTimes;
+            newCk.setInvisibleTime(oldCK.getInvisibleTime() + ckRewriteIntervalsInSeconds[intervalIndex] * 1000);
         }
         MessageExtBrokerInner ckMsg = brokerController.getPopMessageProcessor().buildCkMsg(newCk, queueId);
         brokerController.getMessageStore().putMessage(ckMsg);

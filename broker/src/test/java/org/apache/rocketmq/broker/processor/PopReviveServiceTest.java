@@ -104,7 +104,6 @@ public class PopReviveServiceTest {
         brokerConfig = new BrokerConfig();
         brokerConfig.setBrokerClusterName(CLUSTER_NAME);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
-        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(brokerController.getConsumerOffsetManager()).thenReturn(consumerOffsetManager);
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
@@ -285,6 +284,7 @@ public class PopReviveServiceTest {
 
     @Test
     public void testReviveMsgFromCk_messageFound_writeRetryFailed_rewriteCK_end() throws Throwable {
+        brokerConfig.setSkipWhenCKRePutReachMaxTimes(true);
         PopCheckPoint ck = buildPopCheckPoint(0, 0, 0);
         ck.setRePutTimes("17");
         PopReviveService.ConsumeReviveObj reviveObj = new PopReviveService.ConsumeReviveObj();
@@ -304,6 +304,30 @@ public class PopReviveServiceTest {
         Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, false), actualRetryTopic.toString());
         verify(escapeBridge, times(1)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
         verify(messageStore, times(0)).putMessage(any(MessageExtBrokerInner.class)); // rewrite CK
+    }
+
+    @Test
+    public void testReviveMsgFromCk_messageFound_writeRetryFailed_rewriteCK_noEnd() throws Throwable {
+        brokerConfig.setSkipWhenCKRePutReachMaxTimes(false);
+        PopCheckPoint ck = buildPopCheckPoint(0, 0, 0);
+        ck.setRePutTimes(Byte.MAX_VALUE + "");
+        PopReviveService.ConsumeReviveObj reviveObj = new PopReviveService.ConsumeReviveObj();
+        reviveObj.map.put("", ck);
+        reviveObj.endTime = System.currentTimeMillis();
+        StringBuilder actualRetryTopic = new StringBuilder();
+
+        when(escapeBridge.getMessageAsync(anyString(), anyLong(), anyInt(), anyString(), anyBoolean()))
+                .thenReturn(CompletableFuture.completedFuture(Triple.of(new MessageExt(), "", false)));
+        when(escapeBridge.putMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenAnswer(invocation -> {
+            MessageExtBrokerInner msg = invocation.getArgument(0);
+            actualRetryTopic.append(msg.getTopic());
+            return new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED));
+        });
+
+        popReviveService.mergeAndRevive(reviveObj);
+        Assert.assertEquals(KeyBuilder.buildPopRetryTopic(TOPIC, GROUP, false), actualRetryTopic.toString());
+        verify(escapeBridge, times(1)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
+        verify(messageStore, times(1)).putMessage(any(MessageExtBrokerInner.class)); // rewrite CK
     }
 
     @Test
@@ -349,6 +373,7 @@ public class PopReviveServiceTest {
 
     @Test
     public void testReviveMsgFromCk_messageNotFound_needRetry_end() throws Throwable {
+        brokerConfig.setSkipWhenCKRePutReachMaxTimes(true);
         PopCheckPoint ck = buildPopCheckPoint(0, 0, 0);
         ck.setRePutTimes("17");
         PopReviveService.ConsumeReviveObj reviveObj = new PopReviveService.ConsumeReviveObj();
@@ -361,6 +386,23 @@ public class PopReviveServiceTest {
         popReviveService.mergeAndRevive(reviveObj);
         verify(escapeBridge, times(0)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
         verify(messageStore, times(0)).putMessage(any(MessageExtBrokerInner.class)); // rewrite CK
+    }
+
+    @Test
+    public void testReviveMsgFromCk_messageNotFound_needRetry_noEnd() throws Throwable {
+        brokerConfig.setSkipWhenCKRePutReachMaxTimes(false);
+        PopCheckPoint ck = buildPopCheckPoint(0, 0, 0);
+        ck.setRePutTimes(Byte.MAX_VALUE + "");
+        PopReviveService.ConsumeReviveObj reviveObj = new PopReviveService.ConsumeReviveObj();
+        reviveObj.map.put("", ck);
+        reviveObj.endTime = System.currentTimeMillis();
+
+        when(escapeBridge.getMessageAsync(anyString(), anyLong(), anyInt(), anyString(), anyBoolean()))
+                .thenReturn(CompletableFuture.completedFuture(Triple.of(null, "", true)));
+
+        popReviveService.mergeAndRevive(reviveObj);
+        verify(escapeBridge, times(0)).putMessageToSpecificQueue(any(MessageExtBrokerInner.class)); // write retry
+        verify(messageStore, times(1)).putMessage(any(MessageExtBrokerInner.class)); // rewrite CK
     }
 
     public static PopCheckPoint buildPopCheckPoint(long startOffset, long popTime, long reviveOffset) {
@@ -386,6 +428,7 @@ public class PopReviveServiceTest {
         ackMsg.setTopic(TOPIC);
         ackMsg.setQueueId(0);
         ackMsg.setPopTime(popTime);
+        ackMsg.setBrokerName("broker-a");
 
         return ackMsg;
     }
