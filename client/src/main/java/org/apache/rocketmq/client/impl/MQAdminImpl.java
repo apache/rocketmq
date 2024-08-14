@@ -379,8 +379,8 @@ public class MQAdminImpl {
                                                     MessageDecoder.decodes(ByteBuffer.wrap(response.getBody()), true);
 
                                                 QueryResult qr = new QueryResult(responseHeader.getIndexLastUpdateTimestamp(), wrappers);
+                                                lock.writeLock().lock();
                                                 try {
-                                                    lock.writeLock().lock();
                                                     queryResultList.add(qr);
                                                 } finally {
                                                     lock.writeLock().unlock();
