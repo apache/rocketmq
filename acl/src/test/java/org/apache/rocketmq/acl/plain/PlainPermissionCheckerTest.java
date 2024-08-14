@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.acl.plain;
 
 import org.apache.rocketmq.acl.common.AclException;
@@ -37,11 +36,9 @@ public class PlainPermissionCheckerTest {
         PlainAccessResource checkedAccess = new PlainAccessResource();
         checkedAccess.setRequestCode(Permission.SUB);
         checkedAccess.addResourceAndPerm("topic1", Permission.PUB);
-
         PlainAccessResource ownedAccess = new PlainAccessResource();
         ownedAccess.setAccessKey("adminUser");
         ownedAccess.setAdmin(true);
-
         try {
             permissionChecker.check(checkedAccess, ownedAccess);
         } catch (AclException e) {
@@ -54,11 +51,9 @@ public class PlainPermissionCheckerTest {
         PlainAccessResource checkedAccess = new PlainAccessResource();
         checkedAccess.setRequestCode(Permission.SUB);
         checkedAccess.addResourceAndPerm("topic1", Permission.PUB);
-
         PlainAccessResource ownedAccess = new PlainAccessResource();
         ownedAccess.setAccessKey("nonAdminUser");
         ownedAccess.setAdmin(false);
-
         permissionChecker.check(checkedAccess, ownedAccess);
     }
 
@@ -67,12 +62,10 @@ public class PlainPermissionCheckerTest {
         PlainAccessResource checkedAccess = new PlainAccessResource();
         checkedAccess.setRequestCode(Permission.SUB);
         checkedAccess.addResourceAndPerm("topic1", Permission.PUB);
-
         PlainAccessResource ownedAccess = new PlainAccessResource();
         ownedAccess.setAccessKey("nonAdminUser");
         ownedAccess.setAdmin(false);
         ownedAccess.setDefaultTopicPerm(Permission.PUB);
-
         try {
             permissionChecker.check(checkedAccess, ownedAccess);
         } catch (AclException e) {
@@ -85,12 +78,10 @@ public class PlainPermissionCheckerTest {
         PlainAccessResource checkedAccess = new PlainAccessResource();
         checkedAccess.setRequestCode(Permission.SUB);
         checkedAccess.addResourceAndPerm("topic1", Permission.PUB);
-
         PlainAccessResource ownedAccess = new PlainAccessResource();
         ownedAccess.setAccessKey("nonAdminUser");
         ownedAccess.setAdmin(false);
-        ownedAccess.setDefaultTopicPerm(Permission.SUB); // Default permission is not enough for the needed permission
-
+        ownedAccess.setDefaultTopicPerm(Permission.SUB);
         permissionChecker.check(checkedAccess, ownedAccess);
     }
 
