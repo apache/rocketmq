@@ -48,9 +48,11 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
 
 public class EscapeBridge {
     protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -99,7 +101,7 @@ public class EscapeBridge {
 
             try {
                 messageExt.setWaitStoreMsgOK(false);
-                final SendResult sendResult = putMessageToRemoteBroker(messageExt);
+                final SendResult sendResult = putMessageToRemoteBroker(messageExt, null);
                 return transformSendResult2PutResult(sendResult);
             } catch (Exception e) {
                 LOG.error("sendMessageInFailover to remote failed", e);
@@ -112,7 +114,10 @@ public class EscapeBridge {
         }
     }
 
-    private SendResult putMessageToRemoteBroker(MessageExtBrokerInner messageExt) {
+    public SendResult putMessageToRemoteBroker(MessageExtBrokerInner messageExt, String brokerNameToSend) {
+        if (this.brokerController.getBrokerConfig().getBrokerName().equals(brokerNameToSend)) { // not remote broker
+            return null;
+        }
         final boolean isTransHalfMessage = TransactionalMessageUtil.buildHalfTopic().equals(messageExt.getTopic());
         MessageExtBrokerInner messageToPut = messageExt;
         if (isTransHalfMessage) {
@@ -125,12 +130,26 @@ public class EscapeBridge {
             return null;
         }
 
-        final MessageQueue mqSelected = topicPublishInfo.selectOneMessageQueue(this.brokerController.getBrokerConfig().getBrokerName());
+        final MessageQueue mqSelected;
+        if (StringUtils.isEmpty(brokerNameToSend)) {
+            mqSelected = topicPublishInfo.selectOneMessageQueue(this.brokerController.getBrokerConfig().getBrokerName());
+            messageToPut.setQueueId(mqSelected.getQueueId());
+            brokerNameToSend = mqSelected.getBrokerName();
+            if (this.brokerController.getBrokerConfig().getBrokerName().equals(brokerNameToSend)) {
+                LOG.warn("putMessageToRemoteBroker failed, remote broker not found. Topic: {}, MsgId: {}, Broker: {}",
+                        messageExt.getTopic(), messageExt.getMsgId(), brokerNameToSend);
+                return null;
+            }
+        } else {
+            mqSelected = new MessageQueue(messageExt.getTopic(), brokerNameToSend, messageExt.getQueueId());
+        }
 
-        messageToPut.setQueueId(mqSelected.getQueueId());
-
-        final String brokerNameToSend = mqSelected.getBrokerName();
         final String brokerAddrToSend = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInPublish(brokerNameToSend);
+        if (null == brokerAddrToSend) {
+            LOG.warn("putMessageToRemoteBroker failed, remote broker address not found. Topic: {}, MsgId: {}, Broker: {}",
+                    messageExt.getTopic(), messageExt.getMsgId(), brokerNameToSend);
+            return null;
+        }
 
         final long beginTimestamp = System.currentTimeMillis();
         try {
@@ -279,8 +298,12 @@ public class EscapeBridge {
                     }
                     List<MessageExt> list = decodeMsgList(result, deCompressBody);
                     if (list == null || list.isEmpty()) {
-                        LOG.warn("Can not get msg , topic {}, offset {}, queueId {}, result is {}", topic, offset, queueId, result);
-                        return Triple.of(null, "Can not get msg", false); // local store, so no retry
+                        // OFFSET_FOUND_NULL returned by TieredMessageStore indicates exception occurred
+                        boolean needRetry = GetMessageStatus.OFFSET_FOUND_NULL.equals(result.getStatus())
+                                && messageStore instanceof TieredMessageStore;
+                        LOG.warn("Can not get msg , topic {}, offset {}, queueId {}, needRetry {}, result is {}",
+                                topic, offset, queueId, needRetry, result);
+                        return Triple.of(null, "Can not get msg", needRetry);
                     }
                     return Triple.of(list.get(0), "", false);
                 });
