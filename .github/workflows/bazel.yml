@@ -8,10 +8,6 @@ on:
       - develop
       - bazel
 
-permissions:
-  actions: write
-  contents: write
-
 jobs:
   build:
     name: "bazel-compile (${{ matrix.os }})"
