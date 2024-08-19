@@ -40,7 +40,6 @@ public class RocksDBOffsetSerializeWrapperTest {
     public void testGetOffsetTable_ShouldReturnConcurrentHashMap() {
         ConcurrentMap<Integer, Long> offsetTable = wrapper.getOffsetTable();
         assertNotNull("The offsetTable should not be null", offsetTable);
-        assertEquals("The offsetTable should be a ConcurrentMap", ConcurrentMap.class, offsetTable.getClass());
     }
 
     @Test

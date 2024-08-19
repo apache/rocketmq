@@ -54,10 +54,7 @@ public class ZoneRouteRPCHookMoreTest {
         topicRouteData.setQueueDatas(generateQueueDataList());
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC,null);
-        request.setExtFields(new HashMap<String, String>() {{
-            put(MixAll.ZONE_MODE, "true");
-            put(MixAll.ZONE_NAME, "ZoneA");
-        }});
+        request.setExtFields(createExtFields("true","ZoneA"));
 
         RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, "remark");
 
@@ -77,9 +74,9 @@ public class ZoneRouteRPCHookMoreTest {
         topicRouteData.setQueueDatas(generateQueueDataList());
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC,null);
-        request.setExtFields(new HashMap<String, String>() {{
-            put(MixAll.ZONE_MODE, "true");
-        }});
+        HashMap<String, String> extFields = new HashMap<>();
+        extFields.put(MixAll.ZONE_MODE, "true");
+        request.setExtFields(extFields);
 
         RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS, null);
 
@@ -100,10 +97,7 @@ public class ZoneRouteRPCHookMoreTest {
         topicRouteData.setQueueDatas(generateQueueDataList());
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ROUTEINFO_BY_TOPIC,null);
-        request.setExtFields(new HashMap<String, String>() {{
-            put(MixAll.ZONE_MODE, "false");
-            put(MixAll.ZONE_NAME, "ZoneA");
-        }});
+        request.setExtFields(createExtFields("false","ZoneA"));
 
         RemotingCommand response = RemotingCommand.createResponseCommand(ResponseCode.SUCCESS ,null);
 
@@ -149,4 +143,12 @@ public class ZoneRouteRPCHookMoreTest {
 
         return queueDataList;
     }
+
+    private HashMap<String, String> createExtFields(String zoneMode, String zoneName) {
+        HashMap<String, String> extFields = new HashMap<>();
+        extFields.put(MixAll.ZONE_MODE, zoneMode);
+        extFields.put(MixAll.ZONE_NAME, zoneName);
+        return extFields;
+    }
+
 }
