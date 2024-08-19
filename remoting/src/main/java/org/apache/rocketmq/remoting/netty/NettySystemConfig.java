@@ -43,6 +43,16 @@ public class NettySystemConfig {
     public static final String COM_ROCKETMQ_REMOTING_WRITE_BUFFER_LOW_WATER_MARK =
         "com.rocketmq.remoting.write.buffer.low.water.mark";
 
+    public static final String COM_ROCKETMQ_REMOTING_CIRCUIT_BREAKER_ENABLE =
+            "com.rocketmq.remoting.circuitBreaker.enable";
+    public static final String COM_ROCKETMQ_REMOTING_CIRCUIT_BREAKER_RECOVER_SECOND =
+            "com.rocketmq.remoting.circuitBreaker.recoverSecond";
+    public static final String COM_ROCKETMQ_REMOTING_CIRCUIT_BREAKER_DEGRADE_RULE_COUNT =
+            "com.rocketmq.remoting.circuitBreaker.degradeRuleCount";
+    public static final String COM_ROCKETMQ_REMOTING_CIRCUIT_BREAKER_DEGRADE_RULE_SECOND =
+            "com.rocketmq.remoting.circuitBreaker.degradeRuleSecond";
+
+
     public static final boolean NETTY_POOLED_BYTE_BUF_ALLOCATOR_ENABLE = //
         Boolean.parseBoolean(System.getProperty(COM_ROCKETMQ_REMOTING_NETTY_POOLED_BYTE_BUF_ALLOCATOR_ENABLE, "false"));
     public static final int CLIENT_ASYNC_SEMAPHORE_VALUE = //
@@ -67,5 +77,12 @@ public class NettySystemConfig {
         Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_WRITE_BUFFER_HIGH_WATER_MARK_VALUE, "0"));
     public static int writeBufferLowWaterMark =
         Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_WRITE_BUFFER_LOW_WATER_MARK, "0"));
-
+    public static boolean circuitBreakerEnable =
+            Boolean.parseBoolean(System.getProperty(COM_ROCKETMQ_REMOTING_CIRCUIT_BREAKER_ENABLE, "false"));
+    public static int circuitBreakerRecoverSecond =
+            Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_CIRCUIT_BREAKER_RECOVER_SECOND, "10"));
+    public static int circuitBreakerDegradeRuleCount =
+            Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_CIRCUIT_BREAKER_DEGRADE_RULE_COUNT, "5"));
+    public static int circuitBreakerDegradeRuleSecond =
+            Integer.parseInt(System.getProperty(COM_ROCKETMQ_REMOTING_CIRCUIT_BREAKER_DEGRADE_RULE_SECOND, "10"));
 }

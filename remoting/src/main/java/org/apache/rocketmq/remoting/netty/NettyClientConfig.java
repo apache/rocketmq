@@ -32,7 +32,10 @@ public class NettyClientConfig {
     private long channelNotActiveInterval = 1000 * 60;
 
     private boolean isScanAvailableNameSrv = true;
-
+    private boolean circuitBreakerEnable = NettySystemConfig.circuitBreakerEnable;
+    private int circuitBreakerRecoverSecond = NettySystemConfig.circuitBreakerRecoverSecond;
+    private int circuitBreakerDegradeRuleCount = NettySystemConfig.circuitBreakerDegradeRuleCount;
+    private int circuitBreakerDegradeRuleSecond = NettySystemConfig.circuitBreakerDegradeRuleSecond;
     /**
      * IdleStateEvent will be triggered when neither read nor write was performed for
      * the specified period of this time. Specify {@code 0} to disable
@@ -227,5 +230,37 @@ public class NettyClientConfig {
 
     public void setScanAvailableNameSrv(boolean scanAvailableNameSrv) {
         this.isScanAvailableNameSrv = scanAvailableNameSrv;
+    }
+
+    public boolean isCircuitBreakerEnable() {
+        return circuitBreakerEnable;
+    }
+
+    public void setCircuitBreakerEnable(boolean circuitBreakerEnable) {
+        this.circuitBreakerEnable = circuitBreakerEnable;
+    }
+
+    public int getCircuitBreakerRecoverSecond() {
+        return circuitBreakerRecoverSecond;
+    }
+
+    public void setCircuitBreakerRecoverSecond(int circuitBreakerRecoverSecond) {
+        this.circuitBreakerRecoverSecond = circuitBreakerRecoverSecond;
+    }
+
+    public int getCircuitBreakerDegradeRuleCount() {
+        return circuitBreakerDegradeRuleCount;
+    }
+
+    public void setCircuitBreakerDegradeRuleCount(int circuitBreakerDegradeRuleCount) {
+        this.circuitBreakerDegradeRuleCount = circuitBreakerDegradeRuleCount;
+    }
+
+    public int getCircuitBreakerDegradeRuleSecond() {
+        return circuitBreakerDegradeRuleSecond;
+    }
+
+    public void setCircuitBreakerDegradeRuleSecond(int circuitBreakerDegradeRuleSecond) {
+        this.circuitBreakerDegradeRuleSecond = circuitBreakerDegradeRuleSecond;
     }
 }

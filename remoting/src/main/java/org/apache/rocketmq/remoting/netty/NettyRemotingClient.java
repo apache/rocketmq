@@ -80,6 +80,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RemotingClient;
+import org.apache.rocketmq.remoting.common.CircuitBreakerCounter;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -114,7 +115,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     private final ExecutorService publicExecutor;
     private final ExecutorService scanExecutor;
-
+    private final CircuitBreakerCounter circuitBreakerCounter;
     /**
      * Invoke the callback methods in this executor when process response.
      */
@@ -138,7 +139,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig.getClientAsyncSemaphoreValue());
         this.nettyClientConfig = nettyClientConfig;
         this.channelEventListener = channelEventListener;
-
+        this.circuitBreakerCounter = new CircuitBreakerCounter(nettyClientConfig.getCircuitBreakerRecoverSecond(),
+                nettyClientConfig.getCircuitBreakerDegradeRuleCount(),
+                nettyClientConfig.getCircuitBreakerDegradeRuleSecond());
         this.loadSocksProxyJson();
 
         int publicThreadNums = nettyClientConfig.getClientCallbackExecutorThreads();
@@ -192,6 +195,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 nettyClientConfig.getClientWorkerThreads(),
                 new ThreadFactoryImpl("NettyClientWorkerThread_"));
         }
+        circuitBreakerCounter.start();
         Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
             .option(ChannelOption.TCP_NODELAY, true)
             .option(ChannelOption.SO_KEEPALIVE, false)
@@ -214,7 +218,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         new NettyDecoder(),
                         new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
                         new NettyConnectManageHandler(),
-                        new NettyClientHandler());
+                        new NettyClientHandler(),
+                        nettyClientConfig.isCircuitBreakerEnable() ? new CircuitBreakerHandler(circuitBreakerCounter) : null);
                 }
             });
         if (nettyClientConfig.getClientSocketSndBufSize() > 0) {
@@ -365,7 +370,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
     public void shutdown() {
         try {
             this.timer.stop();
-
+            this.circuitBreakerCounter.stop();
             for (Map.Entry<String, ChannelWrapper> channel : this.channelTables.entrySet()) {
                 channel.getValue().close();
             }
@@ -1141,6 +1146,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             final String local = localAddress == null ? "UNKNOWN" : RemotingHelper.parseSocketAddressAddr(localAddress);
             final String remote = remoteAddress == null ? "UNKNOWN" : RemotingHelper.parseSocketAddressAddr(remoteAddress);
             LOGGER.info("NETTY CLIENT PIPELINE: CONNECT  {} => {}", local, remote);
+
 
             super.connect(ctx, remoteAddress, localAddress, promise);
 
