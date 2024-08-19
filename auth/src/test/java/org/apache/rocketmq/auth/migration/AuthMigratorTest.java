@@ -130,8 +130,8 @@ public class AuthMigratorTest {
         when(result.isAdmin()).thenReturn(false);
         when(result.getTopicPerms()).thenReturn(new ArrayList<>());
         when(result.getGroupPerms()).thenReturn(new ArrayList<>());
-        when(result.getDefaultTopicPerm()).thenReturn("PUB");
         when(result.getDefaultGroupPerm()).thenReturn(null);
+        when(result.getDefaultTopicPerm()).thenReturn("PUB");
         return result;
     }
 }
