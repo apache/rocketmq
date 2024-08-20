@@ -52,6 +52,7 @@ import org.apache.rocketmq.remoting.protocol.body.KVTable;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
@@ -210,6 +211,17 @@ public class TopicConfigManager extends ConfigManager {
             topicConfig.setReadQueueNums(1);
             topicConfig.setWriteQueueNums(1);
             putTopicConfig(topicConfig);
+        }
+
+        {
+            if (this.brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
+                String topic = TimerMessageStore.TIMER_TOPIC;
+                TopicConfig topicConfig = new TopicConfig(topic);
+                TopicValidator.addSystemTopic(topic);
+                topicConfig.setReadQueueNums(1);
+                topicConfig.setWriteQueueNums(1);
+                this.topicConfigTable.put(topicConfig.getTopicName(), topicConfig);
+            }
         }
     }
 
