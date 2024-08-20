@@ -1182,7 +1182,7 @@ public class DefaultMessageStore implements MessageStore {
         int size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 8;
         InetAddressValidator validator = InetAddressValidator.getInstance();
         if (validator.isValidInet6Address(this.brokerConfig.getBrokerIP1())) {
-            size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 12;
+            size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 20;
         }
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
