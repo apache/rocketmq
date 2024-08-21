@@ -30,19 +30,23 @@ import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
 import org.apache.rocketmq.client.consumer.PullResult;
 import org.apache.rocketmq.client.consumer.PullStatus;
+import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.GetMessageResult;
+import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Assert;
@@ -58,6 +62,9 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
 public class EscapeBridgeTest {
@@ -74,6 +81,9 @@ public class EscapeBridgeTest {
 
     @Mock
     private DefaultMessageStore defaultMessageStore;
+
+    @Mock
+    private TieredMessageStore tieredMessageStore;
 
     private GetMessageResult getMessageResult;
 
@@ -200,14 +210,37 @@ public class EscapeBridgeTest {
     }
 
     @Test
-    public void getMessageAsyncTest_localStore_decodeNothing() throws Exception {
+    public void getMessageAsyncTest_localStore_decodeNothing_DefaultMessageStore() throws Exception {
         when(brokerController.getMessageStoreByBrokerName(any())).thenReturn(defaultMessageStore);
-        when(defaultMessageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any()))
-                .thenReturn(CompletableFuture.completedFuture(mockGetMessageResult(0, TEST_TOPIC, null)));
-        Triple<MessageExt, String, Boolean> rst = escapeBridge.getMessageAsync(TEST_TOPIC, 0, DEFAULT_QUEUE_ID, BROKER_NAME, false).join();
-        Assert.assertNull(rst.getLeft());
-        Assert.assertEquals("Can not get msg", rst.getMiddle());
-        Assert.assertFalse(rst.getRight()); // no retry
+        for (GetMessageStatus status : GetMessageStatus.values()) {
+            GetMessageResult getMessageResult = mockGetMessageResult(0, TEST_TOPIC, null);
+            getMessageResult.setStatus(status);
+            when(defaultMessageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any()))
+                    .thenReturn(CompletableFuture.completedFuture(getMessageResult));
+            Triple<MessageExt, String, Boolean> rst = escapeBridge.getMessageAsync(TEST_TOPIC, 0, DEFAULT_QUEUE_ID, BROKER_NAME, false).join();
+            Assert.assertNull(rst.getLeft());
+            Assert.assertEquals("Can not get msg", rst.getMiddle());
+            Assert.assertFalse(rst.getRight()); // DefaultMessageStore, no retry
+        }
+    }
+
+    @Test
+    public void getMessageAsyncTest_localStore_decodeNothing_TieredMessageStore() throws Exception {
+        when(brokerController.getMessageStoreByBrokerName(any())).thenReturn(tieredMessageStore);
+        for (GetMessageStatus status : GetMessageStatus.values()) {
+            GetMessageResult getMessageResult = new GetMessageResult();
+            getMessageResult.setStatus(status);
+            when(tieredMessageStore.getMessageAsync(anyString(), anyString(), anyInt(), anyLong(), anyInt(), any()))
+                    .thenReturn(CompletableFuture.completedFuture(getMessageResult));
+            Triple<MessageExt, String, Boolean> rst = escapeBridge.getMessageAsync(TEST_TOPIC, 0, DEFAULT_QUEUE_ID, BROKER_NAME, false).join();
+            Assert.assertNull(rst.getLeft());
+            Assert.assertEquals("Can not get msg", rst.getMiddle());
+            if (GetMessageStatus.OFFSET_FOUND_NULL.equals(status)) {
+                Assert.assertTrue(rst.getRight()); // TieredMessageStore returns OFFSET_FOUND_NULL, need retry
+            } else {
+                Assert.assertFalse(rst.getRight()); // other status, like DefaultMessageStore, no retry
+            }
+        }
     }
 
     @Test
@@ -320,6 +353,57 @@ public class EscapeBridgeTest {
         Assert.assertTrue(Arrays.equals(msg.getBody(), list.get(0).getBody()));
     }
 
+    @Test
+    public void testPutMessageToRemoteBroker_noSpecificBrokerName_hasRemoteBroker() throws Exception {
+        MessageExtBrokerInner message = new MessageExtBrokerInner();
+        message.setTopic(TEST_TOPIC);
+        String anotherBrokerName = "broker_b";
+        TopicPublishInfo publishInfo = mockTopicPublishInfo(BROKER_NAME, anotherBrokerName);
+        when(topicRouteInfoManager.tryToFindTopicPublishInfo(anyString())).thenReturn(publishInfo);
+        when(topicRouteInfoManager.findBrokerAddressInPublish(anotherBrokerName)).thenReturn("127.0.0.1");
+        escapeBridge.putMessageToRemoteBroker(message, null);
+        verify(brokerOuterAPI).sendMessageToSpecificBroker(eq("127.0.0.1"), eq(anotherBrokerName), any(MessageExtBrokerInner.class), anyString(), anyLong());
+    }
+
+    @Test
+    public void testPutMessageToRemoteBroker_noSpecificBrokerName_noRemoteBroker() throws Exception {
+        MessageExtBrokerInner message = new MessageExtBrokerInner();
+        message.setTopic(TEST_TOPIC);
+        TopicPublishInfo publishInfo = mockTopicPublishInfo(BROKER_NAME);
+        when(topicRouteInfoManager.tryToFindTopicPublishInfo(anyString())).thenReturn(publishInfo);
+        escapeBridge.putMessageToRemoteBroker(message, null);
+        verify(topicRouteInfoManager, times(0)).findBrokerAddressInPublish(anyString());
+    }
+
+    @Test
+    public void testPutMessageToRemoteBroker_specificBrokerName_equals() throws Exception {
+        escapeBridge.putMessageToRemoteBroker(new MessageExtBrokerInner(), BROKER_NAME);
+        verify(topicRouteInfoManager, times(0)).tryToFindTopicPublishInfo(anyString());
+    }
+
+    @Test
+    public void testPutMessageToRemoteBroker_specificBrokerName_addressNotFound() throws Exception {
+        MessageExtBrokerInner message = new MessageExtBrokerInner();
+        message.setTopic(TEST_TOPIC);
+        TopicPublishInfo publishInfo = mockTopicPublishInfo(BROKER_NAME);
+        when(topicRouteInfoManager.tryToFindTopicPublishInfo(anyString())).thenReturn(publishInfo);
+        escapeBridge.putMessageToRemoteBroker(message, "whatever");
+        verify(topicRouteInfoManager).findBrokerAddressInPublish(eq("whatever"));
+        verify(brokerOuterAPI, times(0)).sendMessageToSpecificBroker(anyString(), anyString(), any(MessageExtBrokerInner.class), anyString(), anyLong());
+    }
+
+    @Test
+    public void testPutMessageToRemoteBroker_specificBrokerName_addressFound() throws Exception {
+        MessageExtBrokerInner message = new MessageExtBrokerInner();
+        message.setTopic(TEST_TOPIC);
+        String anotherBrokerName = "broker_b";
+        TopicPublishInfo publishInfo = mockTopicPublishInfo(BROKER_NAME, anotherBrokerName);
+        when(topicRouteInfoManager.tryToFindTopicPublishInfo(anyString())).thenReturn(publishInfo);
+        when(topicRouteInfoManager.findBrokerAddressInPublish(anotherBrokerName)).thenReturn("127.0.0.1");
+        escapeBridge.putMessageToRemoteBroker(message, anotherBrokerName);
+        verify(brokerOuterAPI).sendMessageToSpecificBroker(eq("127.0.0.1"), eq(anotherBrokerName), any(MessageExtBrokerInner.class), anyString(), anyLong());
+    }
+
     private GetMessageResult mockGetMessageResult(int count, String topic, byte[] body) throws Exception {
         GetMessageResult result = new GetMessageResult();
         for (int i = 0; i < count; i++) {
@@ -335,6 +419,14 @@ public class EscapeBridgeTest {
             result.getMessageQueueOffset().add(i + 0L);
         }
         return result;
+    }
+
+    private TopicPublishInfo mockTopicPublishInfo(String... brokerNames) {
+        TopicPublishInfo topicPublishInfo = new TopicPublishInfo();
+        for (String brokerName : brokerNames) {
+            topicPublishInfo.getMessageQueueList().add(new MessageQueue(TEST_TOPIC, brokerName, 0));
+        }
+        return topicPublishInfo;
     }
 
 }

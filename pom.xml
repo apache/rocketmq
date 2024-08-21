@@ -121,7 +121,7 @@
         <zstd-jni.version>1.5.2-2</zstd-jni.version>
         <lz4-java.version>1.8.0</lz4-java.version>
         <opentracing.version>0.33.0</opentracing.version>
-        <jaeger.version>1.6.0</jaeger.version>
+        <jaeger.version>1.8.1</jaeger.version>
         <dleger.version>0.3.1.2</dleger.version>
         <annotations-api.version>6.0.53</annotations-api.version>
         <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
