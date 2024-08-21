@@ -5,6 +5,9 @@ on:
       run_id:
         required: true
 
+permissions:
+  actions: write
+
 jobs:
   rerun:
     runs-on: ubuntu-latest

@@ -4,6 +4,10 @@ on:
     types: [opened, reopened, synchronize]
   push:
     branches: [master, develop, bazel]
+
+permissions:
+  actions: write
+
 jobs:
   java_build:
     name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
