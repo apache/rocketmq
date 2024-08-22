@@ -1572,6 +1572,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     public void setConsumeMessageService(ConsumeMessageService consumeMessageService) {
         this.consumeMessageService = consumeMessageService;
+
     }
 
     public void setPullTimeDelayMillsWhenException(long pullTimeDelayMillsWhenException) {
