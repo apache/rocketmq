@@ -985,6 +985,12 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public long getMaxOffsetInQueue(String topic, int queueId, boolean committed) {
         if (committed) {
+            Optional<TopicConfig> topicConfig = getTopicConfig(topic);
+            CleanupPolicy policy = CleanupPolicyUtils.getDeletePolicy(topicConfig);
+            // Query compaction topic offset from compactionStore
+            if (Objects.equals(policy, CleanupPolicy.COMPACTION) && messageStoreConfig.isEnableCompaction()) {
+                return compactionStore.getMaxOffsetInQueue(topic, queueId);
+            }
             ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
             if (logic != null) {
                 return logic.getMaxOffsetInQueue();
@@ -1001,6 +1007,12 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getMinOffsetInQueue(String topic, int queueId) {
+        Optional<TopicConfig> topicConfig = getTopicConfig(topic);
+        CleanupPolicy policy = CleanupPolicyUtils.getDeletePolicy(topicConfig);
+        // Query compaction topic offset from compactionStore
+        if (Objects.equals(policy, CleanupPolicy.COMPACTION) && messageStoreConfig.isEnableCompaction()) {
+            return compactionStore.getMinOffsetInQueue(topic, queueId);
+        }
         try {
             return this.consumeQueueStore.getMinOffsetInQueue(topic, queueId);
         } catch (RocksDBException e) {
@@ -1038,6 +1050,12 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) {
+        Optional<TopicConfig> topicConfig = getTopicConfig(topic);
+        CleanupPolicy policy = CleanupPolicyUtils.getDeletePolicy(topicConfig);
+        // Query compaction topic offset from compactionStore
+        if (Objects.equals(policy, CleanupPolicy.COMPACTION) && messageStoreConfig.isEnableCompaction()) {
+            return compactionStore.getOffsetInQueueByTime(topic, queueId, timestamp, boundaryType);
+        }
         try {
             return this.consumeQueueStore.getOffsetInQueueByTime(topic, queueId, timestamp, boundaryType);
         } catch (RocksDBException e) {

@@ -79,4 +79,8 @@ public class KeyBuilder {
     public static boolean isPopRetryTopicV2(String retryTopic) {
         return retryTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX) && retryTopic.contains(String.valueOf(POP_RETRY_SEPARATOR_V2));
     }
+
+    public static String buildCompactionLogKey(String topic, int queueId) {
+        return topic + "_" + queueId;
+    }
 }

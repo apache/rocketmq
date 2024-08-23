@@ -29,6 +29,8 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.attribute.CleanupPolicy;
@@ -144,7 +146,7 @@ public class CompactionStore {
     }
 
     private CompactionLog loadAndGetClog(String topic, int queueId) {
-        CompactionLog clog = compactionLogTable.compute(topic + "_" + queueId, (k, v) -> {
+        CompactionLog clog = compactionLogTable.compute(KeyBuilder.buildCompactionLogKey(topic, queueId), (k, v) -> {
             if (v == null) {
                 try {
                     v = new CompactionLog(defaultMessageStore, this, topic, queueId);
@@ -179,13 +181,38 @@ public class CompactionStore {
 
     public GetMessageResult getMessage(final String group, final String topic, final int queueId, final long offset,
         final int maxMsgNums, final int maxTotalMsgSize) {
-        CompactionLog log = compactionLogTable.get(topic + "_" + queueId);
+        CompactionLog log = compactionLogTable.get(KeyBuilder.buildCompactionLogKey(topic, queueId));
         if (log == null) {
             return GetMessageResult.NO_MATCH_LOGIC_QUEUE;
         } else {
             return log.getMessage(group, topic, queueId, offset, maxMsgNums, maxTotalMsgSize);
         }
 
+    }
+
+    public long getMaxOffsetInQueue(final String topic, final int queueId) {
+        CompactionLog log = compactionLogTable.get(KeyBuilder.buildCompactionLogKey(topic, queueId));
+        if (log == null) {
+            return 0;
+        }
+        return log.getCQ().getMaxOffsetInQueue();
+    }
+
+    public long getMinOffsetInQueue(final String topic, final int queueId) {
+        CompactionLog log = compactionLogTable.get(KeyBuilder.buildCompactionLogKey(topic, queueId));
+        if (log == null) {
+            return -1;
+        }
+        return log.getCQ().getMinOffsetInQueue();
+    }
+
+    public long getOffsetInQueueByTime(final String topic, final int queueId, final long timestamp,
+        BoundaryType boundaryType) {
+        CompactionLog log = compactionLogTable.get(KeyBuilder.buildCompactionLogKey(topic, queueId));
+        if (log == null) {
+            return 0;
+        }
+        return log.getCQ().getOffsetInQueueByTime(timestamp, boundaryType);
     }
 
     public void flush(int flushLeastPages) {
