@@ -338,7 +338,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Constructor specifying consumer group, RPC hook and message queue allocating algorithm.
      *
-     * @param consumerGroup                Consume queue.
+     * @param consumerGroup                Consumer group.
      * @param rpcHook                      RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy Message queue allocating algorithm.
      */
@@ -350,7 +350,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     /**
      * Constructor specifying consumer group, RPC hook, message queue allocating algorithm, enabled msg trace flag and customized trace topic name.
      *
-     * @param consumerGroup                Consume queue.
+     * @param consumerGroup                Consumer group.
      * @param rpcHook                      RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy message queue allocating algorithm.
      * @param enableMsgTrace               Switch flag instance for message trace.
@@ -394,7 +394,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Constructor specifying namespace, consumer group, RPC hook and message queue allocating algorithm.
      *
      * @param namespace                    Namespace for this MQ Producer instance.
-     * @param consumerGroup                Consume queue.
+     * @param consumerGroup                Consumer group.
      * @param rpcHook                      RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy Message queue allocating algorithm.
      */
@@ -412,7 +412,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Constructor specifying namespace, consumer group, RPC hook, message queue allocating algorithm, enabled msg trace flag and customized trace topic name.
      *
      * @param namespace                    Namespace for this MQ Producer instance.
-     * @param consumerGroup                Consume queue.
+     * @param consumerGroup                Consumer group.
      * @param rpcHook                      RPC hook to execute before each remoting command.
      * @param allocateMessageQueueStrategy message queue allocating algorithm.
      * @param enableMsgTrace               Switch flag instance for message trace.
