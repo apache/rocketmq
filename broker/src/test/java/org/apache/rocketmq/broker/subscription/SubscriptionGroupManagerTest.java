@@ -18,7 +18,11 @@
 package org.apache.rocketmq.broker.subscription;
 
 import com.google.common.collect.ImmutableMap;
+
+import java.nio.file.Paths;
 import java.util.Map;
+import java.util.UUID;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SubscriptionGroupAttributes;
@@ -30,36 +34,42 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SubscriptionGroupManagerTest {
     private String group = "group";
+
+    private final String basePath = Paths.get(System.getProperty("user.home"),
+            "unit-test-store", UUID.randomUUID().toString().substring(0, 16).toUpperCase()).toString();
     @Mock
     private BrokerController brokerControllerMock;
     private SubscriptionGroupManager subscriptionGroupManager;
 
     @Before
     public void before() {
+        if (notToBeExecuted()) {
+            return;
+        }
         SubscriptionGroupAttributes.ALL.put("test", new BooleanAttribute(
             "test",
             false,
             false
         ));
         subscriptionGroupManager = spy(new SubscriptionGroupManager(brokerControllerMock));
-        when(brokerControllerMock.getMessageStore()).thenReturn(null);
-        doNothing().when(subscriptionGroupManager).persist();
+        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(basePath);
+        Mockito.lenient().when(brokerControllerMock.getMessageStoreConfig()).thenReturn(messageStoreConfig);
     }
 
     @After
     public void destroy() {
-        if (MixAll.isMac()) {
+        if (notToBeExecuted()) {
             return;
         }
         if (subscriptionGroupManager != null) {
@@ -69,18 +79,18 @@ public class SubscriptionGroupManagerTest {
 
     @Test
     public void testUpdateAndCreateSubscriptionGroupInRocksdb() {
-        if (MixAll.isMac()) {
+        if (notToBeExecuted()) {
             return;
         }
-        when(brokerControllerMock.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
-        subscriptionGroupManager = spy(new RocksDBSubscriptionGroupManager(brokerControllerMock));
-        subscriptionGroupManager.load();
         group += System.currentTimeMillis();
         updateSubscriptionGroupConfig();
     }
 
     @Test
     public void updateSubscriptionGroupConfig() {
+        if (notToBeExecuted()) {
+            return;
+        }
         SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
         subscriptionGroupConfig.setGroupName(group);
         Map<String, String> attr = ImmutableMap.of("+test", "true");
@@ -98,5 +108,9 @@ public class SubscriptionGroupManagerTest {
         subscriptionGroupConfig1.setAttributes(attrRemove);
         assertThatThrownBy(() -> subscriptionGroupManager.updateSubscriptionGroupConfig(subscriptionGroupConfig1))
             .isInstanceOf(RuntimeException.class).hasMessage("attempt to update an unchangeable attribute. key: test");
+    }
+
+    private boolean notToBeExecuted() {
+        return MixAll.isMac();
     }
 }

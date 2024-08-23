@@ -121,7 +121,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
     }
 
-    protected SubscriptionGroupConfig putSubscriptionGroupConfig(SubscriptionGroupConfig subscriptionGroupConfig) {
+    public SubscriptionGroupConfig putSubscriptionGroupConfig(SubscriptionGroupConfig subscriptionGroupConfig) {
         return this.subscriptionGroupTable.put(subscriptionGroupConfig.getGroupName(), subscriptionGroupConfig);
     }
 
@@ -156,8 +156,7 @@ public class SubscriptionGroupManager extends ConfigManager {
             log.info("create new subscription group, {}", config);
         }
 
-        long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-        dataVersion.nextVersion(stateMachineVersion);
+        updateDataVersion();
 
         this.persist();
     }
@@ -214,7 +213,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         return topicForbidden;
     }
 
-    private void updateForbiddenValue(String group, String topic, Integer forbidden) {
+    protected void updateForbiddenValue(String group, String topic, Integer forbidden) {
         if (forbidden == null || forbidden <= 0) {
             this.forbiddenTable.remove(group);
             log.info("clear group forbidden, {}@{} ", group, topic);
@@ -233,8 +232,7 @@ public class SubscriptionGroupManager extends ConfigManager {
             log.info("set group forbidden, {}@{} old: {} new: {}", group, topic, 0, forbidden);
         }
 
-        long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-        dataVersion.nextVersion(stateMachineVersion);
+        updateDataVersion();
 
         this.persist();
     }
@@ -243,8 +241,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         SubscriptionGroupConfig old = getSubscriptionGroupConfig(groupName);
         if (old != null) {
             old.setConsumeEnable(false);
-            long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            dataVersion.nextVersion(stateMachineVersion);
+            updateDataVersion();
         }
     }
 
@@ -261,8 +258,7 @@ public class SubscriptionGroupManager extends ConfigManager {
                 if (null == preConfig) {
                     log.info("auto create a subscription group, {}", subscriptionGroupConfig.toString());
                 }
-                long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-                dataVersion.nextVersion(stateMachineVersion);
+                updateDataVersion();
                 this.persist();
             }
         }
@@ -331,8 +327,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         this.forbiddenTable.remove(groupName);
         if (old != null) {
             log.info("delete subscription group OK, subscription group:{}", old);
-            long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            dataVersion.nextVersion(stateMachineVersion);
+            updateDataVersion();
             this.persist();
         } else {
             log.warn("delete subscription group failed, subscription groupName: {} not exist", groupName);
@@ -369,4 +364,14 @@ public class SubscriptionGroupManager extends ConfigManager {
             }
         }
     }
+
+    public void setDataVersion(DataVersion dataVersion) {
+        this.dataVersion.assignNewOne(dataVersion);
+    }
+
+    public void updateDataVersion() {
+        long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
+        dataVersion.nextVersion(stateMachineVersion);
+    }
+
 }
