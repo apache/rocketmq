@@ -14,18 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.tools.command.metadata;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.config.RocksDBConfigManager;
+import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
+import org.rocksdb.RocksIterator;
 
 import java.io.File;
 import java.util.HashMap;
@@ -47,8 +50,8 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option pathOption = new Option("p", "path", true,
-                "Absolute path to the metadata directory");
+        Option pathOption = new Option("p", "configPath", true,
+                "Absolute path to the metadata config directory");
         pathOption.setRequired(true);
         options.addOption(pathOption);
 
@@ -62,57 +65,50 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
 
     @Override
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
-        String path = commandLine.getOptionValue("path").trim();
+        String path = commandLine.getOptionValue("configPath").trim();
         if (StringUtils.isEmpty(path) || !new File(path).exists()) {
             System.out.print("Rocksdb path is invalid.\n");
             return;
         }
 
         String configType = commandLine.getOptionValue("configType").trim().toLowerCase();
+        if (!path.endsWith("/")) {
+            path += "/";
+        }
+        path += configType;
 
-        final long memTableFlushInterval = 60 * 60 * 1000L;
-        RocksDBConfigManager kvConfigManager = new RocksDBConfigManager(memTableFlushInterval);
+        ConfigRocksDBStorage configRocksDBStorage = new ConfigRocksDBStorage(path, true);
+        configRocksDBStorage.start();
+        RocksIterator iterator = configRocksDBStorage.iterator();
+
         try {
-            if (TOPICS_JSON_CONFIG.toLowerCase().equals(configType)) {
-                // for topics.json
-                final Map<String, JSONObject> topicsJsonConfig = new HashMap<>();
-                final Map<String, JSONObject> topicConfigTable = new HashMap<>();
-                boolean isLoad = kvConfigManager.load(path, (key, value) -> {
-                    final String topic = new String(key, DataConverter.CHARSET_UTF8);
-                    final String topicConfig = new String(value, DataConverter.CHARSET_UTF8);
-                    final JSONObject jsonObject = JSONObject.parseObject(topicConfig);
-                    topicConfigTable.put(topic, jsonObject);
-                });
+            final Map<String, JSONObject> configMap = new HashMap<>();
+            final Map<String, JSONObject> configTable = new HashMap<>();
+            iterator.seekToFirst();
+            while (iterator.isValid()) {
+                final byte[] key = iterator.key();
+                final byte[] value = iterator.value();
+                final String name = new String(key, DataConverter.CHARSET_UTF8);
+                final String config = new String(value, DataConverter.CHARSET_UTF8);
+                final JSONObject jsonObject = JSONObject.parseObject(config);
+                configTable.put(name, jsonObject);
+                iterator.next();
+            }
+            byte[] kvDataVersion = configRocksDBStorage.getKvDataVersion();
+            configMap.put("dataVersion",
+                    JSONObject.parseObject(new String(kvDataVersion, DataConverter.CHARSET_UTF8)));
 
-                if (isLoad) {
-                    topicsJsonConfig.put("topicConfigTable", (JSONObject) JSONObject.toJSON(topicConfigTable));
-                    final String topicsJsonStr = JSONObject.toJSONString(topicsJsonConfig, true);
-                    System.out.print(topicsJsonStr + "\n");
-                    return;
-                }
+            if (TOPICS_JSON_CONFIG.toLowerCase().equals(configType)) {
+                configMap.put("topicConfigTable", JSON.parseObject(JSONObject.toJSONString(configTable)));
             }
             if (SUBSCRIPTION_GROUP_JSON_CONFIG.toLowerCase().equals(configType)) {
-                // for subscriptionGroup.json
-                final Map<String, JSONObject> subscriptionGroupJsonConfig = new HashMap<>();
-                final Map<String, JSONObject> subscriptionGroupTable = new HashMap<>();
-                boolean isLoad = kvConfigManager.load(path, (key, value) -> {
-                    final String subscriptionGroup = new String(key, DataConverter.CHARSET_UTF8);
-                    final String subscriptionGroupConfig = new String(value, DataConverter.CHARSET_UTF8);
-                    final JSONObject jsonObject = JSONObject.parseObject(subscriptionGroupConfig);
-                    subscriptionGroupTable.put(subscriptionGroup, jsonObject);
-                });
-
-                if (isLoad) {
-                    subscriptionGroupJsonConfig.put("subscriptionGroupTable",
-                            (JSONObject) JSONObject.toJSON(subscriptionGroupTable));
-                    final String subscriptionGroupJsonStr = JSONObject.toJSONString(subscriptionGroupJsonConfig, true);
-                    System.out.print(subscriptionGroupJsonStr + "\n");
-                    return;
-                }
+                configMap.put("subscriptionGroupTable", JSON.parseObject(JSONObject.toJSONString(configTable)));
             }
-            System.out.print("Config type was not recognized, configType=" + configType + "\n");
+            System.out.print(JSONObject.toJSONString(configMap, true) + "\n");
+        } catch (Exception e) {
+            System.out.print("Error occurred while converting RocksDB kv config to json, " + "configType=" + configType + ", " + e.getMessage() + "\n");
         } finally {
-            kvConfigManager.stop();
+            configRocksDBStorage.shutdown();
         }
     }
 }
