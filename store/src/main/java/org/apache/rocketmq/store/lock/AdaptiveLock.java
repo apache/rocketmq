@@ -14,25 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
+package org.apache.rocketmq.store.lock;
 
-import org.apache.rocketmq.store.lock.AdaptiveLock;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 
-import java.util.concurrent.locks.ReentrantLock;
+public interface AdaptiveLock {
 
-/**
- * Exclusive lock implementation to put message
- */
-public class PutMessageReentrantLock implements PutMessageLock, AdaptiveLock {
-    private ReentrantLock putMessageNormalLock = new ReentrantLock(); // NonfairSync
+    void lock();
 
-    @Override
-    public void lock() {
-        putMessageNormalLock.lock();
+    void unlock();
+
+    default void update(MessageStoreConfig messageStoreConfig) {
     }
 
-    @Override
-    public void unlock() {
-        putMessageNormalLock.unlock();
+    default void swap() {
     }
 }
