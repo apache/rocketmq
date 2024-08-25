@@ -14,13 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
+package org.apache.rocketmq.store.lock;
 
-/**
- * Used when trying to put message
- */
-public interface PutMessageLock {
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+
+public interface AdaptiveLock {
+
     void lock();
 
     void unlock();
+
+    default void update(MessageStoreConfig messageStoreConfig) {
+    }
+
+    default void swap() {
+    }
 }
