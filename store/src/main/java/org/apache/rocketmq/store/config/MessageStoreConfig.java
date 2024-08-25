@@ -105,6 +105,9 @@ public class MessageStoreConfig {
     // default, defaultRocksDB
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
+
+    private boolean transferMetadataJsonToRocksdb = false;
+
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -1847,6 +1850,14 @@ public class MessageStoreConfig {
 
     public void setPutConsumeQueueDataByFileChannel(boolean putConsumeQueueDataByFileChannel) {
         this.putConsumeQueueDataByFileChannel = putConsumeQueueDataByFileChannel;
+    }
+
+    public boolean isTransferMetadataJsonToRocksdb() {
+        return transferMetadataJsonToRocksdb;
+    }
+
+    public void setTransferMetadataJsonToRocksdb(boolean transferMetadataJsonToRocksdb) {
+        this.transferMetadataJsonToRocksdb = transferMetadataJsonToRocksdb;
     }
 
     public int getSpinLockCollisionRetreatOptimalDegree() {

@@ -159,7 +159,8 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                     if (handle.getNextVisibleTime() - current > proxyConfig.getRenewAheadTimeMillis()) {
                         return;
                     }
-                    renewalWorkerService.submit(() -> renewMessage(key, group, msgID, handleStr));
+                    renewalWorkerService.submit(() -> renewMessage(createContext("RenewMessage"), key, group,
+                        msgID, handleStr));
                 });
             }
         } catch (Exception e) {
@@ -169,15 +170,15 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
         log.debug("scan for renewal done. cost:{}ms", stopwatch.elapsed().toMillis());
     }
 
-    protected void renewMessage(ReceiptHandleGroupKey key, ReceiptHandleGroup group, String msgID, String handleStr) {
+    protected void renewMessage(ProxyContext context, ReceiptHandleGroupKey key, ReceiptHandleGroup group, String msgID, String handleStr) {
         try {
-            group.computeIfPresent(msgID, handleStr, messageReceiptHandle -> startRenewMessage(key, messageReceiptHandle));
+            group.computeIfPresent(msgID, handleStr, messageReceiptHandle -> startRenewMessage(context, key, messageReceiptHandle));
         } catch (Exception e) {
             log.error("error when renew message. msgID:{}, handleStr:{}", msgID, handleStr, e);
         }
     }
 
-    protected CompletableFuture<MessageReceiptHandle> startRenewMessage(ReceiptHandleGroupKey key, MessageReceiptHandle messageReceiptHandle) {
+    protected CompletableFuture<MessageReceiptHandle> startRenewMessage(ProxyContext context, ReceiptHandleGroupKey key, MessageReceiptHandle messageReceiptHandle) {
         CompletableFuture<MessageReceiptHandle> resFuture = new CompletableFuture<>();
         ProxyConfig proxyConfig = ConfigurationManager.getProxyConfig();
         long current = System.currentTimeMillis();
@@ -209,7 +210,6 @@ public class DefaultReceiptHandleManager extends AbstractStartAndShutdown implem
                     }
                 });
             } else {
-                ProxyContext context = createContext("RenewMessage");
                 SubscriptionGroupConfig subscriptionGroupConfig =
                     metadataService.getSubscriptionGroupConfig(context, messageReceiptHandle.getGroup());
                 if (subscriptionGroupConfig == null) {

@@ -58,6 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -1178,7 +1179,11 @@ public class DefaultMessageStore implements MessageStore {
         if (this.getCommitLog() instanceof DLedgerCommitLog) {
             minPhyOffset += DLedgerEntry.BODY_OFFSET;
         }
-        final int size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 8;
+        int size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 8;
+        InetAddressValidator validator = InetAddressValidator.getInstance();
+        if (validator.isValidInet6Address(this.brokerConfig.getBrokerIP1())) {
+            size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 20;
+        }
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
 

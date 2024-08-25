@@ -92,6 +92,7 @@ import org.apache.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByUniqueKeySubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgTraceByIdSubCommand;
 import org.apache.rocketmq.tools.command.message.SendMessageCommand;
+import org.apache.rocketmq.tools.command.metadata.RocksDBConfigToJsonCommand;
 import org.apache.rocketmq.tools.command.namesrv.AddWritePermSubCommand;
 import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
@@ -300,6 +301,7 @@ public class MQAdminStartup {
         initCommand(new GetAclSubCommand());
         initCommand(new ListAclSubCommand());
         initCommand(new CopyAclsSubCommand());
+        initCommand(new RocksDBConfigToJsonCommand());
     }
 
     private static void printHelp() {

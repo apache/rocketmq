@@ -14,46 +14,66 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.common.config;
+package org.apache.rocketmq.broker;
 
+import com.alibaba.fastjson.JSON;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.rocksdb.FlushOptions;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.Statistics;
 import org.rocksdb.WriteBatch;
 
+import java.nio.charset.StandardCharsets;
 import java.util.function.BiConsumer;
 
 public class RocksDBConfigManager {
     protected static final Logger BROKER_LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
-
-    protected volatile boolean isStop = false;
-    protected ConfigRocksDBStorage configRocksDBStorage = null;
+    public volatile boolean isStop = false;
+    public ConfigRocksDBStorage configRocksDBStorage = null;
     private FlushOptions flushOptions = null;
     private volatile long lastFlushMemTableMicroSecond = 0;
-    private final long memTableFlushInterval;
 
-    public RocksDBConfigManager(long memTableFlushInterval) {
+    private final String filePath;
+    private final long memTableFlushInterval;
+    private DataVersion kvDataVersion = new DataVersion();
+
+
+    public RocksDBConfigManager(String filePath, long memTableFlushInterval) {
+        this.filePath = filePath;
         this.memTableFlushInterval = memTableFlushInterval;
     }
 
-    public boolean load(String configFilePath, BiConsumer<byte[], byte[]> biConsumer) {
+    public boolean init() {
         this.isStop = false;
-        this.configRocksDBStorage = new ConfigRocksDBStorage(configFilePath);
-        if (!this.configRocksDBStorage.start()) {
-            return false;
-        }
-        RocksIterator iterator = this.configRocksDBStorage.iterator();
+        this.configRocksDBStorage = new ConfigRocksDBStorage(filePath);
+        return this.configRocksDBStorage.start();
+    }
+    public boolean loadDataVersion() {
+        String currDataVersionString = null;
         try {
+            byte[] dataVersion = this.configRocksDBStorage.getKvDataVersion();
+            if (dataVersion != null && dataVersion.length > 0) {
+                currDataVersionString = new String(dataVersion, StandardCharsets.UTF_8);
+            }
+            kvDataVersion = StringUtils.isNotBlank(currDataVersionString) ? JSON.parseObject(currDataVersionString, DataVersion.class) : new DataVersion();
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public boolean loadData(BiConsumer<byte[], byte[]> biConsumer) {
+        try (RocksIterator iterator = this.configRocksDBStorage.iterator()) {
             iterator.seekToFirst();
             while (iterator.isValid()) {
                 biConsumer.accept(iterator.key(), iterator.value());
                 iterator.next();
             }
-        } finally {
-            iterator.close();
         }
 
         this.flushOptions = new FlushOptions();
@@ -102,6 +122,20 @@ public class RocksDBConfigManager {
     public void delete(final byte[] keyBytes) throws Exception {
         this.configRocksDBStorage.delete(keyBytes);
     }
+
+    public void updateKvDataVersion() throws Exception {
+        kvDataVersion.nextVersion();
+        this.configRocksDBStorage.updateKvDataVersion(JSON.toJSONString(kvDataVersion).getBytes(StandardCharsets.UTF_8));
+    }
+
+    public DataVersion getKvDataVersion() {
+        return kvDataVersion;
+    }
+
+    public void updateForbidden(String key, String value) throws Exception {
+        this.configRocksDBStorage.updateForbidden(key.getBytes(StandardCharsets.UTF_8), value.getBytes(StandardCharsets.UTF_8));
+    }
+
 
     public void batchPutWithWal(final WriteBatch batch) throws Exception {
         this.configRocksDBStorage.batchPutWithWal(batch);
