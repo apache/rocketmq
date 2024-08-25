@@ -41,16 +41,16 @@ public class AdaptiveLockImpl implements AdaptiveLock {
 
     @Override
     public void lock() {
-        while (this.state.get()) {
-            this.adaptiveLock.lock();
+        while (!this.state.get()) {
         }
+        this.adaptiveLock.lock();
     }
 
     @Override
     public void unlock() {
-        while (this.state.get()) {
-            this.adaptiveLock.unlock();
+        while (!this.state.get()) {
         }
+        this.adaptiveLock.unlock();
     }
 
     @Override
