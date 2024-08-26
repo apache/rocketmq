@@ -28,6 +28,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -43,6 +44,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -199,7 +201,7 @@ public class MQAdminImpl {
         if (brokerAddr != null) {
             try {
                 return this.mQClientFactory.getMQClientAPIImpl().searchOffset(brokerAddr, mq, timestamp,
-                        boundaryType, timeoutMillis);
+                    boundaryType, timeoutMillis);
             } catch (Exception e) {
                 throw new MQClientException("Invoke Broker[" + brokerAddr + "] exception", e);
             }
@@ -277,13 +279,13 @@ public class MQAdminImpl {
     public QueryResult queryMessage(String topic, String key, int maxNum, long begin,
         long end) throws MQClientException,
         InterruptedException {
-        return queryMessage(topic, key, maxNum, begin, end, false);
+        return queryMessage(null, topic, key, maxNum, begin, end, false);
     }
 
-    public QueryResult queryMessageByUniqKey(String topic, String uniqKey, int maxNum, long begin, long end)
+    public QueryResult queryMessageByUniqKey(String clusterName, String topic, String uniqKey, int maxNum, long begin, long end)
         throws MQClientException, InterruptedException {
 
-        return queryMessage(topic, uniqKey, maxNum, begin, end, true);
+        return queryMessage(clusterName, topic, uniqKey, maxNum, begin, end, true);
     }
 
     public MessageExt queryMessageByUniqKey(String topic,
@@ -311,19 +313,21 @@ public class MQAdminImpl {
         }
     }
 
-    protected QueryResult queryMessage(String topic, String key, int maxNum, long begin, long end,
+    public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end,
         boolean isUniqKey) throws MQClientException,
         InterruptedException {
-        return queryMessage(null, topic, key, maxNum, begin, end, isUniqKey);
-    }
 
-    protected QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end,
-        boolean isUniqKey) throws MQClientException,
-        InterruptedException {
-        TopicRouteData topicRouteData = this.mQClientFactory.getAnExistTopicRouteData(topic);
+        String routeTopic = topic;
+        // Use clusterName topic to get topic route for lmq or rmq_sys_wheel_timer
+        if ((MixAll.isLmq(topic) || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
+            && !StringUtils.isEmpty(clusterName)) {
+            routeTopic = clusterName;
+        }
+
+        TopicRouteData topicRouteData = this.mQClientFactory.getAnExistTopicRouteData(routeTopic);
         if (null == topicRouteData) {
-            this.mQClientFactory.updateTopicRouteInfoFromNameServer(topic);
-            topicRouteData = this.mQClientFactory.getAnExistTopicRouteData(topic);
+            this.mQClientFactory.updateTopicRouteInfoFromNameServer(routeTopic);
+            topicRouteData = this.mQClientFactory.getAnExistTopicRouteData(routeTopic);
         }
 
         if (topicRouteData != null) {

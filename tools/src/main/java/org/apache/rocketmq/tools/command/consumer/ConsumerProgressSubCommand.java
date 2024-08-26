@@ -72,6 +72,10 @@ public class ConsumerProgressSubCommand implements SubCommand {
         optionShowClientIP.setRequired(false);
         options.addOption(optionShowClientIP);
 
+        opt = new Option("c", "cluster", true, "Cluster name, lmq is used to find the route.");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -109,6 +113,8 @@ public class ConsumerProgressSubCommand implements SubCommand {
             boolean showClientIP = commandLine.hasOption('s')
                 && "true".equalsIgnoreCase(commandLine.getOptionValue('s'));
 
+            String clusterName = commandLine.hasOption('c') ? commandLine.getOptionValue('c').trim() : null;
+
             if (commandLine.hasOption('g')) {
                 String consumerGroup = commandLine.getOptionValue('g').trim();
                 String topicName = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : null;
@@ -116,7 +122,7 @@ public class ConsumerProgressSubCommand implements SubCommand {
                 if (topicName == null) {
                     consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup);
                 } else {
-                    consumeStats = defaultMQAdminExt.examineConsumeStats(consumerGroup, topicName);
+                    consumeStats = defaultMQAdminExt.examineConsumeStats(clusterName, consumerGroup, topicName);
                 }
                 List<MessageQueue> mqList = new LinkedList<>(consumeStats.getOffsetTable().keySet());
                 Collections.sort(mqList);

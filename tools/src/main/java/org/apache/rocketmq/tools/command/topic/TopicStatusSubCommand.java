@@ -27,6 +27,8 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.admin.TopicOffset;
 import org.apache.rocketmq.remoting.protocol.admin.TopicStatsTable;
+import org.apache.rocketmq.remoting.protocol.route.BrokerData;
+import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -48,6 +50,10 @@ public class TopicStatusSubCommand implements SubCommand {
         Option opt = new Option("t", "topic", true, "topic name");
         opt.setRequired(true);
         options.addOption(opt);
+
+        opt = new Option("c", "cluster", true, "cluster name");
+        opt.setRequired(false);
+        options.addOption(opt);
         return options;
     }
 
@@ -58,10 +64,26 @@ public class TopicStatusSubCommand implements SubCommand {
 
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
 
+
         try {
+            TopicStatsTable topicStatsTable = new TopicStatsTable();
             defaultMQAdminExt.start();
             String topic = commandLine.getOptionValue('t').trim();
-            TopicStatsTable topicStatsTable = defaultMQAdminExt.examineTopicStats(topic);
+
+            if (commandLine.hasOption('c')) {
+                String cluster = commandLine.getOptionValue('c').trim();
+                TopicRouteData topicRouteData = defaultMQAdminExt.examineTopicRouteInfo(cluster);
+
+                for (BrokerData bd : topicRouteData.getBrokerDatas()) {
+                    String addr = bd.selectBrokerAddr();
+                    if (addr != null) {
+                        TopicStatsTable tst = defaultMQAdminExt.examineTopicStats(addr, topic);
+                        topicStatsTable.getOffsetTable().putAll(tst.getOffsetTable());
+                    }
+                }
+            } else {
+                topicStatsTable = defaultMQAdminExt.examineTopicStats(topic);
+            }
 
             List<MessageQueue> mqList = new LinkedList<>();
             mqList.addAll(topicStatsTable.getOffsetTable().keySet());

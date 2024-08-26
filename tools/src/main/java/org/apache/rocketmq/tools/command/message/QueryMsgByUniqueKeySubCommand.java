@@ -59,11 +59,10 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
         }
     }
 
-    public static void queryById(final DefaultMQAdminExt admin, final String topic, final String msgId,
-                                 final boolean showAll) throws MQClientException,
-            RemotingException, MQBrokerException, InterruptedException, IOException {
+    public static void queryById(final DefaultMQAdminExt admin, final String clusterName,final String topic, final String msgId,
+                                 final boolean showAll) throws MQClientException, InterruptedException, IOException {
 
-        QueryResult queryResult = admin.queryMessageByUniqKey(topic, msgId, 32, 0, Long.MAX_VALUE);
+        QueryResult queryResult = admin.queryMessageByUniqKey(clusterName ,topic, msgId, 32, 0, Long.MAX_VALUE);
         assert queryResult != null;
         List<MessageExt> list = queryResult.getMessageList();
         if (list == null || list.size() == 0) {
@@ -166,6 +165,10 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
+        opt = new Option("c", "cluster", true, "Cluster name, lmq is used to find the route.");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         return options;
     }
 
@@ -177,6 +180,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
 
             final String msgId = commandLine.getOptionValue('i').trim();
             final String topic = commandLine.getOptionValue('t').trim();
+            String clusterName = commandLine.hasOption('c') ? commandLine.getOptionValue('c').trim() : null;
             final boolean showAll = commandLine.hasOption('a');
             if (commandLine.hasOption('g') && commandLine.hasOption('d')) {
                 final String consumerGroup = commandLine.getOptionValue('g').trim();
@@ -192,11 +196,11 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
                             defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, topic, msgId);
                     System.out.printf("%s", result);
                 } else {
-                    System.out.printf("get consumer info failed or this %s client is not push consumer ,not support direct push \n", clientId);
+                    System.out.printf("get consumer info failed or this %s client is not push consumer, not support direct push \n", clientId);
                 }
 
             } else {
-                queryById(defaultMQAdminExt, topic, msgId, showAll);
+                queryById(defaultMQAdminExt, clusterName , topic, msgId, showAll);
             }
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
