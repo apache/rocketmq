@@ -688,7 +688,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     public void sendMessageBack(MessageExt msg, int delayLevel)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         msg.setTopic(withNamespace(msg.getTopic()));
-        this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, (String) null);
+        this.defaultMQPushConsumerImpl.sendMessageBack(msg, delayLevel, msg.getBrokerName());
     }
 
     /**

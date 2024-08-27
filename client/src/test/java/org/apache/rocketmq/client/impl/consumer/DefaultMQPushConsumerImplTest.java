@@ -652,9 +652,10 @@ public class DefaultMQPushConsumerImplTest {
     @Test
     public void testSendMessageBack() throws InterruptedException, MQClientException, MQBrokerException, RemotingException {
         defaultMQPushConsumerImpl.sendMessageBack(createMessageExt(), 1, createMessageQueue());
+        when(mQClientFactory.findBrokerAddressInPublish(anyString())).thenReturn(defaultBrokerAddr);
         verify(mqClientAPIImpl).consumerSendMessageBack(
                 eq(defaultBrokerAddr),
-                any(),
+                eq(defaultBroker),
                 any(MessageExt.class),
                 any(),
                 eq(1),
