@@ -1103,13 +1103,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.defaultMQProducerImpl.send(batch(msgs), queueWithNamespace(mq), sendCallback, timeout);
     }
 
-    @Override
-    public QueryResult queryMessage(String topic, String clusterName, String key, int maxNum,
-        long begin,
-        long end) throws MQClientException, InterruptedException, RemotingException, MQBrokerException {
-        return ;
-    }
-
     /**
      * Sets an Executor to be used for executing callback methods.
      *

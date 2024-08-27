@@ -282,7 +282,14 @@ public class MQAdminImpl {
         return queryMessage(null, topic, key, maxNum, begin, end, false);
     }
 
-    public QueryResult queryMessageByUniqKey(String clusterName, String topic, String uniqKey, int maxNum, long begin, long end)
+    public QueryResult queryMessageByUniqKey(String topic, String uniqKey, int maxNum, long begin, long end)
+        throws MQClientException, InterruptedException {
+
+        return queryMessage(null, topic, uniqKey, maxNum, begin, end, true);
+    }
+
+    public QueryResult queryMessageByUniqKey(String clusterName, String topic, String uniqKey, int maxNum, long begin,
+        long end)
         throws MQClientException, InterruptedException {
 
         return queryMessage(clusterName, topic, uniqKey, maxNum, begin, end, true);
