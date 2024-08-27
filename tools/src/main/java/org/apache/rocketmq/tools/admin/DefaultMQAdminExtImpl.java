@@ -1866,6 +1866,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public Map<MessageQueue, Long> resetOffsetByTimestamp(String clusterName, String topic, String group,
+        long timestamp, boolean isForce) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        return resetOffsetByTimestamp(clusterName, topic, group, timestamp, isForce, false);
+    }
+
+    @Override
     public HARuntimeInfo getBrokerHAStatus(
         String brokerAddr) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
         return this.mqClientInstance.getMQClientAPIImpl().getBrokerHAStatus(brokerAddr, timeoutMillis);
