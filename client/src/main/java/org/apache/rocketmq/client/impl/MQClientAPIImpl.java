@@ -137,6 +137,7 @@ import org.apache.rocketmq.remoting.protocol.body.QuerySubscriptionResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupList;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
@@ -398,6 +399,22 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
         throw new MQClientException(response.getCode(), response.getRemark());
 
+    }
+
+    public void createSubscriptionGroupList(final String address, final List<SubscriptionGroupConfig> configs,
+        final long timeoutMillis) throws RemotingException, InterruptedException, MQClientException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_LIST, null);
+        SubscriptionGroupList requestBody = new SubscriptionGroupList(configs);
+        request.setBody(requestBody.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(
+            MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), address), request, timeoutMillis);
+        assert response != null;
+        if (response.getCode() == ResponseCode.SUCCESS) {
+            return;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
     }
 
     public void createTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig,

@@ -319,6 +319,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
+    public void createAndUpdateSubscriptionGroupConfigList(String brokerAddr,
+        List<SubscriptionGroupConfig> configs) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().createSubscriptionGroupList(brokerAddr, configs, timeoutMillis);
+    }
+
+    @Override
     public SubscriptionGroupConfig examineSubscriptionGroupConfig(String addr,
         String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
         SubscriptionGroupWrapper wrapper = this.mqClientInstance.getMQClientAPIImpl().getAllSubscriptionGroup(addr, timeoutMillis);
