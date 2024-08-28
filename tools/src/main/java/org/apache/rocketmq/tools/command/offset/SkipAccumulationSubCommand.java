@@ -58,7 +58,7 @@ public class SkipAccumulationSubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c", "cluster", true, "Cluster name, lmq is used to find the route.");
+        opt = new Option("c", "cluster", true, "Cluster name or lmq parent topic, lmq is used to find the route.");
         opt.setRequired(false);
         options.addOption(opt);
         return options;

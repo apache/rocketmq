@@ -49,18 +49,18 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
             defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
             try {
                 defaultMQAdminExt.start();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
             }
             return defaultMQAdminExt;
         }
     }
 
-    public static void queryById(final DefaultMQAdminExt admin, final String clusterName,final String topic, final String msgId,
-                                 final boolean showAll) throws MQClientException, InterruptedException, IOException {
+    public static void queryById(final DefaultMQAdminExt admin, final String clusterName, final String topic,
+        final String msgId,
+        final boolean showAll) throws MQClientException, InterruptedException, IOException {
 
-        QueryResult queryResult = admin.queryMessageByUniqKey(clusterName ,topic, msgId, 32, 0, Long.MAX_VALUE);
+        QueryResult queryResult = admin.queryMessageByUniqKey(clusterName, topic, msgId, 32, 0, Long.MAX_VALUE);
         assert queryResult != null;
         List<MessageExt> list = queryResult.getMessageList();
         if (list == null || list.size() == 0) {
@@ -91,7 +91,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
         System.out.printf(strFormat, "Store Host:", RemotingHelper.parseSocketAddressAddr(msg.getStoreHost()));
         System.out.printf(intFormat, "System Flag:", msg.getSysFlag());
         System.out.printf(strFormat, "Properties:",
-                msg.getProperties() != null ? msg.getProperties().toString() : "");
+            msg.getProperties() != null ? msg.getProperties().toString() : "");
         System.out.printf(strFormat, "Message Body Path:", bodyTmpFilePath);
 
         try {
@@ -163,7 +163,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c", "cluster", true, "Cluster name, lmq is used to find the route.");
+        opt = new Option("c", "cluster", true, "Cluster name or lmq parent topic, lmq is used to find the route.");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -174,7 +174,7 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
     public void execute(CommandLine commandLine, Options options, RPCHook rpcHook) throws SubCommandException {
 
         try {
-            defaultMQAdminExt =  createMQAdminExt(rpcHook);
+            defaultMQAdminExt = createMQAdminExt(rpcHook);
 
             final String msgId = commandLine.getOptionValue('i').trim();
             final String topic = commandLine.getOptionValue('t').trim();
@@ -191,14 +191,14 @@ public class QueryMsgByUniqueKeySubCommand implements SubCommand {
                 }
                 if (consumerRunningInfo != null && ConsumerRunningInfo.isPushType(consumerRunningInfo)) {
                     ConsumeMessageDirectlyResult result =
-                            defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, topic, msgId);
+                        defaultMQAdminExt.consumeMessageDirectly(consumerGroup, clientId, topic, msgId);
                     System.out.printf("%s", result);
                 } else {
                     System.out.printf("get consumer info failed or this %s client is not push consumer, not support direct push \n", clientId);
                 }
 
             } else {
-                queryById(defaultMQAdminExt, clusterName , topic, msgId, showAll);
+                queryById(defaultMQAdminExt, clusterName, topic, msgId, showAll);
             }
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);

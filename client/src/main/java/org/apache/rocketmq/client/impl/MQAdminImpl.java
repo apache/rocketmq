@@ -323,10 +323,12 @@ public class MQAdminImpl {
     public QueryResult queryMessage(String clusterName, String topic, String key, int maxNum, long begin, long end,
         boolean isUniqKey) throws MQClientException,
         InterruptedException {
+        boolean isLmq = MixAll.isLmq(topic);
 
         String routeTopic = topic;
-        // Use clusterName topic to get topic route for lmq or rmq_sys_wheel_timer
-        if ((MixAll.isLmq(topic) || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
+        // if topic is lmq ,then use clusterName as lmq parent topic
+        // Use clusterName or lmq parent topic to get topic route for lmq or rmq_sys_wheel_timer
+        if ((isLmq || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
             && !StringUtils.isEmpty(clusterName)) {
             routeTopic = clusterName;
         }
@@ -340,7 +342,7 @@ public class MQAdminImpl {
         if (topicRouteData != null) {
             List<String> brokerAddrs = new LinkedList<>();
             for (BrokerData brokerData : topicRouteData.getBrokerDatas()) {
-                if (clusterName != null && !clusterName.isEmpty()
+                if (!isLmq && clusterName != null && !clusterName.isEmpty()
                     && !clusterName.equals(brokerData.getCluster())) {
                     continue;
                 }
@@ -358,7 +360,11 @@ public class MQAdminImpl {
                 for (String addr : brokerAddrs) {
                     try {
                         QueryMessageRequestHeader requestHeader = new QueryMessageRequestHeader();
-                        requestHeader.setTopic(topic);
+                        if (isLmq) {
+                            requestHeader.setTopic(clusterName);
+                        } else {
+                            requestHeader.setTopic(topic);
+                        }
                         requestHeader.setKey(key);
                         requestHeader.setMaxNum(maxNum);
                         requestHeader.setBeginTimestamp(begin);
@@ -447,7 +453,7 @@ public class MQAdminImpl {
                                 String[] keyArray = keys.split(MessageConst.KEY_SEPARATOR);
                                 for (String k : keyArray) {
                                     // both topic and key must be equal at the same time
-                                    if (Objects.equals(key, k) && Objects.equals(topic, msgTopic)) {
+                                    if (Objects.equals(key, k) && (isLmq || Objects.equals(topic, msgTopic))) {
                                         matched = true;
                                         break;
                                     }

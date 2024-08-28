@@ -475,25 +475,33 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             topics.add(messageQueue.getTopic());
         }
 
-        ConsumeStats staticResult = new ConsumeStats();
-        staticResult.setConsumeTps(result.getConsumeTps());
-        // for topic, we put the physical stats, how about group?
-        // staticResult.getOffsetTable().putAll(result.getOffsetTable());
+        ConsumeStats staticResult = null;
 
-        for (String currentTopic : topics) {
-            TopicRouteData currentRoute = this.examineTopicRouteInfo(currentTopic);
-            if (currentRoute.getTopicQueueMappingByBroker() == null
-                || currentRoute.getTopicQueueMappingByBroker().isEmpty()) {
-                //normal topic
-                for (Map.Entry<MessageQueue, OffsetWrapper> entry : result.getOffsetTable().entrySet()) {
-                    if (entry.getKey().getTopic().equals(currentTopic)) {
-                        staticResult.getOffsetTable().put(entry.getKey(), entry.getValue());
+        if (StringUtils.isEmpty(clusterName)) {
+
+            staticResult = new ConsumeStats();
+            staticResult.setConsumeTps(result.getConsumeTps());
+            // for topic, we put the physical stats, how about group?
+            // staticResult.getOffsetTable().putAll(result.getOffsetTable());
+
+            for (String currentTopic : topics) {
+                TopicRouteData currentRoute = this.examineTopicRouteInfo(currentTopic);
+                if (currentRoute.getTopicQueueMappingByBroker() == null
+                    || currentRoute.getTopicQueueMappingByBroker().isEmpty()) {
+                    //normal topic
+                    for (Map.Entry<MessageQueue, OffsetWrapper> entry : result.getOffsetTable().entrySet()) {
+                        if (entry.getKey().getTopic().equals(currentTopic)) {
+                            staticResult.getOffsetTable().put(entry.getKey(), entry.getValue());
+                        }
                     }
                 }
+                Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigFromRoute(currentTopic, currentRoute, defaultMQAdminExt);
+                ConsumeStats consumeStats = MQAdminUtils.convertPhysicalConsumeStats(brokerConfigMap, result);
+                staticResult.getOffsetTable().putAll(consumeStats.getOffsetTable());
             }
-            Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigFromRoute(currentTopic, currentRoute, defaultMQAdminExt);
-            ConsumeStats consumeStats = MQAdminUtils.convertPhysicalConsumeStats(brokerConfigMap, result);
-            staticResult.getOffsetTable().putAll(consumeStats.getOffsetTable());
+
+        } else {
+            staticResult = result;
         }
 
         if (staticResult.getOffsetTable().isEmpty()) {
@@ -1830,15 +1838,8 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         return this.mqClientInstance.getMQClientAPIImpl().searchOffset(brokerAddr, topicName, queueId, timestamp, timeoutMillis);
     }
 
-    public QueryResult queryMessageByUniqKey(String topic, String key, int maxNum, long begin,
-        long end) throws MQClientException, InterruptedException {
-
-        return this.mqClientInstance.getMQAdminImpl().queryMessageByUniqKey(null, topic, key, maxNum, begin, end);
-    }
-
     public QueryResult queryMessageByUniqKey(String clusterName, String topic, String key, int maxNum, long begin,
         long end) throws MQClientException, InterruptedException {
-
         return this.mqClientInstance.getMQAdminImpl().queryMessageByUniqKey(clusterName, topic, key, maxNum, begin, end);
     }
 

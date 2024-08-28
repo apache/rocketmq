@@ -51,7 +51,7 @@ public class TopicStatusSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
-        opt = new Option("c", "cluster", true, "cluster name");
+        opt = new Option("c", "cluster", true, "cluster name or lmq parent topic, lmq is used to find the route.");
         opt.setRequired(false);
         options.addOption(opt);
         return options;

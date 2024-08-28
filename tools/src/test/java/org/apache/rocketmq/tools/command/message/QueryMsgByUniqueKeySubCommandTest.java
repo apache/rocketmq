@@ -61,8 +61,10 @@ import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
@@ -127,7 +129,8 @@ public class QueryMsgByUniqueKeySubCommandTest {
         when(mQAdminImpl.queryMessageByUniqKey(anyString(), anyString())).thenReturn(retMsgExt);
 
         QueryResult queryResult = new QueryResult(0, Lists.newArrayList(retMsgExt));
-        when(defaultMQAdminExtImpl.queryMessageByUniqKey(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(queryResult);
+        when(mQAdminImpl.queryMessageByUniqKey(anyObject(), anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(queryResult);
+        when(mQAdminImpl.queryMessage(anyObject(), anyString(), anyString(), anyInt(), anyLong(), anyLong(), anyBoolean())).thenReturn(queryResult);
 
         TopicRouteData topicRouteData = new TopicRouteData();
         List<BrokerData> brokerDataList = new ArrayList<>();
