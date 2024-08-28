@@ -375,7 +375,10 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
 
     @Override
     public QueryMessageResult queryMessage(String topic, String key, int maxNum, long begin, long end) {
-        return queryMessageAsync(topic, key, maxNum, begin, end).join();
+        if (MessageStoreUtil.ifTopicExistInRemote(metadataStore.getTopic(topic), this)) {
+            return queryMessageAsync(topic, key, maxNum, begin, end).join();
+        }
+        return next.queryMessage(topic, key, maxNum, begin, end);
     }
 
     @Override

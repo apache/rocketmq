@@ -23,6 +23,8 @@ import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.tieredstore.TieredMessageStore;
+import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
 
 public class MessageStoreUtil {
 
@@ -98,5 +100,10 @@ public class MessageStoreUtil {
 
     public static long fileName2Offset(final String fileName) {
         return Long.parseLong(fileName.substring(fileName.length() - 20));
+    }
+
+    public static boolean ifTopicExistInRemote(TopicMetadata topicMetadata, TieredMessageStore messageStore) {
+        long clusterReservedTime = messageStore.getDefaultStore().getMessageStoreConfig().getFileReservedTime();
+        return topicMetadata.getReserveTime() > clusterReservedTime;
     }
 }

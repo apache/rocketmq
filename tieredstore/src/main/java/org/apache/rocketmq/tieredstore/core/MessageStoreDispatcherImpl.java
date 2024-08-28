@@ -101,6 +101,9 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
         if (stopped || topicFilter != null && topicFilter.filterTopic(request.getTopic())) {
             return;
         }
+        if (!MessageStoreUtil.ifTopicExistInRemote(messageStore.getMetadataStore().getTopic(request.getTopic()), messageStore)) {
+            return;
+        }
         flatFileStore.computeIfAbsent(
             new MessageQueue(request.getTopic(), brokerName, request.getQueueId()));
     }
