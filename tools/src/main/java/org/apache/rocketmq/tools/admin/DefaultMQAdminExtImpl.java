@@ -441,8 +441,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         // Use clusterName topic to get topic route for lmq or rmq_sys_wheel_timer
-        if ((MixAll.isLmq(topic) || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
-            && !StringUtils.isEmpty(clusterName)) {
+        if (!StringUtils.isEmpty(topic) && (MixAll.isLmq(topic) || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer")) && !StringUtils.isEmpty(clusterName)) {
             routeTopics.add(clusterName);
         }
 
