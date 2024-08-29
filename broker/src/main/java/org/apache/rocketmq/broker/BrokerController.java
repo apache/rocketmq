@@ -815,11 +815,9 @@ public class BrokerController {
                 this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
                 this.messageStore.setTimerMessageStore(this.timerMessageStore);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             result = false;
             LOG.error("BrokerController#initialize: unexpected error occurs", e);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
         return result;
     }
