@@ -539,7 +539,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             future.complete(restNum);
             return future;
         }
-        
+
         future.whenComplete((result, throwable) -> queueLockManager.unLock(lockKey));
         if (isPopShouldStop(topic, requestHeader.getConsumerGroup(), queueId)) {
             POP_LOGGER.warn("Too much msgs unacked, then stop poping. topic={}, group={}, queueId={}", topic, requestHeader.getConsumerGroup(), queueId);
