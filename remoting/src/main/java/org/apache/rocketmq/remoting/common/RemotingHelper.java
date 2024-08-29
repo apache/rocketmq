@@ -51,13 +51,15 @@ public class RemotingHelper {
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
 
-    public static final Map<Integer, String> REQUEST_CODE_MAP = new HashMap<Integer, String>() {
+    // See https://errorprone.info/bugpattern/DoubleBraceInitialization
+    public static final Map<Integer, String> REQUEST_CODE_MAP = new HashMap<Integer, String>();
+    static {
         {
             try {
                 Field[] f = RequestCode.class.getFields();
                 for (Field field : f) {
                     if (field.getType() == int.class) {
-                        put((int) field.get(null), field.getName().toLowerCase());
+                        REQUEST_CODE_MAP.put((int) field.get(null), field.getName().toLowerCase());
                     }
                 }
             } catch (IllegalAccessException ignore) {
@@ -65,17 +67,16 @@ public class RemotingHelper {
         }
     };
 
-    public static final Map<Integer, String> RESPONSE_CODE_MAP = new HashMap<Integer, String>() {
-        {
-            try {
-                Field[] f = ResponseCode.class.getFields();
-                for (Field field : f) {
-                    if (field.getType() == int.class) {
-                        put((int) field.get(null), field.getName().toLowerCase());
-                    }
+    public static final Map<Integer, String> RESPONSE_CODE_MAP = new HashMap<Integer, String>();
+    static {
+        try {
+            Field[] f = ResponseCode.class.getFields();
+            for (Field field : f) {
+                if (field.getType() == int.class) {
+                    RESPONSE_CODE_MAP.put((int) field.get(null), field.getName().toLowerCase());
                 }
-            } catch (IllegalAccessException ignore) {
             }
+        } catch (IllegalAccessException ignore) {
         }
     };
 

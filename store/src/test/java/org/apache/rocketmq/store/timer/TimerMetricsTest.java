@@ -60,16 +60,15 @@ public class TimerMetricsTest {
     public void testTimingDistribution() {
         String baseDir = StoreTestUtils.createBaseDir();
         TimerMetrics first = new TimerMetrics(baseDir);
-        List<Integer> timerDist = new ArrayList<Integer>() {{
-                add(5);
-                add(60);
-                add(300); // 5s, 1min, 5min
-                add(900);
-                add(3600);
-                add(14400); // 15min, 1h, 4h
-                add(28800);
-                add(86400); // 8h, 24h
-            }};
+        List<Integer> timerDist = new ArrayList<Integer>();
+        timerDist.add(5);
+        timerDist.add(60);
+        timerDist.add(300); // 5s, 1min, 5min
+        timerDist.add(900);
+        timerDist.add(3600);
+        timerDist.add(14400); // 15min, 1h, 4h
+        timerDist.add(28800);
+        timerDist.add(86400); // 8h, 24h
         for (int period : timerDist) {
             first.updateDistPair(period, period);
         }

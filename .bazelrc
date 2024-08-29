@@ -20,15 +20,13 @@ run --color=yes
 
 build --color=yes
 build --enable_platform_specific_config
-
-test --action_env=TEST_TMPDIR=/tmp
-
-test  --experimental_strict_java_deps=warn
-test  --experimental_ui_max_stdouterr_bytes=10485760
 build --experimental_strict_java_deps=warn
 build --jvmopt=--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
-test  --jvmopt=--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
 
+test --action_env=TEST_TMPDIR=/tmp
+test  --experimental_strict_java_deps=warn
+test  --experimental_ui_max_stdouterr_bytes=10485760
+test  --jvmopt=--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED
 test --test_output=errors
 
 
@@ -43,29 +41,12 @@ test --test_output=errors
 # for a remote machine to execute them.
 build:remote --jobs=150
 
+build:remote --bes_results_url=https://app.buildbuddy.io/invocation/
+build:remote --bes_backend=grpcs://remote.buildbuddy.io
+build:remote --remote_cache=grpcs://remote.buildbuddy.io
+build:remote --remote_timeout=3600
 build:remote --remote_executor=grpcs://remote.buildbuddy.io
+build:remote --remote_header=x-buildbuddy-api-key=FD819nUEY7WjvqmoufsU
 build:remote --host_platform=@buildbuddy_toolchain//:platform
 build:remote --platforms=@buildbuddy_toolchain//:platform
 build:remote --extra_execution_platforms=@buildbuddy_toolchain//:platform
-build:remote --crosstool_top=@buildbuddy_toolchain//:toolchain
-build:remote --extra_toolchains=@buildbuddy_toolchain//:cc_toolchain
-build:remote --javabase=@buildbuddy_toolchain//:javabase_jdk8
-build:remote --host_javabase=@buildbuddy_toolchain//:javabase_jdk8
-build:remote --java_toolchain=@buildbuddy_toolchain//:toolchain_jdk8
-build:remote --host_java_toolchain=@buildbuddy_toolchain//:toolchain_jdk8
-build:remote --define=EXECUTOR=remote
-
-# Enable remote execution so actions are performed on the remote systems.
-build:remote --remote_executor=grpcs://remote.buildbuddy.io
-
-# Enforce stricter environment rules, which eliminates some non-hermetic
-# behavior and therefore improves both the remote cache hit rate and the
-# correctness and repeatability of the build.
-build:remote --incompatible_strict_action_env=true
-
-# Set a higher timeout value, just in case.
-build:remote --remote_timeout=3600
-
-# Use a pre-configured account, such that we may have pull-request replacing pull-request-target
-build:remote --remote_header=x-buildbuddy-api-key=FD819nUEY7WjvqmoufsU
-test:remote --remote_header=x-buildbuddy-api-key=FD819nUEY7WjvqmoufsU

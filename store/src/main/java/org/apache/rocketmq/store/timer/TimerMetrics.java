@@ -57,22 +57,21 @@ public class TimerMetrics extends ConfigManager {
     private final ConcurrentMap<Integer, Metric> timingDistribution =
             new ConcurrentHashMap<>(1024);
 
-    public List<Integer> timerDist = new ArrayList<Integer>() {{
-            add(5);
-            add(60);
-            add(300); // 5s, 1min, 5min
-            add(900);
-            add(3600);
-            add(14400); // 15min, 1h, 4h
-            add(28800);
-            add(86400); // 8h, 24h
-        }};
+    public List<Integer> timerDist = new ArrayList<Integer>();
     private final DataVersion dataVersion = new DataVersion();
 
     private final String configPath;
 
     public TimerMetrics(String configPath) {
         this.configPath = configPath;
+        timerDist.add(5);     // 5s
+        timerDist.add(60);    // 1min
+        timerDist.add(300);   // 5min
+        timerDist.add(900);   // 15min
+        timerDist.add(3600);  // 1h
+        timerDist.add(14400); // 4h
+        timerDist.add(28800); // 8h
+        timerDist.add(86400); // 24h
     }
 
     public long updateDistPair(int period, int value) {

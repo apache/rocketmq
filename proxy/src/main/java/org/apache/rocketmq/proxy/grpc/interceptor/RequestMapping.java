@@ -32,20 +32,19 @@ import java.util.Map;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 public class RequestMapping {
-    private final static Map<String, Integer> REQUEST_MAP = new HashMap<String, Integer>() {
-        {
-            // v2
-            put(QueryRouteRequest.getDescriptor().getFullName(), RequestCode.GET_ROUTEINFO_BY_TOPIC);
-            put(HeartbeatRequest.getDescriptor().getFullName(), RequestCode.HEART_BEAT);
-            put(SendMessageRequest.getDescriptor().getFullName(), RequestCode.SEND_MESSAGE_V2);
-            put(QueryAssignmentRequest.getDescriptor().getFullName(), RequestCode.GET_ROUTEINFO_BY_TOPIC);
-            put(ReceiveMessageRequest.getDescriptor().getFullName(), RequestCode.PULL_MESSAGE);
-            put(AckMessageRequest.getDescriptor().getFullName(), RequestCode.UPDATE_CONSUMER_OFFSET);
-            put(ForwardMessageToDeadLetterQueueResponse.getDescriptor().getFullName(), RequestCode.CONSUMER_SEND_MSG_BACK);
-            put(EndTransactionRequest.getDescriptor().getFullName(), RequestCode.END_TRANSACTION);
-            put(NotifyClientTerminationRequest.getDescriptor().getFullName(), RequestCode.UNREGISTER_CLIENT);
-            put(ChangeInvisibleDurationRequest.getDescriptor().getFullName(), RequestCode.CONSUMER_SEND_MSG_BACK);
-        }
+    private final static Map<String, Integer> REQUEST_MAP = new HashMap<String, Integer>();
+    static {
+        // v2
+        REQUEST_MAP.put(QueryRouteRequest.getDescriptor().getFullName(), RequestCode.GET_ROUTEINFO_BY_TOPIC);
+        REQUEST_MAP.put(HeartbeatRequest.getDescriptor().getFullName(), RequestCode.HEART_BEAT);
+        REQUEST_MAP.put(SendMessageRequest.getDescriptor().getFullName(), RequestCode.SEND_MESSAGE_V2);
+        REQUEST_MAP.put(QueryAssignmentRequest.getDescriptor().getFullName(), RequestCode.GET_ROUTEINFO_BY_TOPIC);
+        REQUEST_MAP.put(ReceiveMessageRequest.getDescriptor().getFullName(), RequestCode.PULL_MESSAGE);
+        REQUEST_MAP.put(AckMessageRequest.getDescriptor().getFullName(), RequestCode.UPDATE_CONSUMER_OFFSET);
+        REQUEST_MAP.put(ForwardMessageToDeadLetterQueueResponse.getDescriptor().getFullName(), RequestCode.CONSUMER_SEND_MSG_BACK);
+        REQUEST_MAP.put(EndTransactionRequest.getDescriptor().getFullName(), RequestCode.END_TRANSACTION);
+        REQUEST_MAP.put(NotifyClientTerminationRequest.getDescriptor().getFullName(), RequestCode.UNREGISTER_CLIENT);
+        REQUEST_MAP.put(ChangeInvisibleDurationRequest.getDescriptor().getFullName(), RequestCode.CONSUMER_SEND_MSG_BACK);
     };
 
     public static int map(String rpcFullName) {

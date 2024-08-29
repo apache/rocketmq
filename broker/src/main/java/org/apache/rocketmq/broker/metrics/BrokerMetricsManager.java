@@ -162,10 +162,9 @@ public class BrokerMetricsManager {
     public static LongCounter rollBackMessagesTotal = new NopLongCounter();
     public static LongHistogram transactionFinishLatency = new NopLongHistogram();
 
-    public static final List<String> SYSTEM_GROUP_PREFIX_LIST = new ArrayList<String>() {
-        {
-            add(MixAll.CID_RMQ_SYS_PREFIX.toLowerCase());
-        }
+    public static final List<String> SYSTEM_GROUP_PREFIX_LIST = new ArrayList<String>();
+    static {
+        SYSTEM_GROUP_PREFIX_LIST.add(MixAll.CID_RMQ_SYS_PREFIX.toLowerCase());
     };
 
     public BrokerMetricsManager(BrokerController brokerController) {

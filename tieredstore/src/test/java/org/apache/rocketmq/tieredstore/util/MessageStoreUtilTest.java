@@ -49,20 +49,19 @@ public class MessageStoreUtilTest {
 
     @Test
     public void toHumanReadableTest() {
-        Map<Long, String> capacityTable = new HashMap<Long, String>() {
-            {
-                put(-1L, "-1");
-                put(0L, "0B");
-                put(1023L, "1023B");
-                put(1024L, "1KB");
-                put(12_345L, "12.06KB");
-                put(10_123_456L, "9.65MB");
-                put(10_123_456_798L, "9.43GB");
-                put(123 * 1024L * 1024L * 1024L * 1024L, "123TB");
-                put(123 * 1024L * 1024L * 1024L * 1024L * 1024L, "123PB");
-                put(1_777_777_777_777_777_777L, "1.54EB");
-            }
-        };
+        // https://errorprone.info/bugpattern/DoubleBraceInitialization
+        Map<Long, String> capacityTable = new HashMap<Long, String>();
+        capacityTable.put(-1L, "-1");
+        capacityTable.put(0L, "0B");
+        capacityTable.put(1023L, "1023B");
+        capacityTable.put(1024L, "1KB");
+        capacityTable.put(12_345L, "12.06KB");
+        capacityTable.put(10_123_456L, "9.65MB");
+        capacityTable.put(10_123_456_798L, "9.43GB");
+        capacityTable.put(123 * 1024L * 1024L * 1024L * 1024L, "123TB");
+        capacityTable.put(123 * 1024L * 1024L * 1024L * 1024L * 1024L, "123PB");
+        capacityTable.put(1_777_777_777_777_777_777L, "1.54EB");
+
         capacityTable.forEach((in, expected) ->
             Assert.assertEquals(expected, MessageStoreUtil.toHumanReadable(in)));
     }

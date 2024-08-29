@@ -471,10 +471,9 @@ public class AutoSwitchHATest {
         Assert.assertTrue(syncStateSet.contains(1L));
 
         // Step3: set new syncStateSet
-        HashSet<Long> newSyncStateSet = new HashSet<Long>() {{
-                add(1L);
-                add(2L);
-                }};
+        HashSet<Long> newSyncStateSet = new HashSet<Long>();
+        newSyncStateSet.add(1L);
+        newSyncStateSet.add(2L);
         masterHAService.setSyncStateSet(newSyncStateSet);
         Assert.assertFalse(masterHAService.isSynchronizingSyncStateSet());
     }
