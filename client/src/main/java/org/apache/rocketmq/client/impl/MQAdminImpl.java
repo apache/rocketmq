@@ -328,7 +328,7 @@ public class MQAdminImpl {
         String routeTopic = topic;
         // if topic is lmq ,then use clusterName as lmq parent topic
         // Use clusterName or lmq parent topic to get topic route for lmq or rmq_sys_wheel_timer
-        if ((isLmq || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
+        if (!StringUtils.isEmpty(topic) && (isLmq || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
             && !StringUtils.isEmpty(clusterName)) {
             routeTopic = clusterName;
         }

@@ -831,7 +831,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         boolean force) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         String routeTopic = topic;
         // Use clusterName topic to get topic route for lmq or rmq_sys_wheel_timer
-        if ((MixAll.isLmq(topic) || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
+        if (!StringUtils.isEmpty(topic) && (MixAll.isLmq(topic) || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
             && !StringUtils.isEmpty(clusterName)) {
             routeTopic = clusterName;
         }
@@ -983,7 +983,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         boolean isC) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         String routeTopic = topic;
         // Use clusterName topic to get topic route for lmq or rmq_sys_wheel_timer
-        if ((MixAll.isLmq(topic) || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
+        if (!StringUtils.isEmpty(topic) && (MixAll.isLmq(topic) || topic.equals(TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer"))
             && !StringUtils.isEmpty(clusterName)) {
             routeTopic = clusterName;
         }
