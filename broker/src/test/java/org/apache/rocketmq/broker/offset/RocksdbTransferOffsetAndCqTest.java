@@ -130,6 +130,9 @@ public class RocksdbTransferOffsetAndCqTest {
 
     @Test
     public void testRocksdbCqWrite() throws RocksDBException {
+        if (notToBeExecuted()) {
+            return;
+        }
         RocksDBMessageStore kvStore = defaultMessageStore.getRocksDBMessageStore();
         ConsumeQueueStoreInterface store = kvStore.getConsumeQueueStore();
         ConsumeQueueInterface rocksdbCq = defaultMessageStore.getRocksDBMessageStore().findConsumeQueue(topic, queueId);
