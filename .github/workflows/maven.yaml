@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         # see https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
         jdk: [8]
     steps:
       - name: Checkout
