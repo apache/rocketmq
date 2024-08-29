@@ -272,7 +272,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public void sendMessageBack(MessageExt msg, int delayLevel)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         msg.setTopic(withNamespace(msg.getTopic()));
-        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, null);
+        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, msg.getBrokerName());
     }
 
     /**
