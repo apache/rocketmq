@@ -145,8 +145,9 @@ public class ConsumerManager {
                         callConsumerIdsChangeListener(ConsumerGroupEvent.UNREGISTER, next.getKey());
                     }
                 }
-
-                callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, next.getKey(), info.getAllChannel());
+                if (!isBroadcastMode(info.getMessageModel())) {
+                    callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, next.getKey(), info.getAllChannel());
+                }
             }
         }
         return removed;
@@ -196,7 +197,7 @@ public class ConsumerManager {
         }
 
         if (r1 || r2) {
-            if (isNotifyConsumerIdsChangedEnable) {
+            if (isNotifyConsumerIdsChangedEnable && !isBroadcastMode(consumerGroupInfo.getMessageModel())) {
                 callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }
@@ -219,7 +220,7 @@ public class ConsumerManager {
             consumerGroupInfo = prev != null ? prev : tmp;
         }
         boolean updateChannelRst = consumerGroupInfo.updateChannel(clientChannelInfo, consumeType, messageModel, consumeFromWhere);
-        if (updateChannelRst && isNotifyConsumerIdsChangedEnable) {
+        if (updateChannelRst && isNotifyConsumerIdsChangedEnable && !isBroadcastMode(consumerGroupInfo.getMessageModel())) {
             callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
         }
         if (null != this.brokerStatsManager) {
@@ -244,7 +245,7 @@ public class ConsumerManager {
                     callConsumerIdsChangeListener(ConsumerGroupEvent.UNREGISTER, group);
                 }
             }
-            if (isNotifyConsumerIdsChangedEnable) {
+            if (isNotifyConsumerIdsChangedEnable && !isBroadcastMode(consumerGroupInfo.getMessageModel())) {
                 callConsumerIdsChangeListener(ConsumerGroupEvent.CHANGE, group, consumerGroupInfo.getAllChannel());
             }
         }
@@ -333,5 +334,9 @@ public class ConsumerManager {
                 LOGGER.error("err when call consumerIdsChangeListener", t);
             }
         }
+    }
+
+    private boolean isBroadcastMode(final MessageModel messageModel) {
+        return MessageModel.BROADCASTING.equals(messageModel);
     }
 }
