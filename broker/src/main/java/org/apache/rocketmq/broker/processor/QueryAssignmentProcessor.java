@@ -254,8 +254,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                 int index = cidAll.indexOf(clientId);
                 if (index >= 0) {
                     for (int i = 1; i <= popShareQueueNum; i++) {
-                        index++;
-                        index = index % cidAll.size();
+                        index = (index + 1) % cidAll.size();
                         List<MessageQueue> tmp = allocateMessageQueueStrategy.allocate(consumerGroup, cidAll.get(index), mqAll, cidAll);
                         allocateResult.addAll(tmp);
                     }
