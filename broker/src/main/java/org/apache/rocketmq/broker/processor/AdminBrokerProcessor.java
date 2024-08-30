@@ -2062,7 +2062,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         Map<Integer, Long> queueOffsetMap = new HashMap<>();
 
         // Reset offset for all queues belonging to the specified topic
-        TopicConfig topicConfig = brokerController.getTopicConfigManager().getTopicConfigTable().get(topic);
+        TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (null == topicConfig) {
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("Topic " + topic + " does not exist");

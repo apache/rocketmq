@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.example.simple;
+package org.apache.rocketmq.example.lmq;
 
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
@@ -47,6 +47,7 @@ public class LMQProducer {
         for (int i = 0; i < 128; i++) {
             try {
                 Message msg = new Message(TOPIC, TAG, ("Hello RocketMQ " + i).getBytes(RemotingHelper.DEFAULT_CHARSET));
+                msg.setKeys("Key" + i);
                 msg.putUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH /* "INNER_MULTI_DISPATCH" */,
                     String.join(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER, LMQ_TOPIC_1, LMQ_TOPIC_2) /* "%LMQ%123,%LMQ%456" */);
                 SendResult sendResult = producer.send(msg);
