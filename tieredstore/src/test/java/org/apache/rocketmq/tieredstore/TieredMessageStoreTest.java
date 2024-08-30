@@ -47,6 +47,8 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.tieredstore.core.MessageStoreFetcher;
 import org.apache.rocketmq.tieredstore.file.FlatFileStore;
 import org.apache.rocketmq.tieredstore.file.FlatMessageFile;
+import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
+import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
 import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtil;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtilTest;
@@ -96,6 +98,7 @@ public class TieredMessageStoreTest {
 
         defaultStore = Mockito.mock(DefaultMessageStore.class);
         Mockito.when(defaultStore.load()).thenReturn(true);
+        Mockito.when(defaultStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
 
         currentStore = new TieredMessageStore(context, defaultStore);
         Assert.assertNotNull(currentStore.getStoreConfig());
@@ -131,6 +134,10 @@ public class TieredMessageStoreTest {
         currentStore.load();
 
         FlatMessageFile flatFile = currentStore.getFlatFileStore().computeIfAbsent(mq);
+        MetadataStore metadataStore = currentStore.metadataStore;
+        TopicMetadata topicMetadata = metadataStore.getTopic(mq.getTopic());
+        topicMetadata.setReserveTime(144);
+        currentStore.getMetadataStore().updateTopic(topicMetadata);
         Assert.assertNotNull(flatFile);
         currentStore.dispatcher.doScheduleDispatch(flatFile, true).join();
 

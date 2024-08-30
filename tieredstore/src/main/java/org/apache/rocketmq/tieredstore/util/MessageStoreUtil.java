@@ -104,6 +104,6 @@ public class MessageStoreUtil {
 
     public static boolean ifTopicExistInRemote(TopicMetadata topicMetadata, TieredMessageStore messageStore) {
         long clusterReservedTime = messageStore.getDefaultStore().getMessageStoreConfig().getFileReservedTime();
-        return topicMetadata.getReserveTime() > clusterReservedTime;
+        return topicMetadata != null && topicMetadata.getReserveTime() > clusterReservedTime;
     }
 }
