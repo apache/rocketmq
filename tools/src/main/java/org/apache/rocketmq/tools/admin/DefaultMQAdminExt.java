@@ -239,6 +239,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public void createAndUpdateSubscriptionGroupConfigList(String brokerAddr,
+        List<SubscriptionGroupConfig> configs) throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
+        defaultMQAdminExtImpl.createAndUpdateSubscriptionGroupConfigList(brokerAddr, configs);
+    }
+
+    @Override
     public SubscriptionGroupConfig examineSubscriptionGroupConfig(String addr, String group)
         throws InterruptedException, RemotingException, MQClientException, MQBrokerException {
         return defaultMQAdminExtImpl.examineSubscriptionGroupConfig(addr, group);

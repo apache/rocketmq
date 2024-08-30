@@ -129,6 +129,10 @@ public class NetworkUtil {
             ArrayList<InetAddress> ipv6Result = new ArrayList<>();
             List<InetAddress> localInetAddressList = getLocalInetAddressList();
             for (InetAddress inetAddress : localInetAddressList) {
+                // Skip loopback addresses
+                if (inetAddress.isLoopbackAddress()) {
+                    continue;
+                }
                 if (inetAddress instanceof Inet6Address) {
                     ipv6Result.add(inetAddress);
                 } else {

@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.subscription;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -138,6 +139,11 @@ public class SubscriptionGroupManager extends ConfigManager {
     }
 
     public void updateSubscriptionGroupConfig(final SubscriptionGroupConfig config) {
+        updateSubscriptionGroupConfigWithoutPersist(config);
+        this.persist();
+    }
+
+    private void updateSubscriptionGroupConfigWithoutPersist(SubscriptionGroupConfig config) {
         Map<String, String> newAttributes = request(config);
         Map<String, String> currentAttributes = current(config.getGroupName());
 
@@ -157,7 +163,13 @@ public class SubscriptionGroupManager extends ConfigManager {
         }
 
         updateDataVersion();
+    }
 
+    public void updateSubscriptionGroupConfigList(List<SubscriptionGroupConfig> configList) {
+        if (null == configList || configList.isEmpty()) {
+            return;
+        }
+        configList.forEach(this::updateSubscriptionGroupConfigWithoutPersist);
         this.persist();
     }
 
