@@ -118,6 +118,10 @@ public interface MQAdminExt extends MQAdmin {
         final SubscriptionGroupConfig config) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException;
 
+    void createAndUpdateSubscriptionGroupConfigList(String brokerAddr,
+        List<SubscriptionGroupConfig> configs) throws RemotingException,
+        MQBrokerException, InterruptedException, MQClientException;
+
     SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr,
         final String group) throws InterruptedException, RemotingException, MQClientException, MQBrokerException;
 

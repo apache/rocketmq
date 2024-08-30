@@ -19,6 +19,7 @@ package org.apache.rocketmq.tieredstore;
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
 
 public class MessageStoreConfig {
 
@@ -59,6 +60,7 @@ public class MessageStoreConfig {
             return value;
         }
 
+        @SuppressWarnings("DuplicatedCode")
         public static TieredStorageLevel valueOf(int value) {
             switch (value) {
                 case 1:
@@ -91,18 +93,18 @@ public class MessageStoreConfig {
     private long tieredStoreConsumeQueueMaxSize = 100 * 1024 * 1024;
     private int tieredStoreIndexFileMaxHashSlotNum = 5000000;
     private int tieredStoreIndexFileMaxIndexNum = 5000000 * 4;
-    // index file will force rolling to next file after idle specified time, default is 3h
-    private int tieredStoreIndexFileRollingIdleInterval = 3 * 60 * 60 * 1000;
+
     private String tieredMetadataServiceProvider = "org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore";
     private String tieredBackendServiceProvider = "org.apache.rocketmq.tieredstore.provider.MemoryFileSegment";
+
     // file reserved time, default is 72 hour
+    private boolean tieredStoreDeleteFileEnable = true;
     private int tieredStoreFileReservedTime = 72;
+    private long tieredStoreDeleteFileInterval = Duration.ofHours(1).toMillis();
+
     // time of forcing commitLog to roll to next file, default is 24 hour
     private int commitLogRollingInterval = 24;
-    // rolling will only happen if file segment size is larger than commitcp b  LogRollingMinimumSize, default is 128M
-    private int commitLogRollingMinimumSize = 128 * 1024 * 1024;
-    // default is 100, unit is millisecond
-    private int maxCommitJitter = 100;
+    private int commitLogRollingMinimumSize = 16 * 1024 * 1024;
 
     private boolean tieredStoreGroupCommit = true;
     private int tieredStoreGroupCommitTimeout = 30 * 1000;
@@ -112,7 +114,6 @@ public class MessageStoreConfig {
     private int tieredStoreGroupCommitSize = 4 * 1024 * 1024;
     // Cached message count larger than this value will suspend append. default is 10000
     private int tieredStoreMaxGroupCommitCount = 10000;
-    private long tieredStoreMaxFallBehindSize = 128 * 1024 * 1024;
 
     private boolean readAheadCacheEnable = true;
     private int readAheadMessageCountThreshold = 4096;
@@ -226,14 +227,6 @@ public class MessageStoreConfig {
         this.tieredStoreIndexFileMaxIndexNum = tieredStoreIndexFileMaxIndexNum;
     }
 
-    public int getTieredStoreIndexFileRollingIdleInterval() {
-        return tieredStoreIndexFileRollingIdleInterval;
-    }
-
-    public void setTieredStoreIndexFileRollingIdleInterval(int tieredStoreIndexFileRollingIdleInterval) {
-        this.tieredStoreIndexFileRollingIdleInterval = tieredStoreIndexFileRollingIdleInterval;
-    }
-
     public String getTieredMetadataServiceProvider() {
         return tieredMetadataServiceProvider;
     }
@@ -250,12 +243,28 @@ public class MessageStoreConfig {
         this.tieredBackendServiceProvider = tieredBackendServiceProvider;
     }
 
+    public boolean isTieredStoreDeleteFileEnable() {
+        return tieredStoreDeleteFileEnable;
+    }
+
+    public void setTieredStoreDeleteFileEnable(boolean tieredStoreDeleteFileEnable) {
+        this.tieredStoreDeleteFileEnable = tieredStoreDeleteFileEnable;
+    }
+
     public int getTieredStoreFileReservedTime() {
         return tieredStoreFileReservedTime;
     }
 
     public void setTieredStoreFileReservedTime(int tieredStoreFileReservedTime) {
         this.tieredStoreFileReservedTime = tieredStoreFileReservedTime;
+    }
+
+    public long getTieredStoreDeleteFileInterval() {
+        return tieredStoreDeleteFileInterval;
+    }
+
+    public void setTieredStoreDeleteFileInterval(long tieredStoreDeleteFileInterval) {
+        this.tieredStoreDeleteFileInterval = tieredStoreDeleteFileInterval;
     }
 
     public int getCommitLogRollingInterval() {
@@ -272,14 +281,6 @@ public class MessageStoreConfig {
 
     public void setCommitLogRollingMinimumSize(int commitLogRollingMinimumSize) {
         this.commitLogRollingMinimumSize = commitLogRollingMinimumSize;
-    }
-
-    public int getMaxCommitJitter() {
-        return maxCommitJitter;
-    }
-
-    public void setMaxCommitJitter(int maxCommitJitter) {
-        this.maxCommitJitter = maxCommitJitter;
     }
 
     public boolean isTieredStoreGroupCommit() {
@@ -320,14 +321,6 @@ public class MessageStoreConfig {
 
     public void setTieredStoreMaxGroupCommitCount(int tieredStoreMaxGroupCommitCount) {
         this.tieredStoreMaxGroupCommitCount = tieredStoreMaxGroupCommitCount;
-    }
-
-    public long getTieredStoreMaxFallBehindSize() {
-        return tieredStoreMaxFallBehindSize;
-    }
-
-    public void setTieredStoreMaxFallBehindSize(long tieredStoreMaxFallBehindSize) {
-        this.tieredStoreMaxFallBehindSize = tieredStoreMaxFallBehindSize;
     }
 
     public boolean isReadAheadCacheEnable() {

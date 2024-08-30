@@ -587,7 +587,12 @@ public class BatchConsumeQueue implements ConsumeQueueInterface {
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(this.mappedFileQueue.getMaxOffset());
         if (mappedFile != null) {
             boolean isNewFile = isNewFile(mappedFile);
-            boolean appendRes = mappedFile.appendMessage(this.byteBufferItem.array());
+            boolean appendRes;
+            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                appendRes = mappedFile.appendMessageUsingFileChannel(this.byteBufferItem.array());
+            } else {
+                appendRes = mappedFile.appendMessage(this.byteBufferItem.array());
+            }
             if (appendRes) {
                 maxMsgPhyOffsetInCommitLog = offset;
                 maxOffsetInQueue = msgBaseOffset + batchSize;

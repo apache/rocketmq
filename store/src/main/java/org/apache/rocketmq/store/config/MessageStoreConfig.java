@@ -105,6 +105,9 @@ public class MessageStoreConfig {
     // default, defaultRocksDB
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
+
+    private boolean transferMetadataJsonToRocksdb = false;
+
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -418,6 +421,8 @@ public class MessageStoreConfig {
      * For example, reput offset exceeding the flush offset during synchronous disk flushing.
      */
     private boolean readUnCommitted = false;
+
+    private boolean putConsumeQueueDataByFileChannel = true;
 
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
@@ -1832,4 +1837,21 @@ public class MessageStoreConfig {
     public void setReadUnCommitted(boolean readUnCommitted) {
         this.readUnCommitted = readUnCommitted;
     }
+
+    public boolean isPutConsumeQueueDataByFileChannel() {
+        return putConsumeQueueDataByFileChannel;
+    }
+
+    public void setPutConsumeQueueDataByFileChannel(boolean putConsumeQueueDataByFileChannel) {
+        this.putConsumeQueueDataByFileChannel = putConsumeQueueDataByFileChannel;
+    }
+
+    public boolean isTransferMetadataJsonToRocksdb() {
+        return transferMetadataJsonToRocksdb;
+    }
+
+    public void setTransferMetadataJsonToRocksdb(boolean transferMetadataJsonToRocksdb) {
+        this.transferMetadataJsonToRocksdb = transferMetadataJsonToRocksdb;
+    }
+
 }

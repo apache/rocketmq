@@ -22,7 +22,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.config.RocksDBConfigManager;
+import org.apache.rocketmq.broker.RocksDBConfigManager;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.rocksdb.WriteBatch;
 
@@ -31,14 +31,19 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 
 public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
+    protected RocksDBConfigManager rocksDBConfigManager;
+
     public RocksDBConsumerOffsetManager(BrokerController brokerController) {
         super(brokerController);
-        this.rocksDBConfigManager = new RocksDBConfigManager(brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
+        this.rocksDBConfigManager = new RocksDBConfigManager(configFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
     }
 
     @Override
     public boolean load() {
-        return this.rocksDBConfigManager.load(configFilePath(), this::decode0);
+        if (!rocksDBConfigManager.init()) {
+            return false;
+        }
+        return this.rocksDBConfigManager.loadData(this::decodeOffset);
     }
 
     @Override
@@ -56,8 +61,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         }
     }
 
-    @Override
-    protected void decode0(final byte[] key, final byte[] body) {
+    protected void decodeOffset(final byte[] key, final byte[] body) {
         String topicAtGroup = new String(key, DataConverter.CHARSET_UTF8);
         RocksDBOffsetSerializeWrapper wrapper = JSON.parseObject(body, RocksDBOffsetSerializeWrapper.class);
 
