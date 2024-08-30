@@ -132,6 +132,15 @@ public class MessageStoreDispatcherImplTest {
         FlatMessageFile flatFile = fileStore.getFlatFile(mq);
         Assert.assertNotNull(flatFile);
 
+        MessageQueue ignoredMq = new MessageQueue("ignored", storeConfig.getBrokerName(), 0);
+        DispatchRequest ignoredRequest = new DispatchRequest(ignoredMq.getTopic(), ignoredMq.getQueueId(),
+            MessageFormatUtil.getCommitLogOffset(buffer), buffer.remaining(), 0L,
+            MessageFormatUtil.getStoreTimeStamp(buffer), 0L,
+            "", "", 0, 0L, new HashMap<>());
+        metadataStore.addTopic(ignoredMq.getTopic(), -1);
+        dispatcher.dispatch(ignoredRequest);
+        Assert.assertNull(fileStore.getFlatFile(ignoredMq));
+
         // init offset
         dispatcher.doScheduleDispatch(flatFile, true).join();
         Assert.assertEquals(100L, flatFile.getConsumeQueueMinOffset());

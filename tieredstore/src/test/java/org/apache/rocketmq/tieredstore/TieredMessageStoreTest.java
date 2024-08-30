@@ -134,10 +134,7 @@ public class TieredMessageStoreTest {
         currentStore.load();
 
         FlatMessageFile flatFile = currentStore.getFlatFileStore().computeIfAbsent(mq);
-        MetadataStore metadataStore = currentStore.metadataStore;
-        TopicMetadata topicMetadata = metadataStore.getTopic(mq.getTopic());
-        topicMetadata.setReserveTime(144);
-        currentStore.getMetadataStore().updateTopic(topicMetadata);
+        MessageStoreUtil.updateTopicReservedTime(currentStore.getMetadataStore(), mq.getTopic(), 144);
         Assert.assertNotNull(flatFile);
         currentStore.dispatcher.doScheduleDispatch(flatFile, true).join();
 
@@ -309,6 +306,9 @@ public class TieredMessageStoreTest {
         when(defaultStore.getEarliestMessageTime()).thenReturn(100L);
         Assert.assertEquals(2, currentStore.queryMessage(mq.getTopic(), "key", 32, 0, 99).getMessageMapedList().size());
         Assert.assertEquals(1, currentStore.queryMessage(mq.getTopic(), "key", 32, 100, 200).getMessageMapedList().size());
+        MessageStoreUtil.updateTopicReservedTime(currentStore.getMetadataStore(), mq.getTopic(), -1);
+        Assert.assertEquals(1, currentStore.queryMessage(mq.getTopic(), "key", 32, 0, 200).getMessageMapedList().size());
+        MessageStoreUtil.updateTopicReservedTime(currentStore.getMetadataStore(), mq.getTopic(), 144);
         Assert.assertEquals(3, currentStore.queryMessage(mq.getTopic(), "key", 32, 0, 200).getMessageMapedList().size());
     }
 

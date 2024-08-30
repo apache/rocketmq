@@ -24,6 +24,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
+import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
 
 public class MessageStoreUtil {
@@ -105,5 +106,14 @@ public class MessageStoreUtil {
     public static boolean ifTopicExistInRemote(TopicMetadata topicMetadata, TieredMessageStore messageStore) {
         long clusterReservedTime = messageStore.getDefaultStore().getMessageStoreConfig().getFileReservedTime();
         return topicMetadata != null && topicMetadata.getReserveTime() > clusterReservedTime;
+    }
+
+    public static void updateTopicReservedTime(MetadataStore metadataStore, String topic, long reservedTime) {
+        TopicMetadata topicMetadata = metadataStore.getTopic(topic);
+        if (topicMetadata == null) {
+            return;
+        }
+        topicMetadata.setReserveTime(reservedTime);
+        metadataStore.updateTopic(topicMetadata);
     }
 }
