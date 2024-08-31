@@ -19,38 +19,56 @@ package org.apache.rocketmq.store.lock;
 import org.apache.rocketmq.store.PutMessageReentrantLock;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
-import java.util.LinkedList;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AdaptiveLockImpl implements AdaptiveLock {
-
     private AdaptiveLock adaptiveLock;
 
     //state
     private AtomicBoolean state = new AtomicBoolean(true);
 
-    private List<AdaptiveLock> locks;
+    private Map<String, AdaptiveLock> locks;
+
+    private final List<AtomicInteger> tpsTable;
 
     public AdaptiveLockImpl() {
-        this.locks = new LinkedList<>();
-        this.locks.add(new CollisionRetreatLock());
-        this.locks.add(new PutMessageReentrantLock());
-        adaptiveLock = new CollisionRetreatLock();
+        this.locks = new HashMap<>();
+        this.locks.put("Reentrant", new PutMessageReentrantLock());
+        this.locks.put("Collision", new CollisionRetreatLock());
+
+        this.tpsTable = new ArrayList<>(2);
+        this.tpsTable.add(new AtomicInteger(0));
+        this.tpsTable.add(new AtomicInteger(0));
+
+        adaptiveLock = this.locks.get("Collision");
     }
 
     @Override
     public void lock() {
-        while (!this.state.get()) {
-        }
+        tpsTable.get(LocalTime.now().getSecond() % 2).getAndIncrement();
+        boolean state;
+        do {
+            state = this.state.get();
+        } while (!state);
+
         this.adaptiveLock.lock();
     }
 
     @Override
     public void unlock() {
-        while (!this.state.get()) {
-        }
+        boolean state;
+        do {
+            state = this.state.get();
+        } while (!state);
+
         this.adaptiveLock.unlock();
+        swap();
     }
 
     @Override
@@ -60,18 +78,45 @@ public class AdaptiveLockImpl implements AdaptiveLock {
 
     @Override
     public void swap() {
-        if (this.state.compareAndSet(true, false)) {
-            //change adaptiveLock
+        boolean needSwap = false;
+        int slot = LocalTime.now().getSecond() % 2 - 1 >= 0 ? 0 : 1;
+        int tps = this.tpsTable.get(slot).get();
+        this.tpsTable.get(slot).set(-1);
+        if (tps == -1) {
+            return;
+        }
+        if (tps > 50000) {
+            if (this.adaptiveLock instanceof CollisionRetreatLock) {
+                needSwap = true;
+            }
+        } else {
+            if (this.adaptiveLock instanceof PutMessageReentrantLock) {
+                needSwap = true;
+            }
+        }
 
-            this.state.compareAndSet(false, true);
+        if (needSwap) {
+            if (this.state.compareAndSet(true, false)) {
+                this.adaptiveLock.lock();
+                if (this.adaptiveLock instanceof CollisionRetreatLock) {
+                    this.adaptiveLock = this.locks.get("Reentrant");
+                } else {
+                    this.adaptiveLock = this.locks.get("Collision");
+                }
+                try {
+                    this.adaptiveLock.unlock();
+                } catch (Exception ignore){
+                }
+                this.state.compareAndSet(false, true);
+            }
         }
     }
 
     public List<AdaptiveLock> getLocks() {
-        return this.locks;
+        return (List<AdaptiveLock>) this.locks.values();
     }
 
-    public void setLocks(List<AdaptiveLock> locks) {
+    public void setLocks(Map<String, AdaptiveLock> locks) {
         this.locks = locks;
     }
 
@@ -81,5 +126,13 @@ public class AdaptiveLockImpl implements AdaptiveLock {
 
     public void setState(boolean state) {
         this.state.set(state);
+    }
+
+    public AdaptiveLock getAdaptiveLock() {
+        return this.adaptiveLock;
+    }
+
+    public List<AtomicInteger> getTpsTable() {
+        return this.tpsTable;
     }
 }
