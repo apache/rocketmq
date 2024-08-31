@@ -18,11 +18,12 @@
 package org.apache.rocketmq.broker.subscription;
 
 import com.google.common.collect.ImmutableMap;
-
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.SubscriptionGroupAttributes;
@@ -39,7 +40,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 
 @RunWith(MockitoJUnitRunner.class)
 public class SubscriptionGroupManagerTest {
@@ -113,4 +118,52 @@ public class SubscriptionGroupManagerTest {
     private boolean notToBeExecuted() {
         return MixAll.isMac();
     }
+    @Test
+    public void testUpdateSubscriptionGroupConfigList_NullConfigList() {
+        if (notToBeExecuted()) {
+            return;
+        }
+
+        subscriptionGroupManager.updateSubscriptionGroupConfigList(null);
+        // Verifying that persist() is not called
+        verify(subscriptionGroupManager, never()).persist();
+    }
+
+    @Test
+    public void testUpdateSubscriptionGroupConfigList_EmptyConfigList() {
+        if (notToBeExecuted()) {
+            return;
+        }
+
+        subscriptionGroupManager.updateSubscriptionGroupConfigList(Collections.emptyList());
+        // Verifying that persist() is not called
+        verify(subscriptionGroupManager, never()).persist();
+    }
+
+    @Test
+    public void testUpdateSubscriptionGroupConfigList_ValidConfigList() {
+        if (notToBeExecuted()) {
+            return;
+        }
+
+        final List<SubscriptionGroupConfig> configList = new LinkedList<>();
+        final List<String> groupNames = new LinkedList<>();
+        for (int i = 0; i < 10; i++) {
+            SubscriptionGroupConfig config = new SubscriptionGroupConfig();
+            String groupName = String.format("group-%d", i);
+            config.setGroupName(groupName);
+            configList.add(config);
+            groupNames.add(groupName);
+        }
+
+        subscriptionGroupManager.updateSubscriptionGroupConfigList(configList);
+
+        // Verifying that persist() is called once
+        verify(subscriptionGroupManager, times(1)).persist();
+
+        groupNames.forEach(groupName ->
+            assertThat(subscriptionGroupManager.getSubscriptionGroupTable().get(groupName)).isNotNull());
+
+    }
+
 }
