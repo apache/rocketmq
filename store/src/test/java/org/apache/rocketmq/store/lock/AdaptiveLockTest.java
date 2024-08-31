@@ -41,7 +41,6 @@ public class AdaptiveLockTest {
             if (i == 50000) Thread.sleep(1000);
         }
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof PutMessageReentrantLock);
-        System.out.println(adaptiveLock.getTpsTable());
 
         Thread.sleep(1000L);
         adaptiveLock.lock();
@@ -52,7 +51,6 @@ public class AdaptiveLockTest {
             Thread.sleep(10);
         }
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof CollisionRetreatLock);
-        System.out.println(adaptiveLock.getTpsTable());
 
         for (int i = 0; i < 100000; i++) {
             adaptiveLock.lock();

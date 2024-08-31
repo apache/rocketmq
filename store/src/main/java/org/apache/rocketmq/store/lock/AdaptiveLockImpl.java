@@ -105,7 +105,7 @@ public class AdaptiveLockImpl implements AdaptiveLock {
                 }
                 try {
                     this.adaptiveLock.unlock();
-                } catch (Exception ignore){
+                } catch (Exception ignore) {
                 }
                 this.state.compareAndSet(false, true);
             }
