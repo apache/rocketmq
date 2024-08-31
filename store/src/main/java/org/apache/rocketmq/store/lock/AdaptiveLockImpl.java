@@ -37,7 +37,9 @@ public class AdaptiveLockImpl implements AdaptiveLock {
 
     private final List<AtomicInteger> tpsTable;
 
-    public AdaptiveLockImpl() {
+    private static int TPS_SWAP_CRITICAL_POINT;
+
+    public AdaptiveLockImpl(int tpsSwapCriticalPoint) {
         this.locks = new HashMap<>();
         this.locks.put("Reentrant", new PutMessageReentrantLock());
         this.locks.put("Collision", new CollisionRetreatLock());
@@ -46,6 +48,7 @@ public class AdaptiveLockImpl implements AdaptiveLock {
         this.tpsTable.add(new AtomicInteger(0));
         this.tpsTable.add(new AtomicInteger(0));
 
+        TPS_SWAP_CRITICAL_POINT = tpsSwapCriticalPoint;
         adaptiveLock = this.locks.get("Collision");
     }
 
@@ -85,7 +88,7 @@ public class AdaptiveLockImpl implements AdaptiveLock {
         if (tps == -1) {
             return;
         }
-        if (tps > 50000) {
+        if (tps > TPS_SWAP_CRITICAL_POINT) {
             if (this.adaptiveLock instanceof CollisionRetreatLock) {
                 needSwap = true;
             }
@@ -106,6 +109,8 @@ public class AdaptiveLockImpl implements AdaptiveLock {
                 try {
                     this.adaptiveLock.unlock();
                 } catch (Exception ignore) {
+                    //Used to synchronize the lock state,
+                    //ReentrantLock throws an exception when unlock is executed when the lock is free, so it is caught and ignored
                 }
                 this.state.compareAndSet(false, true);
             }
