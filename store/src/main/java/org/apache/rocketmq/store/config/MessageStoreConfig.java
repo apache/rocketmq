@@ -430,6 +430,11 @@ public class MessageStoreConfig {
      */
     private int spinLockCollisionRetreatOptimalDegree = 1000;
 
+    /*
+     *Critical TPS that triggers the adaptive locking mechanism switch
+     */
+    private int tpsSwapCriticalPoint = 50000;
+
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
     }
@@ -1866,5 +1871,13 @@ public class MessageStoreConfig {
 
     public void setSpinLockCollisionRetreatOptimalDegree(int optimalDegree) {
         this.spinLockCollisionRetreatOptimalDegree = optimalDegree;
+    }
+
+    public int getTpsSwapCriticalPoint() {
+        return tpsSwapCriticalPoint;
+    }
+
+    public void setTpsSwapCriticalPoint(int tpsSwapCriticalPoint) {
+        this.tpsSwapCriticalPoint = tpsSwapCriticalPoint;
     }
 }
