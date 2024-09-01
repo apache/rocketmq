@@ -139,7 +139,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
     @Test
     public void testDeleteExpiredFiles() throws Exception {
         // Temporarily skip this test on the macOS as it is flaky
-        if(MixAll.isMac()) {
+        if (MixAll.isMac()) {
             return;
         }
         String base = createBaseDir();
