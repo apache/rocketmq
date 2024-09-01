@@ -38,7 +38,7 @@ public class AdaptiveLockTest {
         for (int i = 0; i < 100000; i++) {
             adaptiveLock.lock();
             adaptiveLock.unlock();
-            if (i == 50000) Thread.sleep(1000);
+            if (i == 70000) Thread.sleep(1000);
         }
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof PutMessageReentrantLock);
 
@@ -55,7 +55,7 @@ public class AdaptiveLockTest {
         for (int i = 0; i < 100000; i++) {
             adaptiveLock.lock();
             adaptiveLock.unlock();
-            if (i == 50000) Thread.sleep(1000);
+            if (i == 70000) Thread.sleep(1000);
         }
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof PutMessageReentrantLock);
     }
