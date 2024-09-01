@@ -134,10 +134,18 @@ public class AdaptiveLockImpl implements AdaptiveLock {
     }
 
     public AdaptiveLock getAdaptiveLock() {
-        return this.adaptiveLock;
+        return adaptiveLock;
     }
 
     public List<AtomicInteger> getTpsTable() {
-        return this.tpsTable;
+        return tpsTable;
+    }
+
+    public void setTpsSwapCriticalPoint(int tpsSwapCriticalPoint) {
+        this.tpsSwapCriticalPoint = tpsSwapCriticalPoint;
+    }
+
+    public int getTpsSwapCriticalPoint() {
+        return tpsSwapCriticalPoint;
     }
 }
