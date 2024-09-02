@@ -43,3 +43,4 @@ jobs:
           annotate_only: true
           include_passed: true
           detailed_summary: true
+
