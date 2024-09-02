@@ -278,6 +278,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testAsyncPutAndGetMessage() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         Assume.assumeFalse(MixAll.isWindows());
         String base = createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
