@@ -7,6 +7,10 @@ on:
       - master
       - develop
       - bazel
+
+permissions:
+  actions: write
+
 jobs:
   build:
     name: "bazel-compile (${{ matrix.os }})"
@@ -20,3 +24,12 @@ jobs:
         run: bazel build --config=remote //...
       - name: Run Tests
         run: bazel test --config=remote //...
+      - name: Retry if failed
+        # if it failed , retry 2 times at most
+        if: failure() && fromJSON(github.run_attempt) < 3
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Attempting to retry workflow..."
+          gh workflow run rerun-workflow.yml -F run_id=${{ github.run_id }}

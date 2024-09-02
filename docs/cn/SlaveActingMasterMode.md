@@ -80,7 +80,7 @@ Slave Broker发现自己是该组中最小的brokerId，将会开启代理模式
 
 代理模式开启后，brokerId最小的Slave会承担起二级消息的扫描和重新投递功能。
 
-二级消息一般分为两个阶段，发送或者消费时会发送到一个特殊topic中，后台会有线程会扫描，最终的满足要求的消息会被重新投递到Commitlog中。我们可以让brokerId最小的Slave进行扫描，但如果扫描之后的消息重新投递到本Commitlog，那将会破坏Slave不可写的语义，造成Commitlog分叉。因此RoccketMQ 5.0提出一种逃逸机制，将重放的二级消息远程或本地投放到其他Master的Commitlog中。
+二级消息一般分为两个阶段，发送或者消费时会发送到一个特殊topic中，后台会有线程会扫描，最终的满足要求的消息会被重新投递到Commitlog中。我们可以让brokerId最小的Slave进行扫描，但如果扫描之后的消息重新投递到本Commitlog，那将会破坏Slave不可写的语义，造成Commitlog分叉。因此RocketMQ 5.0提出一种逃逸机制，将重放的二级消息远程或本地投放到其他Master的Commitlog中。
 
 - 远程逃逸
 

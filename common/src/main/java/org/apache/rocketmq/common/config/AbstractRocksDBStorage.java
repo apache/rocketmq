@@ -16,18 +16,7 @@
  */
 package org.apache.rocketmq.common.config;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
 import com.google.common.collect.Maps;
-
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.DataConverter;
@@ -50,6 +39,16 @@ import org.rocksdb.Statistics;
 import org.rocksdb.Status;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static org.rocksdb.RocksDB.NOT_FOUND;
 
@@ -478,11 +477,7 @@ public abstract class AbstractRocksDBStorage {
             }
             Map<Integer, StringBuilder> map = Maps.newHashMap();
             for (LiveFileMetaData metaData : liveFileMetaDataList) {
-                StringBuilder sb = map.get(metaData.level());
-                if (sb == null) {
-                    sb = new StringBuilder(256);
-                    map.put(metaData.level(), sb);
-                }
+                StringBuilder sb = map.computeIfAbsent(metaData.level(), k -> new StringBuilder(256));
                 sb.append(new String(metaData.columnFamilyName(), DataConverter.CHARSET_UTF8)).append(SPACE).
                         append(metaData.fileName()).append(SPACE).
                         append("s: ").append(metaData.size()).append(SPACE).
@@ -491,9 +486,8 @@ public abstract class AbstractRocksDBStorage {
                         append("d: ").append(metaData.numDeletions()).append(SPACE).
                         append(metaData.beingCompacted()).append("\n");
             }
-            for (Map.Entry<Integer, StringBuilder> entry : map.entrySet()) {
-                logger.info("level: {}\n{}", entry.getKey(), entry.getValue().toString());
-            }
+
+            map.forEach((key, value) -> logger.info("level: {}\n{}", key, value.toString()));
 
             String blockCacheMemUsage = this.db.getProperty("rocksdb.block-cache-usage");
             String indexesAndFilterBlockMemUsage = this.db.getProperty("rocksdb.estimate-table-readers-mem");

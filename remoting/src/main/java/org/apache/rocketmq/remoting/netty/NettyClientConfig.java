@@ -31,6 +31,8 @@ public class NettyClientConfig {
     private int connectTimeoutMillis = NettySystemConfig.connectTimeoutMillis;
     private long channelNotActiveInterval = 1000 * 60;
 
+    private boolean isScanAvailableNameSrv = true;
+
     /**
      * IdleStateEvent will be triggered when neither read nor write was performed for
      * the specified period of this time. Specify {@code 0} to disable
@@ -217,5 +219,13 @@ public class NettyClientConfig {
 
     public void setSocksProxyConfig(String socksProxyConfig) {
         this.socksProxyConfig = socksProxyConfig;
+    }
+
+    public boolean isScanAvailableNameSrv() {
+        return isScanAvailableNameSrv;
+    }
+
+    public void setScanAvailableNameSrv(boolean scanAvailableNameSrv) {
+        this.isScanAvailableNameSrv = scanAvailableNameSrv;
     }
 }

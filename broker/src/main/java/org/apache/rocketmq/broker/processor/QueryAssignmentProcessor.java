@@ -174,7 +174,14 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                 break;
             }
             case CLUSTERING: {
-                Set<MessageQueue> mqSet = topicRouteInfoManager.getTopicSubscribeInfo(topic);
+                Set<MessageQueue> mqSet;
+                if (MixAll.isLmq(topic)) {
+                    mqSet = new HashSet<>();
+                    mqSet.add(new MessageQueue(
+                        topic, brokerController.getBrokerConfig().getBrokerName(), (int)MixAll.LMQ_QUEUE_ID));
+                } else {
+                    mqSet = topicRouteInfoManager.getTopicSubscribeInfo(topic);
+                }
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
                         log.warn("QueryLoad: no assignment for group[{}], the topic[{}] does not exist.", consumerGroup, topic);
