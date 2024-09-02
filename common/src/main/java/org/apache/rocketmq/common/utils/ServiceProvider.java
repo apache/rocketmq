@@ -104,6 +104,7 @@ public class ServiceProvider {
         LOG.info("Looking for a resource file of name [{}] ...", name);
         List<T> services = new ArrayList<>();
         InputStream is = getResourceAsStream(getContextClassLoader(), name);
+        
         if (is == null) {
             LOG.warn("No resource file with name [{}] found.", name);
             return services;
@@ -195,4 +196,8 @@ public class ServiceProvider {
         }
         return (T) serviceClazz;
     }
+
+    
 }
+
+
