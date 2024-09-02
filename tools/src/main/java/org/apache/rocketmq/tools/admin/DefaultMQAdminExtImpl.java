@@ -95,6 +95,7 @@ import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
 import org.apache.rocketmq.remoting.protocol.body.KVTable;
+import org.apache.rocketmq.remoting.protocol.body.MessageRequestModeSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.ProducerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.remoting.protocol.body.QueryConsumeQueueResponseBody;
@@ -1831,6 +1832,12 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         final MessageRequestMode mode, final int popShareQueueNum,
         final long timeoutMillis) throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
         this.mqClientInstance.getMQClientAPIImpl().setMessageRequestMode(brokerAddr, topic, consumerGroup, mode, popShareQueueNum, timeoutMillis);
+    }
+
+    @Override
+    public MessageRequestModeSerializeWrapper getAllMessageRequestMode(final String brokerAddr)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return this.mqClientInstance.getMQClientAPIImpl().getAllMessageRequestMode(brokerAddr);
     }
 
     @Deprecated
