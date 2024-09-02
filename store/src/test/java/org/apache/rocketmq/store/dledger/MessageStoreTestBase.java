@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.store.dledger;
 
-import com.google.common.util.concurrent.RateLimiter;
 import io.openmessaging.storage.dledger.DLedgerConfig;
 import io.openmessaging.storage.dledger.DLedgerServer;
 import java.io.File;
