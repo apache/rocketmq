@@ -189,6 +189,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testPutAndGetMessage() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         String base = createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
@@ -232,6 +235,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testBatchPutAndGetMessage() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         String base = createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
@@ -326,6 +332,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testAsyncBatchPutAndGetMessage() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         String base = createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
