@@ -123,13 +123,7 @@ public class MessageStoreTestBase extends StoreTestBase {
     }
 
     protected void doPutMessages(MessageStore messageStore, String topic, int queueId, int num, long beginLogicsOffset) throws UnknownHostException {
-        RateLimiter rateLimiter = RateLimiter.create(100);
-        MessageStoreConfig storeConfig = messageStore.getMessageStoreConfig();
-        boolean limitAppendRate = storeConfig.isEnableDLegerCommitLog();
         for (int i = 0; i < num; i++) {
-            if (limitAppendRate) {
-                rateLimiter.acquire();
-            }
             MessageExtBrokerInner msgInner = buildMessage();
             msgInner.setTopic(topic);
             msgInner.setQueueId(queueId);
