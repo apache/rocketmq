@@ -136,7 +136,7 @@ public class MessageStoreTestBase extends StoreTestBase {
         for (int i = 0; i < num; i++) {
             GetMessageResult getMessageResult =  messageStore.getMessage("group", topic, queueId, beginLogicsOffset + i, 3, null);
             Assert.assertNotNull(getMessageResult);
-            Assert.assertTrue(!getMessageResult.getMessageBufferList().isEmpty());
+            Assert.assertFalse(getMessageResult.getMessageBufferList().isEmpty());
             MessageExt messageExt = MessageDecoder.decode(getMessageResult.getMessageBufferList().get(0));
             Assert.assertEquals(beginLogicsOffset + i, messageExt.getQueueOffset());
             getMessageResult.release();
