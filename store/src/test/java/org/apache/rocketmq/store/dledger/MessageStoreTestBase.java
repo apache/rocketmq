@@ -121,7 +121,7 @@ public class MessageStoreTestBase extends StoreTestBase {
         return defaultMessageStore;
     }
 
-    protected void doPutMessages(MessageStore messageStore, String topic, int queueId, int num, long beginLogicsOffset) throws UnknownHostException {
+    protected void doPutMessages(MessageStore messageStore, String topic, int queueId, int num, long beginLogicsOffset) {
         for (int i = 0; i < num; i++) {
             MessageExtBrokerInner msgInner = buildMessage();
             msgInner.setTopic(topic);
