@@ -142,5 +142,4 @@ public class MessageStoreTestBase extends StoreTestBase {
             getMessageResult.release();
         }
     }
-
 }
