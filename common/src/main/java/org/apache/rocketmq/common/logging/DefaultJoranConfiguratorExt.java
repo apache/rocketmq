@@ -76,6 +76,7 @@ public class DefaultJoranConfiguratorExt extends DefaultJoranConfigurator {
         return ExecutionStatus.DO_NOT_INVOKE_NEXT_IF_ANY;
     }
 
+    @Override
     public void configureByResource(URL url) throws JoranException {
         if (url == null) {
             throw new IllegalArgumentException("URL argument cannot be null");
@@ -91,6 +92,7 @@ public class DefaultJoranConfiguratorExt extends DefaultJoranConfigurator {
         }
     }
 
+    @Override
     public URL findURLOfDefaultConfigurationFile(boolean updateStatus) {
         ClassLoader myClassLoader = Loader.getClassLoaderOfObject(this);
         URL url = findConfigFileURLFromSystemProperties(myClassLoader, updateStatus);
