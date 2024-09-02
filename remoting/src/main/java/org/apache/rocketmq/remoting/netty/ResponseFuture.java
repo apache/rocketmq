@@ -56,6 +56,10 @@ public class ResponseFuture {
         }
     }
 
+    public void countDown() {
+        this.countDownLatch.countDown();
+    }
+
     public void release() {
         if (this.once != null) {
             this.once.release();
@@ -70,11 +74,6 @@ public class ResponseFuture {
     public RemotingCommand waitResponse(final long timeoutMillis) throws InterruptedException {
         this.countDownLatch.await(timeoutMillis, TimeUnit.MILLISECONDS);
         return this.responseCommand;
-    }
-
-    public void putResponse(final RemotingCommand responseCommand) {
-        this.responseCommand = responseCommand;
-        this.countDownLatch.countDown();
     }
 
     public long getBeginTimestamp() {
