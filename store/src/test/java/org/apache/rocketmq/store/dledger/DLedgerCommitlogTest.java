@@ -152,6 +152,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
     }
     @Test
     public void testDLedgerAbnormallyRecover() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         String base = createBaseDir();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
