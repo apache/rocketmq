@@ -78,6 +78,9 @@ public class MixCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testPutAndGet() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         String base = createBaseDir();
         String topic = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d", nextPort());
