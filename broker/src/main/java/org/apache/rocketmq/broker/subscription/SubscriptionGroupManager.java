@@ -344,12 +344,12 @@ public class SubscriptionGroupManager extends ConfigManager {
                 if (obj != null) {
                     this.dataVersion.assignNewOne(obj.dataVersion);
                     this.printLoadDataWhenFirstBoot(obj);
+                    log.info("load subGroup dataVersion success,{},{}", fileName, obj.dataVersion);
                 }
-                log.info("load subGroup dataVersion success " + fileName + " " +  obj.dataVersion);
             }
             return true;
         } catch (Exception e) {
-            log.error("load subGroup dataVersion failed" + fileName , e);
+            log.error("load subGroup dataVersion failed" + fileName, e);
             return false;
         }
     }

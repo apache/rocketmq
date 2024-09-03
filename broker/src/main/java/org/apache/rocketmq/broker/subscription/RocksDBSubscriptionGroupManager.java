@@ -19,6 +19,12 @@ package org.apache.rocketmq.broker.subscription;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import java.io.File;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiConsumer;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.RocksDBConfigManager;
 import org.apache.rocketmq.common.UtilAll;
@@ -26,13 +32,6 @@ import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.rocksdb.RocksIterator;
-
-import java.io.File;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.BiConsumer;
 
 public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
@@ -83,7 +82,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
             return true;
         }
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
-            log.info("subGroup json file is not exist, so skip merge");
+            log.info("subGroup json file does not exist, so skip merge");
             return true;
         }
         if (!super.loadDataVersion()) {
@@ -200,6 +199,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         try {
             rocksDBConfigManager.updateKvDataVersion();
         } catch (Exception e) {
+            log.error("update group config dataVersion error", e);
             throw new RuntimeException(e);
         }
     }

@@ -119,7 +119,7 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.CreateTopicListRequestBody;
-import org.apache.rocketmq.remoting.protocol.body.DiffConsumeQueueResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.CheckRocksdbCqWriteProgressResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
@@ -3017,13 +3017,13 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public DiffConsumeQueueResponseBody diffConsumeQueue(final String brokerAddr, final long timeoutMillis) throws InterruptedException,
+    public CheckRocksdbCqWriteProgressResponseBody checkRocksdbCqWriteProgress(final String brokerAddr, final long timeoutMillis) throws InterruptedException,
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
-        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.DIFF_CONSUME_QUEUE, null);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHECK_ROCKSDB_CQ_WRITE_PROGRESS, null);
         RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
         assert response != null;
         if (ResponseCode.SUCCESS == response.getCode()) {
-            return DiffConsumeQueueResponseBody.decode(response.getBody(), DiffConsumeQueueResponseBody.class);
+            return CheckRocksdbCqWriteProgressResponseBody.decode(response.getBody(), CheckRocksdbCqWriteProgressResponseBody.class);
         }
         throw new MQClientException(response.getCode(), response.getRemark());
     }

@@ -16,11 +16,12 @@
  */
 package org.apache.rocketmq.broker.offset;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import java.io.File;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.RocksDBConfigManager;
 import org.apache.rocketmq.common.UtilAll;
@@ -30,9 +31,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.rocksdb.WriteBatch;
-
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
 
 public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
@@ -67,7 +65,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             return true;
         }
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
-            log.info("consumerOffset json file is not exist, so skip merge");
+            log.info("consumerOffset json file does not exist, so skip merge");
             return true;
         }
         if (!super.loadDataVersion()) {
@@ -85,8 +83,8 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             this.persist();
             this.getDataVersion().assignNewOne(dataVersion);
             updateDataVersion();
+            log.info("update offset from json, dataVersion:{}, offsetTable: {} ", this.getDataVersion(), JSON.toJSONString(this.getOffsetTable()));
         }
-        log.info("update offset from json, dataVersion:{}, offsetTable: {} ", this.getDataVersion(), JSON.toJSONString(this.getOffsetTable()));
         return true;
     }
 
@@ -162,6 +160,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         try {
             rocksDBConfigManager.updateKvDataVersion();
         } catch (Exception e) {
+            log.error("update consumer offset dataVersion error", e);
             throw new RuntimeException(e);
         }
     }

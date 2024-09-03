@@ -76,7 +76,7 @@ public class RocksdbTransferOffsetAndCqTest {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(basePath);
         messageStoreConfig.setTransferOffsetJsonToRocksdb(true);
-        messageStoreConfig.setRocksdbCQWriteEnable(true);
+        messageStoreConfig.setRocksdbCQDoubleWriteEnable(true);
         Mockito.lenient().when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         Mockito.lenient().when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
 

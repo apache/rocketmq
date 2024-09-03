@@ -426,14 +426,14 @@ public class MessageStoreConfig {
 
     private boolean transferOffsetJsonToRocksdb = false;
 
-    private boolean rocksdbCQWriteEnable = false;
+    private boolean rocksdbCQDoubleWriteEnable = false;
 
-    public boolean isRocksdbCQWriteEnable() {
-        return rocksdbCQWriteEnable;
+    public boolean isRocksdbCQDoubleWriteEnable() {
+        return rocksdbCQDoubleWriteEnable;
     }
 
-    public void setRocksdbCQWriteEnable(boolean rocksdbWriteEnable) {
-        this.rocksdbCQWriteEnable = rocksdbWriteEnable;
+    public void setRocksdbCQDoubleWriteEnable(boolean rocksdbWriteEnable) {
+        this.rocksdbCQDoubleWriteEnable = rocksdbWriteEnable;
     }
 
     public boolean isTransferOffsetJsonToRocksdb() {

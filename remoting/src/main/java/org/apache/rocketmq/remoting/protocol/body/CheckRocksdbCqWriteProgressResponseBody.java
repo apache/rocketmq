@@ -19,7 +19,7 @@ package org.apache.rocketmq.remoting.protocol.body;
 
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
-public class DiffConsumeQueueResponseBody extends RemotingSerializable  {
+public class CheckRocksdbCqWriteProgressResponseBody extends RemotingSerializable  {
 
     String diffResult;
 

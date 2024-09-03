@@ -18,16 +18,15 @@ package org.apache.rocketmq.broker.topic;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import java.io.File;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.RocksDBConfigManager;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
-
-import java.io.File;
-import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 
 public class RocksDBTopicConfigManager extends TopicConfigManager {
 
@@ -64,7 +63,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
             return true;
         }
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
-            log.info("topic json file is not exist, so skip merge");
+            log.info("topic json file does not exist, so skip merge");
             return true;
         }
 
@@ -156,6 +155,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         try {
             rocksDBConfigManager.updateKvDataVersion();
         } catch (Exception e) {
+            log.error("update topic config dataVersion error", e);
             throw new RuntimeException(e);
         }
     }

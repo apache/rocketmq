@@ -19,7 +19,6 @@ package org.apache.rocketmq.tools.command.export;
 
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
@@ -27,7 +26,6 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.rocksdb.RocksIterator;
@@ -40,17 +38,6 @@ import java.util.function.BiConsumer;
 public class ExportMetadataInRocksDBCommand implements SubCommand {
     private static final String TOPICS_JSON_CONFIG = "topics";
     private static final String SUBSCRIPTION_GROUP_JSON_CONFIG = "subscriptionGroups";
-
-    public static void main(String[] args) throws SubCommandException {
-        ExportMetadataInRocksDBCommand cmd = new ExportMetadataInRocksDBCommand();
-
-        Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-p /Users/huyitao/store/config", "-t subscriptionGroups", "-j true"};
-        final CommandLine commandLine =
-            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options),
-                new DefaultParser());
-        cmd.execute(commandLine, options, null);
-    }
 
     @Override
     public String commandName() {
@@ -101,7 +88,7 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
 
         ConfigRocksDBStorage kvStore = new ConfigRocksDBStorage(path, true /* readOnly */);
         if (!kvStore.start()) {
-            System.out.printf("RocksDB load error, path=" + path + "\n");
+            System.out.printf("RocksDB load error, path=%s\n" , path);
             return;
         }
 

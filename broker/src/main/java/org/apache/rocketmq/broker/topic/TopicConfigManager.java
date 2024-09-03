@@ -647,12 +647,12 @@ public class TopicConfigManager extends ConfigManager {
                     TopicConfigSerializeWrapper.fromJson(jsonString, TopicConfigSerializeWrapper.class);
                 if (topicConfigSerializeWrapper != null) {
                     this.dataVersion.assignNewOne(topicConfigSerializeWrapper.getDataVersion());
+                    log.info("load topic metadata dataVersion success {}, {}", fileName, topicConfigSerializeWrapper.getDataVersion());
                 }
-                log.info("load topic metadata dataVersion success" + fileName + " " + topicConfigSerializeWrapper.getDataVersion());
             }
             return true;
         } catch (Exception e) {
-            log.error("load topic metadata dataVersion failed" + fileName , e);
+            log.error("load topic metadata dataVersion failed" + fileName, e);
             return false;
         }
     }

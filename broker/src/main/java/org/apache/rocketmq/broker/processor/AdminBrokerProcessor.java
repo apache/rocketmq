@@ -343,8 +343,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return fetchAllConsumeStatsInBroker(ctx, request);
             case RequestCode.QUERY_CONSUME_QUEUE:
                 return queryConsumeQueue(ctx, request);
-            case RequestCode.DIFF_CONSUME_QUEUE:
-                return this.diffConsumeQueue(ctx, request);
+            case RequestCode.CHECK_ROCKSDB_CQ_WRITE_PROGRESS:
+                return this.checkRocksdbCqWriteProgress(ctx, request);
             case RequestCode.UPDATE_AND_GET_GROUP_FORBIDDEN:
                 return this.updateAndGetGroupForbidden(ctx, request);
             case RequestCode.GET_SUBSCRIPTIONGROUP_CONFIG:
@@ -464,7 +464,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand diffConsumeQueue(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand checkRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
         response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "diff success, very good!")));
@@ -472,8 +472,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         DefaultMessageStore messageStore = (DefaultMessageStore) brokerController.getMessageStore();
         RocksDBMessageStore rocksDBMessageStore = messageStore.getRocksDBMessageStore();
 
-        if (!messageStore.getMessageStoreConfig().isRocksdbCQWriteEnable()) {
-            response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "RocksdbCQWriteEnable is false, diffConsumeQueue is invalid")));
+        if (!messageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
+            response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "RocksdbCQWriteEnable is false, CheckRocksdbCqWriteProgressCommand is invalid")));
             return response;
         }
 
@@ -492,7 +492,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 CqUnit kvCqLatestUnit = kvCq.getLatestUnit();
                 CqUnit jsonCqEarliestUnit = jsonCq.getEarliestUnit();
                 CqUnit jsonCqLatestUnit = jsonCq.getLatestUnit();
-                LOGGER.info("diffConsumeQueue topic:{}, queue:{}, kvCqEarliestUnit:{}, jsonCqEarliestUnit:{}, kvCqLatestUnit:{}, jsonCqLatestUnit:{}",
+                LOGGER.info("CheckRocksdbCqWriteProgressCommand topic:{}, queue:{}, kvCqEarliestUnit:{}, jsonCqEarliestUnit:{}, kvCqLatestUnit:{}, jsonCqLatestUnit:{}",
                     topic, queueId, kvCqEarliestUnit, jsonCqEarliestUnit, kvCqLatestUnit, jsonCqLatestUnit);
 
                 long jsonOffset = jsonCq.getMaxOffsetInQueue() - 1;

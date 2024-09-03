@@ -20,34 +20,21 @@ package org.apache.rocketmq.tools.command.queue;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
-import org.apache.rocketmq.remoting.protocol.body.DiffConsumeQueueResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.CheckRocksdbCqWriteProgressResponseBody;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
-import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 
-public class DiffConsumeQueueCommand implements SubCommand {
-
-    public static void main(String[] args) {
-        DiffConsumeQueueCommand cmd = new DiffConsumeQueueCommand();
-
-        Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-c LetLetMe", "-n xxxx:9876"};
-        final CommandLine commandLine =
-            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options),
-                new DefaultParser());
-        cmd.execute(commandLine, options, null);
-    }
+public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "diffConsumeQueueCommand";
+        return "checkRocksdbCqWriteProgressCommandCommand";
     }
 
     @Override
@@ -88,7 +75,7 @@ public class DiffConsumeQueueCommand implements SubCommand {
                 String brokerName = entry.getKey();
                 BrokerData brokerData = entry.getValue();
                 String brokerAddr = brokerData.getBrokerAddrs().get(0L);
-                DiffConsumeQueueResponseBody body = defaultMQAdminExt.diffConsumeQueue(brokerAddr);
+                CheckRocksdbCqWriteProgressResponseBody body = defaultMQAdminExt.checkRocksdbCqWriteProgress(brokerAddr);
                 System.out.printf(brokerName + " | " + brokerAddr + " | " + body.getDiffResult());
             }
 

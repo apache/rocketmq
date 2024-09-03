@@ -16,13 +16,12 @@
  */
 package org.apache.rocketmq.store;
 
+import io.opentelemetry.api.common.AttributesBuilder;
+import io.opentelemetry.api.metrics.Meter;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
-
-import io.opentelemetry.api.common.AttributesBuilder;
-import io.opentelemetry.api.metrics.Meter;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
@@ -202,6 +201,7 @@ public class RocksDBMessageStore extends DefaultMessageStore {
             super.loadCheckPoint();
             this.consumeQueueStore.start();
         } catch (Exception e) {
+            ERROR_LOG.error("loadAndStartConsumerServiceOnly error", e);
             throw new RuntimeException(e);
         }
     }
