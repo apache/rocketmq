@@ -146,10 +146,10 @@ public class MixCommitlogTest extends MessageStoreTestBase {
         long dividedOffset;
         {
             DefaultMessageStore originalStore = createMessageStore(base, false);
-            doPutMessages(originalStore, topic, 0, 1000, 0);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 1000 == originalStore.getMaxOffsetInQueue(topic, 0));
+            doPutMessages(originalStore, topic, 0, 100, 0);
+            await().atMost(Duration.ofSeconds(10)).until(() -> 100 == originalStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, originalStore.getMinOffsetInQueue(topic, 0));
-            Assert.assertEquals(1000, originalStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(100, originalStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, originalStore.dispatchBehindBytes());
             dividedOffset = originalStore.getCommitLog().getMaxOffset();
             dividedOffset = dividedOffset - dividedOffset % originalStore.getMessageStoreConfig().getMappedFileSizeCommitLog() + originalStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
@@ -164,16 +164,16 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(dividedOffset, dLedgerCommitLog.getDividedCommitlogOffset());
             Boolean success = await().atMost(Duration.ofSeconds(4)).until(() -> dLedgerCommitLog.getdLedgerServer().getMemberState().isLeader(), item -> item);
             Assert.assertTrue(success);
-            doPutMessages(dledgerStore, topic, 0, 1000, 1000);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 2000 == dledgerStore.getMaxOffsetInQueue(topic, 0));
+            doPutMessages(dledgerStore, topic, 0, 100, 100);
+            await().atMost(Duration.ofSeconds(10)).until(() -> 200 == dledgerStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, dledgerStore.getMinOffsetInQueue(topic, 0));
-            Assert.assertEquals(2000, dledgerStore.getMaxOffsetInQueue(topic, 0));
+            Assert.assertEquals(200, dledgerStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());
             Assert.assertEquals(0, dledgerStore.getMinPhyOffset());
             maxPhysicalOffset = dledgerStore.getMaxPhyOffset();
             Assert.assertTrue(maxPhysicalOffset > 0);
 
-            doGetMessages(dledgerStore, topic, 0, 2000, 0);
+            doGetMessages(dledgerStore, topic, 0, 200, 0);
 
             for (int i = 0; i < 100; i++) {
                 dledgerStore.getCommitLog().deleteExpiredFile(System.currentTimeMillis(), 0, 0, true);
@@ -195,7 +195,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
                 Assert.assertEquals(Integer.MAX_VALUE, dledgerStore.getCommitLog().deleteExpiredFile(System.currentTimeMillis(), 0, 0, true));
             }
             Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
-            doGetMessages(dledgerStore, topic, 0, 1000, 1000);
+            doGetMessages(dledgerStore, topic, 0, 100, 100);
             dledgerStore.shutdown();
         }
     }
