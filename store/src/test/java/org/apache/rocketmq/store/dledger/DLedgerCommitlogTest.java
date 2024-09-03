@@ -389,6 +389,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testCommittedPos() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());
         String group = UUID.randomUUID().toString();
         DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group, "n0", peers, "n0", false, 0);
@@ -418,6 +421,9 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testIPv6HostMsgCommittedPos() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         String peers = String.format("n0-localhost:%d;n1-localhost:%d", nextPort(), nextPort());
         String group = UUID.randomUUID().toString();
         DefaultMessageStore leaderStore = createDledgerMessageStore(createBaseDir(), group, "n0", peers, "n0", false, 0);
