@@ -47,8 +47,6 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.tieredstore.core.MessageStoreFetcher;
 import org.apache.rocketmq.tieredstore.file.FlatFileStore;
 import org.apache.rocketmq.tieredstore.file.FlatMessageFile;
-import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
-import org.apache.rocketmq.tieredstore.metadata.entity.TopicMetadata;
 import org.apache.rocketmq.tieredstore.provider.PosixFileSegment;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtil;
 import org.apache.rocketmq.tieredstore.util.MessageFormatUtilTest;
