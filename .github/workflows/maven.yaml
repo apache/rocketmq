@@ -3,7 +3,7 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
   push:
-    branches: [master, develop, bazel, fix-ut-ci]
+    branches: [master, develop, bazel]
 
 permissions:
   actions: write
