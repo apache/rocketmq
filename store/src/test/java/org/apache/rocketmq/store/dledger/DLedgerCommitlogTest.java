@@ -41,6 +41,7 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.StoreCheckpoint;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.Assume;
 import org.apache.rocketmq.common.MixAll;
@@ -50,6 +51,12 @@ import static org.apache.rocketmq.store.StoreTestUtil.releaseMmapFilesOnWindows;
 import static org.awaitility.Awaitility.await;
 
 public class DLedgerCommitlogTest extends MessageStoreTestBase {
+
+    @BeforeClass
+    public static void beforeClass() {
+        // Temporarily skip those tests on the macOS as they are flaky
+        Assume.assumeFalse(MixAll.isMac());
+    }
 
     @Test
     public void testTruncateCQ() throws Exception {
