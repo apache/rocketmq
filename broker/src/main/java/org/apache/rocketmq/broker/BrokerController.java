@@ -747,7 +747,7 @@ public class BrokerController {
                         LOG.error("Failed to update nameServer address list", e);
                     }
                 }
-            }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
+            }, 1000 * 10, this.brokerConfig.getUpdateNameServerAddrPeriod(), TimeUnit.MILLISECONDS);
         } else if (this.brokerConfig.isFetchNamesrvAddrByAddressServer()) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
