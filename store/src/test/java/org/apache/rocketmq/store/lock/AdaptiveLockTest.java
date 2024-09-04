@@ -35,10 +35,10 @@ public class AdaptiveLockTest {
     public void testAdaptiveLock() throws InterruptedException {
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof CollisionRetreatLock);
 
-        for (int i = 0; i < 100000; i++) {
+        for (int i = 0; i < 150000; i++) {
             adaptiveLock.lock();
             adaptiveLock.unlock();
-            if (i == 70000) Thread.sleep(1000);
+            if (i == 80000) Thread.sleep(1000);
         }
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof PutMessageReentrantLock);
 
