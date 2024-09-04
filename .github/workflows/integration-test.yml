@@ -6,7 +6,7 @@ on:
     branches: [master, develop, it-pipeline]
 
 jobs:
-  java_build:
+  it-test:
     name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
     runs-on: ${{ matrix.os }}
     strategy:
