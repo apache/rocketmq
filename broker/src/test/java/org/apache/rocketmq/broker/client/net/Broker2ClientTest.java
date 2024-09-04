@@ -201,8 +201,8 @@ public class Broker2ClientTest {
         result.setKeys("keys");
         SocketAddress bornHost = new InetSocketAddress("127.0.0.1", 12911);
         SocketAddress storeHost = new InetSocketAddress("127.0.0.1", 10911);
-        result.setBornHost(bornHost);
         result.setStoreHost(storeHost);
+        result.setBornHost(bornHost);
         return result;
     }
 }
