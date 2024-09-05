@@ -77,6 +77,7 @@ public class ReplicasManagerRegisterTest {
     public static final String CONTROLLER_ADDR = "127.0.0.1:8888";
 
     public static final BrokerConfig BROKER_CONFIG;
+    
     private final HashSet<Long> syncStateSet = new HashSet<>(Collections.singletonList(1L));
     
     @Mock
