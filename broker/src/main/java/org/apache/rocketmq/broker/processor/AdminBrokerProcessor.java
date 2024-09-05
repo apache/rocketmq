@@ -131,6 +131,7 @@ import org.apache.rocketmq.remoting.protocol.body.QueryCorrectionOffsetBody;
 import org.apache.rocketmq.remoting.protocol.body.QuerySubscriptionResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupList;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
@@ -282,6 +283,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.unlockBatchMQ(ctx, request);
             case RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP:
                 return this.updateAndCreateSubscriptionGroup(ctx, request);
+            case RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_LIST:
+                return this.updateAndCreateSubscriptionGroupList(ctx, request);
             case RequestCode.GET_ALL_SUBSCRIPTIONGROUP_CONFIG:
                 return this.getAllSubscriptionGroup(ctx, request);
             case RequestCode.DELETE_SUBSCRIPTIONGROUP:
@@ -1571,6 +1574,41 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
+    private RemotingCommand updateAndCreateSubscriptionGroupList(ChannelHandlerContext ctx, RemotingCommand request) {
+        final long startTime = System.nanoTime();
+
+        final SubscriptionGroupList subscriptionGroupList = SubscriptionGroupList.decode(request.getBody(), SubscriptionGroupList.class);
+        final List<SubscriptionGroupConfig> groupConfigList = subscriptionGroupList.getGroupConfigList();
+
+        final StringBuilder builder = new StringBuilder();
+        for (SubscriptionGroupConfig config : groupConfigList) {
+            builder.append(config.getGroupName()).append(";");
+        }
+        final String groupNames = builder.toString();
+        LOGGER.info("AdminBrokerProcessor#updateAndCreateSubscriptionGroupList: groupNames: {}, called by {}",
+            groupNames,
+            RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
+
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        try {
+            this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfigList(groupConfigList);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+        } finally {
+            long executionTime = (System.nanoTime() - startTime) / 1000000L;
+            LOGGER.info("executionTime of create updateAndCreateSubscriptionGroupList: {} is {} ms", groupNames, executionTime);
+            InvocationStatus status = response.getCode() == ResponseCode.SUCCESS ?
+                InvocationStatus.SUCCESS : InvocationStatus.FAILURE;
+            Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
+                .put(LABEL_INVOCATION_STATUS, status.getName())
+                .build();
+            BrokerMetricsManager.consumerGroupCreateExecuteTime.record(executionTime, attributes);
+        }
+
+        return response;
+    }
+
+
     private void initConsumerOffset(String clientHost, String groupName, int mode, TopicConfig topicConfig) {
         String topic = topicConfig.getTopicName();
         for (int queueId = 0; queueId < topicConfig.getReadQueueNums(); queueId++) {
@@ -2024,7 +2062,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         Map<Integer, Long> queueOffsetMap = new HashMap<>();
 
         // Reset offset for all queues belonging to the specified topic
-        TopicConfig topicConfig = brokerController.getTopicConfigManager().getTopicConfigTable().get(topic);
+        TopicConfig topicConfig = brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (null == topicConfig) {
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("Topic " + topic + " does not exist");

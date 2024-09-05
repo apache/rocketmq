@@ -127,7 +127,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
         when(mQAdminImpl.queryMessageByUniqKey(anyString(), anyString())).thenReturn(retMsgExt);
 
         QueryResult queryResult = new QueryResult(0, Lists.newArrayList(retMsgExt));
-        when(defaultMQAdminExtImpl.queryMessageByUniqKey(anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(queryResult);
+        when(mQAdminImpl.queryMessageByUniqKey(anyString(), anyString(), anyString(), anyInt(), anyLong(), anyLong())).thenReturn(queryResult);
 
         TopicRouteData topicRouteData = new TopicRouteData();
         List<BrokerData> brokerDataList = new ArrayList<>();
@@ -194,7 +194,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
-        String[] args = new String[] {"-t myTopicTest", "-i msgId"};
+        String[] args = new String[] {"-t myTopicTest", "-i msgId", "-c DefaultCluster"};
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args,
             cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
@@ -218,7 +218,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
-        String[] args = new String[] {"-t myTopicTest", "-i 7F000001000004D20000000000000066"};
+        String[] args = new String[] {"-t myTopicTest", "-i 7F000001000004D20000000000000066", "-c DefaultCluster"};
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args,
             cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
@@ -230,7 +230,7 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
 
-        String[] args = new String[] {"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
+        String[] args = new String[] {"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId", "-c DefaultCluster"};
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args,
             cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
@@ -241,13 +241,13 @@ public class QueryMsgByUniqueKeySubCommandTest {
 
         System.setProperty("rocketmq.namesrv.addr", "127.0.0.1:9876");
 
-        String[] args = new String[]{"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000"};
+        String[] args = new String[]{"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-c DefaultCluster"};
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         CommandLine commandLine = ServerUtil.parseCmdLine("mqadmin ", args,
             cmd.buildCommandlineOptions(options), new DefaultParser());
         cmd.execute(commandLine, options, null);
 
-        args = new String[] {"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId"};
+        args = new String[] {"-t myTopicTest", "-i 0A3A54F7BF7D18B4AAC28A3FA2CF0000", "-g producerGroupName", "-d clientId", "-c DefaultCluster"};
         commandLine = ServerUtil.parseCmdLine("mqadmin ", args, cmd.buildCommandlineOptions(options),
             new DefaultParser());
         cmd.execute(commandLine, options, null);

@@ -180,6 +180,7 @@ public class FlatAppendFile {
                 log.info("FlatAppendFile#append not successful for the file {} is full, commit result={}",
                     fileSegment.getPath(), commitResult);
                 if (commitResult) {
+                    this.flushFileSegmentMeta(fileSegment);
                     return this.rollingNewFile(this.getAppendOffset()).append(buffer, timestamp);
                 } else {
                     return AppendResult.UNKNOWN_ERROR;

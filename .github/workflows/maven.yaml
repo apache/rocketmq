@@ -4,6 +4,10 @@ on:
     types: [opened, reopened, synchronize]
   push:
     branches: [master, develop, bazel]
+
+permissions:
+  actions: write
+
 jobs:
   java_build:
     name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
@@ -25,10 +29,30 @@ jobs:
           cache: "maven"
       - name: Build with Maven
         run: mvn -B package --file pom.xml
-      - name: Upload JVM crash logs
+
+      - name: Upload Auth JVM crash logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: jvm-crash-logs
           path: /Users/runner/work/rocketmq/rocketmq/auth/hs_err_pid*.log
           retention-days: 1
+
+      - name: Upload broker JVM crash logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-crash-logs
+          path: /Users/runner/work/rocketmq/rocketmq/broker/hs_err_pid*.log
+          retention-days: 1
+
+      - name: Retry if failed
+        # if it failed , retry 2 times at most
+        if: failure() && fromJSON(github.run_attempt) < 3
+        continue-on-error: true
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Attempting to retry workflow..."
+          gh workflow run rerun-workflow.yml -F run_id=${{ github.run_id }}

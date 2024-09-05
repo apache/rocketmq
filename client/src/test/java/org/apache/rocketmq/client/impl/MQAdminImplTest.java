@@ -165,7 +165,7 @@ public class MQAdminImplTest {
             callback.operationSucceed(response);
             return null;
         }).when(mQClientAPIImpl).queryMessage(anyString(), any(), anyLong(), any(InvokeCallback.class), any());
-        QueryResult actual = mqAdminImpl.queryMessage(defaultTopic, "keys", 100, 1L, 50L, false);
+        QueryResult actual = mqAdminImpl.queryMessage(defaultTopic, "keys", 100, 1L, 50L);
         assertNotNull(actual);
         assertEquals(1, actual.getMessageList().size());
         assertEquals(defaultTopic, actual.getMessageList().get(0).getTopic());
