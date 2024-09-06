@@ -1364,7 +1364,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     @Override
     public ConsumeType consumeType() {
-        return ConsumeType.CONSUME_PASSIVELY;
+        if (this.defaultMQPushConsumer.isClientRebalance()) {
+            return ConsumeType.CONSUME_PASSIVELY;
+        } else {
+            return ConsumeType.CONSUME_POP;
+        }
     }
 
     @Override
