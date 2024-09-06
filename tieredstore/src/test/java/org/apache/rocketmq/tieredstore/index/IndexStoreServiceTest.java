@@ -232,7 +232,7 @@ public class IndexStoreServiceTest {
         indexService = new IndexStoreService(fileAllocator, filePath);
         indexService.start();
         Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
-        Assert.assertEquals(3, indexService.getTimeStoreTable().size());
+        Assert.assertEquals(4, indexService.getTimeStoreTable().size());
         Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD,
             indexService.getTimeStoreTable().firstEntry().getValue().getFileStatus());
     }

@@ -271,17 +271,17 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     public void forceUpload() {
         try {
             readWriteLock.writeLock().lock();
-            if (this.currentWriteFile == null) {
-                log.warn("IndexStoreService no need force upload current write file");
-                return;
-            }
-            // note: current file has been shutdown before
-            IndexStoreFile lastFile = new IndexStoreFile(storeConfig, currentWriteFile.getTimestamp());
-            if (this.doCompactThenUploadFile(lastFile)) {
-                this.setCompactTimestamp(lastFile.getTimestamp());
-            } else {
-                throw new TieredStoreException(
-                    TieredStoreErrorCode.UNKNOWN, "IndexStoreService force compact current file error");
+            while (true) {
+                Map.Entry<Long, IndexFile> entry =
+                    this.timeStoreTable.higherEntry(this.compactTimestamp.get());
+                if (entry == null) {
+                    break;
+                }
+                if (this.doCompactThenUploadFile(entry.getValue())) {
+                    this.setCompactTimestamp(entry.getValue().getTimestamp());
+                    // The total number of files will not too much, prevent io too fast.
+                    TimeUnit.MILLISECONDS.sleep(50);
+                }
             }
         } catch (Exception e) {
             log.error("IndexStoreService force upload error", e);
@@ -393,19 +393,13 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     @Override
     public void shutdown() {
         super.shutdown();
-        readWriteLock.writeLock().lock();
-        try {
-            for (Map.Entry<Long /* timestamp */, IndexFile> entry : timeStoreTable.entrySet()) {
-                entry.getValue().shutdown();
+        // Wait index service upload then clear time store table
+        while (!this.timeStoreTable.isEmpty()) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(50);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
-            if (autoCreateNewFile) {
-                this.forceUpload();
-            }
-            this.timeStoreTable.clear();
-        } catch (Exception e) {
-            log.error("IndexStoreService shutdown error", e);
-        } finally {
-            readWriteLock.writeLock().unlock();
         }
     }
 
@@ -423,6 +417,18 @@ public class IndexStoreService extends ServiceThread implements IndexService {
                 }
             }
             this.waitForRunning(TimeUnit.SECONDS.toMillis(10));
+        }
+        readWriteLock.writeLock().lock();
+        try {
+            if (autoCreateNewFile) {
+                this.forceUpload();
+            }
+            this.timeStoreTable.forEach((timestamp, file) -> file.shutdown());
+            this.timeStoreTable.clear();
+        } catch (Exception e) {
+            log.error("IndexStoreService shutdown error", e);
+        } finally {
+            readWriteLock.writeLock().unlock();
         }
         log.info(this.getServiceName() + " service shutdown");
     }
