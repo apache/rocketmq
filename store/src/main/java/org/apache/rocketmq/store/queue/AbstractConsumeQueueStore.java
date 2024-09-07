@@ -61,8 +61,6 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
         return this.queueOffsetOperator.getTopicQueueTable();
     }
 
-
-
     @Override
     public void increaseQueueOffset(String topic, int queueId, short messageNum) {
         ConsumeQueueInterface consumeQueue = findOrCreateConsumeQueue(topic, queueId);
