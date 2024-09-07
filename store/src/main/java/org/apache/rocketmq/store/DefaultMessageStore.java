@@ -697,6 +697,7 @@ public class DefaultMessageStore implements MessageStore {
         this.brokerInitMaxOffset = brokerInitMaxOffset;
     }
 
+    @Override
     public SystemClock getSystemClock() {
         return systemClock;
     }
@@ -2006,6 +2007,7 @@ public class DefaultMessageStore implements MessageStore {
         this.stateMachineVersion = stateMachineVersion;
     }
 
+    @Override
     public BrokerStatsManager getBrokerStatsManager() {
         return brokerStatsManager;
     }
@@ -2014,6 +2016,7 @@ public class DefaultMessageStore implements MessageStore {
         return brokerConfig;
     }
 
+    @Override
     public int remainTransientStoreBufferNumbs() {
         if (this.isTransientStorePoolEnable()) {
             return this.transientStorePool.availableBufferNums();
