@@ -82,7 +82,7 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
     }
 
     @Test
-    public void test3ConsumerAndCrashOne() {
+    public void test3ConsumerAndCrashOne() throws InterruptedException {
         int msgSize = 400;
         RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
         RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
@@ -96,6 +96,8 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
         MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(), consumer1.getListener(),
             consumer2.getListener(), consumer3.getListener());
         consumer3.shutdown();
+        Thread.sleep(3000);
+
         producer.clearMsg();
         consumer1.clearMsg();
         consumer2.clearMsg();
