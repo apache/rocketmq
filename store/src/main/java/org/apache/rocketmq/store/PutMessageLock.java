@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.store;
 
-import org.apache.rocketmq.store.config.MessageStoreConfig;
-
 /**
  * Used when trying to put message
  */
