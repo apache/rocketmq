@@ -40,7 +40,7 @@ public class AclUtils {
 
     public static byte[] combineRequestContent(RemotingCommand request, SortedMap<String, String> fieldsMap) {
         try {
-            StringBuilder sb = new StringBuilder("");
+            StringBuilder sb = new StringBuilder();
             for (Map.Entry<String, String> entry : fieldsMap.entrySet()) {
                 if (!SessionCredentials.SIGNATURE.equals(entry.getKey())) {
                     sb.append(entry.getValue());
@@ -71,12 +71,12 @@ public class AclUtils {
         if (isAsterisk(netAddress) || isMinus(netAddress)) {
             int asterisk = netAddress.indexOf("*");
             int minus = netAddress.indexOf("-");
-//            '*' must be the end of netAddress if it exists
+            // '*' must be the end of netAddress if it exists
             if (asterisk > -1 && asterisk != netAddress.length() - 1) {
                 throw new AclException(String.format("NetAddress examine scope Exception netAddress is %s", netAddress));
             }
 
-//            format like "2::ac5:78:1-200:*" or "2::ac5:78:1-200" is legal
+            // format like "2::ac5:78:1-200:*" or "2::ac5:78:1-200" is legal
             if (minus > -1) {
                 if (asterisk == -1) {
                     if (minus <= netAddress.lastIndexOf(":")) {
@@ -128,7 +128,7 @@ public class AclUtils {
     }
 
     public static boolean isScope(String netAddress, int index) {
-//        IPv6 Address
+        // IPv6 Address
         if (isColon(netAddress)) {
             netAddress = expandIP(netAddress, 8);
             String[] strArray = StringUtils.split(netAddress, ":");

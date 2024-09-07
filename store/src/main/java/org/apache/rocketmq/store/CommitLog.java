@@ -651,7 +651,7 @@ public class CommitLog implements Swappable {
         } else if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
             return this.confirmOffset;
         } else {
-            return getMaxOffset();
+            return this.defaultMessageStore.isSyncDiskFlush()  ? getFlushedWhere() : getMaxOffset();
         }
     }
 
@@ -1834,7 +1834,7 @@ public class CommitLog implements Swappable {
         private static final int END_FILE_MIN_BLANK_LENGTH = 4 + 4;
         // Store the message content
         private final ByteBuffer msgStoreItemMemory;
-        private final int crc32ReservedLength = CommitLog.CRC32_RESERVED_LEN;
+        private final int crc32ReservedLength = enabledAppendPropCRC ? CommitLog.CRC32_RESERVED_LEN : 0;
         private final MessageStoreConfig messageStoreConfig;
 
         DefaultAppendMessageCallback(MessageStoreConfig messageStoreConfig) {
@@ -1964,23 +1964,28 @@ public class CommitLog implements Swappable {
                     queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             }
 
-            int pos = 4 + 4 + 4 + 4 + 4;
+            int pos = 4     // 1 TOTALSIZE
+                + 4     // 2 MAGICCODE
+                + 4     // 3 BODYCRC
+                + 4     // 4 QUEUEID
+                + 4;    // 5 FLAG
             // 6 QUEUEOFFSET
             preEncodeBuffer.putLong(pos, queueOffset);
             pos += 8;
             // 7 PHYSICALOFFSET
             preEncodeBuffer.putLong(pos, fileFromOffset + byteBuffer.position());
+            pos += 8;
             int ipLen = (msgInner.getSysFlag() & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
-            // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST, 11 STORETIMESTAMP
-            pos += 8 + 4 + 8 + ipLen;
-            // refresh store time stamp in lock
+            // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST
+            pos += 4 + 8 + ipLen;
+            // 11 STORETIMESTAMP refresh store time stamp in lock
             preEncodeBuffer.putLong(pos, msgInner.getStoreTimestamp());
             if (enabledAppendPropCRC) {
                 // 18 CRC32
                 int checkSize = msgLen - crc32ReservedLength;
                 ByteBuffer tmpBuffer = preEncodeBuffer.duplicate();
                 tmpBuffer.limit(tmpBuffer.position() + checkSize);
-                int crc32 = UtilAll.crc32(tmpBuffer);
+                int crc32 = UtilAll.crc32(tmpBuffer);   // UtilAll.crc32 function will change the position to limit of the buffer
                 tmpBuffer.limit(tmpBuffer.position() + crc32ReservedLength);
                 MessageDecoder.createCrc32(tmpBuffer, crc32);
             }

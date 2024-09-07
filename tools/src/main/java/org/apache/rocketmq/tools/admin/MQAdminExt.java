@@ -92,6 +92,9 @@ public interface MQAdminExt extends MQAdmin {
         final TopicConfig config) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
+    void createAndUpdateTopicConfigList(final String addr,
+        final List<TopicConfig> topicConfigList) throws InterruptedException, RemotingException, MQClientException;
+
     void createAndUpdatePlainAccessConfig(final String addr,
         final PlainAccessConfig plainAccessConfig) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
@@ -113,6 +116,10 @@ public interface MQAdminExt extends MQAdmin {
 
     void createAndUpdateSubscriptionGroupConfig(final String addr,
         final SubscriptionGroupConfig config) throws RemotingException,
+        MQBrokerException, InterruptedException, MQClientException;
+
+    void createAndUpdateSubscriptionGroupConfigList(String brokerAddr,
+        List<SubscriptionGroupConfig> configs) throws RemotingException,
         MQBrokerException, InterruptedException, MQClientException;
 
     SubscriptionGroupConfig examineSubscriptionGroupConfig(final String addr,
@@ -142,6 +149,10 @@ public interface MQAdminExt extends MQAdmin {
         MQBrokerException;
 
     ConsumeStats examineConsumeStats(final String consumerGroup,
+        final String topic) throws RemotingException, MQClientException,
+        InterruptedException, MQBrokerException;
+
+    ConsumeStats examineConsumeStats(final String clusterName, final String consumerGroup,
         final String topic) throws RemotingException, MQClientException,
         InterruptedException, MQBrokerException;
 
@@ -225,6 +236,9 @@ public interface MQAdminExt extends MQAdmin {
     Map<MessageQueue, Long> resetOffsetByTimestamp(String topic, String group, long timestamp, boolean isForce)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
 
+    Map<MessageQueue, Long> resetOffsetByTimestamp(String clusterName, String topic, String group, long timestamp, boolean isForce)
+        throws RemotingException, MQBrokerException, InterruptedException, MQClientException;
+
     void resetOffsetNew(String consumerGroup, String topic, long timestamp) throws RemotingException, MQBrokerException,
         InterruptedException, MQClientException;
 
@@ -282,6 +296,11 @@ public interface MQAdminExt extends MQAdmin {
         throws RemotingException, MQClientException, InterruptedException;
 
     ConsumeMessageDirectlyResult consumeMessageDirectly(String consumerGroup,
+        String clientId,
+        String topic,
+        String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
+
+    ConsumeMessageDirectlyResult consumeMessageDirectly(String clusterName, String consumerGroup,
         String clientId,
         String topic,
         String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;

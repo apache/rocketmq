@@ -70,7 +70,7 @@ public class BrokerConfig extends BrokerIdentity {
     private int putMessageFutureThreadPoolNums = Math.min(PROCESSOR_NUMBER, 4);
     private int pullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int litePullMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
-    private int ackMessageThreadPoolNums = 3;
+    private int ackMessageThreadPoolNums = 16;
     private int processReplyMessageThreadPoolNums = 16 + PROCESSOR_NUMBER * 2;
     private int queryMessageThreadPoolNums = 8 + PROCESSOR_NUMBER;
 
@@ -148,7 +148,7 @@ public class BrokerConfig extends BrokerIdentity {
     private long waitTimeMillsInHeartbeatQueue = 31 * 1000;
     private long waitTimeMillsInTransactionQueue = 3 * 1000;
     private long waitTimeMillsInAckQueue = 3000;
-
+    private long waitTimeMillsInAdminBrokerQueue = 5 * 1000;
     private long startAcceptSendRequestTimeStamp = 0L;
 
     private boolean traceOn = true;
@@ -288,7 +288,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean enableDetailStat = true;
 
-    private boolean autoDeleteUnusedStats = false;
+    private boolean autoDeleteUnusedStats = true;
 
     /**
      * Whether to distinguish log paths when multiple brokers are deployed on the same machine
@@ -418,6 +418,9 @@ public class BrokerConfig extends BrokerIdentity {
      * Try to update configures in black list by restart process.
      */
     private String configBlackList = "configBlackList;brokerConfigPath";
+
+    // if false, will still rewrite ck after max times 17
+    private boolean skipWhenCKRePutReachMaxTimes = false;
 
     public String getConfigBlackList() {
         return configBlackList;
@@ -1167,6 +1170,14 @@ public class BrokerConfig extends BrokerIdentity {
         return msgTraceTopicName;
     }
 
+    public long getWaitTimeMillsInAdminBrokerQueue() {
+        return waitTimeMillsInAdminBrokerQueue;
+    }
+
+    public void setWaitTimeMillsInAdminBrokerQueue(long waitTimeMillsInAdminBrokerQueue) {
+        this.waitTimeMillsInAdminBrokerQueue = waitTimeMillsInAdminBrokerQueue;
+    }
+
     public void setMsgTraceTopicName(String msgTraceTopicName) {
         this.msgTraceTopicName = msgTraceTopicName;
     }
@@ -1817,5 +1828,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnablePopMessageThreshold(boolean enablePopMessageThreshold) {
         this.enablePopMessageThreshold = enablePopMessageThreshold;
+    }
+
+    public boolean isSkipWhenCKRePutReachMaxTimes() {
+        return skipWhenCKRePutReachMaxTimes;
+    }
+
+    public void setSkipWhenCKRePutReachMaxTimes(boolean skipWhenCKRePutReachMaxTimes) {
+        this.skipWhenCKRePutReachMaxTimes = skipWhenCKRePutReachMaxTimes;
     }
 }

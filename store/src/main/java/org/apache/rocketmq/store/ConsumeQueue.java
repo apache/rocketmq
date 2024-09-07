@@ -816,7 +816,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 long currentLogicOffset = mappedFile.getWrotePosition() + mappedFile.getFileFromOffset();
 
                 if (expectLogicOffset < currentLogicOffset) {
-                    log.warn("Build  consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
+                    log.warn("Build consume queue repeatedly, expectLogicOffset: {} currentLogicOffset: {} Topic: {} QID: {} Diff: {}",
                         expectLogicOffset, currentLogicOffset, this.topic, this.queueId, expectLogicOffset - currentLogicOffset);
                     return true;
                 }
@@ -833,7 +833,13 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
                 }
             }
             this.setMaxPhysicOffset(offset + size);
-            return mappedFile.appendMessage(this.byteBufferIndex.array());
+            boolean appendResult;
+            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                appendResult = mappedFile.appendMessageUsingFileChannel(this.byteBufferIndex.array());
+            } else {
+                appendResult = mappedFile.appendMessage(this.byteBufferIndex.array());
+            }
+            return appendResult;
         }
         return false;
     }
@@ -846,7 +852,12 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
 
         int until = (int) (untilWhere % this.mappedFileQueue.getMappedFileSize());
         for (int i = 0; i < until; i += CQ_STORE_UNIT_SIZE) {
-            mappedFile.appendMessage(byteBuffer.array());
+            if (messageStore.getMessageStoreConfig().isPutConsumeQueueDataByFileChannel()) {
+                mappedFile.appendMessageUsingFileChannel(byteBuffer.array());
+            } else {
+                mappedFile.appendMessage(byteBuffer.array());
+            }
+
         }
     }
 

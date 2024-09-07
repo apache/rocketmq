@@ -104,6 +104,9 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         if (result) {
             indexService.start();
             dispatcher.start();
+            storeExecutor.commonExecutor.scheduleWithFixedDelay(
+                flatFileStore::scheduleDeleteExpireFile, storeConfig.getTieredStoreDeleteFileInterval(),
+                storeConfig.getTieredStoreDeleteFileInterval(), TimeUnit.MILLISECONDS);
         }
         return result;
     }
@@ -457,6 +460,9 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         if (dispatcher != null) {
             dispatcher.shutdown();
         }
+        if (indexService != null) {
+            indexService.shutdown();
+        }
         if (flatFileStore != null) {
             flatFileStore.shutdown();
         }
@@ -469,6 +475,9 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     public void destroy() {
         if (next != null) {
             next.destroy();
+        }
+        if (indexService != null) {
+            indexService.destroy();
         }
         if (flatFileStore != null) {
             flatFileStore.destroy();

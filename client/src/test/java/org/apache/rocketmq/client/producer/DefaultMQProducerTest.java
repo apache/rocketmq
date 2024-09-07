@@ -16,19 +16,6 @@
  */
 package org.apache.rocketmq.client.producer;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -41,9 +28,13 @@ import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
+import org.apache.rocketmq.client.latency.MQFaultStrategy;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.compression.CompressionType;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -58,13 +49,34 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.failBecauseExceptionWasNotThrown;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -73,15 +85,14 @@ public class DefaultMQProducerTest {
     private MQClientInstance mQClientFactory = MQClientManager.getInstance().getOrCreateMQClientInstance(new ClientConfig());
     @Mock
     private MQClientAPIImpl mQClientAPIImpl;
-    @Mock
-    private NettyRemotingClient nettyRemotingClient;
 
     private DefaultMQProducer producer;
     private Message message;
     private Message zeroMsg;
     private Message bigMessage;
-    private String topic = "FooBar";
-    private String producerGroupPrefix = "FooBar_PID";
+    private final String topic = "FooBar";
+    private final String producerGroupPrefix = "FooBar_PID";
+    private final long defaultTimeout = 3000L;
 
     @Before
     public void init() throws Exception {
@@ -187,7 +198,7 @@ public class DefaultMQProducerTest {
                 countDownLatch.countDown();
             }
         });
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -231,7 +242,7 @@ public class DefaultMQProducerTest {
         //this message is send success
         producer.send(message, sendCallback, 1000);
 
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(5);
 
         // off enableBackpressureForAsyncMode
@@ -244,7 +255,7 @@ public class DefaultMQProducerTest {
         //this message is send success
         producer.send(message, sendCallback, 1000);
 
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(10);
     }
 
@@ -292,7 +303,7 @@ public class DefaultMQProducerTest {
         // this message is send failed
         producer.send(msgs, new MessageQueue(), sendCallback, 1000);
 
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(1);
 
         // off enableBackpressureForAsyncMode
@@ -303,7 +314,7 @@ public class DefaultMQProducerTest {
         // this message is send failed
         producer.send(msgs, new MessageQueue(), sendCallback, 1000);
 
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(2);
     }
 
@@ -324,7 +335,7 @@ public class DefaultMQProducerTest {
             public void onException(Throwable e) {
             }
         });
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -463,7 +474,7 @@ public class DefaultMQProducerTest {
             future.setSendRequestOk(true);
             future.getRequestCallback().onSuccess(responseMsg);
         }
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -500,7 +511,7 @@ public class DefaultMQProducerTest {
                 future.getRequestCallback().onException(e);
             }
         }
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(1);
     }
 
@@ -524,7 +535,7 @@ public class DefaultMQProducerTest {
             }
         });
 
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        countDownLatch.await(defaultTimeout, TimeUnit.MILLISECONDS);
         producer.setAutoBatch(false);
     }
 
@@ -639,5 +650,229 @@ public class DefaultMQProducerTest {
             assertionErrors[0] = e;
         }
         return assertionErrors[0];
+    }
+
+    @Test
+    public void assertCreateDefaultMQProducer() {
+        String producerGroupTemp = producerGroupPrefix + System.currentTimeMillis();
+        DefaultMQProducer producer1 = new DefaultMQProducer(producerGroupTemp);
+        assertNotNull(producer1);
+        assertEquals(producerGroupTemp, producer1.getProducerGroup());
+        assertNotNull(producer1.getDefaultMQProducerImpl());
+        assertTrue(producer1.getTotalBatchMaxBytes() > 0);
+        assertTrue(producer1.getBatchMaxBytes() > 0);
+        assertTrue(producer1.getBatchMaxDelayMs() > 0);
+        assertNull(producer1.getTopics());
+        assertFalse(producer1.isEnableTrace());
+        assertTrue(UtilAll.isBlank(producer1.getTraceTopic()));
+        DefaultMQProducer producer2 = new DefaultMQProducer(producerGroupTemp, mock(RPCHook.class));
+        assertNotNull(producer2);
+        assertEquals(producerGroupTemp, producer2.getProducerGroup());
+        assertNotNull(producer2.getDefaultMQProducerImpl());
+        assertTrue(producer2.getTotalBatchMaxBytes() > 0);
+        assertTrue(producer2.getBatchMaxBytes() > 0);
+        assertTrue(producer2.getBatchMaxDelayMs() > 0);
+        assertNull(producer2.getTopics());
+        assertFalse(producer2.isEnableTrace());
+        assertTrue(UtilAll.isBlank(producer2.getTraceTopic()));
+        DefaultMQProducer producer3 = new DefaultMQProducer(producerGroupTemp, mock(RPCHook.class), Collections.singletonList("custom_topic"));
+        assertNotNull(producer3);
+        assertEquals(producerGroupTemp, producer3.getProducerGroup());
+        assertNotNull(producer3.getDefaultMQProducerImpl());
+        assertTrue(producer3.getTotalBatchMaxBytes() > 0);
+        assertTrue(producer3.getBatchMaxBytes() > 0);
+        assertTrue(producer3.getBatchMaxDelayMs() > 0);
+        assertNotNull(producer3.getTopics());
+        assertEquals(1, producer3.getTopics().size());
+        assertFalse(producer3.isEnableTrace());
+        assertTrue(UtilAll.isBlank(producer3.getTraceTopic()));
+        DefaultMQProducer producer4 = new DefaultMQProducer(producerGroupTemp, mock(RPCHook.class), true, "custom_trace_topic");
+        assertNotNull(producer4);
+        assertEquals(producerGroupTemp, producer4.getProducerGroup());
+        assertNotNull(producer4.getDefaultMQProducerImpl());
+        assertTrue(producer4.getTotalBatchMaxBytes() > 0);
+        assertTrue(producer4.getBatchMaxBytes() > 0);
+        assertTrue(producer4.getBatchMaxDelayMs() > 0);
+        assertNull(producer4.getTopics());
+        assertTrue(producer4.isEnableTrace());
+        assertEquals("custom_trace_topic", producer4.getTraceTopic());
+        DefaultMQProducer producer5 = new DefaultMQProducer(producerGroupTemp, mock(RPCHook.class), Collections.singletonList("custom_topic"), true, "custom_trace_topic");
+        assertNotNull(producer5);
+        assertEquals(producerGroupTemp, producer5.getProducerGroup());
+        assertNotNull(producer5.getDefaultMQProducerImpl());
+        assertTrue(producer5.getTotalBatchMaxBytes() > 0);
+        assertTrue(producer5.getBatchMaxBytes() > 0);
+        assertTrue(producer5.getBatchMaxDelayMs() > 0);
+        assertNotNull(producer5.getTopics());
+        assertEquals(1, producer5.getTopics().size());
+        assertTrue(producer5.isEnableTrace());
+        assertEquals("custom_trace_topic", producer5.getTraceTopic());
+    }
+
+    @Test
+    public void assertSend() throws MQBrokerException, RemotingException, InterruptedException, MQClientException, NoSuchFieldException, IllegalAccessException {
+        setDefaultMQProducerImpl();
+        setOtherParam();
+        SendResult send = producer.send(message, defaultTimeout);
+        assertNull(send);
+        Collection<Message> msgs = Collections.singletonList(message);
+        send = producer.send(msgs);
+        assertNull(send);
+        send = producer.send(msgs, defaultTimeout);
+        assertNull(send);
+    }
+
+    @Test
+    public void assertSendOneway() throws RemotingException, InterruptedException, MQClientException, NoSuchFieldException, IllegalAccessException {
+        setDefaultMQProducerImpl();
+        producer.sendOneway(message);
+        MessageQueue mq = mock(MessageQueue.class);
+        producer.sendOneway(message, mq);
+        MessageQueueSelector selector = mock(MessageQueueSelector.class);
+        producer.sendOneway(message, selector, 1);
+    }
+
+    @Test
+    public void assertSendByQueue() throws MQBrokerException, RemotingException, InterruptedException, MQClientException, NoSuchFieldException, IllegalAccessException {
+        setDefaultMQProducerImpl();
+        MessageQueue mq = mock(MessageQueue.class);
+        SendResult send = producer.send(message, mq);
+        assertNull(send);
+        send = producer.send(message, mq, defaultTimeout);
+        assertNull(send);
+        Collection<Message> msgs = Collections.singletonList(message);
+        send = producer.send(msgs, mq);
+        assertNull(send);
+        send = producer.send(msgs, mq, defaultTimeout);
+        assertNull(send);
+    }
+
+    @Test
+    public void assertSendByQueueSelector() throws MQBrokerException, RemotingException, InterruptedException, MQClientException, NoSuchFieldException, IllegalAccessException {
+        setDefaultMQProducerImpl();
+        MessageQueueSelector selector = mock(MessageQueueSelector.class);
+        SendResult send = producer.send(message, selector, 1);
+        assertNull(send);
+        send = producer.send(message, selector, 1, defaultTimeout);
+        assertNull(send);
+    }
+
+    @Test
+    public void assertRequest() throws MQBrokerException, RemotingException, InterruptedException, MQClientException, NoSuchFieldException, IllegalAccessException, RequestTimeoutException {
+        setDefaultMQProducerImpl();
+        MessageQueueSelector selector = mock(MessageQueueSelector.class);
+        Message replyNsg = producer.request(message, selector, 1, defaultTimeout);
+        assertNull(replyNsg);
+        RequestCallback requestCallback = mock(RequestCallback.class);
+        producer.request(message, selector, 1, requestCallback, defaultTimeout);
+        MessageQueue mq = mock(MessageQueue.class);
+        producer.request(message, mq, defaultTimeout);
+        producer.request(message, mq, requestCallback, defaultTimeout);
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void assertSendMessageInTransaction() throws MQClientException {
+        TransactionSendResult result = producer.sendMessageInTransaction(message, 1);
+        assertNull(result);
+    }
+
+    @Test
+    public void assertSearchOffset() throws MQClientException, NoSuchFieldException, IllegalAccessException {
+        setDefaultMQProducerImpl();
+        MessageQueue mq = mock(MessageQueue.class);
+        long result = producer.searchOffset(mq, System.currentTimeMillis());
+        assertEquals(0L, result);
+    }
+
+    @Test
+    public void assertBatchMaxDelayMs() throws NoSuchFieldException, IllegalAccessException {
+        setProduceAccumulator(true);
+        assertEquals(0, producer.getBatchMaxDelayMs());
+        setProduceAccumulator(false);
+        assertEquals(10, producer.getBatchMaxDelayMs());
+        producer.batchMaxDelayMs(1000);
+        assertEquals(1000, producer.getBatchMaxDelayMs());
+    }
+
+    @Test
+    public void assertBatchMaxBytes() throws NoSuchFieldException, IllegalAccessException {
+        setProduceAccumulator(true);
+        assertEquals(0L, producer.getBatchMaxBytes());
+        setProduceAccumulator(false);
+        assertEquals(32 * 1024L, producer.getBatchMaxBytes());
+        producer.batchMaxBytes(64 * 1024L);
+        assertEquals(64 * 1024L, producer.getBatchMaxBytes());
+    }
+
+    @Test
+    public void assertTotalBatchMaxBytes() throws NoSuchFieldException, IllegalAccessException {
+        setProduceAccumulator(true);
+        assertEquals(0L, producer.getTotalBatchMaxBytes());
+    }
+
+    @Test
+    public void assertGetRetryResponseCodes() {
+        assertNotNull(producer.getRetryResponseCodes());
+        assertEquals(7, producer.getRetryResponseCodes().size());
+    }
+
+    @Test
+    public void assertIsSendLatencyFaultEnable() {
+        assertFalse(producer.isSendLatencyFaultEnable());
+    }
+
+    @Test
+    public void assertGetLatencyMax() {
+        assertNotNull(producer.getLatencyMax());
+    }
+
+    @Test
+    public void assertGetNotAvailableDuration() {
+        assertNotNull(producer.getNotAvailableDuration());
+    }
+
+    @Test
+    public void assertIsRetryAnotherBrokerWhenNotStoreOK() {
+        assertFalse(producer.isRetryAnotherBrokerWhenNotStoreOK());
+    }
+
+    private void setOtherParam() {
+        producer.setCreateTopicKey("createTopicKey");
+        producer.setRetryAnotherBrokerWhenNotStoreOK(false);
+        producer.setDefaultTopicQueueNums(6);
+        producer.setRetryTimesWhenSendFailed(1);
+        producer.setSendMessageWithVIPChannel(false);
+        producer.setNotAvailableDuration(new long[1]);
+        producer.setLatencyMax(new long[1]);
+        producer.setSendLatencyFaultEnable(false);
+        producer.setRetryTimesWhenSendAsyncFailed(1);
+        producer.setTopics(Collections.singletonList(topic));
+        producer.setStartDetectorEnable(false);
+        producer.setCompressLevel(5);
+        producer.setCompressType(CompressionType.LZ4);
+        producer.addRetryResponseCode(0);
+        ExecutorService executorService = mock(ExecutorService.class);
+        producer.setAsyncSenderExecutor(executorService);
+    }
+
+    private void setProduceAccumulator(final boolean isDefault) throws NoSuchFieldException, IllegalAccessException {
+        ProduceAccumulator accumulator = null;
+        if (!isDefault) {
+            accumulator = new ProduceAccumulator("instanceName");
+        }
+        setField(producer, "produceAccumulator", accumulator);
+    }
+
+    private void setDefaultMQProducerImpl() throws NoSuchFieldException, IllegalAccessException {
+        DefaultMQProducerImpl producerImpl = mock(DefaultMQProducerImpl.class);
+        setField(producer, "defaultMQProducerImpl", producerImpl);
+        when(producerImpl.getMqFaultStrategy()).thenReturn(mock(MQFaultStrategy.class));
+    }
+
+    private void setField(final Object target, final String fieldName, final Object newValue) throws NoSuchFieldException, IllegalAccessException {
+        Class<?> clazz = target.getClass();
+        Field field = clazz.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, newValue);
     }
 }

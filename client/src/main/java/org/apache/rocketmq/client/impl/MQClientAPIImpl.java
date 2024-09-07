@@ -118,6 +118,7 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
+import org.apache.rocketmq.remoting.protocol.body.CreateTopicListRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
@@ -136,6 +137,7 @@ import org.apache.rocketmq.remoting.protocol.body.QuerySubscriptionResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
+import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupList;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
@@ -150,6 +152,7 @@ import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResult
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAclRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CreateTopicListRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteAccessConfigRequestHeader;
@@ -398,6 +401,22 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     }
 
+    public void createSubscriptionGroupList(final String address, final List<SubscriptionGroupConfig> configs,
+        final long timeoutMillis) throws RemotingException, InterruptedException, MQClientException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_LIST, null);
+        SubscriptionGroupList requestBody = new SubscriptionGroupList(configs);
+        request.setBody(requestBody.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(
+            MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), address), request, timeoutMillis);
+        assert response != null;
+        if (response.getCode() == ResponseCode.SUCCESS) {
+            return;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
     public void createTopic(final String addr, final String defaultTopic, final TopicConfig topicConfig,
         final long timeoutMillis)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
@@ -425,6 +444,24 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
             }
             default:
                 break;
+        }
+
+        throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void createTopicList(final String address, final List<TopicConfig> topicConfigList, final long timeoutMillis)
+        throws InterruptedException, RemotingException, MQClientException {
+        CreateTopicListRequestHeader requestHeader = new CreateTopicListRequestHeader();
+        CreateTopicListRequestBody requestBody = new CreateTopicListRequestBody(topicConfigList);
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, requestHeader);
+        request.setBody(requestBody.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(
+            MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), address), request, timeoutMillis);
+        assert response != null;
+        if (response.getCode() == ResponseCode.SUCCESS) {
+            return;
         }
 
         throw new MQClientException(response.getCode(), response.getRemark());

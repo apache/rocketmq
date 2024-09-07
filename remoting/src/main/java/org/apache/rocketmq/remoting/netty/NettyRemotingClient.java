@@ -251,20 +251,24 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         };
         this.timer.newTimeout(timerTaskScanResponseTable, 1000 * 3, TimeUnit.MILLISECONDS);
 
-        int connectTimeoutMillis = this.nettyClientConfig.getConnectTimeoutMillis();
-        TimerTask timerTaskScanAvailableNameSrv = new TimerTask() {
-            @Override
-            public void run(Timeout timeout) {
-                try {
-                    NettyRemotingClient.this.scanAvailableNameSrv();
-                } catch (Exception e) {
-                    LOGGER.error("scanAvailableNameSrv exception", e);
-                } finally {
-                    timer.newTimeout(this, connectTimeoutMillis, TimeUnit.MILLISECONDS);
+        if (nettyClientConfig.isScanAvailableNameSrv()) {
+            int connectTimeoutMillis = this.nettyClientConfig.getConnectTimeoutMillis();
+            TimerTask timerTaskScanAvailableNameSrv = new TimerTask() {
+                @Override
+                public void run(Timeout timeout) {
+                    try {
+                        NettyRemotingClient.this.scanAvailableNameSrv();
+                    } catch (Exception e) {
+                        LOGGER.error("scanAvailableNameSrv exception", e);
+                    } finally {
+                        timer.newTimeout(this, connectTimeoutMillis, TimeUnit.MILLISECONDS);
+                    }
                 }
-            }
-        };
-        this.timer.newTimeout(timerTaskScanAvailableNameSrv, 0, TimeUnit.MILLISECONDS);
+            };
+            this.timer.newTimeout(timerTaskScanAvailableNameSrv, 0, TimeUnit.MILLISECONDS);
+        }
+        
+        
     }
 
     private Map.Entry<String, SocksProxyConfig> getProxy(String addr) {
@@ -417,7 +421,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     if (null == prevCW) {
                         LOGGER.info("closeChannel: the channel[{}] has been removed from the channel table before", addrRemote);
                         removeItemFromTable = false;
-                    } else if (prevCW.getChannel() != channel) {
+                    } else if (prevCW.isWrapperOf(channel)) {
                         LOGGER.info("closeChannel: the channel[{}] has been closed before, and has been created again, nothing to do.",
                             addrRemote);
                         removeItemFromTable = false;
@@ -459,12 +463,10 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     for (Map.Entry<String, ChannelWrapper> entry : channelTables.entrySet()) {
                         String key = entry.getKey();
                         ChannelWrapper prev = entry.getValue();
-                        if (prev.getChannel() != null) {
-                            if (prev.getChannel() == channel) {
-                                prevCW = prev;
-                                addrRemote = key;
-                                break;
-                            }
+                        if (prev.isWrapperOf(channel)) {
+                            prevCW = prev;
+                            addrRemote = key;
+                            break;
                         }
                     }
 
@@ -1016,6 +1018,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
         public boolean isWritable() {
             return getChannel().isWritable();
+        }
+
+        public boolean isWrapperOf(Channel channel) {
+            if (this.channelFuture.channel() != null && this.channelFuture.channel() == channel) {
+                return true;
+            }
+            return false;
         }
 
         private Channel getChannel() {

@@ -16,29 +16,106 @@
  */
 package org.apache.rocketmq.broker.subscription;
 
-import java.io.File;
-
-import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.config.RocksDBConfigManager;
-import org.apache.rocketmq.common.utils.DataConverter;
-import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
-
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.RocksDBConfigManager;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.utils.DataConverter;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.rocksdb.RocksIterator;
+
+import java.io.File;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiConsumer;
 
 public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
+    protected RocksDBConfigManager rocksDBConfigManager;
+
     public RocksDBSubscriptionGroupManager(BrokerController brokerController) {
         super(brokerController, false);
-        this.rocksDBConfigManager = new RocksDBConfigManager(brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
+        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
     }
 
     @Override
     public boolean load() {
-        if (!this.rocksDBConfigManager.load(configFilePath(), this::decode0)) {
+        if (!rocksDBConfigManager.init()) {
+            return false;
+        }
+        if (!loadDataVersion() || !loadSubscriptionGroupAndForbidden()) {
             return false;
         }
         this.init();
+        return true;
+    }
+
+    public boolean loadDataVersion() {
+        return this.rocksDBConfigManager.loadDataVersion();
+    }
+
+    public boolean loadSubscriptionGroupAndForbidden() {
+        return this.rocksDBConfigManager.loadData(this::decodeSubscriptionGroup)
+                && this.loadForbidden(this::decodeForbidden)
+                && merge();
+    }
+
+    public boolean loadForbidden(BiConsumer<byte[], byte[]> biConsumer) {
+        try (RocksIterator iterator = this.rocksDBConfigManager.configRocksDBStorage.forbiddenIterator()) {
+            iterator.seekToFirst();
+            while (iterator.isValid()) {
+                biConsumer.accept(iterator.key(), iterator.value());
+                iterator.next();
+            }
+        }
+        return true;
+    }
+
+
+    private boolean merge() {
+        if (!brokerController.getMessageStoreConfig().isTransferMetadataJsonToRocksdb()) {
+            log.info("The switch is off, no merge operation is needed.");
+            return true;
+        }
+        if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
+            log.info("json file and json back file not exist, so skip merge");
+            return true;
+        }
+
+        if (!super.load()) {
+            log.error("load group and forbidden info from json file error, startup will exit");
+            return false;
+        }
+
+        final ConcurrentMap<String, SubscriptionGroupConfig> groupTable = this.getSubscriptionGroupTable();
+        final ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable = this.getForbiddenTable();
+        final DataVersion dataVersion = super.getDataVersion();
+        final DataVersion kvDataVersion = this.getDataVersion();
+        if (dataVersion.getCounter().get() > kvDataVersion.getCounter().get()) {
+            for (Map.Entry<String, SubscriptionGroupConfig> entry : groupTable.entrySet()) {
+                putSubscriptionGroupConfig(entry.getValue());
+                log.info("import subscription config to rocksdb, group={}", entry.getValue());
+            }
+            for (Map.Entry<String, ConcurrentMap<String, Integer>> entry : forbiddenTable.entrySet()) {
+                try {
+                    this.rocksDBConfigManager.updateForbidden(entry.getKey(), JSON.toJSONString(entry.getValue()));
+                    log.info("import forbidden config to rocksdb, group={}", entry.getValue());
+                } catch (Exception e) {
+                    log.error("import forbidden config to rocksdb failed, group={}", entry.getValue());
+                    return false;
+                }
+            }
+            this.rocksDBConfigManager.getKvDataVersion().assignNewOne(dataVersion);
+            updateDataVersion();
+        }
+        log.info("finish marge subscription config from json file and merge to rocksdb");
+        this.persist();
+
         return true;
     }
 
@@ -48,7 +125,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
     }
 
     @Override
-    protected SubscriptionGroupConfig putSubscriptionGroupConfig(SubscriptionGroupConfig subscriptionGroupConfig) {
+    public SubscriptionGroupConfig putSubscriptionGroupConfig(SubscriptionGroupConfig subscriptionGroupConfig) {
         String groupName = subscriptionGroupConfig.getGroupName();
         SubscriptionGroupConfig oldConfig = this.subscriptionGroupTable.put(groupName, subscriptionGroupConfig);
 
@@ -89,8 +166,8 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         return subscriptionGroupConfig;
     }
 
-    @Override
-    protected void decode0(byte[] key, byte[] body) {
+
+    protected void decodeSubscriptionGroup(byte[] key, byte[] body) {
         String groupName = new String(key, DataConverter.CHARSET_UTF8);
         SubscriptionGroupConfig subscriptionGroupConfig = JSON.parseObject(body, SubscriptionGroupConfig.class);
 
@@ -105,8 +182,63 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         }
     }
 
-    @Override
-    public String configFilePath() {
+    public String rocksdbConfigFilePath() {
         return this.brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config" + File.separator + "subscriptionGroups" + File.separator;
+    }
+
+    @Override
+    public DataVersion getDataVersion() {
+        return rocksDBConfigManager.getKvDataVersion();
+    }
+
+    @Override
+    public void updateDataVersion() {
+        try {
+            rocksDBConfigManager.updateKvDataVersion();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected void decodeForbidden(byte[] key, byte[] body) {
+        String forbiddenGroupName = new String(key, DataConverter.CHARSET_UTF8);
+        JSONObject jsonObject = JSON.parseObject(new String(body, DataConverter.CHARSET_UTF8));
+        Set<Map.Entry<String, Object>> entries = jsonObject.entrySet();
+        ConcurrentMap<String, Integer> forbiddenGroup = new ConcurrentHashMap<>(entries.size());
+        for (Map.Entry<String, Object> entry : entries) {
+            forbiddenGroup.put(entry.getKey(), (Integer) entry.getValue());
+        }
+        this.getForbiddenTable().put(forbiddenGroupName, forbiddenGroup);
+        log.info("load forbidden,{} value {}", forbiddenGroupName, forbiddenGroup.toString());
+    }
+
+    @Override
+    public void updateForbidden(String group, String topic, int forbiddenIndex, boolean setOrClear) {
+        try {
+            super.updateForbidden(group, topic, forbiddenIndex, setOrClear);
+            this.rocksDBConfigManager.updateForbidden(group, JSON.toJSONString(this.getForbiddenTable().get(group)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void setForbidden(String group, String topic, int forbiddenIndex) {
+        try {
+            super.setForbidden(group, topic, forbiddenIndex);
+            this.rocksDBConfigManager.updateForbidden(group, JSON.toJSONString(this.getForbiddenTable().get(group)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void clearForbidden(String group, String topic, int forbiddenIndex) {
+        try {
+            super.clearForbidden(group, topic, forbiddenIndex);
+            this.rocksDBConfigManager.updateForbidden(group, JSON.toJSONString(this.getForbiddenTable().get(group)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

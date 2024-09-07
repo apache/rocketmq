@@ -58,6 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.AbstractBrokerRunnable;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -1178,7 +1179,11 @@ public class DefaultMessageStore implements MessageStore {
         if (this.getCommitLog() instanceof DLedgerCommitLog) {
             minPhyOffset += DLedgerEntry.BODY_OFFSET;
         }
-        final int size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 8;
+        int size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 8;
+        InetAddressValidator validator = InetAddressValidator.getInstance();
+        if (validator.isValidInet6Address(this.brokerConfig.getBrokerIP1())) {
+            size = MessageDecoder.MESSAGE_STORE_TIMESTAMP_POSITION + 20;
+        }
         return this.getCommitLog().pickupStoreTimestamp(minPhyOffset, size);
     }
 
@@ -2814,7 +2819,11 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         public boolean isCommitLogAvailable() {
-            return this.reputFromOffset < DefaultMessageStore.this.getConfirmOffset();
+            return this.reputFromOffset < getReputEndOffset();
+        }
+
+        protected long getReputEndOffset() {
+            return DefaultMessageStore.this.getMessageStoreConfig().isReadUnCommitted() ? DefaultMessageStore.this.commitLog.getMaxOffset() : DefaultMessageStore.this.commitLog.getConfirmOffset();
         }
 
         public void doReput() {
@@ -2834,12 +2843,12 @@ public class DefaultMessageStore implements MessageStore {
                 try {
                     this.reputFromOffset = result.getStartOffset();
 
-                    for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
+                    for (int readSize = 0; readSize < result.getSize() && reputFromOffset < getReputEndOffset() && doNext; ) {
                         DispatchRequest dispatchRequest =
                             DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false, false);
                         int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
 
-                        if (reputFromOffset + size > DefaultMessageStore.this.getConfirmOffset()) {
+                        if (reputFromOffset + size > getReputEndOffset()) {
                             doNext = false;
                             break;
                         }
@@ -3127,7 +3136,7 @@ public class DefaultMessageStore implements MessageStore {
                 try {
                     this.reputFromOffset = result.getStartOffset();
 
-                    for (int readSize = 0; readSize < result.getSize() && reputFromOffset < DefaultMessageStore.this.getConfirmOffset() && doNext; ) {
+                    for (int readSize = 0; readSize < result.getSize() && reputFromOffset < getReputEndOffset() && doNext; ) {
                         ByteBuffer byteBuffer = result.getByteBuffer();
 
                         int totalSize = preCheckMessageAndReturnSize(byteBuffer);
