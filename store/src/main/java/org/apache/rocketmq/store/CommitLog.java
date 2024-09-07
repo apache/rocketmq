@@ -61,7 +61,6 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
-import org.apache.rocketmq.store.lock.PutMessageCollisionRetreatLock;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
@@ -130,8 +129,7 @@ public class CommitLog implements Swappable {
             }
         };
         this.putMessageLock = messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock()
-            : new PutMessageCollisionRetreatLock(defaultMessageStore.getMessageStoreConfig().getSpinLockCollisionRetreatOptimalDegree());
-
+            : new PutMessageSpinLock();
         this.flushDiskWatcher = new FlushDiskWatcher();
 
         this.commitLogSize = messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
