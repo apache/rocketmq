@@ -25,8 +25,4 @@ public interface PutMessageLock {
     void lock();
 
     void unlock();
-
-    default void update(MessageStoreConfig messageStoreConfig) {
-        //update config
-    }
 }
