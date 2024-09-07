@@ -168,8 +168,6 @@ public interface ConsumeQueueStoreInterface {
      */
     ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> getConsumeQueueTable();
 
-
-
     /**
      * Increase queue offset.
      * @param messageNum message number
