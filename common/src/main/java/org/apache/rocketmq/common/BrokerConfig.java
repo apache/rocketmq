@@ -186,6 +186,11 @@ public class BrokerConfig extends BrokerIdentity {
     private int registerNameServerPeriod = 1000 * 30;
 
     /**
+     * This configurable item defines interval of update name server address. Default: 120 * 1000 milliseconds
+     */
+    private int updateNameServerAddrPeriod = 1000 * 120;
+
+    /**
      * the interval to send heartbeat to name server for liveness detection.
      */
     private int brokerHeartbeatInterval = 1000;
@@ -1836,5 +1841,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setSkipWhenCKRePutReachMaxTimes(boolean skipWhenCKRePutReachMaxTimes) {
         this.skipWhenCKRePutReachMaxTimes = skipWhenCKRePutReachMaxTimes;
+    }
+
+    public int getUpdateNameServerAddrPeriod() {
+        return updateNameServerAddrPeriod;
+    }
+
+    public void setUpdateNameServerAddrPeriod(int updateNameServerAddrPeriod) {
+        this.updateNameServerAddrPeriod = updateNameServerAddrPeriod;
     }
 }

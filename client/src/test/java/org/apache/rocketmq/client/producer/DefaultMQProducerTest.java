@@ -813,7 +813,7 @@ public class DefaultMQProducerTest {
     @Test
     public void assertGetRetryResponseCodes() {
         assertNotNull(producer.getRetryResponseCodes());
-        assertEquals(7, producer.getRetryResponseCodes().size());
+        assertEquals(8, producer.getRetryResponseCodes().size());
     }
 
     @Test

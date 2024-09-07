@@ -1,0 +1,38 @@
+name: Run Integration Tests
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  push:
+    branches: [master, develop]
+
+jobs:
+  it-test:
+    name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        jdk: [8]
+    steps:
+      - name: Cache Maven Repos
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up JDK ${{ matrix.jdk }}
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ matrix.jdk }}
+          distribution: "adopt"
+          cache: "maven"
+
+      - name: Run integration tests with Maven
+        run: mvn clean verify -Pit-test -Pskip-unit-tests
+
+
