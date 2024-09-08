@@ -120,4 +120,18 @@ public class BitsArrayTest {
             assertThat(b1.getBit(i)).isTrue();
         }
     }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBitBoundaryOverflow() {
+        BitsArray bitsArray = BitsArray.create(16);
+        assertThat(bitsArray.bitLength()).isEqualTo(16);
+        bitsArray.getBit(16);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testByteBoundaryOverflow() {
+        BitsArray bitsArray = BitsArray.create(16);
+        assertThat(bitsArray.byteLength() ).isEqualTo(2);
+        bitsArray.getByte(2);
+    }
 }
