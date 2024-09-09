@@ -82,7 +82,7 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
     }
 
     @Test
-    public void test3ConsumerAndCrashOne() throws InterruptedException {
+    public void test3ConsumerAndCrashOne() {
         int msgSize = 400;
         RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
         RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
