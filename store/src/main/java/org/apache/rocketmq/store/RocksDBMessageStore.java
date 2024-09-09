@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.metrics.DefaultStoreMetricsManager;
@@ -187,7 +188,16 @@ public class RocksDBMessageStore extends DefaultMessageStore {
     class CommitLogDispatcherBuildRocksdbConsumeQueue implements CommitLogDispatcher {
         @Override
         public void dispatch(DispatchRequest request) throws RocksDBException {
-            putMessagePositionInfo(request);
+            final int tranType = MessageSysFlag.getTransactionValue(request.getSysFlag());
+            switch (tranType) {
+                case MessageSysFlag.TRANSACTION_NOT_TYPE:
+                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+                    putMessagePositionInfo(request);
+                    break;
+                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
+                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
+                    break;
+            }
         }
     }
 
