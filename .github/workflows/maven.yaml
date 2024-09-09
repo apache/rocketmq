@@ -30,9 +30,6 @@ jobs:
       - name: Build with Maven
         run: mvn -B package --file pom.xml
 
-      - name: Run tests with increased memory and debug info
-        run: mvn test -X -Dparallel=none -DargLine="-Xmx1024m -XX:MaxPermSize=256m"
-
       - name: Upload Auth JVM crash logs
         if: failure()
         uses: actions/upload-artifact@v4
@@ -40,12 +37,6 @@ jobs:
           name: jvm-crash-logs
           path: /Users/runner/work/rocketmq/rocketmq/auth/hs_err_pid*.log
           retention-days: 1
-
-      - name: Check for broker JVM crash logs
-        if: failure()
-        run: |
-          echo "Checking for JVM crash logs..."
-          ls -al /Users/runner/work/rocketmq/rocketmq/broker/
 
       - name: Upload broker JVM crash logs
         if: failure()
@@ -58,6 +49,7 @@ jobs:
       - name: Retry if failed
         # if it failed , retry 2 times at most
         if: failure() && fromJSON(github.run_attempt) < 3
+        continue-on-error: true
         env:
           GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
