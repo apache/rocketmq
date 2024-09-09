@@ -78,8 +78,11 @@ public class ProducerManager {
     }
 
     public void scanNotActiveChannel() {
-        for (final Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>> entry : this.groupChannelTable
-                .entrySet()) {
+        Iterator<Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>>> iterator = this.groupChannelTable.entrySet().iterator();
+
+        while (iterator.hasNext()) {
+            Map.Entry<String, ConcurrentHashMap<Channel, ClientChannelInfo>> entry = iterator.next();
+
             final String group = entry.getKey();
             final ConcurrentHashMap<Channel, ClientChannelInfo> chlMap = entry.getValue();
 
@@ -94,10 +97,15 @@ public class ProducerManager {
                     it.remove();
                     clientChannelTable.remove(info.getClientId());
                     log.warn(
-                            "SCAN: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
+                            "ProducerManager#scanNotActiveChannel: remove expired channel[{}] from ProducerManager groupChannelTable, producer group name: {}",
                             RemotingHelper.parseChannelRemoteAddr(info.getChannel()), group);
                     RemotingUtil.closeChannel(info.getChannel());
                 }
+            }
+
+            if (chlMap.isEmpty()) {
+                log.warn("SCAN: remove expired channel from ProducerManager groupChannelTable, all clear, group={}", group);
+                iterator.remove();
             }
         }
     }
