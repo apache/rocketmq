@@ -24,8 +24,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.CheckRocksdbCqWriteProgressResponseBody;
+import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
@@ -51,6 +51,10 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
         opt = new Option("n", "nameserverAddr", true, "nameserverAddr");
         opt.setRequired(true);
         options.addOption(opt);
+
+        opt = new Option("t", "topic", true, "topic name");
+        opt.setRequired(false);
+        options.addOption(opt);
         return options;
     }
 
@@ -61,6 +65,7 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
         defaultMQAdminExt.setInstanceName(Long.toString(System.currentTimeMillis()));
         defaultMQAdminExt.setNamesrvAddr(StringUtils.trim(commandLine.getOptionValue('n')));
         String clusterName = commandLine.hasOption('c') ? commandLine.getOptionValue('c').trim() : "";
+        String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "";
 
         try {
             defaultMQAdminExt.start();
@@ -68,15 +73,19 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
             Map<String, Set<String>> clusterAddrTable = clusterInfo.getClusterAddrTable();
             Map<String, BrokerData> brokerAddrTable = clusterInfo.getBrokerAddrTable();
             if (clusterAddrTable.get(clusterName) == null) {
-                System.out.printf("clusterAddrTable is empty");
+                System.out.print("clusterAddrTable is empty");
                 return;
             }
             for (Map.Entry<String, BrokerData> entry : brokerAddrTable.entrySet()) {
                 String brokerName = entry.getKey();
                 BrokerData brokerData = entry.getValue();
                 String brokerAddr = brokerData.getBrokerAddrs().get(0L);
-                CheckRocksdbCqWriteProgressResponseBody body = defaultMQAdminExt.checkRocksdbCqWriteProgress(brokerAddr);
-                System.out.printf(brokerName + " | " + brokerAddr + " | " + body.getDiffResult());
+                CheckRocksdbCqWriteProgressResponseBody body = defaultMQAdminExt.checkRocksdbCqWriteProgress(brokerAddr, topic);
+                if (StringUtils.isNotBlank(topic)) {
+                    System.out.printf(body.getDiffResult());
+                } else {
+                    System.out.printf(brokerName + " | " + brokerAddr + " | " + body.getDiffResult());
+                }
             }
 
         } catch (Exception e) {

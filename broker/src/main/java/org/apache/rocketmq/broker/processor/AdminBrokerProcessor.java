@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.opentelemetry.api.common.Attributes;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -33,14 +34,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import io.opentelemetry.api.common.Attributes;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessValidator;
@@ -140,6 +139,7 @@ import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerialize
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
@@ -221,8 +221,9 @@ import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.util.LibC;
-import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
+
 import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_INVOCATION_STATUS;
+import static org.apache.rocketmq.broker.metrics.BrokerMetricsConstant.LABEL_IS_SYSTEM;
 import static org.apache.rocketmq.remoting.protocol.RemotingCommand.buildErrorResponse;
 
 public class AdminBrokerProcessor implements NettyRequestProcessor {
@@ -464,79 +465,71 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand checkRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand checkRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        CheckRocksdbCqWriteProgressRequestHeader requestHeader = request.decodeCommandCustomHeader(CheckRocksdbCqWriteProgressRequestHeader.class);
+        String requestTopic = requestHeader.getTopic();
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
-        response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "diff success, very good!")));
 
         DefaultMessageStore messageStore = (DefaultMessageStore) brokerController.getMessageStore();
         RocksDBMessageStore rocksDBMessageStore = messageStore.getRocksDBMessageStore();
-
         if (!messageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
-            response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "RocksdbCQWriteEnable is false, CheckRocksdbCqWriteProgressCommand is invalid")));
+            response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "rocksdbCQWriteEnable is false, checkRocksdbCqWriteProgressCommand is invalid")));
             return response;
         }
 
         ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = messageStore.getConsumeQueueTable();
-        Random random = new Random();
-        for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicToCqListEntry : cqTable.entrySet()) {
-            String topic = topicToCqListEntry.getKey();
-            ConcurrentMap<Integer, ConsumeQueueInterface> queueIdToCqMap = topicToCqListEntry.getValue();
-            for (Map.Entry<Integer, ConsumeQueueInterface> queueIdToCqEntry : queueIdToCqMap.entrySet()) {
-                Integer queueId = queueIdToCqEntry.getKey();
-
-                ConsumeQueueInterface jsonCq = queueIdToCqEntry.getValue();
-                ConsumeQueueInterface kvCq = rocksDBMessageStore.getConsumeQueue(topic, queueId);
-
-                CqUnit kvCqEarliestUnit = kvCq.getEarliestUnit();
-                CqUnit kvCqLatestUnit = kvCq.getLatestUnit();
-                CqUnit jsonCqEarliestUnit = jsonCq.getEarliestUnit();
-                CqUnit jsonCqLatestUnit = jsonCq.getLatestUnit();
-                LOGGER.info("CheckRocksdbCqWriteProgressCommand topic:{}, queue:{}, kvCqEarliestUnit:{}, jsonCqEarliestUnit:{}, kvCqLatestUnit:{}, jsonCqLatestUnit:{}",
-                    topic, queueId, kvCqEarliestUnit, jsonCqEarliestUnit, kvCqLatestUnit, jsonCqLatestUnit);
-
-                long jsonOffset = jsonCq.getMaxOffsetInQueue() - 1;
-                int sampleCount = 10;
-
-                Set<Long> sampledOffsets = new HashSet<>();
-
-                if (jsonOffset > 100) {
-                    // Randomly sample 10 offsets from the last 100 entries
-                    long startOffset = jsonOffset - 100;
-                    while (sampledOffsets.size() < sampleCount) {
-                        long randomOffset = startOffset + random.nextInt(100);
-                        sampledOffsets.add(randomOffset);
-                    }
-                } else if (jsonOffset > 10) {
-                    // Take the last 10 entries
-                    long startOffset = jsonOffset - 10;
-                    for (long i = startOffset; i < jsonOffset; i++) {
-                        sampledOffsets.add(i);
-                    }
-                } else {
-                    // Take all available entries if less than 10
-                    for (long i = 0; i < jsonOffset; i++) {
-                        sampledOffsets.add(i);
-                    }
-                }
-
-                for (long currentOffset : sampledOffsets) {
-                    Pair<CqUnit, Long> kvCqUnitTime = kvCq.getCqUnitAndStoreTime(currentOffset);
-                    Pair<CqUnit, Long> jsonCqUnitTime = jsonCq.getCqUnitAndStoreTime(currentOffset);
-                    if (!checkCqUnitEqual(kvCqUnitTime.getObject1(), jsonCqUnitTime.getObject1())) {
-                        String diffInfo = String.format("Difference found at topic:%s, queue:%s, offset:%s - kvCqUnit:%s, jsonCqUnit:%s",
-                            topic, queueId, currentOffset, kvCqUnitTime.getObject1(), jsonCqUnitTime.getObject1());
-                        LOGGER.error(diffInfo);
-                        response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", diffInfo)));
-                        return response;
-                    }
-                }
+        StringBuilder diffResult = new StringBuilder("check success, all is ok!\n");
+        try {
+            if (StringUtils.isNotBlank(requestTopic)) {
+                processConsumeQueuesForTopic(cqTable.get(requestTopic), requestTopic, rocksDBMessageStore, diffResult,false);
+                response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", diffResult.toString())));
+                return response;
             }
+            for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : cqTable.entrySet()) {
+                String topic = topicEntry.getKey();
+                processConsumeQueuesForTopic(topicEntry.getValue(), topic, rocksDBMessageStore, diffResult,true);
+            }
+            diffResult.append("check all topic successful, size:").append(cqTable.size());
+            response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", diffResult.toString())));
 
+        } catch (Exception e) {
+            LOGGER.error("CheckRocksdbCqWriteProgressCommand error", e);
+            response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", e.getMessage())));
         }
         return response;
     }
 
+    private void processConsumeQueuesForTopic(ConcurrentMap<Integer, ConsumeQueueInterface> queueMap, String topic, RocksDBMessageStore rocksDBMessageStore, StringBuilder diffResult, boolean checkAll) {
+        for (Map.Entry<Integer, ConsumeQueueInterface> queueEntry : queueMap.entrySet()) {
+            Integer queueId = queueEntry.getKey();
+            ConsumeQueueInterface jsonCq = queueEntry.getValue();
+            ConsumeQueueInterface kvCq = rocksDBMessageStore.getConsumeQueue(topic, queueId);
+            if (!checkAll) {
+                String format = String.format("\n[topic: %s, queue:  %s] \n  kvEarliest : %s |  kvLatest : %s \n fileEarliest: %s | fileEarliest: %s ",
+                    topic, queueId, kvCq.getEarliestUnit(), kvCq.getLatestUnit(), jsonCq.getEarliestUnit(), jsonCq.getLatestUnit());
+                diffResult.append(format).append("\n");
+            }
+            long maxFileOffsetInQueue = jsonCq.getMaxOffsetInQueue();
+            long minOffsetInQueue = kvCq.getMinOffsetInQueue();
+            for (long i = minOffsetInQueue; i < maxFileOffsetInQueue; i++) {
+                Pair<CqUnit, Long> fileCqUnit = jsonCq.getCqUnitAndStoreTime(i);
+                Pair<CqUnit, Long> kvCqUnit = kvCq.getCqUnitAndStoreTime(i);
+                if (fileCqUnit == null || kvCqUnit == null) {
+                    diffResult.append(String.format("[topic: %s, queue: %s, offset: %s] \n kv  : %s  \n file: %s  \n",
+                        topic, queueId, i, kvCqUnit != null ? kvCqUnit.getObject1() : "null", fileCqUnit != null ? fileCqUnit.getObject1() : "null"));
+                    return;
+                }
+                if (!checkCqUnitEqual(kvCqUnit.getObject1(), fileCqUnit.getObject1())) {
+                    String diffInfo = String.format("[topic:%s, queue: %s offset: %s] \n file: %s  \n  kv: %s",
+                        topic, queueId, i, kvCqUnit.getObject1(), fileCqUnit.getObject1());
+                    LOGGER.error(diffInfo);
+                    diffResult.append(diffInfo).append("\n");
+                    return;
+                }
+            }
+        }
+    }
     @Override
     public boolean rejectRequest() {
         return false;
@@ -3398,9 +3391,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         if (cqUnit1.getBatchNum() != cqUnit2.getBatchNum()) {
             return false;
         }
-        if (cqUnit1.getTagsCode() != cqUnit2.getTagsCode()) {
-            return false;
-        }
-        return true;
+        return cqUnit1.getTagsCode() == cqUnit2.getTagsCode();
     }
 }

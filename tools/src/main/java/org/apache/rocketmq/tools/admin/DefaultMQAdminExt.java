@@ -732,9 +732,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public CheckRocksdbCqWriteProgressResponseBody checkRocksdbCqWriteProgress(String brokerAddr)
+    public CheckRocksdbCqWriteProgressResponseBody checkRocksdbCqWriteProgress(String brokerAddr, String topic)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
-        return this.defaultMQAdminExtImpl.checkRocksdbCqWriteProgress(brokerAddr);
+        return this.defaultMQAdminExtImpl.checkRocksdbCqWriteProgress(brokerAddr, topic);
     }
 
     @Override
