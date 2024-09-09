@@ -96,7 +96,7 @@ public class NormalMsgDynamicBalanceIT extends BaseConf {
         MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(), consumer1.getListener(),
             consumer2.getListener(), consumer3.getListener());
         consumer3.shutdown();
-        Thread.sleep(3000);
+        TestUtils.waitForSeconds(WAIT_TIME);
 
         producer.clearMsg();
         consumer1.clearMsg();
