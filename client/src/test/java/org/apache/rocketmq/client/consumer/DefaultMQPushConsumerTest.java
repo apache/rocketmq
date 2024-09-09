@@ -209,7 +209,9 @@ public class DefaultMQPushConsumerTest {
 
     @AfterClass
     public static void terminate() {
-        pushConsumer.shutdown();
+        if (pushConsumer != null) {
+            pushConsumer.shutdown();
+        }
     }
 
     @Test
