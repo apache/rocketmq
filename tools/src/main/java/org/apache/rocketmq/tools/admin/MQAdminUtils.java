@@ -49,7 +49,7 @@ import static org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappin
 import static org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingUtils.getMappingDetailFromConfig;
 
 public class MQAdminUtils {
-
+    public static final int PROGRESS_BAR_WIDTH = 60;
 
     public static ClientMetadata getBrokerMetadata(DefaultMQAdminExt defaultMQAdminExt) throws InterruptedException, RemotingConnectException, RemotingTimeoutException, RemotingSendRequestException, MQBrokerException {
         ClientMetadata clientMetadata  = new ClientMetadata();
@@ -338,5 +338,27 @@ public class MQAdminUtils {
             }
         }
         return result;
+    }
+
+    public static void printProgressWithFixedWidth(long total, long current) {
+        String prefix = "Progress:[";
+        String suffix = String.format("]%d/%d=%d%c", current, total, (int) ((double) current * 100) / total, '%');
+        String arrow = ">";
+        if (current != 0) {
+            for (long x = 0; x < PROGRESS_BAR_WIDTH + prefix.length() + suffix.length(); x++) {
+                System.out.print("\b");
+            }
+        }
+        System.out.print(prefix);
+        long i = current * PROGRESS_BAR_WIDTH / total;
+        for (long j = 0; j < i - arrow.length(); j++) {
+            System.out.print("=");
+        }
+
+        System.out.print(arrow);
+        for (long k = 0; k < PROGRESS_BAR_WIDTH - i; k++) {
+            System.out.print(" ");
+        }
+        System.out.print(suffix);
     }
 }
