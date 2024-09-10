@@ -131,6 +131,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
     private ConsumeMessageService consumeMessagePopService;
     private long queueFlowControlTimes = 0;
     private long queueMaxSpanFlowControlTimes = 0;
+    private boolean existPop = false;
 
     //10s 30s 1m 2m 3m 4m 5m 6m 7m 8m 9m 10m 20m 30m 1h 2h
     private final int[] popDelayLevel = new int[] {10, 30, 60, 120, 180, 240, 300, 360, 420, 480, 540, 600, 1200, 1800, 3600, 7200};
@@ -1364,7 +1365,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
     @Override
     public ConsumeType consumeType() {
-        if (this.rebalanceImpl.getExistPop()) {
+        if (isExistPop()) {
             return ConsumeType.CONSUME_POP;
         }
         return ConsumeType.CONSUME_PASSIVELY;
@@ -1591,5 +1592,13 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             return null;
         }
         return defaultMQPushConsumer.getMessageQueueListener();
+    }
+
+    public void setExistPop(boolean existPop) {
+        this.existPop = existPop;
+    }
+
+    public boolean isExistPop() {
+        return existPop;
     }
 }

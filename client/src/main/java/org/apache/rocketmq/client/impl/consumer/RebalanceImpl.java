@@ -65,7 +65,6 @@ public abstract class RebalanceImpl {
 
     private Map<String, String> topicBrokerRebalance = new ConcurrentHashMap<>();
     private Map<String, String> topicClientRebalance = new ConcurrentHashMap<>();
-    private boolean existPop = false;
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy,
@@ -407,7 +406,10 @@ public abstract class RebalanceImpl {
                 existPop = true;
             }
         }
-        this.existPop = existPop;
+        if (this.consumeType() == ConsumeType.CONSUME_PASSIVELY) {
+            RebalancePushImpl rebalancePush = (RebalancePushImpl) this;
+            rebalancePush.getDefaultMQPushConsumerImpl().setExistPop(existPop);
+        }
 
         Set<MessageQueue> mqAll = null;
         boolean changed = this.updateMessageQueueAssignment(topic, messageQueueAssignments, isOrder);
@@ -838,14 +840,6 @@ public abstract class RebalanceImpl {
 
     public void setmQClientFactory(MQClientInstance mQClientFactory) {
         this.mQClientFactory = mQClientFactory;
-    }
-
-    public void setExistPop(boolean existPop) {
-        this.existPop = existPop;
-    }
-
-    public boolean getExistPop() {
-        return existPop;
     }
 
     public void destroy() {
