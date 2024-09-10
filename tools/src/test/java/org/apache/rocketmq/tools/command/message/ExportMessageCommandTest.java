@@ -164,21 +164,23 @@ public class ExportMessageCommandTest {
     }
 
     @Test
-    public void testRecoverFromOffsetFileWithLessBeginOffset() throws Exception {
+    public void testRecoverFromOffsetFileWithNegativeBeginOffset() throws Exception {
         exportDir = ExportMessageCommand.DEFAULT_EXPORT_DIRECTORY;
-        prepareMessageFile(-1, 1);
-        Assert.assertTrue(basicExport("base64").contains("100%"));
+        // only a message with queueOffset=0 in previous exported file, export from-to [-1,1) will skip
+        prepareMessageFile();
+        Assert.assertFalse(basicExport("base64").contains("100%"));
 
     }
 
     @Test
-    public void testRecoverFromOffsetFileWithGraterEndOffset() throws Exception {
+    public void testRecoverFromOffsetFileWithGreaterEndOffset() throws Exception {
         exportDir = ExportMessageCommand.DEFAULT_EXPORT_DIRECTORY;
-        prepareMessageFile(0, 2);
-        Assert.assertTrue(basicExport("base64").contains("100%"));
+        // only a message queueOffset=0 is in previous exported file, export from-to [0,2) will skip
+        prepareMessageFile();
+        Assert.assertFalse(basicExport("base64").contains("100%"));
     }
 
-    public void prepareMessageFile(long beginOffset, long endOffset) throws Exception {
+    public void prepareMessageFile() throws Exception {
         FileUtils.forceMkdirParent(new File(brokerDir));
         String exportedMessageText = "{\"topic\":\"topic1\",\"flag\":0,\"queueOffset\":0,\"bodyFormat\":\"json\",\"body\":{\"age\":1}}";
         FileUtils.writeLines(new File(queueFilePath), Lists.newArrayList(exportedMessageText));
