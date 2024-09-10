@@ -131,7 +131,7 @@ public class BitsArrayTest {
     @Test(expected = IllegalArgumentException.class)
     public void testByteBoundaryOverflow() {
         BitsArray bitsArray = BitsArray.create(16);
-        assertThat(bitsArray.byteLength() ).isEqualTo(2);
+        assertThat(bitsArray.byteLength()).isEqualTo(2);
         bitsArray.getByte(2);
     }
 }
