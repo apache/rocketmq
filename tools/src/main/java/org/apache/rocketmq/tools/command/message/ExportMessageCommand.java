@@ -22,9 +22,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Sets;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -65,7 +63,7 @@ public class ExportMessageCommand implements SubCommand {
     private static final int ASYNC_WRITE_QUEUE_CAPACITY = 1024;
     private static final int WRITE_INTERVAL_MILLISECONDS = 100;
     private static final int MAX_WRITE_MESSAGE_SIZE = 256;
-    private final Logger logger = LoggerFactory.getLogger(ImportMessageCommand.class);
+    private final Logger logger = LoggerFactory.getLogger(ExportMessageCommand.class);
     private DefaultMQPullConsumer defaultMQPullConsumer;
     private String charsetName;
     private String bodyFormat;
@@ -198,48 +196,12 @@ public class ExportMessageCommand implements SubCommand {
                         continue;
                     }
                     minOffset = queueOffset + 1;
+                } else {
+                    queueFile.createNewFile();
                 }
 
                 System.out.printf("export %s minOffset=%s, maxOffset=%s%n", minOffset, maxOffset, mq);
-                try (BufferedWriter messageWriter = Files.newBufferedWriter(Paths.get(queueFilepath), StandardOpenOption.APPEND)) {
-                    final AtomicLong messageCounter = new AtomicLong();
-                    final ArrayBlockingQueue<MessageExt> blockingQueue = new ArrayBlockingQueue<MessageExt>(ASYNC_WRITE_QUEUE_CAPACITY);
-                    asyncWriteMessageFile(executor, minOffset, messageWriter, messageCounter, blockingQueue);
-                    READQ:
-                    for (long offset = minOffset; offset < maxOffset; ) {
-                        try {
-                            PullResult pullResult = defaultMQPullConsumer.pull(mq, subExpression, offset, 32);
-                            offset = pullResult.getNextBeginOffset();
-                            switch (pullResult.getPullStatus()) {
-                                case FOUND:
-                                    MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
-                                    for (MessageExt messageExt : pullResult.getMsgFoundList()) {
-                                        blockingQueue.put(messageExt);
-                                    }
-                                    break;
-                                case NO_MATCHED_MSG:
-                                    System.out.printf("%s no matched msg. status=%s, offset=%s%n", mq, pullResult.getPullStatus(), offset);
-                                    break;
-                                case NO_NEW_MSG:
-                                case OFFSET_ILLEGAL:
-                                    System.out.printf("%s print msg finished. status=%s, offset=%s%n", mq, pullResult.getPullStatus(), offset);
-                                    break READQ;
-                            }
-                        } catch (Exception e) {
-                            logger.error("pull message error. ", e);
-                            return;
-                        }
-                    }
-                    // wait all message write to disk
-                    if (printProgress(minOffset, maxOffset, messageCounter)) {
-                        break;
-                    }
-                    messageWriter.flush();
-                } catch (Exception e) {
-                    logger.error("export message to file error. ", e);
-                }
-                // new line for printProgressWithFixedWidth
-                System.out.printf("%n");
+                exportMessageQueue(executor, subExpression, mq, queueFilepath, minOffset, maxOffset);
             }
             executor.shutdown();
         } catch (Exception e) {
@@ -249,21 +211,54 @@ public class ExportMessageCommand implements SubCommand {
         }
     }
 
-    private boolean printProgress(long minOffset, long maxOffset,
-        AtomicLong messageCounter) throws InterruptedException {
-        while (true) {
-            long writeTotal = messageCounter.get();
-            if (writeTotal == (maxOffset - minOffset)) {
-                MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
-                return true;
+    private void exportMessageQueue(ScheduledExecutorService executor, String subExpression, MessageQueue mq,
+        String queueFilepath, long minOffset, long maxOffset) {
+        try (BufferedWriter messageWriter = Files.newBufferedWriter(Paths.get(queueFilepath), StandardOpenOption.APPEND)) {
+            final AtomicLong messageCounter = new AtomicLong();
+            final ArrayBlockingQueue<MessageExt> blockingQueue = new ArrayBlockingQueue<MessageExt>(ASYNC_WRITE_QUEUE_CAPACITY);
+            asyncWriteMessageFile(executor, minOffset, messageWriter, messageCounter, blockingQueue);
+            READQ:
+            for (long offset = minOffset; offset < maxOffset; ) {
+                try {
+                    PullResult pullResult = defaultMQPullConsumer.pull(mq, subExpression, offset, 32);
+                    offset = pullResult.getNextBeginOffset();
+                    switch (pullResult.getPullStatus()) {
+                        case FOUND:
+                            MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
+                            for (MessageExt messageExt : pullResult.getMsgFoundList()) {
+                                blockingQueue.put(messageExt);
+                            }
+                            break;
+                        case NO_MATCHED_MSG:
+                            System.out.printf("%s no matched msg. status=%s, offset=%s%n", mq, pullResult.getPullStatus(), offset);
+                            break;
+                        case NO_NEW_MSG:
+                        case OFFSET_ILLEGAL:
+                            System.out.printf("%s print msg finished. status=%s, offset=%s%n", mq, pullResult.getPullStatus(), offset);
+                            break READQ;
+                    }
+                } catch (Exception e) {
+                    throw new IllegalStateException("pull message error.", e);
+                }
             }
-            // when exception, exit
-            if (writeTotal < 0) {
+            // wait all message write to disk
+            while (true) {
+                long writeTotal = messageCounter.get();
+                if (writeTotal == (maxOffset - minOffset)) {
+                    MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
+                    break;
+                }
+                // when exception, exit
+                if (writeTotal < 0) {
+                    MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
+                    throw new IllegalStateException("writeTotal is invalid, writeTotal=" + writeTotal);
+                }
+                Thread.sleep(WRITE_INTERVAL_MILLISECONDS);
                 MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
-                throw new IllegalStateException("writeTotal is invalid, writeTotal=" + writeTotal);
             }
-            Thread.sleep(WRITE_INTERVAL_MILLISECONDS);
-            MQAdminUtils.printProgressWithFixedWidth(maxOffset - minOffset, messageCounter.get());
+            System.out.printf("%n");
+        } catch (Exception e) {
+            logger.error("export message to file error. ", e);
         }
     }
 
@@ -300,6 +295,7 @@ public class ExportMessageCommand implements SubCommand {
             writer.write(JSON.toJSONString(jsonObject));
             writer.newLine();
         }
+        writer.flush();
     }
 
     public static Object formatBody(byte[] body, String bodyFormat, String charsetName) throws SubCommandException {
