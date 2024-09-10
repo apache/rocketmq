@@ -65,7 +65,6 @@ public class ExportMessageCommandTest {
     private static String topicDir = exportDir + File.separator + "topic1";
     private static String brokerDir = topicDir + File.separator + "broker-a";
     private static String queueFilePath = brokerDir + File.separator + "1";
-    private static String offsetFilePath = queueFilePath + ".log";
 
     private static PullResult mockPullResult() {
         MessageExt msg = new MessageExt();
@@ -167,7 +166,7 @@ public class ExportMessageCommandTest {
     @Test
     public void testRecoverFromOffsetFileWithLessBeginOffset() throws Exception {
         exportDir = ExportMessageCommand.DEFAULT_EXPORT_DIRECTORY;
-        prepareMessageFileAndOffsetFile(-1, 1);
+        prepareMessageFile(-1, 1);
         Assert.assertTrue(basicExport("base64").contains("100%"));
 
     }
@@ -175,24 +174,14 @@ public class ExportMessageCommandTest {
     @Test
     public void testRecoverFromOffsetFileWithGraterEndOffset() throws Exception {
         exportDir = ExportMessageCommand.DEFAULT_EXPORT_DIRECTORY;
-        prepareMessageFileAndOffsetFile(0, 2);
+        prepareMessageFile(0, 2);
         Assert.assertTrue(basicExport("base64").contains("100%"));
     }
 
-    @Test
-    public void testRecoverFromOffsetFileNormal() throws Exception {
-        exportDir = ExportMessageCommand.DEFAULT_EXPORT_DIRECTORY;
-        prepareMessageFileAndOffsetFile(0, 1);
-        // skip export (minOffset and maxOffset) is the same as offsetFile
-        String result = basicExport("base64");
-        Assert.assertFalse(result.contains("100%"));
-    }
-
-    public void prepareMessageFileAndOffsetFile(long beginOffset, long endOffset) throws Exception {
+    public void prepareMessageFile(long beginOffset, long endOffset) throws Exception {
         FileUtils.forceMkdirParent(new File(brokerDir));
         String exportedMessageText = "{\"topic\":\"topic1\",\"flag\":0,\"queueOffset\":0,\"bodyFormat\":\"json\",\"body\":{\"age\":1}}";
         FileUtils.writeLines(new File(queueFilePath), Lists.newArrayList(exportedMessageText));
-        FileUtils.write(new File(offsetFilePath), String.format("{\"beginOffset\":%d,\"endOffset\":%d}", beginOffset, endOffset), StandardCharsets.UTF_8);
     }
 
 }
