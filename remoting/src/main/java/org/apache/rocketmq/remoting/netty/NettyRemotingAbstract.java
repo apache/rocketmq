@@ -278,6 +278,7 @@ public abstract class NettyRemotingAbstract {
                     "please go away");
                 response.setOpaque(opaque);
                 writeResponse(ctx.channel(), cmd, response);
+                log.info("proxy is shutting down, write response GO_AWAY. channel={}, requestCode={}, opaque={}", ctx.channel(), cmd.getCode(), opaque);
                 return;
             }
         }

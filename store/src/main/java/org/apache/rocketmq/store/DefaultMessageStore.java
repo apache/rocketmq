@@ -985,7 +985,7 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public long getMaxOffsetInQueue(String topic, int queueId, boolean committed) {
         if (committed) {
-            ConsumeQueueInterface logic = this.findConsumeQueue(topic, queueId);
+            ConsumeQueueInterface logic = this.getConsumeQueue(topic, queueId);
             if (logic != null) {
                 return logic.getMaxOffsetInQueue();
             }
@@ -1021,7 +1021,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getCommitLogOffsetInQueue(String topic, int queueId, long consumeQueueOffset) {
-        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = getConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             CqUnit cqUnit = consumeQueue.get(consumeQueueOffset);
             if (cqUnit != null) {
@@ -1157,7 +1157,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getEarliestMessageTime(String topic, int queueId) {
-        ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface logicQueue = this.getConsumeQueue(topic, queueId);
         if (logicQueue != null) {
             Pair<CqUnit, Long> pair = logicQueue.getEarliestUnitAndStoreTime();
             if (pair != null && pair.getObject2() != null) {
@@ -1189,7 +1189,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getMessageStoreTimeStamp(String topic, int queueId, long consumeQueueOffset) {
-        ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface logicQueue = this.getConsumeQueue(topic, queueId);
         if (logicQueue != null) {
             Pair<CqUnit, Long> pair = logicQueue.getCqUnitAndStoreTime(consumeQueueOffset);
             if (pair != null && pair.getObject2() != null) {
@@ -1207,12 +1207,12 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getMessageTotalInQueue(String topic, int queueId) {
-        ConsumeQueueInterface logicQueue = this.findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface logicQueue = this.getConsumeQueue(topic, queueId);
         if (logicQueue != null) {
             return logicQueue.getMessageTotalInQueue();
         }
 
-        return -1;
+        return 0;
     }
 
     @Override
@@ -1496,7 +1496,7 @@ public class DefaultMessageStore implements MessageStore {
 
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
-        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = getConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             CqUnit cqUnit = consumeQueue.get(consumeOffset);
 
@@ -1512,7 +1512,7 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public boolean checkInMemByConsumeOffset(final String topic, final int queueId, long consumeOffset, int batchSize) {
-        ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
+        ConsumeQueueInterface consumeQueue = getConsumeQueue(topic, queueId);
         if (consumeQueue != null) {
             CqUnit firstCQItem = consumeQueue.get(consumeOffset);
             if (firstCQItem == null) {

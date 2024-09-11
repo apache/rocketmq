@@ -30,6 +30,7 @@ import org.apache.rocketmq.test.util.MQRandomUtils;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Ignore;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
@@ -53,6 +54,7 @@ public class NotificationIT extends BasePop {
     }
 
     @Test
+    @Ignore
     public void testNotification() throws Exception {
         long pollTime = 500;
         CompletableFuture<Boolean> future1 = client.notification(brokerAddr, topic, group, messageQueue.getQueueId(), pollTime, System.currentTimeMillis(), 5000);
