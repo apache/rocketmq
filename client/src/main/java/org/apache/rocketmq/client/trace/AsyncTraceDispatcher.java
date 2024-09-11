@@ -332,14 +332,14 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 buffer.append(bean.getTransData());
                 count++;
                 if (buffer.length() >= traceProducer.getMaxMessageSize()) {
-                    sendTraceDataByMQ(keySet, buffer.toString(), TraceConstants.TRACE_TOPIC_PREFIX + currentRegionId);
+                    sendTraceDataByMQ(keySet, buffer.toString(), traceTopicName);
                     buffer.delete(0, buffer.length());
                     keySet.clear();
                     count = 0;
                 }
             }
             if (count > 0) {
-                sendTraceDataByMQ(keySet, buffer.toString(), TraceConstants.TRACE_TOPIC_PREFIX + currentRegionId);
+                sendTraceDataByMQ(keySet, buffer.toString(), traceTopicName);
             }
             transBeanList.clear();
         }
