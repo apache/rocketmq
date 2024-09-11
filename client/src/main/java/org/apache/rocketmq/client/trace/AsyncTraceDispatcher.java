@@ -302,14 +302,24 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
 
         public void sendTraceData(List<TraceContext> contextList) {
             Map<String, List<TraceTransferBean>> transBeanMap = new HashMap<>(16);
-            String currentRegionId;
+            String traceTopic;
             for (TraceContext context : contextList) {
-                currentRegionId = context.getRegionId();
+                AccessChannel accessChannel = context.getAccessChannel();
+                if (accessChannel == null) {
+                    accessChannel = AsyncTraceDispatcher.this.accessChannel;
+                }
+                String currentRegionId = context.getRegionId();
                 if (currentRegionId == null || context.getTraceBeans().isEmpty()) {
                     continue;
                 }
+                if (AccessChannel.CLOUD == accessChannel) {
+                    traceTopic = TraceConstants.TRACE_TOPIC_PREFIX + currentRegionId;
+                } else {
+                    traceTopic = traceTopicName;
+                }
+
                 String topic = context.getTraceBeans().get(0).getTopic();
-                String key = topic + TraceConstants.CONTENT_SPLITOR + currentRegionId;
+                String key = topic + TraceConstants.CONTENT_SPLITOR + traceTopic;
                 List<TraceTransferBean> transBeanList = transBeanMap.computeIfAbsent(key, k -> new ArrayList<>());
                 TraceTransferBean traceData = TraceDataEncoder.encoderFromContextBean(context);
                 transBeanList.add(traceData);
@@ -320,7 +330,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
             }
         }
 
-        private void flushData(List<TraceTransferBean> transBeanList, String topic, String currentRegionId) {
+        private void flushData(List<TraceTransferBean> transBeanList, String topic, String traceTopic) {
             if (transBeanList.size() == 0) {
                 return;
             }
@@ -332,14 +342,14 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
                 buffer.append(bean.getTransData());
                 count++;
                 if (buffer.length() >= traceProducer.getMaxMessageSize()) {
-                    sendTraceDataByMQ(keySet, buffer.toString(), traceTopicName);
+                    sendTraceDataByMQ(keySet, buffer.toString(), traceTopic);
                     buffer.delete(0, buffer.length());
                     keySet.clear();
                     count = 0;
                 }
             }
             if (count > 0) {
-                sendTraceDataByMQ(keySet, buffer.toString(), traceTopicName);
+                sendTraceDataByMQ(keySet, buffer.toString(), traceTopic);
             }
             transBeanList.clear();
         }
@@ -411,4 +421,7 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         }
     }
 
+    public boolean isStarted() {
+        return isStarted.get();
+    }
 }
