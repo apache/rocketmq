@@ -421,7 +421,4 @@ public class AsyncTraceDispatcher implements TraceDispatcher {
         }
     }
 
-    public boolean isStarted() {
-        return isStarted.get();
-    }
 }
