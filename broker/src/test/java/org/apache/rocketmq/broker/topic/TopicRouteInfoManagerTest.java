@@ -164,8 +164,7 @@ public class TopicRouteInfoManagerTest {
         ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
         brokerAddrTable.put(defaultBroker, brokerMap);
         FieldUtils.writeDeclaredField(topicRouteInfoManager, "brokerAddrTable", brokerAddrTable, true);
-        String actual = topicRouteInfoManager.findBrokerAddressInPublish(defaultBroker);
-        assertEquals(masterAddress, actual);
+        assertEquals(masterAddress, topicRouteInfoManager.findBrokerAddressInPublish(defaultBroker));
     }
     
     @Test
