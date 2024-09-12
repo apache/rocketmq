@@ -233,8 +233,7 @@ public class TopicRouteInfoManagerTest {
         ConcurrentMap<String, Set<MessageQueue>> topicSubscribeInfoTable = new ConcurrentHashMap<>();
         topicSubscribeInfoTable.put(defaultTopic, expected);
         FieldUtils.writeDeclaredField(topicRouteInfoManager, "topicSubscribeInfoTable", topicSubscribeInfoTable, true);
-        Set<MessageQueue> actual = topicRouteInfoManager.getTopicSubscribeInfo(defaultTopic);
-        assertEquals(expected, actual);
+        assertEquals(expected, topicRouteInfoManager.getTopicSubscribeInfo(defaultTopic));
     }
     
     @Test
