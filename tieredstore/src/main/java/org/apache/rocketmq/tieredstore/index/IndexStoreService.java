@@ -287,7 +287,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             log.error("IndexStoreService force upload error", e);
             throw new RuntimeException(e);
         } finally {
-            readWriteLock.writeLock().lock();
+            readWriteLock.writeLock().unlock();
         }
     }
 
