@@ -36,8 +36,8 @@ public class RMQOrderListener extends AbstractListener implements MessageListene
         super();
     }
 
-    public RMQOrderListener(String listnerName) {
-        super(listnerName);
+    public RMQOrderListener(String listenerName) {
+        super(listenerName);
     }
 
     public RMQOrderListener(String originMsgCollector, String msgBodyCollector) {
