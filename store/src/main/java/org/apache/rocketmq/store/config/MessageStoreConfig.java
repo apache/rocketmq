@@ -428,7 +428,7 @@ public class MessageStoreConfig {
 
     private boolean rocksdbCQDoubleWriteEnable = false;
 
-    private boolean enableBatchWriteKvCq = false;
+    private boolean enableBatchWriteKvCq = true;
 
 
     public boolean isEnableBatchWriteKvCq() {
