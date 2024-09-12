@@ -236,8 +236,7 @@ public class TopicRouteInfoManagerTest {
     
     @Test
     public void testGetTopicSubscribeInfoWhenTopicDoesNotExist() throws IllegalAccessException {
-        ConcurrentMap<String, Set<MessageQueue>> topicSubscribeInfoTable = new ConcurrentHashMap<>();
-        FieldUtils.writeDeclaredField(topicRouteInfoManager, "topicSubscribeInfoTable", topicSubscribeInfoTable, true);
+        FieldUtils.writeDeclaredField(topicRouteInfoManager, "topicSubscribeInfoTable", new ConcurrentHashMap<>(), true);
         assertNull(topicRouteInfoManager.getTopicSubscribeInfo(defaultTopic));
     }
 }
