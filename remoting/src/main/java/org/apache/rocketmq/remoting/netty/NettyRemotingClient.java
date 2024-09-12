@@ -415,13 +415,13 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                     boolean removeItemFromTable = true;
                     final ChannelWrapper prevCW = this.channelTables.get(addrRemote);
 
-                    LOGGER.info("closeChannel: begin close the channel[{}], channelId={} Found: {}", addrRemote, channel.id(), prevCW != null);
+                    LOGGER.info("closeChannel: begin close the channel[addr={}, id={}] Found: {}", addrRemote, channel.id(), prevCW != null);
 
                     if (null == prevCW) {
-                        LOGGER.info("closeChannel: the channel[{}], channelId={} has been removed from the channel table before", addrRemote, channel.id());
+                        LOGGER.info("closeChannel: the channel[addr={}, id={}] has been removed from the channel table before", addrRemote, channel.id());
                         removeItemFromTable = false;
                     } else if (prevCW.isWrapperOf(channel)) {
-                        LOGGER.info("closeChannel: the channel[{}], channelId={} has been closed before, and has been created again, nothing to do.",
+                        LOGGER.info("closeChannel: the channel[addr={}, id={}] has been closed before, and has been created again, nothing to do.",
                             addrRemote, channel.id());
                         removeItemFromTable = false;
                     }
@@ -431,7 +431,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         if (channelWrapper != null && channelWrapper.tryClose(channel)) {
                             this.channelTables.remove(addrRemote);
                         }
-                        LOGGER.info("closeChannel: the channel[{}], channelId={}, was removed from channel table", addrRemote, channel.id());
+                        LOGGER.info("closeChannel: the channel[addr={}, id={}] was removed from channel table", addrRemote, channel.id());
                     }
 
                     RemotingHelper.closeChannel(channel);
@@ -456,6 +456,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         try {
             if (this.lockChannelTables.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
+                    boolean removeItemFromTable = true;
                     ChannelWrapper prevCW = null;
                     String addrRemote = null;
                     for (Map.Entry<String, ChannelWrapper> entry : channelTables.entrySet()) {
@@ -470,18 +471,19 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
                     if (null == prevCW) {
                         LOGGER.info("eventCloseChannel: the channel[addr={}, id={}] has been removed from the channel table before", RemotingHelper.parseChannelRemoteAddr(channel), channel.id());
-                        return;
+                        removeItemFromTable = false;
                     }
-                    
-                    ChannelWrapper channelWrapper = this.channelWrapperTables.remove(channel);
-                    if (channelWrapper != null && channelWrapper.tryClose(channel)) {
-                        this.channelTables.remove(addrRemote);
-                    }
-                    LOGGER.info("closeChannel: the channel[addr={}, id={}] was removed from channel table", addrRemote, channel.id());
-                    RemotingHelper.closeChannel(channel);
 
+                    if (removeItemFromTable) {
+                        ChannelWrapper channelWrapper = this.channelWrapperTables.remove(channel);
+                        if (channelWrapper != null && channelWrapper.tryClose(channel)) {
+                            this.channelTables.remove(addrRemote);
+                        }
+                        LOGGER.info("closeChannel: the channel[addr={}, id={}] was removed from channel table", addrRemote, channel.id());
+                        RemotingHelper.closeChannel(channel);
+                    }
                 } catch (Exception e) {
-                    LOGGER.error("closeChannel: close the channel exception", e);
+                    LOGGER.error("closeChannel: close the channel[id={}] exception", channel.id(), e);
                 } finally {
                     this.lockChannelTables.unlock();
                 }
@@ -559,9 +561,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 boolean shouldClose = left > MIN_CLOSE_TIMEOUT_MILLIS || left > timeoutMillis / 4;
                 if (nettyClientConfig.isClientCloseSocketIfTimeout() && shouldClose) {
                     this.closeChannel(addr, channel);
-                    LOGGER.warn("invokeSync: close socket because of timeout, {}ms, {}, channelId={}", timeoutMillis, channelRemoteAddr, channel.id());
+                    LOGGER.warn("invokeSync: close socket because of timeout, {}ms, channel[addr={}, id={}]", timeoutMillis, channelRemoteAddr, channel.id());
                 }
-                LOGGER.warn("invokeSync: wait response timeout exception, the channel[{}], channelId={}", channelRemoteAddr, channel.id());
+                LOGGER.warn("invokeSync: wait response timeout exception, the channel[addr={}, id={}]", channelRemoteAddr, channel.id());
                 throw e;
             }
         } else {
@@ -1179,7 +1181,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void close(ChannelHandlerContext ctx, ChannelPromise promise) throws Exception {
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            LOGGER.info("NETTY CLIENT PIPELINE: CLOSE {}, channelId={}", remoteAddress, ctx.channel().id());
+            LOGGER.info("NETTY CLIENT PIPELINE: CLOSE channel[addr={}, id={}]", remoteAddress, ctx.channel().id());
             closeChannel(ctx.channel());
             super.close(ctx, promise);
             NettyRemotingClient.this.failFast(ctx.channel());
@@ -1191,7 +1193,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            LOGGER.info("NETTY CLIENT PIPELINE: channelInactive, the channel[{}], channelId={}", remoteAddress, ctx.channel().id());
+            LOGGER.info("NETTY CLIENT PIPELINE: channelInactive, the channel[addr={}, id={}]", remoteAddress, ctx.channel().id());
             closeChannel(ctx.channel());
             super.channelInactive(ctx);
         }
@@ -1202,7 +1204,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 IdleStateEvent event = (IdleStateEvent) evt;
                 if (event.state().equals(IdleState.ALL_IDLE)) {
                     final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-                    LOGGER.warn("NETTY CLIENT PIPELINE: IDLE exception [{}]", remoteAddress);
+                    LOGGER.warn("NETTY CLIENT PIPELINE: IDLE exception channel[addr={}, id={}]", remoteAddress, ctx.channel().id());
                     closeChannel(ctx.channel());
                     if (NettyRemotingClient.this.channelEventListener != null) {
                         NettyRemotingClient.this
@@ -1217,7 +1219,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
             final String remoteAddress = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
-            LOGGER.warn("NETTY CLIENT PIPELINE: exceptionCaught {}, channelId={}", remoteAddress, ctx.channel().id(), cause);
+            LOGGER.warn("NETTY CLIENT PIPELINE: exceptionCaught channel[addr={}, id={}]", remoteAddress, ctx.channel().id(), cause);
             closeChannel(ctx.channel());
             if (NettyRemotingClient.this.channelEventListener != null) {
                 NettyRemotingClient.this.putNettyEvent(new NettyEvent(NettyEventType.EXCEPTION, remoteAddress, ctx.channel()));
