@@ -129,8 +129,7 @@ public class TopicRouteInfoManagerTest {
         ConcurrentMap<String, TopicPublishInfo> topicPublishInfoTable = new ConcurrentHashMap<>();
         topicPublishInfoTable.put(defaultTopic, topicPublishInfo);
         FieldUtils.writeDeclaredField(topicRouteInfoManager, "topicPublishInfoTable", topicPublishInfoTable, true);
-        TopicPublishInfo actual = topicRouteInfoManager.tryToFindTopicPublishInfo(defaultTopic);
-        assertSame(topicPublishInfo, actual);
+        assertSame(topicPublishInfo, topicRouteInfoManager.tryToFindTopicPublishInfo(defaultTopic));
     }
     
     @Test
