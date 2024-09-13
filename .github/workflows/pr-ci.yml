@@ -21,7 +21,7 @@ jobs:
       - name: Build distribution tar
         run: |
           mvn -Prelease-all -DskipTests -Dspotbugs.skip=true clean install -U
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload distribution tar
         with:
           name: rocketmq
@@ -30,7 +30,7 @@ jobs:
         run: |
           mkdir -p ./pr
           echo ${{ github.event.number }} > ./pr/NR
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pr
           path: pr/
