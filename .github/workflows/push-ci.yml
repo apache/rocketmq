@@ -31,7 +31,7 @@ jobs:
       - name: Build distribution tar
         run: |
           mvn -Prelease-all -DskipTests -Dspotbugs.skip=true clean install -U
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload distribution tar
         with:
           name: rocketmq
@@ -72,7 +72,7 @@ jobs:
           mkdir versionlist
           touch versionlist/"${version}-`echo ${{ matrix.base-image }} | sed -e "s/:/-/g"`"
           sh ./build-image-local.sh ${version} ${{ matrix.base-image }} ${{ matrix.java-version }} ${DOCKER_REPO}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload distribution tar
         with:
           name: versionlist
@@ -163,7 +163,7 @@ jobs:
           annotate_only: true
           include_passed: true
           detailed_summary: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always()
         name: Upload test log
         with:
@@ -204,7 +204,7 @@ jobs:
           annotate_only: true
           include_passed: true
           detailed_summary: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always()
         name: Upload test log
         with:
@@ -240,7 +240,7 @@ jobs:
           annotate_only: true
           include_passed: true
           detailed_summary: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always()
         name: Upload test log
         with:
