@@ -2,7 +2,7 @@ name: PUSH-CI
 
 on:
   push:
-    branches: [master, develop, fix-push-ci]
+    branches: [master, develop]
   #schedule:
   #  - cron: "0 18 * * *" # TimeZone: UTC 0
 
@@ -15,6 +15,7 @@ env:
 
 jobs:
   dist-tar:
+    if: github.repository == 'apache/rocketmq'
     name: Build dist tar
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -79,7 +80,9 @@ jobs:
 
   
   list-version:
-    if: always()
+    if: >
+      github.repository == 'apache/rocketmq' && 
+      always()
     name: List version
     needs: [docker]
     runs-on: ubuntu-latest
