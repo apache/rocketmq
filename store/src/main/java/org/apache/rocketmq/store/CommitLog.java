@@ -61,6 +61,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
 
@@ -1903,7 +1904,7 @@ public class CommitLog implements Swappable {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
-            boolean isMultiDispatchMsg = messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner);
+            final boolean isMultiDispatchMsg = CommitLog.isMultiDispatchMsg(messageStoreConfig, msgInner);
             if (isMultiDispatchMsg) {
                 AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
                 if (appendMessageResult != null) {
@@ -2244,8 +2245,9 @@ public class CommitLog implements Swappable {
         return flushManager;
     }
 
-    public static boolean isMultiDispatchMsg(MessageExtBrokerInner msg) {
-        return StringUtils.isNoneBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)) && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+    public static boolean isMultiDispatchMsg(MessageStoreConfig messageStoreConfig, MessageExtBrokerInner msg) {
+        return StringUtils.isNotBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)) &&
+            MultiDispatchUtils.isNeedHandleMultiDispatch(messageStoreConfig, msg.getTopic());
     }
 
     private boolean isCloseReadAhead() {
