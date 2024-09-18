@@ -96,6 +96,7 @@ jobs:
           a=(`ls versionlist`)
           printf '%s\n' "${a[@]}" | jq -R . | jq -s .
           echo version-json=`printf '%s\n' "${a[@]}" | jq -R . | jq -s .` >> $GITHUB_OUTPUT
+
   deploy:
     if: ${{ success() }}
     name: Deploy RocketMQ
