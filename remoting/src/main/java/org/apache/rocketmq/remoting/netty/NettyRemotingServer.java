@@ -782,16 +782,16 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         private void handleWithMessage(HAProxyMessage msg, Channel channel) {
             try {
                 if (StringUtils.isNotBlank(msg.sourceAddress())) {
-                    channel.attr(AttributeKeys.PROXY_PROTOCOL_ADDR).set(msg.sourceAddress());
+                    RemotingHelper.setPropertyToAttr(channel, AttributeKeys.PROXY_PROTOCOL_ADDR, msg.sourceAddress());
                 }
                 if (msg.sourcePort() > 0) {
-                    channel.attr(AttributeKeys.PROXY_PROTOCOL_PORT).set(String.valueOf(msg.sourcePort()));
+                    RemotingHelper.setPropertyToAttr(channel, AttributeKeys.PROXY_PROTOCOL_PORT, String.valueOf(msg.sourcePort()));
                 }
                 if (StringUtils.isNotBlank(msg.destinationAddress())) {
-                    channel.attr(AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR).set(msg.destinationAddress());
+                    RemotingHelper.setPropertyToAttr(channel, AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR, msg.destinationAddress());
                 }
                 if (msg.destinationPort() > 0) {
-                    channel.attr(AttributeKeys.PROXY_PROTOCOL_SERVER_PORT).set(String.valueOf(msg.destinationPort()));
+                    RemotingHelper.setPropertyToAttr(channel, AttributeKeys.PROXY_PROTOCOL_SERVER_PORT, String.valueOf(msg.destinationPort()));
                 }
                 if (CollectionUtils.isNotEmpty(msg.tlvs())) {
                     msg.tlvs().forEach(tlv -> {
@@ -811,6 +811,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
         AttributeKey<String> key = AttributeKeys.valueOf(
             HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX + String.format("%02x", tlv.typeByteValue()));
-        channel.attr(key).set(new String(valueBytes, CharsetUtil.UTF_8));
+        RemotingHelper.setPropertyToAttr(channel, key, new String(valueBytes, CharsetUtil.UTF_8));
     }
 }
