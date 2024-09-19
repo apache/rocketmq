@@ -91,7 +91,7 @@ jobs:
           repository: apache/rocketmq-docker.git
           ref: master
           path: rocketmq-docker
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         name: Download distribution tar
         with:
           name: rocketmq
@@ -125,7 +125,7 @@ jobs:
     outputs:
       version-json: ${{ steps.show_versions.outputs.version-json }}
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         name: Download versionlist
         with:
           name: versionlist
