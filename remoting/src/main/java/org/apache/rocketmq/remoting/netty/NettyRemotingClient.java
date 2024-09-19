@@ -521,7 +521,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
                 // should close the channel if choosed addr is not exist.
                 if (this.namesrvAddrChoosed.get() != null && !addrs.contains(this.namesrvAddrChoosed.get())) {
-                    String namesrvAddr = this.namesrvAddrChoosed.get();
+                    String namesrvAddr = this.namesrvAddrChoosed.getAndSet(null);
                     for (String addr : this.channelTables.keySet()) {
                         if (addr.contains(namesrvAddr)) {
                             ChannelWrapper channelWrapper = this.channelTables.get(addr);
