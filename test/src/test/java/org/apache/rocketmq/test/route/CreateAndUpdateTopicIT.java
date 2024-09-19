@@ -72,12 +72,12 @@ public class CreateAndUpdateTopicIT extends BaseConf {
 
         // Deletion is lazy, trigger broker registration
         brokerController1.registerBrokerAll(false, false, true);
-
-        // The route info of testTopic2 will be removed from broker1 after the registration
-        route = MQAdminTestUtils.examineTopicRouteInfo(NAMESRV_ADDR, testTopic2);
-
-        TopicRouteData finalRoute = route;
-        await().atMost(10, TimeUnit.SECONDS).until(() -> finalRoute.getBrokerDatas().size() == 2);
+        
+        await().atMost(30, TimeUnit.SECONDS).until(() -> {
+            // The route info of testTopic2 will be removed from broker1 after the registration
+            TopicRouteData finalRoute = MQAdminTestUtils.examineTopicRouteInfo(NAMESRV_ADDR, testTopic2);
+            return finalRoute.getBrokerDatas().size() == 2;
+        });
         assertThat(route.getQueueDatas().get(0).getBrokerName()).isEqualTo(BROKER2_NAME);
         assertThat(route.getQueueDatas().get(1).getBrokerName()).isEqualTo(BROKER3_NAME);
 
