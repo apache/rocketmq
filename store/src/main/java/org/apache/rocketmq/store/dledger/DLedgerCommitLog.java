@@ -607,8 +607,8 @@ public class DLedgerCommitLog extends CommitLog {
                     elapsedTimeInLock, msg.getBody().length, appendResult);
             }
         } catch (Exception ex) {
-            //
-            return null;
+            log.error("Put message error", ex);
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
         } finally {
             beginTimeInDledgerLock = 0;
             putMessageLock.unlock();
@@ -746,8 +746,8 @@ public class DLedgerCommitLog extends CommitLog {
                         elapsedTimeInLock, messageExtBatch.getBody().length, appendResult);
             }
         } catch (Exception re) {
-            //
-            return null;
+            log.error("Put message error", re);
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
         } finally {
             beginTimeInDledgerLock = 0;
             putMessageLock.unlock();
