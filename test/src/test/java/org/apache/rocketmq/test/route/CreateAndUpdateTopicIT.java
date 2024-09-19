@@ -62,10 +62,8 @@ public class CreateAndUpdateTopicIT extends BaseConf {
         boolean createResult = MQAdminTestUtils.createTopic(NAMESRV_ADDR, CLUSTER_NAME, testTopic1, 8, null);
         assertThat(createResult).isTrue();
 
-
         createResult = MQAdminTestUtils.createTopic(NAMESRV_ADDR, CLUSTER_NAME, testTopic2, 8, null);
         assertThat(createResult).isTrue();
-
 
         TopicRouteData route = MQAdminTestUtils.examineTopicRouteInfo(NAMESRV_ADDR, testTopic2);
         assertThat(route.getBrokerDatas()).hasSize(3);
@@ -79,7 +77,7 @@ public class CreateAndUpdateTopicIT extends BaseConf {
         route = MQAdminTestUtils.examineTopicRouteInfo(NAMESRV_ADDR, testTopic2);
 
         TopicRouteData finalRoute = route;
-        await().atMost(10, TimeUnit.SECONDS).until(()-> finalRoute.getBrokerDatas().size() == 2);
+        await().atMost(10, TimeUnit.SECONDS).until(() -> finalRoute.getBrokerDatas().size() == 2);
         assertThat(route.getQueueDatas().get(0).getBrokerName()).isEqualTo(BROKER2_NAME);
         assertThat(route.getQueueDatas().get(1).getBrokerName()).isEqualTo(BROKER3_NAME);
 
