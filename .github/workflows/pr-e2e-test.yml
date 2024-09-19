@@ -25,7 +25,7 @@ jobs:
         java-version: ["8"]
     steps:
       - name: 'Download artifact'
-        uses: actions/github-script@v3.1.0
+        uses: actions/github-script@v7
         with:
           script: |
             var artifacts = await github.actions.listWorkflowRunArtifacts({
@@ -85,7 +85,7 @@ jobs:
     outputs:
       version-json: ${{ steps.show_versions.outputs.version-json }}
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         name: Download versionlist
         with:
           name: versionlist
@@ -96,6 +96,7 @@ jobs:
           a=(`ls versionlist`)
           printf '%s\n' "${a[@]}" | jq -R . | jq -s .
           echo version-json=`printf '%s\n' "${a[@]}" | jq -R . | jq -s .` >> $GITHUB_OUTPUT
+
   deploy:
     if: ${{ success() }}
     name: Deploy RocketMQ
