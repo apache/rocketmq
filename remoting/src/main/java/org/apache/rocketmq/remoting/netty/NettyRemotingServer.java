@@ -270,8 +270,9 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
-            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
-            .addLast(defaultEventExecutorGroup,
+            .addLast(nettyServerConfig.isServerNettyWorkerGroupEnable() ? defaultEventExecutorGroup : null,
+                HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
+            .addLast(nettyServerConfig.isServerNettyWorkerGroupEnable() ? defaultEventExecutorGroup : null,
                 encoder,
                 new NettyDecoder(),
                 distributionHandler,
