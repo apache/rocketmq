@@ -1,0 +1,157 @@
+name: Performance Benchmark
+
+on:
+  push:
+    branches: [feat-benchmark]
+
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+  DOCKER_REPO: registry.cn-guangzhou.aliyuncs.com/cc-aliyun/rocketmq-ci
+
+jobs:
+  dist-tar:
+    name: Build dist tar
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      - uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "8"
+          cache: "maven"
+      - name: Build distribution tar
+        run: |
+          mvn -Prelease-all -DskipTests -Dspotbugs.skip=true clean install -U
+      - uses: actions/upload-artifact@v4
+        name: Upload distribution tar
+        with:
+          name: rocketmq
+          path: distribution/target/rocketmq*/rocketmq*
+
+  docker:
+    if: ${{ success() }}
+    name: Docker images
+    needs: [dist-tar]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        base-image: ["ubuntu"]
+        java-version: ["8"]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: apache/rocketmq-docker.git
+          ref: master
+          path: rocketmq-docker
+      - uses: actions/download-artifact@v4
+        name: Download distribution tar
+        with:
+          name: rocketmq
+          path: rocketmq
+      - name: docker-login
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login registry.cn-guangzhou.aliyuncs.com --username=aliyun3982714546 --password-stdin
+      - name: Build and save docker images
+        id: build-images
+        run: |
+          cd rocketmq-docker/image-build-ci
+          version=${{ github.event.pull_request.number || github.ref_name }}-$(uuidgen)
+          mkdir versionlist
+          touch versionlist/"${version}-`echo ${{ matrix.base-image }} | sed -e "s/:/-/g"`"
+          sh ./build-image-local.sh ${version} ${{ matrix.base-image }} ${{ matrix.java-version }} ${DOCKER_REPO}
+      - uses: actions/upload-artifact@v3
+        name: Upload distribution tar
+        with:
+          name: versionlist
+          path: rocketmq-docker/image-build-ci/versionlist/*
+
+  list-version:
+    if: always()
+    name: List version
+    needs: [docker]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version-json: ${{ steps.show_versions.outputs.version-json }}
+    steps:
+      - uses: actions/download-artifact@v3
+        name: Download versionlist
+        with:
+          name: versionlist
+          path: versionlist
+      - name: Show versions
+        id: show_versions
+        run: |
+          a=(`ls versionlist`)
+          printf '%s\n' "${a[@]}" | jq -R . | jq -s .
+          echo version-json=`printf '%s\n' "${a[@]}" | jq -R . | jq -s .` >> $GITHUB_OUTPUT
+
+  deploy:
+    if: ${{ success() }}
+    name: Deploy RocketMQ
+    needs: [list-version,docker]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        version: ${{ fromJSON(needs.list-version.outputs.version-json) }}
+    steps:
+      - uses: chi3316/rocketmq-test-tool/benchmark-runner@008b17e3f4ef48c7eca4f7100ed38749d609a946
+        name: Deploy rocketmq
+        with:
+          action: "deploy"
+          ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
+          test-version: "${{ matrix.version }}"
+          chart-git: "https://mirror.ghproxy.com/https://github.com/chi3316/rocketmq-docker"
+          chart-branch: "feat-custom-jvm"
+          chart-path: "./rocketmq-k8s-helm"
+          job-id: ${{ strategy.job-index }}
+          helm-values: |
+            nameserver:
+              image:
+                repository: ${{env.DOCKER_REPO}}
+                tag: ${{ matrix.version }}
+            broker:
+              image:
+                repository: ${{env.DOCKER_REPO}}
+                tag: ${{ matrix.version }}
+            proxy:
+              image:
+                repository: ${{env.DOCKER_REPO}}
+                tag: ${{ matrix.version }}
+
+  benchmark-test:
+    runs-on: ubuntu-latest
+    needs: deploy
+    timeout-minutes: 60
+    steps:
+      - uses: chi3316/rocketmq-test-tool/benchmark-runner@008b17e3f4ef48c7eca4f7100ed38749d609a946
+        name: Performance benchmark
+        with:
+          action: "performance-benchmark"
+          ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
+          job-id: ${{ strategy.job-index }}
+          test-time: "600"
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report
+          path: benchmark/
+
+  clean:
+    if: always()
+    name: Clean
+    needs: [deploy, benchmark-test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: chi3316/rocketmq-test-tool/benchmark-runner@008b17e3f4ef48c7eca4f7100ed38749d609a946
+        name: clean
+        with:
+          action: "clean"
+          ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
+          job-id: ${{ strategy.job-index }}
