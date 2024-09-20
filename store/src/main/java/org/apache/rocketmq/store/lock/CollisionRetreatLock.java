@@ -18,7 +18,11 @@ package org.apache.rocketmq.store.lock;
 
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CollisionRetreatLock implements AdaptiveLock {
 
@@ -26,12 +30,17 @@ public class CollisionRetreatLock implements AdaptiveLock {
 
     private int optimalDegree;
 
+    private int maxOptimalDegree;
+
+    private List<AtomicInteger> numberOfRetreat;
+
     public CollisionRetreatLock() {
         this.optimalDegree = 1000;
-    }
+        this.maxOptimalDegree = 10000;
 
-    public CollisionRetreatLock(int optimalDegree) {
-        this.optimalDegree = optimalDegree;
+        this.numberOfRetreat = new ArrayList<>(2);
+        this.numberOfRetreat.add(new AtomicInteger(0));
+        this.numberOfRetreat.add(new AtomicInteger(0));
     }
 
     @Override
@@ -43,6 +52,7 @@ public class CollisionRetreatLock implements AdaptiveLock {
                     return;
                 }
             }
+            this.numberOfRetreat.get(LocalTime.now().getSecond() % 2).incrementAndGet();
             Thread.yield();
         }
     }
@@ -59,5 +69,25 @@ public class CollisionRetreatLock implements AdaptiveLock {
 
     public int getOptimalDegree() {
         return this.optimalDegree;
+    }
+
+    public void setOptimalDegree(int optimalDegree) {
+        this.optimalDegree = optimalDegree;
+    }
+
+    public int getNumberOfRetreat(int pos) {
+        return numberOfRetreat.get(pos).get();
+    }
+
+    public void setNumberOfRetreat(int numberOfRetreat, int pos) {
+        this.numberOfRetreat.get(pos).set(numberOfRetreat);
+    }
+
+    public boolean isAdapt() {
+        return this.optimalDegree < this.maxOptimalDegree;
+    }
+
+    public void adapt() {
+        //TODO adapt
     }
 }

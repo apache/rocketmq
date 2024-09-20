@@ -89,10 +89,16 @@ public class AdaptiveLockImpl implements AdaptiveLock {
         }
 
         if (this.adaptiveLock instanceof CollisionRetreatLock) {
-            if () {
-                this.tpsSwapCriticalPoint = tps;
-                needSwap = true;
+            CollisionRetreatLock lock = (CollisionRetreatLock) this.adaptiveLock;
+            if (lock.getNumberOfRetreat(slot) / tps < 1 / 5) {
+                if (lock.isAdapt()) {
+                    lock.adapt();
+                } else {
+                    this.tpsSwapCriticalPoint = tps;
+                    needSwap = true;
+                }
             }
+            lock.setNumberOfRetreat(0, slot);
         } else {
             if (tps < this.tpsSwapCriticalPoint) {
                 needSwap = true;
