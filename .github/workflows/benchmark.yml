@@ -99,7 +99,7 @@ jobs:
       matrix:
         version: ${{ fromJSON(needs.list-version.outputs.version-json) }}
     steps:
-      - uses: chi3316/rocketmq-test-tool/benchmark-runner@008b17e3f4ef48c7eca4f7100ed38749d609a946
+      - uses: chi3316/rocketmq-test-tool/benchmark-runner@34b75699ac8df81cb5c294770dd2bd9da2534ee3
         name: Deploy rocketmq
         with:
           action: "deploy"
@@ -132,13 +132,14 @@ jobs:
     needs: deploy
     timeout-minutes: 60
     steps:
-      - uses: chi3316/rocketmq-test-tool/benchmark-runner@008b17e3f4ef48c7eca4f7100ed38749d609a946
+      - uses: chi3316/rocketmq-test-tool/benchmark-runner@34b75699ac8df81cb5c294770dd2bd9da2534ee3
         name: Performance benchmark
         with:
           action: "performance-benchmark"
           ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
           job-id: ${{ strategy.job-index }}
           test-time: "600"
+
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
@@ -153,7 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: chi3316/rocketmq-test-tool/benchmark-runner@008b17e3f4ef48c7eca4f7100ed38749d609a946
+      - uses: chi3316/rocketmq-test-tool/benchmark-runner@34b75699ac8df81cb5c294770dd2bd9da2534ee3
         name: clean
         with:
           action: "clean"
