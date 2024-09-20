@@ -48,7 +48,7 @@ HTTP static server addressing is recommended, because it is simple client deploy
 | clientIP                      | local IP  | Client local ip address, some machines will fail to recognize the client IP address, which needs to be enforced in the code |
 | instanceName                  | DEFAULT | Name of the client instance, Multiple producers and consumers created by the client actually share one internal instance (this instance contains network connection, thread resources, etc.). |
 | clientCallbackExecutorThreads | 4       | Number of communication layer asynchronous callback threads                                        |
-| pollNameServerInteval         | 30000   | Polling the Name Server interval in milliseconds                          |
+| pollNameServerInterval        | 30000   | Polling the Name Server interval in milliseconds                          |
 | heartbeatBrokerInterval       | 30000   | The heartbeat interval, in milliseconds, is sent to the Broker                         |
 | persistConsumerOffsetInterval | 5000    | The persistent Consumer consumes the progress interval in milliseconds         |
 
