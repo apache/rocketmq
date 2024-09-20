@@ -39,7 +39,7 @@ public class AdaptiveLockImpl implements AdaptiveLock {
 
     private int tpsSwapCriticalPoint;
 
-    public AdaptiveLockImpl(int tpsSwapCriticalPoint) {
+    public AdaptiveLockImpl() {
         this.locks = new HashMap<>();
         this.locks.put("Reentrant", new PutMessageReentrantLock());
         this.locks.put("Collision", new CollisionRetreatLock());
@@ -48,7 +48,6 @@ public class AdaptiveLockImpl implements AdaptiveLock {
         this.tpsTable.add(new AtomicInteger(0));
         this.tpsTable.add(new AtomicInteger(0));
 
-        this.tpsSwapCriticalPoint = tpsSwapCriticalPoint;
         adaptiveLock = this.locks.get("Collision");
     }
 
@@ -88,12 +87,14 @@ public class AdaptiveLockImpl implements AdaptiveLock {
         if (tps == -1) {
             return;
         }
-        if (tps > this.tpsSwapCriticalPoint) {
-            if (this.adaptiveLock instanceof CollisionRetreatLock) {
+
+        if (this.adaptiveLock instanceof CollisionRetreatLock) {
+            if () {
+                this.tpsSwapCriticalPoint = tps;
                 needSwap = true;
             }
         } else {
-            if (this.adaptiveLock instanceof PutMessageReentrantLock) {
+            if (tps < this.tpsSwapCriticalPoint) {
                 needSwap = true;
             }
         }

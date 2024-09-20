@@ -131,7 +131,7 @@ public class CommitLog implements Swappable {
                 return new PutMessageThreadLocal(defaultMessageStore.getMessageStoreConfig());
             }
         };
-        this.putMessageLock = new AdaptiveLockImpl(messageStore.getMessageStoreConfig().getTpsSwapCriticalPoint());
+        this.putMessageLock = new AdaptiveLockImpl();
 
         this.flushDiskWatcher = new FlushDiskWatcher();
 

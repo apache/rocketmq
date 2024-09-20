@@ -28,7 +28,7 @@ public class AdaptiveLockTest {
 
     @Before
     public void init() {
-        adaptiveLock = new AdaptiveLockImpl(50000);
+        adaptiveLock = new AdaptiveLockImpl();
     }
 
     @Test
