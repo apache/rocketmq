@@ -177,6 +177,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeReque
 import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetMessageRequestModeHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetProducerConnectionListRequestHeader;
@@ -3503,6 +3504,21 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {
                 return RemotingSerializable.decodeList(response.getBody(), AclInfo.class);
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public SetMessageRequestModeRequestBody getMessageRequestMode(String addr, String topic, String consumerGroup, long timeoutMillis) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        GetMessageRequestModeHeader getMessageRequestModeHeader = new GetMessageRequestModeHeader(topic, consumerGroup);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_MESSAGE_REQUEST_MODE, getMessageRequestModeHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                return RemotingSerializable.decode(response.getBody(), SetMessageRequestModeRequestBody.class);
             }
             default:
                 break;

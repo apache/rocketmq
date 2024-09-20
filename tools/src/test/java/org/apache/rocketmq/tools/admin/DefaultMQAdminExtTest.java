@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.namesrv.NamesrvUtil;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
@@ -61,6 +62,7 @@ import org.apache.rocketmq.remoting.protocol.body.ProducerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ProducerInfo;
 import org.apache.rocketmq.remoting.protocol.body.ProducerTableInfo;
 import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
@@ -262,6 +264,13 @@ public class DefaultMQAdminExtTest {
         });
         //when(mQClientAPIImpl.getAllTopicConfig(anyString(),anyLong())).thenReturn(topicConfigSerializeWrapper);
         when(mQClientAPIImpl.getTopicConfig(anyString(), anyString(), anyLong())).thenReturn(new TopicConfigAndQueueMapping(new TopicConfig("topic_test_examine_topicConfig"), null));
+
+        SetMessageRequestModeRequestBody setMessageRequestModeRequestBody = new SetMessageRequestModeRequestBody();
+        setMessageRequestModeRequestBody.setMode(MessageRequestMode.POP);
+        setMessageRequestModeRequestBody.setConsumerGroup("consumer_test_group");
+        setMessageRequestModeRequestBody.setTopic("topic_test");
+        setMessageRequestModeRequestBody.setPopShareQueueNum(0);
+        when(mQClientAPIImpl.getMessageRequestMode(anyString(), anyString(), anyString(), anyLong())).thenReturn(setMessageRequestModeRequestBody);
     }
 
     @AfterClass
@@ -546,5 +555,12 @@ public class DefaultMQAdminExtTest {
     public void testExamineTopicConfig() throws MQBrokerException, RemotingException, InterruptedException {
         TopicConfig topicConfig = defaultMQAdminExt.examineTopicConfig("127.0.0.1:10911", "topic_test_examine_topicConfig");
         assertThat(topicConfig.getTopicName().equals("topic_test_examine_topicConfig")).isTrue();
+    }
+
+    @Test
+    public void testGetMessageRequestMode() throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        SetMessageRequestModeRequestBody setMessageRequestModeRequestBody = defaultMQAdminExt.getMessageRequestMode(
+            "127.0.0.1:10911", "topic_test", "consumer_test_group");
+        assertThat(setMessageRequestModeRequestBody.getMode().equals(MessageRequestMode.POP)).isTrue();
     }
 }

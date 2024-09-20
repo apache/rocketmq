@@ -132,6 +132,7 @@ import org.apache.rocketmq.remoting.protocol.body.QuerySubscriptionResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.QueueTimeSpan;
 import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupList;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.SyncStateSet;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
@@ -164,6 +165,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeReque
 import org.apache.rocketmq.remoting.protocol.header.GetEarliestMsgStoretimeResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMaxOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetMessageRequestModeHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetProducerConnectionListRequestHeader;
@@ -389,6 +391,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getAcl(ctx, request);
             case RequestCode.AUTH_LIST_ACL:
                 return this.listAcl(ctx, request);
+            case RequestCode.GET_MESSAGE_REQUEST_MODE:
+                return this.getMessageRequestMode(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -3304,5 +3308,23 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
         return false;
+    }
+
+    private RemotingCommand getMessageRequestMode(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        GetMessageRequestModeHeader requestHeader = request.decodeCommandCustomHeader(GetMessageRequestModeHeader.class);
+        String topic = requestHeader.getTopic();
+        String consumerGroup = requestHeader.getConsumerGroup();
+        SetMessageRequestModeRequestBody messageRequestMode =
+                brokerController.getQueryAssignmentProcessor().getMessageRequestModeManager().getMessageRequestMode(topic, consumerGroup);
+        if (messageRequestMode != null) {
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(messageRequestMode.encode());
+            response.setRemark(null);
+        } else {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("topic " + topic + " consumer group " + consumerGroup + "message request mode does not exist.");
+        }
+        return response;
     }
 }
