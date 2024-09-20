@@ -384,7 +384,7 @@ public class ConsumerOffsetManager extends ConfigManager {
                 if (obj != null) {
                     this.dataVersion = obj.dataVersion;
                 }
-                LOG.info("load consumer offset dataVersion success, " + fileName + " " + jsonString);
+                LOG.info("load consumer offset dataVersion success,{},{} ", fileName, jsonString);
             }
             return true;
         } catch (Exception e) {
