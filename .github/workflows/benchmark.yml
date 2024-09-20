@@ -106,7 +106,7 @@ jobs:
           ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
           test-version: "${{ matrix.version }}"
           chart-git: "https://mirror.ghproxy.com/https://github.com/chi3316/rocketmq-docker"
-          chart-branch: "feat-custom-jvm"
+          chart-branch: "chaos-test-local"
           chart-path: "./rocketmq-k8s-helm"
           job-id: ${{ strategy.job-index }}
           helm-values: |
