@@ -44,8 +44,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          repository: apache/rocketmq-docker.git
-          ref: master
+          repository: chi3316/rocketmq-docker.git
+          ref: feat-custom-jvm
           path: rocketmq-docker
       - uses: actions/download-artifact@v4
         name: Download distribution tar
