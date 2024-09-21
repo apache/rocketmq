@@ -94,5 +94,26 @@ public class AdaptiveLockTest {
         adaptiveLock.lock();
         adaptiveLock.unlock();
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof CollisionRetreatLock);
+
+        for (int i = 0; i < 10; i++) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for (int i = 0; i < 100000; i++) {
+                        adaptiveLock.lock();
+                        adaptiveLock.unlock();
+                        if (i == 50000) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                //
+                            }
+                        }
+                    }
+
+                }
+            }).start();
+        }
+        assertTrue(adaptiveLock.getAdaptiveLock() instanceof CollisionRetreatLock);
     }
 }
