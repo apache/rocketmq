@@ -20,6 +20,7 @@ import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.common.PopAckConstants;
@@ -106,18 +107,33 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         long now = System.currentTimeMillis();
 
         CompletableFuture<Boolean> futureResult = appendCheckPointThenAckOrigin(requestHeader, ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now, extraInfo);
-
-        futureResult.thenAccept(result -> {
-            if (result) {
-                responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
-                responseHeader.setPopTime(now);
-                responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
-            } else {
+        if (brokerController.getBrokerConfig().isAppendCkAsync() && brokerController.getBrokerConfig().isAppendAckAsync()) {
+            futureResult.thenAccept(result -> {
+                if (result) {
+                    responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
+                    responseHeader.setPopTime(now);
+                    responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+                } else {
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                }
+                doResponse(channel, request, response);
+            });
+        } else {
+            try {
+                Boolean result = futureResult.get(3000, TimeUnit.MILLISECONDS);
+                if (result) {
+                    responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
+                    responseHeader.setPopTime(now);
+                    responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+                } else {
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                }
+            } catch (Exception e) {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
+                POP_LOGGER.error("append checkpoint or ack origin failed", e);
             }
-            doResponse(channel, request, response);
-        });
-
+            return response;
+        }
         return null;
     }
 
