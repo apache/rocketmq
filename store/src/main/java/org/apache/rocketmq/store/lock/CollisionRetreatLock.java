@@ -82,7 +82,7 @@ public class CollisionRetreatLock implements AdaptiveLock {
         return maxOptimalDegree;
     }
 
-    public void setMaxOptimalDegree() {
+    public void setMaxOptimalDegree(int maxOptimalDegree) {
         this.maxOptimalDegree = maxOptimalDegree;
     }
 
