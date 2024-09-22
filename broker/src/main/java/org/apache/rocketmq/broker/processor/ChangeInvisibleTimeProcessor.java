@@ -69,6 +69,35 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request,
         boolean brokerAllowSuspend) throws RemotingCommandException {
+
+        CompletableFuture<RemotingCommand> responseFuture = processRequestAsync(channel, request, brokerAllowSuspend);
+
+        if (brokerController.getBrokerConfig().isAppendCkAsync() && brokerController.getBrokerConfig().isAppendAckAsync()) {
+            responseFuture.thenAccept(response -> doResponse(channel, request, response)).exceptionally(throwable -> {
+                RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setOpaque(request.getOpaque());
+                doResponse(channel, request, response);
+                POP_LOGGER.error("append checkpoint or ack origin failed", throwable);
+                return null;
+            });
+        } else {
+            RemotingCommand response;
+            try {
+                response = responseFuture.get(3000, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setOpaque(request.getOpaque());
+                POP_LOGGER.error("append checkpoint or ack origin failed", e);
+            }
+            return response;
+        }
+        return null;
+    }
+
+    public CompletableFuture<RemotingCommand> processRequestAsync(final Channel channel, RemotingCommand request,
+        boolean brokerAllowSuspend) throws RemotingCommandException {
         final ChangeInvisibleTimeRequestHeader requestHeader = (ChangeInvisibleTimeRequestHeader) request.decodeCommandCustomHeader(ChangeInvisibleTimeRequestHeader.class);
         RemotingCommand response = RemotingCommand.createResponseCommand(ChangeInvisibleTimeResponseHeader.class);
         response.setCode(ResponseCode.SUCCESS);
@@ -79,7 +108,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             POP_LOGGER.error("The topic {} not exist, consumer: {} ", requestHeader.getTopic(), RemotingHelper.parseChannelRemoteAddr(channel));
             response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark(String.format("topic[%s] not exist, apply first please! %s", requestHeader.getTopic(), FAQUrl.suggestTodo(FAQUrl.APPLY_TOPIC_URL)));
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         if (requestHeader.getQueueId() >= topicConfig.getReadQueueNums() || requestHeader.getQueueId() < 0) {
@@ -88,53 +117,35 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             POP_LOGGER.warn(errorInfo);
             response.setCode(ResponseCode.MESSAGE_ILLEGAL);
             response.setRemark(errorInfo);
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
         long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
         long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
         if (requestHeader.getOffset() < minOffset || requestHeader.getOffset() > maxOffset) {
             response.setCode(ResponseCode.NO_MESSAGE);
-            return response;
+            return CompletableFuture.completedFuture(response);
         }
 
         String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
 
         if (ExtraInfoUtil.isOrder(extraInfo)) {
-            return processChangeInvisibleTimeForOrder(requestHeader, extraInfo, response, responseHeader);
+            return CompletableFuture.completedFuture(processChangeInvisibleTimeForOrder(requestHeader, extraInfo, response, responseHeader));
         }
 
         // add new ck
         long now = System.currentTimeMillis();
 
         CompletableFuture<Boolean> futureResult = appendCheckPointThenAckOrigin(requestHeader, ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now, extraInfo);
-        if (brokerController.getBrokerConfig().isAppendCkAsync() && brokerController.getBrokerConfig().isAppendAckAsync()) {
-            futureResult.thenAccept(result -> {
-                if (result) {
-                    responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
-                    responseHeader.setPopTime(now);
-                    responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
-                } else {
-                    response.setCode(ResponseCode.SYSTEM_ERROR);
-                }
-                doResponse(channel, request, response);
-            });
-        } else {
-            try {
-                Boolean result = futureResult.get(3000, TimeUnit.MILLISECONDS);
-                if (result) {
-                    responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
-                    responseHeader.setPopTime(now);
-                    responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
-                } else {
-                    response.setCode(ResponseCode.SYSTEM_ERROR);
-                }
-            } catch (Exception e) {
+        return futureResult.thenCompose(result -> {
+            if (result) {
+                responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
+                responseHeader.setPopTime(now);
+                responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+            } else {
                 response.setCode(ResponseCode.SYSTEM_ERROR);
-                POP_LOGGER.error("append checkpoint or ack origin failed", e);
             }
-            return response;
-        }
-        return null;
+            return CompletableFuture.completedFuture(response);
+        });
     }
 
     protected RemotingCommand processChangeInvisibleTimeForOrder(ChangeInvisibleTimeRequestHeader requestHeader,
