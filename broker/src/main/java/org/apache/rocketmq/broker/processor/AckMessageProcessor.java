@@ -273,6 +273,11 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             int finalAckCount = ackCount;
             this.brokerController.getEscapeBridge().asyncPutMessageToSpecificQueue(msgInner).thenAccept(putMessageResult -> {
                 handlePutMessageResult(putMessageResult, ackMsg, topic, consumeGroup, popTime, qId, finalAckCount);
+            }).exceptionally(throwable -> {
+                handlePutMessageResult(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null, false),
+                    ackMsg, topic, consumeGroup, popTime, qId, finalAckCount);
+                POP_LOGGER.error("put ack msg error ", throwable);
+                return null;
             });
         } else {
             PutMessageResult putMessageResult = this.brokerController.getEscapeBridge().putMessageToSpecificQueue(msgInner);
