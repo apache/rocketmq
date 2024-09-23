@@ -84,9 +84,9 @@ public class AdaptiveLockImpl implements AdaptiveLock {
         }
         boolean needSwap = false;
         int slot = LocalTime.now().getSecond() % 2 - 1 >= 0 ? 0 : 1;
-        int tps = this.tpsTable.get(slot).get();
+        int tps = this.tpsTable.get(slot).get() + 1;
         this.tpsTable.get(slot).set(-1);
-        if (tps == -1) {
+        if (tps == 0) {
             return;
         }
 
@@ -105,7 +105,7 @@ public class AdaptiveLockImpl implements AdaptiveLock {
             }
             lock.setNumberOfRetreat(slot, 0);
         } else {
-            if (tps < this.tpsSwapCriticalPoint * 4 / 5) {
+            if (tps <= this.tpsSwapCriticalPoint * 4 / 5) {
                 needSwap = true;
             }
         }
