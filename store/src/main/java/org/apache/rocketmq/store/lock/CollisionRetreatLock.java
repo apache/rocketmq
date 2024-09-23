@@ -30,17 +30,20 @@ public class CollisionRetreatLock implements AdaptiveLock {
 
     private int optimalDegree;
 
+    private int initOptimalDegree;
+
     private int maxOptimalDegree;
 
-    private List<AtomicInteger> numberOfRetreat;
+    private final List<AtomicInteger> numberOfRetreat;
 
     public CollisionRetreatLock() {
-        this.optimalDegree = 1000;
+        this.initOptimalDegree = 1000;
         this.maxOptimalDegree = 10000;
+        this.optimalDegree = initOptimalDegree;
 
-        this.numberOfRetreat = new ArrayList<>(2);
-        this.numberOfRetreat.add(new AtomicInteger(0));
-        this.numberOfRetreat.add(new AtomicInteger(0));
+        numberOfRetreat = new ArrayList<>(2);
+        numberOfRetreat.add(new AtomicInteger(0));
+        numberOfRetreat.add(new AtomicInteger(0));
     }
 
     @Override
@@ -52,7 +55,7 @@ public class CollisionRetreatLock implements AdaptiveLock {
                     return;
                 }
             }
-            this.numberOfRetreat.get(LocalTime.now().getSecond() % 2).incrementAndGet();
+            numberOfRetreat.get(LocalTime.now().getSecond() % 2).getAndIncrement();
             Thread.yield();
         }
     }
@@ -75,19 +78,43 @@ public class CollisionRetreatLock implements AdaptiveLock {
         this.optimalDegree = optimalDegree;
     }
 
+    public int getMaxOptimalDegree() {
+        return maxOptimalDegree;
+    }
+
+    public void setMaxOptimalDegree(int maxOptimalDegree) {
+        this.maxOptimalDegree = maxOptimalDegree;
+    }
+
+    public boolean isAdapt() {
+        return optimalDegree < maxOptimalDegree;
+    }
+
+    public synchronized void adapt(boolean isRise) {
+        if (isRise) {
+            if (optimalDegree * 2 <= maxOptimalDegree) {
+                optimalDegree *= 2;
+            } else {
+                if (optimalDegree + initOptimalDegree <= maxOptimalDegree) {
+                    optimalDegree += initOptimalDegree;
+                }
+            }
+        } else {
+            if (optimalDegree / 2 >= initOptimalDegree) {
+                optimalDegree /= 2;
+            } else {
+                if (optimalDegree > 2 * initOptimalDegree) {
+                    optimalDegree -= initOptimalDegree;
+                }
+            }
+        }
+    }
+
     public int getNumberOfRetreat(int pos) {
         return numberOfRetreat.get(pos).get();
     }
 
-    public void setNumberOfRetreat(int numberOfRetreat, int pos) {
-        this.numberOfRetreat.get(pos).set(numberOfRetreat);
-    }
-
-    public boolean isAdapt() {
-        return this.optimalDegree < this.maxOptimalDegree;
-    }
-
-    public void adapt() {
-        //TODO adapt
+    public void setNumberOfRetreat(int pos, int size) {
+        this.numberOfRetreat.get(pos).set(size);
     }
 }

@@ -20,6 +20,7 @@ import org.apache.rocketmq.store.PutMessageReentrantLock;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class AdaptiveLockTest {
@@ -35,28 +36,84 @@ public class AdaptiveLockTest {
     public void testAdaptiveLock() throws InterruptedException {
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof CollisionRetreatLock);
 
-        for (int i = 0; i < 100000; i++) {
+        adaptiveLock.lock();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                adaptiveLock.lock();
+                adaptiveLock.unlock();
+            }
+        }).start();
+        Thread.sleep(1000);
+        adaptiveLock.unlock();
+        assertEquals(2000, ((CollisionRetreatLock) adaptiveLock.getAdaptiveLock()).getOptimalDegree());
+
+        adaptiveLock.lock();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                adaptiveLock.lock();
+                adaptiveLock.unlock();
+            }
+        }).start();
+        Thread.sleep(1000);
+        adaptiveLock.unlock();
+        assertEquals(4000, ((CollisionRetreatLock) adaptiveLock.getAdaptiveLock()).getOptimalDegree());
+
+        for (int i = 0; i < 3; i++) {
             adaptiveLock.lock();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    adaptiveLock.lock();
+                    adaptiveLock.unlock();
+                }
+            }).start();
+            Thread.sleep(1000);
             adaptiveLock.unlock();
-            if (i == 70000) Thread.sleep(1000);
         }
+        assertEquals(10000, ((CollisionRetreatLock) adaptiveLock.getAdaptiveLock()).getOptimalDegree());
+
+
+        adaptiveLock.lock();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                adaptiveLock.lock();
+                adaptiveLock.unlock();
+            }
+        }).start();
+        Thread.sleep(1000);
+        adaptiveLock.unlock();
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof PutMessageReentrantLock);
 
         Thread.sleep(1000L);
         adaptiveLock.lock();
         adaptiveLock.unlock();
-        for (int i = 0; i < 300; i++) {
-            adaptiveLock.lock();
-            adaptiveLock.unlock();
-            Thread.sleep(10);
-        }
+        Thread.sleep(1000L);
+        adaptiveLock.lock();
+        adaptiveLock.unlock();
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof CollisionRetreatLock);
 
-        for (int i = 0; i < 100000; i++) {
-            adaptiveLock.lock();
-            adaptiveLock.unlock();
-            if (i == 70000) Thread.sleep(1000);
+        for (int i = 0; i < 10; i++) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for (int i = 0; i < 100000; i++) {
+                        adaptiveLock.lock();
+                        adaptiveLock.unlock();
+                        if (i == 50000) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                //
+                            }
+                        }
+                    }
+
+                }
+            }).start();
         }
-        assertTrue(adaptiveLock.getAdaptiveLock() instanceof PutMessageReentrantLock);
+        assertTrue(adaptiveLock.getAdaptiveLock() instanceof CollisionRetreatLock);
     }
 }
