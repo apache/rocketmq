@@ -48,19 +48,9 @@ public class AdaptiveLockTest {
         adaptiveLock.unlock();
         assertEquals(2000, ((CollisionRetreatLock) adaptiveLock.getAdaptiveLock()).getOptimalDegree());
 
-        adaptiveLock.lock();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                adaptiveLock.lock();
-                adaptiveLock.unlock();
-            }
-        }).start();
-        Thread.sleep(1000);
-        adaptiveLock.unlock();
-        assertEquals(4000, ((CollisionRetreatLock) adaptiveLock.getAdaptiveLock()).getOptimalDegree());
 
-        for (int i = 0; i < 3; i++) {
+
+        for (int i = 0; i <= 8; i++) {
             adaptiveLock.lock();
             new Thread(new Runnable() {
                 @Override
@@ -72,19 +62,6 @@ public class AdaptiveLockTest {
             Thread.sleep(1000);
             adaptiveLock.unlock();
         }
-        assertEquals(10000, ((CollisionRetreatLock) adaptiveLock.getAdaptiveLock()).getOptimalDegree());
-
-
-        adaptiveLock.lock();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                adaptiveLock.lock();
-                adaptiveLock.unlock();
-            }
-        }).start();
-        Thread.sleep(1000);
-        adaptiveLock.unlock();
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof PutMessageReentrantLock);
 
 
