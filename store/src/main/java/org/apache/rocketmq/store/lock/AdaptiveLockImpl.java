@@ -39,6 +39,8 @@ public class AdaptiveLockImpl implements AdaptiveLock {
 
     private int tpsSwapCriticalPoint;
 
+    private AtomicInteger currentThreadNum = new AtomicInteger(0);
+
     public AdaptiveLockImpl() {
         this.locks = new HashMap<>();
         this.locks.put("Reentrant", new PutMessageReentrantLock());
@@ -59,17 +61,14 @@ public class AdaptiveLockImpl implements AdaptiveLock {
             state = this.state.get();
         } while (!state);
 
+        currentThreadNum.incrementAndGet();
         this.adaptiveLock.lock();
     }
 
     @Override
     public void unlock() {
-        boolean state;
-        do {
-            state = this.state.get();
-        } while (!state);
-
         this.adaptiveLock.unlock();
+        currentThreadNum.decrementAndGet();
         swap();
     }
 
@@ -80,6 +79,9 @@ public class AdaptiveLockImpl implements AdaptiveLock {
 
     @Override
     public void swap() {
+        if (!this.state.get()) {
+            return;
+        }
         boolean needSwap = false;
         int slot = LocalTime.now().getSecond() % 2 - 1 >= 0 ? 0 : 1;
         int tps = this.tpsTable.get(slot).get();
@@ -90,38 +92,43 @@ public class AdaptiveLockImpl implements AdaptiveLock {
 
         if (this.adaptiveLock instanceof CollisionRetreatLock) {
             CollisionRetreatLock lock = (CollisionRetreatLock) this.adaptiveLock;
-            if (lock.getNumberOfRetreat(slot) * 5 >= tps) {
+            int base = Math.min(200 + tps / 200, 500);
+            if (lock.getNumberOfRetreat(slot) * base >= tps) {
                 if (lock.isAdapt()) {
                     lock.adapt(true);
                 } else {
                     this.tpsSwapCriticalPoint = tps;
                     needSwap = true;
                 }
-            } else if (lock.getNumberOfRetreat(slot) * 25 <= tps) {
+            } else if (lock.getNumberOfRetreat(slot) * base * 3 / 2 <= tps) {
                 lock.adapt(false);
             }
             lock.setNumberOfRetreat(slot, 0);
         } else {
-            if (tps < this.tpsSwapCriticalPoint) {
+            if (tps < this.tpsSwapCriticalPoint * 4 / 5) {
                 needSwap = true;
             }
         }
 
         if (needSwap) {
             if (this.state.compareAndSet(true, false)) {
-                this.adaptiveLock.lock();
-                if (this.adaptiveLock instanceof CollisionRetreatLock) {
-                    this.adaptiveLock = this.locks.get("Reentrant");
-                } else {
-                    this.adaptiveLock = this.locks.get("Collision");
-                }
+                int currentThreadNum;
+                do {
+                    currentThreadNum = this.currentThreadNum.get();
+                } while (currentThreadNum != 0);
+
                 try {
-                    this.adaptiveLock.unlock();
-                } catch (Exception ignore) {
-                    //Used to synchronize the lock state,
-                    //ReentrantLock throws an exception when unlock is executed when the lock is free, so it is caught and ignored
+                    if (this.adaptiveLock instanceof CollisionRetreatLock) {
+                        this.adaptiveLock = this.locks.get("Reentrant");
+                    } else {
+                        this.adaptiveLock = this.locks.get("Collision");
+                        ((CollisionRetreatLock) this.adaptiveLock).adapt(false);
+                    }
+                } catch (Exception e) {
+                    //ignore
+                } finally {
+                    this.state.compareAndSet(false, true);
                 }
-                this.state.compareAndSet(false, true);
             }
         }
     }
