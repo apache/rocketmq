@@ -145,8 +145,6 @@ public class TopicQueueMappingCleanServiceTest {
     @Test
     public void testCleanItemListMoreThanSecondGenNoChange() throws Exception {
         when(messageStoreConfig.getDeleteWhen()).thenReturn("04");
-        TopicQueueMappingDetail mappingDetail = new TopicQueueMappingDetail(defaultTopic, 1, defaultBroker, 1);
-        mappingDetail.setHostedQueues(new ConcurrentHashMap<>());
         topicQueueMappingCleanService.cleanItemListMoreThanSecondGen();
         verify(brokerOuterAPI, never()).getTopicRouteInfoFromNameServer(anyString(), anyLong());
         verify(rpcClient, never()).invoke(any(RpcRequest.class), anyLong());
