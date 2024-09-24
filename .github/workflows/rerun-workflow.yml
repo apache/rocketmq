@@ -1,21 +1,22 @@
 name: Rerun workflow
 on:
-  workflow_dispatch:
-    inputs:
-      run_id:
-        required: true
+  workflow_run:
+    workflows: ["Build and Run Tests by Maven", "Build and Run Tests by Bazel"]
+    types:
+      - completed
 
 permissions:
   actions: write
 
 jobs:
   rerun:
+    if: github.event.workflow_run.conclusion == 'failure' && fromJSON(github.event.workflow_run.run_attempt) < 3
     runs-on: ubuntu-latest
     steps:
-      - name: rerun ${{ inputs.run_id }}
+      - name: rerun ${{  github.event.workflow_run.id }}
         env:
-          GH_REPO: ${{ github.repository }}
+          GH_REPO: ${{  github.event.workflow_run.id }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh run watch ${{ inputs.run_id }} > /dev/null 2>&1
-          gh run rerun ${{ inputs.run_id }} --failed
+          gh run watch ${{ github.event.workflow_run.id }} > /dev/null 2>&1
+          gh run rerun ${{ github.event.workflow_run.id }} --failed
