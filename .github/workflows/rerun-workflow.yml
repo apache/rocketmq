@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: rerun ${{  github.event.workflow_run.id }}
         env:
-          GH_REPO: ${{  github.event.workflow_run.id }}
+          GH_REPO:  ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # gh run watch ${{ github.event.workflow_run.id }} > /dev/null 2>&1
         run: |
