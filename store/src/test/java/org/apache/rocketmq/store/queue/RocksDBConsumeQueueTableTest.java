@@ -26,7 +26,7 @@ import org.rocksdb.RocksDBException;
 import java.nio.ByteBuffer;
 
 import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueTable.CQ_UNIT_SIZE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -34,7 +34,7 @@ import static org.mockito.Mockito.mock;
 public class RocksDBConsumeQueueTableTest {
 
     @Test
-    public void binarySearchInCQByTime() throws RocksDBException {
+    public void testBinarySearchInCQByTime() throws RocksDBException {
         ConsumeQueueRocksDBStorage rocksDBStorage = mock(ConsumeQueueRocksDBStorage.class);
         DefaultMessageStore store = mock(DefaultMessageStore.class);
         RocksDBConsumeQueueTable table = new RocksDBConsumeQueueTable(rocksDBStorage, store);
