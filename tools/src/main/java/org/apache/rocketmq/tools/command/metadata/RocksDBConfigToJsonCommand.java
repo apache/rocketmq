@@ -110,9 +110,9 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
             if (SUBSCRIPTION_GROUP_JSON_CONFIG.equalsIgnoreCase(configType)) {
                 configMap.put("subscriptionGroupTable", configTable);
             }
-            System.out.println(JSONObject.toJSONString(configMap, true));
+            System.out.print(JSONObject.toJSONString(configMap, true) + "\n");
         } catch (Exception e) {
-            System.out.println("Error occurred while converting RocksDB kv config to json, " + "configType=" + configType + ", " + e.getMessage());
+            System.out.print("Error occurred while converting RocksDB kv config to json, " + "configType=" + configType + ", " + e.getMessage() + "\n");
         } finally {
             configRocksDBStorage.shutdown();
         }
@@ -136,9 +136,9 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                 iterator.next();
             }
             configMap.put("offsetTable", configTable);
-            System.out.println(JSONObject.toJSONString(configMap, true));
+            System.out.print(JSONObject.toJSONString(configMap, true) + "\n");
         } catch (Exception e) {
-            System.out.println("Error occurred while converting RocksDB kv config to json, " + "configType=consumerOffsets, " + e.getMessage());
+            System.out.print("Error occurred while converting RocksDB kv config to json, " + "configType=consumerOffsets, " + e.getMessage() + "\n");
         } finally {
             configRocksDBStorage.shutdown();
         }
