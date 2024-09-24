@@ -167,6 +167,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         if (request == null || this.bufferDRList.size() >= batchSize) {
             putMessagePosition();
         }
+
         if (request != null) {
             this.bufferDRList.add(request);
         }
