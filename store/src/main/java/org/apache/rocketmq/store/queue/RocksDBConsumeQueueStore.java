@@ -55,7 +55,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     public static final byte CTRL_1 = '\u0001';
     public static final byte CTRL_2 = '\u0002';
 
-    private int BATCH_SIZE = 16;
+    private final int BATCH_SIZE;
     public static final int MAX_KEY_LEN = 300;
 
     private final ScheduledExecutorService scheduledExecutorService;
@@ -167,7 +167,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         if (request == null || this.bufferDRList.size() >= BATCH_SIZE) {
             putMessagePosition();
         }
-
         if (request != null) {
             this.bufferDRList.add(request);
         }
