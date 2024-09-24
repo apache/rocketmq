@@ -1,7 +1,7 @@
 name: Rerun workflow
 on:
   workflow_run:
-    workflows: ["Build and Run Tests by Maven", "Build and Run Tests by Bazel"]
+    workflows: ["Build and Run Tests by Maven"]
     types:
       - completed
 
