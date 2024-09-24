@@ -163,10 +163,12 @@ public class DefaultMessageStore implements MessageStore {
     private volatile boolean shutdown = true;
     protected boolean notifyMessageArriveInBatch = false;
 
-    private StoreCheckpoint storeCheckpoint;
+    protected StoreCheckpoint storeCheckpoint;
     private TimerMessageStore timerMessageStore;
 
     private final LinkedList<CommitLogDispatcher> dispatcherList;
+
+    private RocksDBMessageStore rocksDBMessageStore;
 
     private RandomAccessFile lockFile;
 
@@ -354,12 +356,7 @@ public class DefaultMessageStore implements MessageStore {
             }
 
             if (result) {
-                this.storeCheckpoint =
-                    new StoreCheckpoint(
-                        StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
-                this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
-                setConfirmOffset(this.storeCheckpoint.getConfirmPhyOffset());
-
+                loadCheckPoint();
                 result = this.indexService.load(lastExitOK);
                 this.recover(lastExitOK);
                 LOGGER.info("message store recover end, and the max phy offset = {}", this.getMaxPhyOffset());
@@ -379,6 +376,14 @@ public class DefaultMessageStore implements MessageStore {
         }
 
         return result;
+    }
+
+    public void loadCheckPoint() throws IOException {
+        this.storeCheckpoint =
+            new StoreCheckpoint(
+                StorePathConfigHelper.getStoreCheckpoint(this.messageStoreConfig.getStorePathRootDir()));
+        this.masterFlushedOffset = this.storeCheckpoint.getMasterFlushedOffset();
+        setConfirmOffset(this.storeCheckpoint.getConfirmPhyOffset());
     }
 
     /**
@@ -509,6 +514,10 @@ public class DefaultMessageStore implements MessageStore {
             this.indexService.shutdown();
             if (this.compactionService != null) {
                 this.compactionService.shutdown();
+            }
+
+            if (messageStoreConfig.isRocksdbCQDoubleWriteEnable()) {
+                this.rocksDBMessageStore.consumeQueueStore.shutdown();
             }
 
             this.flushConsumeQueueService.shutdown();
@@ -3251,6 +3260,17 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
+    public void enableRocksdbCQWrite() {
+        try {
+            RocksDBMessageStore store = new RocksDBMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, this.topicConfigTable);
+            this.rocksDBMessageStore = store;
+            store.loadAndStartConsumerServiceOnly();
+            addDispatcher(store.getDispatcherBuildRocksdbConsumeQueue());
+        } catch (Exception e) {
+            LOGGER.error("enableRocksdbCqWrite error", e);
+        }
+    }
+
     public int getMaxDelayLevel() {
         return maxDelayLevel;
     }
@@ -3337,5 +3357,13 @@ public class DefaultMessageStore implements MessageStore {
 
     public long getReputFromOffset() {
         return this.reputMessageService.getReputFromOffset();
+    }
+
+    public RocksDBMessageStore getRocksDBMessageStore() {
+        return this.rocksDBMessageStore;
+    }
+
+    public ConsumeQueueStoreInterface getConsumeQueueStore() {
+        return consumeQueueStore;
     }
 }
