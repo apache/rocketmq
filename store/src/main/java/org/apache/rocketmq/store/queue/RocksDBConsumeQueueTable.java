@@ -185,6 +185,39 @@ public class RocksDBConsumeQueueTable {
         long result = -1L;
         long targetOffset = -1L, leftOffset = -1L, rightOffset = -1L;
         long ceiling = high, floor = low;
+        // Handle the following corner cases first:
+        // 1. store time of (high) < timestamp
+        ByteBuffer buffer = getCQInKV(topic, queueId, ceiling);
+        if (buffer != null) {
+            long storeTime = buffer.getLong(MSG_STORE_TIME_SIZE_OFFSET);
+            if (storeTime < timestamp) {
+                switch (boundaryType) {
+                    case LOWER:
+                        return ceiling + 1;
+                    case UPPER:
+                        return ceiling;
+                    default:
+                        log.warn("Unknown boundary type");
+                        break;
+                }
+            }
+        }
+        // 2. store time of (low) > timestamp
+        buffer = getCQInKV(topic, queueId, floor);
+        if (buffer != null) {
+            long storeTime = buffer.getLong(MSG_STORE_TIME_SIZE_OFFSET);
+            if (storeTime > timestamp) {
+                switch (boundaryType) {
+                    case LOWER:
+                        return floor;
+                    case UPPER:
+                        return 0;
+                    default:
+                        log.warn("Unknown boundary type");
+                        break;
+                }
+            }
+        }
         while (high >= low) {
             long midOffset = low + ((high - low) >>> 1);
             ByteBuffer byteBuffer = getCQInKV(topic, queueId, midOffset);
