@@ -17,7 +17,6 @@ jobs:
         env:
           GH_REPO:  ${{ github.repository }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # gh run watch ${{ github.event.workflow_run.id }} > /dev/null 2>&1
         run: |
-          
+          gh run watch ${{ github.event.workflow_run.id }} > /dev/null 2>&1
           gh run rerun ${{ github.event.workflow_run.id }} --failed
