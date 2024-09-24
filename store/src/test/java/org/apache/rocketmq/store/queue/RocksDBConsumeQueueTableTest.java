@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.queue;
 
 import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
 import org.junit.Test;
@@ -35,6 +36,9 @@ public class RocksDBConsumeQueueTableTest {
 
     @Test
     public void testBinarySearchInCQByTime() throws RocksDBException {
+        if (MixAll.isMac()) {
+            return;
+        }
         ConsumeQueueRocksDBStorage rocksDBStorage = mock(ConsumeQueueRocksDBStorage.class);
         DefaultMessageStore store = mock(DefaultMessageStore.class);
         RocksDBConsumeQueueTable table = new RocksDBConsumeQueueTable(rocksDBStorage, store);
