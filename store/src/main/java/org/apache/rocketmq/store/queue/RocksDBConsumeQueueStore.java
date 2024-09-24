@@ -55,7 +55,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     public static final byte CTRL_1 = '\u0001';
     public static final byte CTRL_2 = '\u0002';
 
-    private static final int BATCH_SIZE = 1;
+    private int BATCH_SIZE = 16;
     public static final int MAX_KEY_LEN = 300;
 
     private final ScheduledExecutorService scheduledExecutorService;
@@ -77,8 +77,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private final Map<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> tempTopicQueueMaxOffsetMap;
     private volatile boolean isCQError = false;
 
-    private boolean enableBatchWriteKvCq;
-
     public RocksDBConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
 
@@ -88,7 +86,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         this.rocksDBConsumeQueueOffsetTable = new RocksDBConsumeQueueOffsetTable(rocksDBConsumeQueueTable, rocksDBStorage, messageStore);
 
         this.writeBatch = new WriteBatch();
-        this.enableBatchWriteKvCq = messageStoreConfig.isEnableBatchWriteKvCq();
+        this.BATCH_SIZE = messageStoreConfig.getBatchWriteKvCqSize();
         this.bufferDRList = new ArrayList(BATCH_SIZE);
         this.cqBBPairList = new ArrayList(BATCH_SIZE);
         this.offsetBBPairList = new ArrayList(BATCH_SIZE);
@@ -166,9 +164,12 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public void putMessagePositionInfoWrapper(DispatchRequest request) throws RocksDBException {
+        if (request == null || this.bufferDRList.size() >= BATCH_SIZE) {
+            putMessagePosition();
+        }
+
         if (request != null) {
             this.bufferDRList.add(request);
-            putMessagePosition();
         }
     }
 
