@@ -122,9 +122,9 @@ public class MQClientInstance {
      * And the value is the broker instance list that belongs to the broker cluster.
      * For the sub map, the key is the id of single broker instance, and the value is the address.
      */
-    private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ConcurrentMap<Long, String>> brokerAddrTable = new ConcurrentHashMap<>();
 
-    private final ConcurrentMap<String/* Broker Name */, HashMap<String/* address */, Integer>> brokerVersionTable = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String/* Broker Name */, ConcurrentMap<String/* address */, Integer>> brokerVersionTable = new ConcurrentHashMap<>();
     private final Set<String/* Broker address */> brokerSupportV2HeartbeatSet = new HashSet<>();
     private final ConcurrentMap<String, Integer> brokerAddrHeartbeatFingerprintTable = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "MQClientFactoryScheduledThread"));
@@ -157,7 +157,7 @@ public class MQClientInstance {
         ChannelEventListener channelEventListener;
         if (clientConfig.isEnableHeartbeatChannelEventListener()) {
             channelEventListener = new ChannelEventListener() {
-                private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = MQClientInstance.this.brokerAddrTable;
+                private final ConcurrentMap<String, ConcurrentMap<Long, String>> brokerAddrTable = MQClientInstance.this.brokerAddrTable;
                 @Override
                 public void onChannelConnect(String remoteAddr, Channel channel) {
                 }
@@ -176,7 +176,7 @@ public class MQClientInstance {
 
                 @Override
                 public void onChannelActive(String remoteAddr, Channel channel) {
-                    for (Map.Entry<String, HashMap<Long, String>> addressEntry : brokerAddrTable.entrySet()) {
+                    for (Map.Entry<String, ConcurrentMap<Long, String>> addressEntry : brokerAddrTable.entrySet()) {
                         for (Map.Entry<Long, String> entry : addressEntry.getValue().entrySet()) {
                             String addr = entry.getValue();
                             if (addr.equals(remoteAddr)) {
@@ -434,15 +434,15 @@ public class MQClientInstance {
         try {
             if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
                 try {
-                    ConcurrentHashMap<String, HashMap<Long, String>> updatedTable = new ConcurrentHashMap<>(this.brokerAddrTable.size(), 1);
+                    ConcurrentHashMap<String, ConcurrentMap<Long, String>> updatedTable = new ConcurrentHashMap<>(this.brokerAddrTable.size(), 1);
 
-                    Iterator<Entry<String, HashMap<Long, String>>> itBrokerTable = this.brokerAddrTable.entrySet().iterator();
+                    Iterator<Entry<String, ConcurrentMap<Long, String>>> itBrokerTable = this.brokerAddrTable.entrySet().iterator();
                     while (itBrokerTable.hasNext()) {
-                        Entry<String, HashMap<Long, String>> entry = itBrokerTable.next();
+                        Entry<String, ConcurrentMap<Long, String>> entry = itBrokerTable.next();
                         String brokerName = entry.getKey();
-                        HashMap<Long, String> oneTable = entry.getValue();
+                        Map<Long, String> oneTable = entry.getValue();
 
-                        HashMap<Long, String> cloneAddrTable = new HashMap<>(oneTable.size(), 1);
+                        ConcurrentMap<Long, String> cloneAddrTable = new ConcurrentHashMap<>(oneTable.size(), 1);
                         cloneAddrTable.putAll(oneTable);
 
                         Iterator<Entry<Long, String>> it = cloneAddrTable.entrySet().iterator();
@@ -624,7 +624,7 @@ public class MQClientInstance {
         try {
             int version = this.mQClientAPIImpl.sendHeartbeat(addr, heartbeatData, clientConfig.getMqClientApiTimeout());
             if (!this.brokerVersionTable.containsKey(brokerName)) {
-                this.brokerVersionTable.put(brokerName, new HashMap<>(4));
+                this.brokerVersionTable.put(brokerName, new ConcurrentHashMap<>(4));
             }
             this.brokerVersionTable.get(brokerName).put(addr, version);
             long times = this.sendHeartbeatTimesTotal.getAndIncrement();
@@ -656,9 +656,9 @@ public class MQClientInstance {
         if (this.brokerAddrTable.isEmpty()) {
             return false;
         }
-        for (Entry<String, HashMap<Long, String>> brokerClusterInfo : this.brokerAddrTable.entrySet()) {
+        for (Entry<String, ConcurrentMap<Long, String>> brokerClusterInfo : this.brokerAddrTable.entrySet()) {
             String brokerName = brokerClusterInfo.getKey();
-            HashMap<Long, String> oneTable = brokerClusterInfo.getValue();
+            Map<Long, String> oneTable = brokerClusterInfo.getValue();
             if (oneTable == null) {
                 continue;
             }
@@ -704,7 +704,7 @@ public class MQClientInstance {
             }
             version = heartbeatV2Result.getVersion();
             if (!this.brokerVersionTable.containsKey(brokerName)) {
-                this.brokerVersionTable.put(brokerName, new HashMap<>(4));
+                this.brokerVersionTable.put(brokerName, new ConcurrentHashMap<>(4));
             }
             this.brokerVersionTable.get(brokerName).put(addr, version);
             long times = this.sendHeartbeatTimesTotal.getAndIncrement();
@@ -742,9 +742,9 @@ public class MQClientInstance {
         HeartbeatData heartbeatDataWithoutSub = this.prepareHeartbeatData(true);
         heartbeatDataWithoutSub.setHeartbeatFingerprint(currentHeartbeatFingerprint);
 
-        for (Entry<String, HashMap<Long, String>> brokerClusterInfo : this.brokerAddrTable.entrySet()) {
+        for (Entry<String, ConcurrentMap<Long, String>> brokerClusterInfo : this.brokerAddrTable.entrySet()) {
             String brokerName = brokerClusterInfo.getKey();
-            HashMap<Long, String> oneTable = brokerClusterInfo.getValue();
+            Map<Long, String> oneTable = brokerClusterInfo.getValue();
             if (oneTable == null) {
                 continue;
             }
@@ -793,7 +793,7 @@ public class MQClientInstance {
                         if (changed) {
 
                             for (BrokerData bd : topicRouteData.getBrokerDatas()) {
-                                this.brokerAddrTable.put(bd.getBrokerName(), bd.getBrokerAddrs());
+                                this.brokerAddrTable.put(bd.getBrokerName(), new ConcurrentHashMap<>(bd.getBrokerAddrs()));
                             }
 
                             // Update endpoint map
@@ -987,9 +987,9 @@ public class MQClientInstance {
     }
 
     private void unregisterClient(final String producerGroup, final String consumerGroup) {
-        for (Entry<String, HashMap<Long, String>> brokerClusterInfo : this.brokerAddrTable.entrySet()) {
+        for (Entry<String, ConcurrentMap<Long, String>> brokerClusterInfo : this.brokerAddrTable.entrySet()) {
             String brokerName = brokerClusterInfo.getKey();
-            HashMap<Long, String> oneTable = brokerClusterInfo.getValue();
+            Map<Long, String> oneTable = brokerClusterInfo.getValue();
 
             if (oneTable == null) {
                 continue;
@@ -1102,7 +1102,7 @@ public class MQClientInstance {
         boolean slave = false;
         boolean found = false;
 
-        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
+        Map<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
             for (Map.Entry<Long, String> entry : map.entrySet()) {
                 Long id = entry.getKey();
@@ -1127,7 +1127,7 @@ public class MQClientInstance {
         if (brokerName == null) {
             return null;
         }
-        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
+        Map<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
             return map.get(MixAll.MASTER_ID);
         }
@@ -1147,7 +1147,7 @@ public class MQClientInstance {
         boolean slave = false;
         boolean found = false;
 
-        HashMap<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
+        Map<Long/* brokerId */, String/* address */> map = this.brokerAddrTable.get(brokerName);
         if (map != null && !map.isEmpty()) {
             brokerAddr = map.get(brokerId);
             slave = brokerId != MixAll.MASTER_ID;
