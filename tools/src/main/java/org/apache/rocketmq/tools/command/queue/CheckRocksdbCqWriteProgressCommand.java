@@ -84,7 +84,7 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
                 if (StringUtils.isNotBlank(topic)) {
                     System.out.print(body.getDiffResult());
                 } else {
-                    System.out.print(brokerName + " | " + brokerAddr + " | " + body.getDiffResult());
+                    System.out.print(brokerName + " | " + brokerAddr + " | \n" + body.getDiffResult());
                 }
             }
 

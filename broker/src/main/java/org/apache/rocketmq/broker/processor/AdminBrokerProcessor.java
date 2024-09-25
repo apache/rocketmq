@@ -522,7 +522,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 Pair<CqUnit, Long> fileCqUnit = jsonCq.getCqUnitAndStoreTime(i);
                 Pair<CqUnit, Long> kvCqUnit = kvCq.getCqUnitAndStoreTime(i);
                 if (fileCqUnit == null || kvCqUnit == null) {
-                    diffResult.append(String.format("[topic: %s, queue: %s, offset: %s] \n kv  : %s  \n file: %s  \n",
+                    diffResult.append(String.format("[topic: %s, queue: %s, offset: %s] \n kv   : %s  \n file : %s  \n",
                         topic, queueId, i, kvCqUnit != null ? kvCqUnit.getObject1() : "null", fileCqUnit != null ? fileCqUnit.getObject1() : "null"));
                     return;
                 }
