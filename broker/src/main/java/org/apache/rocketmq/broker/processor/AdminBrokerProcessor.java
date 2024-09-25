@@ -527,7 +527,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     return;
                 }
                 if (!checkCqUnitEqual(kvCqUnit.getObject1(), fileCqUnit.getObject1())) {
-                    String diffInfo = String.format("[topic:%s, queue: %s offset: %s] \n file: %s  \n  kv: %s \n",
+                    String diffInfo = String.format("[topic:%s, queue: %s offset: %s] \n file : %s  \n  kv : %s \n",
                         topic, queueId, i, kvCqUnit.getObject1(), fileCqUnit.getObject1());
                     LOGGER.error(diffInfo);
                     diffResult.append(diffInfo).append(System.lineSeparator());
