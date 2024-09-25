@@ -34,7 +34,7 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
 
     @Override
     public String commandName() {
-        return "checkRocksdbCqWriteProgressCommandCommand";
+        return "checkRocksdbCqWriteProgress";
     }
 
     @Override
