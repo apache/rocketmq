@@ -1096,22 +1096,41 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
     private boolean tryToCompressMessage(final Message msg) {
         if (msg instanceof MessageBatch) {
-            //batch does not support compressing right now
-            return false;
-        }
-        byte[] body = msg.getBody();
-        if (body != null) {
-            if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
+            MessageBatch bmsg = (MessageBatch) msg;
+            long totalLen = 0;
+            int totalCount = 0;
+            List<Message> msgs = new ArrayList<>();
+            for (Message m : bmsg) {
+                totalLen += m.getBody().length;
+                totalCount++;
+                msgs.add(m);
+            }
+            if (totalLen <= 0) return false;
+
+            int avgLen = (int) (totalLen / totalCount);
+            if (avgLen >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
                 try {
-                    byte[] data = this.defaultMQProducer.getCompressor().compress(body, this.defaultMQProducer.getCompressLevel());
-                    if (data != null) {
-                        msg.setBody(data);
-                        return true;
-                    }
+                    msg.setBody(MessageDecoder.encodeMessages(msgs,this.defaultMQProducer.getCompressor(),this.defaultMQProducer.getCompressLevel()));
+                    return true;
                 } catch (IOException e) {
                     log.error("tryToCompressMessage exception", e);
-                    if (log.isDebugEnabled()) {
-                        log.debug(msg.toString());
+                }
+            }
+        } else {
+            byte[] body = msg.getBody();
+            if (body != null) {
+                if (body.length >= this.defaultMQProducer.getCompressMsgBodyOverHowmuch()) {
+                    try {
+                        byte[] data = this.defaultMQProducer.getCompressor().compress(body, this.defaultMQProducer.getCompressLevel());
+                        if (data != null) {
+                            msg.setBody(data);
+                            return true;
+                        }
+                    } catch (IOException e) {
+                        log.error("tryToCompressMessage exception", e);
+                        if (log.isDebugEnabled()) {
+                            log.debug(msg.toString());
+                        }
                     }
                 }
             }
