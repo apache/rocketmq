@@ -215,6 +215,7 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.RocksDBMessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
@@ -470,16 +471,21 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         String requestTopic = requestHeader.getTopic();
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
-
-        DefaultMessageStore messageStore = (DefaultMessageStore) brokerController.getMessageStore();
-        RocksDBMessageStore rocksDBMessageStore = messageStore.getRocksDBMessageStore();
-        if (!messageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
+        MessageStore messageStore = brokerController.getMessageStore();
+        DefaultMessageStore defaultMessageStore;
+        if (messageStore instanceof AbstractPluginMessageStore) {
+            defaultMessageStore = (DefaultMessageStore) ((AbstractPluginMessageStore) messageStore).getNext();
+        } else {
+            defaultMessageStore = (DefaultMessageStore) messageStore;
+        }
+        RocksDBMessageStore rocksDBMessageStore = defaultMessageStore.getRocksDBMessageStore();
+        if (!defaultMessageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
             response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "rocksdbCQWriteEnable is false, checkRocksdbCqWriteProgressCommand is invalid")));
             return response;
         }
 
-        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = messageStore.getConsumeQueueTable();
-        StringBuilder diffResult = new StringBuilder("check success, all is ok!\n");
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = defaultMessageStore.getConsumeQueueTable();
+        StringBuilder diffResult = new StringBuilder();
         try {
             if (StringUtils.isNotBlank(requestTopic)) {
                 processConsumeQueuesForTopic(cqTable.get(requestTopic), requestTopic, rocksDBMessageStore, diffResult,false);
@@ -516,15 +522,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 Pair<CqUnit, Long> fileCqUnit = jsonCq.getCqUnitAndStoreTime(i);
                 Pair<CqUnit, Long> kvCqUnit = kvCq.getCqUnitAndStoreTime(i);
                 if (fileCqUnit == null || kvCqUnit == null) {
-                    diffResult.append(String.format("[topic: %s, queue: %s, offset: %s] \n kv  : %s  \n file: %s  \n",
+                    diffResult.append(String.format("[topic: %s, queue: %s, offset: %s] \n kv   : %s  \n file : %s  \n",
                         topic, queueId, i, kvCqUnit != null ? kvCqUnit.getObject1() : "null", fileCqUnit != null ? fileCqUnit.getObject1() : "null"));
                     return;
                 }
                 if (!checkCqUnitEqual(kvCqUnit.getObject1(), fileCqUnit.getObject1())) {
-                    String diffInfo = String.format("[topic:%s, queue: %s offset: %s] \n file: %s  \n  kv: %s",
+                    String diffInfo = String.format("[topic:%s, queue: %s offset: %s] \n file : %s  \n  kv : %s \n",
                         topic, queueId, i, kvCqUnit.getObject1(), fileCqUnit.getObject1());
                     LOGGER.error(diffInfo);
-                    diffResult.append(diffInfo).append("\n");
+                    diffResult.append(diffInfo).append(System.lineSeparator());
                     return;
                 }
             }

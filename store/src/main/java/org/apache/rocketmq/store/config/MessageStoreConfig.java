@@ -428,15 +428,15 @@ public class MessageStoreConfig {
 
     private boolean rocksdbCQDoubleWriteEnable = false;
 
-    private boolean enableBatchWriteKvCq = true;
+    private int batchWriteKvCqSize = 16;
 
 
-    public boolean isEnableBatchWriteKvCq() {
-        return enableBatchWriteKvCq;
+    public int getBatchWriteKvCqSize() {
+        return batchWriteKvCqSize;
     }
 
-    public void setEnableBatchWriteKvCq(boolean enableBatchWriteKvCq) {
-        this.enableBatchWriteKvCq = enableBatchWriteKvCq;
+    public void setBatchWriteKvCqSize(int batchWriteKvCqSize) {
+        this.batchWriteKvCqSize = batchWriteKvCqSize;
     }
 
     public boolean isRocksdbCQDoubleWriteEnable() {
