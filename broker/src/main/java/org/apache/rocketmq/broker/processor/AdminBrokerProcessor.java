@@ -215,6 +215,7 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.RocksDBMessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
@@ -470,15 +471,20 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         String requestTopic = requestHeader.getTopic();
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
-
-        DefaultMessageStore messageStore = (DefaultMessageStore) brokerController.getMessageStore();
-        RocksDBMessageStore rocksDBMessageStore = messageStore.getRocksDBMessageStore();
-        if (!messageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
+        MessageStore messageStore = brokerController.getMessageStore();
+        DefaultMessageStore defaultMessageStore;
+        if (messageStore instanceof AbstractPluginMessageStore){
+            defaultMessageStore = (DefaultMessageStore)((AbstractPluginMessageStore) messageStore).getNext();
+        }else {
+            defaultMessageStore = (DefaultMessageStore)messageStore;
+        }
+        RocksDBMessageStore rocksDBMessageStore = defaultMessageStore.getRocksDBMessageStore();
+        if (!defaultMessageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
             response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "rocksdbCQWriteEnable is false, checkRocksdbCqWriteProgressCommand is invalid")));
             return response;
         }
 
-        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = messageStore.getConsumeQueueTable();
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = defaultMessageStore.getConsumeQueueTable();
         StringBuilder diffResult = new StringBuilder("check success, all is ok!\n");
         try {
             if (StringUtils.isNotBlank(requestTopic)) {
