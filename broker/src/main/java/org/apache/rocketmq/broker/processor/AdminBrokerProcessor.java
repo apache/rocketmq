@@ -473,10 +473,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         response.setCode(ResponseCode.SUCCESS);
         MessageStore messageStore = brokerController.getMessageStore();
         DefaultMessageStore defaultMessageStore;
-        if (messageStore instanceof AbstractPluginMessageStore){
-            defaultMessageStore = (DefaultMessageStore)((AbstractPluginMessageStore) messageStore).getNext();
-        }else {
-            defaultMessageStore = (DefaultMessageStore)messageStore;
+        if (messageStore instanceof AbstractPluginMessageStore) {
+            defaultMessageStore = (DefaultMessageStore) ((AbstractPluginMessageStore) messageStore).getNext();
+        } else {
+            defaultMessageStore = (DefaultMessageStore) messageStore;
         }
         RocksDBMessageStore rocksDBMessageStore = defaultMessageStore.getRocksDBMessageStore();
         if (!defaultMessageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
