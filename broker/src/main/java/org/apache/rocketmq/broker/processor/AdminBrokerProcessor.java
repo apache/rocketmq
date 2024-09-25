@@ -485,7 +485,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = defaultMessageStore.getConsumeQueueTable();
-        StringBuilder diffResult = new StringBuilder("check success, all is ok!\n");
+        StringBuilder diffResult = new StringBuilder();
         try {
             if (StringUtils.isNotBlank(requestTopic)) {
                 processConsumeQueuesForTopic(cqTable.get(requestTopic), requestTopic, rocksDBMessageStore, diffResult,false);
@@ -527,10 +527,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     return;
                 }
                 if (!checkCqUnitEqual(kvCqUnit.getObject1(), fileCqUnit.getObject1())) {
-                    String diffInfo = String.format("[topic:%s, queue: %s offset: %s] \n file: %s  \n  kv: %s",
+                    String diffInfo = String.format("[topic:%s, queue: %s offset: %s] \n file: %s  \n  kv: %s \n",
                         topic, queueId, i, kvCqUnit.getObject1(), fileCqUnit.getObject1());
                     LOGGER.error(diffInfo);
-                    diffResult.append(diffInfo).append("\n");
+                    diffResult.append(diffInfo).append(System.lineSeparator());
                     return;
                 }
             }
