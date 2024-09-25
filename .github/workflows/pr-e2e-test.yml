@@ -14,7 +14,6 @@ env:
 jobs:
   docker:
     if: >
-      github.repository == 'apache/rocketmq' &&
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
@@ -75,9 +74,7 @@ jobs:
           path: rocketmq-docker/image-build-ci/versionlist/*
   
   list-version:
-    if: >
-      github.repository == 'apache/rocketmq' &&
-      always()
+    if: always()
     name: List version
     needs: [docker]
     runs-on: ubuntu-latest
