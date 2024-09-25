@@ -120,7 +120,7 @@ public class IndexStoreServiceTest {
         indexService = new IndexStoreService(fileAllocator, filePath);
         indexService.start();
         ConcurrentSkipListMap<Long, IndexFile> timeStoreTable = indexService.getTimeStoreTable();
-        Assert.assertEquals(1, timeStoreTable.size());
+        Assert.assertEquals(2, timeStoreTable.size());
         Assert.assertEquals(Long.valueOf(timestamp), timeStoreTable.firstKey());
         mappedFile.destroy(10 * 1000);
     }
@@ -232,7 +232,7 @@ public class IndexStoreServiceTest {
         indexService = new IndexStoreService(fileAllocator, filePath);
         indexService.start();
         Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
-        Assert.assertEquals(2, indexService.getTimeStoreTable().size());
+        Assert.assertEquals(4, indexService.getTimeStoreTable().size());
         Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD,
             indexService.getTimeStoreTable().firstEntry().getValue().getFileStatus());
     }
