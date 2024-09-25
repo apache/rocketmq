@@ -28,7 +28,7 @@
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
     <artifactId>rocketmq-all</artifactId>
-    <version>5.3.1-SNAPSHOT</version>
+    <version>5.3.1</version>
     <packaging>pom</packaging>
     <name>Apache RocketMQ ${project.version}</name>
     <url>http://rocketmq.apache.org/</url>
@@ -37,7 +37,7 @@
         <url>git@github.com:apache/rocketmq.git</url>
         <connection>scm:git:git@github.com:apache/rocketmq.git</connection>
         <developerConnection>scm:git:git@github.com:apache/rocketmq.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>rocketmq-all-5.3.1</tag>
     </scm>
 
     <mailingLists>
