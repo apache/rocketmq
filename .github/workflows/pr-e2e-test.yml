@@ -25,18 +25,18 @@ jobs:
         java-version: ["8"]
     steps:
       - name: 'Download artifact'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v6
         with:
           script: |
-            var artifacts = await github.actions.listWorkflowRunArtifacts({
+            let artifacts = await github.rest.actions.listWorkflowRunArtifacts({
                owner: context.repo.owner,
                repo: context.repo.repo,
                run_id: ${{github.event.workflow_run.id }},
             });
-            var matchArtifactRmq = artifacts.data.artifacts.filter((artifact) => {
+            let matchArtifactRmq = artifacts.data.artifacts.filter((artifact) => {
               return artifact.name == "rocketmq"
             })[0];
-            var download = await github.actions.downloadArtifact({
+            let download = await github.rest.actions.downloadArtifact({
                owner: context.repo.owner,
                repo: context.repo.repo,
                artifact_id: matchArtifactRmq.id,
@@ -260,4 +260,3 @@ jobs:
           ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
           test-version: "${{ matrix.version }}"
           job-id: ${{ strategy.job-index }}
-          
