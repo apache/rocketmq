@@ -18,7 +18,6 @@ package org.apache.rocketmq.broker;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -789,6 +788,9 @@ public class BrokerController {
                 defaultMessageStore = new RocksDBMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
             } else {
                 defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
+                if (messageStoreConfig.isRocksdbCQDoubleWriteEnable()) {
+                    defaultMessageStore.enableRocksdbCQWrite();
+                }
             }
 
             if (messageStoreConfig.isEnableDLegerCommitLog()) {
@@ -812,7 +814,7 @@ public class BrokerController {
                 this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
                 this.messageStore.setTimerMessageStore(this.timerMessageStore);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             result = false;
             LOG.error("BrokerController#initialize: unexpected error occurs", e);
         }

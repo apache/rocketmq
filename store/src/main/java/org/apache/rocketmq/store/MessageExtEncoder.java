@@ -175,7 +175,7 @@ public class MessageExtEncoder {
     public PutMessageResult encode(MessageExtBrokerInner msgInner) {
         this.byteBuf.clear();
 
-        if (messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner)) {
+        if (CommitLog.isMultiDispatchMsg(messageStoreConfig, msgInner)) {
             return encodeWithoutProperties(msgInner);
         }
 

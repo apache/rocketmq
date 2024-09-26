@@ -231,7 +231,7 @@ public class BrokerConfig extends BrokerIdentity {
     // read message from pop retry topic v1, for the compatibility, will be removed in the future version
     private boolean retrieveMessageFromPopRetryTopicV1 = true;
     private boolean enableRetryTopicV2 = false;
-
+    private int popFromRetryProbability = 20;
     private boolean realTimeNotifyConsumerChange = true;
 
     private boolean litePullMessageEnable = true;
@@ -562,6 +562,15 @@ public class BrokerConfig extends BrokerIdentity {
     public void setEnablePopLog(boolean enablePopLog) {
         this.enablePopLog = enablePopLog;
     }
+
+    public int getPopFromRetryProbability() {
+        return popFromRetryProbability;
+    }
+
+    public void setPopFromRetryProbability(int popFromRetryProbability) {
+        this.popFromRetryProbability = popFromRetryProbability;
+    }
+
 
     public boolean isTraceOn() {
         return traceOn;
