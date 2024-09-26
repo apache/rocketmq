@@ -430,6 +430,16 @@ public class MessageStoreConfig {
 
     private int batchWriteKvCqSize = 16;
 
+    /**
+     * Spin number in the retreat strategy of spin lock
+     * Default is 1000
+     */
+    private int spinLockCollisionRetreatOptimalDegree = 1000;
+
+    /**
+     * Use AdaptiveBackOffLock
+     **/
+    private boolean isUseABSLock = true;
 
     public int getBatchWriteKvCqSize() {
         return batchWriteKvCqSize;
@@ -1883,5 +1893,21 @@ public class MessageStoreConfig {
 
     public void setTransferMetadataJsonToRocksdb(boolean transferMetadataJsonToRocksdb) {
         this.transferMetadataJsonToRocksdb = transferMetadataJsonToRocksdb;
+    }
+
+    public int getSpinLockCollisionRetreatOptimalDegree() {
+        return spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setSpinLockCollisionRetreatOptimalDegree(int spinLockCollisionRetreatOptimalDegree) {
+        this.spinLockCollisionRetreatOptimalDegree = spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public boolean getUseABSLock() {
+        return isUseABSLock;
+    }
+
+    public void setUseABSLock(boolean useABSLock) {
+        this.isUseABSLock = useABSLock;
     }
 }
