@@ -62,7 +62,7 @@ import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.lock.AdaptiveBackOffLock;
 import org.apache.rocketmq.store.lock.AdaptiveBackOffLockImpl;
-import org.apache.rocketmq.store.lock.CollisionRetreatLock;
+import org.apache.rocketmq.store.lock.BackOffSpinLock;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.util.LibC;
@@ -134,7 +134,7 @@ public class CommitLog implements Swappable {
             }
         };
         this.putMessageLock = messageStore.getMessageStoreConfig().getUseABSLock() ? new AdaptiveBackOffLockImpl() :
-            messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new CollisionRetreatLock();
+            messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new BackOffSpinLock();
 
         this.flushDiskWatcher = new FlushDiskWatcher();
 

@@ -33,6 +33,10 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
     //state
     private AtomicBoolean state = new AtomicBoolean(true);
 
+    private final static float SWAP_MUTEX_LOCK_RATIO = 0.8f;
+
+    private final static float SPIN_LOCK_ADAPTIVE_RATIO = 1.5f;
+
     private Map<String, AdaptiveBackOffLock> locks;
 
     private final List<AtomicInteger> tpsTable;
@@ -46,18 +50,18 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
     public AdaptiveBackOffLockImpl() {
         this.locks = new HashMap<>();
         this.locks.put("Reentrant", new PutMessageReentrantLock());
-        this.locks.put("Collision", new CollisionRetreatLock());
+        this.locks.put("BackOff", new BackOffSpinLock());
 
         this.tpsTable = new ArrayList<>(2);
         this.tpsTable.add(new AtomicInteger(0));
         this.tpsTable.add(new AtomicInteger(0));
 
-        adaptiveLock = this.locks.get("Collision");
+        adaptiveLock = this.locks.get("BackOff");
     }
 
     @Override
     public void lock() {
-        tpsTable.get(LocalTime.now().getSecond() % 2).getAndIncrement();
+        this.tpsTable.get(LocalTime.now().getSecond() % 2).getAndIncrement();
         boolean state;
         do {
             state = this.state.get();
@@ -94,8 +98,8 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
             return;
         }
 
-        if (this.adaptiveLock instanceof CollisionRetreatLock) {
-            CollisionRetreatLock lock = (CollisionRetreatLock) this.adaptiveLock;
+        if (this.adaptiveLock instanceof BackOffSpinLock) {
+            BackOffSpinLock lock = (BackOffSpinLock) this.adaptiveLock;
             int base = Math.min(200 + tps / 200, 500);
             if (lock.getNumberOfRetreat(slot) * base >= tps) {
                 if (lock.isAdapt()) {
@@ -104,12 +108,12 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
                     this.tpsSwapCriticalPoint = tps;
                     needSwap = true;
                 }
-            } else if (lock.getNumberOfRetreat(slot) * base * 3 / 2 <= tps) {
+            } else if (lock.getNumberOfRetreat(slot) * base * SPIN_LOCK_ADAPTIVE_RATIO <= tps) {
                 lock.adapt(false);
             }
             lock.setNumberOfRetreat(slot, 0);
         } else {
-            if (tps <= this.tpsSwapCriticalPoint * 4 / 5) {
+            if (tps <= this.tpsSwapCriticalPoint * SWAP_MUTEX_LOCK_RATIO) {
                 needSwap = true;
             }
         }
@@ -122,11 +126,11 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
                 } while (currentThreadNum != 0);
 
                 try {
-                    if (this.adaptiveLock instanceof CollisionRetreatLock) {
+                    if (this.adaptiveLock instanceof BackOffSpinLock) {
                         this.adaptiveLock = this.locks.get("Reentrant");
                     } else {
-                        this.adaptiveLock = this.locks.get("Collision");
-                        ((CollisionRetreatLock) this.adaptiveLock).adapt(false);
+                        this.adaptiveLock = this.locks.get("BackOff");
+                        ((BackOffSpinLock) this.adaptiveLock).adapt(false);
                     }
                 } catch (Exception e) {
                     //ignore
@@ -152,9 +156,9 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
             } while (currentThreadNum != 0);
 
             if (open) {
-                adaptiveLock = this.locks.get("Collision");
+                adaptiveLock = this.locks.get("BackOff");
             } else {
-                adaptiveLock = !isUseReentrantLock ? this.locks.get("Collision") : this.locks.get("Reentrant");
+                adaptiveLock = !isUseReentrantLock ? this.locks.get("BackOff") : this.locks.get("Reentrant");
             }
             state.set(true);
         }

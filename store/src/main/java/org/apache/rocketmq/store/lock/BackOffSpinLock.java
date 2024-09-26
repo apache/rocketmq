@@ -21,25 +21,24 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CollisionRetreatLock implements AdaptiveBackOffLock {
+public class BackOffSpinLock implements AdaptiveBackOffLock {
 
     private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
 
     private int optimalDegree;
 
-    private int initOptimalDegree;
+    private final static int INITIAL_DEGREE = 1000;
 
-    private int maxOptimalDegree;
+    private final static int MAX_OPTIMAL_DEGREE = 10000;
 
     private final List<AtomicInteger> numberOfRetreat;
 
-    public CollisionRetreatLock() {
-        this.initOptimalDegree = 1000;
-        this.maxOptimalDegree = 10000;
-        this.optimalDegree = initOptimalDegree;
+    public BackOffSpinLock() {
+        this.optimalDegree = INITIAL_DEGREE;
 
         numberOfRetreat = new ArrayList<>(2);
         numberOfRetreat.add(new AtomicInteger(0));
@@ -78,33 +77,25 @@ public class CollisionRetreatLock implements AdaptiveBackOffLock {
         this.optimalDegree = optimalDegree;
     }
 
-    public int getMaxOptimalDegree() {
-        return maxOptimalDegree;
-    }
-
-    public void setMaxOptimalDegree(int maxOptimalDegree) {
-        this.maxOptimalDegree = maxOptimalDegree;
-    }
-
     public boolean isAdapt() {
-        return optimalDegree < maxOptimalDegree;
+        return optimalDegree < MAX_OPTIMAL_DEGREE;
     }
 
     public synchronized void adapt(boolean isRise) {
         if (isRise) {
-            if (optimalDegree * 2 <= maxOptimalDegree) {
+            if (optimalDegree * 2 <= MAX_OPTIMAL_DEGREE) {
                 optimalDegree *= 2;
             } else {
-                if (optimalDegree + initOptimalDegree <= maxOptimalDegree) {
-                    optimalDegree += initOptimalDegree;
+                if (optimalDegree + INITIAL_DEGREE <= MAX_OPTIMAL_DEGREE) {
+                    optimalDegree += INITIAL_DEGREE;
                 }
             }
         } else {
-            if (optimalDegree / 2 >= initOptimalDegree) {
+            if (optimalDegree / 2 >= INITIAL_DEGREE) {
                 optimalDegree /= 2;
             } else {
-                if (optimalDegree > 2 * initOptimalDegree) {
-                    optimalDegree -= initOptimalDegree;
+                if (optimalDegree > 2 * INITIAL_DEGREE) {
+                    optimalDegree -= MAX_OPTIMAL_DEGREE;
                 }
             }
         }

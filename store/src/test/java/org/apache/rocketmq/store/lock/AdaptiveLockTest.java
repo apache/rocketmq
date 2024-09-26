@@ -34,7 +34,7 @@ public class AdaptiveLockTest {
 
     @Test
     public void testAdaptiveLock() throws InterruptedException {
-        assertTrue(adaptiveLock.getAdaptiveLock() instanceof CollisionRetreatLock);
+        assertTrue(adaptiveLock.getAdaptiveLock() instanceof BackOffSpinLock);
 
         adaptiveLock.lock();
         new Thread(new Runnable() {
@@ -46,7 +46,7 @@ public class AdaptiveLockTest {
         }).start();
         Thread.sleep(1000);
         adaptiveLock.unlock();
-        assertEquals(2000, ((CollisionRetreatLock) adaptiveLock.getAdaptiveLock()).getOptimalDegree());
+        assertEquals(2000, ((BackOffSpinLock) adaptiveLock.getAdaptiveLock()).getOptimalDegree());
 
 
 
@@ -68,6 +68,6 @@ public class AdaptiveLockTest {
         adaptiveLock.lock();
         Thread.sleep(1000);
         adaptiveLock.unlock();
-        assertTrue(adaptiveLock.getAdaptiveLock() instanceof CollisionRetreatLock);
+        assertTrue(adaptiveLock.getAdaptiveLock() instanceof BackOffSpinLock);
     }
 }
