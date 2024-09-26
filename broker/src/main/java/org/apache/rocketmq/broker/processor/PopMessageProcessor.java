@@ -373,7 +373,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         // considered the same type because they share the same retry flag in previous fields.
         // Therefore, needRetryV1 is designed as a subset of needRetry, and within a single request,
         // only one type of retry topic is able to call popMsgFromQueue.
-        boolean needRetry = randomQ % 5 == 0;
+        boolean needRetry = randomQ < brokerConfig.getPopFromRetryProbability();
         boolean needRetryV1 = false;
         if (brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
             needRetryV1 = randomQ % 2 == 0;
@@ -540,6 +540,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return future;
         }
 
+        future.whenComplete((result, throwable) -> queueLockManager.unLock(lockKey));
         if (isPopShouldStop(topic, requestHeader.getConsumerGroup(), queueId)) {
             POP_LOGGER.warn("Too much msgs unacked, then stop poping. topic={}, group={}, queueId={}", topic, requestHeader.getConsumerGroup(), queueId);
             restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
@@ -548,7 +549,6 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
 
         try {
-            future.whenComplete((result, throwable) -> queueLockManager.unLock(lockKey));
             offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
                 true, lockKey, true);
 

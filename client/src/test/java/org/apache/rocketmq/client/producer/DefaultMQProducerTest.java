@@ -551,6 +551,50 @@ public class DefaultMQProducerTest {
         producer.setAutoBatch(false);
     }
 
+
+    @Test
+    public void testRunningSetBackCompress() throws RemotingException, InterruptedException, MQClientException {
+        final CountDownLatch countDownLatch = new CountDownLatch(5);
+        SendCallback sendCallback = new SendCallback() {
+            @Override
+            public void onSuccess(SendResult sendResult) {
+                countDownLatch.countDown();
+            }
+
+            @Override
+            public void onException(Throwable e) {
+                e.printStackTrace();
+                countDownLatch.countDown();
+            }
+        };
+
+        // on enableBackpressureForAsyncMode
+        producer.setEnableBackpressureForAsyncMode(true);
+        producer.setBackPressureForAsyncSendNum(10);
+        producer.setBackPressureForAsyncSendSize(50 * 1024 * 1024);
+        Message message = new Message();
+        message.setTopic("test");
+        message.setBody("hello world".getBytes());
+        MessageQueue mq = new MessageQueue("test", "BrokerA", 1);
+        //this message is send success
+        for (int i = 0; i < 5; i++) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        producer.send(message, mq, sendCallback);
+                    } catch (MQClientException | RemotingException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).start();
+        }
+        producer.setBackPressureForAsyncSendNum(15);
+        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
+        assertThat(producer.defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits() + countDownLatch.getCount()).isEqualTo(15);
+        producer.setEnableBackpressureForAsyncMode(false);
+    }
+
     public static TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
@@ -769,7 +813,7 @@ public class DefaultMQProducerTest {
     @Test
     public void assertGetRetryResponseCodes() {
         assertNotNull(producer.getRetryResponseCodes());
-        assertEquals(7, producer.getRetryResponseCodes().size());
+        assertEquals(8, producer.getRetryResponseCodes().size());
     }
 
     @Test
