@@ -132,6 +132,7 @@ public class BitsArrayTest {
     public void testByteBoundaryOverflow() {
         BitsArray bitsArray = BitsArray.create(16);
         assertThat(bitsArray.byteLength()).isEqualTo(2);
+        //will throw exception
         bitsArray.getByte(2);
     }
 }
