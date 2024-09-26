@@ -191,4 +191,12 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
     public int getTpsSwapCriticalPoint() {
         return tpsSwapCriticalPoint;
     }
+
+    public boolean isOpen() {
+        return this.isOpen.get();
+    }
+
+    public void setOpen(boolean open) {
+        this.isOpen.set(open);
+    }
 }
