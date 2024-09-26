@@ -60,8 +60,9 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
-import org.apache.rocketmq.store.lock.AdaptiveLock;
-import org.apache.rocketmq.store.lock.AdaptiveLockImpl;
+import org.apache.rocketmq.store.lock.AdaptiveBackOffLock;
+import org.apache.rocketmq.store.lock.AdaptiveBackOffLockImpl;
+import org.apache.rocketmq.store.lock.CollisionRetreatLock;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
@@ -94,7 +95,7 @@ public class CommitLog implements Swappable {
 
     private volatile long beginTimeInLock = 0;
 
-    protected final AdaptiveLock putMessageLock;
+    protected final AdaptiveBackOffLock putMessageLock;
 
     protected final TopicQueueLock topicQueueLock;
 
@@ -131,7 +132,8 @@ public class CommitLog implements Swappable {
                 return new PutMessageThreadLocal(defaultMessageStore.getMessageStoreConfig());
             }
         };
-        this.putMessageLock = new AdaptiveLockImpl();
+        this.putMessageLock = messageStore.getMessageStoreConfig().getUseABSLock() ? new AdaptiveBackOffLockImpl() :
+            messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new CollisionRetreatLock();
 
         this.flushDiskWatcher = new FlushDiskWatcher();
 
@@ -949,6 +951,9 @@ public class CommitLog implements Swappable {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
 
+        this.putMessageLock.isOpen(this.defaultMessageStore.getMessageStoreConfig().getUseABSLock(),
+            this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage());
+
         int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
         boolean needHandleHA = needHandleHA(msg);
 
@@ -1113,6 +1118,9 @@ public class CommitLog implements Swappable {
         } else {
             currOffset = mappedFile.getFileFromOffset() + mappedFile.getWrotePosition();
         }
+
+        this.putMessageLock.isOpen(this.defaultMessageStore.getMessageStoreConfig().getUseABSLock(),
+                this.defaultMessageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage());
 
         int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
         boolean needHandleHA = needHandleHA(messageExtBatch);

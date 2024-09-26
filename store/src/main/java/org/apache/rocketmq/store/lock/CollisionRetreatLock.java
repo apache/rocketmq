@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CollisionRetreatLock implements AdaptiveLock {
+public class CollisionRetreatLock implements AdaptiveBackOffLock {
 
     private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
 

@@ -18,7 +18,7 @@ package org.apache.rocketmq.store.lock;
 
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
-public interface AdaptiveLock {
+public interface AdaptiveBackOffLock {
 
     void lock();
 
@@ -28,5 +28,8 @@ public interface AdaptiveLock {
     }
 
     default void swap() {
+    }
+
+    default void isOpen(boolean open, boolean isUseReentrantLock) {
     }
 }

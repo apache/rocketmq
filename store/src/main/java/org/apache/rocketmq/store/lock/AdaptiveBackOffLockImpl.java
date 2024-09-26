@@ -27,13 +27,13 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AdaptiveLockImpl implements AdaptiveLock {
-    private AdaptiveLock adaptiveLock;
+public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
+    private AdaptiveBackOffLock adaptiveLock;
 
     //state
     private AtomicBoolean state = new AtomicBoolean(true);
 
-    private Map<String, AdaptiveLock> locks;
+    private Map<String, AdaptiveBackOffLock> locks;
 
     private final List<AtomicInteger> tpsTable;
 
@@ -41,7 +41,9 @@ public class AdaptiveLockImpl implements AdaptiveLock {
 
     private AtomicInteger currentThreadNum = new AtomicInteger(0);
 
-    public AdaptiveLockImpl() {
+    private AtomicBoolean isOpen = new AtomicBoolean(true);
+
+    public AdaptiveBackOffLockImpl() {
         this.locks = new HashMap<>();
         this.locks.put("Reentrant", new PutMessageReentrantLock());
         this.locks.put("Collision", new CollisionRetreatLock());
@@ -69,7 +71,9 @@ public class AdaptiveLockImpl implements AdaptiveLock {
     public void unlock() {
         this.adaptiveLock.unlock();
         currentThreadNum.decrementAndGet();
-        swap();
+        if (isOpen.get()) {
+            swap();
+        }
     }
 
     @Override
@@ -133,11 +137,34 @@ public class AdaptiveLockImpl implements AdaptiveLock {
         }
     }
 
-    public List<AdaptiveLock> getLocks() {
-        return (List<AdaptiveLock>) this.locks.values();
+    @Override
+    public void isOpen(boolean open, boolean isUseReentrantLock) {
+        if (open != isOpen.get()) {
+            isOpen.set(open);
+            boolean success = false;
+            do {
+                success = this.state.compareAndSet(true, false);
+            } while (!success);
+
+            int currentThreadNum;
+            do {
+                currentThreadNum = this.currentThreadNum.get();
+            } while (currentThreadNum != 0);
+
+            if (open) {
+                adaptiveLock = this.locks.get("Collision");
+            } else {
+                adaptiveLock = !isUseReentrantLock ? this.locks.get("Collision") : this.locks.get("Reentrant");
+            }
+            state.set(true);
+        }
     }
 
-    public void setLocks(Map<String, AdaptiveLock> locks) {
+    public List<AdaptiveBackOffLock> getLocks() {
+        return (List<AdaptiveBackOffLock>) this.locks.values();
+    }
+
+    public void setLocks(Map<String, AdaptiveBackOffLock> locks) {
         this.locks = locks;
     }
 
@@ -149,7 +176,7 @@ public class AdaptiveLockImpl implements AdaptiveLock {
         this.state.set(state);
     }
 
-    public AdaptiveLock getAdaptiveLock() {
+    public AdaptiveBackOffLock getAdaptiveLock() {
         return adaptiveLock;
     }
 

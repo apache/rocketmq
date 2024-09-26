@@ -25,11 +25,11 @@ import static org.junit.Assert.assertTrue;
 
 public class AdaptiveLockTest {
 
-    AdaptiveLockImpl adaptiveLock;
+    AdaptiveBackOffLockImpl adaptiveLock;
 
     @Before
     public void init() {
-        adaptiveLock = new AdaptiveLockImpl();
+        adaptiveLock = new AdaptiveBackOffLockImpl();
     }
 
     @Test
