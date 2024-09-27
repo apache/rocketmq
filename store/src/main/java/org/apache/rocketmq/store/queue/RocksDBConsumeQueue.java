@@ -245,7 +245,10 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
             long maxCqOffset = getMaxOffsetInQueue();
             if (startIndex < maxCqOffset) {
                 int num = pullNum(startIndex, maxCqOffset);
-                return iterateFrom1(startIndex, num);
+                if (num <= 16) {
+                    return iterateFrom0(startIndex, num);
+                }
+                return new LargeRocksDBConsumeQueueIterator(startIndex, num);
             }
         } catch (RocksDBException e) {
             log.error("[RocksDBConsumeQueue] iterateFrom error!", e);
@@ -330,13 +333,6 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
             return null;
         }
         return new RocksDBConsumeQueueIterator(byteBufferList, startIndex);
-    }
-
-    private ReferredIterator<CqUnit> iterateFrom1(final long startIndex, final int count) throws RocksDBException {
-        if (count <= 16) {
-            return iterateFrom0(startIndex, count);
-        }
-        return new LargeRocksDBConsumeQueueIterator(startIndex, count);
     }
 
     @Override
