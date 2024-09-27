@@ -2,7 +2,7 @@ name: PUSH-CI
 
 on:
   push:
-    branches: [master, develop]
+    branches: [master, develop, cicd-perf-benchmark]
   #schedule:
   #  - cron: "0 18 * * *" # TimeZone: UTC 0
 
@@ -78,7 +78,6 @@ jobs:
           name: versionlist
           path: rocketmq-docker/image-build-ci/versionlist/*
 
-  
   list-version:
     if: >
       github.repository == 'apache/rocketmq' && 
@@ -101,6 +100,7 @@ jobs:
           a=(`ls versionlist`)
           printf '%s\n' "${a[@]}" | jq -R . | jq -s .
           echo version-json=`printf '%s\n' "${a[@]}" | jq -R . | jq -s .` >> $GITHUB_OUTPUT
+
   deploy:
     if: ${{ success() }}
     name: Deploy RocketMQ
@@ -110,7 +110,9 @@ jobs:
     strategy:
       matrix:
         version: ${{ fromJSON(needs.list-version.outputs.version-json) }}
+        test-type: [e2e, benchmark]
     steps:
+      - run: echo "Running ${{ matrix.test-type }}... "
       - uses: apache/rocketmq-test-tool@7d84d276ad7755b1dc5cf9657a7a9bff6ae6d288
         name: Deploy rocketmq
         with:
@@ -134,6 +136,7 @@ jobs:
               image:
                 repository: ${{env.DOCKER_REPO}}
                 tag: ${{ matrix.version }}
+
   test-e2e-grpc-java:
     if: ${{ success() }}
     name: Test E2E grpc java
@@ -247,16 +250,39 @@ jobs:
           name: test-e2e-remoting-java-log.txt
           path: testlog.txt
 
+  benchmark-test:
+    if: ${{ success() }}
+    runs-on: ubuntu-latest
+    name: Performance benchmark test
+    needs: [ list-version, deploy ]
+    timeout-minutes: 60
+    steps:
+      - uses: chi3316/rocketmq-test-tool/benchmark-runner@e670a74fe1f0ccbe1d28081dbf6c0fc35372b885
+        name: Performance benchmark
+        with:
+          action: "performance-benchmark"
+          ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
+          job-id: 1
+          test-time: "600"
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report
+          path: benchmark/
+
   clean:
     if: always()
     name: Clean
-    needs: [list-version, test-e2e-grpc-java, test-e2e-golang, test-e2e-remoting-java]
+    needs: [list-version, test-e2e-grpc-java, test-e2e-golang, test-e2e-remoting-java, benchmark-test]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       matrix:
         version: ${{ fromJSON(needs.list-version.outputs.version-json) }}
+        test-type: [ e2e, benchmark ]
     steps:
+      - run: echo "Cleaning ${{ matrix.test-type }}... "
       - uses: apache/rocketmq-test-tool@7d84d276ad7755b1dc5cf9657a7a9bff6ae6d288
         name: clean
         with:
