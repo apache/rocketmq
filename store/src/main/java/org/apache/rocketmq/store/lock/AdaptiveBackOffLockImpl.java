@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.store.lock;
 
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.PutMessageReentrantLock;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
@@ -35,9 +38,9 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
 
     private final static float SWAP_SPIN_LOCK_RATIO = 0.8f;
 
-    private final static float SPIN_LOCK_ADAPTIVE_RATIO = 1.5f;
+    private final static int SPIN_LOCK_ADAPTIVE_RATIO = 4;
 
-    private final static int BASE_SWAP_LOCK_RATIO = 200;
+    private final static int BASE_SWAP_LOCK_RATIO = 320;
 
     private Map<String, AdaptiveBackOffLock> locks;
 
