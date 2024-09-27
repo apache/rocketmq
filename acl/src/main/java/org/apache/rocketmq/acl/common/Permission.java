@@ -43,6 +43,14 @@ public class Permission {
         ADMIN_CODE.add(RequestCode.UPDATE_AND_CREATE_SUBSCRIPTIONGROUP);
         // DELETE_SUBSCRIPTIONGROUP
         ADMIN_CODE.add(RequestCode.DELETE_SUBSCRIPTIONGROUP);
+        // UPDATE_AND_CREATE_STATIC_TOPIC
+        ADMIN_CODE.add(RequestCode.UPDATE_AND_CREATE_STATIC_TOPIC);
+        // UPDATE_AND_CREATE_ACL_CONFIG
+        ADMIN_CODE.add(RequestCode.UPDATE_AND_CREATE_ACL_CONFIG);
+        // DELETE_ACL_CONFIG
+        ADMIN_CODE.add(RequestCode.DELETE_ACL_CONFIG);
+        // GET_BROKER_CLUSTER_ACL_INFO
+        ADMIN_CODE.add(RequestCode.GET_BROKER_CLUSTER_ACL_INFO);
     }
 
     public static boolean checkPermission(byte neededPerm, byte ownedPerm) {

@@ -35,6 +35,9 @@ import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.netty.RequestTask;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.store.ConsumeQueueExt;
+import org.apache.rocketmq.store.MessageFilter;
 
 import static org.apache.rocketmq.broker.longpolling.PollingResult.NOT_POLLING;
 import static org.apache.rocketmq.broker.longpolling.PollingResult.POLLING_FULL;
@@ -51,14 +54,16 @@ public class PopLongPollingService extends ServiceThread {
     private long lastCleanTime = 0;
 
     private final AtomicLong totalPollingNum = new AtomicLong(0);
+    private final boolean notifyLast;
 
-    public PopLongPollingService(BrokerController brokerController, NettyRequestProcessor processor) {
+    public PopLongPollingService(BrokerController brokerController, NettyRequestProcessor processor, boolean notifyLast) {
         this.brokerController = brokerController;
         this.processor = processor;
         // 100000 topic default,  100000 lru topic + cid + qid
         this.topicCidMap = new ConcurrentHashMap<>(brokerController.getBrokerConfig().getPopPollingMapSize());
         this.pollingMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentSkipListSet<PopRequest>>()
             .maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize()).build();
+        this.notifyLast = notifyLast;
     }
 
     @Override
@@ -145,46 +150,61 @@ public class PopLongPollingService extends ServiceThread {
     }
 
     public void notifyMessageArrivingWithRetryTopic(final String topic, final int queueId) {
+        this.notifyMessageArrivingWithRetryTopic(topic, queueId, null, 0L, null, null);
+    }
+
+    public void notifyMessageArrivingWithRetryTopic(final String topic, final int queueId,
+        Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         String notifyTopic;
         if (KeyBuilder.isPopRetryTopicV2(topic)) {
             notifyTopic = KeyBuilder.parseNormalTopic(topic);
         } else {
             notifyTopic = topic;
         }
-        notifyMessageArriving(notifyTopic, queueId);
+        notifyMessageArriving(notifyTopic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
     }
 
-    public void notifyMessageArriving(final String topic, final int queueId) {
+    public void notifyMessageArriving(final String topic, final int queueId,
+        Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         ConcurrentHashMap<String, Byte> cids = topicCidMap.get(topic);
         if (cids == null) {
             return;
         }
         for (Map.Entry<String, Byte> cid : cids.entrySet()) {
             if (queueId >= 0) {
-                notifyMessageArriving(topic, cid.getKey(), -1);
+                notifyMessageArriving(topic, -1, cid.getKey(), tagsCode, msgStoreTime, filterBitMap, properties);
             }
-            notifyMessageArriving(topic, cid.getKey(), queueId);
+            notifyMessageArriving(topic, queueId, cid.getKey(), tagsCode, msgStoreTime, filterBitMap, properties);
         }
     }
 
-    public boolean notifyMessageArriving(final String topic, final String cid, final int queueId) {
+    public boolean notifyMessageArriving(final String topic, final int queueId, final String cid,
+        Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         ConcurrentSkipListSet<PopRequest> remotingCommands = pollingMap.get(KeyBuilder.buildPollingKey(topic, cid, queueId));
         if (remotingCommands == null || remotingCommands.isEmpty()) {
             return false;
         }
-        PopRequest popRequest = remotingCommands.pollFirst();
-        //clean inactive channel
-        while (popRequest != null && !popRequest.getChannel().isActive()) {
-            totalPollingNum.decrementAndGet();
-            popRequest = remotingCommands.pollFirst();
-        }
 
+        PopRequest popRequest = pollRemotingCommands(remotingCommands);
         if (popRequest == null) {
             return false;
         }
-        totalPollingNum.decrementAndGet();
+
+        if (popRequest.getMessageFilter() != null && popRequest.getSubscriptionData() != null) {
+            boolean match = popRequest.getMessageFilter().isMatchedByConsumeQueue(tagsCode,
+                new ConsumeQueueExt.CqExtUnit(tagsCode, msgStoreTime, filterBitMap));
+            if (match && properties != null) {
+                match = popRequest.getMessageFilter().isMatchedByCommitLog(null, properties);
+            }
+            if (!match) {
+                remotingCommands.add(popRequest);
+                totalPollingNum.incrementAndGet();
+                return false;
+            }
+        }
+
         if (brokerController.getBrokerConfig().isEnablePopLog()) {
-            POP_LOGGER.info("lock release , new msg arrive , wakeUp : {}", popRequest);
+            POP_LOGGER.info("lock release, new msg arrive, wakeUp: {}", popRequest);
         }
         return wakeUp(popRequest);
     }
@@ -226,6 +246,11 @@ public class PopLongPollingService extends ServiceThread {
      */
     public PollingResult polling(final ChannelHandlerContext ctx, RemotingCommand remotingCommand,
         final PollingHeader requestHeader) {
+        return this.polling(ctx, remotingCommand, requestHeader, null, null);
+    }
+
+    public PollingResult polling(final ChannelHandlerContext ctx, RemotingCommand remotingCommand,
+        final PollingHeader requestHeader, SubscriptionData subscriptionData, MessageFilter messageFilter) {
         if (requestHeader.getPollTime() <= 0 || this.isStopped()) {
             return NOT_POLLING;
         }
@@ -239,7 +264,7 @@ public class PopLongPollingService extends ServiceThread {
         }
         cids.putIfAbsent(requestHeader.getConsumerGroup(), Byte.MIN_VALUE);
         long expired = requestHeader.getBornTime() + requestHeader.getPollTime();
-        final PopRequest request = new PopRequest(remotingCommand, ctx, expired);
+        final PopRequest request = new PopRequest(remotingCommand, ctx, expired, subscriptionData, messageFilter);
         boolean isFull = totalPollingNum.get() >= this.brokerController.getBrokerConfig().getMaxPopPollingSize();
         if (isFull) {
             POP_LOGGER.info("polling {}, result POLLING_FULL, total:{}", remotingCommand, totalPollingNum.get());
@@ -339,5 +364,23 @@ public class PopLongPollingService extends ServiceThread {
         }
 
         lastCleanTime = System.currentTimeMillis();
+    }
+
+    private PopRequest pollRemotingCommands(ConcurrentSkipListSet<PopRequest> remotingCommands) {
+        if (remotingCommands == null || remotingCommands.isEmpty()) {
+            return null;
+        }
+
+        PopRequest popRequest;
+        do {
+            if (notifyLast) {
+                popRequest = remotingCommands.pollLast();
+            } else {
+                popRequest = remotingCommands.pollFirst();
+            }
+            totalPollingNum.decrementAndGet();
+        } while (popRequest != null && !popRequest.getChannel().isActive());
+
+        return popRequest;
     }
 }

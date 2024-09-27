@@ -164,10 +164,6 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
     public DefaultLitePullConsumerImpl(final DefaultLitePullConsumer defaultLitePullConsumer, final RPCHook rpcHook) {
         this.defaultLitePullConsumer = defaultLitePullConsumer;
         this.rpcHook = rpcHook;
-        this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(
-            this.defaultLitePullConsumer.getPullThreadNums(),
-            new ThreadFactoryImpl("PullMsgThread-" + this.defaultLitePullConsumer.getConsumerGroup())
-        );
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("MonitorMessageQueueChangeThread"));
         this.pullTimeDelayMillsWhenException = defaultLitePullConsumer.getPullTimeDelayMillsWhenException();
     }
@@ -293,6 +289,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                     this.defaultLitePullConsumer.changeInstanceNameToPID();
                 }
 
+                initScheduledThreadPoolExecutor();
+
                 initMQClientFactory();
 
                 initRebalanceImpl();
@@ -322,6 +320,13 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             default:
                 break;
         }
+    }
+
+    private void initScheduledThreadPoolExecutor() {
+        this.scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(
+                this.defaultLitePullConsumer.getPullThreadNums(),
+                new ThreadFactoryImpl("PullMsgThread-" + this.defaultLitePullConsumer.getConsumerGroup())
+        );
     }
 
     private void initMQClientFactory() throws MQClientException {
@@ -901,7 +906,9 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                 if ((long) consumeRequestCache.size() * defaultLitePullConsumer.getPullBatchSize() > defaultLitePullConsumer.getPullThresholdForAll()) {
                     scheduledThreadPoolExecutor.schedule(this, PULL_TIME_DELAY_MILLS_WHEN_CACHE_FLOW_CONTROL, TimeUnit.MILLISECONDS);
                     if ((consumeRequestFlowControlTimes++ % 1000) == 0) {
-                        log.warn("The consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}", consumeRequestCache.size(), consumeRequestFlowControlTimes);
+                        log.warn("The consume request count exceeds threshold {}, so do flow control, consume request count={}, flowControlTimes={}",
+                                (int)Math.ceil((double)defaultLitePullConsumer.getPullThresholdForAll() / defaultLitePullConsumer.getPullBatchSize()),
+                                consumeRequestCache.size(), consumeRequestFlowControlTimes);
                     }
                     return;
                 }
@@ -1235,18 +1242,16 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             return true;
         }
 
-        if (set1 == null || set2 == null || set1.size() != set2.size() || set1.size() == 0) {
+        if (set1 == null || set2 == null || set1.size() != set2.size()) {
             return false;
         }
 
-        Iterator<MessageQueue> iter = set2.iterator();
-        boolean isEqual = true;
-        while (iter.hasNext()) {
-            if (!set1.contains(iter.next())) {
-                isEqual = false;
+        for (MessageQueue messageQueue : set2) {
+            if (!set1.contains(messageQueue)) {
+                return false;
             }
         }
-        return isEqual;
+        return true;
     }
 
     public AssignedMessageQueue getAssignedMessageQueue() {

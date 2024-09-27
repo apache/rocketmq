@@ -16,39 +16,91 @@
  */
 package org.apache.rocketmq.broker.topic;
 
-import java.io.File;
-
-import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.config.RocksDBConfigManager;
-import org.apache.rocketmq.common.utils.DataConverter;
-
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.serializer.SerializerFeature;
+import java.io.File;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.RocksDBConfigManager;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.utils.DataConverter;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 
 public class RocksDBTopicConfigManager extends TopicConfigManager {
 
+    protected RocksDBConfigManager rocksDBConfigManager;
+
     public RocksDBTopicConfigManager(BrokerController brokerController) {
         super(brokerController, false);
-        this.rocksDBConfigManager = new RocksDBConfigManager(brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
+        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
     }
 
     @Override
     public boolean load() {
-        if (!this.rocksDBConfigManager.load(configFilePath(), this::decode0)) {
+        if (!rocksDBConfigManager.init()) {
+            return false;
+        }
+        if (!loadDataVersion() || !loadTopicConfig()) {
             return false;
         }
         this.init();
         return true;
     }
 
+    public boolean loadTopicConfig() {
+        return this.rocksDBConfigManager.loadData(this::decodeTopicConfig) && merge();
+    }
+
+    public boolean loadDataVersion() {
+        return this.rocksDBConfigManager.loadDataVersion();
+    }
+
+    private boolean merge() {
+        if (!brokerController.getMessageStoreConfig().isTransferMetadataJsonToRocksdb()) {
+            log.info("the switch transferMetadataJsonToRocksdb is off, no merge topic operation is needed.");
+            return true;
+        }
+        if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
+            log.info("topic json file does not exist, so skip merge");
+            return true;
+        }
+
+        if (!super.loadDataVersion()) {
+            log.error("load json topic dataVersion error, startup will exit");
+            return false;
+        }
+
+        final DataVersion dataVersion = super.getDataVersion();
+        final DataVersion kvDataVersion = this.getDataVersion();
+        if (dataVersion.getCounter().get() > kvDataVersion.getCounter().get()) {
+            if (!super.load()) {
+                log.error("load topic config from json file error, startup will exit");
+                return false;
+            }
+            final ConcurrentMap<String, TopicConfig> topicConfigTable = this.getTopicConfigTable();
+            for (Map.Entry<String, TopicConfig> entry : topicConfigTable.entrySet()) {
+                putTopicConfig(entry.getValue());
+                log.info("import topic config to rocksdb, topic={}", entry.getValue());
+            }
+            this.getDataVersion().assignNewOne(dataVersion);
+            updateDataVersion();
+        } else {
+            log.info("dataVersion is not greater than kvDataVersion, no need to merge topic metaData, dataVersion={}, kvDataVersion={}", dataVersion, kvDataVersion);
+        }
+        log.info("finish read topic config from json file and merge to rocksdb");
+        this.persist();
+        return true;
+    }
+
+
     @Override
     public boolean stop() {
         return this.rocksDBConfigManager.stop();
     }
 
-    @Override
-    protected void decode0(byte[] key, byte[] body) {
+    protected void decodeTopicConfig(byte[] key, byte[] body) {
         String topicName = new String(key, DataConverter.CHARSET_UTF8);
         TopicConfig topicConfig = JSON.parseObject(body, TopicConfig.class);
 
@@ -57,12 +109,7 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
     }
 
     @Override
-    public String configFilePath() {
-        return this.brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config" + File.separator + "topics" + File.separator;
-    }
-
-    @Override
-    protected TopicConfig putTopicConfig(TopicConfig topicConfig) {
+    public TopicConfig putTopicConfig(TopicConfig topicConfig) {
         String topicName = topicConfig.getTopicName();
         TopicConfig oldTopicConfig = this.topicConfigTable.put(topicName, topicConfig);
         try {
@@ -90,6 +137,26 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
     public synchronized void persist() {
         if (brokerController.getMessageStoreConfig().isRealTimePersistRocksDBConfig()) {
             this.rocksDBConfigManager.flushWAL();
+        }
+    }
+
+    public String rocksdbConfigFilePath() {
+        return this.brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config" + File.separator + "topics" + File.separator;
+    }
+
+
+    @Override
+    public DataVersion getDataVersion() {
+        return rocksDBConfigManager.getKvDataVersion();
+    }
+
+    @Override
+    public void updateDataVersion() {
+        try {
+            rocksDBConfigManager.updateKvDataVersion();
+        } catch (Exception e) {
+            log.error("update topic config dataVersion error", e);
+            throw new RuntimeException(e);
         }
     }
 }

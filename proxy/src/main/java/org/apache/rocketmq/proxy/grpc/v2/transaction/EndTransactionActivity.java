@@ -61,6 +61,7 @@ public class EndTransactionActivity extends AbstractMessingActivity {
             }
             future = this.messagingProcessor.endTransaction(
                 ctx,
+                request.getTopic().getName(),
                 request.getTransactionId(),
                 request.getMessageId(),
                 request.getTopic().getName(),

@@ -20,20 +20,27 @@ package org.apache.rocketmq.remoting.protocol.header;
 import com.google.common.base.MoreObjects;
 import io.netty.buffer.ByteBuf;
 import java.util.HashMap;
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.annotation.CFNullable;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.FastCodesHeader;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
 /**
  * Use short variable name to speed up FastJson deserialization process.
  */
+@RocketMQAction(value = RequestCode.SEND_MESSAGE_V2, action = Action.PUB)
 public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implements CommandCustomHeader, FastCodesHeader {
     @CFNotNull
     private String a; // producerGroup;
     @CFNotNull
+    @RocketMQResource(ResourceType.TOPIC)
     private String b; // topic;
     @CFNotNull
     private String c; // defaultTopic;
@@ -52,7 +59,7 @@ public class SendMessageRequestHeaderV2 extends TopicQueueRequestHeader implemen
     @CFNullable
     private Integer j; // reconsumeTimes;
     @CFNullable
-    private Boolean k; // unitMode = false;
+    private Boolean k; // unitMode;
 
     private Integer l; // consumeRetryTimes
 

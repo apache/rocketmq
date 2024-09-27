@@ -430,7 +430,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                         "the broker's disk is full [" + diskUtil() + "], messages are put to the slave, message store has been shut down, etc.");
                 break;
             case OS_PAGE_CACHE_BUSY:
-                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setCode(ResponseCode.SYSTEM_BUSY);
                 response.setRemark("[PC_SYNCHRONIZED]broker busy, start flow control for a while");
                 break;
             case LMQ_CONSUME_QUEUE_NUM_EXCEEDED:

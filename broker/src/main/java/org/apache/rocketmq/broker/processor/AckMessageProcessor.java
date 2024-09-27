@@ -297,15 +297,12 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 qId, ackOffset,
                 popTime);
             if (nextOffset > -1) {
-                if (!this.brokerController.getConsumerOffsetManager().hasOffsetReset(
-                    topic, consumeGroup, qId)) {
-                    this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(),
-                        consumeGroup, topic, qId, nextOffset);
+                if (!this.brokerController.getConsumerOffsetManager().hasOffsetReset(topic, consumeGroup, qId)) {
+                    this.brokerController.getConsumerOffsetManager().commitOffset(
+                        channel.remoteAddress().toString(), consumeGroup, topic, qId, nextOffset);
                 }
-                if (!this.brokerController.getConsumerOrderInfoManager().checkBlock(null, topic,
-                    consumeGroup, qId, invisibleTime)) {
-                    this.brokerController.getPopMessageProcessor().notifyMessageArriving(
-                        topic, consumeGroup, qId);
+                if (!this.brokerController.getConsumerOrderInfoManager().checkBlock(null, topic, consumeGroup, qId, invisibleTime)) {
+                    this.brokerController.getPopMessageProcessor().notifyMessageArriving(topic, qId, consumeGroup);
                 }
             } else if (nextOffset == -1) {
                 String errorInfo = String.format("offset is illegal, key:%s, old:%d, commit:%d, next:%d, %s",

@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.message.MessageQueue;
@@ -64,6 +65,8 @@ public class ClientConfig {
      */
     private int persistConsumerOffsetInterval = 1000 * 5;
     private long pullTimeDelayMillsWhenException = 1000;
+
+    private int traceMsgBatchNum = 10;
     private boolean unitMode = false;
     private String unitName;
     private boolean decodeReadBody = Boolean.parseBoolean(System.getProperty(DECODE_READ_BODY, "true"));
@@ -98,6 +101,16 @@ public class ClientConfig {
 
     private boolean enableHeartbeatChannelEventListener = true;
 
+    /**
+     * The switch for message trace
+     */
+    protected boolean enableTrace = false;
+
+    /**
+     * The name value of message trace topic. If not set, the default trace topic name will be used.
+     */
+    protected String traceTopic;
+
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());
@@ -115,6 +128,14 @@ public class ClientConfig {
         }
 
         return sb.toString();
+    }
+
+    public int getTraceMsgBatchNum() {
+        return traceMsgBatchNum;
+    }
+
+    public void setTraceMsgBatchNum(int traceMsgBatchNum) {
+        this.traceMsgBatchNum = traceMsgBatchNum;
     }
 
     public String getClientIP() {
@@ -215,6 +236,8 @@ public class ClientConfig {
         this.detectInterval = cc.detectInterval;
         this.detectTimeout = cc.detectTimeout;
         this.namespaceV2 = cc.namespaceV2;
+        this.enableTrace = cc.enableTrace;
+        this.traceTopic = cc.traceTopic;
     }
 
     public ClientConfig cloneClientConfig() {
@@ -245,6 +268,8 @@ public class ClientConfig {
         cc.detectInterval = detectInterval;
         cc.detectTimeout = detectTimeout;
         cc.namespaceV2 = namespaceV2;
+        cc.enableTrace = enableTrace;
+        cc.traceTopic = traceTopic;
         return cc;
     }
 
@@ -474,6 +499,22 @@ public class ClientConfig {
         this.useHeartbeatV2 = useHeartbeatV2;
     }
 
+    public boolean isEnableTrace() {
+        return enableTrace;
+    }
+
+    public void setEnableTrace(boolean enableTrace) {
+        this.enableTrace = enableTrace;
+    }
+
+    public String getTraceTopic() {
+        return traceTopic;
+    }
+
+    public void setTraceTopic(String traceTopic) {
+        this.traceTopic = traceTopic;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig{" +
@@ -505,6 +546,8 @@ public class ClientConfig {
             ", sendLatencyEnable=" + sendLatencyEnable +
             ", startDetectorEnable=" + startDetectorEnable +
             ", enableHeartbeatChannelEventListener=" + enableHeartbeatChannelEventListener +
+            ", enableTrace=" + enableTrace +
+            ", traceTopic='" + traceTopic + '\'' +
             '}';
     }
 }

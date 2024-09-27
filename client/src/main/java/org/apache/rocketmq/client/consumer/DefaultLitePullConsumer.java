@@ -169,15 +169,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      */
     private TraceDispatcher traceDispatcher = null;
 
-    /**
-     * The flag for message trace
-     */
-    private boolean enableMsgTrace = false;
-
-    /**
-     * The name value of message trace topic.If you don't config,you can use the default trace topic name.
-     */
-    private String customizedTraceTopic;
+    private RPCHook rpcHook;
 
     /**
      * Default constructor.
@@ -208,10 +200,11 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Constructor specifying consumer group, RPC hook
      *
      * @param consumerGroup Consumer group.
-     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param rpcHook       RPC hook to execute before each remoting command.
      */
     public DefaultLitePullConsumer(final String consumerGroup, RPCHook rpcHook) {
         this.consumerGroup = consumerGroup;
+        this.rpcHook = rpcHook;
         this.enableStreamRequestType = true;
         defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
     }
@@ -220,12 +213,13 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * Constructor specifying namespace, consumer group and RPC hook.
      *
      * @param consumerGroup Consumer group.
-     * @param rpcHook RPC hook to execute before each remoting command.
+     * @param rpcHook       RPC hook to execute before each remoting command.
      */
     @Deprecated
     public DefaultLitePullConsumer(final String namespace, final String consumerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
         this.consumerGroup = consumerGroup;
+        this.rpcHook = rpcHook;
         this.enableStreamRequestType = true;
         defaultLitePullConsumerImpl = new DefaultLitePullConsumerImpl(this, rpcHook);
     }
@@ -276,6 +270,7 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     public void unsubscribe(String topic) {
         this.defaultLitePullConsumerImpl.unsubscribe(withNamespace(topic));
     }
+
     @Override
     public void assign(Collection<MessageQueue> messageQueues) {
         defaultLitePullConsumerImpl.assign(queuesWithNamespace(messageQueues));
@@ -344,7 +339,8 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         this.defaultLitePullConsumerImpl.commitAll();
     }
 
-    @Override public void commit(Map<MessageQueue, Long> offsetMap, boolean persist) {
+    @Override
+    public void commit(Map<MessageQueue, Long> offsetMap, boolean persist) {
         this.defaultLitePullConsumerImpl.commit(offsetMap, persist);
     }
 
@@ -367,10 +363,10 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
      * @param messageQueueListener
      */
     @Override
-    public void subscribe(String topic, String subExpression, MessageQueueListener messageQueueListener) throws MQClientException {
+    public void subscribe(String topic, String subExpression,
+        MessageQueueListener messageQueueListener) throws MQClientException {
         this.defaultLitePullConsumerImpl.subscribe(withNamespace(topic), subExpression, messageQueueListener);
     }
-
 
     @Override
     public void commit(final Set<MessageQueue> messageQueues, boolean persist) {
@@ -592,15 +588,12 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
         return traceDispatcher;
     }
 
-    public void setCustomizedTraceTopic(String customizedTraceTopic) {
-        this.customizedTraceTopic = customizedTraceTopic;
-    }
-
     private void setTraceDispatcher() {
-        if (isEnableMsgTrace()) {
+        if (enableTrace) {
             try {
-                AsyncTraceDispatcher traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, customizedTraceTopic, null);
+                AsyncTraceDispatcher traceDispatcher = new AsyncTraceDispatcher(consumerGroup, TraceDispatcher.Type.CONSUME, getTraceMsgBatchNum(), traceTopic, rpcHook);
                 traceDispatcher.getTraceProducer().setUseTLS(this.isUseTLS());
+                traceDispatcher.setNamespaceV2(namespaceV2);
                 this.traceDispatcher = traceDispatcher;
                 this.defaultLitePullConsumerImpl.registerConsumeMessageHook(
                     new ConsumeMessageTraceHookImpl(traceDispatcher));
@@ -611,14 +604,18 @@ public class DefaultLitePullConsumer extends ClientConfig implements LitePullCon
     }
 
     public String getCustomizedTraceTopic() {
-        return customizedTraceTopic;
+        return traceTopic;
+    }
+
+    public void setCustomizedTraceTopic(String customizedTraceTopic) {
+        this.traceTopic = customizedTraceTopic;
     }
 
     public boolean isEnableMsgTrace() {
-        return enableMsgTrace;
+        return enableTrace;
     }
 
     public void setEnableMsgTrace(boolean enableMsgTrace) {
-        this.enableMsgTrace = enableMsgTrace;
+        this.enableTrace = enableMsgTrace;
     }
 }

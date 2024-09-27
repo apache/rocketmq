@@ -36,6 +36,7 @@ env:
 
 jobs:
   dist-tar:
+    if: github.repository == 'apache/rocketmq'
     name: Build dist tar
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -68,7 +69,7 @@ jobs:
           MAVEN_SETTINGS: ${{ github.workspace }}/.github/asf-deploy-settings.xml
         run: |
           mvn -Prelease-all -DskipTests -Dspotbugs.skip=true clean install -U
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload distribution tar
         with:
           name: rocketmq
@@ -90,7 +91,7 @@ jobs:
           repository: apache/rocketmq-docker.git
           ref: master
           path: rocketmq-docker
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         name: Download distribution tar
         with:
           name: rocketmq
@@ -109,7 +110,7 @@ jobs:
           mkdir versionlist
           touch versionlist/"${version}-`echo ${{ matrix.base-image }} | sed -e "s/:/-/g"`"
           sh ./build-image-local.sh ${version} ${{ matrix.base-image }} ${{ matrix.java-version }} ${DOCKER_REPO}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload distribution tar
         with:
           name: versionlist
@@ -124,7 +125,7 @@ jobs:
     outputs:
       version-json: ${{ steps.show_versions.outputs.version-json }}
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         name: Download versionlist
         with:
           name: versionlist
@@ -199,7 +200,7 @@ jobs:
           annotate_only: true
           include_passed: true
           detailed_summary: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always()
         name: Upload test log
         with:

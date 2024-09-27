@@ -29,22 +29,23 @@ import io.netty.handler.codec.haproxy.HAProxyProxiedProtocol;
 import io.netty.handler.codec.haproxy.HAProxyTLV;
 import io.netty.util.Attribute;
 import io.netty.util.DefaultAttributeMap;
+import java.lang.reflect.Field;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.rocketmq.acl.common.AclUtils;
+import org.apache.rocketmq.common.constant.CommonConstants;
 import org.apache.rocketmq.common.constant.HAProxyConstants;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.netty.AttributeKeys;
-
-import java.lang.reflect.Field;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
 
 public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
 
@@ -73,58 +74,88 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
     }
 
     private void forwardHAProxyMessage(Channel inboundChannel, Channel outboundChannel) throws Exception {
-        if (!inboundChannel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
-            return;
-        }
-
         if (!(inboundChannel instanceof DefaultAttributeMap)) {
             return;
         }
 
-        Attribute<?>[] attributes = (Attribute<?>[]) FieldUtils.readField(FIELD_ATTRIBUTE, inboundChannel);
-        if (ArrayUtils.isEmpty(attributes)) {
+        HAProxyMessage message = buildHAProxyMessage(inboundChannel);
+        if (message == null) {
             return;
         }
 
+        outboundChannel.writeAndFlush(message).sync();
+    }
+
+    protected HAProxyMessage buildHAProxyMessage(Channel inboundChannel) throws IllegalAccessException, DecoderException {
         String sourceAddress = null, destinationAddress = null;
         int sourcePort = 0, destinationPort = 0;
-        List<HAProxyTLV> haProxyTLVs = new ArrayList<>();
-
-        for (Attribute<?> attribute : attributes) {
-            String attributeKey = attribute.key().name();
-            if (!StringUtils.startsWith(attributeKey, HAProxyConstants.PROXY_PROTOCOL_PREFIX)) {
-                continue;
+        if (inboundChannel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
+            Attribute<?>[] attributes = (Attribute<?>[]) FieldUtils.readField(FIELD_ATTRIBUTE, inboundChannel);
+            if (ArrayUtils.isEmpty(attributes)) {
+                return null;
             }
-            String attributeValue = (String) attribute.get();
-            if (StringUtils.isEmpty(attributeValue)) {
-                continue;
-            }
-            if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_ADDR) {
-                sourceAddress = attributeValue;
-            }
-            if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_PORT) {
-                sourcePort = Integer.parseInt(attributeValue);
-            }
-            if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR) {
-                destinationAddress = attributeValue;
-            }
-            if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_SERVER_PORT) {
-                destinationPort = Integer.parseInt(attributeValue);
-            }
-            if (StringUtils.startsWith(attributeKey, HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX)) {
-                HAProxyTLV haProxyTLV = buildHAProxyTLV(attributeKey, attributeValue);
-                if (haProxyTLV != null) {
-                    haProxyTLVs.add(haProxyTLV);
+            for (Attribute<?> attribute : attributes) {
+                String attributeKey = attribute.key().name();
+                if (!StringUtils.startsWith(attributeKey, HAProxyConstants.PROXY_PROTOCOL_PREFIX)) {
+                    continue;
+                }
+                String attributeValue = (String) attribute.get();
+                if (StringUtils.isEmpty(attributeValue)) {
+                    continue;
+                }
+                if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_ADDR) {
+                    sourceAddress = attributeValue;
+                }
+                if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_PORT) {
+                    sourcePort = Integer.parseInt(attributeValue);
+                }
+                if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_SERVER_ADDR) {
+                    destinationAddress = attributeValue;
+                }
+                if (attribute.key() == AttributeKeys.PROXY_PROTOCOL_SERVER_PORT) {
+                    destinationPort = Integer.parseInt(attributeValue);
                 }
             }
+        } else {
+            String remoteAddr = RemotingHelper.parseChannelRemoteAddr(inboundChannel);
+            sourceAddress = StringUtils.substringBeforeLast(remoteAddr, CommonConstants.COLON);
+            sourcePort = Integer.parseInt(StringUtils.substringAfterLast(remoteAddr, CommonConstants.COLON));
+
+            String localAddr = RemotingHelper.parseChannelLocalAddr(inboundChannel);
+            destinationAddress = StringUtils.substringBeforeLast(localAddr, CommonConstants.COLON);
+            destinationPort = Integer.parseInt(StringUtils.substringAfterLast(localAddr, CommonConstants.COLON));
         }
 
         HAProxyProxiedProtocol proxiedProtocol = AclUtils.isColon(sourceAddress) ? HAProxyProxiedProtocol.TCP6 :
             HAProxyProxiedProtocol.TCP4;
 
-        HAProxyMessage message = new HAProxyMessage(HAProxyProtocolVersion.V2, HAProxyCommand.PROXY,
+        List<HAProxyTLV> haProxyTLVs = buildHAProxyTLV(inboundChannel);
+
+        return new HAProxyMessage(HAProxyProtocolVersion.V2, HAProxyCommand.PROXY,
             proxiedProtocol, sourceAddress, destinationAddress, sourcePort, destinationPort, haProxyTLVs);
-        outboundChannel.writeAndFlush(message).sync();
+    }
+
+    protected List<HAProxyTLV> buildHAProxyTLV(Channel inboundChannel) throws IllegalAccessException, DecoderException {
+        List<HAProxyTLV> result = new ArrayList<>();
+        if (!inboundChannel.hasAttr(AttributeKeys.PROXY_PROTOCOL_ADDR)) {
+            return result;
+        }
+        Attribute<?>[] attributes = (Attribute<?>[]) FieldUtils.readField(FIELD_ATTRIBUTE, inboundChannel);
+        if (ArrayUtils.isEmpty(attributes)) {
+            return result;
+        }
+        for (Attribute<?> attribute : attributes) {
+            String attributeKey = attribute.key().name();
+            if (!StringUtils.startsWith(attributeKey, HAProxyConstants.PROXY_PROTOCOL_TLV_PREFIX)) {
+                continue;
+            }
+            String attributeValue = (String) attribute.get();
+            HAProxyTLV haProxyTLV = buildHAProxyTLV(attributeKey, attributeValue);
+            if (haProxyTLV != null) {
+                result.add(haProxyTLV);
+            }
+        }
+        return result;
     }
 
     protected HAProxyTLV buildHAProxyTLV(String attributeKey, String attributeValue) throws DecoderException {

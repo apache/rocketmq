@@ -17,15 +17,22 @@
 
 package org.apache.rocketmq.remoting.protocol.header;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
+import org.apache.rocketmq.common.resource.RocketMQResource;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.rpc.TopicQueueRequestHeader;
 
-
+@RocketMQAction(value = RequestCode.POLLING_INFO, action = Action.GET)
 public class PollingInfoRequestHeader extends TopicQueueRequestHeader {
     @CFNotNull
+    @RocketMQResource(ResourceType.GROUP)
     private String consumerGroup;
     @CFNotNull
+    @RocketMQResource(ResourceType.TOPIC)
     private String topic;
     @CFNotNull
     private int queueId;

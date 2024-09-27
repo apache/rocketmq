@@ -69,9 +69,9 @@ public class BrokerStatsManager {
     @Deprecated public static final String COMMERCIAL_PERM_FAILURES = Stats.COMMERCIAL_PERM_FAILURES;
 
     // Send message latency
-    public static final String TOPIC_PUT_LATENCY = "TOPIC_PUT_LATENCY";
-    public static final String GROUP_ACK_NUMS = "GROUP_ACK_NUMS";
-    public static final String GROUP_CK_NUMS = "GROUP_CK_NUMS";
+    @Deprecated public static final String TOPIC_PUT_LATENCY = "TOPIC_PUT_LATENCY";
+    @Deprecated public static final String GROUP_ACK_NUMS = "GROUP_ACK_NUMS";
+    @Deprecated public static final String GROUP_CK_NUMS = "GROUP_CK_NUMS";
     public static final String DLQ_PUT_NUMS = "DLQ_PUT_NUMS";
     public static final String BROKER_ACK_NUMS = "BROKER_ACK_NUMS";
     public static final String BROKER_CK_NUMS = "BROKER_CK_NUMS";
@@ -142,7 +142,7 @@ public class BrokerStatsManager {
     private MomentStatsItemSet momentStatsItemSetFallTime;
 
     private final StatisticsManager accountStatManager = new StatisticsManager();
-    private StateGetter produerStateGetter;
+    private StateGetter producerStateGetter;
     private StateGetter consumerStateGetter;
 
     private BrokerConfig brokerConfig;
@@ -179,10 +179,10 @@ public class BrokerStatsManager {
         this.statsTable.put(Stats.TOPIC_PUT_SIZE, new StatsItemSet(Stats.TOPIC_PUT_SIZE, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.GROUP_GET_NUMS, new StatsItemSet(Stats.GROUP_GET_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.GROUP_GET_SIZE, new StatsItemSet(Stats.GROUP_GET_SIZE, this.scheduledExecutorService, log));
-        this.statsTable.put(GROUP_ACK_NUMS, new StatsItemSet(GROUP_ACK_NUMS, this.scheduledExecutorService, log));
-        this.statsTable.put(GROUP_CK_NUMS, new StatsItemSet(GROUP_CK_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.GROUP_ACK_NUMS, new StatsItemSet(Stats.GROUP_ACK_NUMS, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.GROUP_CK_NUMS, new StatsItemSet(Stats.GROUP_CK_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.GROUP_GET_LATENCY, new StatsItemSet(Stats.GROUP_GET_LATENCY, this.scheduledExecutorService, log));
-        this.statsTable.put(TOPIC_PUT_LATENCY, new StatsItemSet(TOPIC_PUT_LATENCY, this.scheduledExecutorService, log));
+        this.statsTable.put(Stats.TOPIC_PUT_LATENCY, new StatsItemSet(Stats.TOPIC_PUT_LATENCY, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.SNDBCK_PUT_NUMS, new StatsItemSet(Stats.SNDBCK_PUT_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(DLQ_PUT_NUMS, new StatsItemSet(DLQ_PUT_NUMS, this.scheduledExecutorService, log));
         this.statsTable.put(Stats.BROKER_PUT_NUMS, new StatsItemSet(Stats.BROKER_PUT_NUMS, this.scheduledExecutorService, log));
@@ -270,7 +270,7 @@ public class BrokerStatsManager {
 
                 String kind = item.getStatKind();
                 if (ACCOUNT_SEND.equals(kind) || ACCOUNT_SEND_REJ.equals(kind)) {
-                    return produerStateGetter.online(instanceId, group, topic);
+                    return producerStateGetter.online(instanceId, group, topic);
                 } else if (ACCOUNT_RCV.equals(kind) || ACCOUNT_SEND_BACK.equals(kind) || ACCOUNT_SEND_BACK_TO_DLQ.equals(kind) || ACCOUNT_REV_REJ.equals(kind)) {
                     return consumerStateGetter.online(instanceId, group, topic);
                 }
@@ -296,12 +296,12 @@ public class BrokerStatsManager {
         return momentStatsItemSetFallTime;
     }
 
-    public StateGetter getProduerStateGetter() {
-        return produerStateGetter;
+    public StateGetter getProducerStateGetter() {
+        return producerStateGetter;
     }
 
-    public void setProduerStateGetter(StateGetter produerStateGetter) {
-        this.produerStateGetter = produerStateGetter;
+    public void setProducerStateGetter(StateGetter producerStateGetter) {
+        this.producerStateGetter = producerStateGetter;
     }
 
     public StateGetter getConsumerStateGetter() {
@@ -338,10 +338,13 @@ public class BrokerStatsManager {
         }
         this.statsTable.get(Stats.GROUP_GET_NUMS).delValueByPrefixKey(topic, "@");
         this.statsTable.get(Stats.GROUP_GET_SIZE).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(Stats.GROUP_CK_NUMS).delValueByPrefixKey(topic, "@");
+        this.statsTable.get(Stats.GROUP_ACK_NUMS).delValueByPrefixKey(topic, "@");
         this.statsTable.get(Stats.QUEUE_GET_NUMS).delValueByPrefixKey(topic, "@");
         this.statsTable.get(Stats.QUEUE_GET_SIZE).delValueByPrefixKey(topic, "@");
         this.statsTable.get(Stats.SNDBCK_PUT_NUMS).delValueByPrefixKey(topic, "@");
         this.statsTable.get(Stats.GROUP_GET_LATENCY).delValueByInfixKey(topic, "@");
+        this.statsTable.get(Stats.TOPIC_PUT_LATENCY).delValueBySuffixKey(topic, "@");
         this.momentStatsItemSetFallSize.delValueByInfixKey(topic, "@");
         this.momentStatsItemSetFallTime.delValueByInfixKey(topic, "@");
     }
@@ -349,6 +352,8 @@ public class BrokerStatsManager {
     public void onGroupDeleted(final String group) {
         this.statsTable.get(Stats.GROUP_GET_NUMS).delValueBySuffixKey(group, "@");
         this.statsTable.get(Stats.GROUP_GET_SIZE).delValueBySuffixKey(group, "@");
+        this.statsTable.get(Stats.GROUP_CK_NUMS).delValueBySuffixKey(group, "@");
+        this.statsTable.get(Stats.GROUP_ACK_NUMS).delValueBySuffixKey(group, "@");
         if (enableQueueStat) {
             this.statsTable.get(Stats.QUEUE_GET_NUMS).delValueBySuffixKey(group, "@");
             this.statsTable.get(Stats.QUEUE_GET_SIZE).delValueBySuffixKey(group, "@");
@@ -434,12 +439,12 @@ public class BrokerStatsManager {
 
     public void incGroupCkNums(final String group, final String topic, final int incValue) {
         final String statsKey = buildStatsKey(topic, group);
-        this.statsTable.get(GROUP_CK_NUMS).addValue(statsKey, incValue, 1);
+        this.statsTable.get(Stats.GROUP_CK_NUMS).addValue(statsKey, incValue, 1);
     }
 
     public void incGroupAckNums(final String group, final String topic, final int incValue) {
         final String statsKey = buildStatsKey(topic, group);
-        this.statsTable.get(GROUP_ACK_NUMS).addValue(statsKey, incValue, 1);
+        this.statsTable.get(Stats.GROUP_ACK_NUMS).addValue(statsKey, incValue, 1);
     }
 
     public String buildStatsKey(String topic, String group) {
@@ -509,9 +514,8 @@ public class BrokerStatsManager {
             statsKey = new StringBuilder(6);
         }
         statsKey.append(queueId).append("@").append(topic);
-        this.statsTable.get(TOPIC_PUT_LATENCY).addValue(statsKey.toString(), incValue, 1);
+        this.statsTable.get(Stats.TOPIC_PUT_LATENCY).addValue(statsKey.toString(), incValue, 1);
     }
-
     public void incBrokerPutNums() {
         this.statsTable.get(Stats.BROKER_PUT_NUMS).getAndCreateStatsItem(this.clusterName).getValue().add(1);
     }

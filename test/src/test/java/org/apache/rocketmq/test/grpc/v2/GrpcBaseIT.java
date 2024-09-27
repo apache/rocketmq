@@ -100,7 +100,7 @@ import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.test.base.BaseConf;
@@ -137,8 +137,8 @@ public class GrpcBaseIT extends BaseConf {
         brokerController2.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
         brokerController3.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
 
-        header.put(InterceptorConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
-        header.put(InterceptorConstants.LANGUAGE, "JAVA");
+        header.put(GrpcConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
+        header.put(GrpcConstants.LANGUAGE, "JAVA");
 
         String mockProxyHome = "/mock/rmq/proxy/home";
         URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");

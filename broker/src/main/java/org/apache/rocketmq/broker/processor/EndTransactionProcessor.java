@@ -279,6 +279,9 @@ public class EndTransactionProcessor implements NettyRequestProcessor {
             switch (putMessageResult.getPutMessageStatus()) {
                 // Success
                 case PUT_OK:
+                    this.brokerController.getBrokerStatsManager().incTopicPutNums(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum(), 1);
+                    this.brokerController.getBrokerStatsManager().incTopicPutSize(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getWroteBytes());
+                    this.brokerController.getBrokerStatsManager().incBrokerPutNums(msgInner.getTopic(), putMessageResult.getAppendMessageResult().getMsgNum());
                 case FLUSH_DISK_TIMEOUT:
                 case FLUSH_SLAVE_TIMEOUT:
                 case SLAVE_NOT_AVAILABLE:

@@ -28,6 +28,7 @@ public class RequestCode {
     public static final int QUERY_CONSUMER_OFFSET = 14;
     public static final int UPDATE_CONSUMER_OFFSET = 15;
     public static final int UPDATE_AND_CREATE_TOPIC = 17;
+    public static final int UPDATE_AND_CREATE_TOPIC_LIST = 18;
     public static final int GET_ALL_TOPIC_CONFIG = 21;
     public static final int GET_TOPIC_CONFIG_LIST = 22;
 
@@ -147,6 +148,8 @@ public class RequestCode {
 
     public static final int GET_TOPICS_BY_CLUSTER = 224;
 
+    public static final int UPDATE_AND_CREATE_SUBSCRIPTIONGROUP_LIST = 225;
+
     public static final int QUERY_TOPICS_BY_CONSUMER = 343;
     public static final int QUERY_SUBSCRIPTION_BY_CONSUMER = 345;
 
@@ -214,6 +217,7 @@ public class RequestCode {
 
     public static final int GET_SUBSCRIPTIONGROUP_CONFIG = 352;
     public static final int UPDATE_AND_GET_GROUP_FORBIDDEN = 353;
+    public static final int CHECK_ROCKSDB_CQ_WRITE_PROGRESS = 354;
 
     public static final int LITE_PULL_MESSAGE = 361;
 
@@ -289,4 +293,16 @@ public class RequestCode {
     public static final int REMOVE_COLD_DATA_FLOW_CTR_CONFIG = 2002;
     public static final int GET_COLD_DATA_FLOW_CTR_INFO = 2003;
     public static final int SET_COMMITLOG_READ_MODE = 2004;
+
+    public static final int AUTH_CREATE_USER = 3001;
+    public static final int AUTH_UPDATE_USER = 3002;
+    public static final int AUTH_DELETE_USER = 3003;
+    public static final int AUTH_GET_USER = 3004;
+    public static final int AUTH_LIST_USER = 3005;
+
+    public static final int AUTH_CREATE_ACL = 3006;
+    public static final int AUTH_UPDATE_ACL = 3007;
+    public static final int AUTH_DELETE_ACL = 3008;
+    public static final int AUTH_GET_ACL = 3009;
+    public static final int AUTH_LIST_ACL = 3010;
 }

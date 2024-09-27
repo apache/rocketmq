@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
@@ -56,7 +55,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     public static final byte CTRL_1 = '\u0001';
     public static final byte CTRL_2 = '\u0002';
 
-    private static final int BATCH_SIZE = 16;
+    private final int batchSize;
     public static final int MAX_KEY_LEN = 300;
 
     private final ScheduledExecutorService scheduledExecutorService;
@@ -87,10 +86,11 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         this.rocksDBConsumeQueueOffsetTable = new RocksDBConsumeQueueOffsetTable(rocksDBConsumeQueueTable, rocksDBStorage, messageStore);
 
         this.writeBatch = new WriteBatch();
-        this.bufferDRList = new ArrayList(BATCH_SIZE);
-        this.cqBBPairList = new ArrayList(BATCH_SIZE);
-        this.offsetBBPairList = new ArrayList(BATCH_SIZE);
-        for (int i = 0; i < BATCH_SIZE; i++) {
+        this.batchSize = messageStoreConfig.getBatchWriteKvCqSize();
+        this.bufferDRList = new ArrayList(batchSize);
+        this.cqBBPairList = new ArrayList(batchSize);
+        this.offsetBBPairList = new ArrayList(batchSize);
+        for (int i = 0; i < batchSize; i++) {
             this.cqBBPairList.add(RocksDBConsumeQueueTable.getCQByteBufferPair());
             this.offsetBBPairList.add(RocksDBConsumeQueueOffsetTable.getOffsetByteBufferPair());
         }
@@ -164,9 +164,10 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public void putMessagePositionInfoWrapper(DispatchRequest request) throws RocksDBException {
-        if (request == null || this.bufferDRList.size() >= BATCH_SIZE) {
+        if (request == null || this.bufferDRList.size() >= batchSize) {
             putMessagePosition();
         }
+
         if (request != null) {
             this.bufferDRList.add(request);
         }
@@ -375,7 +376,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         if (high == null || high == -1) {
             return 0;
         }
-        return this.rocksDBConsumeQueueTable.binarySearchInCQByTime(topic, queueId, high, low, timestamp, minPhysicOffset);
+        return this.rocksDBConsumeQueueTable.binarySearchInCQByTime(topic, queueId, high, low, timestamp,
+            minPhysicOffset, boundaryType);
     }
 
     @Override

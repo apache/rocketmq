@@ -300,6 +300,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
     private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend, boolean brokerAllowFlowCtrSuspend)
         throws RemotingCommandException {
+        final long beginTimeMills = this.brokerController.getMessageStore().now();
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
         final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
         final PullMessageRequestHeader requestHeader =
@@ -555,7 +556,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                             brokerAllowSuspend,
                             messageFilter,
                             finalResponse,
-                            mappingContext
+                            mappingContext,
+                            beginTimeMills
                         );
                     })
                     .thenAccept(result -> NettyRemotingAbstract.writeResponse(channel, request, result));
@@ -574,7 +576,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 brokerAllowSuspend,
                 messageFilter,
                 response,
-                mappingContext
+                mappingContext,
+                beginTimeMills
             );
         }
         return null;

@@ -195,6 +195,7 @@ public class LocalMessageService implements MessageService {
     @Override
     public CompletableFuture<PopResult> popMessage(ProxyContext ctx, AddressableMessageQueue messageQueue,
         PopMessageRequestHeader requestHeader, long timeoutMillis) {
+        requestHeader.setBornTime(System.currentTimeMillis());
         RemotingCommand request = LocalRemotingCommand.createRequestCommand(RequestCode.POP_MESSAGE, requestHeader, ctx.getLanguage());
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         SimpleChannel channel = channelManager.createInvocationChannel(ctx);
@@ -437,6 +438,12 @@ public class LocalMessageService implements MessageService {
     public CompletableFuture<Void> updateConsumerOffset(ProxyContext ctx, AddressableMessageQueue messageQueue,
         UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
         throw new NotImplementedException("updateConsumerOffset is not implemented in LocalMessageService");
+    }
+
+    @Override
+    public CompletableFuture<Void> updateConsumerOffsetAsync(ProxyContext ctx, AddressableMessageQueue messageQueue,
+        UpdateConsumerOffsetRequestHeader requestHeader, long timeoutMillis) {
+        throw new NotImplementedException("updateConsumerOffsetAsync is not implemented in LocalMessageService");
     }
 
     @Override

@@ -16,10 +16,13 @@
  */
 package org.apache.rocketmq.broker.topic;
 
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -39,6 +42,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -47,6 +51,10 @@ import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RocksdbTopicConfigManagerTest {
+
+    private final String basePath = Paths.get(System.getProperty("user.home"),
+            "unit-test-store", UUID.randomUUID().toString().substring(0, 16).toUpperCase()).toString();
+
     private RocksDBTopicConfigManager topicConfigManager;
     @Mock
     private BrokerController brokerController;
@@ -62,9 +70,11 @@ public class RocksdbTopicConfigManagerTest {
         BrokerConfig brokerConfig = new BrokerConfig();
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(basePath);
+        messageStoreConfig.setTransferMetadataJsonToRocksdb(true);
         when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
-        when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
-        when(defaultMessageStore.getStateMachineVersion()).thenReturn(0L);
+        Mockito.lenient().when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
+        Mockito.lenient().when(defaultMessageStore.getStateMachineVersion()).thenReturn(0L);
         topicConfigManager = new RocksDBTopicConfigManager(brokerController);
         topicConfigManager.load();
     }
@@ -197,7 +207,6 @@ public class RocksdbTopicConfigManagerTest {
         TopicConfig existingTopicConfig = topicConfigManager.getTopicConfigTable().get(topic);
         Assert.assertEquals("enum-2", existingTopicConfig.getAttributes().get("enum.key"));
         Assert.assertEquals("16", existingTopicConfig.getAttributes().get("long.range.key"));
-        //        assert file
     }
 
     @Test

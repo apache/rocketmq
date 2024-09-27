@@ -26,6 +26,7 @@ import io.opentelemetry.api.common.Attributes;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
@@ -110,7 +111,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     public PopMessageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
         this.reviveTopic = PopAckConstants.buildClusterReviveTopic(this.brokerController.getBrokerConfig().getBrokerClusterName());
-        this.popLongPollingService = new PopLongPollingService(brokerController, this);
+        this.popLongPollingService = new PopLongPollingService(brokerController, this, false);
         this.queueLockManager = new QueueLockManager();
         this.popBufferMergeService = new PopBufferMergeService(this.brokerController, this);
         this.ckMessageNumber = new AtomicLong();
@@ -167,15 +168,23 @@ public class PopMessageProcessor implements NettyRequestProcessor {
     }
 
     public void notifyLongPollingRequestIfNeed(String topic, String group, int queueId) {
+        this.notifyLongPollingRequestIfNeed(
+            topic, group, queueId, null, 0L, null, null);
+    }
+
+    public void notifyLongPollingRequestIfNeed(String topic, String group, int queueId,
+        Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         long popBufferOffset = this.brokerController.getPopMessageProcessor().getPopBufferMergeService().getLatestOffset(topic, group, queueId);
         long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(group, topic, queueId);
         long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
         long offset = Math.max(popBufferOffset, consumerOffset);
         if (maxOffset > offset) {
-            boolean notifySuccess = popLongPollingService.notifyMessageArriving(topic, group, -1);
+            boolean notifySuccess = popLongPollingService.notifyMessageArriving(
+                topic, -1, group, tagsCode, msgStoreTime, filterBitMap, properties);
             if (!notifySuccess) {
                 // notify pop queue
-                notifySuccess = popLongPollingService.notifyMessageArriving(topic, group, queueId);
+                notifySuccess = popLongPollingService.notifyMessageArriving(
+                    topic, queueId, group, tagsCode, msgStoreTime, filterBitMap, properties);
             }
             this.brokerController.getNotificationProcessor().notifyMessageArriving(topic, queueId);
             if (this.brokerController.getBrokerConfig().isEnablePopLog()) {
@@ -185,17 +194,21 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    public void notifyMessageArriving(final String topic, final int queueId) {
-        popLongPollingService.notifyMessageArrivingWithRetryTopic(topic, queueId);
+    public void notifyMessageArriving(final String topic, final int queueId,
+        Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+        popLongPollingService.notifyMessageArrivingWithRetryTopic(
+            topic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
     }
 
-    public boolean notifyMessageArriving(final String topic, final String cid, final int queueId) {
-        return popLongPollingService.notifyMessageArriving(topic, cid, queueId);
+    public void notifyMessageArriving(final String topic, final int queueId, final String cid) {
+        popLongPollingService.notifyMessageArriving(
+            topic, queueId, cid, null, 0L, null, null);
     }
 
     @Override
     public RemotingCommand processRequest(final ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
+        final long beginTimeMills = this.brokerController.getMessageStore().now();
         request.addExtFieldIfNotExist(BORN_TIME, String.valueOf(System.currentTimeMillis()));
         if (Objects.equals(request.getExtFields().get(BORN_TIME), "0")) {
             request.addExtField(BORN_TIME, String.valueOf(System.currentTimeMillis()));
@@ -291,10 +304,11 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
 
         BrokerConfig brokerConfig = brokerController.getBrokerConfig();
+        SubscriptionData subscriptionData = null;
         ExpressionMessageFilter messageFilter = null;
-        if (requestHeader.getExp() != null && requestHeader.getExp().length() > 0) {
+        if (requestHeader.getExp() != null && !requestHeader.getExp().isEmpty()) {
             try {
-                SubscriptionData subscriptionData = FilterAPI.build(requestHeader.getTopic(), requestHeader.getExp(), requestHeader.getExpType());
+                subscriptionData = FilterAPI.build(requestHeader.getTopic(), requestHeader.getExp(), requestHeader.getExpType());
                 brokerController.getConsumerManager().compensateSubscribeData(requestHeader.getConsumerGroup(),
                     requestHeader.getTopic(), subscriptionData);
 
@@ -328,7 +342,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             }
         } else {
             try {
-                SubscriptionData subscriptionData = FilterAPI.build(requestHeader.getTopic(), "*", ExpressionType.TAG);
+                subscriptionData = FilterAPI.build(requestHeader.getTopic(), "*", ExpressionType.TAG);
                 brokerController.getConsumerManager().compensateSubscribeData(requestHeader.getConsumerGroup(),
                     requestHeader.getTopic(), subscriptionData);
 
@@ -359,7 +373,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         // considered the same type because they share the same retry flag in previous fields.
         // Therefore, needRetryV1 is designed as a subset of needRetry, and within a single request,
         // only one type of retry topic is able to call popMsgFromQueue.
-        boolean needRetry = randomQ % 5 == 0;
+        boolean needRetry = randomQ < brokerConfig.getPopFromRetryProbability();
         boolean needRetryV1 = false;
         if (brokerConfig.isEnableRetryTopicV2() && brokerConfig.isRetrieveMessageFromPopRetryTopicV1()) {
             needRetryV1 = randomQ % 2 == 0;
@@ -402,18 +416,26 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
 
         final RemotingCommand finalResponse = response;
+        SubscriptionData finalSubscriptionData = subscriptionData;
         getMessageFuture.thenApply(restNum -> {
             if (!getMessageResult.getMessageBufferList().isEmpty()) {
                 finalResponse.setCode(ResponseCode.SUCCESS);
                 getMessageResult.setStatus(GetMessageStatus.FOUND);
                 if (restNum > 0) {
                     // all queue pop can not notify specified queue pop, and vice versa
-                    popLongPollingService.notifyMessageArriving(requestHeader.getTopic(), requestHeader.getConsumerGroup(),
-                        requestHeader.getQueueId());
+                    popLongPollingService.notifyMessageArriving(
+                        requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getConsumerGroup(),
+                        null, 0L, null, null);
                 }
             } else {
-                PollingResult pollingResult = popLongPollingService.polling(ctx, request, new PollingHeader(requestHeader));
+                PollingResult pollingResult = popLongPollingService.polling(
+                    ctx, request, new PollingHeader(requestHeader), finalSubscriptionData, finalMessageFilter);
                 if (PollingResult.POLLING_SUC == pollingResult) {
+                    if (restNum > 0) {
+                        popLongPollingService.notifyMessageArriving(
+                            requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getConsumerGroup(),
+                            null, 0L, null, null);
+                    }
                     return null;
                 } else if (PollingResult.POLLING_FULL == pollingResult) {
                     finalResponse.setCode(ResponseCode.POLLING_FULL);
@@ -435,7 +457,6 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             switch (finalResponse.getCode()) {
                 case ResponseCode.SUCCESS:
                     if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
-                        final long beginTimeMills = this.brokerController.getMessageStore().now();
                         final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(),
                             requestHeader.getTopic(), requestHeader.getQueueId());
                         this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(),
@@ -519,6 +540,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return future;
         }
 
+        future.whenComplete((result, throwable) -> queueLockManager.unLock(lockKey));
         if (isPopShouldStop(topic, requestHeader.getConsumerGroup(), queueId)) {
             POP_LOGGER.warn("Too much msgs unacked, then stop poping. topic={}, group={}, queueId={}", topic, requestHeader.getConsumerGroup(), queueId);
             restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum;
@@ -527,21 +549,26 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
 
         try {
-            future.whenComplete((result, throwable) -> queueLockManager.unLock(lockKey));
             offset = getPopOffset(topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInitMode(),
                 true, lockKey, true);
-            if (isOrder && brokerController.getConsumerOrderInfoManager().checkBlock(attemptId, topic,
-                requestHeader.getConsumerGroup(), queueId, requestHeader.getInvisibleTime())) {
-                future.complete(this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId) - offset + restNum);
-                return future;
-            }
 
+            // Current requests would calculate the total number of messages
+            // waiting to be filtered for new message arrival notifications in
+            // the long-polling service, need disregarding the backlog in order
+            // consumption scenario. If rest message num including the blocked
+            // queue accumulation would lead to frequent unnecessary wake-ups
+            // of long-polling requests, resulting unnecessary CPU usage.
+            // When client ack message, long-polling request would be notifications
+            // by AckMessageProcessor.ackOrderly() and message will not be delayed.
             if (isOrder) {
+                if (brokerController.getConsumerOrderInfoManager().checkBlock(
+                    attemptId, topic, requestHeader.getConsumerGroup(), queueId, requestHeader.getInvisibleTime())) {
+                    // should not add accumulation(max offset - consumer offset) here
+                    future.complete(restNum);
+                    return future;
+                }
                 this.brokerController.getPopInflightMessageCounter().clearInFlightMessageNum(
-                    topic,
-                    requestHeader.getConsumerGroup(),
-                    queueId
-                );
+                    topic, requestHeader.getConsumerGroup(), queueId);
             }
 
             if (getMessageResult.getMessageMapedList().size() >= requestHeader.getMaxMsgNums()) {
@@ -622,10 +649,13 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     || GetMessageStatus.MESSAGE_WAS_REMOVING.equals(result.getStatus())
                     || GetMessageStatus.NO_MATCHED_LOGIC_QUEUE.equals(result.getStatus()))
                     && result.getNextBeginOffset() > -1) {
-                    popBufferMergeService.addCkMock(requestHeader.getConsumerGroup(), topic, queueId, finalOffset,
-                        requestHeader.getInvisibleTime(), popTime, reviveQid, result.getNextBeginOffset(), brokerController.getBrokerConfig().getBrokerName());
-//                this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(), requestHeader.getConsumerGroup(), topic,
-//                        queueId, getMessageTmpResult.getNextBeginOffset());
+                    if (isOrder) {
+                        this.brokerController.getConsumerOffsetManager().commitOffset(channel.remoteAddress().toString(), requestHeader.getConsumerGroup(), topic,
+                            queueId, result.getNextBeginOffset());
+                    } else {
+                        popBufferMergeService.addCkMock(requestHeader.getConsumerGroup(), topic, queueId, finalOffset,
+                            requestHeader.getInvisibleTime(), popTime, reviveQid, result.getNextBeginOffset(), brokerController.getBrokerConfig().getBrokerName());
+                    }
                 }
 
                 atomicRestNum.set(result.getMaxOffset() - result.getNextBeginOffset() + atomicRestNum.get());
@@ -704,8 +734,8 @@ public class PopMessageProcessor implements NettyRequestProcessor {
 
     private long getInitOffset(String topic, String group, int queueId, int initMode, boolean init) {
         long offset;
-        if (ConsumeInitMode.MIN == initMode) {
-            return this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
+        if (ConsumeInitMode.MIN == initMode || topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+            offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
         } else {
             if (this.brokerController.getBrokerConfig().isInitPopOffsetByCheckMsgInMem() &&
                 this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId) <= 0 &&
@@ -719,10 +749,10 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                     offset = 0;
                 }
             }
-            if (init) {
-                this.brokerController.getConsumerOffsetManager().commitOffset(
+        }
+        if (init) { // whichever initMode
+            this.brokerController.getConsumerOffsetManager().commitOffset(
                     "getPopOffset", group, topic, queueId, offset);
-            }
         }
         return offset;
     }
