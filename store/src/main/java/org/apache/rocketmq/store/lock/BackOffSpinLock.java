@@ -90,12 +90,8 @@ public class BackOffSpinLock implements AdaptiveBackOffLock {
                 }
             }
         } else {
-            if (optimalDegree / 2 >= INITIAL_DEGREE) {
-                optimalDegree /= 2;
-            } else {
-                if (optimalDegree > 2 * INITIAL_DEGREE) {
-                    optimalDegree -= MAX_OPTIMAL_DEGREE;
-                }
+            if (optimalDegree >= 2 * INITIAL_DEGREE) {
+                optimalDegree -= INITIAL_DEGREE;
             }
         }
     }
