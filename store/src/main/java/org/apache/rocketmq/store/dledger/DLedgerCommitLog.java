@@ -570,7 +570,6 @@ public class DLedgerCommitLog extends CommitLog {
         EncodeResult encodeResult;
 
         String topicQueueKey = msg.getTopic() + "-" + msg.getQueueId();
-        ByteBuffer preEncodeBuffer = msg.getEncodedBuff();
         final boolean isMultiDispatchMsg = CommitLog.isMultiDispatchMsg(this.defaultMessageStore.getMessageStoreConfig(), msg);
         topicQueueLock.lock(topicQueueKey);
         try {
@@ -585,15 +584,15 @@ public class DLedgerCommitLog extends CommitLog {
             long queueOffset;
             if (isMultiDispatchMsg) {
                 AppendMessageResult appendMessageResult = MultiDispatchUtils.handlePropertiesForLmqMsg(
-                        preEncodeBuffer, msg, this.multiDispatch, this.getMessageStore().getMessageStoreConfig().getMaxMessageSize());
+                        encodeResult.data, msg, this.multiDispatch, this.getMessageStore().getMessageStoreConfig());
                 if (appendMessageResult != null) {
                     PutMessageStatus putMessageStatus = PutMessageStatus.MESSAGE_ILLEGAL;
                     return CompletableFuture.completedFuture(new PutMessageResult(putMessageStatus, appendMessageResult));
                 }
             }
-            final int msgLen = preEncodeBuffer.getInt(0);
-            preEncodeBuffer.position(0);
-            preEncodeBuffer.limit(msgLen);
+            final int msgLen = encodeResult.data.getInt(0);
+            encodeResult.data.position(0);
+            encodeResult.data.limit(msgLen);
 
             try {
                 beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();

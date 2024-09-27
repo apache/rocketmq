@@ -30,6 +30,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
+import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MultiDispatch;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
@@ -70,10 +71,12 @@ public class MultiDispatchUtils {
     }
 
     public static AppendMessageResult handlePropertiesForLmqMsg(
-            ByteBuffer preEncodeBuffer, final MessageExtBrokerInner msgInner, MultiDispatch multiDispatch, int messageMaxSize) {
+            ByteBuffer preEncodeBuffer, final MessageExtBrokerInner msgInner, MultiDispatch multiDispatch, MessageStoreConfig messageStoreConfig) {
         if (msgInner.isEncodeCompleted()) {
             return null;
         }
+
+        int crc32ReservedLength = messageStoreConfig.isEnabledAppendPropCRC() ? CommitLog.CRC32_RESERVED_LEN : 0;
 
         multiDispatch.wrapMultiDispatch(msgInner);
 
@@ -82,7 +85,11 @@ public class MultiDispatchUtils {
         final byte[] propertiesData =
                 msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
 
-        final int propertiesLength = propertiesData == null ? 0 : propertiesData.length;
+        boolean needAppendLastPropertySeparator = messageStoreConfig.isEnabledAppendPropCRC() && propertiesData != null && propertiesData.length > 0
+                && propertiesData[propertiesData.length - 1] != MessageDecoder.PROPERTY_SEPARATOR;
+
+        final int propertiesLength =
+            (propertiesData == null ? 0 : propertiesData.length) + (needAppendLastPropertySeparator ? 1 : 0) + crc32ReservedLength;
 
         if (propertiesLength > Short.MAX_VALUE) {
             log.warn("putMessage message properties length too long. length={}", propertiesData.length);
@@ -94,8 +101,8 @@ public class MultiDispatchUtils {
         int msgLen = msgLenWithoutProperties + 2 + propertiesLength;
 
         // Exceeds the maximum message
-        if (msgLen > messageMaxSize) {
-            log.warn("message size exceeded, msg total size: " + msgLen + ", maxMessageSize: " + messageMaxSize);
+        if (msgLen > messageStoreConfig.getMaxMessageSize()) {
+            log.warn("message size exceeded, msg total size: " + msgLen + ", maxMessageSize: " + messageStoreConfig.getMaxMessageSize());
             return new AppendMessageResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED);
         }
 
@@ -105,6 +112,16 @@ public class MultiDispatchUtils {
         preEncodeBuffer.position(msgLenWithoutProperties);
 
         preEncodeBuffer.putShort((short) propertiesLength);
+
+        if (propertiesLength > crc32ReservedLength) {
+            preEncodeBuffer.put(propertiesData);
+        }
+
+        if (needAppendLastPropertySeparator) {
+            preEncodeBuffer.put((byte) MessageDecoder.PROPERTY_SEPARATOR);
+        }
+        // 18 CRC32
+        preEncodeBuffer.position(preEncodeBuffer.position() + crc32ReservedLength);
 
         msgInner.setEncodeCompleted(true);
 
