@@ -257,7 +257,7 @@ jobs:
     needs: [ list-version, deploy ]
     timeout-minutes: 60
     steps:
-      - uses: chi3316/rocketmq-test-tool/benchmark-runner@e670a74fe1f0ccbe1d28081dbf6c0fc35372b885
+      - uses: apache/rocketmq-test-tool/benchmark-runner@ce372e5f3906ca1891e4918b05be14608eae608e
         name: Performance benchmark
         with:
           action: "performance-benchmark"
