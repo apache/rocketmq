@@ -439,7 +439,7 @@ public class MessageStoreConfig {
     /**
      * Use AdaptiveBackOffLock
      **/
-    private boolean isUseABSLock = true;
+    private boolean isUseABSLock = false;
 
     public int getBatchWriteKvCqSize() {
         return batchWriteKvCqSize;

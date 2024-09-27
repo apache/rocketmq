@@ -33,9 +33,11 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
     //state
     private AtomicBoolean state = new AtomicBoolean(true);
 
-    private final static float SWAP_MUTEX_LOCK_RATIO = 0.8f;
+    private final static float SWAP_SPIN_LOCK_RATIO = 0.8f;
 
     private final static float SPIN_LOCK_ADAPTIVE_RATIO = 1.5f;
+
+    private final static int BASE_SWAP_LOCK_RATIO = 200;
 
     private Map<String, AdaptiveBackOffLock> locks;
 
@@ -91,7 +93,7 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
             return;
         }
         boolean needSwap = false;
-        int slot = LocalTime.now().getSecond() % 2 - 1 >= 0 ? 0 : 1;
+        int slot = 1 - LocalTime.now().getSecond() % 2;
         int tps = this.tpsTable.get(slot).get() + 1;
         this.tpsTable.get(slot).set(-1);
         if (tps == 0) {
@@ -100,20 +102,19 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
 
         if (this.adaptiveLock instanceof BackOffSpinLock) {
             BackOffSpinLock lock = (BackOffSpinLock) this.adaptiveLock;
-            int base = Math.min(200 + tps / 200, 500);
-            if (lock.getNumberOfRetreat(slot) * base >= tps) {
+            if (lock.getNumberOfRetreat(slot) * BASE_SWAP_LOCK_RATIO >= tps) {
                 if (lock.isAdapt()) {
                     lock.adapt(true);
                 } else {
                     this.tpsSwapCriticalPoint = tps;
                     needSwap = true;
                 }
-            } else if (lock.getNumberOfRetreat(slot) * base * SPIN_LOCK_ADAPTIVE_RATIO <= tps) {
+            } else if (lock.getNumberOfRetreat(slot) * BASE_SWAP_LOCK_RATIO * SPIN_LOCK_ADAPTIVE_RATIO <= tps) {
                 lock.adapt(false);
             }
             lock.setNumberOfRetreat(slot, 0);
         } else {
-            if (tps <= this.tpsSwapCriticalPoint * SWAP_MUTEX_LOCK_RATIO) {
+            if (tps <= this.tpsSwapCriticalPoint * SWAP_SPIN_LOCK_RATIO) {
                 needSwap = true;
             }
         }
