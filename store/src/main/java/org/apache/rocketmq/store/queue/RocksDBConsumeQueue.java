@@ -395,28 +395,14 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
     }
 
     private class LargeRocksDBConsumeQueueIterator implements ReferredIterator<CqUnit> {
-        private List<ByteBuffer> byteBufferList;
-        private int bufferStartIndex;
         private final long startIndex;
         private final int totalCount;
         private int currentIndex;
 
-        public LargeRocksDBConsumeQueueIterator(final long startIndex, final int num) throws RocksDBException {
+        public LargeRocksDBConsumeQueueIterator(final long startIndex, final int num) {
             this.startIndex = startIndex;
             this.totalCount = num;
             this.currentIndex = 0;
-            prefetch(0);
-        }
-
-        private void prefetch(int bufferStartIndex) throws RocksDBException {
-            int pullNum = Math.min(totalCount - bufferStartIndex, 16);
-            byteBufferList = messageStore.getQueueStore().rangeQuery(topic, queueId, startIndex + bufferStartIndex, pullNum);
-            if (byteBufferList == null || byteBufferList.isEmpty()) {
-                if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
-                    log.warn("iterateFrom1 - find nothing, startIndex:{}, count:{}", startIndex + bufferStartIndex, pullNum);
-                }
-            }
-            this.bufferStartIndex = bufferStartIndex;
         }
 
         @Override
@@ -424,31 +410,23 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
             return this.currentIndex < this.totalCount;
         }
 
-        public boolean needPrefetch(int currentIndex) {
-            if (byteBufferList == null) {
-                return true;
-            }
-            return currentIndex < bufferStartIndex || currentIndex >= bufferStartIndex + byteBufferList.size();
-        }
 
         @Override
         public CqUnit next() {
             if (!hasNext()) {
                 return null;
             }
-            final int currentIndex = this.currentIndex;
-            if (needPrefetch(currentIndex)) {
-                try {
-                    prefetch(currentIndex);
-                } catch (RocksDBException e) {
-                    return null;
-                }
-            }
-            if (needPrefetch(currentIndex)) {
+
+            final ByteBuffer byteBuffer;
+            try {
+                byteBuffer = messageStore.getQueueStore().get(topic, queueId, startIndex + currentIndex);
+            } catch (RocksDBException e) {
+                ERROR_LOG.error("get cq from rocksdb failed. topic: {}, queueId: {}", topic, queueId, e);
                 return null;
             }
-
-            final ByteBuffer byteBuffer = this.byteBufferList.get(currentIndex - bufferStartIndex);
+            if (byteBuffer == null || byteBuffer.remaining() < RocksDBConsumeQueueTable.CQ_UNIT_SIZE) {
+                return null;
+            }
             CqUnit cqUnit = new CqUnit(this.startIndex + currentIndex, byteBuffer.getLong(), byteBuffer.getInt(), byteBuffer.getLong());
             this.currentIndex++;
             return cqUnit;

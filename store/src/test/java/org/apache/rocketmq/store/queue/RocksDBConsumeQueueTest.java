@@ -23,8 +23,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueTable.CQ_UNIT_SIZE;
 import static org.junit.Assert.assertEquals;
@@ -36,7 +34,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class RocksDBConsumeQueueTest {
+public class RocksDBConsumeQueueTest extends QueueTestBase {
 
     @Test
     public void testIterator() throws Exception {
@@ -47,23 +45,18 @@ public class RocksDBConsumeQueueTest {
         RocksDBConsumeQueueStore rocksDBConsumeQueueStore = mock(RocksDBConsumeQueueStore.class);
         when(messageStore.getQueueStore()).thenReturn(rocksDBConsumeQueueStore);
         when(rocksDBConsumeQueueStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(10000L);
-        when(rocksDBConsumeQueueStore.rangeQuery(anyString(), anyInt(), anyLong(), anyInt())).then(new Answer<List<ByteBuffer>>() {
+        when(rocksDBConsumeQueueStore.get(anyString(), anyInt(), anyLong())).then(new Answer<ByteBuffer>() {
             @Override
-            public List<ByteBuffer> answer(InvocationOnMock mock) throws Throwable {
+            public ByteBuffer answer(InvocationOnMock mock) throws Throwable {
                 long startIndex = mock.getArgument(2);
-                int num = mock.getArgument(3);
-                List<ByteBuffer> result = new ArrayList<>(num);
-                for (int i = 0; i < num; i++) {
-                    final ByteBuffer byteBuffer = ByteBuffer.allocate(CQ_UNIT_SIZE);
-                    long phyOffset = (startIndex + i) * 10;
-                    byteBuffer.putLong(phyOffset);
-                    byteBuffer.putInt(1);
-                    byteBuffer.putLong(0);
-                    byteBuffer.putLong(0);
-                    byteBuffer.flip();
-                    result.add(byteBuffer);
-                }
-                return result;
+                final ByteBuffer byteBuffer = ByteBuffer.allocate(CQ_UNIT_SIZE);
+                long phyOffset = startIndex * 10;
+                byteBuffer.putLong(phyOffset);
+                byteBuffer.putInt(1);
+                byteBuffer.putLong(0);
+                byteBuffer.putLong(0);
+                byteBuffer.flip();
+                return byteBuffer;
             }
         });
 
