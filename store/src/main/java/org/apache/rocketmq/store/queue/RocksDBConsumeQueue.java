@@ -245,9 +245,6 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
             long maxCqOffset = getMaxOffsetInQueue();
             if (startIndex < maxCqOffset) {
                 int num = pullNum(startIndex, maxCqOffset);
-                if (num <= 16) {
-                    return iterateFrom0(startIndex, num);
-                }
                 return new LargeRocksDBConsumeQueueIterator(startIndex, num);
             }
         } catch (RocksDBException e) {
