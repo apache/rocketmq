@@ -241,14 +241,10 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public ReferredIterator<CqUnit> iterateFrom(final long startIndex) {
-        try {
-            long maxCqOffset = getMaxOffsetInQueue();
-            if (startIndex < maxCqOffset) {
-                int num = pullNum(startIndex, maxCqOffset);
-                return new LargeRocksDBConsumeQueueIterator(startIndex, num);
-            }
-        } catch (RocksDBException e) {
-            log.error("[RocksDBConsumeQueue] iterateFrom error!", e);
+        long maxCqOffset = getMaxOffsetInQueue();
+        if (startIndex < maxCqOffset) {
+            int num = pullNum(startIndex, maxCqOffset);
+            return new LargeRocksDBConsumeQueueIterator(startIndex, num);
         }
         return null;
     }
