@@ -37,6 +37,7 @@ import org.apache.rocketmq.common.message.MessageBatch;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -253,7 +254,7 @@ public class BatchSendIT extends BaseConf {
         Thread.sleep(300);
         {
             DefaultMQPullConsumer defaultMQPullConsumer = ConsumerFactory.getRMQPullConsumer(NAMESRV_ADDR, "group");
-
+            defaultMQPullConsumer.setDecodeDecompressBody(true);
             long startOffset = 5;
             PullResult pullResult = defaultMQPullConsumer.pullBlockIfNotFound(messageQueue, "*", startOffset, batchCount * batchNum);
             Assert.assertEquals(PullStatus.FOUND, pullResult.getPullStatus());
@@ -266,6 +267,7 @@ public class BatchSendIT extends BaseConf {
                 Assert.assertEquals(batchTopic, messageExt.getTopic());
                 Assert.assertEquals(messageQueue.getQueueId(), messageExt.getQueueId());
                 Assert.assertEquals(bodyLen, messageExt.getBody().length);
+                Assert.assertTrue((messageExt.getSysFlag() & MessageSysFlag.COMPRESSED_FLAG) != 0);
             }
         }
     }
