@@ -62,8 +62,6 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
     private static final long DEFAULT_MQ_CLIENT_TIMEOUT = Duration.ofSeconds(3).toMillis();
     private final String clientId;
-    private final String remoteAddress;
-    private final String localAddress;
     private final RemotingProxyOutClient remotingProxyOutClient;
     private final Set<SubscriptionData> subscriptionData;
 
@@ -75,8 +73,6 @@ public class RemotingChannel extends ProxyChannel implements RemoteChannelConver
             NetworkUtil.socketAddress2String(parent.localAddress()));
         this.remotingProxyOutClient = remotingProxyOutClient;
         this.clientId = clientId;
-        this.remoteAddress = NetworkUtil.socketAddress2String(parent.remoteAddress());
-        this.localAddress = NetworkUtil.socketAddress2String(parent.localAddress());
         this.subscriptionData = subscriptionData;
     }
 
