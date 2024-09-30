@@ -506,6 +506,9 @@
                             <excludes>
                                 <exclude>**/NormalMsgDelayIT.java</exclude>
                             </excludes>
+                            <includes>
+                                <include>**/BatchSendIT.java</include>
+                            </includes>
                         </configuration>
                         <executions>
                             <execution>
