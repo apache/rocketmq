@@ -253,8 +253,11 @@ public class BatchSendIT extends BaseConf {
         }
         Thread.sleep(300);
         {
-            DefaultMQPullConsumer defaultMQPullConsumer = ConsumerFactory.getRMQPullConsumer(NAMESRV_ADDR, "group");
+            // not start to set decodeDecompressBody independent of
+            // system property ClientConfig.DECODE_DECOMPRESS_BODY(com.rocketmq.decompress.body) config
+            DefaultMQPullConsumer defaultMQPullConsumer = ConsumerFactory.getRMQPullConsumer(NAMESRV_ADDR, "group",false);
             defaultMQPullConsumer.setDecodeDecompressBody(true);
+            defaultMQPullConsumer.start();
             long startOffset = 5;
             PullResult pullResult = defaultMQPullConsumer.pullBlockIfNotFound(messageQueue, "*", startOffset, batchCount * batchNum);
             Assert.assertEquals(PullStatus.FOUND, pullResult.getPullStatus());
@@ -266,9 +269,6 @@ public class BatchSendIT extends BaseConf {
                 Assert.assertEquals(i + startOffset, messageExt.getQueueOffset());
                 Assert.assertEquals(batchTopic, messageExt.getTopic());
                 Assert.assertEquals(messageQueue.getQueueId(), messageExt.getQueueId());
-                if (bodyLen != messageExt.getBody().length) {
-                    logger.error("decompress fail? {} {}", i, messageExt);
-                }
                 Assert.assertEquals(bodyLen, messageExt.getBody().length);
                 Assert.assertTrue((messageExt.getSysFlag() & MessageSysFlag.COMPRESSED_FLAG) != 0);
                 Assert.assertTrue(messageExt.getStoreSize() < bodyLen);
