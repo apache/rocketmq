@@ -266,8 +266,12 @@ public class BatchSendIT extends BaseConf {
                 Assert.assertEquals(i + startOffset, messageExt.getQueueOffset());
                 Assert.assertEquals(batchTopic, messageExt.getTopic());
                 Assert.assertEquals(messageQueue.getQueueId(), messageExt.getQueueId());
+                if(bodyLen!=messageExt.getBody().length){
+                    logger.error("decompress fail? {} {}",i,messageExt);
+                }
                 Assert.assertEquals(bodyLen, messageExt.getBody().length);
                 Assert.assertTrue((messageExt.getSysFlag() & MessageSysFlag.COMPRESSED_FLAG) != 0);
+                Assert.assertTrue(messageExt.getStoreSize()<bodyLen);
             }
         }
     }
