@@ -85,13 +85,13 @@ public class ConsumerFactory {
         DefaultMQPullConsumer defaultMQPullConsumer = new DefaultMQPullConsumer(consumerGroup);
         defaultMQPullConsumer.setInstanceName(UUID.randomUUID().toString());
         defaultMQPullConsumer.setNamesrvAddr(nsAddr);
-        if(start){
+        if (start) {
             defaultMQPullConsumer.start();
         }
         return defaultMQPullConsumer;
     }
 
     public static DefaultMQPullConsumer getRMQPullConsumer(String nsAddr, String consumerGroup) throws Exception {
-       return getRMQPullConsumer(nsAddr, consumerGroup, true);
+        return getRMQPullConsumer(nsAddr, consumerGroup, true);
     }
 }
