@@ -257,7 +257,7 @@ jobs:
     needs: [ list-version, deploy ]
     timeout-minutes: 60
     steps:
-      - uses: chi3316/rocketmq-test-tool/benchmark-runner@9d8452cb2f25f611e6f7de29a95c781a718ac156
+      - uses: apache/rocketmq-test-tool/benchmark-runner@ce372e5f3906ca1891e4918b05be14608eae608e
         name: Performance benchmark
         with:
           action: "performance-benchmark"
@@ -274,7 +274,7 @@ jobs:
   clean:
     if: always()
     name: Clean
-    needs: [list-version, test-e2e-grpc-java, test-e2e-golang, test-e2e-remoting-java]
+    needs: [list-version, test-e2e-grpc-java, test-e2e-golang, test-e2e-remoting-java, benchmark-test]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
