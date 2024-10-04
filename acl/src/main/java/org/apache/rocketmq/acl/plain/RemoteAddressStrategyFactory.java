@@ -28,8 +28,13 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class RemoteAddressStrategyFactory {
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
 
+// 添加一条占位符日志记录，确保log变量会被使用到
+public static void main(String[] args) {
+    log.info("初始化RemoteAddressStrategyFactory...");
+}
+    
     public static final NullRemoteAddressStrategy NULL_NET_ADDRESS_STRATEGY = new NullRemoteAddressStrategy();
 
     public static final BlankRemoteAddressStrategy BLANK_NET_ADDRESS_STRATEGY = new BlankRemoteAddressStrategy();

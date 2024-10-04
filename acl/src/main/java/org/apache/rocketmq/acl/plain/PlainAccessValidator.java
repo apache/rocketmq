@@ -60,6 +60,7 @@ public class PlainAccessValidator implements AccessValidator {
         return aclPlugEngine.deleteAccessConfig(accessKey);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public String getAclConfigVersion() {
         return aclPlugEngine.getAclConfigDataVersion();
