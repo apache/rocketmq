@@ -63,6 +63,8 @@ public class PlainAccessValidator implements AccessValidator {
     @Override
     public String getAclConfigVersion() {
         return aclPlugEngine.getAclConfigDataVersion();
+        // 替换为新的方法名
+        //return aclPlugEngine.getCurrentAclConfigVersion();
     }
 
     @Override
