@@ -263,7 +263,14 @@ jobs:
           action: "performance-benchmark"
           ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
           job-id: 1
-          test-time: "600"
+          # The time to run the test, 15 minutes
+          test-time: "900"
+          # Some thresholds set in advance
+          min-send-tps-threshold: "12000"
+          max-rt-ms-threshold: "500"
+          avg-rt-ms-threshold: "10"
+          max-2c-rt-ms-threshold: "100"
+          avg-2c-rt-ms-threshold: "10"
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
