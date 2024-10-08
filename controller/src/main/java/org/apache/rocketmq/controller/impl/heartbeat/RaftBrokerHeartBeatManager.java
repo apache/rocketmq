@@ -60,14 +60,16 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
 
     private final Map<Channel, BrokerIdentityInfo> brokerChannelIdentityInfoMap = new HashMap<>();
 
-
     // resolve the scene
-    // when controller all down and startup again, we wait for some time to avoid electing a new leader,which is not necessary
+    // when controller all down and startup again, we wait for some time to avoid
+    // electing a new leader,which is not necessary
     private long firstReceivedHeartbeatTime = -1;
 
     public RaftBrokerHeartBeatManager(ControllerConfig controllerConfig) {
-        this.scheduledService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("RaftBrokerHeartbeatManager_scheduledService_"));
-        this.executor = Executors.newFixedThreadPool(2, new ThreadFactoryImpl("RaftBrokerHeartbeatManager_executorService_"));
+        this.scheduledService = Executors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryImpl("RaftBrokerHeartbeatManager_scheduledService_"));
+        this.executor = Executors.newFixedThreadPool(2,
+                new ThreadFactoryImpl("RaftBrokerHeartbeatManager_executorService_"));
         this.controllerConfig = controllerConfig;
     }
 
@@ -82,7 +84,8 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void start() {
-        this.scheduledService.scheduleAtFixedRate(this::scanNotActiveBroker, 2000, this.controllerConfig.getScanNotActiveBrokerInterval(), TimeUnit.MILLISECONDS);
+        this.scheduledService.scheduleAtFixedRate(this::scanNotActiveBroker, 2000,
+                this.controllerConfig.getScanNotActiveBrokerInterval(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -98,8 +101,8 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
 
     @Override
     public void onBrokerHeartbeat(String clusterName, String brokerName, String brokerAddr, Long brokerId,
-        Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset,
-        Integer electionPriority) {
+            Long timeoutMillis, Channel channel, Integer epoch, Long maxOffset, Long confirmOffset,
+            Integer electionPriority) {
 
         if (firstReceivedHeartbeatTime == -1) {
             firstReceivedHeartbeatTime = System.currentTimeMillis();
@@ -113,22 +116,25 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         long realTimeoutMillis = Optional.ofNullable(timeoutMillis).orElse(DEFAULT_BROKER_CHANNEL_EXPIRED_TIME);
         int realElectionPriority = Optional.ofNullable(electionPriority).orElse(Integer.MAX_VALUE);
         BrokerLiveInfo liveInfo = new BrokerLiveInfo(brokerName,
-            brokerAddr,
-            realBrokerId,
-            System.currentTimeMillis(),
-            realTimeoutMillis,
-            null,
-            realEpoch,
-            realMaxOffset,
-            realElectionPriority,
-            realConfirmOffset);
+                brokerAddr,
+                realBrokerId,
+                System.currentTimeMillis(),
+                realTimeoutMillis,
+                null,
+                realEpoch,
+                realMaxOffset,
+                realElectionPriority,
+                realConfirmOffset);
         log.info("broker {} heart beat", brokerIdentityInfo);
-        RaftBrokerHeartBeatEventRequest requestHeader = new RaftBrokerHeartBeatEventRequest(brokerIdentityInfo, liveInfo);
+        RaftBrokerHeartBeatEventRequest requestHeader = new RaftBrokerHeartBeatEventRequest(brokerIdentityInfo,
+                liveInfo);
         CompletableFuture<RemotingCommand> future = controller.onBrokerHeartBeat(requestHeader);
         try {
             RemotingCommand remotingCommand = future.get(5, java.util.concurrent.TimeUnit.SECONDS);
-            if (remotingCommand.getCode() != ResponseCode.SUCCESS && remotingCommand.getCode() != ResponseCode.CONTROLLER_NOT_LEADER) {
-                throw new RuntimeException("on broker heartbeat return invalid code, code: " + remotingCommand.getCode());
+            if (remotingCommand.getCode() != ResponseCode.SUCCESS
+                    && remotingCommand.getCode() != ResponseCode.CONTROLLER_NOT_LEADER) {
+                throw new RuntimeException(
+                        "on broker heartbeat return invalid code, code: " + remotingCommand.getCode());
             }
         } catch (ExecutionException | InterruptedException | TimeoutException | RuntimeException e) {
             log.error("on broker heartbeat through raft failed", e);
@@ -146,9 +152,11 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
             try {
                 RemotingCommand remotingCommand = future.get(5, java.util.concurrent.TimeUnit.SECONDS);
                 if (remotingCommand.getCode() != ResponseCode.SUCCESS) {
-                    throw new RuntimeException("on broker close channel return invalid code, code: " + remotingCommand.getCode());
+                    throw new RuntimeException(
+                            "on broker close channel return invalid code, code: " + remotingCommand.getCode());
                 }
-                this.executor.submit(() -> notifyBrokerInActive(brokerIdentityInfo.getClusterName(), brokerIdentityInfo.getBrokerName(), brokerIdentityInfo.getBrokerId()));
+                this.executor.submit(() -> notifyBrokerInActive(brokerIdentityInfo.getClusterName(),
+                        brokerIdentityInfo.getBrokerName(), brokerIdentityInfo.getBrokerId()));
                 brokerChannelIdentityInfoMap.remove(channel);
             } catch (ExecutionException | InterruptedException | TimeoutException | RuntimeException e) {
                 log.error("on broker close channel through raft failed", e);
@@ -170,11 +178,14 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         try {
             RemotingCommand remotingCommand = future.get(5, java.util.concurrent.TimeUnit.SECONDS);
             if (remotingCommand.getCode() != ResponseCode.SUCCESS) {
-                throw new RuntimeException("get broker live info return invalid code, code: " + remotingCommand.getCode());
+                throw new RuntimeException(
+                        "get broker live info return invalid code, code: " + remotingCommand.getCode());
             }
-            GetBrokerLiveInfoResponse getBrokerLiveInfoResponse = (GetBrokerLiveInfoResponse) remotingCommand.decodeCommandCustomHeader(GetBrokerLiveInfoResponse.class);
-            return JSON.parseObject(remotingCommand.getBody(), new TypeReference<Map<BrokerIdentityInfo, BrokerLiveInfo>>() {
-            }.getType());
+            GetBrokerLiveInfoResponse getBrokerLiveInfoResponse = (GetBrokerLiveInfoResponse) remotingCommand
+                    .decodeCommandCustomHeader(GetBrokerLiveInfoResponse.class);
+            return JSON.parseObject(remotingCommand.getBody(),
+                    new TypeReference<Map<BrokerIdentityInfo, BrokerLiveInfo>>() {
+                    }.getType());
         } catch (Throwable e) {
             log.error("get broker live info through raft failed", e);
         }
@@ -188,7 +199,8 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         }
 
         // if has not received any heartbeat from broker, we do not need to scan
-        if (this.firstReceivedHeartbeatTime + controllerConfig.getJraftConfig().getjRaftScanWaitTimeoutMs() < System.currentTimeMillis()) {
+        if (this.firstReceivedHeartbeatTime + controllerConfig.getJraftConfig().getjRaftScanWaitTimeoutMs() < System
+                .currentTimeMillis()) {
             log.info("has not received any heartbeat from broker, skip scan not active broker");
             return;
         }
@@ -199,28 +211,26 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         try {
             RemotingCommand remotingCommand = future.get(5, java.util.concurrent.TimeUnit.SECONDS);
             if (remotingCommand.getCode() != ResponseCode.SUCCESS) {
-                throw new RuntimeException("check not active broker return invalid code, code: " + remotingCommand.getCode());
+                throw new RuntimeException(
+                        "check not active broker return invalid code, code: " + remotingCommand.getCode());
             }
-            List<BrokerIdentityInfo> notActiveAndNeedReElectBrokerIdentityInfoList = JSON.parseObject(remotingCommand.getBody(), new TypeReference<List<BrokerIdentityInfo>>() {
-            }.getType());
-            if (notActiveAndNeedReElectBrokerIdentityInfoList != null && !notActiveAndNeedReElectBrokerIdentityInfoList.isEmpty()) {
+            List<BrokerIdentityInfo> notActiveAndNeedReElectBrokerIdentityInfoList = JSON
+                    .parseObject(remotingCommand.getBody(), new TypeReference<List<BrokerIdentityInfo>>() {
+                    }.getType());
+            if (notActiveAndNeedReElectBrokerIdentityInfoList != null
+                    && !notActiveAndNeedReElectBrokerIdentityInfoList.isEmpty()) {
                 notActiveAndNeedReElectBrokerIdentityInfoList.forEach(brokerIdentityInfo -> {
-                    Iterator<Map.Entry<Channel, BrokerIdentityInfo>> iterator = brokerChannelIdentityInfoMap.entrySet().iterator();
-                    Channel channel = null;
-                    while (iterator.hasNext()) {
-                        Map.Entry<Channel, BrokerIdentityInfo> entry = iterator.next();
-                        if (entry.getValue().getBrokerId() == null) {
-                            continue;
-                        }
+                    brokerChannelIdentityInfoMap.entrySet().removeIf(entry -> {
                         if (entry.getValue().equals(brokerIdentityInfo)) {
-                            channel = entry.getKey();
                             RemotingHelper.closeChannel(entry.getKey());
-                            iterator.remove();
-                            break;
+                            notifyBrokerInActive(brokerIdentityInfo.getClusterName(),
+                                    brokerIdentityInfo.getBrokerName(), brokerIdentityInfo.getBrokerId());
+                            log.warn("The broker channel {} expired, brokerInfo {}", entry.getKey(),
+                                    brokerIdentityInfo);
+                            return true;
                         }
-                    }
-                    this.executor.submit(() -> notifyBrokerInActive(brokerIdentityInfo.getClusterName(), brokerIdentityInfo.getBrokerName(), brokerIdentityInfo.getBrokerId()));
-                    log.warn("The broker channel {} expired, brokerInfo {}", channel, brokerIdentityInfo);
+                        return false;
+                    });
                 });
             }
         } catch (Throwable e) {
@@ -230,7 +240,8 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
 
     @Override
     public BrokerLiveInfo getBrokerLiveInfo(String clusterName, String brokerName, Long brokerId) {
-        log.info("get broker live info, clusterName: {}, brokerName: {}, brokerId: {}", clusterName, brokerName, brokerId);
+        log.info("get broker live info, clusterName: {}, brokerName: {}, brokerId: {}", clusterName, brokerName,
+                brokerId);
         BrokerIdentityInfo brokerIdentityInfo = new BrokerIdentityInfo(clusterName, brokerName, brokerId);
         Map<BrokerIdentityInfo, BrokerLiveInfo> brokerLiveInfoMap = getBrokerLiveInfo(brokerIdentityInfo);
         return brokerLiveInfoMap.get(brokerIdentityInfo);
@@ -259,13 +270,13 @@ public class RaftBrokerHeartBeatManager implements BrokerHeartbeatManager {
         Map<String, Map<String, Integer>> map = new HashMap<>();
         Map<BrokerIdentityInfo, BrokerLiveInfo> brokerLiveInfoMap = getBrokerLiveInfo(null);
         brokerLiveInfoMap.keySet().stream()
-            .filter(brokerIdentity -> this.isBrokerActive(brokerIdentity.getClusterName(), brokerIdentity.getBrokerName(), brokerIdentity.getBrokerId()))
-            .forEach(id -> {
-                map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
-                map.get(id.getClusterName()).compute(id.getBrokerName(), (broker, num) ->
-                    num == null ? 1 : num + 1
-                );
-            });
+                .filter(brokerIdentity -> this.isBrokerActive(brokerIdentity.getClusterName(),
+                        brokerIdentity.getBrokerName(), brokerIdentity.getBrokerId()))
+                .forEach(id -> {
+                    map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
+                    map.get(id.getClusterName()).compute(id.getBrokerName(),
+                            (broker, num) -> num == null ? 1 : num + 1);
+                });
         return map;
     }
 
