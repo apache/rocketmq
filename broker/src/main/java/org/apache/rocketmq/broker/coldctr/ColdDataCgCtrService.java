@@ -17,7 +17,7 @@
 package org.apache.rocketmq.broker.coldctr;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+//import java.util.Comparator;代码中未使用到该导入项
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -142,13 +142,10 @@ public class ColdDataCgCtrService extends ServiceThread {
     }
 
     private void sortAndDecelerate() {
-        List<Entry<String, Long>> configMapList = new ArrayList<Entry<String, Long>>(cgColdThresholdMapConfig.entrySet());
-        configMapList.sort(new Comparator<Entry<String, Long>>() {
-            @Override
-            public int compare(Entry<String, Long> o1, Entry<String, Long> o2) {
-                return (int)(o2.getValue() - o1.getValue());
-            }
-        });
+        //使用钻石运算符<>来代替显式的类型参数
+        List<Entry<String, Long>> configMapList = new ArrayList<>(cgColdThresholdMapConfig.entrySet());
+        //将匿名内部类替换为等效的Lambda表达式。
+        configMapList.sort((Entry<String, Long> o1, Entry<String, Long> o2) -> (int)(o2.getValue() - o1.getValue()));
         Iterator<Entry<String, Long>> iterator = configMapList.iterator();
         int maxDecelerate = 3;
         while (iterator.hasNext() && maxDecelerate > 0) {
