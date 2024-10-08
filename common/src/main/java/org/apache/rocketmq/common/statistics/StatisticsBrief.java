@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.rocketmq.common.statistics;
-
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,12 +24,10 @@ public class StatisticsBrief {
     public static final int META_RANGE_INDEX = 0;
     public static final int META_SLOT_NUM_INDEX = 1;
 
-    // TopPercentile
     private long[][] topPercentileMeta;
     private AtomicInteger[] counts;
     private AtomicLong totalCount;
 
-    // max min avg total
     private long max;
     private long min;
     private long total;
@@ -42,17 +39,16 @@ public class StatisticsBrief {
 
         this.topPercentileMeta = topPercentileMeta;
         this.counts = new AtomicInteger[slotNum(topPercentileMeta)];
+        for (int i = 0; i < counts.length; i++) {
+            counts[i] = new AtomicInteger(0);
+        }
         this.totalCount = new AtomicLong(0);
         reset();
     }
 
     public void reset() {
-        for (int i = 0; i < counts.length; i++) {
-            if (counts[i] == null) {
-                counts[i] = new AtomicInteger(0);
-            } else {
-                counts[i].set(0);
-            }
+        for (AtomicInteger count : counts) {
+            count.set(0);
         }
         totalCount.set(0);
 
@@ -106,13 +102,13 @@ public class StatisticsBrief {
             ratio = 0.99f;
         }
         long count = totalCount.get();
-        long excludes = (long)(count - count * ratio);
+        long excludes = (long) (count - count * ratio);
         if (excludes == 0) {
             return getMax();
         }
 
         int tmp = 0;
-        for (int i = counts.length - 1; i > 0; i--) {
+        for (int i = counts.length - 1; i >= 0; i--) {
             tmp += counts[i].get();
             if (tmp > excludes) {
                 return Math.min(getSlotTPValue(i), getMax());
@@ -124,28 +120,24 @@ public class StatisticsBrief {
     private long getSlotTPValue(int index) {
         int slotNumLeft = index;
         for (int i = 0; i < topPercentileMeta.length; i++) {
-            int slotNum = (int)topPercentileMeta[i][META_SLOT_NUM_INDEX];
+            int slotNum = (int) topPercentileMeta[i][META_SLOT_NUM_INDEX];
             if (slotNumLeft < slotNum) {
                 long metaRangeMax = topPercentileMeta[i][META_RANGE_INDEX];
-                long metaRangeMin = 0;
-                if (i > 0) {
-                    metaRangeMin = topPercentileMeta[i - 1][META_RANGE_INDEX];
-                }
+                long metaRangeMin = (i > 0) ? topPercentileMeta[i - 1][META_RANGE_INDEX] : 0;
 
                 return metaRangeMin + (metaRangeMax - metaRangeMin) / slotNum * (slotNumLeft + 1);
             } else {
                 slotNumLeft -= slotNum;
             }
         }
-        // MAX_VALUE: the last slot
-        return Integer.MAX_VALUE;
+        return Long.MAX_VALUE; // The last slot
     }
 
     private int getSlotIndex(long num) {
         int index = 0;
         for (int i = 0; i < topPercentileMeta.length; i++) {
             long rangeMax = topPercentileMeta[i][META_RANGE_INDEX];
-            int slotNum = (int)topPercentileMeta[i][META_SLOT_NUM_INDEX];
+            int slotNum = (int) topPercentileMeta[i][META_SLOT_NUM_INDEX];
             long rangeMin = (i > 0) ? topPercentileMeta[i - 1][META_RANGE_INDEX] : 0;
             if (rangeMin <= num && num < rangeMax) {
                 index += (num - rangeMin) / ((rangeMax - rangeMin) / slotNum);
@@ -157,11 +149,6 @@ public class StatisticsBrief {
         return index;
     }
 
-    /**
-     * Getters
-     *
-     * @return
-     */
     public long getMax() {
         return max;
     }
@@ -179,6 +166,6 @@ public class StatisticsBrief {
     }
 
     public double getAvg() {
-        return totalCount.get() != 0 ? ((double)total) / totalCount.get() : 0;
+        return totalCount.get() != 0 ? ((double) total) / totalCount.get() : 0;
     }
 }
