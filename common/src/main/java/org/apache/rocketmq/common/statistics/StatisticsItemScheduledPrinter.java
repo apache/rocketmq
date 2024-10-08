@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 
 public class StatisticsItemScheduledPrinter extends FutureHolder {
     protected String name;
-
     protected StatisticsItemPrinter printer;
     protected ScheduledExecutorService executor;
     protected long interval;
@@ -41,57 +40,84 @@ public class StatisticsItemScheduledPrinter extends FutureHolder {
     }
 
     /**
-     * schedule a StatisticsItem to print all the values periodically
+     * Schedules a StatisticsItem to print all the values periodically.
+     *
+     * @param statisticsItem The StatisticsItem to be scheduled.
      */
     public void schedule(final StatisticsItem statisticsItem) {
-        ScheduledFuture future = executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                if (enabled()) {
-                    printer.print(name, statisticsItem);
-                }
+        ScheduledFuture<?> future = executor.scheduleAtFixedRate(() -> {
+            if (enabled()) {
+                printer.print(name, statisticsItem);
             }
         }, getInitialDelay(), interval, TimeUnit.MILLISECONDS);
 
         addFuture(statisticsItem, future);
     }
 
+    /**
+     * Removes the scheduled StatisticsItem.
+     *
+     * @param statisticsItem The StatisticsItem to be removed.
+     */
     public void remove(final StatisticsItem statisticsItem) {
         removeAllFuture(statisticsItem);
     }
 
+    /**
+     * Interface for specifying the initial delay.
+     */
     public interface InitialDelay {
         /**
-         * Get initial delay value
-         * @return
+         * Gets the initial delay value.
+         *
+         * @return The initial delay in milliseconds.
          */
         long get();
     }
 
+    /**
+     * Interface for controlling the printing behavior.
+     */
     public interface Valve {
         /**
-         * whether enabled
-         * @return
+         * Checks whether the printer is enabled.
+         *
+         * @return true if enabled, false otherwise.
          */
         boolean enabled();
 
         /**
-         * whether print zero lines
-         * @return
+         * Checks whether zero lines should be printed.
+         *
+         * @return true if zero lines should be printed, false otherwise.
          */
         boolean printZeroLine();
     }
 
+    /**
+     * Gets the initial delay.
+     *
+     * @return The initial delay in milliseconds.
+     */
     protected long getInitialDelay() {
         return initialDelay != null ? initialDelay.get() : 0;
     }
 
+    /**
+     * Checks whether the printer is enabled.
+     *
+     * @return true if enabled, false otherwise.
+     */
     protected boolean enabled() {
         return valve != null ? valve.enabled() : false;
     }
 
+    /**
+     * Checks whether zero lines should be printed.
+     *
+     * @return true if zero lines should be printed, false otherwise.
+     */
     protected boolean printZeroLine() {
         return valve != null ? valve.printZeroLine() : false;
     }
-
 }

@@ -28,35 +28,23 @@ import org.apache.rocketmq.common.utils.ThreadUtils;
 
 public class StatisticsManager {
 
-    /**
-     * Set of Statistics Kind Metadata
-     */
-    private Map<String, StatisticsKindMeta> kindMetaMap;
-
-    /**
-     * item names to calculate statistics brief
-     */
+    private final Map<String, StatisticsKindMeta> kindMetaMap = new HashMap<>();
     private Pair<String, long[][]>[] briefMetas;
-
-    /**
-     * Statistics
-     */
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItem>> statsTable
-        = new ConcurrentHashMap<>();
+            = new ConcurrentHashMap<>();
 
     private static final int MAX_IDLE_TIME = 10 * 60 * 1000;
     private final ScheduledExecutorService executor = ThreadUtils.newSingleThreadScheduledExecutor(
-        "StatisticsManagerCleaner", true);
+            "StatisticsManagerCleaner", true);
 
     private StatisticsItemStateGetter statisticsItemStateGetter;
 
     public StatisticsManager() {
-        kindMetaMap = new HashMap<>();
         start();
     }
 
     public StatisticsManager(Map<String, StatisticsKindMeta> kindMeta) {
-        this.kindMetaMap = kindMeta;
+        this.kindMetaMap.putAll(kindMeta);
         start();
     }
 
@@ -71,60 +59,40 @@ public class StatisticsManager {
 
     private void start() {
         int maxIdleTime = MAX_IDLE_TIME;
-        executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                Iterator<Map.Entry<String, ConcurrentHashMap<String, StatisticsItem>>> iter
+        executor.scheduleAtFixedRate(() -> {
+            Iterator<Map.Entry<String, ConcurrentHashMap<String, StatisticsItem>>> iter
                     = statsTable.entrySet().iterator();
-                while (iter.hasNext()) {
-                    Map.Entry<String, ConcurrentHashMap<String, StatisticsItem>> entry = iter.next();
-                    String kind = entry.getKey();
-                    ConcurrentHashMap<String, StatisticsItem> itemMap = entry.getValue();
+            while (iter.hasNext()) {
+                Map.Entry<String, ConcurrentHashMap<String, StatisticsItem>> entry = iter.next();
+                String kind = entry.getKey();
+                ConcurrentHashMap<String, StatisticsItem> itemMap = entry.getValue();
 
-                    if (itemMap == null || itemMap.isEmpty()) {
-                        continue;
-                    }
+                if (itemMap == null || itemMap.isEmpty()) {
+                    continue;
+                }
 
-                    HashMap<String, StatisticsItem> tmpItemMap = new HashMap<>(itemMap);
-                    for (StatisticsItem item : tmpItemMap.values()) {
-                        // remove when expired
-                        if (System.currentTimeMillis() - item.getLastTimeStamp().get() > MAX_IDLE_TIME
+                for (StatisticsItem item : itemMap.values()) {
+                    // remove when expired
+                    if (System.currentTimeMillis() - item.getLastTimeStamp().get() > MAX_IDLE_TIME
                             && (statisticsItemStateGetter == null || !statisticsItemStateGetter.online(item))) {
-                            remove(item);
-                        }
+                        remove(item);
                     }
                 }
             }
         }, maxIdleTime, maxIdleTime / 3, TimeUnit.MILLISECONDS);
     }
 
-    /**
-     * Increment a StatisticsItem
-     *
-     * @param kind
-     * @param key
-     * @param itemAccumulates
-     */
     public boolean inc(String kind, String key, long... itemAccumulates) {
         ConcurrentHashMap<String, StatisticsItem> itemMap = statsTable.get(kind);
         if (itemMap != null) {
-            StatisticsItem item = itemMap.get(key);
+            StatisticsItem item = itemMap.computeIfAbsent(key, k -> {
+                StatisticsItem newItem = new StatisticsItem(kind, key, kindMetaMap.get(kind).getItemNames());
+                newItem.setInterceptor(new StatisticsBriefInterceptor(newItem, briefMetas));
+                scheduleStatisticsItem(newItem);
+                return newItem;
+            });
 
-            // if not exist, create and schedule
-            if (item == null) {
-                item = new StatisticsItem(kind, key, kindMetaMap.get(kind).getItemNames());
-                item.setInterceptor(new StatisticsBriefInterceptor(item, briefMetas));
-                StatisticsItem oldItem = itemMap.putIfAbsent(key, item);
-                if (oldItem != null) {
-                    item = oldItem;
-                } else {
-                    scheduleStatisticsItem(item);
-                }
-            }
-
-            // do increment
             item.incItems(itemAccumulates);
-
             return true;
         }
 
@@ -132,18 +100,21 @@ public class StatisticsManager {
     }
 
     private void scheduleStatisticsItem(StatisticsItem item) {
-        kindMetaMap.get(item.getStatKind()).getScheduledPrinter().schedule(item);
+        StatisticsKindMeta kindMeta = kindMetaMap.get(item.getStatKind());
+        if (kindMeta != null) {
+            kindMeta.getScheduledPrinter().schedule(item);
+        }
     }
 
     public void remove(StatisticsItem item) {
         ConcurrentHashMap<String, StatisticsItem> itemMap = statsTable.get(item.getStatKind());
         if (itemMap != null) {
             itemMap.remove(item.getStatObject(), item);
-        }
 
-        StatisticsKindMeta kindMeta = kindMetaMap.get(item.getStatKind());
-        if (kindMeta != null && kindMeta.getScheduledPrinter() != null) {
-            kindMeta.getScheduledPrinter().remove(item);
+            StatisticsKindMeta kindMeta = kindMetaMap.get(item.getStatKind());
+            if (kindMeta != null && kindMeta.getScheduledPrinter() != null) {
+                kindMeta.getScheduledPrinter().remove(item);
+            }
         }
     }
 
