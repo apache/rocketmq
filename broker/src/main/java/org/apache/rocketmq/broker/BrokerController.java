@@ -18,7 +18,6 @@ package org.apache.rocketmq.broker;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -408,7 +407,7 @@ public class BrokerController {
             this.brokerConfig, this.nettyServerConfig, this.nettyClientConfig, this.messageStoreConfig
         );
 
-        this.brokerStatsManager.setProduerStateGetter(new BrokerStatsManager.StateGetter() {
+        this.brokerStatsManager.setProducerStateGetter(new BrokerStatsManager.StateGetter() {
             @Override
             public boolean online(String instanceId, String group, String topic) {
                 if (getTopicConfigManager().getTopicConfigTable().containsKey(NamespaceUtil.wrapNamespace(instanceId, topic))) {
@@ -747,7 +746,7 @@ public class BrokerController {
                         LOG.error("Failed to update nameServer address list", e);
                     }
                 }
-            }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
+            }, 1000 * 10, this.brokerConfig.getUpdateNameServerAddrPeriod(), TimeUnit.MILLISECONDS);
         } else if (this.brokerConfig.isFetchNamesrvAddrByAddressServer()) {
             this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
 
@@ -789,6 +788,9 @@ public class BrokerController {
                 defaultMessageStore = new RocksDBMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
             } else {
                 defaultMessageStore = new DefaultMessageStore(this.messageStoreConfig, this.brokerStatsManager, this.messageArrivingListener, this.brokerConfig, topicConfigManager.getTopicConfigTable());
+                if (messageStoreConfig.isRocksdbCQDoubleWriteEnable()) {
+                    defaultMessageStore.enableRocksdbCQWrite();
+                }
             }
 
             if (messageStoreConfig.isEnableDLegerCommitLog()) {
@@ -812,7 +814,7 @@ public class BrokerController {
                 this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
                 this.messageStore.setTimerMessageStore(this.timerMessageStore);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             result = false;
             LOG.error("BrokerController#initialize: unexpected error occurs", e);
         }
@@ -2519,4 +2521,6 @@ public class BrokerController {
     public void setColdDataCgCtrService(ColdDataCgCtrService coldDataCgCtrService) {
         this.coldDataCgCtrService = coldDataCgCtrService;
     }
+
+
 }

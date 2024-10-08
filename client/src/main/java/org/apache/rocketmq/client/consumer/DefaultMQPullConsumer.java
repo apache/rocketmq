@@ -36,8 +36,8 @@ import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 /**
- * @deprecated Default pulling consumer. This class will be removed in 2022, and a better implementation {@link
- * DefaultLitePullConsumer} is recommend to use in the scenario of actively pulling messages.
+ * @deprecated Default pulling consumer. This class will be removed in 2022, and a better implementation
+ * {@link DefaultLitePullConsumer} is recommend to use in the scenario of actively pulling messages.
  */
 @Deprecated
 public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
@@ -262,7 +262,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public void sendMessageBack(MessageExt msg, int delayLevel)
         throws RemotingException, MQBrokerException, InterruptedException, MQClientException {
         msg.setTopic(withNamespace(msg.getTopic()));
-        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, null);
+        this.defaultMQPullConsumerImpl.sendMessageBack(msg, delayLevel, msg.getBrokerName());
     }
 
     /**
@@ -373,6 +373,20 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
         PullCallback pullCallback)
         throws MQClientException, RemotingException, InterruptedException {
         this.defaultMQPullConsumerImpl.pullBlockIfNotFound(queueWithNamespace(mq), subExpression, offset, maxNums, pullCallback);
+    }
+
+    @Override
+    public void pullBlockIfNotFoundWithMessageSelector(MessageQueue mq, MessageSelector selector,
+        long offset, int maxNums,
+        PullCallback pullCallback) throws MQClientException, RemotingException, InterruptedException {
+        this.defaultMQPullConsumerImpl.pullBlockIfNotFoundWithMessageSelector(mq, selector, offset, maxNums, pullCallback);
+    }
+
+    @Override
+    public PullResult pullBlockIfNotFoundWithMessageSelector(MessageQueue mq, MessageSelector selector,
+        long offset,
+        int maxNums) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        return this.defaultMQPullConsumerImpl.pullBlockIfNotFoundWithMessageSelector(mq, selector, offset, maxNums);
     }
 
     @Override

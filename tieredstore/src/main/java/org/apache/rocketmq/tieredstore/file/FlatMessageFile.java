@@ -399,4 +399,11 @@ public class FlatMessageFile implements FlatFileInterface {
             fileLock.unlock();
         }
     }
+
+    public long getFileReservedHours() {
+        if (topicMetadata.getReserveTime() > 0) {
+            return topicMetadata.getReserveTime();
+        }
+        return storeConfig.getTieredStoreFileReservedTime();
+    }
 }

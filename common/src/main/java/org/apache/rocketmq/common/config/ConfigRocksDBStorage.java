@@ -18,6 +18,7 @@ package org.apache.rocketmq.common.config;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,6 +54,15 @@ import org.rocksdb.WriteOptions;
 import org.rocksdb.util.SizeUnit;
 
 public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
+
+    private static final byte[] KV_DATA_VERSION_COLUMN_FAMILY_NAME = "kvDataVersion".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] KV_DATA_VERSION_KEY = "kvDataVersionKey".getBytes(StandardCharsets.UTF_8);
+    protected ColumnFamilyHandle kvDataVersionFamilyHandle;
+
+    private static final byte[] FORBIDDEN_COLUMN_FAMILY_NAME = "forbidden".getBytes(StandardCharsets.UTF_8);
+    protected ColumnFamilyHandle forbiddenFamilyHandle;
+
+
 
     public ConfigRocksDBStorage(final String dbPath) {
         super();
@@ -115,11 +125,15 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
             ColumnFamilyOptions defaultOptions = createConfigOptions();
             this.cfOptions.add(defaultOptions);
             cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, defaultOptions));
-
+            cfDescriptors.add(new ColumnFamilyDescriptor(KV_DATA_VERSION_COLUMN_FAMILY_NAME, defaultOptions));
+            cfDescriptors.add(new ColumnFamilyDescriptor(FORBIDDEN_COLUMN_FAMILY_NAME, defaultOptions));
             final List<ColumnFamilyHandle> cfHandles = new ArrayList();
             open(cfDescriptors, cfHandles);
 
             this.defaultCFHandle = cfHandles.get(0);
+            this.kvDataVersionFamilyHandle = cfHandles.get(1);
+            this.forbiddenFamilyHandle = cfHandles.get(2);
+
         } catch (final Exception e) {
             AbstractRocksDBStorage.LOGGER.error("postLoad Failed. {}", this.dbPath, e);
             return false;
@@ -129,7 +143,8 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
 
     @Override
     protected void preShutdown() {
-
+        this.kvDataVersionFamilyHandle.close();
+        this.forbiddenFamilyHandle.close();
     }
 
     private ColumnFamilyOptions createConfigOptions() {
@@ -225,6 +240,22 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
         return get(this.defaultCFHandle, this.totalOrderReadOptions, keyBytes);
     }
 
+    public void updateKvDataVersion(final byte[] valueBytes) throws Exception {
+        put(this.kvDataVersionFamilyHandle, this.ableWalWriteOptions, KV_DATA_VERSION_KEY, KV_DATA_VERSION_KEY.length, valueBytes, valueBytes.length);
+    }
+
+    public byte[] getKvDataVersion() throws Exception {
+        return get(this.kvDataVersionFamilyHandle, this.totalOrderReadOptions, KV_DATA_VERSION_KEY);
+    }
+
+    public void updateForbidden(final byte[] keyBytes, final byte[] valueBytes) throws Exception {
+        put(this.forbiddenFamilyHandle, this.ableWalWriteOptions, keyBytes, keyBytes.length, valueBytes, valueBytes.length);
+    }
+
+    public byte[] getForbidden(final byte[] keyBytes) throws Exception {
+        return get(this.forbiddenFamilyHandle, this.totalOrderReadOptions, keyBytes);
+    }
+
     public void delete(final byte[] keyBytes) throws Exception {
         delete(this.defaultCFHandle, this.ableWalWriteOptions, keyBytes);
     }
@@ -244,6 +275,10 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
 
     public RocksIterator iterator() {
         return this.db.newIterator(this.defaultCFHandle, this.totalOrderReadOptions);
+    }
+
+    public RocksIterator forbiddenIterator() {
+        return this.db.newIterator(this.forbiddenFamilyHandle, this.totalOrderReadOptions);
     }
 
     public void rangeDelete(final byte[] startKey, final byte[] endKey) throws RocksDBException {

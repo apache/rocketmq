@@ -26,6 +26,7 @@ import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.common.NameserverAccessConfig;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.utils.AsyncShutdownHelper;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
@@ -85,9 +86,11 @@ public class MQClientAPIFactory implements StartAndShutdown {
 
     @Override
     public void shutdown() throws Exception {
+        AsyncShutdownHelper helper = new AsyncShutdownHelper();
         for (int i = 0; i < this.clientNum; i++) {
-            clients[i].shutdown();
+            helper.addTarget(clients[i]);
         }
+        helper.shutdown().await(Integer.MAX_VALUE, TimeUnit.SECONDS);
     }
 
     protected MQClientAPIExt createAndStart(String instanceName) {

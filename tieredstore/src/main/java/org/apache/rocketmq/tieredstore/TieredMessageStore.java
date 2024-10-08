@@ -104,6 +104,9 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         if (result) {
             indexService.start();
             dispatcher.start();
+            storeExecutor.commonExecutor.scheduleWithFixedDelay(
+                flatFileStore::scheduleDeleteExpireFile, storeConfig.getTieredStoreDeleteFileInterval(),
+                storeConfig.getTieredStoreDeleteFileInterval(), TimeUnit.MILLISECONDS);
         }
         return result;
     }
@@ -177,9 +180,15 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         }
 
         // determine whether tiered storage path conditions are met
-        if (storageLevel.check(MessageStoreConfig.TieredStorageLevel.NOT_IN_DISK)
-            && !next.checkInStoreByConsumeOffset(topic, queueId, offset)) {
-            return true;
+        if (storageLevel.check(MessageStoreConfig.TieredStorageLevel.NOT_IN_DISK)) {
+            // return true to read from tiered storage if the CommitLog is empty
+            if (next != null && next.getCommitLog() != null &&
+                next.getCommitLog().getMinOffset() < 0L) {
+                return true;
+            }
+            if (!next.checkInStoreByConsumeOffset(topic, queueId, offset)) {
+                return true;
+            }
         }
 
         if (storageLevel.check(MessageStoreConfig.TieredStorageLevel.NOT_IN_MEM)
@@ -205,10 +214,10 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         }
 
         if (fetchFromCurrentStore(topic, queueId, offset, maxMsgNums)) {
-            log.trace("GetMessageAsync from current store, " +
+            log.trace("GetMessageAsync from remote store, " +
                 "topic: {}, queue: {}, offset: {}, maxCount: {}", topic, queueId, offset, maxMsgNums);
         } else {
-            log.trace("GetMessageAsync from remote store, " +
+            log.trace("GetMessageAsync from next store, " +
                 "topic: {}, queue: {}, offset: {}, maxCount: {}", topic, queueId, offset, maxMsgNums);
             return next.getMessageAsync(group, topic, queueId, offset, maxMsgNums, messageFilter);
         }
@@ -457,6 +466,9 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
         if (dispatcher != null) {
             dispatcher.shutdown();
         }
+        if (indexService != null) {
+            indexService.shutdown();
+        }
         if (flatFileStore != null) {
             flatFileStore.shutdown();
         }
@@ -469,6 +481,9 @@ public class TieredMessageStore extends AbstractPluginMessageStore {
     public void destroy() {
         if (next != null) {
             next.destroy();
+        }
+        if (indexService != null) {
+            indexService.destroy();
         }
         if (flatFileStore != null) {
             flatFileStore.destroy();

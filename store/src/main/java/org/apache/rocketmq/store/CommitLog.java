@@ -61,6 +61,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
 
@@ -651,7 +652,7 @@ public class CommitLog implements Swappable {
         } else if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
             return this.confirmOffset;
         } else {
-            return getMaxOffset();
+            return this.defaultMessageStore.isSyncDiskFlush()  ? getFlushedWhere() : getMaxOffset();
         }
     }
 
@@ -1834,12 +1835,13 @@ public class CommitLog implements Swappable {
         private static final int END_FILE_MIN_BLANK_LENGTH = 4 + 4;
         // Store the message content
         private final ByteBuffer msgStoreItemMemory;
-        private final int crc32ReservedLength = CommitLog.CRC32_RESERVED_LEN;
+        private final int crc32ReservedLength;
         private final MessageStoreConfig messageStoreConfig;
 
         DefaultAppendMessageCallback(MessageStoreConfig messageStoreConfig) {
             this.msgStoreItemMemory = ByteBuffer.allocate(END_FILE_MIN_BLANK_LENGTH);
             this.messageStoreConfig = messageStoreConfig;
+            this.crc32ReservedLength = messageStoreConfig.isEnabledAppendPropCRC() ? CommitLog.CRC32_RESERVED_LEN : 0;
         }
 
         public AppendMessageResult handlePropertiesForLmqMsg(ByteBuffer preEncodeBuffer,
@@ -1902,7 +1904,7 @@ public class CommitLog implements Swappable {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
-            boolean isMultiDispatchMsg = messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner);
+            final boolean isMultiDispatchMsg = CommitLog.isMultiDispatchMsg(messageStoreConfig, msgInner);
             if (isMultiDispatchMsg) {
                 AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
                 if (appendMessageResult != null) {
@@ -1964,23 +1966,28 @@ public class CommitLog implements Swappable {
                     queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
             }
 
-            int pos = 4 + 4 + 4 + 4 + 4;
+            int pos = 4     // 1 TOTALSIZE
+                + 4     // 2 MAGICCODE
+                + 4     // 3 BODYCRC
+                + 4     // 4 QUEUEID
+                + 4;    // 5 FLAG
             // 6 QUEUEOFFSET
             preEncodeBuffer.putLong(pos, queueOffset);
             pos += 8;
             // 7 PHYSICALOFFSET
             preEncodeBuffer.putLong(pos, fileFromOffset + byteBuffer.position());
+            pos += 8;
             int ipLen = (msgInner.getSysFlag() & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
-            // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST, 11 STORETIMESTAMP
-            pos += 8 + 4 + 8 + ipLen;
-            // refresh store time stamp in lock
+            // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST
+            pos += 4 + 8 + ipLen;
+            // 11 STORETIMESTAMP refresh store time stamp in lock
             preEncodeBuffer.putLong(pos, msgInner.getStoreTimestamp());
             if (enabledAppendPropCRC) {
                 // 18 CRC32
                 int checkSize = msgLen - crc32ReservedLength;
                 ByteBuffer tmpBuffer = preEncodeBuffer.duplicate();
                 tmpBuffer.limit(tmpBuffer.position() + checkSize);
-                int crc32 = UtilAll.crc32(tmpBuffer);
+                int crc32 = UtilAll.crc32(tmpBuffer);   // UtilAll.crc32 function will change the position to limit of the buffer
                 tmpBuffer.limit(tmpBuffer.position() + crc32ReservedLength);
                 MessageDecoder.createCrc32(tmpBuffer, crc32);
             }
@@ -2116,7 +2123,8 @@ public class CommitLog implements Swappable {
             this.commitRealTimeService = new CommitLog.CommitRealTimeService();
         }
 
-        @Override public void start() {
+        @Override
+        public void start() {
             this.flushCommitLogService.start();
 
             if (defaultMessageStore.isTransientStorePoolEnable()) {
@@ -2124,6 +2132,7 @@ public class CommitLog implements Swappable {
             }
         }
 
+        @Override
         public void handleDiskFlush(AppendMessageResult result, PutMessageResult putMessageResult,
             MessageExt messageExt) {
             // Synchronization flush
@@ -2236,8 +2245,9 @@ public class CommitLog implements Swappable {
         return flushManager;
     }
 
-    public static boolean isMultiDispatchMsg(MessageExtBrokerInner msg) {
-        return StringUtils.isNoneBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)) && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+    public static boolean isMultiDispatchMsg(MessageStoreConfig messageStoreConfig, MessageExtBrokerInner msg) {
+        return StringUtils.isNotBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)) &&
+            MultiDispatchUtils.isNeedHandleMultiDispatch(messageStoreConfig, msg.getTopic());
     }
 
     private boolean isCloseReadAhead() {

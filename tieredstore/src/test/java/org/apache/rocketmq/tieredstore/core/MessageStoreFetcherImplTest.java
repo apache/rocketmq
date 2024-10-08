@@ -16,24 +16,33 @@
  */
 package org.apache.rocketmq.tieredstore.core;
 
+import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.store.DefaultMessageFilter;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
+import org.apache.rocketmq.store.MessageFilter;
 import org.apache.rocketmq.store.QueryMessageResult;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
-import org.apache.rocketmq.tieredstore.common.GetMessageResultExt;
+import org.apache.rocketmq.tieredstore.common.SelectBufferResult;
 import org.apache.rocketmq.tieredstore.file.FlatMessageFile;
+import org.apache.rocketmq.tieredstore.util.MessageFormatUtilTest;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtilTest;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import static org.apache.rocketmq.tieredstore.core.MessageStoreFetcherImpl.CACHE_KEY_FORMAT;
 
 public class MessageStoreFetcherImplTest {
 
@@ -164,13 +173,100 @@ public class MessageStoreFetcherImplTest {
         AtomicLong offset = new AtomicLong(100L);
         FlatMessageFile flatFile = dispatcherTest.fileStore.getFlatFile(mq);
         Awaitility.await().atMost(Duration.ofSeconds(10)).until(() -> {
-            GetMessageResultExt getMessageResult =
-                fetcher.getMessageFromCacheAsync(flatFile, groupName, offset.get(), batchSize).join();
+            GetMessageResult getMessageResult =
+                fetcher.getMessageFromCacheAsync(flatFile, groupName, offset.get(), batchSize, null).join();
             offset.set(getMessageResult.getNextBeginOffset());
             times.incrementAndGet();
             return offset.get() == 200L;
         });
         Assert.assertEquals(100 / times.get(), batchSize);
+    }
+
+    @Test
+    public void getMessageFromCacheTagFilterTest() throws Exception {
+        dispatcherTest.dispatchFromCommitLogTest();
+        mq = dispatcherTest.mq;
+        messageStore = dispatcherTest.messageStore;
+        storeConfig = dispatcherTest.storeConfig;
+
+        storeConfig.setReadAheadCacheEnable(true);
+        fetcher = new MessageStoreFetcherImpl(messageStore);
+
+        FlatMessageFile flatFile = Mockito.mock(FlatMessageFile.class);
+        Mockito.when(flatFile.getMessageQueue()).thenReturn(mq);
+        Mockito.when(flatFile.getConsumeQueueMinOffset()).thenReturn(100L);
+        Mockito.when(flatFile.getConsumeQueueMaxOffset()).thenReturn(200L);
+
+        for (int i = 100; i < 200; i++) {
+            ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+            SelectBufferResult bufferResult = new SelectBufferResult(buffer, i, buffer.remaining(), i % 2);
+            fetcher.getFetcherCache().put(
+                String.format(CACHE_KEY_FORMAT, mq.getTopic(), mq.getQueueId(), i), bufferResult);
+        }
+
+        SubscriptionData subscriptionData = new SubscriptionData();
+        subscriptionData.setSubString("1 || 2");
+        subscriptionData.setCodeSet(Sets.newHashSet(1, 2));
+        MessageFilter filter = new DefaultMessageFilter(subscriptionData);
+
+        GetMessageResult getMessageResult =
+            fetcher.getMessageFromCacheAsync(flatFile, groupName, 100L, 32, filter).join();
+        Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
+        Assert.assertEquals(32, getMessageResult.getMessageCount());
+        Assert.assertEquals(164L, getMessageResult.getNextBeginOffset());
+
+        getMessageResult =
+            fetcher.getMessageFromCacheAsync(flatFile, groupName, 164L, 32, filter).join();
+        Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
+        Assert.assertEquals(18, getMessageResult.getMessageCount());
+        Assert.assertEquals(200L, getMessageResult.getNextBeginOffset());
+
+        getMessageResult =
+            fetcher.getMessageFromCacheAsync(flatFile, groupName, 200L, 32, filter).join();
+        Assert.assertEquals(GetMessageStatus.NO_MATCHED_MESSAGE, getMessageResult.getStatus());
+        Assert.assertEquals(200L, getMessageResult.getNextBeginOffset());
+
+        subscriptionData.setCodeSet(Sets.newHashSet(0));
+        filter = new DefaultMessageFilter(subscriptionData);
+        getMessageResult =
+            fetcher.getMessageFromCacheAsync(flatFile, groupName, 100L, 32, filter).join();
+        Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
+        Assert.assertEquals(32, getMessageResult.getMessageCount());
+        Assert.assertEquals(164L - 1L, getMessageResult.getNextBeginOffset());
+    }
+
+    @Test
+    public void getMessageFromCacheTagFilter2Test() throws Exception {
+        dispatcherTest.dispatchFromCommitLogTest();
+        mq = dispatcherTest.mq;
+        messageStore = dispatcherTest.messageStore;
+        storeConfig = dispatcherTest.storeConfig;
+
+        storeConfig.setReadAheadCacheEnable(true);
+        fetcher = new MessageStoreFetcherImpl(messageStore);
+
+        FlatMessageFile flatFile = Mockito.mock(FlatMessageFile.class);
+        Mockito.when(flatFile.getMessageQueue()).thenReturn(mq);
+        Mockito.when(flatFile.getConsumeQueueMinOffset()).thenReturn(100L);
+        Mockito.when(flatFile.getConsumeQueueMaxOffset()).thenReturn(200L);
+
+        for (int i = 100; i < 200; i++) {
+            ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+            SelectBufferResult bufferResult = new SelectBufferResult(buffer, i, buffer.remaining(), i - 100L);
+            fetcher.getFetcherCache().put(
+                String.format(CACHE_KEY_FORMAT, mq.getTopic(), mq.getQueueId(), i), bufferResult);
+        }
+
+        SubscriptionData subscriptionData = new SubscriptionData();
+        subscriptionData.setSubString("1 || 2");
+        subscriptionData.setCodeSet(Sets.newHashSet(10, 20));
+        MessageFilter filter = new DefaultMessageFilter(subscriptionData);
+
+        GetMessageResult getMessageResult =
+            fetcher.getMessageFromCacheAsync(flatFile, groupName, 100L, 2, filter).join();
+        Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
+        Assert.assertEquals(2, getMessageResult.getMessageCount());
+        Assert.assertEquals(121L, getMessageResult.getNextBeginOffset());
     }
 
     @Test

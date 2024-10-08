@@ -66,18 +66,29 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     private final AtomicLong compactTimestamp;
     private final String filePath;
     private final FlatFileFactory fileAllocator;
+    private final boolean autoCreateNewFile;
 
-    private IndexFile currentWriteFile;
-    private FlatAppendFile flatAppendFile;
+    private volatile IndexFile currentWriteFile;
+    private volatile FlatAppendFile flatAppendFile;
 
     public IndexStoreService(FlatFileFactory flatFileFactory, String filePath) {
+        this(flatFileFactory, filePath, true);
+    }
+
+    public IndexStoreService(FlatFileFactory flatFileFactory, String filePath, boolean autoCreateNewFile) {
         this.storeConfig = flatFileFactory.getStoreConfig();
         this.filePath = filePath;
         this.fileAllocator = flatFileFactory;
         this.timeStoreTable = new ConcurrentSkipListMap<>();
         this.compactTimestamp = new AtomicLong(0L);
         this.readWriteLock = new ReentrantReadWriteLock();
+        this.autoCreateNewFile = autoCreateNewFile;
+    }
+
+    @Override
+    public void start() {
         this.recover();
+        super.start();
     }
 
     private void doConvertOldFormatFile(String filePath) {
@@ -131,12 +142,14 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             }
         }
 
-        if (this.timeStoreTable.isEmpty()) {
+        if (this.autoCreateNewFile && this.timeStoreTable.isEmpty()) {
             this.createNewIndexFile(System.currentTimeMillis());
         }
 
-        this.currentWriteFile = this.timeStoreTable.lastEntry().getValue();
-        this.setCompactTimestamp(this.timeStoreTable.firstKey() - 1);
+        if (!this.timeStoreTable.isEmpty()) {
+            this.currentWriteFile = this.timeStoreTable.lastEntry().getValue();
+            this.setCompactTimestamp(this.timeStoreTable.firstKey() - 1);
+        }
 
         // recover remote
         this.flatAppendFile = fileAllocator.createFlatFileForIndexFile(filePath);
@@ -206,7 +219,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
 
         log.error("IndexStoreService put key three times return error, topic: {}, topicId: {}, " +
             "queueId: {}, keySize: {}, timestamp: {}", topic, topicId, queueId, keySet.size(), timestamp);
-        return AppendResult.UNKNOWN_ERROR;
+        return AppendResult.SUCCESS;
     }
 
     @Override
@@ -250,6 +263,30 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             readWriteLock.readLock().unlock();
         }
         return future;
+    }
+
+    @Override
+    public void forceUpload() {
+        try {
+            readWriteLock.writeLock().lock();
+            while (true) {
+                Map.Entry<Long, IndexFile> entry =
+                    this.timeStoreTable.higherEntry(this.compactTimestamp.get());
+                if (entry == null) {
+                    break;
+                }
+                if (this.doCompactThenUploadFile(entry.getValue())) {
+                    this.setCompactTimestamp(entry.getValue().getTimestamp());
+                    // The total number of files will not too much, prevent io too fast.
+                    TimeUnit.MILLISECONDS.sleep(50);
+                }
+            }
+        } catch (Exception e) {
+            log.error("IndexStoreService force upload error", e);
+            throw new RuntimeException(e);
+        } finally {
+            readWriteLock.writeLock().unlock();
+        }
     }
 
     public boolean doCompactThenUploadFile(IndexFile indexFile) {
@@ -354,16 +391,13 @@ public class IndexStoreService extends ServiceThread implements IndexService {
     @Override
     public void shutdown() {
         super.shutdown();
-        readWriteLock.writeLock().lock();
-        try {
-            for (Map.Entry<Long /* timestamp */, IndexFile> entry : timeStoreTable.entrySet()) {
-                entry.getValue().shutdown();
+        // Wait index service upload then clear time store table
+        while (!this.timeStoreTable.isEmpty()) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(50);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
-            this.timeStoreTable.clear();
-        } catch (Exception e) {
-            log.error("IndexStoreService shutdown error", e);
-        } finally {
-            readWriteLock.writeLock().unlock();
         }
     }
 
@@ -373,7 +407,6 @@ public class IndexStoreService extends ServiceThread implements IndexService {
             long expireTimestamp = System.currentTimeMillis()
                 - TimeUnit.HOURS.toMillis(storeConfig.getTieredStoreFileReservedTime());
             this.destroyExpiredFile(expireTimestamp);
-
             IndexFile indexFile = this.getNextSealedFile();
             if (indexFile != null) {
                 if (this.doCompactThenUploadFile(indexFile)) {
@@ -382,6 +415,18 @@ public class IndexStoreService extends ServiceThread implements IndexService {
                 }
             }
             this.waitForRunning(TimeUnit.SECONDS.toMillis(10));
+        }
+        readWriteLock.writeLock().lock();
+        try {
+            if (autoCreateNewFile) {
+                this.forceUpload();
+            }
+            this.timeStoreTable.forEach((timestamp, file) -> file.shutdown());
+            this.timeStoreTable.clear();
+        } catch (Exception e) {
+            log.error("IndexStoreService shutdown error", e);
+        } finally {
+            readWriteLock.writeLock().unlock();
         }
         log.info(this.getServiceName() + " service shutdown");
     }

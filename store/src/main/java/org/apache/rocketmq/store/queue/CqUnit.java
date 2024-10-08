@@ -109,6 +109,7 @@ public class CqUnit {
                 ", size=" + size +
                 ", pos=" + pos +
                 ", batchNum=" + batchNum +
+                ", tagsCode=" + tagsCode +
                 ", compactedOffset=" + compactedOffset +
                 '}';
     }

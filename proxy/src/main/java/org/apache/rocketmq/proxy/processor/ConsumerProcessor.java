@@ -40,12 +40,12 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
-import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
@@ -96,7 +96,7 @@ public class ConsumerProcessor extends AbstractProcessor {
             }
             return popMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime, initMode,
                 subscriptionData, fifo, popMessageResultFilter, attemptId, timeoutMillis);
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             future.completeExceptionally(t);
         }
         return future;
@@ -137,7 +137,6 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setExp(subscriptionData.getSubString());
             requestHeader.setOrder(fifo);
             requestHeader.setAttemptId(attemptId);
-            requestHeader.setBornTime(System.currentTimeMillis());
 
             future = this.serviceManager.getMessageService().popMessage(
                     ctx,
@@ -288,7 +287,8 @@ public class ConsumerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
-    protected CompletableFuture<List<BatchAckResult>> processBrokerHandle(ProxyContext ctx, String consumerGroup, String topic, List<ReceiptHandleMessage> handleMessageList, long timeoutMillis) {
+    protected CompletableFuture<List<BatchAckResult>> processBrokerHandle(ProxyContext ctx, String consumerGroup,
+        String topic, List<ReceiptHandleMessage> handleMessageList, long timeoutMillis) {
         return this.serviceManager.getMessageService().batchAckMessage(ctx, handleMessageList, consumerGroup, topic, timeoutMillis)
             .thenApply(result -> {
                 List<BatchAckResult> results = new ArrayList<>();
@@ -388,6 +388,24 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setQueueId(addressableMessageQueue.getQueueId());
             requestHeader.setCommitOffset(commitOffset);
             future = serviceManager.getMessageService().updateConsumerOffset(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<Void> updateConsumerOffsetAsync(ProxyContext ctx, MessageQueue messageQueue,
+        String consumerGroup, long commitOffset, long timeoutMillis) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            AddressableMessageQueue addressableMessageQueue = serviceManager.getTopicRouteService()
+                .buildAddressableMessageQueue(ctx, messageQueue);
+            UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
+            requestHeader.setConsumerGroup(consumerGroup);
+            requestHeader.setTopic(addressableMessageQueue.getTopic());
+            requestHeader.setQueueId(addressableMessageQueue.getQueueId());
+            requestHeader.setCommitOffset(commitOffset);
+            future = serviceManager.getMessageService().updateConsumerOffsetAsync(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }
@@ -502,9 +520,9 @@ public class ConsumerProcessor extends AbstractProcessor {
 
     protected Set<AddressableMessageQueue> buildAddressableSet(ProxyContext ctx, Set<MessageQueue> mqSet) {
         Set<AddressableMessageQueue> addressableMessageQueueSet = new HashSet<>(mqSet.size());
-        for (MessageQueue mq:mqSet) {
+        for (MessageQueue mq : mqSet) {
             try {
-                addressableMessageQueueSet.add(serviceManager.getTopicRouteService().buildAddressableMessageQueue(ctx, mq)) ;
+                addressableMessageQueueSet.add(serviceManager.getTopicRouteService().buildAddressableMessageQueue(ctx, mq));
             } catch (Exception e) {
                 log.error("build addressable message queue fail, messageQueue = {}", mq, e);
             }
