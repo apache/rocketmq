@@ -23,31 +23,21 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class FutureHolder<T> {
-    private ConcurrentMap<T, BlockingQueue<Future>> futureMap = new ConcurrentHashMap<>(8);
+    private final ConcurrentMap<T, BlockingQueue<Future>> futureMap = new ConcurrentHashMap<>(8);
 
-    public void addFuture(T t, Future future) {
-        BlockingQueue<Future> list = futureMap.get(t);
-        if (list == null) {
-            list = new LinkedBlockingQueue<>();
-            BlockingQueue<Future> old = futureMap.putIfAbsent(t, list);
-            if (old != null) {
-                list = old;
-            }
-        }
-        list.add(future);
+    public void addFuture(T key, Future future) {
+        futureMap.computeIfAbsent(key, k -> new LinkedBlockingQueue<>()).add(future);
     }
 
-    public void removeAllFuture(T t) {
-        cancelAll(t, false);
-        futureMap.remove(t);
+    public void removeAllFuture(T key) {
+        cancelAll(key, false);
+        futureMap.remove(key);
     }
 
-    private void cancelAll(T t, boolean mayInterruptIfRunning) {
-        BlockingQueue<Future> list = futureMap.get(t);
+    private void cancelAll(T key, boolean mayInterruptIfRunning) {
+        BlockingQueue<Future> list = futureMap.get(key);
         if (list != null) {
-            for (Future future : list) {
-                future.cancel(mayInterruptIfRunning);
-            }
+            list.forEach(future -> future.cancel(mayInterruptIfRunning));
         }
     }
 }
