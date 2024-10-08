@@ -14,24 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.consumer;
 
-public enum PopStatus {
-    /**
-     * Founded
-     */
-    FOUND,
-    /**
-     * No new message can be pull after polling time out
-     * delete after next release
-     */
-    NO_NEW_MSG,
-    /**
-     * polling pool is full, do not try again immediately.
-     */
-    POLLING_FULL,
-    /**
-     * polling time out but no message find
-     */
-    POLLING_NOT_FOUND
+package org.apache.rocketmq.remoting.protocol.body;
+
+import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+
+public class CheckRocksdbCqWriteProgressResponseBody extends RemotingSerializable  {
+
+    String diffResult;
+
+    public String getDiffResult() {
+        return diffResult;
+    }
+
+    public void setDiffResult(String diffResult) {
+        this.diffResult = diffResult;
+    }
+
+
 }

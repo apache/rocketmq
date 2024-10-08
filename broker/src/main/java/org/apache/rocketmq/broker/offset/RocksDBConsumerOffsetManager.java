@@ -16,26 +16,31 @@
  */
 package org.apache.rocketmq.broker.offset;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.serializer.SerializerFeature;
 import java.io.File;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.RocksDBConfigManager;
+import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.DataConverter;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.rocksdb.WriteBatch;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-
 public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
+
+    protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
     protected RocksDBConfigManager rocksDBConfigManager;
 
     public RocksDBConsumerOffsetManager(BrokerController brokerController) {
         super(brokerController);
-        this.rocksDBConfigManager = new RocksDBConfigManager(configFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
+        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
     }
 
     @Override
@@ -43,8 +48,46 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         if (!rocksDBConfigManager.init()) {
             return false;
         }
-        return this.rocksDBConfigManager.loadData(this::decodeOffset);
+        if (!loadDataVersion() || !loadConsumerOffset()) {
+            return false;
+        }
+
+        return true;
     }
+
+    public boolean loadConsumerOffset() {
+        return this.rocksDBConfigManager.loadData(this::decodeOffset) && merge();
+    }
+
+    private boolean merge() {
+        if (!brokerController.getMessageStoreConfig().isTransferOffsetJsonToRocksdb()) {
+            log.info("the switch transferOffsetJsonToRocksdb is off, no merge offset operation is needed.");
+            return true;
+        }
+        if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
+            log.info("consumerOffset json file does not exist, so skip merge");
+            return true;
+        }
+        if (!super.loadDataVersion()) {
+            log.error("load json consumerOffset dataVersion error, startup will exit");
+            return false;
+        }
+
+        final DataVersion dataVersion = super.getDataVersion();
+        final DataVersion kvDataVersion = this.getDataVersion();
+        if (dataVersion.getCounter().get() > kvDataVersion.getCounter().get()) {
+            if (!super.load()) {
+                log.error("load json consumerOffset info failed, startup will exit");
+                return false;
+            }
+            this.persist();
+            this.getDataVersion().assignNewOne(dataVersion);
+            updateDataVersion();
+            log.info("update offset from json, dataVersion:{}, offsetTable: {} ", this.getDataVersion(), JSON.toJSONString(this.getOffsetTable()));
+        }
+        return true;
+    }
+
 
     @Override
     public boolean stop() {
@@ -69,8 +112,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         LOG.info("load exist local offset, {}, {}", topicAtGroup, wrapper.getOffsetTable());
     }
 
-    @Override
-    public String configFilePath() {
+    public String rocksdbConfigFilePath() {
         return this.brokerController.getMessageStoreConfig().getStorePathRootDir() + File.separator + "config" + File.separator + "consumerOffsets" + File.separator;
     }
 
@@ -102,5 +144,24 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         wrapper.setOffsetTable(offsetMap);
         byte[] valueBytes = JSON.toJSONBytes(wrapper, SerializerFeature.BrowserCompatible);
         writeBatch.put(keyBytes, valueBytes);
+    }
+
+    @Override
+    public boolean loadDataVersion() {
+        return this.rocksDBConfigManager.loadDataVersion();
+    }
+
+    @Override
+    public DataVersion getDataVersion() {
+        return rocksDBConfigManager.getKvDataVersion();
+    }
+
+    public void updateDataVersion() {
+        try {
+            rocksDBConfigManager.updateKvDataVersion();
+        } catch (Exception e) {
+            log.error("update consumer offset dataVersion error", e);
+            throw new RuntimeException(e);
+        }
     }
 }

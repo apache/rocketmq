@@ -661,4 +661,8 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     public void notifyMessageArriveIfNecessary(DispatchRequest dispatchRequest) {
         next.notifyMessageArriveIfNecessary(dispatchRequest);
     }
+
+    public MessageStore getNext() {
+        return next;
+    }
 }
