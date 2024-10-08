@@ -686,7 +686,7 @@ public class ReplicasManager {
     }
 
     /**
-     * Scheduling sync controller medata.
+     * Scheduling sync controller metadata.
      */
     private boolean schedulingSyncControllerMetadata() {
         // Get controller metadata first.
