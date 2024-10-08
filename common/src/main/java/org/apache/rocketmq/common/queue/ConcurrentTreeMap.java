@@ -26,18 +26,18 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 /**
- * thread safe
+ * Thread-safe implementation of a concurrent TreeMap.
  */
 public class ConcurrentTreeMap<K, V> {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final ReentrantLock lock;
-    private TreeMap<K, V> tree;
-    private RoundQueue<K> roundQueue;
+    private final TreeMap<K, V> tree;
+    private final RoundQueue<K> roundQueue;
 
     public ConcurrentTreeMap(int capacity, Comparator<? super K> comparator) {
         tree = new TreeMap<>(comparator);
         roundQueue = new RoundQueue<>(capacity);
-        lock = new ReentrantLock(true);
+        lock = new ReentrantLock(true); // Use fair locking
     }
 
     public Map.Entry<K, V> pollFirstEntry() {
@@ -49,24 +49,25 @@ public class ConcurrentTreeMap<K, V> {
         }
     }
 
-    public V putIfAbsentAndRetExsit(K key, V value) {
+    public V putIfAbsent(K key, V value) {
         lock.lock();
         try {
             if (roundQueue.put(key)) {
-                V exsit = tree.get(key);
-                if (null == exsit) {
+                V existing = tree.get(key);
+                if (existing == null) {
                     tree.put(key, value);
-                    exsit = value;
+                    log.info("Put key {} with value {} successfully.", key, value);
+                    return value;
                 }
-                log.warn("putIfAbsentAndRetExsit success. " + key);
-                return exsit;
+                log.info("Key {} already exists with value {}.", key, existing);
+                return existing;
             } else {
-                V exsit = tree.get(key);
-                return exsit;
+                V existing = tree.get(key);
+                log.info("Key {} already exists with value {} and could not be added to the queue.", key, existing);
+                return existing;
             }
         } finally {
             lock.unlock();
         }
     }
-
 }
