@@ -29,7 +29,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class PlainAccessValidator implements AccessValidator {
 
-    private PlainPermissionManager aclPlugEngine;
+    private final PlainPermissionManager aclPlugEngine;
 
     public PlainAccessValidator() {
         aclPlugEngine = new PlainPermissionManager();

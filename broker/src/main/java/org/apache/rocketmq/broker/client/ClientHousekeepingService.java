@@ -31,7 +31,8 @@ public class ClientHousekeepingService implements ChannelEventListener {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     private final BrokerController brokerController;
 
-    private ScheduledExecutorService scheduledExecutorService;
+    private final ScheduledExecutorService scheduledExecutorService;
+    //规定scheduledExecutorService为最终版本
 
     public ClientHousekeepingService(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -40,15 +41,12 @@ public class ClientHousekeepingService implements ChannelEventListener {
     }
 
     public void start() {
-
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    ClientHousekeepingService.this.scanExceptionChannel();
-                } catch (Throwable e) {
-                    log.error("Error occurred when scan not active client channels.", e);
-                }
+        //使用Lambda表达式，每10s执行一次
+        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+            try {
+                ClientHousekeepingService.this.scanExceptionChannel();
+            } catch (Throwable e) {
+                log.error("Error occurred when scan not active client channels.", e);
             }
         }, 1000 * 10, 1000 * 10, TimeUnit.MILLISECONDS);
     }
