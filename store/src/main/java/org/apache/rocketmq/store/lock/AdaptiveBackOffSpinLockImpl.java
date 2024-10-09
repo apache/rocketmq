@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
     private AdaptiveBackOffSpinLock adaptiveLock;
-
     //state
     private AtomicBoolean state = new AtomicBoolean(true);
 
@@ -43,7 +42,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     private final List<AtomicInteger> tpsTable;
 
-    private int tpsSwapCriticalPoint;
+    private int swapCriticalPoint;
 
     private AtomicInteger currentThreadNum = new AtomicInteger(0);
 
@@ -106,7 +105,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
                 if (lock.isAdapt()) {
                     lock.adapt(true);
                 } else {
-                    this.tpsSwapCriticalPoint = tps;
+                    this.swapCriticalPoint = tps * currentThreadNum.get();
                     needSwap = true;
                 }
             } else if (lock.getNumberOfRetreat(slot) * BASE_SWAP_LOCK_RATIO * SPIN_LOCK_ADAPTIVE_RATIO <= tps) {
@@ -114,7 +113,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
             }
             lock.setNumberOfRetreat(slot, 0);
         } else {
-            if (tps <= this.tpsSwapCriticalPoint * SWAP_SPIN_LOCK_RATIO) {
+            if (tps * currentThreadNum.get() <= this.swapCriticalPoint * SWAP_SPIN_LOCK_RATIO) {
                 needSwap = true;
             }
         }
@@ -189,12 +188,12 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         return tpsTable;
     }
 
-    public void setTpsSwapCriticalPoint(int tpsSwapCriticalPoint) {
-        this.tpsSwapCriticalPoint = tpsSwapCriticalPoint;
+    public void setTpsSwapCriticalPoint(int swapCriticalPoint) {
+        this.swapCriticalPoint = swapCriticalPoint;
     }
 
     public int getTpsSwapCriticalPoint() {
-        return tpsSwapCriticalPoint;
+        return swapCriticalPoint;
     }
 
     public boolean isOpen() {
