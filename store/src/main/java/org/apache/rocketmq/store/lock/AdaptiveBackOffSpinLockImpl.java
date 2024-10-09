@@ -29,8 +29,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
-    private AdaptiveBackOffSpinLock adaptiveLock;
+public class AdaptiveBackOffSpinLockImpl implements PutMessageLock {
+    private PutMessageLock adaptiveLock;
     //state
     private AtomicBoolean state = new AtomicBoolean(true);
 
@@ -40,7 +40,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     private final static int BASE_SWAP_LOCK_RATIO = 320;
 
-    private Map<String, AdaptiveBackOffSpinLock> locks;
+    private Map<String, PutMessageLock> locks;
 
     private final List<AtomicInteger> tpsTable;
 
@@ -177,11 +177,11 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         }
     }
 
-    public List<AdaptiveBackOffSpinLock> getLocks() {
-        return (List<AdaptiveBackOffSpinLock>) this.locks.values();
+    public List<PutMessageLock> getLocks() {
+        return (List<PutMessageLock>) this.locks.values();
     }
 
-    public void setLocks(Map<String, AdaptiveBackOffSpinLock> locks) {
+    public void setLocks(Map<String, PutMessageLock> locks) {
         this.locks = locks;
     }
 
@@ -193,7 +193,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         this.state.set(state);
     }
 
-    public AdaptiveBackOffSpinLock getAdaptiveLock() {
+    public PutMessageLock getAdaptiveLock() {
         return adaptiveLock;
     }
 

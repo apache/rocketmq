@@ -16,9 +16,11 @@
  */
 package org.apache.rocketmq.store.lock;
 
+import org.apache.rocketmq.store.PutMessageLock;
+
 import java.util.concurrent.locks.ReentrantLock;
 
-public class BackOffReentrantLock implements AdaptiveBackOffSpinLock {
+public class BackOffReentrantLock implements PutMessageLock {
     private ReentrantLock putMessageNormalLock = new ReentrantLock(); // NonfairSync
 
     @Override
