@@ -226,39 +226,12 @@ public class EscapeBridge {
         BrokerController masterBroker = this.brokerController.peekMasterBroker();
         if (masterBroker != null) {
             return masterBroker.getMessageStore().putMessage(messageExt);
-        } else if (this.brokerController.getBrokerConfig().isEnableSlaveActingMaster()
-            && this.brokerController.getBrokerConfig().isEnableRemoteEscape()) {
-            try {
-                messageExt.setWaitStoreMsgOK(false);
-
-                final TopicPublishInfo topicPublishInfo = this.brokerController.getTopicRouteInfoManager().tryToFindTopicPublishInfo(messageExt.getTopic());
-                List<MessageQueue> mqs = topicPublishInfo.getMessageQueueList();
-
-                if (null == mqs || mqs.isEmpty()) {
-                    return new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true);
-                }
-
-                String id = messageExt.getTopic() + messageExt.getStoreHost();
-                final int index = Math.floorMod(id.hashCode(), mqs.size());
-
-                MessageQueue mq = mqs.get(index);
-                messageExt.setQueueId(mq.getQueueId());
-
-                String brokerNameToSend = mq.getBrokerName();
-                String brokerAddrToSend = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInPublish(brokerNameToSend);
-                final SendResult sendResult = this.brokerController.getBrokerOuterAPI().sendMessageToSpecificBroker(
-                    brokerAddrToSend, brokerNameToSend,
-                    messageExt, this.getProducerGroup(messageExt), SEND_TIMEOUT);
-
-                return transformSendResult2PutResult(sendResult);
-            } catch (Exception e) {
-                LOG.error("sendMessageInFailover to remote failed", e);
-                return new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true);
-            }
-        } else {
-            LOG.warn("Put message to specific queue failed, enableSlaveActingMaster={}, enableRemoteEscape={}.",
-                this.brokerController.getBrokerConfig().isEnableSlaveActingMaster(), this.brokerController.getBrokerConfig().isEnableRemoteEscape());
-            return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
+        }
+        try {
+            return asyncRemotePutMessageToSpecificQueue(messageExt).get(SEND_TIMEOUT, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            LOG.error("Put message to specific queue error", e);
+            return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null, true);
         }
     }
 
@@ -266,7 +239,12 @@ public class EscapeBridge {
         BrokerController masterBroker = this.brokerController.peekMasterBroker();
         if (masterBroker != null) {
             return masterBroker.getMessageStore().asyncPutMessage(messageExt);
-        } else if (this.brokerController.getBrokerConfig().isEnableSlaveActingMaster()
+        }
+        return asyncRemotePutMessageToSpecificQueue(messageExt);
+    }
+
+    public CompletableFuture<PutMessageResult> asyncRemotePutMessageToSpecificQueue(MessageExtBrokerInner messageExt) {
+        if (this.brokerController.getBrokerConfig().isEnableSlaveActingMaster()
             && this.brokerController.getBrokerConfig().isEnableRemoteEscape()) {
             try {
                 messageExt.setWaitStoreMsgOK(false);
@@ -294,7 +272,7 @@ public class EscapeBridge {
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true));
             }
         } else {
-            LOG.warn("Async put message to specific queue failed, enableSlaveActingMaster={}, enableRemoteEscape={}.",
+            LOG.warn("Put message to specific queue failed, enableSlaveActingMaster={}, enableRemoteEscape={}.",
                 this.brokerController.getBrokerConfig().isEnableSlaveActingMaster(), this.brokerController.getBrokerConfig().isEnableRemoteEscape());
             return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null));
         }
