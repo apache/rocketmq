@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.store.lock;
 
-import org.apache.rocketmq.store.PutMessageLock;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import java.time.LocalTime;
@@ -52,11 +51,10 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     private AtomicBoolean isOpen = new AtomicBoolean(true);
 
-    public AdaptiveBackOffSpinLockImpl(PutMessageLock putMessageLock) {
+    public AdaptiveBackOffSpinLockImpl() {
         this.locks = new HashMap<>();
         this.locks.put("Reentrant", new BackOffReentrantLock());
         this.locks.put("Spin", new BackOffSpinLock());
-        this.locks.put("putMessage", putMessageLock);
 
         this.threadTable = new ArrayList<>(2);
         this.threadTable.add(new HashSet<>());

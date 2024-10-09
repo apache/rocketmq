@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.store.lock;
 
-import org.apache.rocketmq.store.PutMessageSpinLock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -29,7 +28,7 @@ public class AdaptiveLockTest {
 
     @Before
     public void init() {
-        adaptiveLock = new AdaptiveBackOffSpinLockImpl(new PutMessageSpinLock());
+        adaptiveLock = new AdaptiveBackOffSpinLockImpl();
     }
 
     @Test
