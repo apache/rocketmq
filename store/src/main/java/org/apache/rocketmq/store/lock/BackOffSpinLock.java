@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.store.lock;
 
-import org.apache.rocketmq.store.PutMessageLock;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import java.time.LocalTime;
@@ -25,7 +24,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class BackOffSpinLock implements PutMessageLock {
+public class BackOffSpinLock implements AdaptiveBackOffSpinLock {
 
     private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
 

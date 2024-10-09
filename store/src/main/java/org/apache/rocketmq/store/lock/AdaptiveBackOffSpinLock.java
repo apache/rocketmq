@@ -14,15 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
+package org.apache.rocketmq.store.lock;
 
-import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLock;
+import org.apache.rocketmq.store.PutMessageLock;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 
-/**
- * Used when trying to put message
- */
-public interface PutMessageLock {
+public interface AdaptiveBackOffSpinLock extends PutMessageLock {
+
     void lock();
 
     void unlock();
+
+    default void update(MessageStoreConfig messageStoreConfig) {
+    }
+
+    default void swap() {
+    }
+
+    default void isOpen(boolean open) {
+    }
 }
