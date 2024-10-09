@@ -60,8 +60,8 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
-import org.apache.rocketmq.store.lock.AdaptiveBackOffLock;
-import org.apache.rocketmq.store.lock.AdaptiveBackOffLockImpl;
+import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLock;
+import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLockImpl;
 import org.apache.rocketmq.store.lock.BackOffSpinLock;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.MultiDispatchUtils;
@@ -96,7 +96,7 @@ public class CommitLog implements Swappable {
 
     private volatile long beginTimeInLock = 0;
 
-    protected final AdaptiveBackOffLock putMessageLock;
+    protected final AdaptiveBackOffSpinLock putMessageLock;
 
     protected final TopicQueueLock topicQueueLock;
 
@@ -133,7 +133,7 @@ public class CommitLog implements Swappable {
                 return new PutMessageThreadLocal(defaultMessageStore.getMessageStoreConfig());
             }
         };
-        this.putMessageLock = messageStore.getMessageStoreConfig().getUseABSLock() ? new AdaptiveBackOffLockImpl() :
+        this.putMessageLock = messageStore.getMessageStoreConfig().getUseABSLock() ? new AdaptiveBackOffSpinLockImpl() :
             messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new BackOffSpinLock();
 
         this.flushDiskWatcher = new FlushDiskWatcher();

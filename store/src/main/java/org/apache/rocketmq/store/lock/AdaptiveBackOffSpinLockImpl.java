@@ -27,8 +27,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
-    private AdaptiveBackOffLock adaptiveLock;
+public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
+    private AdaptiveBackOffSpinLock adaptiveLock;
 
     //state
     private AtomicBoolean state = new AtomicBoolean(true);
@@ -39,7 +39,7 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
 
     private final static int BASE_SWAP_LOCK_RATIO = 320;
 
-    private Map<String, AdaptiveBackOffLock> locks;
+    private Map<String, AdaptiveBackOffSpinLock> locks;
 
     private final List<AtomicInteger> tpsTable;
 
@@ -49,7 +49,7 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
 
     private AtomicBoolean isOpen = new AtomicBoolean(true);
 
-    public AdaptiveBackOffLockImpl() {
+    public AdaptiveBackOffSpinLockImpl() {
         this.locks = new HashMap<>();
         this.locks.put("Reentrant", new PutMessageReentrantLock());
         this.locks.put("BackOff", new BackOffSpinLock());
@@ -165,11 +165,11 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
         }
     }
 
-    public List<AdaptiveBackOffLock> getLocks() {
-        return (List<AdaptiveBackOffLock>) this.locks.values();
+    public List<AdaptiveBackOffSpinLock> getLocks() {
+        return (List<AdaptiveBackOffSpinLock>) this.locks.values();
     }
 
-    public void setLocks(Map<String, AdaptiveBackOffLock> locks) {
+    public void setLocks(Map<String, AdaptiveBackOffSpinLock> locks) {
         this.locks = locks;
     }
 
@@ -181,7 +181,7 @@ public class AdaptiveBackOffLockImpl implements AdaptiveBackOffLock {
         this.state.set(state);
     }
 
-    public AdaptiveBackOffLock getAdaptiveLock() {
+    public AdaptiveBackOffSpinLock getAdaptiveLock() {
         return adaptiveLock;
     }
 

@@ -18,7 +18,7 @@ package org.apache.rocketmq.store.lock;
 
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
-public interface AdaptiveBackOffLock {
+public interface AdaptiveBackOffSpinLock {
 
     void lock();
 

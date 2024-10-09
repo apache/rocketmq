@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class BackOffSpinLock implements AdaptiveBackOffLock {
+public class BackOffSpinLock implements AdaptiveBackOffSpinLock {
 
     private AtomicBoolean putMessageSpinLock = new AtomicBoolean(true);
 
