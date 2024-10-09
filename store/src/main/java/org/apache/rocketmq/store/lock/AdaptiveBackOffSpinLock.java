@@ -30,6 +30,6 @@ public interface AdaptiveBackOffSpinLock {
     default void swap() {
     }
 
-    default void isOpen(boolean open, boolean isUseReentrantLock) {
+    default void isOpen(boolean open) {
     }
 }

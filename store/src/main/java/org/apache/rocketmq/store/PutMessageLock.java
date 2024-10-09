@@ -16,10 +16,12 @@
  */
 package org.apache.rocketmq.store;
 
+import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLock;
+
 /**
  * Used when trying to put message
  */
-public interface PutMessageLock {
+public interface PutMessageLock extends AdaptiveBackOffSpinLock {
     void lock();
 
     void unlock();

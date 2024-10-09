@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.store.lock;
 
-import org.apache.rocketmq.store.PutMessageReentrantLock;
+import org.apache.rocketmq.store.PutMessageLock;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 import java.time.LocalTime;
@@ -44,7 +44,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     private final List<AtomicInteger> tpsTable;
 
-    private final List<Set> threadTable;
+    private final List<Set<Thread>> threadTable;
 
     private int swapCriticalPoint;
 
@@ -52,10 +52,11 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     private AtomicBoolean isOpen = new AtomicBoolean(true);
 
-    public AdaptiveBackOffSpinLockImpl() {
+    public AdaptiveBackOffSpinLockImpl(PutMessageLock putMessageLock) {
         this.locks = new HashMap<>();
-        this.locks.put("Reentrant", new PutMessageReentrantLock());
-        this.locks.put("BackOff", new BackOffSpinLock());
+        this.locks.put("Reentrant", new BackOffReentrantLock());
+        this.locks.put("Spin", new BackOffSpinLock());
+        this.locks.put("putMessage", putMessageLock);
 
         this.threadTable = new ArrayList<>(2);
         this.threadTable.add(new HashSet<>());
@@ -65,7 +66,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         this.tpsTable.add(new AtomicInteger(0));
         this.tpsTable.add(new AtomicInteger(0));
 
-        adaptiveLock = this.locks.get("BackOff");
+        adaptiveLock = this.locks.get("Spin");
     }
 
     @Override
@@ -141,7 +142,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
                     if (this.adaptiveLock instanceof BackOffSpinLock) {
                         this.adaptiveLock = this.locks.get("Reentrant");
                     } else {
-                        this.adaptiveLock = this.locks.get("BackOff");
+                        this.adaptiveLock = this.locks.get("Spin");
                         ((BackOffSpinLock) this.adaptiveLock).adapt(false);
                     }
                 } catch (Exception e) {
@@ -154,7 +155,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
     }
 
     @Override
-    public void isOpen(boolean open, boolean isUseReentrantLock) {
+    public void isOpen(boolean open) {
         if (open != isOpen.get()) {
             isOpen.set(open);
             boolean success = false;
@@ -168,9 +169,9 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
             } while (currentThreadNum != 0);
 
             if (open) {
-                adaptiveLock = this.locks.get("BackOff");
+                adaptiveLock = this.locks.get("Spin");
             } else {
-                adaptiveLock = !isUseReentrantLock ? this.locks.get("BackOff") : this.locks.get("Reentrant");
+                adaptiveLock = this.locks.get("putMessage");
             }
             state.set(true);
         }
