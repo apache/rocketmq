@@ -16,20 +16,32 @@
  */
 package org.apache.rocketmq.store.lock;
 
+import org.apache.rocketmq.store.PutMessageLock;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
-public interface AdaptiveBackOffSpinLock {
+public interface AdaptiveBackOffSpinLock extends PutMessageLock {
 
     void lock();
 
     void unlock();
 
+    /**
+     * Configuration update
+     * @param messageStoreConfig
+     */
     default void update(MessageStoreConfig messageStoreConfig) {
     }
 
+    /**
+     * Locking mechanism switching
+     */
     default void swap() {
     }
 
+    /**
+     * A switch that controls the opening and closing of the locking mechanism
+     * @param open
+     */
     default void isOpen(boolean open) {
     }
 }

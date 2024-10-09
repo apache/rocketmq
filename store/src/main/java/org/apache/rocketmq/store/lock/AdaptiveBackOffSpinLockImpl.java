@@ -152,29 +152,6 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         }
     }
 
-    @Override
-    public void isOpen(boolean open) {
-        if (open != isOpen.get()) {
-            isOpen.set(open);
-            boolean success = false;
-            do {
-                success = this.state.compareAndSet(true, false);
-            } while (!success);
-
-            int currentThreadNum;
-            do {
-                currentThreadNum = this.currentThreadNum.get();
-            } while (currentThreadNum != 0);
-
-            if (open) {
-                adaptiveLock = this.locks.get("Spin");
-            } else {
-                adaptiveLock = this.locks.get("putMessage");
-            }
-            state.set(true);
-        }
-    }
-
     public List<AdaptiveBackOffSpinLock> getLocks() {
         return (List<AdaptiveBackOffSpinLock>) this.locks.values();
     }
@@ -199,11 +176,11 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         return tpsTable;
     }
 
-    public void setTpsSwapCriticalPoint(int swapCriticalPoint) {
+    public void setSwapCriticalPoint(int swapCriticalPoint) {
         this.swapCriticalPoint = swapCriticalPoint;
     }
 
-    public int getTpsSwapCriticalPoint() {
+    public int getSwapCriticalPoint() {
         return swapCriticalPoint;
     }
 
@@ -213,13 +190,5 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     public void setOpen(boolean open) {
         this.isOpen.set(open);
-    }
-
-    public int getSwapCriticalPoint() {
-        return swapCriticalPoint;
-    }
-
-    public void setSwapSpinLockRatio(int swapCriticalPoint) {
-        this.swapCriticalPoint = swapCriticalPoint;
     }
 }
