@@ -22,8 +22,10 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -42,6 +44,8 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     private final List<AtomicInteger> tpsTable;
 
+    private final List<Set> threadTable;
+
     private int swapCriticalPoint;
 
     private AtomicInteger currentThreadNum = new AtomicInteger(0);
@@ -53,6 +57,10 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         this.locks.put("Reentrant", new PutMessageReentrantLock());
         this.locks.put("BackOff", new BackOffSpinLock());
 
+        this.threadTable = new ArrayList<>(2);
+        this.threadTable.add(new HashSet<>());
+        this.threadTable.add(new HashSet<>());
+
         this.tpsTable = new ArrayList<>(2);
         this.tpsTable.add(new AtomicInteger(0));
         this.tpsTable.add(new AtomicInteger(0));
@@ -62,7 +70,9 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     @Override
     public void lock() {
-        this.tpsTable.get(LocalTime.now().getSecond() % 2).getAndIncrement();
+        int slot = LocalTime.now().getSecond() % 2;
+        this.threadTable.get(slot).add(Thread.currentThread());
+        this.tpsTable.get(slot).getAndIncrement();
         boolean state;
         do {
             state = this.state.get();
@@ -94,7 +104,9 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         boolean needSwap = false;
         int slot = 1 - LocalTime.now().getSecond() % 2;
         int tps = this.tpsTable.get(slot).get() + 1;
+        int threadNum = this.threadTable.get(slot).size();
         this.tpsTable.get(slot).set(-1);
+        this.threadTable.get(slot).clear();
         if (tps == 0) {
             return;
         }
@@ -105,7 +117,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
                 if (lock.isAdapt()) {
                     lock.adapt(true);
                 } else {
-                    this.swapCriticalPoint = tps * currentThreadNum.get();
+                    this.swapCriticalPoint = tps * threadNum;
                     needSwap = true;
                 }
             } else if (lock.getNumberOfRetreat(slot) * BASE_SWAP_LOCK_RATIO * SPIN_LOCK_ADAPTIVE_RATIO <= tps) {
@@ -113,7 +125,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
             }
             lock.setNumberOfRetreat(slot, 0);
         } else {
-            if (tps * currentThreadNum.get() <= this.swapCriticalPoint * SWAP_SPIN_LOCK_RATIO) {
+            if (tps * threadNum <= this.swapCriticalPoint * SWAP_SPIN_LOCK_RATIO) {
                 needSwap = true;
             }
         }
@@ -202,5 +214,13 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     public void setOpen(boolean open) {
         this.isOpen.set(open);
+    }
+
+    public int getSwapCriticalPoint() {
+        return swapCriticalPoint;
+    }
+
+    public void setSwapSpinLockRatio(int swapCriticalPoint) {
+        this.swapCriticalPoint = swapCriticalPoint;
     }
 }

@@ -63,5 +63,10 @@ public class AdaptiveLockTest {
             adaptiveLock.unlock();
         }
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof PutMessageReentrantLock);
+
+        adaptiveLock.lock();
+        Thread.sleep(1000);
+        adaptiveLock.unlock();
+        assertTrue(adaptiveLock.getAdaptiveLock() instanceof BackOffSpinLock);
     }
 }
