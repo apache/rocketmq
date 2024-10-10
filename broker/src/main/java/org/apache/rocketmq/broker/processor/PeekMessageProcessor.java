@@ -258,8 +258,8 @@ public class PeekMessageProcessor implements NettyRequestProcessor {
                 BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
             }
 
-            for (SelectMappedBufferResult mapedBuffer : getMessageTmpResult.getMessageMapedList()) {
-                getMessageResult.addMessage(mapedBuffer);
+            for (SelectMappedBufferResult mappedBuffer : getMessageTmpResult.getMessageMapedList()) {
+                getMessageResult.addMessage(mappedBuffer);
             }
         }
         return restNum;
