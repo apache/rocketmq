@@ -294,7 +294,7 @@ jobs:
         with:
           action: "performance-benchmark"
           ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
-          job-id: 1
+          job-id: "001-${{ strategy.job-index }}"
           # The time to run the test, 15 minutes
           test-time: "900"
           # Some thresholds set in advance
@@ -331,7 +331,7 @@ jobs:
   clean-benchmark:
     if: always()
     name: Clean Benchmarking
-    needs: [ benchmark-test ]
+    needs: [ list-version, benchmark-test ]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
