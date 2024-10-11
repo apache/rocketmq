@@ -103,7 +103,7 @@ jobs:
 
   deploy-e2e:
     if: ${{ success() }}
-    name: Deploy RocketMQ
+    name: Deploy RocketMQ For E2E
     needs: [list-version,docker]
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -137,7 +137,7 @@ jobs:
 
   deploy-benchmark:
     if: ${{ success() }}
-    name: Deploy RocketMQ
+    name: Deploy RocketMQ For Benchmarking
     needs: [list-version,docker]
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -312,7 +312,7 @@ jobs:
 
   clean-e2e:
     if: always()
-    name: Clean
+    name: Clean E2E
     needs: [ list-version, test-e2e-grpc-java, test-e2e-golang, test-e2e-remoting-java ]
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -330,7 +330,7 @@ jobs:
           
   clean-benchmark:
     if: always()
-    name: Clean
+    name: Clean Benchmarking
     needs: [ benchmark-test ]
     runs-on: ubuntu-latest
     timeout-minutes: 60
