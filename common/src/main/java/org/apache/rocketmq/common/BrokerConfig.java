@@ -427,6 +427,11 @@ public class BrokerConfig extends BrokerIdentity {
     // if false, will still rewrite ck after max times 17
     private boolean skipWhenCKRePutReachMaxTimes = false;
 
+    /**
+     * Use AdaptiveBackOffLock
+     **/
+    private boolean useABSLock = false;
+
     public String getConfigBlackList() {
         return configBlackList;
     }
@@ -1858,5 +1863,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setUpdateNameServerAddrPeriod(int updateNameServerAddrPeriod) {
         this.updateNameServerAddrPeriod = updateNameServerAddrPeriod;
+    }
+
+    public void setUseABSLock(boolean useABSLock) {
+        this.useABSLock = useABSLock;
+    }
+
+    public boolean getUseABSLock() {
+        return useABSLock;
     }
 }
