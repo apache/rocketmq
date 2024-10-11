@@ -18,7 +18,6 @@ package org.apache.rocketmq.store.queue;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.attribute.CQType;
@@ -309,7 +308,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
     public CqUnit getLatestUnit() {
         try {
             long maxOffset = this.messageStore.getQueueStore().getMaxOffsetInQueue(topic, queueId);
-            return get(maxOffset);
+            return get(maxOffset > 0 ? maxOffset - 1 : maxOffset);
         } catch (RocksDBException e) {
             ERROR_LOG.error("getLatestUnit Failed. topic: {}, queueId: {}, {}", topic, queueId, e.getMessage());
         }

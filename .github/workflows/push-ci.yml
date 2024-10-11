@@ -31,7 +31,7 @@ jobs:
       - name: Build distribution tar
         run: |
           mvn -Prelease-all -DskipTests -Dspotbugs.skip=true clean install -U
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload distribution tar
         with:
           name: rocketmq
@@ -53,7 +53,7 @@ jobs:
           repository: apache/rocketmq-docker.git
           ref: master
           path: rocketmq-docker
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         name: Download distribution tar
         with:
           name: rocketmq
@@ -72,13 +72,12 @@ jobs:
           mkdir versionlist
           touch versionlist/"${version}-`echo ${{ matrix.base-image }} | sed -e "s/:/-/g"`"
           sh ./build-image-local.sh ${version} ${{ matrix.base-image }} ${{ matrix.java-version }} ${DOCKER_REPO}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload distribution tar
         with:
           name: versionlist
           path: rocketmq-docker/image-build-ci/versionlist/*
 
-  
   list-version:
     if: >
       github.repository == 'apache/rocketmq' && 
@@ -90,7 +89,7 @@ jobs:
     outputs:
       version-json: ${{ steps.show_versions.outputs.version-json }}
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         name: Download versionlist
         with:
           name: versionlist
@@ -101,6 +100,7 @@ jobs:
           a=(`ls versionlist`)
           printf '%s\n' "${a[@]}" | jq -R . | jq -s .
           echo version-json=`printf '%s\n' "${a[@]}" | jq -R . | jq -s .` >> $GITHUB_OUTPUT
+
   deploy:
     if: ${{ success() }}
     name: Deploy RocketMQ
@@ -110,7 +110,9 @@ jobs:
     strategy:
       matrix:
         version: ${{ fromJSON(needs.list-version.outputs.version-json) }}
+        test-type: [e2e, benchmark]
     steps:
+      - run: echo "Running ${{ matrix.test-type }}... "
       - uses: apache/rocketmq-test-tool@7d84d276ad7755b1dc5cf9657a7a9bff6ae6d288
         name: Deploy rocketmq
         with:
@@ -134,6 +136,7 @@ jobs:
               image:
                 repository: ${{env.DOCKER_REPO}}
                 tag: ${{ matrix.version }}
+
   test-e2e-grpc-java:
     if: ${{ success() }}
     name: Test E2E grpc java
@@ -163,7 +166,7 @@ jobs:
           annotate_only: true
           include_passed: true
           detailed_summary: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always()
         name: Upload test log
         with:
@@ -204,7 +207,7 @@ jobs:
           annotate_only: true
           include_passed: true
           detailed_summary: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always()
         name: Upload test log
         with:
@@ -240,23 +243,53 @@ jobs:
           annotate_only: true
           include_passed: true
           detailed_summary: true
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: always()
         name: Upload test log
         with:
           name: test-e2e-remoting-java-log.txt
           path: testlog.txt
 
+  benchmark-test:
+    if: ${{ success() }}
+    runs-on: ubuntu-latest
+    name: Performance benchmark test
+    needs: [ list-version, deploy ]
+    timeout-minutes: 60
+    steps:
+      - uses: apache/rocketmq-test-tool/benchmark-runner@ce372e5f3906ca1891e4918b05be14608eae608e
+        name: Performance benchmark
+        with:
+          action: "performance-benchmark"
+          ask-config: "${{ secrets.ASK_CONFIG_VIRGINA }}"
+          job-id: 1
+          # The time to run the test, 15 minutes
+          test-time: "900"
+          # Some thresholds set in advance
+          min-send-tps-threshold: "12000"
+          max-rt-ms-threshold: "500"
+          avg-rt-ms-threshold: "10"
+          max-2c-rt-ms-threshold: "100"
+          avg-2c-rt-ms-threshold: "10"
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-report
+          path: benchmark/
+
   clean:
     if: always()
     name: Clean
-    needs: [list-version, test-e2e-grpc-java, test-e2e-golang, test-e2e-remoting-java]
+    needs: [list-version, test-e2e-grpc-java, test-e2e-golang, test-e2e-remoting-java, benchmark-test]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       matrix:
         version: ${{ fromJSON(needs.list-version.outputs.version-json) }}
+        test-type: [ e2e, benchmark ]
     steps:
+      - run: echo "Cleaning ${{ matrix.test-type }}... "
       - uses: apache/rocketmq-test-tool@7d84d276ad7755b1dc5cf9657a7a9bff6ae6d288
         name: clean
         with:
