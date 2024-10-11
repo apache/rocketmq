@@ -356,7 +356,7 @@ public class PerfCounter {
                     }
 
                 } catch (Exception e) {
-                    logger.error("{} get unknown errror", getServiceName(), e);
+                    logger.error("{} get unknown error", getServiceName(), e);
                     try {
                         Thread.sleep(1000);
                     } catch (Throwable ignored) {
