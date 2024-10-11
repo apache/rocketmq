@@ -37,11 +37,4 @@ public interface AdaptiveBackOffSpinLock extends PutMessageLock {
      */
     default void swap() {
     }
-
-    /**
-     * A switch that controls the opening and closing of the locking mechanism
-     * @param open
-     */
-    default void isOpen(boolean open) {
-    }
 }
