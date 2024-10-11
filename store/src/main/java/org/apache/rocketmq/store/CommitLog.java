@@ -97,8 +97,6 @@ public class CommitLog implements Swappable {
 
     protected final PutMessageLock putMessageLock;
 
-    protected final AdaptiveBackOffSpinLock adaptiveBackOffSpinLock;
-
     protected final TopicQueueLock topicQueueLock;
 
     private volatile Set<String> fullStorePaths = Collections.emptySet();
@@ -135,9 +133,9 @@ public class CommitLog implements Swappable {
             }
         };
 
-        this.adaptiveBackOffSpinLock = new AdaptiveBackOffSpinLockImpl();
+        AdaptiveBackOffSpinLock adaptiveBackOffSpinLock = new AdaptiveBackOffSpinLockImpl();
 
-        this.putMessageLock = messageStore.getBrokerConfig().getUseABSLock() ? this.adaptiveBackOffSpinLock :
+        this.putMessageLock = messageStore.getBrokerConfig().getUseABSLock() ? adaptiveBackOffSpinLock :
             messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
 
         this.flushDiskWatcher = new FlushDiskWatcher();
