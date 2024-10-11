@@ -104,8 +104,8 @@ public class ControllerClosureTest {
     public void testTaskWithThisClosureTaskIsNull() {
         when(requestEvent.encode()).thenReturn(ByteBuffer.allocate(4));
         Task task = controllerClosure.taskWithThisClosure();
-        assertNotNull(task);
         assertEquals(requestEvent.encode(), task.getData());
+        assertNotNull(task);
         assertEquals(controllerClosure, task.getDone());
     }
 
