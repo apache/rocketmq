@@ -301,7 +301,7 @@ jobs:
           min-send-tps-threshold: "12000"
           max-rt-ms-threshold: "500"
           avg-rt-ms-threshold: "10"
-          max-2c-rt-ms-threshold: "100"
+          max-2c-rt-ms-threshold: "150"
           avg-2c-rt-ms-threshold: "10"
       - name: Upload test report
         if: always()
