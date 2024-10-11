@@ -436,6 +436,11 @@ public class MessageStoreConfig {
      */
     private int spinLockCollisionRetreatOptimalDegree = 1000;
 
+    /**
+     * Use AdaptiveBackOffLock
+     **/
+    private boolean useABSLock = false;
+
     public int getBatchWriteKvCqSize() {
         return batchWriteKvCqSize;
     }
@@ -1896,5 +1901,13 @@ public class MessageStoreConfig {
 
     public void setSpinLockCollisionRetreatOptimalDegree(int spinLockCollisionRetreatOptimalDegree) {
         this.spinLockCollisionRetreatOptimalDegree = spinLockCollisionRetreatOptimalDegree;
+    }
+    
+    public void setUseABSLock(boolean useABSLock) {
+        this.useABSLock = useABSLock;
+    }
+
+    public boolean getUseABSLock() {
+        return useABSLock;
     }
 }
