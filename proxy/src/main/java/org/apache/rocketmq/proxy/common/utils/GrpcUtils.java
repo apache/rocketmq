@@ -14,24 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.consumer;
 
-public enum PopStatus {
-    /**
-     * Founded
-     */
-    FOUND,
-    /**
-     * No new message can be pull after polling time out
-     * delete after next release
-     */
-    NO_NEW_MSG,
-    /**
-     * polling pool is full, do not try again immediately.
-     */
-    POLLING_FULL,
-    /**
-     * polling time out but no message find
-     */
-    POLLING_NOT_FOUND
+package org.apache.rocketmq.proxy.common.utils;
+
+import io.grpc.Attributes;
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+
+public class GrpcUtils {
+
+    private GrpcUtils() {
+    }
+
+    public static <T> void putHeaderIfNotExist(Metadata headers, Metadata.Key<T> key, T value) {
+        if (headers == null) {
+            return;
+        }
+        if (!headers.containsKey(key) && value != null) {
+            headers.put(key, value);
+        }
+    }
+
+    public static <R, W, T> T getAttribute(ServerCall<R, W> call, Attributes.Key<T> key) {
+        Attributes attributes = call.getAttributes();
+        if (attributes == null) {
+            return null;
+        }
+        return attributes.get(key);
+    }
 }
