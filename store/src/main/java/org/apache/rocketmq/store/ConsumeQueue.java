@@ -1124,7 +1124,7 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
         long physicalOffsetTo = to * CQ_STORE_UNIT_SIZE;
         List<MappedFile> mappedFiles = mappedFileQueue.range(physicalOffsetFrom, physicalOffsetTo);
         if (mappedFiles.isEmpty()) {
-            return -1;
+            return 0;
         }
 
         boolean sample = false;
