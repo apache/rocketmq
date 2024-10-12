@@ -14,7 +14,7 @@
 
 It offers a variety of features:
 
-* Messaging patterns including publish/subscribe, request/reply and streaming
+* Messaging patterns including clustering/broadcasting, publish/subscribe, request/reply
 * Financial grade transactional message
 * Built-in fault tolerance and high availability configuration options base on [DLedger Controller](docs/en/controller/quick_start.md)
 * Built-in message tracing capability, also support opentracing
