@@ -241,13 +241,13 @@ public class ConsumeQueueTest extends QueueTestBase {
                 }
             };
             long estimation = consumeQueue.estimateMessageCount(0, 0, filter);
-            Assert.assertEquals(0, estimation);
+            Assert.assertEquals(-1, estimation);
 
             // test for illegal offset
             estimation = consumeQueue.estimateMessageCount(0, 100, filter);
-            Assert.assertEquals(0, estimation);
+            Assert.assertEquals(-1, estimation);
             estimation = consumeQueue.estimateMessageCount(100, 1000, filter);
-            Assert.assertEquals(0, estimation);
+            Assert.assertEquals(-1, estimation);
         } catch (Exception e) {
             e.printStackTrace();
             assertThat(Boolean.FALSE).isTrue();
@@ -311,9 +311,9 @@ public class ConsumeQueueTest extends QueueTestBase {
             estimation = cq.estimateMessageCount(0, 1000, filter);
             Assert.assertEquals(67, estimation);
             estimation = cq.estimateMessageCount(1000, 10000, filter);
-            Assert.assertEquals(0, estimation);
+            Assert.assertEquals(-1, estimation);
             estimation = cq.estimateMessageCount(100, 0, filter);
-            Assert.assertEquals(0, estimation);
+            Assert.assertEquals(-1, estimation);
         } finally {
             messageStore.shutdown();
             messageStore.destroy();
