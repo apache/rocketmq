@@ -222,7 +222,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public long estimateMessageCount(long from, long to, MessageFilter filter) {
-        // Check offset validity
+        // Check from and to offset validity
         Pair<CqUnit, Long> fromUnit = getCqUnitAndStoreTime(from);
         Pair<CqUnit, Long> toUnit = getCqUnitAndStoreTime(to);
         if (toUnit == null || fromUnit == null) {
