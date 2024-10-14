@@ -525,7 +525,7 @@ public class ReplicasManager {
             return true;
 
         } catch (Exception e) {
-            LOGGER.error("fail to apply broker id: {}", e, tempBrokerMetadata.getBrokerId());
+            LOGGER.error("fail to apply broker id: {}", tempBrokerMetadata.getBrokerId(), e);
             return false;
         }
     }
