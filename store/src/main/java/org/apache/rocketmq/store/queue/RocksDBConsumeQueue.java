@@ -222,9 +222,46 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public long estimateMessageCount(long from, long to, MessageFilter filter) {
-        // todo
-        return 0;
+        // Check from and to offset validity
+        Pair<CqUnit, Long> fromUnit = getCqUnitAndStoreTime(from);
+        if (fromUnit == null) {
+            return -1;
+        }
+
+        if (from >= to) {
+            return -1;
+        }
+
+        if (to > getMaxOffsetInQueue()) {
+            to = getMaxOffsetInQueue();
+        }
+
+        int maxSampleSize = messageStore.getMessageStoreConfig().getMaxConsumeQueueScan();
+        int sampleSize = to - from > maxSampleSize ? maxSampleSize : (int) (to - from);
+
+        int matchThreshold = messageStore.getMessageStoreConfig().getSampleCountThreshold();
+        int matchSize = 0;
+
+        for (int i = 0; i < sampleSize; i++) {
+            long index = from + i;
+            Pair<CqUnit, Long> pair = getCqUnitAndStoreTime(index);
+            if (pair == null) {
+                continue;
+            }
+            CqUnit cqUnit = pair.getObject1();
+            if (filter.isMatchedByConsumeQueue(cqUnit.getTagsCode(), cqUnit.getCqExtUnit())) {
+                matchSize++;
+                // if matchSize is plenty, early exit estimate
+                if (matchSize > matchThreshold) {
+                    sampleSize = i;
+                    break;
+                }
+            }
+        }
+        // Make sure the second half is a floating point number, otherwise it will be truncated to 0
+        return sampleSize == 0 ? 0 : (long) ((to - from) * (matchSize / (sampleSize * 1.0)));
     }
+
 
     @Override
     public long getMinOffsetInQueue() {
