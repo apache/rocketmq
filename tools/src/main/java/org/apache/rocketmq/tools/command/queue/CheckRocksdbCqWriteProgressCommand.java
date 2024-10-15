@@ -53,7 +53,12 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
         options.addOption(opt);
 
         opt = new Option("t", "topic", true, "topic name");
-        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("cf", "checkFrom", true, "check from time");
+        options.addOption(opt);
+
+        opt = new Option("async", "asynchronous", true, "asynchronous invoke");
         options.addOption(opt);
         return options;
     }
@@ -66,6 +71,9 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
         defaultMQAdminExt.setNamesrvAddr(StringUtils.trim(commandLine.getOptionValue('n')));
         String clusterName = commandLine.hasOption('c') ? commandLine.getOptionValue('c').trim() : "";
         String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "";
+        // The default check is 30 days
+        long checkStoreTime = commandLine.hasOption("checkFrom") ? Long.parseLong(commandLine.getOptionValue("checkFrom").trim()) : System.currentTimeMillis() - 24 * 60 * 60 * 1000 * 30L;
+        boolean async = commandLine.hasOption("asynchronous")? Boolean.parseBoolean(commandLine.getOptionValue("asynchronous").trim()) : true;
 
         try {
             defaultMQAdminExt.start();
@@ -80,11 +88,12 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
                 String brokerName = entry.getKey();
                 BrokerData brokerData = entry.getValue();
                 String brokerAddr = brokerData.getBrokerAddrs().get(0L);
-                CheckRocksdbCqWriteProgressResponseBody body = defaultMQAdminExt.checkRocksdbCqWriteProgress(brokerAddr, topic);
+                CheckRocksdbCqWriteProgressResponseBody body = defaultMQAdminExt.checkRocksdbCqWriteProgress(brokerAddr, topic, async, checkStoreTime);
                 if (StringUtils.isNotBlank(topic)) {
-                    System.out.print(body.getDiffResult());
+                    System.out.print(brokerName + " checkStatus(0 -> ready, 1 -> notReady, 2 -> error): " + body.getCheckStatus() + " \n " + body.getDiffResult() + "\n");
                 } else {
-                    System.out.print(brokerName + " | " + brokerAddr + " | \n" + body.getDiffResult());
+                    System.out.print(brokerName + " checkStatus(0 -> ready, 1 -> notReady, 2 -> error): " + body.getCheckStatus() + " \n " +
+                        body.getDiffResult() + "\n");
                 }
             }
 

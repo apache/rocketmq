@@ -23,12 +23,22 @@ public class CheckRocksdbCqWriteProgressResponseBody extends RemotingSerializabl
 
     String diffResult;
 
+    int checkStatus;
+
     public String getDiffResult() {
         return diffResult;
     }
 
     public void setDiffResult(String diffResult) {
         this.diffResult = diffResult;
+    }
+
+    public int getCheckStatus() {
+        return checkStatus;
+    }
+
+    public void setCheckStatus(int checkStatus) {
+        this.checkStatus = checkStatus;
     }
 
 

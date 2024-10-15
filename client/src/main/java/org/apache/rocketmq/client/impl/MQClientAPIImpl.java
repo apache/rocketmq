@@ -3019,12 +3019,14 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public CheckRocksdbCqWriteProgressResponseBody checkRocksdbCqWriteProgress(final String brokerAddr, final String topic, final long timeoutMillis) throws InterruptedException,
+    public CheckRocksdbCqWriteProgressResponseBody checkRocksdbCqWriteProgress(final String brokerAddr, final String topic, final long checkStoreTime, final boolean async, final long timeoutMillis) throws InterruptedException,
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
         CheckRocksdbCqWriteProgressRequestHeader header = new CheckRocksdbCqWriteProgressRequestHeader();
         header.setTopic(topic);
+        header.setCheckStoreTime(checkStoreTime);
+        header.setAsync(async);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHECK_ROCKSDB_CQ_WRITE_PROGRESS, header);
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, async ? timeoutMillis : timeoutMillis * 100);
         assert response != null;
         if (ResponseCode.SUCCESS == response.getCode()) {
             return CheckRocksdbCqWriteProgressResponseBody.decode(response.getBody(), CheckRocksdbCqWriteProgressResponseBody.class);
