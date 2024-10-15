@@ -17,19 +17,19 @@
 package org.apache.rocketmq.broker;
 
 import com.alibaba.fastjson.JSON;
+import java.nio.charset.StandardCharsets;
+import java.util.function.BiConsumer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.rocksdb.CompressionType;
 import org.rocksdb.FlushOptions;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.Statistics;
 import org.rocksdb.WriteBatch;
-
-import java.nio.charset.StandardCharsets;
-import java.util.function.BiConsumer;
 
 public class RocksDBConfigManager {
     protected static final Logger BROKER_LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -37,20 +37,20 @@ public class RocksDBConfigManager {
     public ConfigRocksDBStorage configRocksDBStorage = null;
     private FlushOptions flushOptions = null;
     private volatile long lastFlushMemTableMicroSecond = 0;
-
     private final String filePath;
     private final long memTableFlushInterval;
+    private final CompressionType compressionType;
     private DataVersion kvDataVersion = new DataVersion();
 
-
-    public RocksDBConfigManager(String filePath, long memTableFlushInterval) {
+    public RocksDBConfigManager(String filePath, long memTableFlushInterval,CompressionType compressionType) {
         this.filePath = filePath;
         this.memTableFlushInterval = memTableFlushInterval;
+        this.compressionType = compressionType;
     }
 
     public boolean init() {
         this.isStop = false;
-        this.configRocksDBStorage = new ConfigRocksDBStorage(filePath);
+        this.configRocksDBStorage = new ConfigRocksDBStorage(filePath, compressionType);
         return this.configRocksDBStorage.start();
     }
     public boolean loadDataVersion() {

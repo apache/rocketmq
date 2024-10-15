@@ -28,6 +28,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.rocksdb.CompressionType;
 
 public class RocksDBTopicConfigManager extends TopicConfigManager {
 
@@ -35,7 +36,8 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
 
     public RocksDBTopicConfigManager(BrokerController brokerController) {
         super(brokerController, false);
-        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
+        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs(),
+            CompressionType.getCompressionType(brokerController.getMessageStoreConfig().getRocksdbCompressionType()));
     }
 
     @Override
@@ -59,10 +61,6 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
     }
 
     private boolean merge() {
-        if (!brokerController.getMessageStoreConfig().isTransferMetadataJsonToRocksdb()) {
-            log.info("the switch transferMetadataJsonToRocksdb is off, no merge topic operation is needed.");
-            return true;
-        }
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
             log.info("topic json file does not exist, so skip merge");
             return true;
