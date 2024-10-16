@@ -69,7 +69,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
     @Override
     public void lock() {
         int slot = LocalTime.now().getSecond() % 2;
-        this.threadTable.get(slot).put(Thread.currentThread(), Byte.MAX_VALUE);
+        this.threadTable.get(slot).putIfAbsent(Thread.currentThread(), Byte.MAX_VALUE);
         this.tpsTable.get(slot).getAndIncrement();
         boolean state;
         do {
