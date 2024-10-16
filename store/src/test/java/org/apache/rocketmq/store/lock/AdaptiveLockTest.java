@@ -19,6 +19,8 @@ package org.apache.rocketmq.store.lock;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.concurrent.CountDownLatch;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -34,30 +36,45 @@ public class AdaptiveLockTest {
     @Test
     public void testAdaptiveLock() throws InterruptedException {
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof BackOffSpinLock);
-
+        CountDownLatch countDownLatch = new CountDownLatch(1);
         adaptiveLock.lock();
         new Thread(new Runnable() {
             @Override
             public void run() {
                 adaptiveLock.lock();
+                try {
+                    Thread.sleep(1);
+                } catch (InterruptedException e) {
+                    //ignore
+                }
                 adaptiveLock.unlock();
+                countDownLatch.countDown();
             }
         }).start();
         Thread.sleep(1000);
         adaptiveLock.unlock();
         assertEquals(2000, ((BackOffSpinLock) adaptiveLock.getAdaptiveLock()).getOptimalDegree());
-        
+        countDownLatch.await();
+
         for (int i = 0; i <= 5; i++) {
+            CountDownLatch countDownLatch1 = new CountDownLatch(1);
             adaptiveLock.lock();
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     adaptiveLock.lock();
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        //ignore
+                    }
                     adaptiveLock.unlock();
+                    countDownLatch1.countDown();
                 }
             }).start();
             Thread.sleep(1000);
             adaptiveLock.unlock();
+            countDownLatch1.await();
         }
         assertEquals(4, adaptiveLock.getSwapCriticalPoint());
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof BackOffReentrantLock);
