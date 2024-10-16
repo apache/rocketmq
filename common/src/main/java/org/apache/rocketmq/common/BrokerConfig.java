@@ -427,6 +427,10 @@ public class BrokerConfig extends BrokerIdentity {
     // if false, will still rewrite ck after max times 17
     private boolean skipWhenCKRePutReachMaxTimes = false;
 
+    private boolean appendAckAsync = false;
+
+    private boolean appendCkAsync = false;
+
     public String getConfigBlackList() {
         return configBlackList;
     }
@@ -1858,5 +1862,21 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setUpdateNameServerAddrPeriod(int updateNameServerAddrPeriod) {
         this.updateNameServerAddrPeriod = updateNameServerAddrPeriod;
+    }
+
+    public boolean isAppendAckAsync() {
+        return appendAckAsync;
+    }
+
+    public void setAppendAckAsync(boolean appendAckAsync) {
+        this.appendAckAsync = appendAckAsync;
+    }
+
+    public boolean isAppendCkAsync() {
+        return appendCkAsync;
+    }
+
+    public void setAppendCkAsync(boolean appendCkAsync) {
+        this.appendCkAsync = appendCkAsync;
     }
 }
