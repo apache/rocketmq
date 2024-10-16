@@ -47,7 +47,7 @@ public class AdaptiveLockTest {
         adaptiveLock.unlock();
         assertEquals(2000, ((BackOffSpinLock) adaptiveLock.getAdaptiveLock()).getOptimalDegree());
         
-        for (int i = 0; i <= 8; i++) {
+        for (int i = 0; i <= 5; i++) {
             adaptiveLock.lock();
             new Thread(new Runnable() {
                 @Override
@@ -59,6 +59,7 @@ public class AdaptiveLockTest {
             Thread.sleep(1000);
             adaptiveLock.unlock();
         }
+        assertEquals(4, adaptiveLock.getSwapCriticalPoint());
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof BackOffReentrantLock);
 
         adaptiveLock.lock();
