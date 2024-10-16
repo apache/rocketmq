@@ -169,12 +169,6 @@ public class RocksDBMessageStore extends DefaultMessageStore {
     }
 
     @Override
-    public long estimateMessageCount(String topic, int queueId, long from, long to, MessageFilter filter) {
-        // todo
-        return 0;
-    }
-
-    @Override
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
         DefaultStoreMetricsManager.init(meter, attributesBuilderSupplier, this);
         // Also add some metrics for rocksdb's monitoring.
