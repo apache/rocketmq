@@ -54,7 +54,11 @@ public class BackOffSpinLock implements AdaptiveBackOffSpinLock {
                 }
             }
             numberOfRetreat.get(LocalTime.now().getSecond() % 2).getAndIncrement();
-            Thread.yield();
+            try {
+                Thread.sleep(0);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
