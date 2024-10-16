@@ -21,10 +21,9 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -43,7 +42,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     private final List<AtomicInteger> tpsTable;
 
-    private final List<Set<Thread>> threadTable;
+    private final List<Map<Thread, Integer>> threadTable;
 
     private int swapCriticalPoint;
 
@@ -57,8 +56,8 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         this.locks.put("Spin", new BackOffSpinLock());
 
         this.threadTable = new ArrayList<>(2);
-        this.threadTable.add(new HashSet<>());
-        this.threadTable.add(new HashSet<>());
+        this.threadTable.add(new ConcurrentHashMap<>());
+        this.threadTable.add(new ConcurrentHashMap<>());
 
         this.tpsTable = new ArrayList<>(2);
         this.tpsTable.add(new AtomicInteger(0));
@@ -70,7 +69,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
     @Override
     public void lock() {
         int slot = LocalTime.now().getSecond() % 2;
-        this.threadTable.get(slot).add(Thread.currentThread());
+        this.threadTable.get(slot).put(Thread.currentThread(), null);
         this.tpsTable.get(slot).getAndIncrement();
         boolean state;
         do {
