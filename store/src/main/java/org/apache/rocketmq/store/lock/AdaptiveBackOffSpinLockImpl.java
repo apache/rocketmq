@@ -42,7 +42,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     private final List<AtomicInteger> tpsTable;
 
-    private final List<Map<Thread, Integer>> threadTable;
+    private final List<Map<Thread, Byte>> threadTable;
 
     private int swapCriticalPoint;
 
@@ -69,7 +69,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
     @Override
     public void lock() {
         int slot = LocalTime.now().getSecond() % 2;
-        this.threadTable.get(slot).put(Thread.currentThread(), null);
+        this.threadTable.get(slot).put(Thread.currentThread(), Byte.MAX_VALUE);
         this.tpsTable.get(slot).getAndIncrement();
         boolean state;
         do {
