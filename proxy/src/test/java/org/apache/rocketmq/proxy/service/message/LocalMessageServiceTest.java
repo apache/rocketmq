@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.proxy.service.message;
 
+import io.netty.channel.Channel;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -370,11 +371,11 @@ public class LocalMessageServiceTest extends InitConfigTest {
         responseHeader.setReviveQid(newReviveQueueId);
         responseHeader.setInvisibleTime(newInvisibleTime);
         responseHeader.setPopTime(newPopTime);
-        Mockito.when(changeInvisibleTimeProcessorMock.processRequest(Mockito.any(SimpleChannelHandlerContext.class), Mockito.argThat(argument -> {
+        Mockito.when(changeInvisibleTimeProcessorMock.processRequestAsync(Mockito.any(Channel.class), Mockito.argThat(argument -> {
             boolean first = argument.getCode() == RequestCode.CHANGE_MESSAGE_INVISIBLETIME;
             boolean second = argument.readCustomHeader() instanceof ChangeInvisibleTimeRequestHeader;
             return first && second;
-        }))).thenReturn(remotingCommand);
+        }), Mockito.any(Boolean.class))).thenReturn(CompletableFuture.completedFuture(remotingCommand));
         ChangeInvisibleTimeRequestHeader requestHeader = new ChangeInvisibleTimeRequestHeader();
         CompletableFuture<AckResult> future = localMessageService.changeInvisibleTime(proxyContext, handle, messageId,
             requestHeader, 1000L);
