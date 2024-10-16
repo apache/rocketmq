@@ -137,7 +137,7 @@ public class EscapeBridge {
             brokerNameToSend = mqSelected.getBrokerName();
             if (this.brokerController.getBrokerConfig().getBrokerName().equals(brokerNameToSend)) {
                 LOG.warn("putMessageToRemoteBroker failed, remote broker not found. Topic: {}, MsgId: {}, Broker: {}",
-                        messageExt.getTopic(), messageExt.getMsgId(), brokerNameToSend);
+                    messageExt.getTopic(), messageExt.getMsgId(), brokerNameToSend);
                 return null;
             }
         } else {
@@ -147,7 +147,7 @@ public class EscapeBridge {
         final String brokerAddrToSend = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInPublish(brokerNameToSend);
         if (null == brokerAddrToSend) {
             LOG.warn("putMessageToRemoteBroker failed, remote broker address not found. Topic: {}, MsgId: {}, Broker: {}",
-                    messageExt.getTopic(), messageExt.getMsgId(), brokerNameToSend);
+                messageExt.getTopic(), messageExt.getMsgId(), brokerNameToSend);
             return null;
         }
 
@@ -197,7 +197,7 @@ public class EscapeBridge {
                     producerGroup, SEND_TIMEOUT);
 
                 return future.exceptionally(throwable -> null)
-                    .thenApplyAsync(sendResult -> transformSendResult2PutResult(sendResult), this.defaultAsyncSenderExecutor)
+                    .thenApplyAsync(this::transformSendResult2PutResult, this.defaultAsyncSenderExecutor)
                     .exceptionally(throwable -> transformSendResult2PutResult(null));
 
             } catch (Exception e) {
@@ -211,7 +211,6 @@ public class EscapeBridge {
         }
     }
 
-
     private String getProducerGroup(MessageExtBrokerInner messageExt) {
         if (null == messageExt) {
             return this.innerProducerGroupName;
@@ -223,12 +222,29 @@ public class EscapeBridge {
         return producerGroup;
     }
 
-
     public PutMessageResult putMessageToSpecificQueue(MessageExtBrokerInner messageExt) {
         BrokerController masterBroker = this.brokerController.peekMasterBroker();
         if (masterBroker != null) {
             return masterBroker.getMessageStore().putMessage(messageExt);
-        } else if (this.brokerController.getBrokerConfig().isEnableSlaveActingMaster()
+        }
+        try {
+            return asyncRemotePutMessageToSpecificQueue(messageExt).get(SEND_TIMEOUT, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            LOG.error("Put message to specific queue error", e);
+            return new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, null, true);
+        }
+    }
+
+    public CompletableFuture<PutMessageResult> asyncPutMessageToSpecificQueue(MessageExtBrokerInner messageExt) {
+        BrokerController masterBroker = this.brokerController.peekMasterBroker();
+        if (masterBroker != null) {
+            return masterBroker.getMessageStore().asyncPutMessage(messageExt);
+        }
+        return asyncRemotePutMessageToSpecificQueue(messageExt);
+    }
+
+    public CompletableFuture<PutMessageResult> asyncRemotePutMessageToSpecificQueue(MessageExtBrokerInner messageExt) {
+        if (this.brokerController.getBrokerConfig().isEnableSlaveActingMaster()
             && this.brokerController.getBrokerConfig().isEnableRemoteEscape()) {
             try {
                 messageExt.setWaitStoreMsgOK(false);
@@ -237,7 +253,7 @@ public class EscapeBridge {
                 List<MessageQueue> mqs = topicPublishInfo.getMessageQueueList();
 
                 if (null == mqs || mqs.isEmpty()) {
-                    return new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true);
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true));
                 }
 
                 String id = messageExt.getTopic() + messageExt.getStoreHost();
@@ -248,19 +264,17 @@ public class EscapeBridge {
 
                 String brokerNameToSend = mq.getBrokerName();
                 String brokerAddrToSend = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInPublish(brokerNameToSend);
-                final SendResult sendResult = this.brokerController.getBrokerOuterAPI().sendMessageToSpecificBroker(
+                return this.brokerController.getBrokerOuterAPI().sendMessageToSpecificBrokerAsync(
                     brokerAddrToSend, brokerNameToSend,
-                    messageExt, this.getProducerGroup(messageExt), SEND_TIMEOUT);
-
-                return transformSendResult2PutResult(sendResult);
+                    messageExt, this.getProducerGroup(messageExt), SEND_TIMEOUT).thenCompose(sendResult -> CompletableFuture.completedFuture(transformSendResult2PutResult(sendResult)));
             } catch (Exception e) {
                 LOG.error("sendMessageInFailover to remote failed", e);
-                return new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true);
+                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_TO_REMOTE_BROKER_FAIL, null, true));
             }
         } else {
             LOG.warn("Put message to specific queue failed, enableSlaveActingMaster={}, enableRemoteEscape={}.",
                 this.brokerController.getBrokerConfig().isEnableSlaveActingMaster(), this.brokerController.getBrokerConfig().isEnableRemoteEscape());
-            return new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null);
+            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.SERVICE_NOT_AVAILABLE, null));
         }
     }
 
@@ -282,12 +296,14 @@ public class EscapeBridge {
         }
     }
 
-    public Triple<MessageExt, String, Boolean> getMessage(String topic, long offset, int queueId, String brokerName, boolean deCompressBody) {
+    public Triple<MessageExt, String, Boolean> getMessage(String topic, long offset, int queueId, String brokerName,
+        boolean deCompressBody) {
         return getMessageAsync(topic, offset, queueId, brokerName, deCompressBody).join();
     }
 
     // Triple<MessageExt, info, needRetry>, check info and retry if and only if MessageExt is null
-    public CompletableFuture<Triple<MessageExt, String, Boolean>> getMessageAsync(String topic, long offset, int queueId, String brokerName, boolean deCompressBody) {
+    public CompletableFuture<Triple<MessageExt, String, Boolean>> getMessageAsync(String topic, long offset,
+        int queueId, String brokerName, boolean deCompressBody) {
         MessageStore messageStore = brokerController.getMessageStoreByBrokerName(brokerName);
         if (messageStore != null) {
             return messageStore.getMessageAsync(innerConsumerGroupName, topic, queueId, offset, 1, null)
@@ -300,9 +316,9 @@ public class EscapeBridge {
                     if (list == null || list.isEmpty()) {
                         // OFFSET_FOUND_NULL returned by TieredMessageStore indicates exception occurred
                         boolean needRetry = GetMessageStatus.OFFSET_FOUND_NULL.equals(result.getStatus())
-                                && messageStore instanceof TieredMessageStore;
+                            && messageStore instanceof TieredMessageStore;
                         LOG.warn("Can not get msg , topic {}, offset {}, queueId {}, needRetry {}, result is {}",
-                                topic, offset, queueId, needRetry, result);
+                            topic, offset, queueId, needRetry, result);
                         return Triple.of(null, "Can not get msg", needRetry);
                     }
                     return Triple.of(list.get(0), "", false);
@@ -340,12 +356,14 @@ public class EscapeBridge {
         return foundList;
     }
 
-    protected Triple<MessageExt, String, Boolean> getMessageFromRemote(String topic, long offset, int queueId, String brokerName) {
+    protected Triple<MessageExt, String, Boolean> getMessageFromRemote(String topic, long offset, int queueId,
+        String brokerName) {
         return getMessageFromRemoteAsync(topic, offset, queueId, brokerName).join();
     }
 
     // Triple<MessageExt, info, needRetry>, check info and retry if and only if MessageExt is null
-    protected CompletableFuture<Triple<MessageExt, String, Boolean>> getMessageFromRemoteAsync(String topic, long offset, int queueId, String brokerName) {
+    protected CompletableFuture<Triple<MessageExt, String, Boolean>> getMessageFromRemoteAsync(String topic,
+        long offset, int queueId, String brokerName) {
         try {
             String brokerAddr = this.brokerController.getTopicRouteInfoManager().findBrokerAddressInSubscribe(brokerName, MixAll.MASTER_ID, false);
             if (null == brokerAddr) {
@@ -359,11 +377,11 @@ public class EscapeBridge {
             }
 
             return this.brokerController.getBrokerOuterAPI().pullMessageFromSpecificBrokerAsync(brokerName,
-                brokerAddr, this.innerConsumerGroupName, topic, queueId, offset, 1, DEFAULT_PULL_TIMEOUT_MILLIS)
+                    brokerAddr, this.innerConsumerGroupName, topic, queueId, offset, 1, DEFAULT_PULL_TIMEOUT_MILLIS)
                 .thenApply(pullResult -> {
                     if (pullResult.getLeft() != null
-                            && PullStatus.FOUND.equals(pullResult.getLeft().getPullStatus())
-                            && CollectionUtils.isNotEmpty(pullResult.getLeft().getMsgFoundList())) {
+                        && PullStatus.FOUND.equals(pullResult.getLeft().getPullStatus())
+                        && CollectionUtils.isNotEmpty(pullResult.getLeft().getMsgFoundList())) {
                         return Triple.of(pullResult.getLeft().getMsgFoundList().get(0), "", false);
                     }
                     return Triple.of(null, pullResult.getMiddle(), pullResult.getRight());
