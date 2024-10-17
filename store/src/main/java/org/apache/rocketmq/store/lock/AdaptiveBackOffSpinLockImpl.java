@@ -72,7 +72,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
         this.tpsTable.add(new AtomicInteger(0));
         this.tpsTable.add(new AtomicInteger(0));
 
-        adaptiveLock = this.locks.get("Spin");
+        adaptiveLock = this.locks.get(BACK_OFF_SPIN_LOCK);
     }
 
     @Override
