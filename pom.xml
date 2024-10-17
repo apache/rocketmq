@@ -102,7 +102,7 @@
         <slf4j.version>1.7.7</slf4j.version>
         <logback.version>1.2.10</logback.version>
         <commons-cli.version>1.2</commons-cli.version>
-        <netty.version>4.1.65.Final</netty.version>
+        <netty.version>4.1.114.Final</netty.version>
         <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
         <fastjson.version>1.2.69_noneautotype</fastjson.version>
         <javassist.version>3.20.0-GA</javassist.version>
