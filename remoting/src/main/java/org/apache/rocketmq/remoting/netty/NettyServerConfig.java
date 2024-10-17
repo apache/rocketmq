@@ -24,7 +24,6 @@ public class NettyServerConfig implements Cloneable {
      */
     private String bindAddress = "0.0.0.0";
     private int listenPort = 0;
-    private int serverWorkerThreads = 8;
     private int serverCallbackExecutorThreads = 0;
     private int serverSelectorThreads = 3;
     private int serverOnewaySemaphoreValue = 256;
@@ -64,14 +63,6 @@ public class NettyServerConfig implements Cloneable {
 
     public void setListenPort(int listenPort) {
         this.listenPort = listenPort;
-    }
-
-    public int getServerWorkerThreads() {
-        return serverWorkerThreads;
-    }
-
-    public void setServerWorkerThreads(int serverWorkerThreads) {
-        this.serverWorkerThreads = serverWorkerThreads;
     }
 
     public int getServerSelectorThreads() {

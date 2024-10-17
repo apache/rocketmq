@@ -53,7 +53,7 @@ import io.netty.util.CharsetUtil;
 import io.netty.util.HashedWheelTimer;
 import io.netty.util.Timeout;
 import io.netty.util.TimerTask;
-import io.netty.util.concurrent.DefaultEventExecutorGroup;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.cert.CertificateException;
@@ -103,8 +103,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private final ChannelEventListener channelEventListener;
 
     private final HashedWheelTimer timer = new HashedWheelTimer(r -> new Thread(r, "ServerHouseKeepingService"));
-
-    private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
     /**
      * NettyRemotingServer may hold multiple SubRemotingServer, each server will be stored in this container with a
@@ -199,9 +197,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
 
     @Override
     public void start() {
-        this.defaultEventExecutorGroup = new DefaultEventExecutorGroup(nettyServerConfig.getServerWorkerThreads(),
-            new ThreadFactoryImpl("NettyServerCodecThread_"));
-
         prepareSharableHandlers();
 
         serverBootstrap.group(this.eventLoopGroupBoss, this.eventLoopGroupSelector)
@@ -270,8 +265,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
-            .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
-            .addLast(defaultEventExecutorGroup,
+            .addLast(HANDSHAKE_HANDLER_NAME, new HandshakeHandler())
+            .addLast(
                 encoder,
                 new NettyDecoder(),
                 distributionHandler,
@@ -317,10 +312,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             this.eventLoopGroupSelector.shutdownGracefully();
 
             this.nettyEventExecutor.shutdown();
-
-            if (this.defaultEventExecutorGroup != null) {
-                this.defaultEventExecutorGroup.shutdownGracefully();
-            }
         } catch (Exception e) {
             log.error("NettyRemotingServer shutdown exception, ", e);
         }
@@ -434,10 +425,6 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
         }
     }
 
-    public DefaultEventExecutorGroup getDefaultEventExecutorGroup() {
-        return defaultEventExecutorGroup;
-    }
-
     public NettyEncoder getEncoder() {
         return encoder;
     }
@@ -467,11 +454,11 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     return;
                 }
                 if (detectionResult.state() == ProtocolDetectionState.DETECTED) {
-                    ctx.pipeline().addAfter(defaultEventExecutorGroup, ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
-                            .addAfter(defaultEventExecutorGroup, HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
-                            .addAfter(defaultEventExecutorGroup, HA_PROXY_HANDLER, TLS_MODE_HANDLER, tlsModeHandler);
+                    ctx.pipeline().addAfter(ctx.name(), HA_PROXY_DECODER, new HAProxyMessageDecoder())
+                        .addAfter(HA_PROXY_DECODER, HA_PROXY_HANDLER, new HAProxyMessageHandler())
+                        .addAfter(HA_PROXY_HANDLER, TLS_MODE_HANDLER, tlsModeHandler);
                 } else {
-                    ctx.pipeline().addAfter(defaultEventExecutorGroup, ctx.name(), TLS_MODE_HANDLER, tlsModeHandler);
+                    ctx.pipeline().addAfter(ctx.name(), TLS_MODE_HANDLER, tlsModeHandler);
                 }
 
                 try {
@@ -514,8 +501,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
                     case ENFORCING:
                         if (null != sslContext) {
                             ctx.pipeline()
-                                .addAfter(defaultEventExecutorGroup, TLS_MODE_HANDLER, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
-                                .addAfter(defaultEventExecutorGroup, TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
+                                .addAfter(TLS_MODE_HANDLER, TLS_HANDLER_NAME, sslContext.newHandler(ctx.channel().alloc()))
+                                .addAfter(TLS_HANDLER_NAME, FILE_REGION_ENCODER_NAME, new FileRegionEncoder());
                             log.info("Handlers prepended to channel pipeline to establish SSL connection");
                         } else {
                             ctx.close();
