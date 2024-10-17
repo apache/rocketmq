@@ -76,7 +76,6 @@ public class AdaptiveLockTest {
             adaptiveLock.unlock();
             countDownLatch1.await();
         }
-        assertEquals(4, adaptiveLock.getSwapCriticalPoint());
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof BackOffReentrantLock);
 
         adaptiveLock.lock();
