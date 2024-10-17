@@ -20,11 +20,6 @@ import org.apache.rocketmq.store.PutMessageLock;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 
 public interface AdaptiveBackOffSpinLock extends PutMessageLock {
-
-    void lock();
-
-    void unlock();
-
     /**
      * Configuration update
      * @param messageStoreConfig

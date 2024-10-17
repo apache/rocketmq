@@ -133,7 +133,7 @@ public class CommitLog implements Swappable {
             }
         };
 
-        AdaptiveBackOffSpinLock adaptiveBackOffSpinLock = new AdaptiveBackOffSpinLockImpl();
+        PutMessageLock adaptiveBackOffSpinLock = new AdaptiveBackOffSpinLockImpl();
 
         this.putMessageLock = messageStore.getMessageStoreConfig().getUseABSLock() ? adaptiveBackOffSpinLock :
             messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();

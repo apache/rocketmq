@@ -32,11 +32,20 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
     //state
     private AtomicBoolean state = new AtomicBoolean(true);
 
+    // Used to determine the switchover between a mutex lock and a spin lock
     private final static float SWAP_SPIN_LOCK_RATIO = 0.8f;
 
+    // It is used to adjust the spin number K of the escape spin lock
+    // When (retreat number / TPS) <= (1 / BASE_SWAP_ADAPTIVE_RATIO * SPIN_LOCK_ADAPTIVE_RATIO), K is decreased
     private final static int SPIN_LOCK_ADAPTIVE_RATIO = 4;
 
+    // It is used to adjust the spin number K of the escape spin lock
+    // When (retreat number / TPS) >= (1 / BASE_SWAP_ADAPTIVE_RATIO), K is increased
     private final static int BASE_SWAP_LOCK_RATIO = 320;
+
+    private final static String BACK_OFF_SPIN_LOCK = "SpinLock";
+
+    private final static String REENTRANT_LOCK = "ReentrantLock";
 
     private Map<String, AdaptiveBackOffSpinLock> locks;
 
@@ -52,8 +61,8 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
     public AdaptiveBackOffSpinLockImpl() {
         this.locks = new HashMap<>();
-        this.locks.put("Reentrant", new BackOffReentrantLock());
-        this.locks.put("Spin", new BackOffSpinLock());
+        this.locks.put(REENTRANT_LOCK, new BackOffReentrantLock());
+        this.locks.put(BACK_OFF_SPIN_LOCK, new BackOffSpinLock());
 
         this.threadTable = new ArrayList<>(2);
         this.threadTable.add(new ConcurrentHashMap<>());
@@ -111,10 +120,14 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
         if (this.adaptiveLock instanceof BackOffSpinLock) {
             BackOffSpinLock lock = (BackOffSpinLock) this.adaptiveLock;
+            // Avoid frequent adjustment of K, and make a reasonable range through experiments
+            // reasonable range : (retreat number / TPS) > (1 / BASE_SWAP_ADAPTIVE_RATIO * SPIN_LOCK_ADAPTIVE_RATIO) &&
+            // (retreat number / TPS) < (1 / BASE_SWAP_ADAPTIVE_RATIO)
             if (lock.getNumberOfRetreat(slot) * BASE_SWAP_LOCK_RATIO >= tps) {
                 if (lock.isAdapt()) {
                     lock.adapt(true);
                 } else {
+                    // It is used to switch between mutex lock and spin lock
                     this.swapCriticalPoint = tps * threadNum;
                     needSwap = true;
                 }
@@ -130,6 +143,7 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
         if (needSwap) {
             if (this.state.compareAndSet(true, false)) {
+                // Ensures that no threads are in contention locks as well as in critical zones
                 int currentThreadNum;
                 do {
                     currentThreadNum = this.currentThreadNum.get();
@@ -137,9 +151,9 @@ public class AdaptiveBackOffSpinLockImpl implements AdaptiveBackOffSpinLock {
 
                 try {
                     if (this.adaptiveLock instanceof BackOffSpinLock) {
-                        this.adaptiveLock = this.locks.get("Reentrant");
+                        this.adaptiveLock = this.locks.get(REENTRANT_LOCK);
                     } else {
-                        this.adaptiveLock = this.locks.get("Spin");
+                        this.adaptiveLock = this.locks.get(BACK_OFF_SPIN_LOCK);
                         ((BackOffSpinLock) this.adaptiveLock).adapt(false);
                     }
                 } catch (Exception e) {
