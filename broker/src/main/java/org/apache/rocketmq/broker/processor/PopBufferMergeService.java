@@ -644,6 +644,7 @@ public class PopBufferMergeService extends ServiceThread {
         ackMsg.setTopic(point.getTopic());
         ackMsg.setQueueId(point.getQueueId());
         ackMsg.setPopTime(point.getPopTime());
+        ackMsg.setBrokerName(point.getBrokerName());
         msgInner.setTopic(popMessageProcessor.reviveTopic);
         msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.CHARSET_UTF8));
         msgInner.setQueueId(pointWrapper.getReviveQueueId());
