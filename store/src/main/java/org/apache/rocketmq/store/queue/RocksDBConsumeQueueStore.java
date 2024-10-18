@@ -18,6 +18,7 @@ package org.apache.rocketmq.store.queue;
 
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,21 +29,27 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nonnull;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
+import org.apache.rocketmq.store.exception.StoreException;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
+import org.rocksdb.FlushOptions;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Statistics;
 import org.rocksdb.WriteBatch;
@@ -51,9 +58,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private static final Logger ERROR_LOG = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final Logger ROCKSDB_LOG = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
 
-    public static final byte CTRL_0 = '\u0000';
-    public static final byte CTRL_1 = '\u0001';
-    public static final byte CTRL_2 = '\u0002';
 
     private final int batchSize;
     public static final int MAX_KEY_LEN = 300;
@@ -70,12 +74,16 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private final RocksDBConsumeQueueTable rocksDBConsumeQueueTable;
     private final RocksDBConsumeQueueOffsetTable rocksDBConsumeQueueOffsetTable;
 
-    private final WriteBatch writeBatch;
     private final List<DispatchRequest> bufferDRList;
     private final List<Pair<ByteBuffer, ByteBuffer>> cqBBPairList;
     private final List<Pair<ByteBuffer, ByteBuffer>> offsetBBPairList;
-    private final Map<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> tempTopicQueueMaxOffsetMap;
+    private final Map<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> tempTopicQueueMaxOffsetMap;
     private volatile boolean isCQError = false;
+
+    private int consumeQueueByteBufferCacheIndex;
+    private int offsetBufferCacheIndex;
+
+    private final OffsetInitializer offsetInitializer;
 
     public RocksDBConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
@@ -85,7 +93,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         this.rocksDBConsumeQueueTable = new RocksDBConsumeQueueTable(rocksDBStorage, messageStore);
         this.rocksDBConsumeQueueOffsetTable = new RocksDBConsumeQueueOffsetTable(rocksDBConsumeQueueTable, rocksDBStorage, messageStore);
 
-        this.writeBatch = new WriteBatch();
+        this.offsetInitializer = new OffsetInitializerRocksDBImpl(this);
         this.batchSize = messageStoreConfig.getBatchWriteKvCqSize();
         this.bufferDRList = new ArrayList<>(batchSize);
         this.cqBBPairList = new ArrayList<>(batchSize);
@@ -98,6 +106,22 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         this.tempTopicQueueMaxOffsetMap = new HashMap<>();
         this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
             new ThreadFactoryImpl("RocksDBConsumeQueueStoreScheduledThread", messageStore.getBrokerIdentity()));
+    }
+
+    private Pair<ByteBuffer, ByteBuffer> getCQByteBufferPair() {
+        int idx = consumeQueueByteBufferCacheIndex++;
+        if (idx >= cqBBPairList.size()) {
+            this.cqBBPairList.add(RocksDBConsumeQueueTable.getCQByteBufferPair());
+        }
+        return cqBBPairList.get(idx);
+    }
+
+    private Pair<ByteBuffer, ByteBuffer> getOffsetByteBufferPair() {
+        int idx = offsetBufferCacheIndex++;
+        if (idx >= offsetBBPairList.size()) {
+            this.offsetBBPairList.add(RocksDBConsumeQueueOffsetTable.getOffsetByteBufferPair());
+        }
+        return offsetBBPairList.get(idx);
     }
 
     @Override
@@ -164,12 +188,14 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public void putMessagePositionInfoWrapper(DispatchRequest request) throws RocksDBException {
-        if (request == null || this.bufferDRList.size() >= batchSize) {
-            putMessagePosition();
+        if (null == request) {
+            return;
         }
 
-        if (request != null) {
-            this.bufferDRList.add(request);
+        this.bufferDRList.add(request);
+
+        if (this.bufferDRList.size() >= batchSize) {
+            putMessagePosition();
         }
     }
 
@@ -203,25 +229,17 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             return false;
         }
 
-        final Map<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> tempTopicQueueMaxOffsetMap = this.tempTopicQueueMaxOffsetMap;
-        try {
-            final List<DispatchRequest> bufferDRList = this.bufferDRList;
+        try (WriteBatch writeBatch = new WriteBatch()) {
             final int size = bufferDRList.size();
             if (size == 0) {
                 return true;
             }
-            final List<Pair<ByteBuffer, ByteBuffer>> cqBBPairList = this.cqBBPairList;
-            final List<Pair<ByteBuffer, ByteBuffer>> offsetBBPairList = this.offsetBBPairList;
-            final WriteBatch writeBatch = this.writeBatch;
-
             long maxPhyOffset = 0;
             for (int i = size - 1; i >= 0; i--) {
                 final DispatchRequest request = bufferDRList.get(i);
-                final byte[] topicBytes = request.getTopic().getBytes(DataConverter.CHARSET_UTF8);
-
-                this.rocksDBConsumeQueueTable.buildAndPutCQByteBuffer(cqBBPairList.get(i), topicBytes, request, writeBatch);
-                this.rocksDBConsumeQueueOffsetTable.updateTempTopicQueueMaxOffset(offsetBBPairList.get(i),
-                    topicBytes, request, tempTopicQueueMaxOffsetMap);
+                DispatchEntry entry = DispatchEntry.from(request);
+                dispatch(entry, writeBatch);
+                dispatchLMQ(request, writeBatch);
 
                 final int msgSize = request.getMsgSize();
                 final long phyOffset = request.getCommitLogOffset();
@@ -247,11 +265,65 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             notifyMessageArriveAndClear();
             return true;
         } catch (Exception e) {
-            ERROR_LOG.error("putMessagePosition0 Failed.", e);
+            ERROR_LOG.error("putMessagePosition0 failed.", e);
             return false;
         } finally {
             tempTopicQueueMaxOffsetMap.clear();
+            consumeQueueByteBufferCacheIndex = 0;
+            offsetBufferCacheIndex = 0;
             this.rocksDBStorage.release();
+        }
+    }
+
+    private void dispatch(@Nonnull DispatchEntry entry, @Nonnull final WriteBatch writeBatch) throws RocksDBException {
+        this.rocksDBConsumeQueueTable.buildAndPutCQByteBuffer(getCQByteBufferPair(), entry, writeBatch);
+        updateTempTopicQueueMaxOffset(getOffsetByteBufferPair(), entry);
+    }
+
+    private void updateTempTopicQueueMaxOffset(final Pair<ByteBuffer, ByteBuffer> offsetBBPair,
+        final DispatchEntry entry) {
+        RocksDBConsumeQueueOffsetTable.buildOffsetKeyAndValueByteBuffer(offsetBBPair, entry);
+        ByteBuffer topicQueueId = offsetBBPair.getObject1();
+        ByteBuffer maxOffsetBB = offsetBBPair.getObject2();
+        Pair<ByteBuffer, DispatchEntry> old = tempTopicQueueMaxOffsetMap.get(topicQueueId);
+        if (old == null) {
+            tempTopicQueueMaxOffsetMap.put(topicQueueId, new Pair<>(maxOffsetBB, entry));
+        } else {
+            long oldMaxOffset = old.getObject1().getLong(RocksDBConsumeQueueOffsetTable.OFFSET_CQ_OFFSET);
+            long maxOffset = maxOffsetBB.getLong(RocksDBConsumeQueueOffsetTable.OFFSET_CQ_OFFSET);
+            if (maxOffset >= oldMaxOffset) {
+                ERROR_LOG.error("cqOffset invalid1. old: {}, now: {}", oldMaxOffset, maxOffset);
+            }
+        }
+    }
+
+    private void dispatchLMQ(@Nonnull DispatchRequest request, @Nonnull final WriteBatch writeBatch)
+        throws RocksDBException {
+        if (!messageStoreConfig.isEnableLmq() || !request.containsLMQ()) {
+            return;
+        }
+        Map<String, String> map = request.getPropertiesMap();
+        String lmqNames = map.get(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
+        String lmqOffsets = map.get(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET);
+        String[] queues = lmqNames.split(MixAll.LMQ_DISPATCH_SEPARATOR);
+        String[] queueOffsets = lmqOffsets.split(MixAll.LMQ_DISPATCH_SEPARATOR);
+        if (queues.length != queueOffsets.length) {
+            ERROR_LOG.error("[bug] queues.length!=queueOffsets.length ", request.getTopic());
+            return;
+        }
+        for (int i = 0; i < queues.length; i++) {
+            String queueName = queues[i];
+            DispatchEntry entry = DispatchEntry.from(request);
+            long queueOffset = Long.parseLong(queueOffsets[i]);
+            int queueId = request.getQueueId();
+            if (this.messageStore.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
+                queueId = MixAll.LMQ_QUEUE_ID;
+            }
+            entry.queueId = queueId;
+            entry.queueOffset = queueOffset;
+            entry.topic = queueName.getBytes(StandardCharsets.UTF_8);
+            log.debug("Dispatch LMQ[{}:{}]:{} --> {}", queueName, queueId, queueOffset, entry.commitLogOffset);
+            dispatch(entry, writeBatch);
         }
     }
 
@@ -271,8 +343,10 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     public Statistics getStatistics() {
         return rocksDBStorage.getStatistics();
     }
+
     @Override
-    public List<ByteBuffer> rangeQuery(final String topic, final int queueId, final long startIndex, final int num) throws RocksDBException {
+    public List<ByteBuffer> rangeQuery(final String topic, final int queueId, final long startIndex,
+        final int num) throws RocksDBException {
         return this.rocksDBConsumeQueueTable.rangeQuery(topic, queueId, startIndex, num);
     }
 
@@ -284,6 +358,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     /**
      * Ignored, we do not need to recover topicQueueTable and correct minLogicOffset. Because we will correct them
      * when we use them, we call it lazy correction.
+     *
      * @see RocksDBConsumeQueue#increaseQueueOffset(QueueOffsetOperator, MessageExtBrokerInner, short)
      * @see org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable#getMinCqOffset(String, int)
      */
@@ -310,8 +385,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             return;
         }
 
-        WriteBatch writeBatch = new WriteBatch();
-        try {
+        try (WriteBatch writeBatch = new WriteBatch()) {
             this.rocksDBConsumeQueueTable.destroyCQ(topic, queueId, writeBatch);
             this.rocksDBConsumeQueueOffsetTable.destroyOffset(topic, queueId, writeBatch);
 
@@ -320,7 +394,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             ERROR_LOG.error("kv deleteTopic {} Failed.", topic, e);
             throw e;
         } finally {
-            writeBatch.close();
             this.rocksDBStorage.release();
         }
     }
@@ -330,8 +403,21 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         try {
             this.rocksDBStorage.flushWAL();
         } catch (Exception e) {
+            log.error("Failed to flush WAL", e);
         }
         return true;
+    }
+
+    @Override
+    public void flush() throws StoreException {
+        try (FlushOptions flushOptions = new FlushOptions()) {
+            putMessagePosition();
+            flushOptions.setWaitForFlush(true);
+            flushOptions.setAllowWriteStall(true);
+            this.rocksDBStorage.flush(flushOptions);
+        } catch (RocksDBException e) {
+            throw new StoreException(e);
+        }
     }
 
     @Override
@@ -350,8 +436,9 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
      * will be rewritten by new KV when new messages are appended or will be cleaned up when topics are deleted.
      * But dirty offset info in RocksDBConsumeQueueOffsetTable must be truncated, because we use offset info in
      * RocksDBConsumeQueueOffsetTable to rebuild topicQueueTable(@see RocksDBConsumeQueue#increaseQueueOffset).
-     * @param offsetToTruncate
-     * @throws RocksDBException
+     *
+     * @param offsetToTruncate CommitLog offset to truncate to
+     * @throws RocksDBException If there is any error.
      */
     @Override
     public void truncateDirty(long offsetToTruncate) throws RocksDBException {
@@ -380,6 +467,15 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             minPhysicOffset, boundaryType);
     }
 
+    /**
+     * This method actually returns NEXT slot index to use, starting from 0. For example, if the queue is empty,
+     * it returns 0, pointing to the first slot of the 0-based queue;
+     *
+     * @param topic   Topic name
+     * @param queueId Queue ID
+     * @return Index of the next slot to push into
+     * @throws RocksDBException if RocksDB fails to fulfill the request.
+     */
     @Override
     public long getMaxOffsetInQueue(String topic, int queueId) throws RocksDBException {
         Long maxOffset = this.rocksDBConsumeQueueOffsetTable.getMaxCqOffset(topic, queueId);
@@ -443,5 +539,18 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     @Override
     public long getTotalSize() {
         return 0;
+    }
+
+    @Override
+    public long getLmqQueueOffset(String topic, int queueId) throws ConsumeQueueException {
+        return queueOffsetOperator.getLmqOffset(topic, queueId, offsetInitializer);
+    }
+
+    @Override
+    public Long getMaxOffset(String topic, int queueId) throws ConsumeQueueException {
+        if (MixAll.isLmq(topic)) {
+            return getLmqQueueOffset(topic, queueId);
+        }
+        return super.getMaxOffset(topic, queueId);
     }
 }

@@ -16,7 +16,10 @@
  */
 package org.apache.rocketmq.store.queue;
 
+import io.netty.util.internal.PlatformDependent;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -24,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -32,23 +36,21 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.WriteBatch;
 
-import static org.apache.rocketmq.common.utils.DataConverter.CHARSET_UTF8;
-import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_1;
+import static org.apache.rocketmq.common.config.AbstractRocksDBStorage.CTRL_1;
 
 public class RocksDBConsumeQueueOffsetTable {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
     private static final Logger ERROR_LOG = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final Logger ROCKSDB_LOG = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
 
-    private static final byte[] MAX_BYTES = "max".getBytes(CHARSET_UTF8);
-    private static final byte[] MIN_BYTES = "min".getBytes(CHARSET_UTF8);
+    private static final byte[] MAX_BYTES = "max".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] MIN_BYTES = "min".getBytes(StandardCharsets.UTF_8);
 
     /**
      * Rocksdb ConsumeQueue's Offset unit. Format:
@@ -72,10 +74,9 @@ public class RocksDBConsumeQueueOffsetTable {
      * </pre>
      * ConsumeQueue's Offset unit. Size: CommitLog Physical Offset(8) + ConsumeQueue Offset(8) =  16 Bytes
      */
-    private static final int OFFSET_PHY_OFFSET = 0;
-    private static final int OFFSET_CQ_OFFSET = 8;
+    static final int OFFSET_PHY_OFFSET = 0;
+    static final int OFFSET_CQ_OFFSET = 8;
     /**
-     *
      * ┌─────────────────────────┬───────────┬───────────┬───────────┬───────────┬─────────────┐
      * │ Topic Bytes Array Size  │  CTRL_1   │  CTRL_1   │  Max(Min) │  CTRL_1   │   QueueId   │
      * │        (4 Bytes)        │ (1 Bytes) │ (1 Bytes) │ (3 Bytes) │ (1 Bytes) │  (4 Bytes)  │
@@ -86,16 +87,18 @@ public class RocksDBConsumeQueueOffsetTable {
 
     /**
      * We use a new system topic='CHECKPOINT_TOPIC' to record the maxPhyOffset built by CQ dispatch thread.
+     *
      * @see ConsumeQueueStore#getMaxPhyOffsetInConsumeQueue(), we use it to find the maxPhyOffset built by CQ dispatch thread.
      * If we do not record the maxPhyOffset, it may take us a long time to start traversing from the head of
      * RocksDBConsumeQueueOffsetTable to find it.
      */
     private static final String MAX_PHYSICAL_OFFSET_CHECKPOINT = TopicValidator.RMQ_SYS_ROCKSDB_OFFSET_TOPIC;
-    private static final byte[] MAX_PHYSICAL_OFFSET_CHECKPOINT_BYTES = MAX_PHYSICAL_OFFSET_CHECKPOINT.getBytes(CHARSET_UTF8);
+    private static final byte[] MAX_PHYSICAL_OFFSET_CHECKPOINT_BYTES = MAX_PHYSICAL_OFFSET_CHECKPOINT.getBytes(StandardCharsets.UTF_8);
     private static final int INNER_CHECKPOINT_TOPIC_LEN = OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES + MAX_PHYSICAL_OFFSET_CHECKPOINT_BYTES.length;
     private static final ByteBuffer INNER_CHECKPOINT_TOPIC = ByteBuffer.allocateDirect(INNER_CHECKPOINT_TOPIC_LEN);
     private static final byte[] MAX_PHYSICAL_OFFSET_CHECKPOINT_KEY = new byte[INNER_CHECKPOINT_TOPIC_LEN];
     private final ByteBuffer maxPhyOffsetBB;
+
     static {
         buildOffsetKeyByteBuffer0(INNER_CHECKPOINT_TOPIC, MAX_PHYSICAL_OFFSET_CHECKPOINT_BYTES, 0, true);
         INNER_CHECKPOINT_TOPIC.position(0).limit(INNER_CHECKPOINT_TOPIC_LEN);
@@ -111,69 +114,118 @@ public class RocksDBConsumeQueueOffsetTable {
     /**
      * Although we have already put max(min) consumeQueueOffset and physicalOffset in rocksdb, we still hope to get them
      * from heap to avoid accessing rocksdb.
+     *
      * @see ConsumeQueue#getMaxPhysicOffset(), maxPhysicOffset  --> topicQueueMaxCqOffset
      * @see ConsumeQueue#getMinLogicOffset(),   minLogicOffset  --> topicQueueMinOffset
      */
-    private final Map<String/* topic-queueId */, PhyAndCQOffset> topicQueueMinOffset;
-    private final Map<String/* topic-queueId */, Long> topicQueueMaxCqOffset;
+    private final ConcurrentMap<String/* topic-queueId */, PhyAndCQOffset> topicQueueMinOffset;
+    private final ConcurrentMap<String/* topic-queueId */, Long> topicQueueMaxCqOffset;
 
     public RocksDBConsumeQueueOffsetTable(RocksDBConsumeQueueTable rocksDBConsumeQueueTable,
         ConsumeQueueRocksDBStorage rocksDBStorage, DefaultMessageStore messageStore) {
         this.rocksDBConsumeQueueTable = rocksDBConsumeQueueTable;
         this.rocksDBStorage = rocksDBStorage;
         this.messageStore = messageStore;
-        this.topicQueueMinOffset = new ConcurrentHashMap(1024);
-        this.topicQueueMaxCqOffset = new ConcurrentHashMap(1024);
+        this.topicQueueMinOffset = new ConcurrentHashMap<>(1024);
+        this.topicQueueMaxCqOffset = new ConcurrentHashMap<>(1024);
 
         this.maxPhyOffsetBB = ByteBuffer.allocateDirect(8);
     }
 
     public void load() {
         this.offsetCFH = this.rocksDBStorage.getOffsetCFHandle();
+        loadMaxConsumeQueueOffsets();
     }
 
-    public void updateTempTopicQueueMaxOffset(final Pair<ByteBuffer, ByteBuffer> offsetBBPair,
-        final byte[] topicBytes, final DispatchRequest request,
-        final Map<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> tempTopicQueueMaxOffsetMap) {
-        buildOffsetKeyAndValueByteBuffer(offsetBBPair, topicBytes, request);
-        ByteBuffer topicQueueId = offsetBBPair.getObject1();
-        ByteBuffer maxOffsetBB = offsetBBPair.getObject2();
-        Pair<ByteBuffer, DispatchRequest> old = tempTopicQueueMaxOffsetMap.get(topicQueueId);
-        if (old == null) {
-            tempTopicQueueMaxOffsetMap.put(topicQueueId, new Pair(maxOffsetBB, request));
-        } else {
-            long oldMaxOffset = old.getObject1().getLong(OFFSET_CQ_OFFSET);
-            long maxOffset = maxOffsetBB.getLong(OFFSET_CQ_OFFSET);
-            if (maxOffset >= oldMaxOffset) {
-                ERROR_LOG.error("cqOffset invalid1. old: {}, now: {}", oldMaxOffset, maxOffset);
+    private void loadMaxConsumeQueueOffsets() {
+        try (RocksIterator iterator = this.rocksDBStorage.seekOffsetCF()) {
+            int keyBufferCapacity = 256;
+            iterator.seekToFirst();
+            ByteBuffer keyBuffer = ByteBuffer.allocateDirect(keyBufferCapacity);
+            ByteBuffer valueBuffer = ByteBuffer.allocateDirect(16);
+            while (iterator.isValid()) {
+                keyBuffer.clear(); // clear position and limit before reuse
+                int total = iterator.key(keyBuffer);
+                if (total > keyBufferCapacity) {
+                    keyBufferCapacity = total;
+                    PlatformDependent.freeDirectBuffer(keyBuffer);
+                    keyBuffer = ByteBuffer.allocateDirect(keyBufferCapacity);
+                    continue;
+                }
+
+                if (keyBuffer.remaining() <= OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES) {
+                    iterator.next();
+                    ROCKSDB_LOG.warn("Malformed Key/Value pair");
+                    continue;
+                }
+
+                int topicLength = keyBuffer.getInt();
+                byte ctrl1 = keyBuffer.get();
+                assert ctrl1 == CTRL_1;
+
+                byte[] topicBytes = new byte[topicLength];
+                keyBuffer.get(topicBytes);
+                ctrl1 = keyBuffer.get();
+                assert ctrl1 == CTRL_1;
+                String topic = new String(topicBytes, StandardCharsets.UTF_8);
+
+                byte[] minMax = new byte[3];
+                keyBuffer.get(minMax);
+                ctrl1 = keyBuffer.get();
+                assert ctrl1 == CTRL_1;
+
+                assert keyBuffer.remaining() == Integer.SIZE / Byte.SIZE;
+                int queueId = keyBuffer.getInt();
+
+                valueBuffer.clear(); // clear position and limit before reuse
+                iterator.value(valueBuffer);
+                long commitLogOffset = -1;
+                if (valueBuffer.remaining() >= Long.SIZE / Byte.SIZE) {
+                    commitLogOffset = valueBuffer.getLong();
+                }
+                long consumeOffset = -1;
+                if (valueBuffer.remaining() >= Long.SIZE / Byte.SIZE) {
+                    consumeOffset = valueBuffer.getLong();
+                    if (consumeOffset >= 0 && Arrays.equals(minMax, MAX_BYTES)) {
+                        topicQueueMaxCqOffset.putIfAbsent(topic + "-" + queueId, consumeOffset);
+                    }
+                }
+                ROCKSDB_LOG.info("{} {}:{} --> {}|{}", new String(minMax, StandardCharsets.UTF_8), topic, queueId,
+                    consumeOffset, commitLogOffset);
+                iterator.next();
             }
+            // clean up direct buffers
+            PlatformDependent.freeDirectBuffer(keyBuffer);
+            PlatformDependent.freeDirectBuffer(valueBuffer);
         }
     }
 
-    public void putMaxPhyAndCqOffset(final Map<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> tempTopicQueueMaxOffsetMap,
+    public void putMaxPhyAndCqOffset(final Map<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> tempTopicQueueMaxOffsetMap,
         final WriteBatch writeBatch, final long maxPhyOffset) throws RocksDBException {
-        for (Map.Entry<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> entry : tempTopicQueueMaxOffsetMap.entrySet()) {
+        for (Map.Entry<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> entry : tempTopicQueueMaxOffsetMap.entrySet()) {
             writeBatch.put(this.offsetCFH, entry.getKey(), entry.getValue().getObject1());
         }
 
         appendMaxPhyOffset(writeBatch, maxPhyOffset);
     }
 
-    public void putHeapMaxCqOffset(final Map<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> tempTopicQueueMaxOffsetMap) {
-        for (Map.Entry<ByteBuffer, Pair<ByteBuffer, DispatchRequest>> entry : tempTopicQueueMaxOffsetMap.entrySet()) {
-            DispatchRequest request = entry.getValue().getObject2();
-            putHeapMaxCqOffset(request.getTopic(), request.getQueueId(), request.getConsumeQueueOffset());
+    public void putHeapMaxCqOffset(final Map<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> tempTopicQueueMaxOffsetMap) {
+        for (Map.Entry<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> entry : tempTopicQueueMaxOffsetMap.entrySet()) {
+            DispatchEntry dispatchEntry = entry.getValue().getObject2();
+            String topic = new String(dispatchEntry.topic, StandardCharsets.UTF_8);
+            putHeapMaxCqOffset(topic, dispatchEntry.queueId, dispatchEntry.queueOffset);
         }
     }
 
     /**
      * When topic is deleted, we clean up its offset info in rocksdb.
+     *
      * @param topic
      * @param queueId
      * @throws RocksDBException
      */
     public void destroyOffset(String topic, int queueId, WriteBatch writeBatch) throws RocksDBException {
-        final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
+        final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
         final ByteBuffer minOffsetKey = buildOffsetKeyByteBuffer(topicBytes, queueId, false);
         byte[] minOffsetBytes = this.rocksDBStorage.getOffset(minOffsetKey.array());
         Long startCQOffset = (minOffsetBytes != null) ? ByteBuffer.wrap(minOffsetBytes).getLong(OFFSET_CQ_OFFSET) : null;
@@ -214,15 +266,14 @@ public class RocksDBConsumeQueueOffsetTable {
 
     /**
      * Traverse the offset table to find dirty topic
+     *
      * @param existTopicSet
      * @return
      */
     public Map<String, Set<Integer>> iterateOffsetTable2FindDirty(final Set<String> existTopicSet) {
         Map<String/* topic */, Set<Integer/* queueId */>> topicQueueIdToBeDeletedMap = new HashMap<>();
 
-        RocksIterator iterator = null;
-        try {
-            iterator = rocksDBStorage.seekOffsetCF();
+        try (RocksIterator iterator = rocksDBStorage.seekOffsetCF()) {
             if (iterator == null) {
                 return topicQueueIdToBeDeletedMap;
             }
@@ -236,17 +287,22 @@ public class RocksDBConsumeQueueOffsetTable {
                 ByteBuffer keyBB = ByteBuffer.wrap(key);
                 int topicLen = keyBB.getInt(0);
                 byte[] topicBytes = new byte[topicLen];
-                /**
+                /*
                  * "Topic Bytes Array Size" + "CTRL_1" = 4 + 1
                  */
                 keyBB.position(4 + 1);
                 keyBB.get(topicBytes);
-                String topic = new String(topicBytes, CHARSET_UTF8);
+                String topic = new String(topicBytes, StandardCharsets.UTF_8);
                 if (TopicValidator.isSystemTopic(topic)) {
                     continue;
                 }
 
-                /**
+                // LMQ topic offsets should NOT be removed
+                if (MixAll.isLmq(topic)) {
+                    continue;
+                }
+
+                /*
                  * "Topic Bytes Array Size" + "CTRL_1" + "Topic Bytes Array" + "CTRL_1"  + "Max(min)" + "CTRL_1"
                  *  = 4 + 1 + topicLen + 1 + 3 + 1
                  */
@@ -270,10 +326,6 @@ public class RocksDBConsumeQueueOffsetTable {
             }
         } catch (Exception e) {
             ERROR_LOG.error("iterateOffsetTable2MarkDirtyCQ Failed.", e);
-        } finally {
-            if (iterator != null) {
-                iterator.close();
-            }
         }
         return topicQueueIdToBeDeletedMap;
     }
@@ -285,9 +337,13 @@ public class RocksDBConsumeQueueOffsetTable {
             final ByteBuffer byteBuffer = getMaxPhyAndCqOffsetInKV(topic, queueId);
             maxCqOffset = (byteBuffer != null) ? byteBuffer.getLong(OFFSET_CQ_OFFSET) : null;
             String topicQueueId = buildTopicQueueId(topic, queueId);
-            this.topicQueueMaxCqOffset.putIfAbsent(topicQueueId, maxCqOffset != null ? maxCqOffset : -1L);
+            long offset = maxCqOffset != null ? maxCqOffset : -1L;
+            Long prev = this.topicQueueMaxCqOffset.putIfAbsent(topicQueueId, offset);
+            if (null == prev) {
+                ROCKSDB_LOG.info("Max offset of {} is initialized to {} according to RocksDB", topicQueueId, offset);
+            }
             if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
-                ROCKSDB_LOG.warn("updateMaxOffsetInQueue. {}, {}", topicQueueId, maxCqOffset);
+                ROCKSDB_LOG.warn("updateMaxOffsetInQueue. {}, {}", topicQueueId, offset);
             }
         }
 
@@ -296,6 +352,7 @@ public class RocksDBConsumeQueueOffsetTable {
 
     /**
      * truncate dirty offset in rocksdb
+     *
      * @param offsetToTruncate
      * @throws RocksDBException
      */
@@ -313,17 +370,18 @@ public class RocksDBConsumeQueueOffsetTable {
         }
     }
 
-    private Pair<Boolean, Long> isMinOffsetOk(final String topic, final int queueId, final long minPhyOffset) throws RocksDBException {
+    private Pair<Boolean, Long> isMinOffsetOk(final String topic, final int queueId,
+        final long minPhyOffset) throws RocksDBException {
         PhyAndCQOffset phyAndCQOffset = getHeapMinOffset(topic, queueId);
         if (phyAndCQOffset != null) {
             final long phyOffset = phyAndCQOffset.getPhyOffset();
             final long cqOffset = phyAndCQOffset.getCqOffset();
 
-            return (phyOffset >= minPhyOffset) ? new Pair(true, cqOffset) : new Pair(false, cqOffset);
+            return (phyOffset >= minPhyOffset) ? new Pair<>(true, cqOffset) : new Pair<>(false, cqOffset);
         }
         ByteBuffer byteBuffer = getMinPhyAndCqOffsetInKV(topic, queueId);
         if (byteBuffer == null) {
-            return new Pair(false, 0L);
+            return new Pair<>(false, 0L);
         }
         final long phyOffset = byteBuffer.getLong(OFFSET_PHY_OFFSET);
         final long cqOffset = byteBuffer.getLong(OFFSET_CQ_OFFSET);
@@ -334,9 +392,9 @@ public class RocksDBConsumeQueueOffsetTable {
             if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
                 ROCKSDB_LOG.warn("updateMinOffsetInQueue. {}, {}", topicQueueId, newPhyAndCQOffset);
             }
-            return new Pair(true, cqOffset);
+            return new Pair<>(true, cqOffset);
         }
-        return new Pair(false, cqOffset);
+        return new Pair<>(false, cqOffset);
     }
 
     private void truncateDirtyOffset(String topic, int queueId) throws RocksDBException {
@@ -416,10 +474,10 @@ public class RocksDBConsumeQueueOffsetTable {
     }
 
     private ByteBuffer getPhyAndCqOffsetInKV(String topic, int queueId, boolean max) throws RocksDBException {
-        final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
+        final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
         final ByteBuffer keyBB = buildOffsetKeyByteBuffer(topicBytes, queueId, max);
 
-        byte[] value =  this.rocksDBStorage.getOffset(keyBB.array());
+        byte[] value = this.rocksDBStorage.getOffset(keyBB.array());
         return (value != null) ? ByteBuffer.wrap(value) : null;
     }
 
@@ -427,18 +485,21 @@ public class RocksDBConsumeQueueOffsetTable {
         return topic + "-" + queueId;
     }
 
-    private void putHeapMinCqOffset(final String topic, final int queueId, final long minPhyOffset, final long minCQOffset) {
+    private void putHeapMinCqOffset(final String topic, final int queueId, final long minPhyOffset,
+        final long minCQOffset) {
         String topicQueueId = buildTopicQueueId(topic, queueId);
         PhyAndCQOffset phyAndCQOffset = new PhyAndCQOffset(minPhyOffset, minCQOffset);
         this.topicQueueMinOffset.put(topicQueueId, phyAndCQOffset);
     }
 
-    private void putHeapMaxCqOffset(final String topic, final int queueId, final long maxCQOffset) {
+    private void putHeapMaxCqOffset(final String topic, final int queueId, final long maxOffset) {
         String topicQueueId = buildTopicQueueId(topic, queueId);
-        Long oldMaxCqOffset = this.topicQueueMaxCqOffset.put(topicQueueId, maxCQOffset);
-        if (oldMaxCqOffset != null && oldMaxCqOffset > maxCQOffset) {
-            ERROR_LOG.error("cqOffset invalid0. old: {}, now: {}", oldMaxCqOffset, maxCQOffset);
-        }
+        this.topicQueueMaxCqOffset.compute(topicQueueId, (k, prev) -> {
+            if (null == prev || maxOffset >= prev) {
+                return maxOffset;
+            }
+            return prev;
+        });
     }
 
     private PhyAndCQOffset getHeapMinOffset(final String topic, final int queueId) {
@@ -463,9 +524,8 @@ public class RocksDBConsumeQueueOffsetTable {
         if (!this.rocksDBStorage.hold()) {
             return;
         }
-        WriteBatch writeBatch = new WriteBatch();
-        try {
-            final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
+        try (WriteBatch writeBatch = new WriteBatch()) {
+            final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
             final ByteBuffer offsetKey = buildOffsetKeyByteBuffer(topicBytes, queueId, max);
 
             final ByteBuffer offsetValue = buildOffsetValueByteBuffer(phyOffset, cqOffset);
@@ -481,7 +541,6 @@ public class RocksDBConsumeQueueOffsetTable {
             ERROR_LOG.error("updateCqOffset({}) failed.", max ? "max" : "min", e);
             throw e;
         } finally {
-            writeBatch.close();
             this.rocksDBStorage.release();
             if (messageStore.getMessageStoreConfig().isEnableRocksDBLog()) {
                 ROCKSDB_LOG.warn("updateCqOffset({}). topic: {}, queueId: {}, phyOffset: {}, cqOffset: {}",
@@ -504,10 +563,8 @@ public class RocksDBConsumeQueueOffsetTable {
             throw new RocksDBException("correctMaxCqOffset error");
         }
 
-        long high = maxCQOffset;
-        long low = minCQOffset;
-        PhyAndCQOffset targetPhyAndCQOffset = this.rocksDBConsumeQueueTable.binarySearchInCQ(topic, queueId, high,
-            low, maxPhyOffsetInCQ, false);
+        PhyAndCQOffset targetPhyAndCQOffset = this.rocksDBConsumeQueueTable.binarySearchInCQ(topic, queueId, maxCQOffset,
+            minCQOffset, maxPhyOffsetInCQ, false);
 
         long targetCQOffset = targetPhyAndCQOffset.getCqOffset();
         long targetPhyOffset = targetPhyAndCQOffset.getPhyOffset();
@@ -541,10 +598,8 @@ public class RocksDBConsumeQueueOffsetTable {
             return true;
         }
 
-        long high = maxCQOffset;
-        long low = minCQOffset;
-        PhyAndCQOffset phyAndCQOffset = this.rocksDBConsumeQueueTable.binarySearchInCQ(topic, queueId, high, low,
-            minPhyOffset, true);
+        PhyAndCQOffset phyAndCQOffset = this.rocksDBConsumeQueueTable.binarySearchInCQ(topic, queueId, maxCQOffset,
+            minCQOffset, minPhyOffset, true);
         long targetCQOffset = phyAndCQOffset.getCqOffset();
         long targetPhyOffset = phyAndCQOffset.getPhyOffset();
 
@@ -568,28 +623,29 @@ public class RocksDBConsumeQueueOffsetTable {
         return new Pair<>(offsetKey, offsetValue);
     }
 
-    private void buildOffsetKeyAndValueByteBuffer(final Pair<ByteBuffer, ByteBuffer> offsetBBPair,
-        final byte[] topicBytes, final DispatchRequest request) {
+    static void buildOffsetKeyAndValueByteBuffer(final Pair<ByteBuffer, ByteBuffer> offsetBBPair,
+        final DispatchEntry entry) {
         final ByteBuffer offsetKey = offsetBBPair.getObject1();
-        buildOffsetKeyByteBuffer(offsetKey, topicBytes, request.getQueueId(), true);
+        buildOffsetKeyByteBuffer(offsetKey, entry.topic, entry.queueId, true);
 
         final ByteBuffer offsetValue = offsetBBPair.getObject2();
-        buildOffsetValueByteBuffer(offsetValue, request.getCommitLogOffset(), request.getConsumeQueueOffset());
+        buildOffsetValueByteBuffer(offsetValue, entry.commitLogOffset, entry.queueOffset);
     }
 
-    private ByteBuffer buildOffsetKeyByteBuffer(final byte[] topicBytes, final int queueId, final boolean max) {
+    private static ByteBuffer buildOffsetKeyByteBuffer(final byte[] topicBytes, final int queueId, final boolean max) {
         ByteBuffer byteBuffer = ByteBuffer.allocate(OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
         buildOffsetKeyByteBuffer0(byteBuffer, topicBytes, queueId, max);
         return byteBuffer;
     }
 
-    private void buildOffsetKeyByteBuffer(final ByteBuffer byteBuffer, final byte[] topicBytes, final int queueId, final boolean max) {
+    private static void buildOffsetKeyByteBuffer(final ByteBuffer byteBuffer, final byte[] topicBytes,
+        final int queueId, final boolean max) {
         byteBuffer.position(0).limit(OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
         buildOffsetKeyByteBuffer0(byteBuffer, topicBytes, queueId, max);
     }
 
-    private static void buildOffsetKeyByteBuffer0(final ByteBuffer byteBuffer, final byte[] topicBytes, final int queueId,
-        final boolean max) {
+    private static void buildOffsetKeyByteBuffer0(final ByteBuffer byteBuffer, final byte[] topicBytes,
+        final int queueId, final boolean max) {
         byteBuffer.putInt(topicBytes.length).put(CTRL_1).put(topicBytes).put(CTRL_1);
         if (max) {
             byteBuffer.put(MAX_BYTES);
@@ -600,18 +656,20 @@ public class RocksDBConsumeQueueOffsetTable {
         byteBuffer.flip();
     }
 
-    private void buildOffsetValueByteBuffer(final ByteBuffer byteBuffer, final long phyOffset, final long cqOffset) {
+    private static void buildOffsetValueByteBuffer(final ByteBuffer byteBuffer, final long phyOffset,
+        final long cqOffset) {
         byteBuffer.position(0).limit(OFFSET_VALUE_LENGTH);
         buildOffsetValueByteBuffer0(byteBuffer, phyOffset, cqOffset);
     }
 
-    private ByteBuffer buildOffsetValueByteBuffer(final long phyOffset, final long cqOffset) {
+    private static ByteBuffer buildOffsetValueByteBuffer(final long phyOffset, final long cqOffset) {
         final ByteBuffer byteBuffer = ByteBuffer.allocate(OFFSET_VALUE_LENGTH);
         buildOffsetValueByteBuffer0(byteBuffer, phyOffset, cqOffset);
         return byteBuffer;
     }
 
-    private void buildOffsetValueByteBuffer0(final ByteBuffer byteBuffer, final long phyOffset, final long cqOffset) {
+    private static void buildOffsetValueByteBuffer0(final ByteBuffer byteBuffer, final long phyOffset,
+        final long cqOffset) {
         byteBuffer.putLong(phyOffset).putLong(cqOffset);
         byteBuffer.flip();
     }
