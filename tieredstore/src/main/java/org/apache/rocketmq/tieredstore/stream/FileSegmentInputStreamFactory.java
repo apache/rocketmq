@@ -36,6 +36,7 @@ public class FileSegmentInputStreamFactory {
             case CONSUME_QUEUE:
                 return new FileSegmentInputStream(fileType, bufferList, length);
             case INDEX:
+            case INDEX_COMPACTED:
                 if (bufferList.size() != 1) {
                     throw new IllegalArgumentException("buffer block size must be 1 when file type is IndexFile");
                 }

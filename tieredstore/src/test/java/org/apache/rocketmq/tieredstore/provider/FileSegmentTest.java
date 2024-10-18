@@ -127,7 +127,12 @@ public class FileSegmentTest {
 
         fileSegment = new PosixFileSegment(
             storeConfig, FileSegmentType.INDEX, MessageStoreUtil.toFilePath(mq), 100L);
-        Assert.assertEquals(Long.MAX_VALUE, fileSegment.getMaxSize());
+        Assert.assertEquals(storeConfig.getTieredStoreOriginalIndexFileMaxSize(), fileSegment.getMaxSize());
+        fileSegment.destroyFile();
+
+        fileSegment = new PosixFileSegment(
+                storeConfig, FileSegmentType.INDEX_COMPACTED, MessageStoreUtil.toFilePath(mq), 100L);
+        Assert.assertEquals(storeConfig.getTieredStoreCompactedIndexFileMaxSize(), fileSegment.getMaxSize());
         fileSegment.destroyFile();
     }
 

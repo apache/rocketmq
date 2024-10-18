@@ -152,7 +152,7 @@ public class IndexStoreService extends ServiceThread implements IndexService {
         }
 
         // recover remote
-        this.flatAppendFile = fileAllocator.createFlatFileForIndexFile(filePath);
+        this.flatAppendFile = fileAllocator.createFlatFileForCompactedIndexFile(filePath);
 
         for (FileSegment fileSegment : flatAppendFile.getFileSegmentList()) {
             IndexFile indexFile = new IndexStoreFile(storeConfig, fileSegment);

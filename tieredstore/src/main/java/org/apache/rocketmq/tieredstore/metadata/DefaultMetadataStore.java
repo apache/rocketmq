@@ -214,6 +214,7 @@ public class DefaultMetadataStore extends ConfigManager implements MetadataStore
             case CONSUME_QUEUE:
                 return consumeQueueFileSegmentTable;
             case INDEX:
+            case INDEX_COMPACTED:
                 return indexFileSegmentTable;
         }
         return new HashMap<>();

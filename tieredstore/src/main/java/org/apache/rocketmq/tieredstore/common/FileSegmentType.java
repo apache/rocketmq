@@ -24,7 +24,9 @@ public enum FileSegmentType {
 
     CONSUME_QUEUE(1),
 
-    INDEX(2);
+    INDEX(2),
+
+    INDEX_COMPACTED(3);
 
     private final int code;
 

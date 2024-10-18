@@ -422,7 +422,7 @@ public class IndexStoreFile implements IndexFile {
         byte[] payload = new byte[IndexItem.INDEX_ITEM_SIZE];
         ByteBuffer payloadBuffer = ByteBuffer.wrap(payload);
         int writePosition = INDEX_HEADER_SIZE + (hashSlotMaxCount * HASH_SLOT_SIZE);
-        int fileMaxLength = writePosition + COMPACT_INDEX_ITEM_SIZE * indexItemCount.get();
+        int fileMaxLength = writePosition + COMPACT_INDEX_ITEM_SIZE * indexItemMaxCount;
 
         compactMappedFile = new DefaultMappedFile(this.getCompactedFilePath(), fileMaxLength);
         MappedByteBuffer newBuffer = compactMappedFile.getMappedByteBuffer();
@@ -456,6 +456,7 @@ public class IndexStoreFile implements IndexFile {
 
         this.flushNewMetadata(newBuffer, true);
         newBuffer.flip();
+        newBuffer.limit(fileMaxLength);
         return newBuffer;
     }
 

@@ -114,6 +114,9 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
             case CONSUME_QUEUE:
                 return storeConfig.getTieredStoreConsumeQueueMaxSize();
             case INDEX:
+                return storeConfig.getTieredStoreOriginalIndexFileMaxSize();
+            case INDEX_COMPACTED:
+                return storeConfig.getTieredStoreCompactedIndexFileMaxSize();
             default:
                 return Long.MAX_VALUE;
         }
@@ -250,7 +253,7 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
                 fileType, this.getCommitOffset(), bufferList, null, bufferSize);
         }
 
-        boolean append = fileType != FileSegmentType.INDEX;
+        boolean append = fileType != FileSegmentType.INDEX && fileType != FileSegmentType.INDEX_COMPACTED;
         return flightCommitRequest =
             this.commit0(fileSegmentInputStream, commitPosition, bufferSize, append)
                 .thenApply(result -> {
