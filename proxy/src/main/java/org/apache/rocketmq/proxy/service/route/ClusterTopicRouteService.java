@@ -44,7 +44,7 @@ public class ClusterTopicRouteService extends TopicRouteService {
     @Override
     public String getBrokerAddr(ProxyContext ctx, String brokerName) throws Exception {
         TopicRouteWrapper topicRouteWrapper = getAllMessageQueueView(ctx, brokerName).getTopicRouteWrapper();
-        return topicRouteWrapper.getMasterAddr(brokerName);
+        return topicRouteWrapper.getMasterAddrPrefer(brokerName);
     }
 
     @Override
