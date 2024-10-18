@@ -37,11 +37,13 @@ import org.apache.rocketmq.acl.common.SessionCredentials;
 import org.apache.rocketmq.common.AclConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.CreateAccessConfigRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerListByGroupRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryMessageRequestHeader;
@@ -1106,6 +1108,26 @@ public class PlainAccessValidatorTest {
         AclUtils.writeDataObject(targetFileName2, backUpAclConfigMap2);
 
         AclTestHelper.recursiveDelete(home);
+    }
+
+    @Test
+    public void testUpdateAccessConfigWhenGroupPermsIsNull() {
+        List<String> groupPerms = new ArrayList<>();
+        CreateAccessConfigRequestHeader requestHeader = new CreateAccessConfigRequestHeader();
+        requestHeader.setAccessKey("admin-user");
+        requestHeader.setSecretKey("123456789");
+        requestHeader.setAdmin(true);
+        requestHeader.setGroupPerms(UtilAll.join(groupPerms, ","));
+
+        PlainAccessValidator plainAccessValidator = new PlainAccessValidator();
+        PlainAccessConfig plainAccessConfig = new PlainAccessConfig();
+        plainAccessConfig.setAccessKey(requestHeader.getAccessKey());
+        plainAccessConfig.setSecretKey(requestHeader.getSecretKey());
+        plainAccessConfig.setAdmin(requestHeader.isAdmin());
+        plainAccessConfig.setGroupPerms(UtilAll.split(requestHeader.getGroupPerms(), ","));
+
+        // update
+        plainAccessValidator.updateAccessConfig(plainAccessConfig);
     }
 
 
