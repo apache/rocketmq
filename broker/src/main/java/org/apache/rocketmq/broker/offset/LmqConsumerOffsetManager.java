@@ -21,12 +21,18 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 
 public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
+    protected static final Logger LOG = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+
     private ConcurrentHashMap<String, Long> lmqOffsetTable = new ConcurrentHashMap<>(512);
 
     public LmqConsumerOffsetManager() {
@@ -35,6 +41,60 @@ public class LmqConsumerOffsetManager extends ConsumerOffsetManager {
 
     public LmqConsumerOffsetManager(BrokerController brokerController) {
         super(brokerController);
+    }
+
+    @Override
+    public boolean load() {
+        String lmqFilePath = this.configFilePath();
+        String normalFilePath = super.configFilePath();
+        String targetFilePath = null;
+        try {
+            targetFilePath = MixAll.loadLatestFile(normalFilePath, lmqFilePath);
+            String jsonString = MixAll.file2String(targetFilePath);
+            if (null == jsonString || jsonString.length() == 0) {
+                return this.loadBak();
+            } else {
+                if (StringUtils.equals(normalFilePath, targetFilePath)) {
+                    //should load the old lmq offset
+                    String lmqJsonString = MixAll.file2String(lmqFilePath);
+                    this.decode(lmqJsonString);
+                    this.decodeFromLmq(jsonString);
+                } else {
+                    this.decode(jsonString);
+                }
+                LOG.info("load " + targetFilePath + " success");
+                return true;
+            }
+        } catch (Exception e) {
+            LOG.error("load " + targetFilePath + " failed, and try to load backup file", e);
+            return this.loadBak();
+        }
+    }
+
+    @Override
+    public boolean loadBak() {
+        String lmqBakFilePath = this.configFilePath() + ".bak";
+        String normalBakFilePath = super.configFilePath() + ".bak";
+        String targetBakFilePath = null;
+        try {
+            targetBakFilePath = MixAll.loadLatestFile(normalBakFilePath, lmqBakFilePath);
+            String jsonString = MixAll.file2String(targetBakFilePath);
+            if (jsonString != null && jsonString.length() > 0) {
+                if (StringUtils.equals(normalBakFilePath, targetBakFilePath)) {
+                    String lmqJsonString = MixAll.file2String(lmqBakFilePath);
+                    this.decode(lmqJsonString);
+                    this.decodeFromLmq(jsonString);
+                } else {
+                    this.decode(jsonString);
+                }
+                LOG.info("load " + targetBakFilePath + " OK");
+                return true;
+            }
+        } catch (Exception e) {
+            LOG.error("load " + targetBakFilePath + " Failed", e);
+            return false;
+        }
+        return true;
     }
 
     @Override

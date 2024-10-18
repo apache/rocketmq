@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Strings;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -99,6 +100,55 @@ public class ConsumerOffsetManager extends ConfigManager {
                 }
             }
         }
+    }
+
+    @Override
+    public boolean load() {
+        String lmqFilePath = this.configLmqFilePath();
+        String normalFilePath = this.configFilePath();
+        String targetFilePath = null;
+        try {
+            targetFilePath = MixAll.loadLatestFile(normalFilePath, lmqFilePath);
+            String jsonString = MixAll.file2String(targetFilePath);
+            if (null == jsonString || jsonString.length() == 0) {
+                return this.loadBak();
+            } else {
+                if (StringUtils.equals(normalFilePath, targetFilePath)) {
+                    this.decode(jsonString);
+                } else {
+                    this.decodeFromLmq(jsonString);
+                }
+                LOG.info("load " + targetFilePath + " success");
+                return true;
+            }
+        } catch (Exception e) {
+            LOG.error("load " + targetFilePath + " failed, and try to load backup file", e);
+            return this.loadBak();
+        }
+    }
+
+    @Override
+    protected boolean loadBak() {
+        String lmqBakFilePath = this.configLmqFilePath() + ".bak";
+        String normalBakFilePath = this.configFilePath() + ".bak";
+        String targetBakFilePath = null;
+        try {
+            targetBakFilePath = MixAll.loadLatestFile(normalBakFilePath, lmqBakFilePath);
+            String jsonString = MixAll.file2String(targetBakFilePath);
+            if (jsonString != null && jsonString.length() > 0) {
+                if (StringUtils.equals(normalBakFilePath, targetBakFilePath)) {
+                    this.decode(jsonString);
+                } else {
+                    this.decodeFromLmq(jsonString);
+                }
+                LOG.info("load " + targetBakFilePath + " OK");
+                return true;
+            }
+        } catch (Exception e) {
+            LOG.error("load " + targetBakFilePath + " Failed", e);
+            return false;
+        }
+        return true;
     }
 
     public void scanUnsubscribedTopic() {
@@ -291,6 +341,10 @@ public class ConsumerOffsetManager extends ConfigManager {
         return BrokerPathConfigHelper.getConsumerOffsetPath(this.brokerController.getMessageStoreConfig().getStorePathRootDir());
     }
 
+    private String configLmqFilePath() {
+        return BrokerPathConfigHelper.getLmqConsumerOffsetPath(brokerController.getMessageStoreConfig().getStorePathRootDir());
+    }
+
     @Override
     public void decode(String jsonString) {
         if (jsonString != null) {
@@ -299,6 +353,13 @@ public class ConsumerOffsetManager extends ConfigManager {
                 this.setOffsetTable(obj.getOffsetTable());
                 this.dataVersion = obj.dataVersion;
             }
+        }
+    }
+
+    public void decodeFromLmq(String jsonString) {
+        LmqConsumerOffsetManager obj = RemotingSerializable.fromJson(jsonString, LmqConsumerOffsetManager.class);
+        if (obj != null) {
+            this.offsetTable = obj.offsetTable;
         }
     }
 
