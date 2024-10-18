@@ -81,15 +81,15 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         super(messageStore);
 
         this.storePath = StorePathConfigHelper.getStorePathConsumeQueue(messageStoreConfig.getStorePathRootDir());
-        this.rocksDBStorage = new ConsumeQueueRocksDBStorage(messageStore, storePath, 4);
+        this.rocksDBStorage = new ConsumeQueueRocksDBStorage(messageStore, storePath);
         this.rocksDBConsumeQueueTable = new RocksDBConsumeQueueTable(rocksDBStorage, messageStore);
         this.rocksDBConsumeQueueOffsetTable = new RocksDBConsumeQueueOffsetTable(rocksDBConsumeQueueTable, rocksDBStorage, messageStore);
 
         this.writeBatch = new WriteBatch();
         this.batchSize = messageStoreConfig.getBatchWriteKvCqSize();
-        this.bufferDRList = new ArrayList(batchSize);
-        this.cqBBPairList = new ArrayList(batchSize);
-        this.offsetBBPairList = new ArrayList(batchSize);
+        this.bufferDRList = new ArrayList<>(batchSize);
+        this.cqBBPairList = new ArrayList<>(batchSize);
+        this.offsetBBPairList = new ArrayList<>(batchSize);
         for (int i = 0; i < batchSize; i++) {
             this.cqBBPairList.add(RocksDBConsumeQueueTable.getCQByteBufferPair());
             this.offsetBBPairList.add(RocksDBConsumeQueueOffsetTable.getOffsetByteBufferPair());
