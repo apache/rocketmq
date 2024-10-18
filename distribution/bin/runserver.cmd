@@ -29,14 +29,13 @@ set CLASSPATH=.;%BASE_DIR%conf;%BASE_DIR%lib\*;%CLASSPATH%
 REM Example of JAVA_MAJOR_VERSION value: '1', '9', '10', '11', ...
 REM '1' means releases before Java 9
 
-for /f "tokens=2 delims=" %%v in ('java -version 2^>^&1 ^| findstr /i "version"') do (
-    for /f "tokens=1 delims=." %%m in ("%%v") do set "JAVA_MAJOR_VERSION=%%m"
+for /f tokens^=2^ delims^=^" %%v in ('java -version 2^>^&1 ^| findstr /i "version"') do (
+    for /f delims^=^. %%m in ("%%v") do set "JAVA_MAJOR_VERSION=%%m"
 )
 
 if "%JAVA_MAJOR_VERSION%"=="" (
     set "JAVA_MAJOR_VERSION=0"
 )
-
 if %JAVA_MAJOR_VERSION% lss 17 (
    set "JAVA_OPT=%JAVA_OPT% -server -Xms2g -Xmx2g -Xmn1g -XX:MetaspaceSize=128m -XX:MaxMetaspaceSize=320m"
    set "JAVA_OPT=%JAVA_OPT% -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8 -XX:-UseParNewGC"
