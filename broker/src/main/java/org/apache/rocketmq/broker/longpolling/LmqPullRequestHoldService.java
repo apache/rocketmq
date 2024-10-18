@@ -56,7 +56,7 @@ public class LmqPullRequestHoldService extends PullRequestHoldService {
             }
             if (MixAll.isLmq(topic)) {
                 ManyPullRequest mpr = pullRequestTable.get(key);
-                if (mpr == null || mpr.getPullRequestList() == null || mpr.getPullRequestList().isEmpty()) {
+                if (mpr == null || mpr.isEmpty()) {
                     pullRequestTable.remove(key);
                 }
             }
