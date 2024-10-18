@@ -353,13 +353,14 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             } else {
                 putMessageResult = this.brokerController.getMessageStore().putMessage(msgInner);
             }
-            handlePutMessageResult(putMessageResult, response, request, msgInner, responseHeader, sendMessageContext, ctx, queueIdInt, beginTimeMillis, mappingContext, BrokerMetricsManager.getMessageType(requestHeader));
+            final RemotingCommand handledResponse = handlePutMessageResult(putMessageResult, response, request, msgInner, responseHeader,
+                sendMessageContext, ctx, queueIdInt, beginTimeMillis, mappingContext, BrokerMetricsManager.getMessageType(requestHeader));
             // record the transaction metrics
             if (putMessageResult.getPutMessageStatus() == PutMessageStatus.PUT_OK && putMessageResult.getAppendMessageResult().isOk()) {
                 this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC), 1);
             }
             sendMessageCallback.onComplete(sendMessageContext, response);
-            return response;
+            return handledResponse;
         }
     }
 
@@ -640,10 +641,10 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             } else {
                 putMessageResult = this.brokerController.getMessageStore().putMessages(messageExtBatch);
             }
-            handlePutMessageResult(putMessageResult, response, request, messageExtBatch, responseHeader,
+            final RemotingCommand handledResponse = handlePutMessageResult(putMessageResult, response, request, messageExtBatch, responseHeader,
                 sendMessageContext, ctx, queueIdInt, beginTimeMillis, mappingContext, BrokerMetricsManager.getMessageType(requestHeader));
             sendMessageCallback.onComplete(sendMessageContext, response);
-            return response;
+            return handledResponse;
         }
     }
 
