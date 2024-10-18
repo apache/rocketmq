@@ -184,6 +184,7 @@ public class ProxyConfig implements ConfigFile {
     private long transactionDataExpireScanPeriodMillis = Duration.ofSeconds(10).toMillis();
     private long transactionDataMaxWaitClearMillis = Duration.ofSeconds(30).toMillis();
     private long transactionDataExpireMillis = Duration.ofSeconds(30).toMillis();
+    private long transactionGroupOfflineTimeoutMillis = Duration.ofSeconds(120).toMillis();
     private int transactionDataMaxNum = 15;
 
     private long longPollingReserveTimeInMillis = 100;
@@ -1024,6 +1025,14 @@ public class ProxyConfig implements ConfigFile {
 
     public void setTransactionDataExpireMillis(long transactionDataExpireMillis) {
         this.transactionDataExpireMillis = transactionDataExpireMillis;
+    }
+
+    public long getTransactionGroupOfflineTimeoutMillis() {
+        return transactionGroupOfflineTimeoutMillis;
+    }
+
+    public void setTransactionGroupOfflineTimeoutMillis(long transactionGroupOfflineTimeoutMillis) {
+        this.transactionGroupOfflineTimeoutMillis = transactionGroupOfflineTimeoutMillis;
     }
 
     public int getTransactionDataMaxNum() {

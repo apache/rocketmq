@@ -19,9 +19,9 @@ package org.apache.rocketmq.proxy.service.transaction;
 import com.google.common.collect.Sets;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,7 +56,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
     private final ProducerManager producerManager;
 
     private ThreadPoolExecutor heartbeatExecutors;
-    private final Map<String /* group */, Set<ClusterData>/* cluster list */> groupClusterData = new ConcurrentHashMap<>();
+    private final Map<String /* group */, ClusterDataSet> groupClusterData = new ConcurrentHashMap<>();
     private final AtomicReference<Map<String /* brokerAddr */, String /* brokerName */>> brokerAddrNameMapRef = new AtomicReference<>();
     private TxHeartbeatServiceThread txHeartbeatServiceThread;
 
@@ -79,7 +79,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
         try {
             groupClusterData.compute(group, (groupName, clusterDataSet) -> {
                 if (clusterDataSet == null) {
-                    clusterDataSet = Sets.newHashSet();
+                    clusterDataSet = new ClusterDataSet();
                 }
                 clusterDataSet.addAll(getClusterDataFromTopic(ctx, topic));
                 return clusterDataSet;
@@ -91,7 +91,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
 
     @Override
     public void replaceTransactionSubscription(ProxyContext ctx, String group, List<String> topicList) {
-        Set<ClusterData> clusterDataSet = new HashSet<>();
+        ClusterDataSet clusterDataSet = new ClusterDataSet();
         for (String topic : topicList) {
             clusterDataSet.addAll(getClusterDataFromTopic(ctx, topic));
         }
@@ -123,22 +123,25 @@ public class ClusterTransactionService extends AbstractTransactionService {
     }
 
     public void scanProducerHeartBeat() {
+        long offlineTimout = ConfigurationManager.getProxyConfig().getTransactionGroupOfflineTimeoutMillis();
         Set<String> groupSet = groupClusterData.keySet();
 
         Map<String /* cluster */, List<HeartbeatData>> clusterHeartbeatData = new HashMap<>();
         for (String group : groupSet) {
             groupClusterData.computeIfPresent(group, (groupName, clusterDataSet) -> {
-                if (clusterDataSet.isEmpty()) {
+                if (clusterDataSet.getSet().isEmpty()) {
                     return null;
                 }
-                if (!this.producerManager.groupOnline(groupName)) {
+                // Whether the group is offline should be determined comprehensively based on client heartbeats
+                // and last addTransactionSubscription timestamp, in case the producer sent all messages before its first heartbeat.
+                if (!this.producerManager.groupOnline(groupName) && clusterDataSet.getLastAddTimestamp() + offlineTimout < System.currentTimeMillis()) {
                     return null;
                 }
 
                 ProducerData producerData = new ProducerData();
                 producerData.setGroupName(groupName);
 
-                for (ClusterData clusterData : clusterDataSet) {
+                for (ClusterData clusterData : clusterDataSet.getSet()) {
                     List<HeartbeatData> heartbeatDataList = clusterHeartbeatData.get(clusterData.cluster);
                     if (heartbeatDataList == null) {
                         heartbeatDataList = new ArrayList<>();
@@ -162,7 +165,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
                     clusterHeartbeatData.put(clusterData.cluster, heartbeatDataList);
                 }
 
-                if (clusterDataSet.isEmpty()) {
+                if (clusterDataSet.getSet().isEmpty()) {
                     return null;
                 }
                 return clusterDataSet;
@@ -180,7 +183,7 @@ public class ClusterTransactionService extends AbstractTransactionService {
         this.brokerAddrNameMapRef.set(brokerAddrNameMap);
     }
 
-    public Map<String, Set<ClusterData>> getGroupClusterData() {
+    public Map<String, ClusterDataSet> getGroupClusterData() {
         return groupClusterData;
     }
 
@@ -253,6 +256,24 @@ public class ClusterTransactionService extends AbstractTransactionService {
         @Override
         public int hashCode() {
             return cluster.hashCode();
+        }
+    }
+
+    static class ClusterDataSet {
+        private final Set<ClusterData> set = Sets.newHashSet();
+        private volatile long lastAddTimestamp = System.currentTimeMillis();
+
+        public boolean addAll(Collection<ClusterData> datas) {
+            lastAddTimestamp = System.currentTimeMillis();
+            return set.addAll(datas);
+        }
+
+        public Set<ClusterData> getSet() {
+            return set;
+        }
+
+        public long getLastAddTimestamp() {
+            return lastAddTimestamp;
         }
     }
 
