@@ -84,8 +84,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     private final OffsetInitializer offsetInitializer;
 
-    private final RocksGroupCommitService groupCommitService;
-
     public RocksDBConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
 
@@ -95,7 +93,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         this.rocksDBConsumeQueueOffsetTable = new RocksDBConsumeQueueOffsetTable(rocksDBConsumeQueueTable, rocksDBStorage, messageStore);
 
         this.offsetInitializer = new OffsetInitializerRocksDBImpl(this);
-        this.groupCommitService = new RocksGroupCommitService(this);
         this.cqBBPairList = new ArrayList<>(16);
         this.offsetBBPairList = new ArrayList<>(DEFAULT_BYTE_BUFFER_CAPACITY);
         for (int i = 0; i < DEFAULT_BYTE_BUFFER_CAPACITY; i++) {
@@ -127,7 +124,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     @Override
     public void start() {
         log.info("RocksDB ConsumeQueueStore start!");
-        this.groupCommitService.start();
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             this.rocksDBStorage.statRocksdb(ROCKSDB_LOG);
         }, 10, this.messageStoreConfig.getStatRocksDBCQIntervalSec(), TimeUnit.SECONDS);
@@ -179,7 +175,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public boolean shutdown() {
-        this.groupCommitService.shutdown();
         this.scheduledExecutorService.shutdown();
         return shutdownInner();
     }
@@ -193,13 +188,16 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         if (null == request) {
             return;
         }
-        groupCommitService.putRequest(request);
+        // We are taking advantage of Atomic Flush, this operation is purely memory-based.
+        // batch and cache in Java heap does not make sense, instead, we should put the metadata into RocksDB immediately
+        // to optimized overall end-to-end latency.
+        putMessagePosition(request);
     }
 
-    public void putMessagePosition(List<DispatchRequest> requests) throws RocksDBException {
+    public void putMessagePosition(DispatchRequest request) throws RocksDBException {
         final int maxRetries = 30;
         for (int i = 0; i < maxRetries; i++) {
-            if (putMessagePosition0(requests)) {
+            if (putMessagePosition0(request)) {
                 if (this.isCQError) {
                     this.messageStore.getRunningFlags().clearLogicsQueueError();
                     this.isCQError = false;
@@ -221,44 +219,34 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         throw new RocksDBException("put CQ Failed");
     }
 
-    private boolean putMessagePosition0(List<DispatchRequest> requests) {
+    private boolean putMessagePosition0(DispatchRequest request) {
         if (!this.rocksDBStorage.hold()) {
             return false;
         }
 
         try (WriteBatch writeBatch = new WriteBatch()) {
-            final int size = requests.size();
-            if (size == 0) {
-                return true;
-            }
             long maxPhyOffset = 0;
-            for (int i = size - 1; i >= 0; i--) {
-                final DispatchRequest request = requests.get(i);
-                DispatchEntry entry = DispatchEntry.from(request);
-                dispatch(entry, writeBatch);
-                dispatchLMQ(request, writeBatch);
+            DispatchEntry entry = DispatchEntry.from(request);
+            dispatch(entry, writeBatch);
+            dispatchLMQ(request, writeBatch);
 
-                final int msgSize = request.getMsgSize();
-                final long phyOffset = request.getCommitLogOffset();
-                if (phyOffset + msgSize >= maxPhyOffset) {
-                    maxPhyOffset = phyOffset + msgSize;
-                }
+            final int msgSize = request.getMsgSize();
+            final long phyOffset = request.getCommitLogOffset();
+            if (phyOffset + msgSize >= maxPhyOffset) {
+                maxPhyOffset = phyOffset + msgSize;
             }
 
             this.rocksDBConsumeQueueOffsetTable.putMaxPhyAndCqOffset(tempTopicQueueMaxOffsetMap, writeBatch, maxPhyOffset);
 
-            // clear writeBatch in batchPut
             this.rocksDBStorage.batchPut(writeBatch);
-
             this.rocksDBConsumeQueueOffsetTable.putHeapMaxCqOffset(tempTopicQueueMaxOffsetMap);
-
-            long storeTimeStamp = requests.get(size - 1).getStoreTimestamp();
+            long storeTimeStamp = request.getStoreTimestamp();
             if (this.messageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE
                 || this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
                 this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimeStamp);
             }
             this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(storeTimeStamp);
-            notifyMessageArriveAndClear(requests);
+            notifyMessageArrival(request);
             return true;
         } catch (Exception e) {
             ERROR_LOG.error("putMessagePosition0 failed.", e);
@@ -323,12 +311,9 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
-    private void notifyMessageArriveAndClear(List<DispatchRequest> requests) {
+    private void notifyMessageArrival(DispatchRequest request) {
         try {
-            for (DispatchRequest dp : requests) {
-                this.messageStore.notifyMessageArriveIfNecessary(dp);
-            }
-            requests.clear();
+            this.messageStore.notifyMessageArriveIfNecessary(request);
         } catch (Exception e) {
             ERROR_LOG.error("notifyMessageArriveAndClear Failed.", e);
         }
@@ -449,7 +434,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp, BoundaryType boundaryType) throws RocksDBException {
+    public long getOffsetInQueueByTime(String topic, int queueId, long timestamp,
+        BoundaryType boundaryType) throws RocksDBException {
         final long minPhysicOffset = this.messageStore.getMinPhyOffset();
         long low = this.rocksDBConsumeQueueOffsetTable.getMinCqOffset(topic, queueId);
         Long high = this.rocksDBConsumeQueueOffsetTable.getMaxCqOffset(topic, queueId);
