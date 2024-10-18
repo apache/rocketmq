@@ -725,15 +725,16 @@ public class TimerMessageStore {
         LOGGER.debug("Do enqueue [{}] [{}]", new Timestamp(delayedTime), messageExt);
         //copy the value first, avoid concurrent problem
         long tmpWriteTimeMs = currWriteTimeMs;
-        boolean needRoll = delayedTime - tmpWriteTimeMs >= (long) timerRollWindowSlots * precisionMs;
+        long intervalMs = timerRollWindowSlots * precisionMs;
+        long remainingMs = delayedTime - tmpWriteTimeMs;
+
         int magic = MAGIC_DEFAULT;
-        if (needRoll) {
+        if (remainingMs >= intervalMs) {
             magic = magic | MAGIC_ROLL;
-            if (delayedTime - tmpWriteTimeMs - (long) timerRollWindowSlots * precisionMs < (long) timerRollWindowSlots / 3 * precisionMs) {
-                //give enough time to next roll
-                delayedTime = tmpWriteTimeMs + (long) (timerRollWindowSlots / 2) * precisionMs;
+            if (remainingMs < intervalMs / 3) {
+                delayedTime = tmpWriteTimeMs + remainingMs % intervalMs + intervalMs / 3;
             } else {
-                delayedTime = tmpWriteTimeMs + (long) timerRollWindowSlots * precisionMs;
+                delayedTime = tmpWriteTimeMs + (remainingMs % intervalMs + 9 * intervalMs) / 10;
             }
         }
         boolean isDelete = messageExt.getProperty(TIMER_DELETE_UNIQUE_KEY) != null;
