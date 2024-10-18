@@ -325,6 +325,16 @@ public interface MessagingProcessor extends StartAndShutdown {
         String topic
     );
 
+    void addTransactionData(
+        ProxyContext ctx,
+        String brokerName,
+        String topic,
+        String producerGroup,
+        long tranStateTableOffset,
+        long commitLogOffset,
+        String transactionId
+    );
+
     ProxyRelayService getProxyRelayService();
 
     MetadataService getMetadataService();

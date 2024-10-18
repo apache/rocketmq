@@ -49,8 +49,7 @@ public abstract class AbstractProxyRelayService implements ProxyRelayService {
             group,
             header.getTranStateTableOffset(),
             header.getCommitLogOffset(),
-            header.getTransactionId(),
-            messageExt);
+            header.getTransactionId());
         if (transactionData == null) {
             throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR,
                 String.format("add transaction data failed. request:%s, message:%s", command, messageExt));

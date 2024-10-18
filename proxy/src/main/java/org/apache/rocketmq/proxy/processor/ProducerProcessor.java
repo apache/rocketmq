@@ -139,8 +139,7 @@ public class ProducerProcessor extends AbstractProcessor {
                 producerGroup,
                 sendResult.getQueueOffset(),
                 id.getOffset(),
-                sendResult.getTransactionId(),
-                messageList.get(0)
+                sendResult.getTransactionId()
             );
         } catch (Throwable t) {
             log.warn("fillTransactionData failed. messageQueue: {}, sendResult: {}", messageQueue, sendResult, t);

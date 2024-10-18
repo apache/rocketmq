@@ -18,7 +18,6 @@
 package org.apache.rocketmq.proxy.service.transaction;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
@@ -29,14 +28,12 @@ public abstract class AbstractTransactionService implements TransactionService, 
     protected TransactionDataManager transactionDataManager = new TransactionDataManager();
 
     @Override
-    public TransactionData addTransactionDataByBrokerAddr(ProxyContext ctx, String brokerAddr, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
-        Message message) {
-        return this.addTransactionDataByBrokerName(ctx, this.getBrokerNameByAddr(brokerAddr), topic, producerGroup, tranStateTableOffset, commitLogOffset, transactionId, message);
+    public TransactionData addTransactionDataByBrokerAddr(ProxyContext ctx, String brokerAddr, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId) {
+        return this.addTransactionDataByBrokerName(ctx, this.getBrokerNameByAddr(brokerAddr), topic, producerGroup, tranStateTableOffset, commitLogOffset, transactionId);
     }
 
     @Override
-    public TransactionData addTransactionDataByBrokerName(ProxyContext ctx, String brokerName, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId,
-        Message message) {
+    public TransactionData addTransactionDataByBrokerName(ProxyContext ctx, String brokerName, String topic, String producerGroup, long tranStateTableOffset, long commitLogOffset, String transactionId) {
         if (StringUtils.isBlank(brokerName)) {
             return null;
         }
