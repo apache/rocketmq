@@ -65,13 +65,16 @@ public class RocksDBOptionsFactory {
                 setMaxMergeWidth(Integer.MAX_VALUE).
                 setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize).
                 setCompressionSizePercent(-1);
+        String bottomMostCompressionTypeOpt = messageStore.getMessageStoreConfig()
+            .getBottomMostCompressionTypeForConsumeQueueStore();
+        CompressionType bottomMostCompressionType = CompressionType.getCompressionType(bottomMostCompressionTypeOpt);
         return columnFamilyOptions.setMaxWriteBufferNumber(4).
                 setWriteBufferSize(128 * SizeUnit.MB).
                 setMinWriteBufferNumberToMerge(1).
                 setTableFormatConfig(blockBasedTableConfig).
                 setMemTableConfig(new SkipListMemTableConfig()).
                 setCompressionType(CompressionType.LZ4_COMPRESSION).
-                setBottommostCompressionType(CompressionType.LZ4_COMPRESSION).
+                setBottommostCompressionType(bottomMostCompressionType).
                 setNumLevels(7).
                 setCompactionStyle(CompactionStyle.UNIVERSAL).
                 setCompactionOptionsUniversal(compactionOption).
