@@ -428,8 +428,6 @@ public class MessageStoreConfig {
 
     private boolean rocksdbCQDoubleWriteEnable = false;
 
-    private int batchWriteKvCqSize = 16;
-
     /**
      * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
      * The following values are valid:
@@ -446,14 +444,6 @@ public class MessageStoreConfig {
      * LZ4 is the recommended one.
      */
     private String bottomMostCompressionTypeForConsumeQueueStore = "zstd";
-
-    public int getBatchWriteKvCqSize() {
-        return batchWriteKvCqSize;
-    }
-
-    public void setBatchWriteKvCqSize(int batchWriteKvCqSize) {
-        this.batchWriteKvCqSize = batchWriteKvCqSize;
-    }
 
     public boolean isRocksdbCQDoubleWriteEnable() {
         return rocksdbCQDoubleWriteEnable;

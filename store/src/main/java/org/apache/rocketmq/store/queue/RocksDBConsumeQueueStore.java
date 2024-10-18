@@ -58,8 +58,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private static final Logger ERROR_LOG = LoggerFactory.getLogger(LoggerName.STORE_ERROR_LOGGER_NAME);
     private static final Logger ROCKSDB_LOG = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
 
+    private static final int DEFAULT_BYTE_BUFFER_CAPACITY = 16;
 
-    private final int batchSize;
     public static final int MAX_KEY_LEN = 300;
 
     private final ScheduledExecutorService scheduledExecutorService;
@@ -74,7 +74,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     private final RocksDBConsumeQueueTable rocksDBConsumeQueueTable;
     private final RocksDBConsumeQueueOffsetTable rocksDBConsumeQueueOffsetTable;
 
-    private final List<DispatchRequest> bufferDRList;
     private final List<Pair<ByteBuffer, ByteBuffer>> cqBBPairList;
     private final List<Pair<ByteBuffer, ByteBuffer>> offsetBBPairList;
     private final Map<ByteBuffer, Pair<ByteBuffer, DispatchEntry>> tempTopicQueueMaxOffsetMap;
@@ -85,6 +84,8 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     private final OffsetInitializer offsetInitializer;
 
+    private final RocksGroupCommitService groupCommitService;
+
     public RocksDBConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
 
@@ -94,11 +95,10 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         this.rocksDBConsumeQueueOffsetTable = new RocksDBConsumeQueueOffsetTable(rocksDBConsumeQueueTable, rocksDBStorage, messageStore);
 
         this.offsetInitializer = new OffsetInitializerRocksDBImpl(this);
-        this.batchSize = messageStoreConfig.getBatchWriteKvCqSize();
-        this.bufferDRList = new ArrayList<>(batchSize);
-        this.cqBBPairList = new ArrayList<>(batchSize);
-        this.offsetBBPairList = new ArrayList<>(batchSize);
-        for (int i = 0; i < batchSize; i++) {
+        this.groupCommitService = new RocksGroupCommitService(this);
+        this.cqBBPairList = new ArrayList<>(16);
+        this.offsetBBPairList = new ArrayList<>(DEFAULT_BYTE_BUFFER_CAPACITY);
+        for (int i = 0; i < DEFAULT_BYTE_BUFFER_CAPACITY; i++) {
             this.cqBBPairList.add(RocksDBConsumeQueueTable.getCQByteBufferPair());
             this.offsetBBPairList.add(RocksDBConsumeQueueOffsetTable.getOffsetByteBufferPair());
         }
@@ -127,6 +127,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     @Override
     public void start() {
         log.info("RocksDB ConsumeQueueStore start!");
+        this.groupCommitService.start();
         this.scheduledExecutorService.scheduleAtFixedRate(() -> {
             this.rocksDBStorage.statRocksdb(ROCKSDB_LOG);
         }, 10, this.messageStoreConfig.getStatRocksDBCQIntervalSec(), TimeUnit.SECONDS);
@@ -178,6 +179,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public boolean shutdown() {
+        this.groupCommitService.shutdown();
         this.scheduledExecutorService.shutdown();
         return shutdownInner();
     }
@@ -191,18 +193,13 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         if (null == request) {
             return;
         }
-
-        this.bufferDRList.add(request);
-
-        if (this.bufferDRList.size() >= batchSize) {
-            putMessagePosition();
-        }
+        groupCommitService.putRequest(request);
     }
 
-    public void putMessagePosition() throws RocksDBException {
+    public void putMessagePosition(List<DispatchRequest> requests) throws RocksDBException {
         final int maxRetries = 30;
         for (int i = 0; i < maxRetries; i++) {
-            if (putMessagePosition0()) {
+            if (putMessagePosition0(requests)) {
                 if (this.isCQError) {
                     this.messageStore.getRunningFlags().clearLogicsQueueError();
                     this.isCQError = false;
@@ -224,19 +221,19 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         throw new RocksDBException("put CQ Failed");
     }
 
-    private boolean putMessagePosition0() {
+    private boolean putMessagePosition0(List<DispatchRequest> requests) {
         if (!this.rocksDBStorage.hold()) {
             return false;
         }
 
         try (WriteBatch writeBatch = new WriteBatch()) {
-            final int size = bufferDRList.size();
+            final int size = requests.size();
             if (size == 0) {
                 return true;
             }
             long maxPhyOffset = 0;
             for (int i = size - 1; i >= 0; i--) {
-                final DispatchRequest request = bufferDRList.get(i);
+                final DispatchRequest request = requests.get(i);
                 DispatchEntry entry = DispatchEntry.from(request);
                 dispatch(entry, writeBatch);
                 dispatchLMQ(request, writeBatch);
@@ -255,14 +252,13 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
             this.rocksDBConsumeQueueOffsetTable.putHeapMaxCqOffset(tempTopicQueueMaxOffsetMap);
 
-            long storeTimeStamp = bufferDRList.get(size - 1).getStoreTimestamp();
+            long storeTimeStamp = requests.get(size - 1).getStoreTimestamp();
             if (this.messageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE
                 || this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
                 this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimeStamp);
             }
             this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(storeTimeStamp);
-
-            notifyMessageArriveAndClear();
+            notifyMessageArriveAndClear(requests);
             return true;
         } catch (Exception e) {
             ERROR_LOG.error("putMessagePosition0 failed.", e);
@@ -327,16 +323,14 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
-    private void notifyMessageArriveAndClear() {
-        final List<DispatchRequest> bufferDRList = this.bufferDRList;
+    private void notifyMessageArriveAndClear(List<DispatchRequest> requests) {
         try {
-            for (DispatchRequest dp : bufferDRList) {
+            for (DispatchRequest dp : requests) {
                 this.messageStore.notifyMessageArriveIfNecessary(dp);
             }
+            requests.clear();
         } catch (Exception e) {
             ERROR_LOG.error("notifyMessageArriveAndClear Failed.", e);
-        } finally {
-            bufferDRList.clear();
         }
     }
 
@@ -411,7 +405,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     @Override
     public void flush() throws StoreException {
         try (FlushOptions flushOptions = new FlushOptions()) {
-            putMessagePosition();
             flushOptions.setWaitForFlush(true);
             flushOptions.setAllowWriteStall(true);
             this.rocksDBStorage.flush(flushOptions);
