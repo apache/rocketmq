@@ -16,16 +16,13 @@
  */
 package org.apache.rocketmq.broker.coldctr;
 
+import com.alibaba.fastjson.JSONObject;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.alibaba.fastjson.JSONObject;
-
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
@@ -142,20 +139,15 @@ public class ColdDataCgCtrService extends ServiceThread {
     }
 
     private void sortAndDecelerate() {
-        List<Entry<String, Long>> configMapList = new ArrayList<Entry<String, Long>>(cgColdThresholdMapConfig.entrySet());
-        configMapList.sort(new Comparator<Entry<String, Long>>() {
-            @Override
-            public int compare(Entry<String, Long> o1, Entry<String, Long> o2) {
-                return (int)(o2.getValue() - o1.getValue());
-            }
-        });
+        List<Entry<String, Long>> configMapList = new ArrayList<>(cgColdThresholdMapConfig.entrySet());
+        configMapList.sort((o1, o2) -> (int)(o2.getValue() - o1.getValue()));
         Iterator<Entry<String, Long>> iterator = configMapList.iterator();
         int maxDecelerate = 3;
         while (iterator.hasNext() && maxDecelerate > 0) {
             Entry<String, Long> next = iterator.next();
             if (!isAdminConfig(next.getKey())) {
                 coldCtrStrategy.decelerate(next.getKey(), getThresholdByConsumerGroup(next.getKey()));
-                maxDecelerate --;
+                maxDecelerate--;
             }
         }
     }
