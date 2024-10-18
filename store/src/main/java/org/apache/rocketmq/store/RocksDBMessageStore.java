@@ -182,6 +182,10 @@ public class RocksDBMessageStore extends DefaultMessageStore {
     class CommitLogDispatcherBuildRocksdbConsumeQueue implements CommitLogDispatcher {
         @Override
         public void dispatch(DispatchRequest request) throws RocksDBException {
+            boolean enable = getMessageStoreConfig().isRocksdbCQDoubleWriteEnable();
+            if (!enable) {
+                return;
+            }
             final int tranType = MessageSysFlag.getTransactionValue(request.getSysFlag());
             switch (tranType) {
                 case MessageSysFlag.TRANSACTION_NOT_TYPE:

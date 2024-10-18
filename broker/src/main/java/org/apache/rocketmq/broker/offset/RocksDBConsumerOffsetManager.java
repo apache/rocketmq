@@ -60,10 +60,6 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
     }
 
     private boolean merge() {
-        if (!brokerController.getMessageStoreConfig().isTransferOffsetJsonToRocksdb()) {
-            log.info("the switch transferOffsetJsonToRocksdb is off, no merge offset operation is needed.");
-            return true;
-        }
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
             log.info("consumerOffset json file does not exist, so skip merge");
             return true;

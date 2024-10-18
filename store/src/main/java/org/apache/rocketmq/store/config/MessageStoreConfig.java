@@ -106,8 +106,6 @@ public class MessageStoreConfig {
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
 
-    private boolean transferMetadataJsonToRocksdb = false;
-
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
     // enable consume queue ext
@@ -424,8 +422,6 @@ public class MessageStoreConfig {
 
     private boolean putConsumeQueueDataByFileChannel = true;
 
-    private boolean transferOffsetJsonToRocksdb = false;
-
     private boolean rocksdbCQDoubleWriteEnable = false;
 
     private int batchWriteKvCqSize = 16;
@@ -447,13 +443,6 @@ public class MessageStoreConfig {
         this.rocksdbCQDoubleWriteEnable = rocksdbWriteEnable;
     }
 
-    public boolean isTransferOffsetJsonToRocksdb() {
-        return transferOffsetJsonToRocksdb;
-    }
-
-    public void setTransferOffsetJsonToRocksdb(boolean transferOffsetJsonToRocksdb) {
-        this.transferOffsetJsonToRocksdb = transferOffsetJsonToRocksdb;
-    }
 
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
@@ -1876,13 +1865,4 @@ public class MessageStoreConfig {
     public void setPutConsumeQueueDataByFileChannel(boolean putConsumeQueueDataByFileChannel) {
         this.putConsumeQueueDataByFileChannel = putConsumeQueueDataByFileChannel;
     }
-
-    public boolean isTransferMetadataJsonToRocksdb() {
-        return transferMetadataJsonToRocksdb;
-    }
-
-    public void setTransferMetadataJsonToRocksdb(boolean transferMetadataJsonToRocksdb) {
-        this.transferMetadataJsonToRocksdb = transferMetadataJsonToRocksdb;
-    }
-
 }

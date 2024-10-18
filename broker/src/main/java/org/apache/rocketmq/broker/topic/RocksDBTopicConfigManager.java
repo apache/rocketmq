@@ -58,10 +58,6 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
     }
 
     private boolean merge() {
-        if (!brokerController.getMessageStoreConfig().isTransferMetadataJsonToRocksdb()) {
-            log.info("the switch transferMetadataJsonToRocksdb is off, no merge topic operation is needed.");
-            return true;
-        }
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
             log.info("topic json file does not exist, so skip merge");
             return true;
