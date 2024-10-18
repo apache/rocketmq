@@ -672,19 +672,17 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         }
 
         if (this.brokerController.getBrokerConfig().getBrokerId() != MixAll.MASTER_ID && !getMessageResult.isSuggestPullingFromSlave()) {
-            if (this.brokerController.getMinBrokerIdInGroup() == MixAll.MASTER_ID) {
-                LOGGER.debug("slave redirect pullRequest to master, topic: {}, queueId: {}, consumer group: {}, next: {}, min: {}, max: {}",
-                    requestHeader.getTopic(),
-                    requestHeader.getQueueId(),
-                    requestHeader.getConsumerGroup(),
-                    responseHeader.getNextBeginOffset(),
-                    responseHeader.getMinOffset(),
-                    responseHeader.getMaxOffset()
-                );
-                responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
-                if (!getMessageResult.getStatus().equals(GetMessageStatus.FOUND)) {
-                    response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
-                }
+            LOGGER.debug("slave redirect pullRequest to master, topic: {}, queueId: {}, consumer group: {}, next: {}, min: {}, max: {}",
+                requestHeader.getTopic(),
+                requestHeader.getQueueId(),
+                requestHeader.getConsumerGroup(),
+                responseHeader.getNextBeginOffset(),
+                responseHeader.getMinOffset(),
+                responseHeader.getMaxOffset()
+            );
+            responseHeader.setSuggestWhichBrokerId(MixAll.MASTER_ID);
+            if (!getMessageResult.getStatus().equals(GetMessageStatus.FOUND)) {
+                response.setCode(ResponseCode.PULL_RETRY_IMMEDIATELY);
             }
         }
 
