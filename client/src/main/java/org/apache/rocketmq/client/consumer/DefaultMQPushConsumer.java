@@ -289,6 +289,16 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
     private RPCHook rpcHook = null;
 
     /**
+     * Enable RateLimiter for consumer
+     */
+    private boolean enableConsumeRateLimit = false;
+
+    /**
+     * The rate of consumption for single consumer
+     */
+    private int consumptionRate = Integer.MAX_VALUE;
+
+    /**
      * Default constructor.
      */
     public DefaultMQPushConsumer() {
@@ -1001,5 +1011,21 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setMessageQueueListener(MessageQueueListener messageQueueListener) {
         this.messageQueueListener = messageQueueListener;
+    }
+
+    public boolean isEnableConsumeRateLimit() {
+        return enableConsumeRateLimit;
+    }
+
+    public void setEnableConsumeRateLimit(boolean enableConsumeRateLimit) {
+        this.enableConsumeRateLimit = enableConsumeRateLimit;
+    }
+
+    public int getConsumptionRate() {
+        return consumptionRate;
+    }
+
+    public void setConsumptionRate(int consumptionRate) {
+        this.consumptionRate = consumptionRate;
     }
 }

@@ -376,6 +376,17 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 
         @Override
         public void run() {
+            if (defaultMQPushConsumer.isEnableConsumeRateLimit()) {
+                boolean canConsume = defaultMQPushConsumerImpl.getConsumeRateLimiter().tryAcquire(10 * 1000, TimeUnit.MILLISECONDS);
+                while (!canConsume) {
+                    log.warn("[Flow control], wait for group={}, mq={}", consumerGroup, messageQueue.getTopic());
+                    canConsume = defaultMQPushConsumerImpl.getConsumeRateLimiter().tryAcquire(10 * 1000, TimeUnit.MILLISECONDS);
+                }
+            }
+            doConsumeInner();
+        }
+
+        public void doConsumeInner() {
             if (this.processQueue.isDropped()) {
                 log.info("the message queue not be able to consume, because it's dropped. group={} {}", ConsumeMessageConcurrentlyService.this.consumerGroup, this.messageQueue);
                 return;
