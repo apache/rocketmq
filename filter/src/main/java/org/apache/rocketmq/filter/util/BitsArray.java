@@ -195,8 +195,8 @@ public class BitsArray implements Cloneable {
 
     protected void checkBytePosition(int bytePos, BitsArray bitsArray) {
         checkInitialized(bitsArray);
-        if (bytePos > bitsArray.byteLength()) {
-            throw new IllegalArgumentException("BytePos is greater than " + bytes.length);
+        if (bytePos >= bitsArray.byteLength()) {
+            throw new IllegalArgumentException("BytePos is greater than or equal to " + bytes.length);
         }
         if (bytePos < 0) {
             throw new IllegalArgumentException("BytePos is less than 0");
@@ -205,8 +205,8 @@ public class BitsArray implements Cloneable {
 
     protected void checkBitPosition(int bitPos, BitsArray bitsArray) {
         checkInitialized(bitsArray);
-        if (bitPos > bitsArray.bitLength()) {
-            throw new IllegalArgumentException("BitPos is greater than " + bitLength);
+        if (bitPos >= bitsArray.bitLength()) {
+            throw new IllegalArgumentException("BitPos is greater than or equal to " + bitLength);
         }
         if (bitPos < 0) {
             throw new IllegalArgumentException("BitPos is less than 0");
