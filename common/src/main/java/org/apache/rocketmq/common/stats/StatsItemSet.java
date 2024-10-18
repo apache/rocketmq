@@ -28,7 +28,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 
 public class StatsItemSet {
     private final ConcurrentMap<String/* key */, StatsItem> statsItemTable =
-        new ConcurrentHashMap<>(128);
+            new ConcurrentHashMap<>(128);
 
     private final String statsName;
     private final ScheduledExecutorService scheduledExecutorService;

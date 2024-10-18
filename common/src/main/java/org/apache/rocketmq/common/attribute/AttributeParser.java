@@ -25,11 +25,8 @@ import java.util.Map;
 public class AttributeParser {
 
     public static final String ATTR_ARRAY_SEPARATOR_COMMA = ",";
-
     public static final String ATTR_KEY_VALUE_EQUAL_SIGN = "=";
-
     public static final String ATTR_ADD_PLUS_SIGN = "+";
-
     private static final String ATTR_DELETE_MINUS_SIGN = "-";
 
     public static Map<String, String> parseToMap(String attributesModification) {
@@ -37,49 +34,55 @@ public class AttributeParser {
             return new HashMap<>();
         }
 
-        // format: +key1=value1,+key2=value2,-key3,+key4=value4
         Map<String, String> attributes = new HashMap<>();
         String[] kvs = attributesModification.split(ATTR_ARRAY_SEPARATOR_COMMA);
+
         for (String kv : kvs) {
-            String key;
-            String value;
-            if (kv.contains(ATTR_KEY_VALUE_EQUAL_SIGN)) {
-                String[] splits = kv.split(ATTR_KEY_VALUE_EQUAL_SIGN);
-                key = splits[0];
-                value = splits[1];
-                if (!key.contains(ATTR_ADD_PLUS_SIGN)) {
-                    throw new RuntimeException("add/alter attribute format is wrong: " + key);
+            String[] splits = kv.split(ATTR_KEY_VALUE_EQUAL_SIGN, 2);
+            String key = splits[0];
+            String value = splits.length > 1 ? splits[1] : "";
+
+            if (key.startsWith(ATTR_ADD_PLUS_SIGN)) {
+                // 添加或修改属性
+                key = key.substring(1);
+                if (value.isEmpty()) {
+                    throw new IllegalArgumentException("Add/alter attribute requires a value: " + key);
                 }
-            } else {
-                key = kv;
+            } else if (key.startsWith(ATTR_DELETE_MINUS_SIGN)) {
+                // 删除属性
+                key = key.substring(1);
                 value = "";
-                if (!key.contains(ATTR_DELETE_MINUS_SIGN)) {
-                    throw new RuntimeException("delete attribute format is wrong: " + key);
-                }
+            } else {
+                throw new IllegalArgumentException("Invalid attribute format: " + kv);
             }
-            String old = attributes.put(key, value);
-            if (old != null) {
-                throw new RuntimeException("key duplication: " + key);
+
+            if (attributes.containsKey(key)) {
+                throw new IllegalArgumentException("Duplicate key: " + key);
             }
+
+            attributes.put(key, value);
         }
+
         return attributes;
     }
 
     public static String parseToString(Map<String, String> attributes) {
-        if (attributes == null || attributes.size() == 0) {
+        if (attributes == null || attributes.isEmpty()) {
             return "";
         }
 
         List<String> kvs = new ArrayList<>();
         for (Map.Entry<String, String> entry : attributes.entrySet()) {
-
+            String key = entry.getKey();
             String value = entry.getValue();
+
             if (Strings.isNullOrEmpty(value)) {
-                kvs.add(entry.getKey());
+                kvs.add(ATTR_DELETE_MINUS_SIGN + key);
             } else {
-                kvs.add(entry.getKey() + ATTR_KEY_VALUE_EQUAL_SIGN + entry.getValue());
+                kvs.add(ATTR_ADD_PLUS_SIGN + key + ATTR_KEY_VALUE_EQUAL_SIGN + value);
             }
         }
+
         return String.join(ATTR_ARRAY_SEPARATOR_COMMA, kvs);
     }
 }

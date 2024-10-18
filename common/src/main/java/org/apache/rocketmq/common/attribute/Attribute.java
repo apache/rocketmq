@@ -20,18 +20,25 @@ public abstract class Attribute {
     protected String name;
     protected boolean changeable;
 
-    public abstract void verify(String value);
-
     public Attribute(String name, boolean changeable) {
+        // 检查 name 是否为空或空白字符串
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Attribute name cannot be null or empty");
+        }
         this.name = name;
         this.changeable = changeable;
     }
+
+    public abstract void verify(String value);
 
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Attribute name cannot be null or empty");
+        }
         this.name = name;
     }
 

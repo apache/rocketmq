@@ -29,7 +29,7 @@ import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class PlainAccessValidator implements AccessValidator {
 
-    private PlainPermissionManager aclPlugEngine;
+    private final PlainPermissionManager aclPlugEngine;
 
     public PlainAccessValidator() {
         aclPlugEngine = new PlainPermissionManager();
@@ -60,9 +60,12 @@ public class PlainAccessValidator implements AccessValidator {
         return aclPlugEngine.deleteAccessConfig(accessKey);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public String getAclConfigVersion() {
         return aclPlugEngine.getAclConfigDataVersion();
+        // 替换为新的方法名
+        //return aclPlugEngine.getCurrentAclConfigVersion();
     }
 
     @Override

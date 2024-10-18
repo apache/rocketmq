@@ -17,12 +17,14 @@
 package org.apache.rocketmq.broker.client.net;
 
 import io.netty.channel.Channel;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentMap;
+
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
@@ -39,6 +41,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
+import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -68,7 +71,8 @@ public class Broker2Client {
         request.setBody(MessageDecoder.encode(messageExt, false));
         try {
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 10);
-        } catch (Exception e) {
+        } catch (InterruptedException | RemotingSendRequestException | RemotingTimeoutException | RemotingTooMuchRequestException e) {
+            //多批捕获特定异常
             log.error("Check transaction failed because invoke producer exception. group={}, msgId={}, error={}",
                     group, messageExt.getMsgId(), e.toString());
         }
@@ -95,7 +99,7 @@ public class Broker2Client {
 
         try {
             this.brokerController.getRemotingServer().invokeOneway(channel, request, 10);
-        } catch (Exception e) {
+        } catch (InterruptedException | RemotingSendRequestException | RemotingTimeoutException | RemotingTooMuchRequestException e) {
             log.error("notifyConsumerIdsChanged exception. group={}, error={}", consumerGroup, e.toString());
         }
     }
@@ -185,7 +189,8 @@ public class Broker2Client {
                         this.brokerController.getRemotingServer().invokeOneway(entry.getKey(), request, 5000);
                         log.info("[reset-offset] reset offset success. topic={}, group={}, clientId={}",
                             topic, group, entry.getValue().getClientId());
-                    } catch (Exception e) {
+                    } catch (InterruptedException | RemotingSendRequestException | RemotingTimeoutException | RemotingTooMuchRequestException e) {
+                        //多批捕获特定异常
                         log.error("[reset-offset] reset offset exception. topic={}, group={} ,error={}",
                             topic, group, e.toString());
                     }
@@ -227,6 +232,7 @@ public class Broker2Client {
         return list;
     }
 
+    @SuppressWarnings("deprecation")
     public RemotingCommand getConsumeStatus(String topic, String group, String originClientId) {
         final RemotingCommand result = RemotingCommand.createResponseCommand(null);
 
@@ -269,6 +275,7 @@ public class Broker2Client {
                                         GetConsumerStatusBody.class);
 
                                 consumerStatusTable.put(clientId, body.getMessageQueueTable());
+                                //将@SuppressWarnings“depression”添加到“getConsumerStatus（）”
                                 log.info(
                                     "[get-consumer-status] get consumer status success. topic={}, group={}, channelRemoteAddr={}",
                                     topic, group, clientId);
@@ -277,7 +284,8 @@ public class Broker2Client {
                         default:
                             break;
                     }
-                } catch (Exception e) {
+                } catch (InterruptedException | RemotingSendRequestException | RemotingTimeoutException e) {
+                    //多批捕获特定异常
                     log.error(
                         "[get-consumer-status] get consumer status exception. topic={}, group={}, error={}",
                         topic, group, e.toString());

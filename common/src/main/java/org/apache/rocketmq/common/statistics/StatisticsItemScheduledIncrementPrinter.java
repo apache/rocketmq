@@ -26,17 +26,14 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
     private String[] tpsItemNames;
 
     public static final int TPS_INITIAL_DELAY = 0;
-    public static final int TPS_INTREVAL = 1000;
+    public static final int TPS_INTERVAL = 1000;
     public static final String SEPARATOR = "|";
 
-    /**
-     * last snapshots of all scheduled items
-     */
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItem>> lastItemSnapshots
-        = new ConcurrentHashMap<>();
+            = new ConcurrentHashMap<>();
 
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItemSampleBrief>> sampleBriefs
-        = new ConcurrentHashMap<>();
+            = new ConcurrentHashMap<>();
 
     public StatisticsItemScheduledIncrementPrinter(String name, StatisticsItemPrinter printer,
                                                    ScheduledExecutorService executor, InitialDelay initialDelay,
@@ -45,86 +42,73 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
         this.tpsItemNames = tpsItemNames;
     }
 
-    /**
-     * schedule a StatisticsItem to print the Increments periodically
-     */
     @Override
     public void schedule(final StatisticsItem item) {
         setItemSampleBrief(item.getStatKind(), item.getStatObject(), new StatisticsItemSampleBrief(item, tpsItemNames));
 
-        // print log every ${interval} miliseconds
-        ScheduledFuture future = executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                if (!enabled()) {
-                    return;
-                }
+        ScheduledFuture printFuture = executor.scheduleAtFixedRate(() -> {
+            if (!enabled()) {
+                return;
+            }
 
-                StatisticsItem snapshot = item.snapshot();
-                StatisticsItem lastSnapshot = getItemSnapshot(lastItemSnapshots, item.getStatKind(),
-                    item.getStatObject());
-                StatisticsItem increment = snapshot.subtract(lastSnapshot);
+            StatisticsItem snapshot = item.snapshot();
+            StatisticsItem lastSnapshot = getItemSnapshot(lastItemSnapshots, item.getStatKind(), item.getStatObject());
+            StatisticsItem increment = snapshot.subtract(lastSnapshot);
 
-                Interceptor inteceptor = item.getInterceptor();
-                String inteceptorStr = formatInterceptor(inteceptor);
-                if (inteceptor != null) {
-                    inteceptor.reset();
-                }
+            Interceptor interceptor = item.getInterceptor();
+            String interceptorStr = formatInterceptor(interceptor);
+            if (interceptor != null) {
+                interceptor.reset();
+            }
 
-                StatisticsItemSampleBrief brief = getSampleBrief(item.getStatKind(), item.getStatObject());
-                if (brief != null && (!increment.allZeros() || printZeroLine())) {
-                    printer.print(name, increment, inteceptorStr, brief.toString());
-                }
+            StatisticsItemSampleBrief brief = getSampleBrief(item.getStatKind(), item.getStatObject());
+            if (brief != null && (!increment.allZeros() || printZeroLine())) {
+                printer.print(name, increment, interceptorStr, brief.toString());
+            }
 
-                setItemSnapshot(lastItemSnapshots, snapshot);
+            setItemSnapshot(lastItemSnapshots, snapshot);
 
-                if (brief != null) {
-                    brief.reset();
-                }
+            if (brief != null) {
+                brief.reset();
             }
         }, getInitialDelay(), interval, TimeUnit.MILLISECONDS);
-        addFuture(item, future);
+        addFuture(item, printFuture);
 
-        // sample every TPS_INTREVAL
-        ScheduledFuture futureSample = executor.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                if (!enabled()) {
-                    return;
-                }
-
-                StatisticsItem snapshot = item.snapshot();
-                StatisticsItemSampleBrief brief = getSampleBrief(item.getStatKind(), item.getStatObject());
-                if (brief != null) {
-                    brief.sample(snapshot);
-                }
+        ScheduledFuture sampleFuture = executor.scheduleAtFixedRate(() -> {
+            if (!enabled()) {
+                return;
             }
-        }, TPS_INTREVAL, TPS_INTREVAL, TimeUnit.MILLISECONDS);
-        addFuture(item, futureSample);
+
+            StatisticsItem snapshot = item.snapshot();
+            StatisticsItemSampleBrief brief = getSampleBrief(item.getStatKind(), item.getStatObject());
+            if (brief != null) {
+                brief.sample(snapshot);
+            }
+        }, TPS_INITIAL_DELAY, TPS_INTERVAL, TimeUnit.MILLISECONDS);
+        addFuture(item, sampleFuture);
     }
 
     @Override
     public void remove(StatisticsItem item) {
-        // remove task
         removeAllFuture(item);
 
         String kind = item.getStatKind();
         String key = item.getStatObject();
 
-        ConcurrentHashMap<String, StatisticsItem> lastItemMap = lastItemSnapshots.get(kind);
-        if (lastItemMap != null) {
-            lastItemMap.remove(key);
-        }
+        lastItemSnapshots.computeIfPresent(kind, (k, map) -> {
+            map.remove(key);
+            return map.isEmpty() ? null : map;
+        });
 
-        ConcurrentHashMap<String, StatisticsItemSampleBrief> briefMap = sampleBriefs.get(kind);
-        if (briefMap != null) {
-            briefMap.remove(key);
-        }
+        sampleBriefs.computeIfPresent(kind, (k, map) -> {
+            map.remove(key);
+            return map.isEmpty() ? null : map;
+        });
     }
 
     private StatisticsItem getItemSnapshot(
-        ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItem>> snapshots,
-        String kind, String key) {
+            ConcurrentHashMap<String, ConcurrentHashMap<String, StatisticsItem>> snapshots,
+            String kind, String key) {
         ConcurrentHashMap<String, StatisticsItem> itemMap = snapshots.get(kind);
         return (itemMap != null) ? itemMap.get(key) : null;
     }
@@ -138,29 +122,13 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
                                  StatisticsItem item) {
         String kind = item.getStatKind();
         String key = item.getStatObject();
-        ConcurrentHashMap<String, StatisticsItem> itemMap = snapshots.get(kind);
-        if (itemMap == null) {
-            itemMap = new ConcurrentHashMap<>();
-            ConcurrentHashMap<String, StatisticsItem> oldItemMap = snapshots.putIfAbsent(kind, itemMap);
-            if (oldItemMap != null) {
-                itemMap = oldItemMap;
-            }
-        }
-
+        ConcurrentHashMap<String, StatisticsItem> itemMap = snapshots.computeIfAbsent(kind, k -> new ConcurrentHashMap<>());
         itemMap.put(key, item);
     }
 
     private void setItemSampleBrief(String kind, String key,
                                     StatisticsItemSampleBrief brief) {
-        ConcurrentHashMap<String, StatisticsItemSampleBrief> itemMap = sampleBriefs.get(kind);
-        if (itemMap == null) {
-            itemMap = new ConcurrentHashMap<>();
-            ConcurrentHashMap<String, StatisticsItemSampleBrief> oldItemMap = sampleBriefs.putIfAbsent(kind, itemMap);
-            if (oldItemMap != null) {
-                itemMap = oldItemMap;
-            }
-        }
-
+        ConcurrentHashMap<String, StatisticsItemSampleBrief> itemMap = sampleBriefs.computeIfAbsent(kind, k -> new ConcurrentHashMap<>());
         itemMap.put(key, brief);
     }
 
@@ -171,13 +139,11 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
 
         if (interceptor instanceof StatisticsBriefInterceptor) {
             StringBuilder sb = new StringBuilder();
-            StatisticsBriefInterceptor briefInterceptor = (StatisticsBriefInterceptor)interceptor;
+            StatisticsBriefInterceptor briefInterceptor = (StatisticsBriefInterceptor) interceptor;
             for (StatisticsBrief brief : briefInterceptor.getStatisticsBriefs()) {
                 long max = brief.getMax();
                 long tp999 = Math.min(brief.tp999(), max);
-                //sb.append(SEPARATOR).append(brief.getTotal());
                 sb.append(SEPARATOR).append(max);
-                //sb.append(SEPARATOR).append(brief.getMin());
                 sb.append(SEPARATOR).append(String.format("%.2f", brief.getAvg()));
                 sb.append(SEPARATOR).append(tp999);
             }
@@ -188,9 +154,8 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
 
     public static class StatisticsItemSampleBrief {
         private StatisticsItem lastSnapshot;
-
-        public String[] itemNames;
-        public ItemSampleBrief[] briefs;
+        private String[] itemNames;
+        private ItemSampleBrief[] briefs;
 
         public StatisticsItemSampleBrief(StatisticsItem statItem, String[] itemNames) {
             this.lastSnapshot = statItem.snapshot();
@@ -228,16 +193,12 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
             for (int i = 0; i < briefs.length; i++) {
                 ItemSampleBrief brief = briefs[i];
                 sb.append(SEPARATOR).append(brief.getMax());
-                //sb.append(SEPARATOR).append(brief.getMin());
                 sb.append(SEPARATOR).append(String.format("%.2f", brief.getAvg()));
             }
             return sb.toString();
         }
     }
 
-    /**
-     * sample brief of a item for a period of time
-     */
     public static class ItemSampleBrief {
         private long max;
         private long min;
@@ -262,11 +223,6 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
             cnt = 0;
         }
 
-        /**
-         * Getters
-         *
-         * @return
-         */
         public long getMax() {
             return max;
         }
@@ -284,7 +240,7 @@ public class StatisticsItemScheduledIncrementPrinter extends StatisticsItemSched
         }
 
         public double getAvg() {
-            return cnt != 0 ? ((double)total) / cnt : 0;
+            return cnt != 0 ? ((double) total) / cnt : 0;
         }
     }
 }
