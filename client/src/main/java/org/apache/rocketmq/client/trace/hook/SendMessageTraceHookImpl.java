@@ -17,6 +17,9 @@
 package org.apache.rocketmq.client.trace.hook;
 
 import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.hook.SendMessageContext;
 import org.apache.rocketmq.client.hook.SendMessageHook;
 import org.apache.rocketmq.client.producer.SendStatus;
@@ -26,6 +29,9 @@ import org.apache.rocketmq.client.trace.TraceContext;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceType;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.message.MessageBatch;
+import org.apache.rocketmq.common.message.MessageType;
 
 public class SendMessageTraceHookImpl implements SendMessageHook {
 
@@ -48,19 +54,35 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         }
         //build the context content of TraceContext
         TraceContext traceContext = new TraceContext();
-        traceContext.setTraceBeans(new ArrayList<>(1));
+        Message message = context.getMessage();
+        List<TraceBean> traceBeans;
+        if (message instanceof MessageBatch) {
+            MessageBatch messageBatch = (MessageBatch) message;
+            traceBeans = new ArrayList<>(messageBatch.getBatchCount());
+            for (Message batch : messageBatch) {
+                traceBeans.add(buildBeforeTraceBean(batch, context.getMsgType(), context.getBrokerAddr()));
+            }
+        } else {
+            traceBeans = new ArrayList<>(1);
+            traceBeans.add(buildBeforeTraceBean(message, context.getMsgType(), context.getBrokerAddr()));
+        }
+
+        traceContext.setTraceBeans(traceBeans);
         context.setMqTraceContext(traceContext);
         traceContext.setTraceType(TraceType.Pub);
         traceContext.setGroupName(NamespaceUtil.withoutNamespace(context.getProducerGroup()));
+    }
+
+    public TraceBean buildBeforeTraceBean(Message message, MessageType msgType, String brokerAddr) {
         //build the data bean object of message trace
         TraceBean traceBean = new TraceBean();
-        traceBean.setTopic(NamespaceUtil.withoutNamespace(context.getMessage().getTopic()));
-        traceBean.setTags(context.getMessage().getTags());
-        traceBean.setKeys(context.getMessage().getKeys());
-        traceBean.setStoreHost(context.getBrokerAddr());
-        traceBean.setBodyLength(context.getMessage().getBody().length);
-        traceBean.setMsgType(context.getMsgType());
-        traceContext.getTraceBeans().add(traceBean);
+        traceBean.setTopic(NamespaceUtil.withoutNamespace(message.getTopic()));
+        traceBean.setTags(message.getTags());
+        traceBean.setKeys(message.getKeys());
+        traceBean.setStoreHost(brokerAddr);
+        traceBean.setBodyLength(message.getBody().length);
+        traceBean.setMsgType(msgType);
+        return traceBean;
     }
 
     @Override
@@ -75,24 +97,38 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         }
 
         if (context.getSendResult().getRegionId() == null
-            || !context.getSendResult().isTraceOn()) {
+            || !context.getSendResult().isTraceOn()
+            || StringUtils.isEmpty(context.getSendResult().getMsgId())
+            || StringUtils.isEmpty(context.getSendResult().getOffsetMsgId())) {
             // if switch is false,skip it
             return;
         }
 
         TraceContext traceContext = (TraceContext) context.getMqTraceContext();
-        TraceBean traceBean = traceContext.getTraceBeans().get(0);
-        int costTime = (int) ((System.currentTimeMillis() - traceContext.getTimeStamp()) / traceContext.getTraceBeans().size());
-        traceContext.setCostTime(costTime);
-        if (context.getSendResult().getSendStatus().equals(SendStatus.SEND_OK)) {
-            traceContext.setSuccess(true);
-        } else {
-            traceContext.setSuccess(false);
+        String[] uniqMsgIds = context.getSendResult().getMsgId().split(",");
+        String[] offsetMsgIds = context.getSendResult().getOffsetMsgId().split(",");
+        if (uniqMsgIds.length != traceContext.getTraceBeans().size() || offsetMsgIds.length != traceContext.getTraceBeans().size()) {
+            return;
         }
-        traceContext.setRegionId(context.getSendResult().getRegionId());
-        traceBean.setMsgId(context.getSendResult().getMsgId());
-        traceBean.setOffsetMsgId(context.getSendResult().getOffsetMsgId());
-        traceBean.setStoreTime(traceContext.getTimeStamp() + costTime / 2);
-        localDispatcher.append(traceContext);
+        int costTime = (int) (System.currentTimeMillis() - traceContext.getTimeStamp());
+        for (int i = 0; i < traceContext.getTraceBeans().size(); i++) {
+            // build traceBean
+            TraceBean traceBean = traceContext.getTraceBeans().get(i);
+            traceBean.setMsgId(uniqMsgIds[i]);
+            traceBean.setOffsetMsgId(offsetMsgIds[i]);
+            traceBean.setStoreTime(traceContext.getTimeStamp() + costTime / 2);
+
+            // build traceContext
+            TraceContext tmpContext = new TraceContext();
+            tmpContext.setTraceType(traceContext.getTraceType());
+            tmpContext.setRegionId(context.getSendResult().getRegionId());
+            tmpContext.setGroupName(traceContext.getGroupName());
+            tmpContext.setCostTime(costTime);
+            tmpContext.setSuccess(context.getSendResult().getSendStatus().equals(SendStatus.SEND_OK));
+            tmpContext.setContextCode(traceContext.getContextCode());
+            tmpContext.setTraceBeans(new ArrayList<>(1));
+            tmpContext.getTraceBeans().add(traceBean);
+            localDispatcher.append(tmpContext);
+        }
     }
 }
