@@ -298,7 +298,8 @@ public class PullMessageProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend, boolean brokerAllowFlowCtrSuspend)
+    private RemotingCommand processRequest(final Channel channel, RemotingCommand request, boolean brokerAllowSuspend,
+        boolean brokerAllowFlowCtrSuspend)
         throws RemotingCommandException {
         final long beginTimeMills = this.brokerController.getMessageStore().now();
         RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
@@ -489,7 +490,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         final MessageStore messageStore = brokerController.getMessageStore();
         if (this.brokerController.getMessageStore() instanceof DefaultMessageStore) {
-            DefaultMessageStore defaultMessageStore = (DefaultMessageStore)this.brokerController.getMessageStore();
+            DefaultMessageStore defaultMessageStore = (DefaultMessageStore) this.brokerController.getMessageStore();
             boolean cgNeedColdDataFlowCtr = brokerController.getColdDataCgCtrService().isCgNeedColdDataFlowCtr(requestHeader.getConsumerGroup());
             if (cgNeedColdDataFlowCtr) {
                 boolean isMsgLogicCold = defaultMessageStore.getCommitLog()
@@ -538,7 +539,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                 SubscriptionData finalSubscriptionData = subscriptionData;
                 RemotingCommand finalResponse = response;
                 messageStore.getMessageAsync(group, topic, queueId, requestHeader.getQueueOffset(),
-                        requestHeader.getMaxMsgNums(), messageFilter)
+                    requestHeader.getMaxMsgNums(), messageFilter)
                     .thenApply(result -> {
                         if (null == result) {
                             finalResponse.setCode(ResponseCode.SYSTEM_ERROR);
@@ -589,12 +590,13 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
     /**
      * Composes the header of the response message to be sent back to the client
-     * @param requestHeader - the header of the request message
-     * @param getMessageResult - the result of the GetMessage request
-     * @param topicSysFlag - the system flag of the topic
+     *
+     * @param requestHeader           - the header of the request message
+     * @param getMessageResult        - the result of the GetMessage request
+     * @param topicSysFlag            - the system flag of the topic
      * @param subscriptionGroupConfig - configuration of the subscription group
-     * @param response - the response message to be sent back to the client
-     * @param clientAddress - the address of the client
+     * @param response                - the response message to be sent back to the client
+     * @param clientAddress           - the address of the client
      */
     protected void composeResponseHeader(PullMessageRequestHeader requestHeader, GetMessageResult getMessageResult,
         int topicSysFlag, SubscriptionGroupConfig subscriptionGroupConfig, RemotingCommand response,
