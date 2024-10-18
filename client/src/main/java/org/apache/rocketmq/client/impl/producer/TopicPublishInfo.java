@@ -83,7 +83,7 @@ public class TopicPublishInfo {
 
         if (filter != null && filter.length != 0) {
             for (int i = 0; i < messageQueueList.size(); i++) {
-                int index = Math.abs(sendQueue.incrementAndGet() % messageQueueList.size());
+                int index = sendQueue.incrementAndGet() % messageQueueList.size();
                 MessageQueue mq = messageQueueList.get(index);
                 boolean filterResult = true;
                 for (QueueFilter f: filter) {
@@ -98,7 +98,7 @@ public class TopicPublishInfo {
             return null;
         }
 
-        int index = Math.abs(sendQueue.incrementAndGet() % messageQueueList.size());
+        int index = sendQueue.incrementAndGet() % messageQueueList.size();
         return messageQueueList.get(index);
     }
 
