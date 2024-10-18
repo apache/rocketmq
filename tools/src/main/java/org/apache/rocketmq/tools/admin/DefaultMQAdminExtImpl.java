@@ -1577,6 +1577,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 
     public boolean consumed(final MessageExt msg,
         final String group) throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
+        String topic = msg.getTopic();
+        int msgStoredQueueId = msg.getQueueId();
+        String msgStoredHost = NetworkUtil.socketAddress2String(msg.getStoreHost());
 
         ConsumeStats cstats = this.examineConsumeStats(group);
 
@@ -1586,11 +1589,11 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         while (it.hasNext()) {
             Entry<MessageQueue, OffsetWrapper> next = it.next();
             MessageQueue mq = next.getKey();
-            if (mq.getTopic().equals(msg.getTopic()) && mq.getQueueId() == msg.getQueueId()) {
+            if (mq.getTopic().equals(topic) && mq.getQueueId() == msgStoredQueueId) {
                 BrokerData brokerData = ci.getBrokerAddrTable().get(mq.getBrokerName());
                 if (brokerData != null) {
-                    String addr = NetworkUtil.convert2IpString(brokerData.getBrokerAddrs().get(MixAll.MASTER_ID));
-                    if (NetworkUtil.socketAddress2String(msg.getStoreHost()).equals(addr)) {
+                    Set<String> brokerAddrs = parseBrokerAddrs(brokerData.getBrokerAddrs());
+                    if (brokerAddrs.contains(msgStoredHost)) {
                         if (next.getValue().getConsumerOffset() > msg.getQueueOffset()) {
                             return true;
                         }
@@ -1600,6 +1603,14 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         }
 
         return false;
+    }
+
+    public Set<String> parseBrokerAddrs(HashMap<Long, String> brokerAddrs) {
+        Set<String> parsedResult = new HashSet<>();
+        for (String brokerAddr : brokerAddrs.values()) {
+            parsedResult.add(NetworkUtil.convert2IpString(brokerAddr));
+        }
+        return parsedResult;
     }
 
     public boolean consumedConcurrent(final MessageExt msg,
