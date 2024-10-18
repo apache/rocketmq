@@ -430,6 +430,22 @@ public class MessageStoreConfig {
 
     private int batchWriteKvCqSize = 16;
 
+    /**
+     * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
+     * The following values are valid:
+     * <ul>
+     *     <li>snappy</li>
+     *     <li>z</li>
+     *     <li>bzip2</li>
+     *     <li>lz4</li>
+     *     <li>lz4hc</li>
+     *     <li>xpress</li>
+     *     <li>zstd</li>
+     * </ul>
+     *
+     * LZ4 is the recommended one.
+     */
+    private String bottomMostCompressionTypeForConsumeQueueStore = "zstd";
 
     public int getBatchWriteKvCqSize() {
         return batchWriteKvCqSize;
@@ -1885,4 +1901,11 @@ public class MessageStoreConfig {
         this.transferMetadataJsonToRocksdb = transferMetadataJsonToRocksdb;
     }
 
+    public String getBottomMostCompressionTypeForConsumeQueueStore() {
+        return bottomMostCompressionTypeForConsumeQueueStore;
+    }
+
+    public void setBottomMostCompressionTypeForConsumeQueueStore(String bottomMostCompressionTypeForConsumeQueueStore) {
+        this.bottomMostCompressionTypeForConsumeQueueStore = bottomMostCompressionTypeForConsumeQueueStore;
+    }
 }
