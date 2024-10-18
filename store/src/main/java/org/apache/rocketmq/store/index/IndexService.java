@@ -59,6 +59,8 @@ public class IndexService {
         File dir = new File(this.storePath);
         File[] files = dir.listFiles();
         if (files != null) {
+            //retain the first file that need deleted
+            boolean isNeedDeleteFirst = false;
             // ascending order
             Arrays.sort(files);
             for (File file : files) {
@@ -68,9 +70,19 @@ public class IndexService {
 
                     if (!lastExitOK) {
                         if (f.getEndTimestamp() > this.defaultMessageStore.getStoreCheckpoint()
-                            .getIndexMsgTimestamp()) {
-                            f.destroy(0);
-                            continue;
+                                .getIndexMsgTimestamp()) {
+
+                            if (isNeedDeleteFirst) {
+                                f.destroy(0);
+                                continue;
+                            } else {
+                                if (!f.putKey()) {
+                                    f.destroy(0);
+                                    continue;
+                                }
+                                isNeedDeleteFirst = true;
+                            }
+
                         }
                     }
 
