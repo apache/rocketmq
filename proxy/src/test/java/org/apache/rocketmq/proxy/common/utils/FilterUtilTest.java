@@ -54,7 +54,7 @@ public class FilterUtilTest {
         String topic = "topic";
         String subString = "substring";
         String expressionType = null;
-        SubscriptionData result = FilterAPI.buildSubscriptionData(topic, subString, expressionType);
+        SubscriptionData result = FilterAPI.build(topic, subString, expressionType);
         assertThat(result).isNotNull();
         assertThat(topic).isEqualTo(result.getTopic());
         assertThat(subString).isEqualTo(result.getSubString());
@@ -65,12 +65,12 @@ public class FilterUtilTest {
         topic = "topic";
         subString = "substring1||substring2";
         expressionType = "SQL92";
-        result = FilterAPI.buildSubscriptionData(topic, subString, expressionType);
+        result = FilterAPI.build(topic, subString, expressionType);
         assertThat(result).isNotNull();
         assertThat(topic).isEqualTo(result.getTopic());
         assertThat(subString).isEqualTo(result.getSubString());
         assertThat(result.getExpressionType()).isEqualTo(expressionType);
-        assertThat(result.getCodeSet().size()).isEqualTo(2);
+        assertThat(result.getCodeSet().size()).isEqualTo(0);
     }
 
 }

@@ -396,13 +396,14 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     requestHeader.getTopic(), requestHeader.getSubscription(), requestHeader.getExpressionType()
                 );
                 consumerManager.compensateSubscribeData(requestHeader.getConsumerGroup(), requestHeader.getTopic(), subscriptionData);
-
                 if (!ExpressionType.isTagType(subscriptionData.getExpressionType())) {
                     consumerFilterData = ConsumerFilterManager.build(
                         requestHeader.getTopic(), requestHeader.getConsumerGroup(), requestHeader.getSubscription(),
                         requestHeader.getExpressionType(), requestHeader.getSubVersion()
                     );
                     assert consumerFilterData != null;
+                    consumerFilterData.setBloomFilterData(brokerController.getConsumerFilterManager().generateBloomFilterData(requestHeader.getConsumerGroup(),
+                        requestHeader.getTopic()));
                 }
             } catch (Exception e) {
                 LOGGER.warn("Parse the consumer's subscription[{}] failed, group: {}", requestHeader.getSubscription(),

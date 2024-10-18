@@ -79,14 +79,18 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
                 }
                 break;
             case UNREGISTER:
-                this.brokerController.getConsumerFilterManager().unRegister(group);
+                if (!brokerController.getBrokerConfig().isUseStaticSubscription()) {
+                    this.brokerController.getConsumerFilterManager().unRegister(group);
+                }
                 break;
             case REGISTER:
                 if (args == null || args.length < 1) {
                     return;
                 }
-                Collection<SubscriptionData> subscriptionDataList = (Collection<SubscriptionData>) args[0];
-                this.brokerController.getConsumerFilterManager().register(group, subscriptionDataList);
+                if (!brokerController.getBrokerConfig().isUseStaticSubscription()) {
+                    Collection<SubscriptionData> subscriptionDataList = (Collection<SubscriptionData>) args[0];
+                    this.brokerController.getConsumerFilterManager().register(group, subscriptionDataList);
+                }
                 break;
             case CLIENT_REGISTER:
             case CLIENT_UNREGISTER:

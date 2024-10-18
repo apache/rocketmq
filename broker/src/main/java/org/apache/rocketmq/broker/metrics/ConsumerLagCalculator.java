@@ -448,7 +448,7 @@ public class ConsumerLagCalculator {
                     for (SimpleSubscriptionData simpleSubscriptionData : subscriptionGroupConfig.getSubscriptionDataSet()) {
                         if (topic.equals(simpleSubscriptionData.getTopic())) {
                             try {
-                                subscriptionData = FilterAPI.buildSubscriptionData(simpleSubscriptionData.getTopic(),
+                                subscriptionData = FilterAPI.build(simpleSubscriptionData.getTopic(),
                                     simpleSubscriptionData.getExpression(), simpleSubscriptionData.getExpressionType());
                             } catch (Exception e) {
                                 LOGGER.error("Try to build subscription for group:{}, topic:{} exception.", group, topic, e);
