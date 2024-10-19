@@ -288,4 +288,8 @@ public class RebalancePushImpl extends RebalanceImpl {
     public PopProcessQueue createPopProcessQueue() {
         return new PopProcessQueue();
     }
+
+    public DefaultMQPushConsumerImpl getDefaultMQPushConsumerImpl() {
+        return defaultMQPushConsumerImpl;
+    }
 }

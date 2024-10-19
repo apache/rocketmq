@@ -384,6 +384,7 @@ public abstract class RebalanceImpl {
     private boolean getRebalanceResultFromBroker(final String topic, final boolean isOrder) {
         String strategyName = this.allocateMessageQueueStrategy.getName();
         Set<MessageQueueAssignment> messageQueueAssignments;
+        boolean existPop = false;
         try {
             messageQueueAssignments = this.mQClientFactory.queryAssignment(topic, consumerGroup,
                 strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT);
@@ -401,7 +402,15 @@ public abstract class RebalanceImpl {
             if (messageQueueAssignment.getMessageQueue() != null) {
                 mqSet.add(messageQueueAssignment.getMessageQueue());
             }
+            if (!existPop && ConsumeType.CONSUME_POP.getTypeCN().equals(messageQueueAssignment.getMode().getName())) {
+                existPop = true;
+            }
         }
+        if (this.consumeType() == ConsumeType.CONSUME_PASSIVELY) {
+            RebalancePushImpl rebalancePush = (RebalancePushImpl) this;
+            rebalancePush.getDefaultMQPushConsumerImpl().setExistPop(existPop);
+        }
+
         Set<MessageQueue> mqAll = null;
         boolean changed = this.updateMessageQueueAssignment(topic, messageQueueAssignments, isOrder);
         if (changed) {
