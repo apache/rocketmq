@@ -23,8 +23,8 @@ public class ConfigHelperTest {
 
     @Test
     public void testGetDBLogDir() {
-        String logDir = ConfigHelper.getDBLogDir();
-        System.out.println(logDir);
+        // Should not raise exception.
+        ConfigHelper.getDBLogDir();
     }
 
 }
