@@ -56,6 +56,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -200,6 +201,16 @@ public class ConsumeMessageOrderlyServiceTest {
 
     @Test
     public void testConsumeThreadName() throws Exception {
+        testConsumeThreadName0();
+        System.setProperty("rocketmq.client.consumer.virtualThread", "true");
+        try {
+            testConsumeThreadName0();
+        } finally {
+            System.clearProperty("rocketmq.client.consumer.virtualThread");
+        }
+    }
+
+    private void testConsumeThreadName0() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final AtomicReference<String> consumeThreadName = new AtomicReference<>();
 
@@ -228,6 +239,19 @@ public class ConsumeMessageOrderlyServiceTest {
             assertThat(consumeThreadName.get()).startsWith("ConsumeMessageThread_" + consumeGroup2 + "_");
         } else {
             assertThat(consumeThreadName.get()).startsWith("ConsumeMessageThread_" + consumeGroup2.substring(0, 100) + "_");
+        }
+    }
+
+    @Test
+    public void testPreferVirtualConfig() {
+        assertFalse(Boolean.parseBoolean(
+            System.getProperty("rocketmq.client.consumer.virtualThread", "false")));
+        System.setProperty("rocketmq.client.consumer.virtualThread", "true");
+        try {
+            assertTrue(Boolean.parseBoolean(
+                System.getProperty("rocketmq.client.consumer.virtualThread", "false")));
+        } finally {
+            System.clearProperty("rocketmq.client.consumer.virtualThread");
         }
     }
 
