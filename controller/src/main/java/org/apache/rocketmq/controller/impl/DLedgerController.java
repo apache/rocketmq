@@ -101,7 +101,7 @@ public class DLedgerController implements Controller {
 
     private final List<BrokerLifecycleListener> brokerLifecycleListeners;
 
-    // Usr for checking whether the broker is alive
+    // use for checking whether the broker is alive
     private BrokerValidPredicate brokerAlivePredicate;
     // use for elect a master
     private ElectPolicy electPolicy;

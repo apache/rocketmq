@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
+import org.apache.rocketmq.proxy.common.utils.GrpcUtils;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 
 public class AuthenticationPipeline implements RequestPipeline {
@@ -73,7 +74,7 @@ public class AuthenticationPipeline implements RequestPipeline {
         if (result instanceof DefaultAuthenticationContext) {
             DefaultAuthenticationContext defaultAuthenticationContext = (DefaultAuthenticationContext) result;
             if (StringUtils.isNotBlank(defaultAuthenticationContext.getUsername())) {
-                headers.put(GrpcConstants.AUTHORIZATION_AK, defaultAuthenticationContext.getUsername());
+                GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.AUTHORIZATION_AK, defaultAuthenticationContext.getUsername());
             }
         }
         return result;

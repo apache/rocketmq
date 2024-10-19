@@ -62,6 +62,7 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
 
@@ -1815,12 +1816,13 @@ public class CommitLog implements Swappable {
         private static final int END_FILE_MIN_BLANK_LENGTH = 4 + 4;
         // Store the message content
         private final ByteBuffer msgStoreItemMemory;
-        private final int crc32ReservedLength = enabledAppendPropCRC ? CommitLog.CRC32_RESERVED_LEN : 0;
+        private final int crc32ReservedLength;
         private final MessageStoreConfig messageStoreConfig;
 
         DefaultAppendMessageCallback(MessageStoreConfig messageStoreConfig) {
             this.msgStoreItemMemory = ByteBuffer.allocate(END_FILE_MIN_BLANK_LENGTH);
             this.messageStoreConfig = messageStoreConfig;
+            this.crc32ReservedLength = messageStoreConfig.isEnabledAppendPropCRC() ? CommitLog.CRC32_RESERVED_LEN : 0;
         }
 
         public AppendMessageResult handlePropertiesForLmqMsg(ByteBuffer preEncodeBuffer,
@@ -1900,7 +1902,7 @@ public class CommitLog implements Swappable {
             }
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
-            boolean isMultiDispatchMsg = messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner);
+            final boolean isMultiDispatchMsg = CommitLog.isMultiDispatchMsg(messageStoreConfig, msgInner);
             if (isMultiDispatchMsg) {
                 AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
                 if (appendMessageResult != null) {
@@ -2277,8 +2279,9 @@ public class CommitLog implements Swappable {
         return flushManager;
     }
 
-    public static boolean isMultiDispatchMsg(MessageExtBrokerInner msg) {
-        return StringUtils.isNoneBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)) && !msg.getTopic().startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX);
+    public static boolean isMultiDispatchMsg(MessageStoreConfig messageStoreConfig, MessageExtBrokerInner msg) {
+        return StringUtils.isNotBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)) &&
+            MultiDispatchUtils.isNeedHandleMultiDispatch(messageStoreConfig, msg.getTopic());
     }
 
     private boolean isCloseReadAhead() {

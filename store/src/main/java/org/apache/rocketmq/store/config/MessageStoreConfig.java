@@ -424,6 +424,53 @@ public class MessageStoreConfig {
 
     private boolean putConsumeQueueDataByFileChannel = true;
 
+    private boolean transferOffsetJsonToRocksdb = false;
+
+    private boolean rocksdbCQDoubleWriteEnable = false;
+
+    private int batchWriteKvCqSize = 16;
+
+    /**
+     * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
+     * The following values are valid:
+     * <ul>
+     *     <li>snappy</li>
+     *     <li>z</li>
+     *     <li>bzip2</li>
+     *     <li>lz4</li>
+     *     <li>lz4hc</li>
+     *     <li>xpress</li>
+     *     <li>zstd</li>
+     * </ul>
+     *
+     * LZ4 is the recommended one.
+     */
+    private String bottomMostCompressionTypeForConsumeQueueStore = "zstd";
+
+    public int getBatchWriteKvCqSize() {
+        return batchWriteKvCqSize;
+    }
+
+    public void setBatchWriteKvCqSize(int batchWriteKvCqSize) {
+        this.batchWriteKvCqSize = batchWriteKvCqSize;
+    }
+
+    public boolean isRocksdbCQDoubleWriteEnable() {
+        return rocksdbCQDoubleWriteEnable;
+    }
+
+    public void setRocksdbCQDoubleWriteEnable(boolean rocksdbWriteEnable) {
+        this.rocksdbCQDoubleWriteEnable = rocksdbWriteEnable;
+    }
+
+    public boolean isTransferOffsetJsonToRocksdb() {
+        return transferOffsetJsonToRocksdb;
+    }
+
+    public void setTransferOffsetJsonToRocksdb(boolean transferOffsetJsonToRocksdb) {
+        this.transferOffsetJsonToRocksdb = transferOffsetJsonToRocksdb;
+    }
+
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
     }
@@ -1852,5 +1899,13 @@ public class MessageStoreConfig {
 
     public void setTransferMetadataJsonToRocksdb(boolean transferMetadataJsonToRocksdb) {
         this.transferMetadataJsonToRocksdb = transferMetadataJsonToRocksdb;
+    }
+
+    public String getBottomMostCompressionTypeForConsumeQueueStore() {
+        return bottomMostCompressionTypeForConsumeQueueStore;
+    }
+
+    public void setBottomMostCompressionTypeForConsumeQueueStore(String bottomMostCompressionTypeForConsumeQueueStore) {
+        this.bottomMostCompressionTypeForConsumeQueueStore = bottomMostCompressionTypeForConsumeQueueStore;
     }
 }
