@@ -104,6 +104,7 @@ import org.apache.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import org.apache.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import org.apache.rocketmq.tools.command.offset.SkipAccumulationSubCommand;
 import org.apache.rocketmq.tools.command.producer.ProducerSubCommand;
+import org.apache.rocketmq.tools.command.queue.CheckRocksdbCqWriteProgressCommand;
 import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
@@ -304,6 +305,7 @@ public class MQAdminStartup {
         initCommand(new ListAclSubCommand());
         initCommand(new CopyAclsSubCommand());
         initCommand(new RocksDBConfigToJsonCommand());
+        initCommand(new CheckRocksdbCqWriteProgressCommand());
     }
 
     private static void printHelp() {

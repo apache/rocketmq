@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.store.rocksdb;
 
-import org.apache.rocketmq.common.config.ConfigRocksDBStorage;
+import org.apache.rocketmq.common.config.ConfigHelper;
 import org.apache.rocketmq.store.MessageStore;
 import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
@@ -65,13 +65,16 @@ public class RocksDBOptionsFactory {
                 setMaxMergeWidth(Integer.MAX_VALUE).
                 setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize).
                 setCompressionSizePercent(-1);
+        String bottomMostCompressionTypeOpt = messageStore.getMessageStoreConfig()
+            .getBottomMostCompressionTypeForConsumeQueueStore();
+        CompressionType bottomMostCompressionType = CompressionType.getCompressionType(bottomMostCompressionTypeOpt);
         return columnFamilyOptions.setMaxWriteBufferNumber(4).
                 setWriteBufferSize(128 * SizeUnit.MB).
                 setMinWriteBufferNumberToMerge(1).
                 setTableFormatConfig(blockBasedTableConfig).
                 setMemTableConfig(new SkipListMemTableConfig()).
                 setCompressionType(CompressionType.LZ4_COMPRESSION).
-                setBottommostCompressionType(CompressionType.ZSTD_COMPRESSION).
+                setBottommostCompressionType(bottomMostCompressionType).
                 setNumLevels(7).
                 setCompactionStyle(CompactionStyle.UNIVERSAL).
                 setCompactionOptionsUniversal(compactionOption).
@@ -134,7 +137,7 @@ public class RocksDBOptionsFactory {
         Statistics statistics = new Statistics();
         statistics.setStatsLevel(StatsLevel.EXCEPT_DETAILED_TIMERS);
         return options.
-                setDbLogDir(ConfigRocksDBStorage.getDBLogDir()).
+                setDbLogDir(ConfigHelper.getDBLogDir()).
                 setInfoLogLevel(InfoLogLevel.INFO_LEVEL).
                 setWalRecoveryMode(WALRecoveryMode.PointInTimeRecovery).
                 setManualWalFlush(true).
@@ -144,9 +147,9 @@ public class RocksDBOptionsFactory {
                 setCreateIfMissing(true).
                 setCreateMissingColumnFamilies(true).
                 setMaxOpenFiles(-1).
-                setMaxLogFileSize(1 * SizeUnit.GB).
+                setMaxLogFileSize(SizeUnit.GB).
                 setKeepLogFileNum(5).
-                setMaxManifestFileSize(1 * SizeUnit.GB).
+                setMaxManifestFileSize(SizeUnit.GB).
                 setAllowConcurrentMemtableWrite(false).
                 setStatistics(statistics).
                 setAtomicFlush(true).

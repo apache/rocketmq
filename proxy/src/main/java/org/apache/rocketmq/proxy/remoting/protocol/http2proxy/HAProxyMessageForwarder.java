@@ -118,11 +118,11 @@ public class HAProxyMessageForwarder extends ChannelInboundHandlerAdapter {
             }
         } else {
             String remoteAddr = RemotingHelper.parseChannelRemoteAddr(inboundChannel);
-            sourceAddress = StringUtils.substringBefore(remoteAddr, CommonConstants.COLON);
+            sourceAddress = StringUtils.substringBeforeLast(remoteAddr, CommonConstants.COLON);
             sourcePort = Integer.parseInt(StringUtils.substringAfterLast(remoteAddr, CommonConstants.COLON));
 
             String localAddr = RemotingHelper.parseChannelLocalAddr(inboundChannel);
-            destinationAddress = StringUtils.substringBefore(localAddr, CommonConstants.COLON);
+            destinationAddress = StringUtils.substringBeforeLast(localAddr, CommonConstants.COLON);
             destinationPort = Integer.parseInt(StringUtils.substringAfterLast(localAddr, CommonConstants.COLON));
         }
 

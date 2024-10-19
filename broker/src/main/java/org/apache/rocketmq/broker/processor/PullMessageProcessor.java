@@ -799,7 +799,7 @@ public class PullMessageProcessor implements NettyRequestProcessor {
                     }
                 }
             } catch (RemotingCommandException e1) {
-                LOGGER.error("excuteRequestWhenWakeup run", e1);
+                LOGGER.error("executeRequestWhenWakeup run", e1);
             }
         };
         this.brokerController.getPullMessageExecutor().submit(new RequestTask(run, channel, request));

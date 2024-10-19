@@ -18,7 +18,6 @@ package org.apache.rocketmq.store.queue;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.attribute.CQType;
@@ -223,9 +222,46 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
 
     @Override
     public long estimateMessageCount(long from, long to, MessageFilter filter) {
-        // todo
-        return 0;
+        // Check from and to offset validity
+        Pair<CqUnit, Long> fromUnit = getCqUnitAndStoreTime(from);
+        if (fromUnit == null) {
+            return -1;
+        }
+
+        if (from >= to) {
+            return -1;
+        }
+
+        if (to > getMaxOffsetInQueue()) {
+            to = getMaxOffsetInQueue();
+        }
+
+        int maxSampleSize = messageStore.getMessageStoreConfig().getMaxConsumeQueueScan();
+        int sampleSize = to - from > maxSampleSize ? maxSampleSize : (int) (to - from);
+
+        int matchThreshold = messageStore.getMessageStoreConfig().getSampleCountThreshold();
+        int matchSize = 0;
+
+        for (int i = 0; i < sampleSize; i++) {
+            long index = from + i;
+            Pair<CqUnit, Long> pair = getCqUnitAndStoreTime(index);
+            if (pair == null) {
+                continue;
+            }
+            CqUnit cqUnit = pair.getObject1();
+            if (filter.isMatchedByConsumeQueue(cqUnit.getTagsCode(), cqUnit.getCqExtUnit())) {
+                matchSize++;
+                // if matchSize is plenty, early exit estimate
+                if (matchSize > matchThreshold) {
+                    sampleSize = i;
+                    break;
+                }
+            }
+        }
+        // Make sure the second half is a floating point number, otherwise it will be truncated to 0
+        return sampleSize == 0 ? 0 : (long) ((to - from) * (matchSize / (sampleSize * 1.0)));
     }
+
 
     @Override
     public long getMinOffsetInQueue() {
@@ -311,7 +347,7 @@ public class RocksDBConsumeQueue implements ConsumeQueueInterface {
     public CqUnit getLatestUnit() {
         try {
             long maxOffset = this.messageStore.getQueueStore().getMaxOffsetInQueue(topic, queueId);
-            return get(maxOffset);
+            return get(maxOffset > 0 ? maxOffset - 1 : maxOffset);
         } catch (RocksDBException e) {
             ERROR_LOG.error("getLatestUnit Failed. topic: {}, queueId: {}, {}", topic, queueId, e.getMessage());
         }
