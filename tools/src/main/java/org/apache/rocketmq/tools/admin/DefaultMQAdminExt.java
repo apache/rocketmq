@@ -794,6 +794,14 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public void notifyMessageRequestModeToClient(final String clientAddr, final String topic, final String consumerGroup,
+        final MessageRequestMode mode, final long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQClientException {
+        this.defaultMQAdminExtImpl.notifyMessageRequestModeToClient(clientAddr, topic, consumerGroup, mode, timeoutMillis);
+    }
+
+    @Override
     public void createStaticTopic(String addr, String defaultTopic, TopicConfig topicConfig,
         TopicQueueMappingDetail mappingDetail,
         boolean force) throws RemotingException, InterruptedException, MQBrokerException {

@@ -1843,6 +1843,14 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
         this.mqClientInstance.getMQClientAPIImpl().setMessageRequestMode(brokerAddr, topic, consumerGroup, mode, popShareQueueNum, timeoutMillis);
     }
 
+    @Override
+    public void notifyMessageRequestModeToClient(final String clientAddr, final String topic, final String consumerGroup,
+        final MessageRequestMode mode, final long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQClientException {
+        this.mqClientInstance.getMQClientAPIImpl().notifyMessageRequestModeToClient(clientAddr, topic, consumerGroup, mode, timeoutMillis);
+    }
+
     @Deprecated
     @Override
     public long searchOffset(final String brokerAddr, final String topicName, final int queueId, final long timestamp,

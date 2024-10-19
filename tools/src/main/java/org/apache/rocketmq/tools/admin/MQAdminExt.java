@@ -399,6 +399,11 @@ public interface MQAdminExt extends MQAdmin {
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQClientException;
 
+    void notifyMessageRequestModeToClient(final String clientAddr, final String topic, final String consumerGroup,
+        final MessageRequestMode mode, final long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQClientException;
+
     @Deprecated
     long searchOffset(final String brokerAddr, final String topicName,
         final int queueId, final long timestamp, final long timeoutMillis)

@@ -22,6 +22,8 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.protocol.body.Connection;
+import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.CommandUtil;
@@ -87,19 +89,23 @@ public class SetConsumeModeSubCommand implements SubCommand {
 
             MessageRequestMode mode = MessageRequestMode.valueOf(commandLine.getOptionValue('m').trim());
 
-
             int popShareQueueNum = 0;
             if (commandLine.hasOption('q')) {
                 popShareQueueNum = Integer.parseInt(commandLine.getOptionValue('q')
                         .trim());
             }
 
-
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
+
                 defaultMQAdminExt.start();
+                ConsumerConnection consumerConnection = defaultMQAdminExt.examineConsumerConnectionInfo(groupName, addr);
 
                 defaultMQAdminExt.setMessageRequestMode(addr, topicName, groupName, mode, popShareQueueNum, 5000);
+                for (Connection connection : consumerConnection.getConnectionSet()) {
+                    defaultMQAdminExt.notifyMessageRequestModeToClient(connection.getClientAddr(), topicName, groupName, mode, 5000);
+                    System.out.printf("notify changes to clientAddr:[%s]", connection.getClientAddr());
+                }
                 System.out.printf("set consume mode to %s success.%n", addr);
                 System.out.printf("topic[%s] group[%s] consume mode[%s] popShareQueueNum[%d]",
                         topicName, groupName, mode.toString(), popShareQueueNum);
@@ -107,17 +113,27 @@ public class SetConsumeModeSubCommand implements SubCommand {
 
             } else if (commandLine.hasOption('c')) {
                 String clusterName = commandLine.getOptionValue('c').trim();
+                ConsumerConnection consumerConnection = null;
 
                 defaultMQAdminExt.start();
                 Set<String> masterSet =
                         CommandUtil.fetchMasterAddrByClusterName(defaultMQAdminExt, clusterName);
                 for (String addr : masterSet) {
                     try {
+                        if (consumerConnection == null) {
+                            consumerConnection = defaultMQAdminExt.examineConsumerConnectionInfo(groupName, addr);
+                        }
                         defaultMQAdminExt.setMessageRequestMode(addr, topicName, groupName, mode, popShareQueueNum, 5000);
                         System.out.printf("set consume mode to %s success.%n", addr);
                     } catch (Exception e) {
                         e.printStackTrace();
                         Thread.sleep(1000 * 1);
+                    }
+                }
+                if (consumerConnection != null) {
+                    for (Connection connection : consumerConnection.getConnectionSet()) {
+                        defaultMQAdminExt.notifyMessageRequestModeToClient(connection.getClientAddr(), topicName, groupName, mode, 5000);
+                        System.out.printf("notify changes to clientAddr:[%s]", connection.getClientAddr());
                     }
                 }
                 System.out.printf("topic[%s] group[%s] consume mode[%s] popShareQueueNum[%d]",

@@ -3096,6 +3096,25 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         }
     }
 
+    public void notifyMessageRequestModeToClient(final String clientAddr, final String topic, final String consumerGroup,
+        final MessageRequestMode mode, final long timeoutMillis)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
+        RemotingConnectException, MQClientException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_MESSAGE_REQUEST_MODE_TO_CLIENT, null);
+
+        SetMessageRequestModeRequestBody requestBody = new SetMessageRequestModeRequestBody();
+        requestBody.setTopic(topic);
+        requestBody.setConsumerGroup(consumerGroup);
+        requestBody.setMode(mode);
+        request.setBody(requestBody.encode());
+
+        RemotingCommand response = this.remotingClient.invokeSync(MixAll.brokerVIPChannel(this.clientConfig.isVipChannelEnabled(), clientAddr), request, timeoutMillis);
+        assert response != null;
+        if (ResponseCode.SUCCESS != response.getCode()) {
+            throw new MQClientException(response.getCode(), response.getRemark());
+        }
+    }
+
     public TopicConfigAndQueueMapping getTopicConfig(final String brokerAddr, String topic,
         long timeoutMillis) throws InterruptedException,
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQBrokerException {

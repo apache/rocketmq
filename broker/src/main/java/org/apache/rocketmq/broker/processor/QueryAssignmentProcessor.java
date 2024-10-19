@@ -322,22 +322,9 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         }
 
         final String consumerGroup = requestBody.getConsumerGroup();
-        ConsumerGroupInfo consumerGroupInfo =
-                this.brokerController.getConsumerManager().getConsumerGroupInfo(consumerGroup);
-        Iterator<Map.Entry<Channel, ClientChannelInfo>> it = consumerGroupInfo.getChannelInfoTable().entrySet().iterator();
 
         this.messageRequestModeManager.setMessageRequestMode(topic, consumerGroup, requestBody);
         this.messageRequestModeManager.persist();
-        while (it.hasNext()) {
-            ClientChannelInfo info = it.next().getValue();
-            RemotingCommand clientRequest = RemotingCommand.createRequestCommand(RequestCode.SET_MESSAGE_REQUEST_MODE, null);
-            clientRequest.setBody(requestBody.encode());
-            try {
-                this.brokerController.getBroker2Client().callClient(info.getChannel(), clientRequest);
-            } catch (RemotingSendRequestException | RemotingTimeoutException | InterruptedException e) {
-                log.warn("Failed to notify messageRequestMode changes to the clientAddr:{}", RemotingHelper.parseChannelRemoteAddr(info.getChannel()));
-            }
-        }
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
