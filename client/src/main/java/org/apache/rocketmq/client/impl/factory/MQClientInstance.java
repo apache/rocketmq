@@ -65,6 +65,7 @@ import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
+import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -1077,6 +1078,32 @@ public class MQClientInstance {
         }
 
         return balanced;
+    }
+
+    public boolean updateRebalanceByBrokerAndClientMap(String group, String topic, MessageRequestMode requestMode) {
+        MQConsumerInner consumerInner = this.consumerTable.get(group);
+        if (!(consumerInner instanceof DefaultMQPushConsumerImpl)) {
+            return true;
+        }
+
+        DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumerInner;
+        Map<String, String> topicBrokerRebalance = impl.getRebalanceImpl().getTopicBrokerRebalance();
+        Map<String, String> topicClientRebalance = impl.getRebalanceImpl().getTopicClientRebalance();
+
+        if (!impl.getDefaultMQPushConsumer().isClientRebalance()) {
+            if (requestMode == MessageRequestMode.POP) {
+                if (!topicBrokerRebalance.containsKey(topic)) {
+                    topicClientRebalance.remove(topic);
+                    topicBrokerRebalance.put(topic, topic);
+                }
+            } else {
+                if (!topicClientRebalance.containsKey(topic)) {
+                    topicBrokerRebalance.remove(topic);
+                    topicClientRebalance.put(topic, topic);
+                }
+            }
+        }
+        return true;
     }
 
     public MQProducerInner selectProducer(final String group) {

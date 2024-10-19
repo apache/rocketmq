@@ -224,6 +224,7 @@ public class RequestCode {
     public static final int QUERY_ASSIGNMENT = 400;
     public static final int SET_MESSAGE_REQUEST_MODE = 401;
     public static final int GET_ALL_MESSAGE_REQUEST_MODE = 402;
+    public static final int NOTIFY_MESSAGE_REQUEST_MODE_TO_CLIENT = 403;
 
     public static final int UPDATE_AND_CREATE_STATIC_TOPIC = 513;
 

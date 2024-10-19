@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -47,6 +48,7 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
 import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerRunningInfoRequestHeader;
@@ -86,6 +88,9 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
 
             case RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT:
                 return this.receiveReplyMessage(ctx, request);
+
+            case RequestCode.NOTIFY_MESSAGE_REQUEST_MODE_TO_CLIENT:
+                return this.updateMessageRequestMode(ctx, request);
             default:
                 break;
         }
@@ -291,5 +296,20 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
             logger.warn("receive reply message, but not matched any request, CorrelationId: {} , reply from host: {}",
                 correlationId, bornHost);
         }
+    }
+
+    private RemotingCommand updateMessageRequestMode(ChannelHandlerContext ctx,
+        RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final SetMessageRequestModeRequestBody requestBody = SetMessageRequestModeRequestBody.decode(request.getBody(), SetMessageRequestModeRequestBody.class);
+
+        final String group = requestBody.getConsumerGroup();
+        final String topic = requestBody.getTopic();
+        final MessageRequestMode requestMode = requestBody.getMode();
+        this.mqClientFactory.updateRebalanceByBrokerAndClientMap(group, topic, requestMode);
+
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark(null);
+        return response;
     }
 }

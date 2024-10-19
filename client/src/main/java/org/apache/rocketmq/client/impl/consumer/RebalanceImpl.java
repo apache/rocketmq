@@ -282,8 +282,13 @@ public abstract class RebalanceImpl {
             try {
                 Set<MessageQueueAssignment> resultSet = mQClientFactory.queryAssignment(topic, consumerGroup,
                     strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT / TIMEOUT_CHECK_TIMES * retryTimes);
-                topicBrokerRebalance.put(topic, topic);
-                return true;
+                if (new ArrayList<>(resultSet).get(0).getMode() == MessageRequestMode.POP) {
+                    topicBrokerRebalance.put(topic, topic);
+                    return true;
+                } else {
+                    topicClientRebalance.put(topic, topic);
+                    return false;
+                }
             } catch (Throwable t) {
                 if (!(t instanceof RemotingTimeoutException)) {
                     log.error("tryQueryAssignment error.", t);
@@ -818,6 +823,14 @@ public abstract class RebalanceImpl {
 
     public ConcurrentMap<String, Set<MessageQueue>> getTopicSubscribeInfoTable() {
         return topicSubscribeInfoTable;
+    }
+
+    public Map<String, String> getTopicBrokerRebalance() {
+        return topicBrokerRebalance;
+    }
+
+    public Map<String, String> getTopicClientRebalance() {
+        return topicClientRebalance;
     }
 
     public String getConsumerGroup() {
