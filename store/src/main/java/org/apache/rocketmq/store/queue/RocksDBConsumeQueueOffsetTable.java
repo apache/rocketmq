@@ -209,6 +209,7 @@ public class RocksDBConsumeQueueOffsetTable {
                 total = iterator.value(valueBuffer);
                 if (total != Long.BYTES + Long.BYTES) {
                     // Skip system checkpoint topic as its value is only 8 bytes
+                    iterator.next();
                     continue;
                 }
                 long commitLogOffset = valueBuffer.getLong();
@@ -394,7 +395,13 @@ public class RocksDBConsumeQueueOffsetTable {
             if (entry.type == OffsetEntryType.MINIMUM) {
                 return false;
             }
-            return entry.commitLogOffset > offsetToTruncate;
+            // Normal entry offset MUST have the following inequality
+            // entry commit-log offset + message-size-in-bytes <= offsetToTruncate;
+            // otherwise, the consume queue contains dirty records to truncate;
+            //
+            // If the broker node is configured to use async-flush, it's possible consume queues contain
+            //  pointers to message records that is not flushed and lost during restart.
+            return entry.commitLogOffset >= offsetToTruncate;
         };
 
         Consumer<OffsetEntry> fn = entry -> {
