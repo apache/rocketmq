@@ -27,15 +27,18 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import java.util.function.Consumer;
+import java.util.function.Function;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.DefaultMessageStore;
+import org.apache.rocketmq.store.queue.offset.OffsetEntry;
+import org.apache.rocketmq.store.queue.offset.OffsetEntryType;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
@@ -138,12 +141,30 @@ public class RocksDBConsumeQueueOffsetTable {
     }
 
     private void loadMaxConsumeQueueOffsets() {
+        Function<OffsetEntry, Boolean> predicate = entry -> entry.type == OffsetEntryType.MAXIMUM;
+        Consumer<OffsetEntry> fn = entry -> {
+            topicQueueMaxCqOffset.putIfAbsent(entry.topic + "-" + entry.queueId, entry.offset);
+            ROCKSDB_LOG.info("Max {}:{} --> {}|{}", entry.topic, entry.queueId, entry.offset, entry.commitLogOffset);
+        };
+        try {
+            forEach(predicate, fn);
+        } catch (RocksDBException e) {
+            log.error("Failed to maximum consume queue offset", e);
+        }
+    }
+
+    public void forEach(Function<OffsetEntry, Boolean> predicate, Consumer<OffsetEntry> fn) throws RocksDBException {
         try (RocksIterator iterator = this.rocksDBStorage.seekOffsetCF()) {
+            if (null == iterator) {
+                return;
+            }
+
             int keyBufferCapacity = 256;
             iterator.seekToFirst();
             ByteBuffer keyBuffer = ByteBuffer.allocateDirect(keyBufferCapacity);
             ByteBuffer valueBuffer = ByteBuffer.allocateDirect(16);
             while (iterator.isValid()) {
+                // parse key buffer according to key layout
                 keyBuffer.clear(); // clear position and limit before reuse
                 int total = iterator.key(keyBuffer);
                 if (total > keyBufferCapacity) {
@@ -171,27 +192,37 @@ public class RocksDBConsumeQueueOffsetTable {
 
                 byte[] minMax = new byte[3];
                 keyBuffer.get(minMax);
+                OffsetEntryType entryType;
+                if (Arrays.equals(minMax, MAX_BYTES)) {
+                    entryType = OffsetEntryType.MAXIMUM;
+                } else {
+                    entryType = OffsetEntryType.MINIMUM;
+                }
                 ctrl1 = keyBuffer.get();
                 assert ctrl1 == CTRL_1;
 
-                assert keyBuffer.remaining() == Integer.SIZE / Byte.SIZE;
+                assert keyBuffer.remaining() == Integer.BYTES;
                 int queueId = keyBuffer.getInt();
 
+                // Read and parse value buffer according to value layout
                 valueBuffer.clear(); // clear position and limit before reuse
-                iterator.value(valueBuffer);
-                long commitLogOffset = -1;
-                if (valueBuffer.remaining() >= Long.SIZE / Byte.SIZE) {
-                    commitLogOffset = valueBuffer.getLong();
+                total = iterator.value(valueBuffer);
+                if (total != Long.BYTES + Long.BYTES) {
+                    // Skip system checkpoint topic as its value is only 8 bytes
+                    continue;
                 }
-                long consumeOffset = -1;
-                if (valueBuffer.remaining() >= Long.SIZE / Byte.SIZE) {
-                    consumeOffset = valueBuffer.getLong();
-                    if (consumeOffset >= 0 && Arrays.equals(minMax, MAX_BYTES)) {
-                        topicQueueMaxCqOffset.putIfAbsent(topic + "-" + queueId, consumeOffset);
-                    }
+                long commitLogOffset = valueBuffer.getLong();
+                long consumeOffset = valueBuffer.getLong();
+
+                OffsetEntry entry = new OffsetEntry();
+                entry.topic = topic;
+                entry.queueId = queueId;
+                entry.type = entryType;
+                entry.offset = consumeOffset;
+                entry.commitLogOffset = commitLogOffset;
+                if (predicate.apply(entry)) {
+                    fn.accept(entry);
                 }
-                ROCKSDB_LOG.info("{} {}:{} --> {}|{}", new String(minMax, StandardCharsets.UTF_8), topic, queueId,
-                    consumeOffset, commitLogOffset);
                 iterator.next();
             }
             // clean up direct buffers
@@ -359,16 +390,23 @@ public class RocksDBConsumeQueueOffsetTable {
     public void truncateDirty(long offsetToTruncate) throws RocksDBException {
         correctMaxPyhOffset(offsetToTruncate);
 
-        ConcurrentMap<String, TopicConfig> allTopicConfigMap = this.messageStore.getTopicConfigs();
-        if (allTopicConfigMap == null) {
-            return;
-        }
-        // TODO: iterate KV to get all consume queues, including LMQ
-        for (TopicConfig topicConfig : allTopicConfigMap.values()) {
-            for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
-                truncateDirtyOffset(topicConfig.getTopicName(), i);
+        Function<OffsetEntry, Boolean> predicate = entry -> {
+            if (entry.type == OffsetEntryType.MINIMUM) {
+                return false;
             }
-        }
+            return entry.commitLogOffset > offsetToTruncate;
+        };
+
+        Consumer<OffsetEntry> fn = entry -> {
+            try {
+                truncateDirtyOffset(entry.topic, entry.queueId);
+            } catch (RocksDBException e) {
+                log.error("Failed to truncate maximum offset of consume queue[topic={}, queue-id={}]",
+                    entry.topic, entry.queueId, e);
+            }
+        };
+
+        forEach(predicate, fn);
     }
 
     private Pair<Boolean, Long> isMinOffsetOk(final String topic, final int queueId,
