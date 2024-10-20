@@ -363,6 +363,7 @@ public class RocksDBConsumeQueueOffsetTable {
         if (allTopicConfigMap == null) {
             return;
         }
+        // TODO: iterate KV to get all consume queues, including LMQ
         for (TopicConfig topicConfig : allTopicConfigMap.values()) {
             for (int i = 0; i < topicConfig.getWriteQueueNums(); i++) {
                 truncateDirtyOffset(topicConfig.getTopicName(), i);
@@ -419,8 +420,7 @@ public class RocksDBConsumeQueueOffsetTable {
         if (!this.rocksDBStorage.hold()) {
             return;
         }
-        try {
-            WriteBatch writeBatch = new WriteBatch();
+        try (WriteBatch writeBatch = new WriteBatch()) {
             long oldMaxPhyOffset = getMaxPhyOffset();
             if (oldMaxPhyOffset <= maxPhyOffset) {
                 return;
@@ -494,12 +494,11 @@ public class RocksDBConsumeQueueOffsetTable {
 
     private void putHeapMaxCqOffset(final String topic, final int queueId, final long maxOffset) {
         String topicQueueId = buildTopicQueueId(topic, queueId);
-        this.topicQueueMaxCqOffset.compute(topicQueueId, (k, prev) -> {
-            if (null == prev || maxOffset >= prev) {
-                return maxOffset;
-            }
-            return prev;
-        });
+        Long prev = this.topicQueueMaxCqOffset.put(topicQueueId, maxOffset);
+        if (prev != null && prev > maxOffset) {
+            ERROR_LOG.error("Max offset of consume-queue[topic={}, queue-id={}] regressed. prev-max={}, current-max={}",
+                topic, queueId, prev, maxOffset);
+        }
     }
 
     private PhyAndCQOffset getHeapMinOffset(final String topic, final int queueId) {
