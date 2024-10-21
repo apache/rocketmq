@@ -31,7 +31,9 @@ import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -430,5 +432,51 @@ public class ConsumeQueueTest {
             master.destroy();
             UtilAll.deleteFile(new File(storePath));
         }
+    }
+
+    @Test
+    public void testCorrectMinOffset() {
+        String topic = "T1";
+        int queueId = 0;
+        MessageStoreConfig storeConfig = new MessageStoreConfig();
+        File tmpDir = new File(System.getProperty("java.io.tmpdir"), "test_correct_min_offset");
+        tmpDir.deleteOnExit();
+        storeConfig.setStorePathRootDir(tmpDir.getAbsolutePath());
+        storeConfig.setEnableConsumeQueueExt(false);
+        DefaultMessageStore messageStore = Mockito.mock(DefaultMessageStore.class);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(storeConfig);
+
+        RunningFlags runningFlags = new RunningFlags();
+        Mockito.when(messageStore.getRunningFlags()).thenReturn(runningFlags);
+
+        StoreCheckpoint storeCheckpoint = Mockito.mock(StoreCheckpoint.class);
+        Mockito.when(messageStore.getStoreCheckpoint()).thenReturn(storeCheckpoint);
+
+        ConsumeQueue consumeQueue = new ConsumeQueue(topic, queueId, storeConfig.getStorePathRootDir(),
+            storeConfig.getMappedFileSizeConsumeQueue(), messageStore);
+
+        int max = 10000;
+        int message_size = 100;
+        for (int i = 0; i < max; ++i) {
+            DispatchRequest dispatchRequest = new DispatchRequest(topic, queueId, message_size * i, message_size, 0, 0, i, null, null, 0, 0, null);
+            consumeQueue.putMessagePositionInfoWrapper(dispatchRequest, false);
+        }
+
+        consumeQueue.setMinLogicOffset(0L);
+        consumeQueue.correctMinOffset(0L);
+        Assert.assertEquals(0, consumeQueue.getMinOffsetInQueue());
+
+        consumeQueue.setMinLogicOffset(100);
+        consumeQueue.correctMinOffset(2000);
+        Assert.assertEquals(20, consumeQueue.getMinOffsetInQueue());
+
+        consumeQueue.setMinLogicOffset((max - 1) * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        consumeQueue.correctMinOffset(max * message_size);
+        Assert.assertEquals(max * ConsumeQueue.CQ_STORE_UNIT_SIZE, consumeQueue.getMinLogicOffset());
+
+        consumeQueue.setMinLogicOffset(max * ConsumeQueue.CQ_STORE_UNIT_SIZE);
+        consumeQueue.correctMinOffset(max * message_size);
+        Assert.assertEquals(max * ConsumeQueue.CQ_STORE_UNIT_SIZE, consumeQueue.getMinLogicOffset());
+        consumeQueue.destroy();
     }
 }
