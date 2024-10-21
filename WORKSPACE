@@ -112,6 +112,8 @@ maven_install(
         "com.alipay.sofa:hessian:3.3.6",
         "io.netty:netty-tcnative-boringssl-static:2.0.48.Final",
         "org.mockito:mockito-junit-jupiter:4.11.0",
+        "com.alibaba.fastjson2:fastjson2:2.0.43",
+        "org.junit.jupiter:junit-jupiter-api:5.9.1",
     ],
     fetch_sources = True,
     repositories = [

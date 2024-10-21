@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.queue;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,17 +27,15 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable.PhyAndCQOffset;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
 
-import static org.apache.rocketmq.common.utils.DataConverter.CHARSET_UTF8;
-import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_0;
-import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_1;
-import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_2;
+import static org.apache.rocketmq.common.config.AbstractRocksDBStorage.CTRL_0;
+import static org.apache.rocketmq.common.config.AbstractRocksDBStorage.CTRL_1;
+import static org.apache.rocketmq.common.config.AbstractRocksDBStorage.CTRL_2;
 
 /**
  * We use RocksDBConsumeQueueTable to store cqUnit.
@@ -105,30 +104,30 @@ public class RocksDBConsumeQueueTable {
         this.defaultCFH = this.rocksDBStorage.getDefaultCFHandle();
     }
 
-    public void buildAndPutCQByteBuffer(final Pair<ByteBuffer, ByteBuffer> cqBBPair,
-        final byte[] topicBytes, final DispatchRequest request, final WriteBatch writeBatch) throws RocksDBException {
+    public void buildAndPutCQByteBuffer(final Pair<ByteBuffer, ByteBuffer> cqBBPair, final DispatchEntry request,
+        final WriteBatch writeBatch) throws RocksDBException {
         final ByteBuffer cqKey = cqBBPair.getObject1();
-        buildCQKeyByteBuffer(cqKey, topicBytes, request.getQueueId(), request.getConsumeQueueOffset());
+        buildCQKeyByteBuffer(cqKey, request.topic, request.queueId, request.queueOffset);
 
         final ByteBuffer cqValue = cqBBPair.getObject2();
-        buildCQValueByteBuffer(cqValue, request.getCommitLogOffset(), request.getMsgSize(), request.getTagsCode(), request.getStoreTimestamp());
+        buildCQValueByteBuffer(cqValue, request.commitLogOffset, request.messageSize, request.tagCode, request.storeTimestamp);
 
         writeBatch.put(this.defaultCFH, cqKey, cqValue);
     }
 
     public ByteBuffer getCQInKV(final String topic, final int queueId, final long cqOffset) throws RocksDBException {
-        final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
+        final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
         final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, cqOffset);
         byte[] value = this.rocksDBStorage.getCQ(keyBB.array());
         return (value != null) ? ByteBuffer.wrap(value) : null;
     }
 
     public List<ByteBuffer> rangeQuery(final String topic, final int queueId, final long startIndex, final int num) throws RocksDBException {
-        final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
-        final List<ColumnFamilyHandle> defaultCFHList = new ArrayList(num);
+        final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
+        final List<ColumnFamilyHandle> defaultCFHList = new ArrayList<>(num);
         final ByteBuffer[] resultList = new ByteBuffer[num];
-        final List<Integer> kvIndexList = new ArrayList(num);
-        final List<byte[]> kvKeyList = new ArrayList(num);
+        final List<Integer> kvIndexList = new ArrayList<>(num);
+        final List<byte[]> kvKeyList = new ArrayList<>(num);
         for (int i = 0; i < num; i++) {
             final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, startIndex + i);
             kvIndexList.add(i);
@@ -153,7 +152,7 @@ public class RocksDBConsumeQueueTable {
         }
 
         final int resultSize = resultList.length;
-        List<ByteBuffer> bbValueList = new ArrayList(resultSize);
+        List<ByteBuffer> bbValueList = new ArrayList<>(resultSize);
         for (int i = 0; i < resultSize; i++) {
             ByteBuffer byteBuffer = resultList[i];
             if (byteBuffer == null) {
@@ -171,7 +170,7 @@ public class RocksDBConsumeQueueTable {
      * @throws RocksDBException
      */
     public void destroyCQ(final String topic, final int queueId, WriteBatch writeBatch) throws RocksDBException {
-        final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
+        final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
         final ByteBuffer cqStartKey = buildDeleteCQKey(true, topicBytes, queueId);
         final ByteBuffer cqEndKey = buildDeleteCQKey(false, topicBytes, queueId);
 

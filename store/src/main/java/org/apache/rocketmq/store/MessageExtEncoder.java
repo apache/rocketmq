@@ -20,6 +20,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import java.nio.ByteBuffer;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageDecoder;
@@ -175,11 +176,11 @@ public class MessageExtEncoder {
     public PutMessageResult encode(MessageExtBrokerInner msgInner) {
         this.byteBuf.clear();
 
-        if (CommitLog.isMultiDispatchMsg(messageStoreConfig, msgInner)) {
+        if (messageStoreConfig.isEnableLmq() && MixAll.topicAllowsLMQ(msgInner.getTopic())) {
             return encodeWithoutProperties(msgInner);
         }
 
-        /**
+        /*
          * Serialize message
          */
         final byte[] propertiesData =

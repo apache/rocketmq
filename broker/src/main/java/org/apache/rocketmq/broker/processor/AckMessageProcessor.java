@@ -20,6 +20,7 @@ import com.alibaba.fastjson.JSON;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.BitSet;
+import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.PopMetricsManager;
 import org.apache.rocketmq.common.KeyBuilder;
@@ -30,7 +31,6 @@ import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
-import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -45,6 +45,7 @@ import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.BatchAckMsg;
 
@@ -134,7 +135,12 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             }
 
             long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
-            long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
+            long maxOffset;
+            try {
+                maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
+            } catch (ConsumeQueueException e) {
+                throw new RemotingCommandException("Failed to get max offset", e);
+            }
             if (requestHeader.getOffset() < minOffset || requestHeader.getOffset() > maxOffset) {
                 String errorInfo = String.format("offset is illegal, key:%s@%d, commit:%d, store:%d~%d",
                     requestHeader.getTopic(), requestHeader.getQueueId(), requestHeader.getOffset(), minOffset, maxOffset);
@@ -166,7 +172,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
     }
 
     private void appendAck(final AckMessageRequestHeader requestHeader, final BatchAck batchAck,
-        final RemotingCommand response, final Channel channel, String brokerName) {
+        final RemotingCommand response, final Channel channel, String brokerName) throws RemotingCommandException {
         String[] extraInfo;
         String consumeGroup, topic;
         int qId, rqId;
@@ -206,7 +212,12 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             invisibleTime = batchAck.getInvisibleTime();
 
             long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, qId);
-            long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, qId);
+            long maxOffset;
+            try {
+                maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, qId);
+            } catch (ConsumeQueueException e) {
+                throw new RemotingCommandException("Failed to get max offset in queue", e);
+            }
             if (minOffset == -1 || maxOffset == -1) {
                 POP_LOGGER.error("Illegal topic or queue found when batch ack {}", batchAck);
                 return;
@@ -254,7 +265,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(reviveTopic);
-        msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.CHARSET_UTF8));
+        msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(rqId);
         if (ackMsg instanceof BatchAckMsg) {
             msgInner.setTags(PopAckConstants.BATCH_ACK_TAG);

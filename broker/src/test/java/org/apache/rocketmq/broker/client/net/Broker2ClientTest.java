@@ -29,6 +29,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.RemotingServer;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -125,14 +126,14 @@ public class Broker2ClientTest {
     }
     
     @Test
-    public void testResetOffsetNoTopicConfig() {
+    public void testResetOffsetNoTopicConfig() throws RemotingCommandException {
         when(topicConfigManager.selectTopicConfig(defaultTopic)).thenReturn(null);
         RemotingCommand response = broker2Client.resetOffset(defaultTopic, defaultGroup, timestamp, isForce);
         assertEquals(ResponseCode.SYSTEM_ERROR, response.getCode());
     }
     
     @Test
-    public void testResetOffsetNoConsumerGroupInfo() {
+    public void testResetOffsetNoConsumerGroupInfo() throws RemotingCommandException {
         TopicConfig topicConfig = mock(TopicConfig.class);
         when(topicConfigManager.selectTopicConfig(defaultTopic)).thenReturn(topicConfig);
         when(topicConfig.getWriteQueueNums()).thenReturn(1);
@@ -142,7 +143,7 @@ public class Broker2ClientTest {
     }
     
     @Test
-    public void testResetOffset() {
+    public void testResetOffset() throws RemotingCommandException {
         TopicConfig topicConfig = mock(TopicConfig.class);
         when(topicConfigManager.selectTopicConfig(defaultTopic)).thenReturn(topicConfig);
         when(topicConfig.getWriteQueueNums()).thenReturn(1);

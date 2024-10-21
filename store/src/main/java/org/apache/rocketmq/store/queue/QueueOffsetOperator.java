@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.store.queue;
 
+import com.google.common.base.Preconditions;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -26,6 +27,7 @@ import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
 /**
  * QueueOffsetOperator is a component for operating offsets for queues.
@@ -35,7 +37,11 @@ public class QueueOffsetOperator {
 
     private ConcurrentMap<String, Long> topicQueueTable = new ConcurrentHashMap<>(1024);
     private ConcurrentMap<String, Long> batchTopicQueueTable = new ConcurrentHashMap<>(1024);
-    private ConcurrentMap<String/* topic-queueid */, Long/* offset */> lmqTopicQueueTable = new ConcurrentHashMap<>(1024);
+
+    /**
+     * {TOPIC}-{QUEUE_ID} --> NEXT Consume Queue Offset
+     */
+    private ConcurrentMap<String/* topic-queue-id */, Long/* offset */> lmqTopicQueueTable = new ConcurrentHashMap<>(1024);
 
     public long getQueueOffset(String topicQueueKey) {
         return ConcurrentHashMapUtils.computeIfAbsent(this.topicQueueTable, topicQueueKey, k -> 0L);
@@ -63,17 +69,28 @@ public class QueueOffsetOperator {
         this.batchTopicQueueTable.put(topicQueueKey, batchQueueOffset + messageNum);
     }
 
-    public long getLmqOffset(String topicQueueKey) {
-        return ConcurrentHashMapUtils.computeIfAbsent(this.lmqTopicQueueTable, topicQueueKey, k -> 0L);
+    public long getLmqOffset(String topic, int queueId, OffsetInitializer callback) throws ConsumeQueueException {
+        Preconditions.checkNotNull(callback, "ConsumeQueueOffsetCallback cannot be null");
+        String topicQueue = topic + "-" + queueId;
+        if (!lmqTopicQueueTable.containsKey(topicQueue)) {
+            // Load from RocksDB on cache miss.
+            Long prev = lmqTopicQueueTable.putIfAbsent(topicQueue, callback.maxConsumeQueueOffset(topic, queueId));
+            if (null != prev) {
+                log.error("[BUG] Data racing, lmqTopicQueueTable should NOT contain key={}", topicQueue);
+            }
+        }
+        return lmqTopicQueueTable.get(topicQueue);
     }
 
-    public Long getLmqTopicQueueNextOffset(String topicQueueKey) {
-        return this.lmqTopicQueueTable.get(topicQueueKey);
-    }
-
-    public void increaseLmqOffset(String queueKey, short messageNum) {
-        Long lmqOffset = ConcurrentHashMapUtils.computeIfAbsent(this.lmqTopicQueueTable, queueKey, k -> 0L);
-        this.lmqTopicQueueTable.put(queueKey, lmqOffset + messageNum);
+    public void increaseLmqOffset(String topic, int queueId, short delta) throws ConsumeQueueException {
+        String topicQueue = topic + "-" + queueId;
+        if (!this.lmqTopicQueueTable.containsKey(topicQueue)) {
+            throw new ConsumeQueueException(String.format("Max offset of Queue[name=%s, id=%d] should have existed", topic, queueId));
+        }
+        long prev = lmqTopicQueueTable.get(topicQueue);
+        this.lmqTopicQueueTable.compute(topicQueue, (k, offset) -> offset + delta);
+        long current = lmqTopicQueueTable.get(topicQueue);
+        log.debug("Max offset of LMQ[{}:{}] increased: {} --> {}", topic, queueId, prev, current);
     }
 
     public long currentQueueOffset(String topicQueueKey) {

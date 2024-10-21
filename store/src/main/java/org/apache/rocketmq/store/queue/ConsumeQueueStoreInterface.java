@@ -22,6 +22,8 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
+import org.apache.rocketmq.store.exception.StoreException;
 import org.rocksdb.RocksDBException;
 
 public interface ConsumeQueueStoreInterface {
@@ -79,10 +81,17 @@ public interface ConsumeQueueStoreInterface {
     boolean flush(ConsumeQueueInterface consumeQueue, int flushLeastPages);
 
     /**
-     * clean expired data from minPhyOffset
-     * @param minPhyOffset
+     * Flush all nested consume queues to disk
+     *
+     * @throws StoreException if there is an error during flush
      */
-    void cleanExpired(long minPhyOffset);
+    void flush() throws StoreException;
+
+    /**
+     * clean expired data from minCommitLogOffset
+     * @param minCommitLogOffset Minimum commit log offset
+     */
+    void cleanExpired(long minCommitLogOffset);
 
     /**
      * Check files.
@@ -92,10 +101,10 @@ public interface ConsumeQueueStoreInterface {
     /**
      * Delete expired files ending at min commit log position.
      * @param consumeQueue
-     * @param minCommitLogPos min commit log position
+     * @param minCommitLogOffset min commit log position
      * @return deleted file numbers.
      */
-    int deleteExpiredFile(ConsumeQueueInterface consumeQueue, long minCommitLogPos);
+    int deleteExpiredFile(ConsumeQueueInterface consumeQueue, long minCommitLogOffset);
 
     /**
      * Is the first file available?
@@ -185,17 +194,19 @@ public interface ConsumeQueueStoreInterface {
 
     /**
      * Increase lmq offset
-     * @param queueKey
-     * @param messageNum
+     * @param topic Topic/Queue name
+     * @param queueId Queue ID
+     * @param delta amount to increase
      */
-    void increaseLmqOffset(String queueKey, short messageNum);
+    void increaseLmqOffset(String topic, int queueId, short delta) throws ConsumeQueueException;
 
     /**
      * get lmq queue offset
-     * @param queueKey
+     * @param topic
+     * @param queueId
      * @return
      */
-    long getLmqQueueOffset(String queueKey);
+    long getLmqQueueOffset(String topic, int queueId) throws ConsumeQueueException;
 
     /**
      * recover topicQueue table by minPhyOffset
@@ -232,11 +243,13 @@ public interface ConsumeQueueStoreInterface {
 
     /**
      * get maxOffset of specific topic-queueId in topicQueue table
-     * @param topic
-     * @param queueId
+     *
+     * @param topic Topic name
+     * @param queueId Queue identifier
      * @return the max offset in QueueOffsetOperator
+     * @throws ConsumeQueueException if there is an error while retrieving max consume queue offset
      */
-    Long getMaxOffset(String topic, int queueId);
+    Long getMaxOffset(String topic, int queueId) throws ConsumeQueueException;
 
     /**
      * get max physic offset in consumeQueue

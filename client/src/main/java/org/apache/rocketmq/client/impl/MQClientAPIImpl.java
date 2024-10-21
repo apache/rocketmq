@@ -1199,9 +1199,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
                             messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))) {
                             // process LMQ
                             String[] queues = messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)
-                                .split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+                                .split(MixAll.LMQ_DISPATCH_SEPARATOR);
                             String[] queueOffsets = messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET)
-                                .split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+                                .split(MixAll.LMQ_DISPATCH_SEPARATOR);
                             long offset = Long.parseLong(queueOffsets[ArrayUtils.indexOf(queues, topic)]);
                             // LMQ topic has only 1 queue, which queue id is 0
                             queueIdKey = ExtraInfoUtil.getStartOffsetInfoMapKey(topic, MixAll.LMQ_QUEUE_ID);
@@ -1264,9 +1264,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
                 && StringUtils.isNotEmpty(messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH))) {
                 // process LMQ
                 String[] queues = messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)
-                    .split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+                    .split(MixAll.LMQ_DISPATCH_SEPARATOR);
                 String[] queueOffsets = messageExt.getProperty(MessageConst.PROPERTY_INNER_MULTI_QUEUE_OFFSET)
-                    .split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+                    .split(MixAll.LMQ_DISPATCH_SEPARATOR);
                 // LMQ topic has only 1 queue, which queue id is 0
                 key = ExtraInfoUtil.getStartOffsetInfoMapKey(topic, MixAll.LMQ_QUEUE_ID);
                 sortMap.putIfAbsent(key, new ArrayList<>(4));

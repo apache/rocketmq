@@ -14,16 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
+package org.apache.rocketmq.store.queue;
 
-/**
- * When write a message to the commit log, returns code
- */
-public enum AppendMessageStatus {
-    PUT_OK,
-    END_OF_FILE,
-    MESSAGE_SIZE_EXCEEDED,
-    PROPERTIES_SIZE_EXCEEDED,
-    UNKNOWN_ERROR,
-    ROCKSDB_ERROR,
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
+
+public interface OffsetInitializer {
+    long maxConsumeQueueOffset(String topic, int queueId) throws ConsumeQueueException;
 }

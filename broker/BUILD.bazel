@@ -91,6 +91,9 @@ java_library(
         "@maven//:io_github_aliyunmq_rocketmq_slf4j_api",
         "@maven//:org_powermock_powermock_core",
         "@maven//:io_opentelemetry_opentelemetry_api",
+        "@maven//:com_googlecode_concurrentlinkedhashmap_concurrentlinkedhashmap_lru",
+        "@maven//:org_apache_rocketmq_rocketmq_rocksdb",
+        "@maven//:commons_collections_commons_collections",
     ],
 )
 

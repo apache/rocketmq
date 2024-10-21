@@ -14,16 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
 
-/**
- * When write a message to the commit log, returns code
- */
-public enum AppendMessageStatus {
-    PUT_OK,
-    END_OF_FILE,
-    MESSAGE_SIZE_EXCEEDED,
-    PROPERTIES_SIZE_EXCEEDED,
-    UNKNOWN_ERROR,
-    ROCKSDB_ERROR,
+package org.apache.rocketmq.common.config;
+
+import org.junit.Test;
+
+public class ConfigHelperTest {
+
+    @Test
+    public void testGetDBLogDir() {
+        // Should not raise exception.
+        ConfigHelper.getDBLogDir();
+    }
+
 }

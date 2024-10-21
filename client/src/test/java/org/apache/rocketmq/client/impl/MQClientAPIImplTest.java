@@ -636,8 +636,8 @@ public class MQClientAPIImplTest {
         final int invisibleTime = 10 * 1000;
         final String lmqTopic = MixAll.LMQ_PREFIX + "lmq1";
         final String lmqTopic2 = MixAll.LMQ_PREFIX + "lmq2";
-        final String multiDispatch = String.join(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER, lmqTopic, lmqTopic2);
-        final String multiOffset = String.join(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER, "0", "0");
+        final String multiDispatch = String.join(MixAll.LMQ_DISPATCH_SEPARATOR, lmqTopic, lmqTopic2);
+        final String multiOffset = String.join(MixAll.LMQ_DISPATCH_SEPARATOR, "0", "0");
         doAnswer((Answer<Void>) mock -> {
             InvokeCallback callback = mock.getArgument(3);
             RemotingCommand request = mock.getArgument(1);

@@ -40,6 +40,7 @@ import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.GetMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.junit.Assert;
 import org.junit.Before;
@@ -182,7 +183,7 @@ public class PopMessageProcessorTest {
     }
 
     @Test
-    public void testGetInitOffset_normalTopic() throws RemotingCommandException {
+    public void testGetInitOffset_normalTopic() throws RemotingCommandException, ConsumeQueueException {
         long maxOffset = 999L;
         when(messageStore.getMessageStoreConfig()).thenReturn(new MessageStoreConfig());
         when(messageStore.getMaxOffsetInQueue(topic, 0)).thenReturn(maxOffset);
