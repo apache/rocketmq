@@ -41,6 +41,7 @@ import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreStatsService;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.rocksdb.RocksDBException;
 
 import io.openmessaging.storage.dledger.AppendFuture;
@@ -569,6 +570,7 @@ public class DLedgerCommitLog extends CommitLog {
         EncodeResult encodeResult;
 
         String topicQueueKey = msg.getTopic() + "-" + msg.getQueueId();
+        final boolean isMultiDispatchMsg = CommitLog.isMultiDispatchMsg(this.defaultMessageStore.getMessageStoreConfig(), msg);
         topicQueueLock.lock(topicQueueKey);
         try {
             defaultMessageStore.assignOffset(msg);
@@ -580,6 +582,18 @@ public class DLedgerCommitLog extends CommitLog {
             putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
             long elapsedTimeInLock;
             long queueOffset;
+            if (isMultiDispatchMsg) {
+                AppendMessageResult appendMessageResult = MultiDispatchUtils.handlePropertiesForLmqMsg(
+                        encodeResult.data, msg, this.multiDispatch, this.getMessageStore().getMessageStoreConfig());
+                if (appendMessageResult != null) {
+                    PutMessageStatus putMessageStatus = PutMessageStatus.MESSAGE_ILLEGAL;
+                    return CompletableFuture.completedFuture(new PutMessageResult(putMessageStatus, appendMessageResult));
+                }
+            }
+            final int msgLen = encodeResult.data.getInt(0);
+            encodeResult.data.position(0);
+            encodeResult.data.limit(msgLen);
+
             try {
                 beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
                 queueOffset = getQueueOffsetByKey(msg, tranType);
@@ -599,6 +613,9 @@ public class DLedgerCommitLog extends CommitLog {
 
                 String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
                 elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
+                if (isMultiDispatchMsg) {
+                    this.multiDispatch.updateMultiQueueOffset(msg);
+                }
                 appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.getData().length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
             } finally {
                 beginTimeInDledgerLock = 0;

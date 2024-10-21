@@ -33,6 +33,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>rocketmq-common</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.openmessaging.storage</groupId>
             <artifactId>dledger</artifactId>
             <exclusions>
