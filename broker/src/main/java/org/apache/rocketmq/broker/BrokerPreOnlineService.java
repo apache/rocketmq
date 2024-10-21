@@ -24,6 +24,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.apache.commons.collections.MapUtils;
+import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
+import org.apache.rocketmq.broker.offset.RocksDBLmqConsumerOffsetManager;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.schedule.DelayOffsetSerializeWrapper;
 import org.apache.rocketmq.common.MixAll;
@@ -163,6 +168,20 @@ public class BrokerPreOnlineService extends ServiceThread {
 
             if (null != consumerOffsetSerializeWrapper && brokerController.getConsumerOffsetManager().getDataVersion().compare(consumerOffsetSerializeWrapper.getDataVersion()) <= 0) {
                 LOGGER.info("{}'s consumerOffset data version is larger than master broker, {}'s consumerOffset will be used.", brokerAddr, brokerAddr);
+                if (this.brokerController.getMessageStoreConfig().isEnableLmq()) {
+                    ConcurrentHashMap<String, Long> lmqOffsetTable = consumerOffsetSerializeWrapper.getLmqOffsetTable();
+                    if (this.brokerController.getConsumerOffsetManager() instanceof LmqConsumerOffsetManager) {
+                        LmqConsumerOffsetManager lmqConsumerOffsetManager = (LmqConsumerOffsetManager) this.brokerController.getConsumerOffsetManager();
+                        if (!MapUtils.isEmpty(lmqOffsetTable)) {
+                            lmqConsumerOffsetManager.setLmqOffsetTable(lmqOffsetTable);
+                        }
+                    } else if (this.brokerController.getConsumerOffsetManager() instanceof RocksDBLmqConsumerOffsetManager) {
+                        RocksDBLmqConsumerOffsetManager rocksDBLmqConsumerOffsetManager = (RocksDBLmqConsumerOffsetManager) this.brokerController.getConsumerOffsetManager();
+                        if (!MapUtils.isEmpty(lmqOffsetTable)) {
+                            rocksDBLmqConsumerOffsetManager.setLmqOffsetTable(lmqOffsetTable);
+                        }
+                    }
+                }
                 this.brokerController.getConsumerOffsetManager().getOffsetTable()
                     .putAll(consumerOffsetSerializeWrapper.getOffsetTable());
                 this.brokerController.getConsumerOffsetManager().getDataVersion().assignNewOne(consumerOffsetSerializeWrapper.getDataVersion());
