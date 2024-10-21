@@ -128,10 +128,6 @@ public abstract class NettyRemotingAbstract {
 
     protected AtomicBoolean isShuttingDown = new AtomicBoolean(false);
 
-    static {
-        NettyLogger.initNettyLogger();
-    }
-
     /**
      * Constructor, specifying capacity of one-way and asynchronous semaphores.
      *
