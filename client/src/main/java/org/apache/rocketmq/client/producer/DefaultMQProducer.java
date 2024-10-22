@@ -24,6 +24,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
+import org.apache.rocketmq.client.lock.ReadWriteCASLock;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.EndTransactionTraceHookImpl;
@@ -79,7 +80,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         ResponseCode.SYSTEM_BUSY,
         ResponseCode.NO_PERMISSION,
         ResponseCode.NO_BUYER_ID,
-        ResponseCode.NOT_IN_CURRENT_UNIT
+        ResponseCode.NOT_IN_CURRENT_UNIT,
+        ResponseCode.GO_AWAY
     ));
 
     /**
@@ -172,7 +174,32 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     private int backPressureForAsyncSendSize = 100 * 1024 * 1024;
 
+    /**
+     * Maximum hold time of accumulator.
+     */
+    private int batchMaxDelayMs = -1;
+
+    /**
+     * Maximum accumulation message body size for a single messageAccumulation.
+     */
+    private long batchMaxBytes = -1;
+
+    /**
+     * Maximum message body size for produceAccumulator.
+     */
+    private long totalBatchMaxBytes = -1;
+
     private RPCHook rpcHook = null;
+
+    /**
+     *  backPressureForAsyncSendNum is guaranteed to be modified at runtime and no new requests are allowed
+     */
+    private final ReadWriteCASLock backPressureForAsyncSendNumLock = new ReadWriteCASLock();
+
+    /**
+     * backPressureForAsyncSendSize is guaranteed to be modified at runtime and no new requests are allowed
+     */
+    private final ReadWriteCASLock backPressureForAsyncSendSizeLock = new ReadWriteCASLock();
 
     /**
      * Compress level of compress algorithm.
@@ -281,7 +308,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.enableTrace = enableMsgTrace;
         this.traceTopic = customizedTraceTopic;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
 
     /**
@@ -308,7 +334,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.producerGroup = producerGroup;
         this.rpcHook = rpcHook;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
 
     /**
@@ -1156,10 +1181,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void batchMaxDelayMs(int holdMs) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
+        this.batchMaxDelayMs = holdMs;
+        if (this.produceAccumulator != null) {
+            this.produceAccumulator.batchMaxDelayMs(holdMs);
         }
-        this.produceAccumulator.batchMaxDelayMs(holdMs);
     }
 
     public long getBatchMaxBytes() {
@@ -1170,10 +1195,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void batchMaxBytes(long holdSize) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
+        this.batchMaxBytes = holdSize;
+        if (this.produceAccumulator != null) {
+            this.produceAccumulator.batchMaxBytes(holdSize);
         }
-        this.produceAccumulator.batchMaxBytes(holdSize);
     }
 
     public long getTotalBatchMaxBytes() {
@@ -1184,10 +1209,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void totalBatchMaxBytes(long totalHoldSize) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
+        this.totalBatchMaxBytes = totalHoldSize;
+        if (this.produceAccumulator != null) {
+            this.produceAccumulator.totalBatchMaxBytes(totalHoldSize);
         }
-        this.produceAccumulator.totalBatchMaxBytes(totalHoldSize);
     }
 
     public boolean getAutoBatch() {
@@ -1198,9 +1223,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void setAutoBatch(boolean autoBatch) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
-        }
         this.autoBatch = autoBatch;
     }
 
@@ -1333,18 +1355,64 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         return backPressureForAsyncSendNum;
     }
 
+    /**
+     * For user modify backPressureForAsyncSendNum at runtime
+     */
     public void setBackPressureForAsyncSendNum(int backPressureForAsyncSendNum) {
+        this.backPressureForAsyncSendNumLock.acquireWriteLock();
+        backPressureForAsyncSendNum = Math.max(backPressureForAsyncSendNum, 10);
+        int acquiredBackPressureForAsyncSendNum = this.backPressureForAsyncSendNum
+                - defaultMQProducerImpl.getSemaphoreAsyncSendNumAvailablePermits();
         this.backPressureForAsyncSendNum = backPressureForAsyncSendNum;
-        defaultMQProducerImpl.setSemaphoreAsyncSendNum(backPressureForAsyncSendNum);
+        defaultMQProducerImpl.setSemaphoreAsyncSendNum(backPressureForAsyncSendNum - acquiredBackPressureForAsyncSendNum);
+        this.backPressureForAsyncSendNumLock.releaseWriteLock();
     }
 
     public int getBackPressureForAsyncSendSize() {
         return backPressureForAsyncSendSize;
     }
 
+    /**
+    * For user modify backPressureForAsyncSendSize at runtime
+     */
     public void setBackPressureForAsyncSendSize(int backPressureForAsyncSendSize) {
+        this.backPressureForAsyncSendSizeLock.acquireWriteLock();
+        backPressureForAsyncSendSize = Math.max(backPressureForAsyncSendSize, 1024 * 1024);
+        int acquiredBackPressureForAsyncSendSize = this.backPressureForAsyncSendSize
+                - defaultMQProducerImpl.getSemaphoreAsyncSendSizeAvailablePermits();
         this.backPressureForAsyncSendSize = backPressureForAsyncSendSize;
-        defaultMQProducerImpl.setSemaphoreAsyncSendSize(backPressureForAsyncSendSize);
+        defaultMQProducerImpl.setSemaphoreAsyncSendSize(backPressureForAsyncSendSize - acquiredBackPressureForAsyncSendSize);
+        this.backPressureForAsyncSendSizeLock.releaseWriteLock();
+    }
+
+    /**
+     * Used for system internal adjust backPressureForAsyncSendSize
+     */
+    public void setBackPressureForAsyncSendSizeInsideAdjust(int backPressureForAsyncSendSize) {
+        this.backPressureForAsyncSendSize = backPressureForAsyncSendSize;
+    }
+
+    /**
+     * Used for system internal adjust backPressureForAsyncSendNum
+     */
+    public void setBackPressureForAsyncSendNumInsideAdjust(int backPressureForAsyncSendNum) {
+        this.backPressureForAsyncSendNum = backPressureForAsyncSendNum;
+    }
+
+    public void acquireBackPressureForAsyncSendSizeLock() {
+        this.backPressureForAsyncSendSizeLock.acquireReadLock();
+    }
+
+    public void releaseBackPressureForAsyncSendSizeLock() {
+        this.backPressureForAsyncSendSizeLock.releaseReadLock();
+    }
+
+    public void acquireBackPressureForAsyncSendNumLock() {
+        this.backPressureForAsyncSendNumLock.acquireReadLock();
+    }
+
+    public void releaseBackPressureForAsyncSendNumLock() {
+        this.backPressureForAsyncSendNumLock.releaseReadLock();
     }
 
     public List<String> getTopics() {
@@ -1380,5 +1448,22 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     public Compressor getCompressor() {
         return compressor;
+    }
+
+    public void initProduceAccumulator() {
+        this.produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+
+        if (this.batchMaxDelayMs > -1) {
+            this.produceAccumulator.batchMaxDelayMs(this.batchMaxDelayMs);
+        }
+
+        if (this.batchMaxBytes > -1) {
+            this.produceAccumulator.batchMaxBytes(this.batchMaxBytes);
+        }
+
+        if (this.totalBatchMaxBytes > -1) {
+            this.produceAccumulator.totalBatchMaxBytes(this.totalBatchMaxBytes);
+        }
+
     }
 }
