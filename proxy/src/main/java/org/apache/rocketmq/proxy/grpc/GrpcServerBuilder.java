@@ -16,41 +16,61 @@
  */
 package org.apache.rocketmq.proxy.grpc;
 
-import io.grpc.BindableService;
-import io.grpc.ServerInterceptor;
-import io.grpc.ServerServiceDefinition;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.epoll.EpollServerSocketChannel;
 import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
-import java.util.List;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import org.apache.rocketmq.acl.AccessValidator;
+import io.grpc.protobuf.services.ChannelzService;
+import io.grpc.protobuf.services.ProtoReflectionService;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
+import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.grpc.interceptor.AuthenticationInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.GlobalExceptionInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
+import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
+import org.apache.rocketmq.proxy.spi.ProxyServerFactoryBase;
 
-public class GrpcServerBuilder {
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+public class GrpcServerBuilder extends ProxyServerFactoryBase {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
-    protected NettyServerBuilder serverBuilder;
 
-    protected long time = 30;
+    @Override
+    public GrpcServer build() {
+        int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
+        //
+        ThreadPoolExecutor executor = createServerExecutor();
+        initializer.getStartAndShutdowns().add(new StartAndShutdown() {
+            @Override
+            public void shutdown() throws Exception {
+                executor.shutdown();
+            }
 
-    protected TimeUnit unit = TimeUnit.SECONDS;
+            @Override
+            public void start() throws Exception {
 
-    public static GrpcServerBuilder newBuilder(ThreadPoolExecutor executor, int port) {
-        return new GrpcServerBuilder(executor, port);
-    }
-
-    protected GrpcServerBuilder(ThreadPoolExecutor executor, int port) {
-        serverBuilder = NettyServerBuilder.forPort(port);
+            }
+        });
+        //
+        GrpcMessagingApplication application = GrpcMessagingApplication.create(initializer.getMessagingProcessor());
+        initializer.getStartAndShutdowns().add(application);
+        //
+        NettyServerBuilder serverBuilder = NettyServerBuilder.forPort(port);
+        serverBuilder.addService(application)
+                .addService(ChannelzService.newInstance(100))
+                .addService(ProtoReflectionService.newInstance())
+                .intercept(new AuthenticationInterceptor(validators))
+                .intercept(new GlobalExceptionInterceptor())
+                .intercept(new ContextInterceptor())
+                .intercept(new HeaderInterceptor());
 
         serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());
 
@@ -79,43 +99,20 @@ public class GrpcServerBuilder {
             "grpc server has built. port: {}, tlsKeyPath: {}, tlsCertPath: {}, threadPool: {}, queueCapacity: {}, "
                 + "boosLoop: {}, workerLoop: {}, maxInboundMessageSize: {}",
             port, bossLoopNum, workerLoopNum, maxInboundMessageSize);
+
+        return new GrpcServer(serverBuilder.build(), ConfigurationManager.getProxyConfig().getGrpcShutdownTimeSeconds(), TimeUnit.SECONDS);
     }
 
-    public GrpcServerBuilder shutdownTime(long time, TimeUnit unit) {
-        this.time = time;
-        this.unit = unit;
-        return this;
-    }
-
-    public GrpcServerBuilder addService(BindableService service) {
-        this.serverBuilder.addService(service);
-        return this;
-    }
-
-    public GrpcServerBuilder addService(ServerServiceDefinition service) {
-        this.serverBuilder.addService(service);
-        return this;
-    }
-
-    public GrpcServerBuilder appendInterceptor(ServerInterceptor interceptor) {
-        this.serverBuilder.intercept(interceptor);
-        return this;
-    }
-
-    public GrpcServer build() {
-        return new GrpcServer(this.serverBuilder.build(), time, unit);
-    }
-
-    public GrpcServerBuilder configInterceptor(List<AccessValidator> accessValidators) {
-        // grpc interceptors, including acl, logging etc.
-        this.serverBuilder
-            .intercept(new AuthenticationInterceptor(accessValidators));
-
-        this.serverBuilder
-            .intercept(new GlobalExceptionInterceptor())
-            .intercept(new ContextInterceptor())
-            .intercept(new HeaderInterceptor());
-
-        return this;
+    private ThreadPoolExecutor createServerExecutor() {
+        ProxyConfig config = ConfigurationManager.getProxyConfig();
+        int threadPoolNums = config.getGrpcThreadPoolNums();
+        int threadPoolQueueCapacity = config.getGrpcThreadPoolQueueCapacity();
+        return ThreadPoolMonitor.createAndMonitor(
+                threadPoolNums,
+                threadPoolNums,
+                1, TimeUnit.MINUTES,
+                "GrpcRequestExecutorThread",
+                threadPoolQueueCapacity
+        );
     }
 }
