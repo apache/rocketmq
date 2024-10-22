@@ -176,7 +176,7 @@ public class MessageExtEncoder {
     public PutMessageResult encode(MessageExtBrokerInner msgInner) {
         this.byteBuf.clear();
 
-        if (messageStoreConfig.isEnableLmq() && MixAll.topicAllowsLMQ(msgInner.getTopic())) {
+        if (messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ()) {
             return encodeWithoutProperties(msgInner);
         }
 
