@@ -91,7 +91,7 @@ public class TopicConfigManagerV2 extends TopicConfigManager {
      * Key layout: [table-prefix, 1 byte][table-id, 2 bytes][record-type-prefix, 1 byte][topic-len, 2 bytes][topic-bytes]
      * Value layout: [serialization-type, 1 byte][topic-config-bytes]
      *
-     * @param key Topic config key representation in RocksDB
+     * @param key   Topic config key representation in RocksDB
      * @param value Topic config value representation in RocksDB
      * @return decoded topic config
      */
@@ -146,10 +146,9 @@ public class TopicConfigManagerV2 extends TopicConfigManager {
         }
         super.updateSingleTopicConfigWithoutPersist(topicConfig);
 
-        WriteBatch writeBatch = new WriteBatch();
         ByteBuf keyBuf = ConfigHelper.keyBufOf(TableId.TOPIC, topicConfig.getTopicName());
         ByteBuf valueBuf = ConfigHelper.valueBufOf(topicConfig, SerializationType.JSON);
-        try {
+        try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.put(keyBuf.nioBuffer(), valueBuf.nioBuffer());
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
             ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
@@ -165,8 +164,7 @@ public class TopicConfigManagerV2 extends TopicConfigManager {
     @Override
     protected TopicConfig removeTopicConfig(String topicName) {
         ByteBuf keyBuf = ConfigHelper.keyBufOf(TableId.TOPIC, topicName);
-        try {
-            WriteBatch writeBatch = new WriteBatch();
+        try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.delete(keyBuf.nioBuffer());
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
             ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);

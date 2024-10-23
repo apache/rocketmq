@@ -93,8 +93,7 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
         endKey.writeBytes(topicBytes);
         endKey.writeByte(AbstractRocksDBStorage.CTRL_2);
 
-        try {
-            WriteBatch writeBatch = new WriteBatch();
+        try (WriteBatch writeBatch = new WriteBatch()) {
             // TODO: we have to make a copy here as WriteBatch lacks ByteBuffer API here
             writeBatch.deleteRange(ConfigHelper.readBytes(beginKey), ConfigHelper.readBytes(endKey));
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
@@ -134,8 +133,7 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
         endKey.writeShort(groupBytes.length);
         endKey.writeBytes(groupBytes);
         endKey.writeByte(AbstractRocksDBStorage.CTRL_2);
-        try {
-            WriteBatch writeBatch = new WriteBatch();
+        try (WriteBatch writeBatch = new WriteBatch()) {
             // TODO: we have to make a copy here as WriteBatch lacks ByteBuffer API here
             writeBatch.deleteRange(ConfigHelper.readBytes(beginKey), ConfigHelper.readBytes(endKey));
             MessageStore messageStore = brokerController.getMessageStore();
@@ -191,9 +189,8 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
 
         ByteBuf keyBuf = keyOfConsumerOffset(group, topic, queueId);
         ByteBuf valueBuf = ConfigStorage.POOLED_ALLOCATOR.buffer(Long.BYTES);
-        try {
+        try (WriteBatch writeBatch = new WriteBatch()) {
             valueBuf.writeLong(offset);
-            WriteBatch writeBatch = new WriteBatch();
             writeBatch.put(keyBuf.nioBuffer(), valueBuf.nioBuffer());
             MessageStore messageStore = brokerController.getMessageStore();
             long stateMachineVersion = messageStore != null ? messageStore.getStateMachineVersion() : 0;
@@ -393,8 +390,7 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
 
         ByteBuf keyBuf = keyOfPullOffset(group, topic, queueId);
         ByteBuf valueBuf = AbstractRocksDBStorage.POOLED_ALLOCATOR.buffer(8);
-        try {
-            WriteBatch writeBatch = new WriteBatch();
+        try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.put(keyBuf.nioBuffer(), valueBuf.nioBuffer());
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
             ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);

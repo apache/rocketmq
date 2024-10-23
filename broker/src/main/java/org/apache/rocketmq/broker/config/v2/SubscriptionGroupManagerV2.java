@@ -133,8 +133,7 @@ public class SubscriptionGroupManagerV2 extends SubscriptionGroupManager {
         }
         ByteBuf keyBuf = ConfigHelper.keyBufOf(TableId.SUBSCRIPTION_GROUP, config.getGroupName());
         ByteBuf valueBuf = ConfigHelper.valueBufOf(config, SerializationType.JSON);
-        try {
-            WriteBatch writeBatch = new WriteBatch();
+        try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.put(keyBuf.nioBuffer(), valueBuf.nioBuffer());
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
             ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
@@ -160,8 +159,7 @@ public class SubscriptionGroupManagerV2 extends SubscriptionGroupManager {
     @Override
     protected SubscriptionGroupConfig removeSubscriptionGroupConfig(String groupName) {
         ByteBuf keyBuf = ConfigHelper.keyBufOf(TableId.SUBSCRIPTION_GROUP, groupName);
-        try {
-            WriteBatch writeBatch = new WriteBatch();
+        try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.delete(ConfigHelper.readBytes(keyBuf));
             long stateMachineVersion = brokerController.getMessageStore().getStateMachineVersion();
             ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
