@@ -110,7 +110,7 @@ public class ProxyServerInitializer {
 
     private void validateConfiguration() throws Exception {
         String proxyModeStr = ConfigurationManager.getProxyConfig().getProxyMode();
-        if (!ProxyMode.isClusterMode(proxyModeStr) || !ProxyMode.isLocalMode(proxyModeStr)) {
+        if (!ProxyMode.isClusterMode(proxyModeStr) && !ProxyMode.isLocalMode(proxyModeStr)) {
             throw new IllegalArgumentException("try to start proxy server with wrong mode, use 'local' or 'cluster'");
         }
     }

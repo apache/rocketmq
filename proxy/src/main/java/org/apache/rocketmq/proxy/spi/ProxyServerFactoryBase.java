@@ -18,13 +18,16 @@
 package org.apache.rocketmq.proxy.spi;
 
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public abstract class ProxyServerFactoryBase implements ProxyServerFactory {
 
     protected List<AccessValidator> validators;
     protected ProxyServerInitializer initializer;
+    protected final List<StartAndShutdown> startAndShutdowns = new ArrayList<StartAndShutdown>();
 
     @Override
     public ProxyServerFactory withAccessValidators(List<AccessValidator> accessValidators) {
@@ -41,10 +44,17 @@ public abstract class ProxyServerFactoryBase implements ProxyServerFactory {
     @Override
     public final ProxyServerBase get() {
         ProxyServerBase serverBase = build();
+        this.initializer.getStartAndShutdowns().forEach(this::appendStartAndShutdown);
         serverBase.setBrokerController(this.initializer.getBrokerController());
-        serverBase.setStartAndShutdowns(this.initializer.getStartAndShutdowns());
+        serverBase.setStartAndShutdowns(this.startAndShutdowns);
         serverBase.setMessagingProcessor(this.initializer.getMessagingProcessor());
         return serverBase;
+    }
+
+    protected void appendStartAndShutdown(StartAndShutdown sas) {
+        if (sas != null && !this.startAndShutdowns.contains(sas)) {
+            this.startAndShutdowns.add(sas);
+        }
     }
 
     protected abstract ProxyServerBase build();

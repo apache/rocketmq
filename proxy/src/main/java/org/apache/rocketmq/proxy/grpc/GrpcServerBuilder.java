@@ -48,7 +48,7 @@ public class GrpcServerBuilder extends ProxyServerFactoryBase {
         int port = ConfigurationManager.getProxyConfig().getGrpcServerPort();
         //
         ThreadPoolExecutor executor = createServerExecutor();
-        initializer.getStartAndShutdowns().add(new StartAndShutdown() {
+        appendStartAndShutdown(new StartAndShutdown() {
             @Override
             public void shutdown() throws Exception {
                 executor.shutdown();
@@ -61,7 +61,7 @@ public class GrpcServerBuilder extends ProxyServerFactoryBase {
         });
         //
         GrpcMessagingApplication application = GrpcMessagingApplication.create(initializer.getMessagingProcessor());
-        initializer.getStartAndShutdowns().add(application);
+        appendStartAndShutdown(application);
         //
         NettyServerBuilder serverBuilder = NettyServerBuilder.forPort(port);
         serverBuilder.addService(application)
