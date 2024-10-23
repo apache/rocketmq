@@ -14,42 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.subscription;
+package org.apache.rocketmq.broker.config.v1;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.MixAll;
-import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.constant.PermName;
 
-public class RocksDBLmqSubscriptionGroupManager extends RocksDBSubscriptionGroupManager {
+public class RocksDBLmqTopicConfigManager extends RocksDBTopicConfigManager {
 
-    public RocksDBLmqSubscriptionGroupManager(BrokerController brokerController) {
+    public RocksDBLmqTopicConfigManager(BrokerController brokerController) {
         super(brokerController);
     }
 
     @Override
-    public SubscriptionGroupConfig findSubscriptionGroupConfig(final String group) {
-        if (MixAll.isLmq(group)) {
-            SubscriptionGroupConfig subscriptionGroupConfig = new SubscriptionGroupConfig();
-            subscriptionGroupConfig.setGroupName(group);
-            return subscriptionGroupConfig;
+    public TopicConfig selectTopicConfig(final String topic) {
+        if (MixAll.isLmq(topic)) {
+            return simpleLmqTopicConfig(topic);
         }
-        return super.findSubscriptionGroupConfig(group);
+        return super.selectTopicConfig(topic);
     }
 
     @Override
-    public void updateSubscriptionGroupConfig(final SubscriptionGroupConfig config) {
-        if (config == null || MixAll.isLmq(config.getGroupName())) {
+    public void updateTopicConfig(final TopicConfig topicConfig) {
+        if (topicConfig == null || MixAll.isLmq(topicConfig.getTopicName())) {
             return;
         }
-        super.updateSubscriptionGroupConfig(config);
+        super.updateTopicConfig(topicConfig);
     }
 
     @Override
-    public boolean containsSubscriptionGroup(String group) {
-        if (MixAll.isLmq(group)) {
+    public boolean containsTopic(String topic) {
+        if (MixAll.isLmq(topic)) {
             return true;
-        } else {
-            return super.containsSubscriptionGroup(group);
         }
+        return super.containsTopic(topic);
+    }
+
+    private TopicConfig simpleLmqTopicConfig(String topic) {
+        return new TopicConfig(topic, 1, 1, PermName.PERM_READ | PermName.PERM_WRITE);
     }
 }

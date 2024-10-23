@@ -14,21 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.offset;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+package org.apache.rocketmq.common.config;
 
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+public enum ConfigManagerVersion {
+    V1("v1"),
+    V2("v2"),
+    ;
+    private final String version;
 
-public class RocksDBOffsetSerializeWrapper extends RemotingSerializable {
-    private ConcurrentMap<Integer, Long> offsetTable = new ConcurrentHashMap(16);
-
-    public ConcurrentMap<Integer, Long> getOffsetTable() {
-        return offsetTable;
+    ConfigManagerVersion(String version) {
+        this.version = version;
     }
 
-    public void setOffsetTable(ConcurrentMap<Integer, Long> offsetTable) {
-        this.offsetTable = offsetTable;
+    public String getVersion() {
+        return version;
     }
 }

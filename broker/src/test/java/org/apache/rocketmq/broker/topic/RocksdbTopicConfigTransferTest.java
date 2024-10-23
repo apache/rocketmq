@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.topic;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicConfig;

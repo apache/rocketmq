@@ -18,6 +18,7 @@
 package org.apache.rocketmq.broker.subscription;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.protocol.DataVersion;

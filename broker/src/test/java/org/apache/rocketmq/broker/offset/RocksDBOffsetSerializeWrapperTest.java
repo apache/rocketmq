@@ -21,6 +21,7 @@ package org.apache.rocketmq.broker.offset;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.rocketmq.broker.config.v1.RocksDBOffsetSerializeWrapper;
 import org.junit.Before;
 import org.junit.Test;
 

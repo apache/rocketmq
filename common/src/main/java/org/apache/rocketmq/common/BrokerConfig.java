@@ -17,6 +17,7 @@
 package org.apache.rocketmq.common;
 
 import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.config.ConfigManagerVersion;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
@@ -430,6 +431,11 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean appendAckAsync = false;
 
     private boolean appendCkAsync = false;
+
+    /**
+     * V2 is recommended in cases where LMQ feature is extensively used.
+     */
+    private String configManagerVersion = ConfigManagerVersion.V1.getVersion();
 
     public String getConfigBlackList() {
         return configBlackList;
@@ -1878,5 +1884,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setAppendCkAsync(boolean appendCkAsync) {
         this.appendCkAsync = appendCkAsync;
+    }
+
+    public String getConfigManagerVersion() {
+        return configManagerVersion;
+    }
+
+    public void setConfigManagerVersion(String configManagerVersion) {
+        this.configManagerVersion = configManagerVersion;
     }
 }

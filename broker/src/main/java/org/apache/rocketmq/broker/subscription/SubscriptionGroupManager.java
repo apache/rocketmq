@@ -49,7 +49,7 @@ public class SubscriptionGroupManager extends ConfigManager {
     private ConcurrentMap<String, ConcurrentMap<String, Integer>> forbiddenTable =
         new ConcurrentHashMap<>(4);
 
-    private final DataVersion dataVersion = new DataVersion();
+    protected final DataVersion dataVersion = new DataVersion();
     protected transient BrokerController brokerController;
 
     public SubscriptionGroupManager() {
@@ -143,7 +143,7 @@ public class SubscriptionGroupManager extends ConfigManager {
         this.persist();
     }
 
-    private void updateSubscriptionGroupConfigWithoutPersist(SubscriptionGroupConfig config) {
+    protected void updateSubscriptionGroupConfigWithoutPersist(SubscriptionGroupConfig config) {
         Map<String, String> newAttributes = request(config);
         Map<String, String> currentAttributes = current(config.getGroupName());
 
