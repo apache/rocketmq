@@ -29,6 +29,7 @@ import org.apache.rocketmq.auth.authorization.AuthorizationEvaluator;
 import org.apache.rocketmq.auth.authorization.context.AuthorizationContext;
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManager;
 import org.apache.rocketmq.auth.authorization.manager.AuthorizationMetadataManagerImpl;
+import org.apache.rocketmq.auth.authorization.provider.AuthorizationDisabledMetadataProvider;
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationMetadataProvider;
 import org.apache.rocketmq.auth.authorization.provider.AuthorizationProvider;
 import org.apache.rocketmq.auth.authorization.provider.DefaultAuthorizationProvider;
@@ -79,6 +80,9 @@ public class AuthorizationFactory {
         }
         return computeIfAbsent(METADATA_PROVIDER_PREFIX + config.getConfigName(), key -> {
             try {
+                if (!config.isAuthorizationEnabled()) {
+                    return AuthorizationDisabledMetadataProvider.INSTANCE;
+                }
                 if (StringUtils.isBlank(config.getAuthorizationMetadataProvider())) {
                     return null;
                 }
