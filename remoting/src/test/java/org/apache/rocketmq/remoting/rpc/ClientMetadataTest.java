@@ -60,21 +60,24 @@ public class ClientMetadataTest {
 
     @Test
     public void testGetBrokerNameFromMessageQueue() {
-        MessageQueue mq = new MessageQueue(defaultTopic, defaultBroker, 0);
-        topicEndPointsTable.put(defaultTopic, new ConcurrentHashMap<>());
-        topicEndPointsTable.get(defaultTopic).put(mq, defaultBroker);
+        MessageQueue mq1 = new MessageQueue(defaultTopic, "broker0", 0);
+        MessageQueue mq2 = new MessageQueue(defaultTopic, "broker1", 0);
+        ConcurrentMap<MessageQueue, String> messageQueueMap = new ConcurrentHashMap<>();
+        messageQueueMap.put(mq1, "broker0");
+        messageQueueMap.put(mq2, "broker1");
+        topicEndPointsTable.put(defaultTopic, messageQueueMap);
 
-        String actual = clientMetadata.getBrokerNameFromMessageQueue(mq);
-        assertEquals(defaultBroker, actual);
+        String actual = clientMetadata.getBrokerNameFromMessageQueue(mq1);
+        assertEquals("broker0", actual);
     }
 
     @Test
     public void testGetBrokerNameFromMessageQueueNotFound() {
-        MessageQueue mq = new MessageQueue("topic1", defaultBroker, 0);
+        MessageQueue mq = new MessageQueue("topic1", "broker0", 0);
         topicEndPointsTable.put(defaultTopic, new ConcurrentHashMap<>());
 
         String actual = clientMetadata.getBrokerNameFromMessageQueue(mq);
-        assertEquals(defaultBroker, actual);
+        assertEquals("broker0", actual);
     }
 
     @Test
