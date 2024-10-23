@@ -14,16 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
 
-/**
- * When write a message to the commit log, returns code
- */
-public enum AppendMessageStatus {
-    PUT_OK,
-    END_OF_FILE,
-    MESSAGE_SIZE_EXCEEDED,
-    PROPERTIES_SIZE_EXCEEDED,
-    UNKNOWN_ERROR,
-    ROCKSDB_ERROR,
+package org.apache.rocketmq.store.queue.offset;
+
+public class OffsetEntry {
+    /**
+     * Topic identifier. For now, it's topic name directly. In the future, we should use fixed length topic identifier.
+     */
+    public String topic;
+
+    /**
+     * Queue ID
+     */
+    public int queueId;
+
+    /**
+     * Flag if the entry is for maximum or minimum
+     */
+    public OffsetEntryType type;
+
+    /**
+     * Maximum or minimum consume-queue offset.
+     */
+    public long offset;
+
+    /**
+     * Maximum or minimum commit-log offset.
+     */
+    public long commitLogOffset;
 }
