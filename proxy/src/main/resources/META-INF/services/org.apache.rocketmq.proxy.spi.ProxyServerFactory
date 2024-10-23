@@ -1,0 +1,3 @@
+org.apache.rocketmq.proxy.grpc.GrpcServerBuilder
+org.apache.rocketmq.proxy.remoting.RemotingProtocolServerBuilder
+org.apache.rocketmq.proxy.mixed.MixedProxyServerBuilder
