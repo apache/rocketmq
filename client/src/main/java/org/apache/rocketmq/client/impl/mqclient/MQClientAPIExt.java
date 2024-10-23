@@ -70,6 +70,7 @@ import org.apache.rocketmq.remoting.protocol.header.HeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.LockBatchMqRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.PeekMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
@@ -210,6 +211,31 @@ public class MQClientAPIExt extends MQClientAPIImpl {
     ) {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, requestHeader);
         return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis);
+    }
+
+    public CompletableFuture<PopResult> peekMessageAsync(
+        String brokerAddr,
+        String brokerName,
+        PeekMessageRequestHeader requestHeader,
+        long timeoutMillis
+    ) {
+        CompletableFuture<PopResult> future = new CompletableFuture<>();
+        try {
+            this.peekMessageAsync(brokerName, brokerAddr, requestHeader, timeoutMillis, new PopCallback() {
+                @Override
+                public void onSuccess(PopResult popResult) {
+                    future.complete(popResult);
+                }
+
+                @Override
+                public void onException(Throwable t) {
+                    future.completeExceptionally(t);
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
     }
 
     public CompletableFuture<PopResult> popMessageAsync(

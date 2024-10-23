@@ -32,6 +32,7 @@ import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.PeekMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.test.clientinterface.MQConsumer;
 import org.apache.rocketmq.test.util.RandomUtil;
@@ -66,6 +67,32 @@ public class RMQPopClient implements MQConsumer {
     @Override
     public void shutdown() {
         this.mqClientAPI.shutdown();
+    }
+
+    public CompletableFuture<PopResult> peekMessageAsync(String brokerAddr, MessageQueue mq, int maxNums,
+        String consumerGroup, long timeout) {
+        PeekMessageRequestHeader requestHeader = new PeekMessageRequestHeader();
+        requestHeader.setConsumerGroup(consumerGroup);
+        requestHeader.setTopic(mq.getTopic());
+        requestHeader.setQueueId(mq.getQueueId());
+        requestHeader.setMaxMsgNums(maxNums);
+        CompletableFuture<PopResult> future = new CompletableFuture<>();
+        try {
+            this.mqClientAPI.peekMessageAsync(mq.getBrokerName(), brokerAddr, requestHeader, timeout, new PopCallback() {
+                @Override
+                public void onSuccess(PopResult popResult) {
+                    future.complete(popResult);
+                }
+
+                @Override
+                public void onException(Throwable e) {
+                    future.completeExceptionally(e);
+                }
+            });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return future;
     }
 
     public CompletableFuture<PopResult> popMessageAsync(String brokerAddr, MessageQueue mq, long invisibleTime,
