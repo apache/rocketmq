@@ -28,7 +28,6 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
@@ -771,17 +770,13 @@ public class ConsumeQueue implements ConsumeQueueInterface, FileQueueLifeCycle {
     }
 
     @Override
-    public void assignQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg) {
-        String topicQueueKey = getTopic() + "-" + getQueueId();
-        long queueOffset = queueOffsetOperator.getQueueOffset(topicQueueKey);
-        msg.setQueueOffset(queueOffset);
+    public void increaseQueueOffset(QueueOffsetOperator queueOffsetOperator, short messageNum) {
+        queueOffsetOperator.increaseQueueOffset(topic + "-" + queueId, messageNum);
     }
 
     @Override
-    public void increaseQueueOffset(QueueOffsetOperator queueOffsetOperator, MessageExtBrokerInner msg,
-        short messageNum) {
-        String topicQueueKey = getTopic() + "-" + getQueueId();
-        queueOffsetOperator.increaseQueueOffset(topicQueueKey, messageNum);
+    public long getQueueOffset(QueueOffsetOperator queueOffsetOperator) {
+        return queueOffsetOperator.getQueueOffset(topic + "-" + queueId);
     }
 
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
