@@ -57,6 +57,17 @@ export CLASSPATH=.:${BASE_DIR}/conf:${BASE_DIR}/lib/*:${CLASSPATH}
 # The RAMDisk initializing size in MB on Darwin OS for gc-log
 DIR_SIZE_IN_MB=600
 
+if [ "$JVM_OPT_XMX" = "" ]; then
+   export JVM_OPT_XMX="8g"
+fi
+if [ "$JVM_OPT_XMS" = "" ]; then
+    export JVM_OPT_XMS="8g"
+fi
+
+if [ "$JVM_OPT_XMN" = "" ]; then
+    export JVM_OPT_XMN="4g"
+fi
+
 choose_gc_log_directory()
 {
     case "`uname`" in
@@ -84,7 +95,7 @@ choose_gc_options()
 {
     JAVA_MAJOR_VERSION=$("$JAVA" -version 2>&1 | head -1 | cut -d'"' -f2 | sed 's/^1\.//' | cut -d'.' -f1)
     if [ -z "$JAVA_MAJOR_VERSION" ] || [ "$JAVA_MAJOR_VERSION" -lt "8" ] ; then
-      JAVA_OPT="${JAVA_OPT} -Xmn4g -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8 -XX:-UseParNewGC"
+      JAVA_OPT="${JAVA_OPT} -Xmn$JVM_OPT_XMN -XX:+UseConcMarkSweepGC -XX:+UseCMSCompactAtFullCollection -XX:CMSInitiatingOccupancyFraction=70 -XX:+CMSParallelRemarkEnabled -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+CMSClassUnloadingEnabled -XX:SurvivorRatio=8 -XX:-UseParNewGC"
     else
       JAVA_OPT="${JAVA_OPT} -XX:+UseG1GC -XX:G1HeapRegionSize=16m -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:SoftRefLRUPolicyMSPerMB=0"
     fi
@@ -100,7 +111,7 @@ choose_gc_options()
 
 choose_gc_log_directory
 
-JAVA_OPT="${JAVA_OPT} -server -Xms8g -Xmx8g"
+JAVA_OPT="${JAVA_OPT} -server -Xms$JVM_OPT_XMS -Xmx$JVM_OPT_XMX"
 choose_gc_options
 JAVA_OPT="${JAVA_OPT} -XX:-OmitStackTraceInFastThrow"
 JAVA_OPT="${JAVA_OPT} -XX:+AlwaysPreTouch"
