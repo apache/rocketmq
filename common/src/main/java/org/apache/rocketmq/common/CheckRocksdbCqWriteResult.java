@@ -26,7 +26,7 @@ public class CheckRocksdbCqWriteResult {
         CHECK_OK(0),
         CHECK_NOT_OK(1),
         CHECK_IN_PROGRESS(2),
-        CHECK_ERROR(4);
+        CHECK_ERROR(3);
 
         private int value;
 

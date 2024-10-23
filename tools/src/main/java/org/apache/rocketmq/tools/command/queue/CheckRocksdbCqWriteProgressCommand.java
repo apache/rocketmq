@@ -19,12 +19,13 @@ package org.apache.rocketmq.tools.command.queue;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.remoting.RPCHook;
-import org.apache.rocketmq.remoting.protocol.body.CheckRocksdbCqWriteProgressResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
@@ -72,8 +73,10 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
         String clusterName = commandLine.hasOption('c') ? commandLine.getOptionValue('c').trim() : "";
         String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "";
         // The default check is 30 days
-        long checkStoreTime = commandLine.hasOption("checkFrom") ? Long.parseLong(commandLine.getOptionValue("checkFrom").trim()) : System.currentTimeMillis() - 24 * 60 * 60 * 1000 * 30L;
-        boolean async = commandLine.hasOption("asynchronous") ? Boolean.parseBoolean(commandLine.getOptionValue("asynchronous").trim()) : true;
+        long checkStoreTime = commandLine.hasOption("cf")
+            ? Long.parseLong(commandLine.getOptionValue("cf").trim())
+            : System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30L);
+        boolean async = commandLine.hasOption("async") ? Boolean.parseBoolean(commandLine.getOptionValue("async").trim()) : true;
 
         try {
             defaultMQAdminExt.start();
@@ -88,12 +91,13 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
                 String brokerName = entry.getKey();
                 BrokerData brokerData = entry.getValue();
                 String brokerAddr = brokerData.getBrokerAddrs().get(0L);
-                CheckRocksdbCqWriteProgressResponseBody body = defaultMQAdminExt.checkRocksdbCqWriteProgress(brokerAddr, topic, async, checkStoreTime);
+                CheckRocksdbCqWriteResult body = defaultMQAdminExt.checkRocksdbCqWriteProgress(brokerAddr, topic, async, checkStoreTime);
+                String tips = " checkStatus(0 -> ready, 1 -> notReady, 2-> checkDoing, 3 -> error): ";
                 if (StringUtils.isNotBlank(topic)) {
-                    System.out.print(brokerName + " checkStatus(0 -> ready, 1 -> notReady, 2 -> error): " + body.getCheckStatus() + " \n " + body.getDiffResult() + "\n");
+                    System.out.print(brokerName + tips + body.getCheckStatus() + " \n " + body.getCheckResult() + "\n");
                 } else {
-                    System.out.print(brokerName + " checkStatus(0 -> ready, 1 -> notReady, 2 -> error): " + body.getCheckStatus() + " \n " +
-                        body.getDiffResult() + "\n");
+                    System.out.print(brokerName + tips + body.getCheckStatus() + " \n " +
+                        body.getCheckResult() + "\n");
                 }
             }
 

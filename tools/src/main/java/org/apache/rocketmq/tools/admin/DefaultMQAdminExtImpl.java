@@ -46,6 +46,7 @@ import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
@@ -84,7 +85,6 @@ import org.apache.rocketmq.remoting.protocol.body.AclInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
-import org.apache.rocketmq.remoting.protocol.body.CheckRocksdbCqWriteProgressResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
@@ -1819,7 +1819,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public CheckRocksdbCqWriteProgressResponseBody checkRocksdbCqWriteProgress(String brokerAddr, String topic, boolean async, long checkStoreTime)
+    public CheckRocksdbCqWriteResult checkRocksdbCqWriteProgress(String brokerAddr, String topic, boolean async, long checkStoreTime)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
         return this.mqClientInstance.getMQClientAPIImpl().checkRocksdbCqWriteProgress(brokerAddr, topic, checkStoreTime, async, timeoutMillis);
     }

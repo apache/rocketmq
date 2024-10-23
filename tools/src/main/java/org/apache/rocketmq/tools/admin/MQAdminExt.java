@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.rocketmq.client.MQAdmin;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
@@ -48,7 +49,6 @@ import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeStatsList;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
-import org.apache.rocketmq.remoting.protocol.body.CheckRocksdbCqWriteProgressResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.EpochEntryCache;
 import org.apache.rocketmq.remoting.protocol.body.GroupList;
 import org.apache.rocketmq.remoting.protocol.body.HARuntimeInfo;
@@ -149,7 +149,7 @@ public interface MQAdminExt extends MQAdmin {
         final String consumerGroup) throws RemotingException, MQClientException, InterruptedException,
         MQBrokerException;
 
-    CheckRocksdbCqWriteProgressResponseBody checkRocksdbCqWriteProgress(String brokerAddr, String topic, boolean async, long checkStoreTime)
+    CheckRocksdbCqWriteResult checkRocksdbCqWriteProgress(String brokerAddr, String topic, boolean async, long checkStoreTime)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
 
     ConsumeStats examineConsumeStats(final String consumerGroup,
