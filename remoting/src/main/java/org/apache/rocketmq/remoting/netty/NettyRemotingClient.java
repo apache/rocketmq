@@ -1078,8 +1078,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         public boolean tryClose(Channel channel) {
+            lock.readLock().lock();
             try {
-                lock.readLock().lock();
                 if (channelFuture != null) {
                     if (channelFuture.channel().equals(channel)) {
                         return true;
@@ -1092,8 +1092,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         public void close() {
+            lock.writeLock().lock();
             try {
-                lock.writeLock().lock();
                 if (channelFuture != null) {
                     closeChannel(channelFuture.channel());
                 }
