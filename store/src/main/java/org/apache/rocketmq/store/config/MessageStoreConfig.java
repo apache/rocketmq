@@ -456,14 +456,6 @@ public class MessageStoreConfig {
      **/
     private boolean useABSLock = false;
 
-    public int getBatchWriteKvCqSize() {
-        return batchWriteKvCqSize;
-    }
-
-    public void setBatchWriteKvCqSize(int batchWriteKvCqSize) {
-        this.batchWriteKvCqSize = batchWriteKvCqSize;
-    }
-
     public boolean isRocksdbCQDoubleWriteEnable() {
         return rocksdbCQDoubleWriteEnable;
     }
