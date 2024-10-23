@@ -443,7 +443,7 @@ public class MessageStoreConfig {
     private String bottomMostCompressionTypeForConsumeQueueStore = "zstd";
     private int batchWriteKvCqSize = 16;
 
-    private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.name();
+    private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
 
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
