@@ -85,7 +85,7 @@ public class RocksDBConsumeQueueOffsetTable {
      * │        (4 Bytes)        │ (1 Bytes) │ (1 Bytes) │ (3 Bytes) │ (1 Bytes) │  (4 Bytes)  │
      * ├─────────────────────────┴───────────┴───────────┴───────────┴───────────┴─────────────┤
      */
-    private static final int OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES = 4 + 1 + 1 + 3 + 1 + 4;
+    public static final int OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES = 4 + 1 + 1 + 3 + 1 + 4;
     private static final int OFFSET_VALUE_LENGTH = 8 + 8;
 
     /**
@@ -682,7 +682,7 @@ public class RocksDBConsumeQueueOffsetTable {
         return byteBuffer;
     }
 
-    private static void buildOffsetKeyByteBuffer(final ByteBuffer byteBuffer, final byte[] topicBytes,
+    public static void buildOffsetKeyByteBuffer(final ByteBuffer byteBuffer, final byte[] topicBytes,
         final int queueId, final boolean max) {
         byteBuffer.position(0).limit(OFFSET_KEY_LENGTH_WITHOUT_TOPIC_BYTES + topicBytes.length);
         buildOffsetKeyByteBuffer0(byteBuffer, topicBytes, queueId, max);
