@@ -69,6 +69,7 @@ import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.LockCallback;
 import org.apache.rocketmq.common.MQVersion;
@@ -483,7 +484,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         if (requestHeader.isAsync()) {
             Runnable runnable = () -> {
                 try {
-                    doCheckRocksdbCqWriteProgress(ctx, request);
+                    CheckRocksdbCqWriteResult checkResult = doCheckRocksdbCqWriteProgress(ctx, request);
+                    LOGGER.info("checkRocksdbCqWriteProgress result: {}", JSON.toJSONString(checkResult));
                 } catch (Exception e) {
                     LOGGER.error("checkRocksdbCqWriteProgress error", e);
                 }
@@ -494,10 +496,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setBody(JSON.toJSONBytes(ImmutableMap.of("checkStatus", "2")));
             return response;
         } else {
-            return doCheckRocksdbCqWriteProgress(ctx, request);
+            CheckRocksdbCqWriteResult result = doCheckRocksdbCqWriteProgress(ctx, request);
+            RemotingCommand response = RemotingCommand.createResponseCommand(null);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(JSON.toJSONBytes(result));
+            return response;
         }
     }
-
     @Override
     public boolean rejectRequest() {
         return false;
@@ -3379,11 +3384,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private RemotingCommand doCheckRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+    private CheckRocksdbCqWriteResult doCheckRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         CheckRocksdbCqWriteProgressRequestHeader requestHeader = request.decodeCommandCustomHeader(CheckRocksdbCqWriteProgressRequestHeader.class);
         String requestTopic = requestHeader.getTopic();
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        response.setCode(ResponseCode.SUCCESS);
         MessageStore messageStore = brokerController.getMessageStore();
         DefaultMessageStore defaultMessageStore;
         if (messageStore instanceof AbstractPluginMessageStore) {
@@ -3392,20 +3395,18 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             defaultMessageStore = (DefaultMessageStore) messageStore;
         }
         RocksDBMessageStore rocksDBMessageStore = defaultMessageStore.getRocksDBMessageStore();
-        HashMap<String, String> resultMap = new HashMap<>();
+        CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
 
         if (defaultMessageStore.getMessageStoreConfig().getStoreType().equals(StoreType.DEFAULT_ROCKSDB.getStoreType())) {
-            resultMap.put("diffResult", "storeType is DEFAULT_ROCKSDB, no need check");
-            resultMap.put("checkStatus", "0");
-            response.setBody(JSON.toJSONBytes(resultMap));
-            return response;
+            result.setCheckResult("storeType is DEFAULT_ROCKSDB, no need check");
+            result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue());
+            return result;
         }
 
         if (!defaultMessageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
-            resultMap.put("diffResult", "rocksdbCQWriteEnable is false, checkRocksdbCqWriteProgressCommand is invalid");
-            resultMap.put("checkStatus", "1");
-            response.setBody(JSON.toJSONBytes(resultMap));
-            return response;
+            result.setCheckResult("rocksdbCQWriteEnable is false, checkRocksdbCqWriteProgressCommand is invalid");
+            result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
+            return result;
         }
 
         ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = defaultMessageStore.getConsumeQueueTable();
@@ -3413,10 +3414,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         try {
             if (StringUtils.isNotBlank(requestTopic)) {
                 boolean checkResult = processConsumeQueuesForTopic(cqTable.get(requestTopic), requestTopic, rocksDBMessageStore, diffResult, false, requestHeader.getCheckStoreTime());
-                resultMap.put("diffResult", diffResult.toString());
-                resultMap.put("checkStatus", checkResult ? "0" : "1");
-                response.setBody(JSON.toJSONBytes(resultMap));
-                return response;
+                result.setCheckResult(diffResult.toString());
+                result.setCheckStatus(checkResult ? CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue() : CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
+                return result;
             }
             boolean checkResult = true;
             for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : cqTable.entrySet()) {
@@ -3427,17 +3427,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 }
             }
             diffResult.append("check all topic successful, size:").append(cqTable.size());
-            resultMap.put("diffResult", diffResult.toString());
-            resultMap.put("checkStatus", checkResult ? "0" : "1");
-            response.setBody(JSON.toJSONBytes(resultMap));
-
+            result.setCheckResult(diffResult.toString());
+            result.setCheckStatus(checkResult ? CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue() : CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
         } catch (Exception e) {
             LOGGER.error("CheckRocksdbCqWriteProgressCommand error", e);
-            resultMap.put("diffResult", e.getMessage() + Arrays.toString(e.getStackTrace()));
-            resultMap.put("checkStatus", "2");
-            response.setBody(JSON.toJSONBytes(resultMap));
+            result.setCheckResult(e.getMessage() + Arrays.toString(e.getStackTrace()));
+            result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_ERROR.getValue());
         }
-        return response;
+        return result;
     }
 
     private boolean processConsumeQueuesForTopic(ConcurrentMap<Integer, ConsumeQueueInterface> queueMap, String topic, RocksDBMessageStore rocksDBMessageStore, StringBuilder diffResult, boolean checkAll, long checkStoreTime) {

@@ -45,7 +45,6 @@ public class RocksDBConfigManager {
 
     private final CompressionType compressionType;
 
-
     public RocksDBConfigManager(String filePath, long memTableFlushInterval, CompressionType compressionType) {
         this.filePath = filePath;
         this.memTableFlushInterval = memTableFlushInterval;
