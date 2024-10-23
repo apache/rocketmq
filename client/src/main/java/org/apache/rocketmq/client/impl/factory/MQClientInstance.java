@@ -839,8 +839,8 @@ public class MQClientInstance {
                         log.warn("updateTopicRouteInfoFromNameServer Exception", e);
                     }
                 } catch (RemotingException e) {
-                    log.error("updateTopicRouteInfoFromNameServer Exception", e);
-                    throw new IllegalStateException(e);
+                    log.error("updateTopicRouteInfoFromNameServer Exception, namesrvAddr: " + clientConfig.getNamesrvAddr(), e);
+                    throw new IllegalStateException("updateTopicRouteInfoFromNameServer Exception, namesrvAddr: " + clientConfig.getNamesrvAddr(), e);
                 } finally {
                     this.lockNamesrv.unlock();
                 }
