@@ -18,7 +18,6 @@ package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -473,14 +472,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-
-
-    /**
-     * diffResult: string
-     * checkStatus: int 0->ready, 1->notReady, 2->async doing, 3->error
-     */
     private RemotingCommand checkRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         CheckRocksdbCqWriteProgressRequestHeader requestHeader = request.decodeCommandCustomHeader(CheckRocksdbCqWriteProgressRequestHeader.class);
+        CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
+        result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_IN_PROGRESS.getValue());
         if (requestHeader.isAsync()) {
             Runnable runnable = () -> {
                 try {
@@ -491,17 +486,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 }
             };
             asyncExecuteWorker.submit(runnable);
-            RemotingCommand response = RemotingCommand.createResponseCommand(null);
-            response.setCode(ResponseCode.SUCCESS);
-            response.setBody(JSON.toJSONBytes(ImmutableMap.of("checkStatus", "2")));
-            return response;
         } else {
-            CheckRocksdbCqWriteResult result = doCheckRocksdbCqWriteProgress(ctx, request);
-            RemotingCommand response = RemotingCommand.createResponseCommand(null);
-            response.setCode(ResponseCode.SUCCESS);
-            response.setBody(JSON.toJSONBytes(result));
-            return response;
+            result = doCheckRocksdbCqWriteProgress(ctx, request);
         }
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setBody(JSON.toJSONBytes(result));
+        return response;
     }
     @Override
     public boolean rejectRequest() {
