@@ -19,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Set up JDK ${{ matrix.jdk }}
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.jdk }}
           # See https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
