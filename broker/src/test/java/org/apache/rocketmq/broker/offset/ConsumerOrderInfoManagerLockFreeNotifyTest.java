@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.processor.PopMessageProcessor;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,7 +51,7 @@ public class ConsumerOrderInfoManagerLockFreeNotifyTest {
     private final BrokerController brokerController = mock(BrokerController.class);
 
     @Before
-    public void before() {
+    public void before() throws ConsumeQueueException {
         notified = new AtomicBoolean(false);
         brokerConfig.setEnableNotifyAfterPopOrderLockRelease(true);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);

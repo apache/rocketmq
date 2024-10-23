@@ -428,8 +428,6 @@ public class MessageStoreConfig {
 
     private boolean rocksdbCQDoubleWriteEnable = false;
 
-    private int batchWriteKvCqSize = 16;
-
     /**
      * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
      * The following values are valid:
