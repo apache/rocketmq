@@ -13,7 +13,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: "8"
-          distribution: "adopt"
+          distribution: "corretto"
           cache: "maven"
       - name: Generate coverage report
         run: mvn -B test -T 2C --file pom.xml
