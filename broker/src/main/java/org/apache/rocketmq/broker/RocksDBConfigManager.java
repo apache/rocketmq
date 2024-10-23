@@ -43,7 +43,7 @@ public class RocksDBConfigManager {
     private final long memTableFlushInterval;
     private DataVersion kvDataVersion = new DataVersion();
 
-    private CompressionType compressionType = CompressionType.LZ4_COMPRESSION;
+    private final CompressionType compressionType;
 
 
     public RocksDBConfigManager(String filePath, long memTableFlushInterval, CompressionType compressionType) {

@@ -20,11 +20,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.rocketmq.common.UtilAll;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.CompressionType;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -41,8 +41,12 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
     public static final byte[] KV_DATA_VERSION_KEY = "kvDataVersionKey".getBytes(StandardCharsets.UTF_8);
 
     public ConfigRocksDBStorage(final String dbPath) {
-        super(dbPath);
-        this.readOnly = false;
+        this(dbPath, false);
+    }
+
+    public ConfigRocksDBStorage(final String dbPath, CompressionType compressionType) {
+        this(dbPath, false);
+        this.compressionType = compressionType;
     }
 
     public ConfigRocksDBStorage(final String dbPath, boolean readOnly) {
