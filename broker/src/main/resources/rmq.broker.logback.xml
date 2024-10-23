@@ -508,10 +508,13 @@
         <sift>
             <appender name="RocketmqPopAppender"
                       class="ch.qos.logback.core.rolling.RollingFileAppender">
-                <file>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}pop.log</file>
+                <file>
+                    ${user.home}${file.separator}logs${file.separator}rocketmqlogs${brokerLogDir:-${file.separator}}${brokerContainerLogDir}${file.separator}pop.log
+                </file>
                 <append>true</append>
                 <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-                    <fileNamePattern>${user.home}${file.separator}logs${file.separator}rocketmqlogs${file.separator}otherdays${file.separator}pop.%i.log
+                    <fileNamePattern>
+                        ${user.home}${file.separator}logs${file.separator}rocketmqlogs${brokerLogDir:-${file.separator}}${brokerContainerLogDir}${file.separator}otherdays${file.separator}pop.%i.log.gz
                     </fileNamePattern>
                     <minIndex>1</minIndex>
                     <maxIndex>20</maxIndex>
@@ -539,10 +542,13 @@
         <sift>
             <appender name="RocketmqColdCtrAppender"
                       class="ch.qos.logback.core.rolling.RollingFileAppender">
-                <file>${user.home}/logs/rocketmqlogs/coldctr.log</file>
+                <file>
+                    ${user.home}${file.separator}logs${file.separator}rocketmqlogs${brokerLogDir:-${file.separator}}${brokerContainerLogDir}${file.separator}coldctr.log
+                </file>
                 <append>true</append>
                 <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-                    <fileNamePattern>${user.home}/logs/rocketmqlogs/otherdays/coldctr.%i.log
+                    <fileNamePattern>
+                        ${user.home}${file.separator}logs${file.separator}rocketmqlogs${brokerLogDir:-${file.separator}}${brokerContainerLogDir}${file.separator}otherdays${file.separator}coldctr.%i.log.gz
                     </fileNamePattern>
                     <minIndex>1</minIndex>
                     <maxIndex>10</maxIndex>
