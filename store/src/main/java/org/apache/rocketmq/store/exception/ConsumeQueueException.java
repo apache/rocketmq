@@ -14,16 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.store;
+package org.apache.rocketmq.store.exception;
 
-/**
- * When write a message to the commit log, returns code
- */
-public enum AppendMessageStatus {
-    PUT_OK,
-    END_OF_FILE,
-    MESSAGE_SIZE_EXCEEDED,
-    PROPERTIES_SIZE_EXCEEDED,
-    UNKNOWN_ERROR,
-    ROCKSDB_ERROR,
+public class ConsumeQueueException extends StoreException {
+    public ConsumeQueueException() {
+    }
+
+    public ConsumeQueueException(String message) {
+        super(message);
+    }
+
+    public ConsumeQueueException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public ConsumeQueueException(Throwable cause) {
+        super(cause);
+    }
+
+    public ConsumeQueueException(String message, Throwable cause, boolean enableSuppression,
+        boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
 }
