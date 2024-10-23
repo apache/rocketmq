@@ -73,7 +73,7 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
         String topic = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : "";
         // The default check is 30 days
         long checkStoreTime = commandLine.hasOption("checkFrom") ? Long.parseLong(commandLine.getOptionValue("checkFrom").trim()) : System.currentTimeMillis() - 24 * 60 * 60 * 1000 * 30L;
-        boolean async = commandLine.hasOption("asynchronous")? Boolean.parseBoolean(commandLine.getOptionValue("asynchronous").trim()) : true;
+        boolean async = commandLine.hasOption("asynchronous") ? Boolean.parseBoolean(commandLine.getOptionValue("asynchronous").trim()) : true;
 
         try {
             defaultMQAdminExt.start();
