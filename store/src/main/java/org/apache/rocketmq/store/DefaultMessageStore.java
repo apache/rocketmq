@@ -93,6 +93,7 @@ import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.dledger.DLedgerCommitLog;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.ha.DefaultHAService;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
@@ -170,7 +171,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private RocksDBMessageStore rocksDBMessageStore;
 
-    private RandomAccessFile lockFile;
+    private final RandomAccessFile lockFile;
 
     private FileLock lock;
 
@@ -190,7 +191,7 @@ public class DefaultMessageStore implements MessageStore {
 
     private volatile long brokerInitMaxOffset = -1L;
 
-    private List<PutMessageHook> putMessageHookList = new ArrayList<>();
+    private final List<PutMessageHook> putMessageHookList = new ArrayList<>();
 
     private SendMessageBackHook sendMessageBackHook;
 
@@ -203,20 +204,21 @@ public class DefaultMessageStore implements MessageStore {
 
     private final ConcurrentLinkedQueue<BatchDispatchRequest> batchDispatchRequestQueue = new ConcurrentLinkedQueue<>();
 
-    private int dispatchRequestOrderlyQueueSize = 16;
+    private final int dispatchRequestOrderlyQueueSize = 16;
 
     private final DispatchRequestOrderlyQueue dispatchRequestOrderlyQueue = new DispatchRequestOrderlyQueue(dispatchRequestOrderlyQueueSize);
 
     private long stateMachineVersion = 0L;
 
     // this is a unmodifiableMap
-    private ConcurrentMap<String, TopicConfig> topicConfigTable;
+    private final ConcurrentMap<String, TopicConfig> topicConfigTable;
 
     private final ScheduledExecutorService scheduledCleanQueueExecutorService =
         ThreadUtils.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("StoreCleanQueueScheduledThread"));
 
     public DefaultMessageStore(final MessageStoreConfig messageStoreConfig, final BrokerStatsManager brokerStatsManager,
-        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig, final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
+        final MessageArrivingListener messageArrivingListener, final BrokerConfig brokerConfig,
+        final ConcurrentMap<String, TopicConfig> topicConfigTable) throws IOException {
         this.messageArrivingListener = messageArrivingListener;
         this.brokerConfig = brokerConfig;
         this.messageStoreConfig = messageStoreConfig;
@@ -438,7 +440,7 @@ public class DefaultMessageStore implements MessageStore {
             return;
         }
 
-        /**
+        /*
          * 1. Make sure the fast-forward messages to be truncated during the recovering according to the max physical offset of the commitlog;
          * 2. DLedger committedPos may be missing, so the maxPhysicalPosInLogicQueue maybe bigger that maxOffset returned by DLedgerCommitLog, just let it go;
          * 3. Calculate the reput offset according to the consume queue;
@@ -458,7 +460,7 @@ public class DefaultMessageStore implements MessageStore {
         }
         if (maxPhysicalPosInLogicQueue < this.commitLog.getMinOffset()) {
             maxPhysicalPosInLogicQueue = this.commitLog.getMinOffset();
-            /**
+            /*
              * This happens in following conditions:
              * 1. If someone removes all the consumequeue files or the disk get damaged.
              * 2. Launch a new broker, and copy the commitlog from other brokers.
@@ -987,12 +989,12 @@ public class DefaultMessageStore implements MessageStore {
     }
 
     @Override
-    public long getMaxOffsetInQueue(String topic, int queueId) {
+    public long getMaxOffsetInQueue(String topic, int queueId) throws ConsumeQueueException {
         return getMaxOffsetInQueue(topic, queueId, true);
     }
 
     @Override
-    public long getMaxOffsetInQueue(String topic, int queueId, boolean committed) {
+    public long getMaxOffsetInQueue(String topic, int queueId, boolean committed) throws ConsumeQueueException {
         if (committed) {
             ConsumeQueueInterface logic = this.getConsumeQueue(topic, queueId);
             if (logic != null) {
@@ -1378,7 +1380,6 @@ public class DefaultMessageStore implements MessageStore {
      * If offset table is cleaned, and old messages are dispatching after the old consume queue is cleaned,
      * consume queue will be created with old offset, then later message with new offset table can not be
      * dispatched to consume queue.
-     * @throws RocksDBException only in rocksdb mode
      */
     @Override
     public int deleteTopics(final Set<String> deleteTopics) {
@@ -1748,10 +1749,11 @@ public class DefaultMessageStore implements MessageStore {
     /**
      * The ratio val is estimated by the experiment and experience
      * so that the result is not high accurate for different business
+     *
      * @return
      */
     public boolean checkInColdAreaByCommitOffset(long offsetPy, long maxOffsetPy) {
-        long memory = (long)(StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryHotRatio() / 100.0));
+        long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE * (this.messageStoreConfig.getAccessMessageInMemoryHotRatio() / 100.0));
         return (maxOffsetPy - offsetPy) > memory;
     }
 
@@ -1927,11 +1929,6 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public MessageStoreConfig getMessageStoreConfig() {
         return messageStoreConfig;
-    }
-
-    @Override
-    public void finishCommitLogDispatch() {
-        // ignore
     }
 
     @Override
@@ -2713,15 +2710,15 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    class BatchDispatchRequest {
+    static class BatchDispatchRequest {
 
-        private ByteBuffer byteBuffer;
+        private final ByteBuffer byteBuffer;
 
-        private int position;
+        private final int position;
 
-        private int size;
+        private final int size;
 
-        private long id;
+        private final long id;
 
         public BatchDispatchRequest(ByteBuffer byteBuffer, int position, int size, long id) {
             this.byteBuffer = byteBuffer;
@@ -2731,7 +2728,7 @@ public class DefaultMessageStore implements MessageStore {
         }
     }
 
-    class DispatchRequestOrderlyQueue {
+    static class DispatchRequestOrderlyQueue {
 
         DispatchRequest[][] buffer;
 
@@ -2907,8 +2904,6 @@ public class DefaultMessageStore implements MessageStore {
                 } finally {
                     result.release();
                 }
-
-                finishCommitLogDispatch();
             }
         }
 
@@ -2922,8 +2917,8 @@ public class DefaultMessageStore implements MessageStore {
             if (StringUtils.isBlank(multiDispatchQueue) || StringUtils.isBlank(multiQueueOffset)) {
                 return;
             }
-            String[] queues = multiDispatchQueue.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
-            String[] queueOffsets = multiQueueOffset.split(MixAll.MULTI_DISPATCH_QUEUE_SPLITTER);
+            String[] queues = multiDispatchQueue.split(MixAll.LMQ_DISPATCH_SEPARATOR);
+            String[] queueOffsets = multiQueueOffset.split(MixAll.LMQ_DISPATCH_SEPARATOR);
             if (queues.length != queueOffsets.length) {
                 return;
             }
@@ -2932,7 +2927,7 @@ public class DefaultMessageStore implements MessageStore {
                 long queueOffset = Long.parseLong(queueOffsets[i]);
                 int queueId = dispatchRequest.getQueueId();
                 if (DefaultMessageStore.this.getMessageStoreConfig().isEnableLmq() && MixAll.isLmq(queueName)) {
-                    queueId = 0;
+                    queueId = MixAll.LMQ_QUEUE_ID;
                 }
                 DefaultMessageStore.this.messageArrivingListener.arriving(
                     queueName, queueId, queueOffset + 1, dispatchRequest.getTagsCode(),
@@ -2972,13 +2967,13 @@ public class DefaultMessageStore implements MessageStore {
 
         public MainBatchDispatchRequestService() {
             batchDispatchRequestExecutor = ThreadUtils.newThreadPoolExecutor(
-                    DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
-                    DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
-                    1000 * 60,
-                    TimeUnit.MICROSECONDS,
-                    new LinkedBlockingQueue<>(4096),
-                    new ThreadFactoryImpl("BatchDispatchRequestServiceThread_"),
-                    new ThreadPoolExecutor.AbortPolicy());
+                DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
+                DefaultMessageStore.this.getMessageStoreConfig().getBatchDispatchRequestThreadPoolNums(),
+                1000 * 60,
+                TimeUnit.MICROSECONDS,
+                new LinkedBlockingQueue<>(4096),
+                new ThreadFactoryImpl("BatchDispatchRequestServiceThread_"),
+                new ThreadPoolExecutor.AbortPolicy());
         }
 
         private void pollBatchDispatchRequest() {
@@ -3188,9 +3183,6 @@ public class DefaultMessageStore implements MessageStore {
                     result.release();
                 }
             }
-
-            // only for rocksdb mode
-            finishCommitLogDispatch();
         }
 
         /**

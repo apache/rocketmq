@@ -428,8 +428,6 @@ public class MessageStoreConfig {
 
     private boolean rocksdbCQDoubleWriteEnable = false;
 
-    private int batchWriteKvCqSize = 16;
-
     /**
      * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
      * The following values are valid:
@@ -447,13 +445,16 @@ public class MessageStoreConfig {
      */
     private String bottomMostCompressionTypeForConsumeQueueStore = "zstd";
 
-    public int getBatchWriteKvCqSize() {
-        return batchWriteKvCqSize;
-    }
+    /**
+     * Spin number in the retreat strategy of spin lock
+     * Default is 1000
+     */
+    private int spinLockCollisionRetreatOptimalDegree = 1000;
 
-    public void setBatchWriteKvCqSize(int batchWriteKvCqSize) {
-        this.batchWriteKvCqSize = batchWriteKvCqSize;
-    }
+    /**
+     * Use AdaptiveBackOffLock
+     **/
+    private boolean useABSLock = false;
 
     public boolean isRocksdbCQDoubleWriteEnable() {
         return rocksdbCQDoubleWriteEnable;
@@ -1907,5 +1908,21 @@ public class MessageStoreConfig {
 
     public void setBottomMostCompressionTypeForConsumeQueueStore(String bottomMostCompressionTypeForConsumeQueueStore) {
         this.bottomMostCompressionTypeForConsumeQueueStore = bottomMostCompressionTypeForConsumeQueueStore;
+    }
+
+    public int getSpinLockCollisionRetreatOptimalDegree() {
+        return spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setSpinLockCollisionRetreatOptimalDegree(int spinLockCollisionRetreatOptimalDegree) {
+        this.spinLockCollisionRetreatOptimalDegree = spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setUseABSLock(boolean useABSLock) {
+        this.useABSLock = useABSLock;
+    }
+
+    public boolean getUseABSLock() {
+        return useABSLock;
     }
 }
