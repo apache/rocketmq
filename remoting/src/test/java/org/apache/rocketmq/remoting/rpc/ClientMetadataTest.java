@@ -112,8 +112,8 @@ public class ClientMetadataTest {
         info.setScope("scope");
         info.setCurrIdMap(new ConcurrentHashMap<>());
         info.getCurrIdMap().put(0, 0);
-        info.setTotalQueues(1);
         info.setBname("bname");
+        info.setTotalQueues(1);
         mappingInfos.put(defaultBroker, info);
         topicRouteData.setTopicQueueMappingByBroker(mappingInfos);
 
