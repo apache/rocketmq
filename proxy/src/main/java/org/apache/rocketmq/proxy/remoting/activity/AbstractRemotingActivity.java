@@ -36,6 +36,7 @@ import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
+import org.apache.rocketmq.remoting.netty.RemotingResponseCallback;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
@@ -62,6 +63,11 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
 
     protected RemotingCommand request(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context, long timeoutMillis) throws Exception {
+        return request(ctx, request, context, timeoutMillis, null);
+    }
+
+    protected RemotingCommand request(ChannelHandlerContext ctx, RemotingCommand request,
+        ProxyContext context, long timeoutMillis, RemotingResponseCallback responseCallback) throws Exception {
         String brokerName;
         if (request.getCode() == RequestCode.SEND_MESSAGE_V2) {
             if (request.getExtFields().get(BROKER_NAME_FIELD_FOR_SEND_MESSAGE_V2) == null) {
@@ -81,7 +87,12 @@ public abstract class AbstractRemotingActivity implements NettyRequestProcessor 
             return null;
         }
         messagingProcessor.request(context, brokerName, request, timeoutMillis)
-            .thenAccept(r -> writeResponse(ctx, context, request, r))
+            .thenAccept(r -> {
+                if (responseCallback != null) {
+                    responseCallback.callback(r);
+                }
+                writeResponse(ctx, context, request, r);
+            })
             .exceptionally(t -> {
                 writeErrResponse(ctx, context, request, t);
                 return null;
