@@ -3434,8 +3434,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return result;
     }
 
-    private boolean processConsumeQueuesForTopic(ConcurrentMap<Integer, ConsumeQueueInterface> queueMap, String topic, RocksDBMessageStore rocksDBMessageStore, StringBuilder diffResult, boolean printDetail, long checkStoreTime)
-        throws RocksDBException {
+    private boolean processConsumeQueuesForTopic(ConcurrentMap<Integer, ConsumeQueueInterface> queueMap, String topic, RocksDBMessageStore rocksDBMessageStore, StringBuilder diffResult, boolean printDetail, long checkpointByStoreTime) {
         for (Map.Entry<Integer, ConsumeQueueInterface> queueEntry : queueMap.entrySet()) {
             Integer queueId = queueEntry.getKey();
             ConsumeQueueInterface jsonCq = queueEntry.getValue();
@@ -3445,18 +3444,25 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     topic, queueId, kvCq.getEarliestUnit(), kvCq.getLatestUnit(), jsonCq.getEarliestUnit(), jsonCq.getLatestUnit());
                 diffResult.append(format).append("\n");
             }
-            long maxFileOffsetInQueue = jsonCq.getMaxOffsetInQueue();
-            long minOffsetInQueue = rocksDBMessageStore.getConsumeQueueStore().getOffsetInQueueByTime(topic, queueId, checkStoreTime, BoundaryType.UPPER);
 
+            long minOffsetByTime = 0L;
+            try {
+                minOffsetByTime = rocksDBMessageStore.getConsumeQueueStore().getOffsetInQueueByTime(topic, queueId, checkpointByStoreTime, BoundaryType.UPPER);
+            } catch (Exception e) {
+                // ignore
+            }
+            long minOffsetInQueue = kvCq.getMinOffsetInQueue();
+            long checkFrom = Math.max(minOffsetInQueue, minOffsetByTime);
+            long checkTo = jsonCq.getMaxOffsetInQueue();
             // The latest message is earlier than the check time
-            Pair<CqUnit, Long> fileLatestCq = jsonCq.getCqUnitAndStoreTime(maxFileOffsetInQueue);
+            Pair<CqUnit, Long> fileLatestCq = jsonCq.getCqUnitAndStoreTime(checkTo);
             if (fileLatestCq != null) {
-                if (fileLatestCq.getObject2() < checkStoreTime) {
+                if (fileLatestCq.getObject2() < checkpointByStoreTime) {
                     continue;
                 }
             }
 
-            for (long i = minOffsetInQueue; i < maxFileOffsetInQueue; i++) {
+            for (long i = checkFrom; i < checkTo; i++) {
                 Pair<CqUnit, Long> fileCqUnit = jsonCq.getCqUnitAndStoreTime(i);
                 Pair<CqUnit, Long> kvCqUnit = kvCq.getCqUnitAndStoreTime(i);
                 if (fileCqUnit == null || kvCqUnit == null) {
@@ -3466,7 +3472,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     break;
                 }
                 // It's protective. It's not actually enforceable
-                if (kvCqUnit.getObject2() < checkStoreTime) {
+                if (kvCqUnit.getObject2() < checkpointByStoreTime) {
                     continue;
                 }
                 if (!checkCqUnitEqual(kvCqUnit.getObject1(), fileCqUnit.getObject1())) {
