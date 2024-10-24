@@ -88,6 +88,8 @@ public abstract class AbstractRocksDBStorage {
     protected volatile boolean loaded;
     private volatile boolean closed;
 
+    protected CompressionType compressionType = CompressionType.LZ4_COMPRESSION;
+
     private final Semaphore reloadPermit = new Semaphore(1);
     private final ScheduledExecutorService reloadScheduler = ThreadUtils.newScheduledThreadPool(1, new ThreadFactoryImpl("RocksDBStorageReloadService_"));
     private final ThreadPoolExecutor manualCompactionThread = (ThreadPoolExecutor) ThreadUtils.newThreadPoolExecutor(
@@ -102,6 +104,11 @@ public abstract class AbstractRocksDBStorage {
 
     public AbstractRocksDBStorage(String dbPath) {
         this.dbPath = dbPath;
+    }
+
+    public AbstractRocksDBStorage(String dbPath, CompressionType compressionType) {
+        this.dbPath = dbPath;
+        this.compressionType = compressionType;
     }
 
     protected void initOptions() {
@@ -156,7 +163,7 @@ public abstract class AbstractRocksDBStorage {
 
     protected void initCompactionOptions() {
         this.compactionOptions = new CompactionOptions();
-        this.compactionOptions.setCompression(CompressionType.LZ4_COMPRESSION);
+        this.compactionOptions.setCompression(compressionType);
         this.compactionOptions.setMaxSubcompactions(4);
         this.compactionOptions.setOutputFileSizeLimit(4 * 1024 * 1024 * 1024L);
     }
