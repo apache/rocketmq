@@ -66,7 +66,7 @@ public class TopicConfigManager extends ConfigManager {
 
     private transient final Lock topicConfigTableLock = new ReentrantLock();
     protected ConcurrentMap<String, TopicConfig> topicConfigTable = new ConcurrentHashMap<>(1024);
-    private DataVersion dataVersion = new DataVersion();
+    protected DataVersion dataVersion = new DataVersion();
     protected transient BrokerController brokerController;
 
     public TopicConfigManager() {
@@ -497,7 +497,7 @@ public class TopicConfigManager extends ConfigManager {
         }
     }
 
-    private void updateSingleTopicConfigWithoutPersist(final TopicConfig topicConfig) {
+    protected void updateSingleTopicConfigWithoutPersist(final TopicConfig topicConfig) {
         checkNotNull(topicConfig, "topicConfig shouldn't be null");
 
         Map<String, String> newAttributes = request(topicConfig);
