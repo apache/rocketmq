@@ -3406,17 +3406,16 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return result;
             }
             int successNum = 0;
+            int checkSize = cqTable.size();
             for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : cqTable.entrySet()) {
-                String topic = topicEntry.getKey();
-                boolean checkResult = processConsumeQueuesForTopic(topicEntry.getValue(), topic, rocksDBMessageStore, diffResult, false, requestHeader.getCheckStoreTime());
-                if (checkResult) {
-                    successNum++;
-                }
+                boolean checkResult = processConsumeQueuesForTopic(topicEntry.getValue(), topicEntry.getKey(), rocksDBMessageStore, diffResult, false, requestHeader.getCheckStoreTime());
+                successNum += checkResult ? 1 : 0;
             }
-            // check all topic finish, all topic is ready, checkSize: 100   -> ready
-            // check all topic finish, success/all : 89/100                 -> not ready
-            boolean checkReady = successNum == cqTable.size();
-            String checkResultString = checkReady ? String.format("all topic is ready, checkSize: %s", cqTable.size()) : String.format("success/all : %s/%s", successNum, cqTable.size());
+            // check all topic finish, all topic is ready, checkSize: 100, currentQueueNum: 110      -> ready  (The currentQueueNum means when we do checking, new topics are added.)
+            // check all topic finish, success/all : 89/100, currentQueueNum: 110                    -> not ready
+            boolean checkReady = successNum == checkSize;
+            String checkResultString = checkReady ? String.format("all topic is ready, checkSize: %s, currentQueueNum: %s", checkSize, cqTable.size()) :
+                String.format("success/all : %s/%s, currentQueueNum: %s", successNum, checkSize, cqTable.size());
             diffResult.append("check all topic finish, ").append(checkResultString);
             result.setCheckResult(diffResult.toString());
             result.setCheckStatus(checkReady ? CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue() : CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
