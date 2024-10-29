@@ -390,10 +390,12 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
 
         ByteBuf keyBuf = keyOfPullOffset(group, topic, queueId);
         ByteBuf valueBuf = AbstractRocksDBStorage.POOLED_ALLOCATOR.buffer(8);
+        valueBuf.writeLong(offset);
         try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.put(keyBuf.nioBuffer(), valueBuf.nioBuffer());
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
             ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
+            configStorage.write(writeBatch);
         } catch (RocksDBException e) {
             LOG.error("Failed to commit pull offset. group={}, topic={}, queueId={}, offset={}",
                 group, topic, queueId, offset);

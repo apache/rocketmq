@@ -2,8 +2,6 @@ package org.apache.rocketmq.broker.config.v2;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -34,8 +32,6 @@ public class TopicConfigManagerV2Test {
     @Rule
     public TemporaryFolder tf = new TemporaryFolder();
 
-    private File configStoreDir;
-
     @After
     public void cleanUp() {
         if (null != configStorage) {
@@ -51,7 +47,7 @@ public class TopicConfigManagerV2Test {
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         Mockito.doReturn(messageStoreConfig).when(controller).getMessageStoreConfig();
 
-        configStoreDir = tf.newFolder();
+        File configStoreDir = tf.newFolder();
         configStorage = new ConfigStorage(configStoreDir.getAbsolutePath());
         configStorage.start();
         topicConfigManagerV2 = new TopicConfigManagerV2(controller, configStorage);
@@ -82,7 +78,29 @@ public class TopicConfigManagerV2Test {
         Assert.assertEquals(6, loaded.getPerm());
         Assert.assertEquals(8, loaded.getReadQueueNums());
         Assert.assertEquals(4, loaded.getWriteQueueNums());
-        Assert.assertEquals(true, loaded.isOrder());
+        Assert.assertTrue(loaded.isOrder());
         Assert.assertEquals(4, loaded.getTopicSysFlag());
+
+        Assert.assertTrue(topicConfigManagerV2.containsTopic(topicName));
+    }
+
+    @Test
+    public void testRemoveTopicConfig() {
+        TopicConfig topicConfig = new TopicConfig();
+        String topicName = "T1";
+        topicConfig.setTopicName(topicName);
+        topicConfig.setPerm(6);
+        topicConfig.setReadQueueNums(8);
+        topicConfig.setWriteQueueNums(4);
+        topicConfig.setOrder(true);
+        topicConfig.setTopicSysFlag(4);
+        topicConfigManagerV2.updateTopicConfig(topicConfig);
+        topicConfigManagerV2.removeTopicConfig(topicName);
+        Assert.assertFalse(topicConfigManagerV2.containsTopic(topicName));
+        Assert.assertTrue(configStorage.shutdown());
+
+        Assert.assertTrue(configStorage.start());
+        Assert.assertTrue(topicConfigManagerV2.load());
+        Assert.assertFalse(topicConfigManagerV2.containsTopic(topicName));
     }
 }
