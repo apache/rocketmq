@@ -214,4 +214,41 @@ public class RocketMQSerializableTest {
         assertThat(h2.getStr()).isEqualTo("s1");
         assertThat(h2.getNum()).isEqualTo(100);
     }
+
+    @Test
+    public void testRequestCodeEncode() throws Exception {
+        testRequestCodeEncode(RequestCode.POP_MESSAGE);
+        testRequestCodeEncode(RequestCode.ACK_MESSAGE);
+        testRequestCodeEncode(RequestCode.BATCH_ACK_MESSAGE);
+        testRequestCodeEncode(RequestCode.PEEK_MESSAGE);
+        testRequestCodeEncode(RequestCode.CHANGE_MESSAGE_INVISIBLETIME);
+        testRequestCodeEncode(RequestCode.NOTIFICATION);
+        testRequestCodeEncode(RequestCode.POLLING_INFO);
+    }
+
+    public void testRequestCodeEncode(int code) throws Exception {
+        ByteBuf buf = ByteBufAllocator.DEFAULT.buffer(16);
+        MyHeader1 header1 = new MyHeader1();
+        header1.setStr("s1");
+        header1.setNum(100);
+        RemotingCommand cmd = RemotingCommand.createRequestCommand(code, header1);
+        cmd.setRemark("remark");
+        cmd.setOpaque(1001);
+        cmd.setVersion(99);
+        cmd.setLanguage(LanguageCode.JAVA);
+        cmd.setFlag(3);
+        cmd.makeCustomHeaderToNet();
+        RocketMQSerializable.rocketMQProtocolEncode(cmd, buf);
+        RemotingCommand cmd2 = RocketMQSerializable.rocketMQProtocolDecode(buf, buf.readableBytes());
+        assertThat(cmd2.getRemark()).isEqualTo("remark");
+        assertThat(cmd2.getCode()).isEqualTo(code);
+        assertThat(cmd2.getOpaque()).isEqualTo(1001);
+        assertThat(cmd2.getVersion()).isEqualTo(99);
+        assertThat(cmd2.getLanguage()).isEqualTo(LanguageCode.JAVA);
+        assertThat(cmd2.getFlag()).isEqualTo(3);
+
+        MyHeader1 h2 = (MyHeader1) cmd2.decodeCommandCustomHeader(MyHeader1.class);
+        assertThat(h2.getStr()).isEqualTo("s1");
+        assertThat(h2.getNum()).isEqualTo(100);
+    }
 }
