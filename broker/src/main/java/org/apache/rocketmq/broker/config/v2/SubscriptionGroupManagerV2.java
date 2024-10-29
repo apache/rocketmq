@@ -74,6 +74,7 @@ public class SubscriptionGroupManagerV2 extends SubscriptionGroupManager {
                 if (null != subscriptionGroupConfig) {
                     super.updateSubscriptionGroupConfigWithoutPersist(subscriptionGroupConfig);
                 }
+                iterator.next();
             }
         } finally {
             beginKey.release();
@@ -163,6 +164,7 @@ public class SubscriptionGroupManagerV2 extends SubscriptionGroupManager {
             writeBatch.delete(ConfigHelper.readBytes(keyBuf));
             long stateMachineVersion = brokerController.getMessageStore().getStateMachineVersion();
             ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
+            configStorage.write(writeBatch);
         } catch (RocksDBException e) {
             log.error("Failed to remove subscription group config by group-name={}", groupName, e);
         }
