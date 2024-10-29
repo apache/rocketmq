@@ -3448,9 +3448,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
             long minOffsetInQueue = kvCq.getMinOffsetInQueue();
             long checkFrom = Math.max(minOffsetInQueue, minOffsetByTime);
-            long checkTo = jsonCq.getMaxOffsetInQueue();
+            long checkTo = jsonCq.getMaxOffsetInQueue() - 1;
             /*
-                                                            maxOffsetInQueue(checkTo)
+                                                            checkTo(maxOffsetInQueue - 1)
                                                                         v
         fileCq   +------------------------------------------------------+
         kvCq             +----------------------------------------------+
@@ -3466,7 +3466,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     continue;
                 }
             }
-            for (long i = checkFrom; i < checkTo; i++) {
+            for (long i = checkFrom; i <= checkTo; i++) {
                 Pair<CqUnit, Long> fileCqUnit = jsonCq.getCqUnitAndStoreTime(i);
                 Pair<CqUnit, Long> kvCqUnit = kvCq.getCqUnitAndStoreTime(i);
                 if (fileCqUnit == null || kvCqUnit == null || !checkCqUnitEqual(kvCqUnit.getObject1(), fileCqUnit.getObject1())) {
