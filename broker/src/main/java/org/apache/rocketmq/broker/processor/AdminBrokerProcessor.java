@@ -3406,10 +3406,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return result;
             }
             int successNum = 0;
-            int checkSize = cqTable.size();
+            int checkSize = 0;
             for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : cqTable.entrySet()) {
                 boolean checkResult = processConsumeQueuesForTopic(topicEntry.getValue(), topicEntry.getKey(), rocksDBMessageStore, diffResult, false, requestHeader.getCheckStoreTime());
                 successNum += checkResult ? 1 : 0;
+                checkSize++;
             }
             // check all topic finish, all topic is ready, checkSize: 100, currentQueueNum: 110      -> ready  (The currentQueueNum means when we do checking, new topics are added.)
             // check all topic finish, success/all : 89/100, currentQueueNum: 110                    -> not ready
