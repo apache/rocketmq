@@ -31,6 +31,7 @@ import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
+import org.rocksdb.CompressionType;
 import org.rocksdb.WriteBatch;
 
 public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
@@ -41,7 +42,9 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     public RocksDBConsumerOffsetManager(BrokerController brokerController) {
         super(brokerController);
-        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
+        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs(),
+            CompressionType.getCompressionType(brokerController.getMessageStoreConfig().getRocksdbCompressionType()));
+
     }
 
     @Override
@@ -61,10 +64,6 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
     }
 
     private boolean merge() {
-        if (!brokerController.getMessageStoreConfig().isTransferOffsetJsonToRocksdb()) {
-            log.info("the switch transferOffsetJsonToRocksdb is off, no merge offset operation is needed.");
-            return true;
-        }
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
             log.info("consumerOffset json file does not exist, so skip merge");
             return true;

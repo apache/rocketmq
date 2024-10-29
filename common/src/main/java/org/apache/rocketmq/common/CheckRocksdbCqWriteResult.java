@@ -15,21 +15,43 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.protocol.body;
+package org.apache.rocketmq.common;
 
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+public class CheckRocksdbCqWriteResult {
+    String checkResult;
 
-public class CheckRocksdbCqWriteProgressResponseBody extends RemotingSerializable  {
+    int checkStatus;
 
-    String diffResult;
+    public enum CheckStatus {
+        CHECK_OK(0),
+        CHECK_NOT_OK(1),
+        CHECK_IN_PROGRESS(2),
+        CHECK_ERROR(3);
 
-    public String getDiffResult() {
-        return diffResult;
+        private int value;
+
+        CheckStatus(int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
     }
 
-    public void setDiffResult(String diffResult) {
-        this.diffResult = diffResult;
+    public String getCheckResult() {
+        return checkResult;
     }
 
+    public void setCheckResult(String checkResult) {
+        this.checkResult = checkResult;
+    }
 
+    public int getCheckStatus() {
+        return checkStatus;
+    }
+
+    public void setCheckStatus(int checkStatus) {
+        this.checkStatus = checkStatus;
+    }
 }

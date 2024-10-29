@@ -72,7 +72,6 @@ public class RocksdbTopicConfigManagerTest {
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(basePath);
-        messageStoreConfig.setTransferMetadataJsonToRocksdb(true);
         when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         Mockito.lenient().when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
         Mockito.lenient().when(defaultMessageStore.getStateMachineVersion()).thenReturn(0L);
