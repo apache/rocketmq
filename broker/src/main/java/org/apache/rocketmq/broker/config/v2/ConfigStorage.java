@@ -27,11 +27,11 @@ import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.config.ConfigHelper;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyOptions;
-import org.rocksdb.DirectSlice;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.Slice;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
@@ -112,10 +112,16 @@ public class ConfigStorage extends AbstractRocksDBStorage {
             readOptions.setTotalOrderSeek(true);
             readOptions.setTailing(false);
             readOptions.setAutoPrefixMode(true);
-            readOptions.setIterateLowerBound(new DirectSlice(beginKey));
-            readOptions.setIterateUpperBound(new DirectSlice(endKey));
+            // Use DirectSlice till the follow issue is fixed:
+            // https://github.com/facebook/rocksdb/issues/13098
+            //
+            // readOptions.setIterateUpperBound(new DirectSlice(endKey));
+            byte[] buf = new byte[endKey.remaining()];
+            endKey.slice().get(buf);
+            readOptions.setIterateUpperBound(new Slice(buf));
+
             RocksIterator iterator = db.newIterator(defaultCFHandle, readOptions);
-            iterator.seekToFirst();
+            iterator.seek(beginKey.slice());
             return iterator;
         }
     }
