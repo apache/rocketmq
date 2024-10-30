@@ -307,7 +307,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
                 log.info("the consumer [{}] start OK", this.defaultLitePullConsumer.getConsumerGroup());
 
-                operateAfterRunning();
+                try {
+                    operateAfterRunning();
+                } catch (Exception e) {
+                    shutdown();
+                    throw e;
+                }
 
                 break;
             case RUNNING:
