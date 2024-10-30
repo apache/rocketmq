@@ -360,13 +360,15 @@ public class RemotingCommand {
     }
 
     private boolean isFieldNullable(Field field) {
-        if (!NULLABLE_FIELD_CACHE.containsKey(field)) {
+        Boolean fieldNullable = NULLABLE_FIELD_CACHE.get(field);
+        if (fieldNullable == null) {
             Annotation annotation = field.getAnnotation(CFNotNull.class);
             synchronized (NULLABLE_FIELD_CACHE) {
-                NULLABLE_FIELD_CACHE.put(field, annotation == null);
+                fieldNullable = annotation == null;
+                NULLABLE_FIELD_CACHE.put(field, fieldNullable);
             }
         }
-        return NULLABLE_FIELD_CACHE.get(field);
+        return fieldNullable;
     }
 
     private String getCanonicalName(Class clazz) {
