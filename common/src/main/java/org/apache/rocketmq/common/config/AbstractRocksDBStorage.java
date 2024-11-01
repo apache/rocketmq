@@ -86,6 +86,7 @@ public abstract class AbstractRocksDBStorage {
     protected final List<ColumnFamilyHandle> cfHandles = new ArrayList<>();
 
     protected volatile boolean loaded;
+    protected CompressionType compressionType = CompressionType.LZ4_COMPRESSION;
     private volatile boolean closed;
 
     private final Semaphore reloadPermit = new Semaphore(1);
@@ -156,7 +157,7 @@ public abstract class AbstractRocksDBStorage {
 
     protected void initCompactionOptions() {
         this.compactionOptions = new CompactionOptions();
-        this.compactionOptions.setCompression(CompressionType.LZ4_COMPRESSION);
+        this.compactionOptions.setCompression(compressionType);
         this.compactionOptions.setMaxSubcompactions(4);
         this.compactionOptions.setOutputFileSizeLimit(4 * 1024 * 1024 * 1024L);
     }

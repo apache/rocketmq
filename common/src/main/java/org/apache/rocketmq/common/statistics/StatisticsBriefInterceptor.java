@@ -34,7 +34,7 @@ public class StatisticsBriefInterceptor implements Interceptor {
             String name = briefMetas[i].getKey();
             int index = ArrayUtils.indexOf(item.getItemNames(), name);
             if (index < 0) {
-                throw new IllegalArgumentException("illegal breifItemName: " + name);
+                throw new IllegalArgumentException("illegal briefItemName: " + name);
             }
             indexOfItems[i] = index;
             statisticsBriefs[i] = new StatisticsBrief(briefMetas[i].getValue());

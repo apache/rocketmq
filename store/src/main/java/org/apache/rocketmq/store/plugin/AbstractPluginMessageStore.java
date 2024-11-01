@@ -46,6 +46,7 @@ import org.apache.rocketmq.store.StoreCheckpoint;
 import org.apache.rocketmq.store.StoreStatsService;
 import org.apache.rocketmq.store.TransientStorePool;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.hook.PutMessageHook;
 import org.apache.rocketmq.store.hook.SendMessageBackHook;
@@ -63,7 +64,7 @@ import io.opentelemetry.sdk.metrics.InstrumentSelector;
 import io.opentelemetry.sdk.metrics.ViewBuilder;
 
 public abstract class AbstractPluginMessageStore implements MessageStore {
-    protected MessageStore next = null;
+    protected MessageStore next;
     protected MessageStorePluginContext context;
 
     public AbstractPluginMessageStore(MessageStorePluginContext context, MessageStore next) {
@@ -139,12 +140,12 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
-    public long getMaxOffsetInQueue(String topic, int queueId) {
+    public long getMaxOffsetInQueue(String topic, int queueId) throws ConsumeQueueException {
         return next.getMaxOffsetInQueue(topic, queueId);
     }
 
     @Override
-    public long getMaxOffsetInQueue(String topic, int queueId, boolean committed) {
+    public long getMaxOffsetInQueue(String topic, int queueId, boolean committed) throws ConsumeQueueException {
         return next.getMaxOffsetInQueue(topic, queueId, committed);
     }
 
@@ -635,11 +636,6 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public void initMetrics(Meter meter, Supplier<AttributesBuilder> attributesBuilderSupplier) {
         next.initMetrics(meter, attributesBuilderSupplier);
-    }
-
-    @Override
-    public void finishCommitLogDispatch() {
-        next.finishCommitLogDispatch();
     }
 
     @Override

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.store;
 
+import com.google.common.base.Strings;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -35,7 +36,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
@@ -59,10 +59,12 @@ import org.apache.rocketmq.store.MessageExtEncoder.PutMessageThreadLocal;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
+import org.apache.rocketmq.store.exception.StoreException;
 import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
+import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLockImpl;
 import org.apache.rocketmq.store.logfile.MappedFile;
-import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
 
@@ -103,7 +105,6 @@ public class CommitLog implements Swappable {
     protected int commitLogSize;
 
     private final boolean enabledAppendPropCRC;
-    protected final MultiDispatch multiDispatch;
 
     public CommitLog(final DefaultMessageStore messageStore) {
         String storePath = messageStore.getMessageStoreConfig().getStorePathCommitLog();
@@ -129,14 +130,16 @@ public class CommitLog implements Swappable {
                 return new PutMessageThreadLocal(defaultMessageStore.getMessageStoreConfig());
             }
         };
-        this.putMessageLock = messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
+
+        PutMessageLock adaptiveBackOffSpinLock = new AdaptiveBackOffSpinLockImpl();
+
+        this.putMessageLock = messageStore.getMessageStoreConfig().getUseABSLock() ? adaptiveBackOffSpinLock :
+            messageStore.getMessageStoreConfig().isUseReentrantLockWhenPutMessage() ? new PutMessageReentrantLock() : new PutMessageSpinLock();
         this.flushDiskWatcher = new FlushDiskWatcher();
 
         this.commitLogSize = messageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
 
         this.enabledAppendPropCRC = messageStore.getMessageStoreConfig().isEnabledAppendPropCRC();
-
-        this.multiDispatch = new MultiDispatch(defaultMessageStore);
     }
 
     public void setFullStorePaths(Set<String> fullStorePaths) {
@@ -526,7 +529,7 @@ public class CommitLog implements Swappable {
                 }
 
                 String tags = propertiesMap.get(MessageConst.PROPERTY_TAGS);
-                if (tags != null && tags.length() > 0) {
+                if (!Strings.isNullOrEmpty(tags)) {
                     tagsCode = MessageExtBrokerInner.tagsString2tagsCode(MessageExt.parseTopicFilterType(sysFlag), tags);
                 }
 
@@ -648,7 +651,7 @@ public class CommitLog implements Swappable {
         } else if (this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
             return this.confirmOffset;
         } else {
-            return this.defaultMessageStore.isSyncDiskFlush()  ? getFlushedWhere() : getMaxOffset();
+            return this.defaultMessageStore.isSyncDiskFlush() ? getFlushedWhere() : getMaxOffset();
         }
     }
 
@@ -766,8 +769,11 @@ public class CommitLog implements Swappable {
                 }
             }
 
-            // only for rocksdb mode
-            this.getMessageStore().finishCommitLogDispatch();
+            try {
+                this.getMessageStore().getQueueStore().flush();
+            } catch (StoreException e) {
+                log.error("Failed to flush ConsumeQueueStore", e);
+            }
 
             processOffset += mappedFileOffset;
             if (this.defaultMessageStore.getBrokerConfig().isEnableControllerMode()) {
@@ -981,7 +987,6 @@ public class CommitLog implements Swappable {
         PutMessageContext putMessageContext = new PutMessageContext(topicQueueKey);
 
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
-
         try {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
             this.beginTimeInLock = beginLockTimestamp;
@@ -1831,7 +1836,16 @@ public class CommitLog implements Swappable {
                 return null;
             }
 
-            multiDispatch.wrapMultiDispatch(msgInner);
+            try {
+                LmqDispatch.wrapLmqDispatch(defaultMessageStore, msgInner);
+            } catch (ConsumeQueueException e) {
+                if (e.getCause() instanceof RocksDBException) {
+                    log.error("Failed to wrap multi-dispatch", e);
+                    return new AppendMessageResult(AppendMessageStatus.ROCKSDB_ERROR);
+                }
+                log.error("Failed to wrap multi-dispatch", e);
+                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+            }
 
             msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
 
@@ -1902,7 +1916,7 @@ public class CommitLog implements Swappable {
             }
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
-            final boolean isMultiDispatchMsg = CommitLog.isMultiDispatchMsg(messageStoreConfig, msgInner);
+            boolean isMultiDispatchMsg = messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ();
             if (isMultiDispatchMsg) {
                 AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
                 if (appendMessageResult != null) {
@@ -2001,7 +2015,12 @@ public class CommitLog implements Swappable {
 
             // for lmq
             if (isMultiDispatchMsg) {
-                CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
+                try {
+                    LmqDispatch.updateLmqOffsets(defaultMessageStore, msgInner);
+                } catch (ConsumeQueueException e) {
+                    // Increase in-memory max offset of the queue should not fail.
+                    return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
+                }
             }
 
             return new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgIdSupplier,
@@ -2277,11 +2296,6 @@ public class CommitLog implements Swappable {
 
     public FlushManager getFlushManager() {
         return flushManager;
-    }
-
-    public static boolean isMultiDispatchMsg(MessageStoreConfig messageStoreConfig, MessageExtBrokerInner msg) {
-        return StringUtils.isNotBlank(msg.getProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH)) &&
-            MultiDispatchUtils.isNeedHandleMultiDispatch(messageStoreConfig, msg.getTopic());
     }
 
     private boolean isCloseReadAhead() {

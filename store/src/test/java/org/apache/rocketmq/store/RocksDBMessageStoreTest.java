@@ -56,6 +56,7 @@ import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.FlushDiskType;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
@@ -434,7 +435,7 @@ public class RocksDBMessageStoreTest {
     }
 
     @Test
-    public void testPutMessage_whenMessagePropertyIsTooLong() {
+    public void testPutMessage_whenMessagePropertyIsTooLong() throws ConsumeQueueException {
         if (notExecuted()) {
             return;
         }
@@ -603,7 +604,7 @@ public class RocksDBMessageStoreTest {
     }
 
     @Test
-    public void testMaxOffset() {
+    public void testMaxOffset() throws ConsumeQueueException {
         if (notExecuted()) {
             return;
         }

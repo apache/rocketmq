@@ -25,4 +25,5 @@ public enum AppendMessageStatus {
     MESSAGE_SIZE_EXCEEDED,
     PROPERTIES_SIZE_EXCEEDED,
     UNKNOWN_ERROR,
+    ROCKSDB_ERROR,
 }

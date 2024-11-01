@@ -48,6 +48,7 @@ import org.apache.rocketmq.remoting.protocol.subscription.SimpleSubscriptionData
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.DefaultMessageFilter;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
 public class ConsumerLagCalculator {
     private final BrokerConfig brokerConfig;
@@ -212,22 +213,30 @@ public class ConsumerLagCalculator {
 
             CalculateLagResult result = new CalculateLagResult(info.group, info.topic, false);
 
-            Pair<Long, Long> lag = getConsumerLagStats(info.group, info.topic, info.isPop);
-            if (lag != null) {
-                result.lag = lag.getObject1();
-                result.earliestUnconsumedTimestamp = lag.getObject2();
-            }
-            lagRecorder.accept(result);
-
-            if (info.isPop) {
-                Pair<Long, Long> retryLag = getConsumerLagStats(info.group, info.retryTopic, true);
-
-                result = new CalculateLagResult(info.group, info.topic, true);
-                if (retryLag != null) {
-                    result.lag = retryLag.getObject1();
-                    result.earliestUnconsumedTimestamp = retryLag.getObject2();
+            try {
+                Pair<Long, Long> lag = getConsumerLagStats(info.group, info.topic, info.isPop);
+                if (lag != null) {
+                    result.lag = lag.getObject1();
+                    result.earliestUnconsumedTimestamp = lag.getObject2();
                 }
                 lagRecorder.accept(result);
+            } catch (ConsumeQueueException e) {
+                LOGGER.error("Failed to get lag stats", e);
+            }
+
+            if (info.isPop) {
+                try {
+                    Pair<Long, Long> retryLag = getConsumerLagStats(info.group, info.retryTopic, true);
+
+                    result = new CalculateLagResult(info.group, info.topic, true);
+                    if (retryLag != null) {
+                        result.lag = retryLag.getObject1();
+                        result.earliestUnconsumedTimestamp = retryLag.getObject2();
+                    }
+                    lagRecorder.accept(result);
+                } catch (ConsumeQueueException e) {
+                    LOGGER.error("Failed to get lag stats", e);
+                }
             }
         });
     }
@@ -235,22 +244,30 @@ public class ConsumerLagCalculator {
     public void calculateInflight(Consumer<CalculateInflightResult> inflightRecorder) {
         processAllGroup(info -> {
             CalculateInflightResult result = new CalculateInflightResult(info.group, info.topic, false);
-            Pair<Long, Long> inFlight = getInFlightMsgStats(info.group, info.topic, info.isPop);
-            if (inFlight != null) {
-                result.inFlight = inFlight.getObject1();
-                result.earliestUnPulledTimestamp = inFlight.getObject2();
-            }
-            inflightRecorder.accept(result);
-
-            if (info.isPop) {
-                Pair<Long, Long> retryInFlight = getInFlightMsgStats(info.group, info.retryTopic, true);
-
-                result = new CalculateInflightResult(info.group, info.topic, true);
-                if (retryInFlight != null) {
-                    result.inFlight = retryInFlight.getObject1();
-                    result.earliestUnPulledTimestamp = retryInFlight.getObject2();
+            try {
+                Pair<Long, Long> inFlight = getInFlightMsgStats(info.group, info.topic, info.isPop);
+                if (inFlight != null) {
+                    result.inFlight = inFlight.getObject1();
+                    result.earliestUnPulledTimestamp = inFlight.getObject2();
                 }
                 inflightRecorder.accept(result);
+            } catch (ConsumeQueueException e) {
+                LOGGER.error("Failed to get inflight message stats", e);
+            }
+
+            if (info.isPop) {
+                try {
+                    Pair<Long, Long> retryInFlight = getInFlightMsgStats(info.group, info.retryTopic, true);
+
+                    result = new CalculateInflightResult(info.group, info.topic, true);
+                    if (retryInFlight != null) {
+                        result.inFlight = retryInFlight.getObject1();
+                        result.earliestUnPulledTimestamp = retryInFlight.getObject2();
+                    }
+                    inflightRecorder.accept(result);
+                } catch (ConsumeQueueException e) {
+                    LOGGER.error("Failed to get inflight message stats", e);
+                }
             }
         });
     }
@@ -259,20 +276,28 @@ public class ConsumerLagCalculator {
         processAllGroup(info -> {
             CalculateAvailableResult result = new CalculateAvailableResult(info.group, info.topic, false);
 
-            result.available = getAvailableMsgCount(info.group, info.topic, info.isPop);
-            availableRecorder.accept(result);
+            try {
+                result.available = getAvailableMsgCount(info.group, info.topic, info.isPop);
+                availableRecorder.accept(result);
+            } catch (ConsumeQueueException e) {
+                LOGGER.error("Failed to get available message count", e);
+            }
+
 
             if (info.isPop) {
-                long retryAvailable = getAvailableMsgCount(info.group, info.retryTopic, true);
-
-                result = new CalculateAvailableResult(info.group, info.topic, true);
-                result.available = retryAvailable;
-                availableRecorder.accept(result);
+                try {
+                    long retryAvailable = getAvailableMsgCount(info.group, info.retryTopic, true);
+                    result = new CalculateAvailableResult(info.group, info.topic, true);
+                    result.available = retryAvailable;
+                    availableRecorder.accept(result);
+                } catch (ConsumeQueueException e) {
+                    LOGGER.error("Failed to get available message count", e);
+                }
             }
         });
     }
 
-    public Pair<Long, Long> getConsumerLagStats(String group, String topic, boolean isPop) {
+    public Pair<Long, Long> getConsumerLagStats(String group, String topic, boolean isPop) throws ConsumeQueueException {
         long total = 0L;
         long earliestUnconsumedTimestamp = Long.MAX_VALUE;
 
@@ -298,7 +323,8 @@ public class ConsumerLagCalculator {
         return new Pair<>(total, earliestUnconsumedTimestamp);
     }
 
-    public Pair<Long, Long> getConsumerLagStats(String group, String topic, int queueId, boolean isPop) {
+    public Pair<Long, Long> getConsumerLagStats(String group, String topic, int queueId, boolean isPop)
+        throws ConsumeQueueException {
         long brokerOffset = messageStore.getMaxOffsetInQueue(topic, queueId);
         if (brokerOffset < 0) {
             brokerOffset = 0;
@@ -329,7 +355,7 @@ public class ConsumerLagCalculator {
         return new Pair<>(lag, consumerStoreTimeStamp);
     }
 
-    public Pair<Long, Long> getInFlightMsgStats(String group, String topic, boolean isPop) {
+    public Pair<Long, Long> getInFlightMsgStats(String group, String topic, boolean isPop) throws ConsumeQueueException {
         long total = 0L;
         long earliestUnPulledTimestamp = Long.MAX_VALUE;
 
@@ -355,7 +381,8 @@ public class ConsumerLagCalculator {
         return new Pair<>(total, earliestUnPulledTimestamp);
     }
 
-    public Pair<Long, Long> getInFlightMsgStats(String group, String topic, int queueId, boolean isPop) {
+    public Pair<Long, Long> getInFlightMsgStats(String group, String topic, int queueId, boolean isPop)
+        throws ConsumeQueueException {
         if (isPop) {
             long inflight = popInflightMessageCounter.getGroupPopInFlightMessageNum(topic, group, queueId);
             long pullOffset = popBufferMergeService.getLatestOffset(topic, group, queueId);
@@ -384,7 +411,7 @@ public class ConsumerLagCalculator {
         return new Pair<>(inflight, pullStoreTimeStamp);
     }
 
-    public long getAvailableMsgCount(String group, String topic, boolean isPop) {
+    public long getAvailableMsgCount(String group, String topic, boolean isPop) throws ConsumeQueueException {
         long total = 0L;
 
         if (group == null || topic == null) {
@@ -403,7 +430,8 @@ public class ConsumerLagCalculator {
         return total;
     }
 
-    public long getAvailableMsgCount(String group, String topic, int queueId, boolean isPop) {
+    public long getAvailableMsgCount(String group, String topic, int queueId, boolean isPop)
+        throws ConsumeQueueException {
         long brokerOffset = messageStore.getMaxOffsetInQueue(topic, queueId);
         if (brokerOffset < 0) {
             brokerOffset = 0;

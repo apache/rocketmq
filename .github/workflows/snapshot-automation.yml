@@ -59,9 +59,9 @@ jobs:
         with:
           ref: ${{ github.event.inputs.branch }}
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
+          distribution: "corretto"
           java-version: "8"
           cache: "maven"
       - name: Build distribution tar
@@ -238,10 +238,10 @@ jobs:
           ref: develop
           persist-credentials: false
       - name: Set up JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: 8
-          distribution: "temurin"
+          distribution: "corretto"
           cache: "maven"
       - name: Update default pom version
         if: github.event.inputs.rocketmq_version == ''

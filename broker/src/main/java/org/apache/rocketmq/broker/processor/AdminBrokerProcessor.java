@@ -18,7 +18,6 @@ package org.apache.rocketmq.broker.processor;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -39,6 +38,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -65,7 +67,9 @@ import org.apache.rocketmq.broker.metrics.InvocationStatus;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.broker.transaction.queue.TransactionalMessageUtil;
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.BrokerConfig;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.LockCallback;
 import org.apache.rocketmq.common.MQVersion;
@@ -214,7 +218,9 @@ import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.RocksDBMessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.config.BrokerRole;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.plugin.AbstractPluginMessageStore;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
@@ -231,6 +237,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     protected final BrokerController brokerController;
     protected Set<String> configBlackList = new HashSet<>();
+    private final ExecutorService asyncExecuteWorker = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
 
     public AdminBrokerProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -466,75 +473,22 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand checkRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
-        CheckRocksdbCqWriteProgressRequestHeader requestHeader = request.decodeCommandCustomHeader(CheckRocksdbCqWriteProgressRequestHeader.class);
-        String requestTopic = requestHeader.getTopic();
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+    private RemotingCommand checkRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) {
+        CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
+        result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_IN_PROGRESS.getValue());
+        Runnable runnable = () -> {
+            try {
+                CheckRocksdbCqWriteResult checkResult = doCheckRocksdbCqWriteProgress(ctx, request);
+                LOGGER.info("checkRocksdbCqWriteProgress result: {}", JSON.toJSONString(checkResult));
+            } catch (Exception e) {
+                LOGGER.error("checkRocksdbCqWriteProgress error", e);
+            }
+        };
+        asyncExecuteWorker.submit(runnable);
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
-        MessageStore messageStore = brokerController.getMessageStore();
-        DefaultMessageStore defaultMessageStore;
-        if (messageStore instanceof AbstractPluginMessageStore) {
-            defaultMessageStore = (DefaultMessageStore) ((AbstractPluginMessageStore) messageStore).getNext();
-        } else {
-            defaultMessageStore = (DefaultMessageStore) messageStore;
-        }
-        RocksDBMessageStore rocksDBMessageStore = defaultMessageStore.getRocksDBMessageStore();
-        if (!defaultMessageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
-            response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", "rocksdbCQWriteEnable is false, checkRocksdbCqWriteProgressCommand is invalid")));
-            return response;
-        }
-
-        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = defaultMessageStore.getConsumeQueueTable();
-        StringBuilder diffResult = new StringBuilder();
-        try {
-            if (StringUtils.isNotBlank(requestTopic)) {
-                processConsumeQueuesForTopic(cqTable.get(requestTopic), requestTopic, rocksDBMessageStore, diffResult,false);
-                response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", diffResult.toString())));
-                return response;
-            }
-            for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : cqTable.entrySet()) {
-                String topic = topicEntry.getKey();
-                processConsumeQueuesForTopic(topicEntry.getValue(), topic, rocksDBMessageStore, diffResult,true);
-            }
-            diffResult.append("check all topic successful, size:").append(cqTable.size());
-            response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", diffResult.toString())));
-
-        } catch (Exception e) {
-            LOGGER.error("CheckRocksdbCqWriteProgressCommand error", e);
-            response.setBody(JSON.toJSONBytes(ImmutableMap.of("diffResult", e.getMessage())));
-        }
+        response.setBody(JSON.toJSONBytes(result));
         return response;
-    }
-
-    private void processConsumeQueuesForTopic(ConcurrentMap<Integer, ConsumeQueueInterface> queueMap, String topic, RocksDBMessageStore rocksDBMessageStore, StringBuilder diffResult, boolean checkAll) {
-        for (Map.Entry<Integer, ConsumeQueueInterface> queueEntry : queueMap.entrySet()) {
-            Integer queueId = queueEntry.getKey();
-            ConsumeQueueInterface jsonCq = queueEntry.getValue();
-            ConsumeQueueInterface kvCq = rocksDBMessageStore.getConsumeQueue(topic, queueId);
-            if (!checkAll) {
-                String format = String.format("\n[topic: %s, queue:  %s] \n  kvEarliest : %s |  kvLatest : %s \n fileEarliest: %s | fileEarliest: %s ",
-                    topic, queueId, kvCq.getEarliestUnit(), kvCq.getLatestUnit(), jsonCq.getEarliestUnit(), jsonCq.getLatestUnit());
-                diffResult.append(format).append("\n");
-            }
-            long maxFileOffsetInQueue = jsonCq.getMaxOffsetInQueue();
-            long minOffsetInQueue = kvCq.getMinOffsetInQueue();
-            for (long i = minOffsetInQueue; i < maxFileOffsetInQueue; i++) {
-                Pair<CqUnit, Long> fileCqUnit = jsonCq.getCqUnitAndStoreTime(i);
-                Pair<CqUnit, Long> kvCqUnit = kvCq.getCqUnitAndStoreTime(i);
-                if (fileCqUnit == null || kvCqUnit == null) {
-                    diffResult.append(String.format("[topic: %s, queue: %s, offset: %s] \n kv   : %s  \n file : %s  \n",
-                        topic, queueId, i, kvCqUnit != null ? kvCqUnit.getObject1() : "null", fileCqUnit != null ? fileCqUnit.getObject1() : "null"));
-                    return;
-                }
-                if (!checkCqUnitEqual(kvCqUnit.getObject1(), fileCqUnit.getObject1())) {
-                    String diffInfo = String.format("[topic:%s, queue: %s offset: %s] \n file : %s  \n  kv : %s \n",
-                        topic, queueId, i, kvCqUnit.getObject1(), fileCqUnit.getObject1());
-                    LOGGER.error(diffInfo);
-                    diffResult.append(diffInfo).append(System.lineSeparator());
-                    return;
-                }
-            }
-        }
     }
     @Override
     public boolean rejectRequest() {
@@ -1341,8 +1295,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetMaxOffsetResponseHeader.class);
         final GetMaxOffsetResponseHeader responseHeader = (GetMaxOffsetResponseHeader) response.readCustomHeader();
-        final GetMaxOffsetRequestHeader requestHeader =
-            (GetMaxOffsetRequestHeader) request.decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
+        final GetMaxOffsetRequestHeader requestHeader = request.decodeCommandCustomHeader(GetMaxOffsetRequestHeader.class);
 
         TopicQueueMappingContext mappingContext = this.brokerController.getTopicQueueMappingManager().buildTopicQueueMappingContext(requestHeader);
         RemotingCommand rewriteResult = rewriteRequestForStaticTopic(requestHeader, mappingContext);
@@ -1350,10 +1303,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return rewriteResult;
         }
 
-        long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
-
-        responseHeader.setOffset(offset);
-
+        try {
+            long offset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), requestHeader.getQueueId());
+            responseHeader.setOffset(offset);
+        } catch (ConsumeQueueException e) {
+            throw new RemotingCommandException("Failed to get max offset in queue", e);
+        }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);
         return response;
@@ -1484,7 +1439,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getBrokerRuntimeInfo(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand getBrokerRuntimeInfo(ChannelHandlerContext ctx, RemotingCommand request)
+        throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
         HashMap<String, String> runtimeInfo = this.prepareRuntimeInfo();
@@ -1686,8 +1642,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-
-    private void initConsumerOffset(String clientHost, String groupName, int mode, TopicConfig topicConfig) {
+    private void initConsumerOffset(String clientHost, String groupName, int mode, TopicConfig topicConfig)
+        throws ConsumeQueueException {
         String topic = topicConfig.getTopicName();
         for (int queueId = 0; queueId < topicConfig.getReadQueueNums(); queueId++) {
             if (this.brokerController.getConsumerOffsetManager().queryOffset(groupName, topic, queueId) > -1) {
@@ -1761,8 +1717,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand getTopicStatsInfo(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final GetTopicStatsInfoRequestHeader requestHeader =
-            (GetTopicStatsInfoRequestHeader) request.decodeCommandCustomHeader(GetTopicStatsInfoRequestHeader.class);
+        final GetTopicStatsInfoRequestHeader requestHeader = request.decodeCommandCustomHeader(GetTopicStatsInfoRequestHeader.class);
 
         final String topic = requestHeader.getTopic();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
@@ -1775,39 +1730,45 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         TopicStatsTable topicStatsTable = new TopicStatsTable();
 
         int maxQueueNums = Math.max(topicConfig.getWriteQueueNums(), topicConfig.getReadQueueNums());
-        for (int i = 0; i < maxQueueNums; i++) {
-            MessageQueue mq = new MessageQueue();
-            mq.setTopic(topic);
-            mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
-            mq.setQueueId(i);
+        try {
+            for (int i = 0; i < maxQueueNums; i++) {
+                MessageQueue mq = new MessageQueue();
+                mq.setTopic(topic);
+                mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+                mq.setQueueId(i);
 
-            TopicOffset topicOffset = new TopicOffset();
-            long min = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, i);
-            if (min < 0) {
-                min = 0;
+                TopicOffset topicOffset = new TopicOffset();
+                long min = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, i);
+                if (min < 0) {
+                    min = 0;
+                }
+
+                long max = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
+                if (max < 0) {
+                    max = 0;
+                }
+
+                long timestamp = 0;
+                if (max > 0) {
+                    timestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, max - 1);
+                }
+
+                topicOffset.setMinOffset(min);
+                topicOffset.setMaxOffset(max);
+                topicOffset.setLastUpdateTimestamp(timestamp);
+
+                topicStatsTable.getOffsetTable().put(mq, topicOffset);
             }
 
-            long max = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
-            if (max < 0) {
-                max = 0;
-            }
-
-            long timestamp = 0;
-            if (max > 0) {
-                timestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, max - 1);
-            }
-
-            topicOffset.setMinOffset(min);
-            topicOffset.setMaxOffset(max);
-            topicOffset.setLastUpdateTimestamp(timestamp);
-
-            topicStatsTable.getOffsetTable().put(mq, topicOffset);
+            byte[] body = topicStatsTable.encode();
+            response.setBody(body);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+        } catch (ConsumeQueueException e) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
         }
 
-        byte[] body = topicStatsTable.encode();
-        response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
         return response;
     }
 
@@ -1907,93 +1868,96 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand getConsumeStats(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        final GetConsumeStatsRequestHeader requestHeader =
-            (GetConsumeStatsRequestHeader) request.decodeCommandCustomHeader(GetConsumeStatsRequestHeader.class);
+        try {
+            final GetConsumeStatsRequestHeader requestHeader = request.decodeCommandCustomHeader(GetConsumeStatsRequestHeader.class);
+            ConsumeStats consumeStats = new ConsumeStats();
 
-        ConsumeStats consumeStats = new ConsumeStats();
-
-        Set<String> topics = new HashSet<>();
-        if (UtilAll.isBlank(requestHeader.getTopic())) {
-            topics = this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(requestHeader.getConsumerGroup());
-        } else {
-            topics.add(requestHeader.getTopic());
-        }
-
-        for (String topic : topics) {
-            TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
-            if (null == topicConfig) {
-                LOGGER.warn("AdminBrokerProcessor#getConsumeStats: topic config does not exist, topic={}", topic);
-                continue;
+            Set<String> topics = new HashSet<>();
+            if (UtilAll.isBlank(requestHeader.getTopic())) {
+                topics = this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(requestHeader.getConsumerGroup());
+            } else {
+                topics.add(requestHeader.getTopic());
             }
 
-            TopicQueueMappingDetail mappingDetail = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(topic);
-
-            {
-                SubscriptionData findSubscriptionData =
-                    this.brokerController.getConsumerManager().findSubscriptionData(requestHeader.getConsumerGroup(), topic);
-
-                if (null == findSubscriptionData
-                    && this.brokerController.getConsumerManager().findSubscriptionDataCount(requestHeader.getConsumerGroup()) > 0) {
-                    LOGGER.warn(
-                        "AdminBrokerProcessor#getConsumeStats: topic does not exist in consumer group's subscription, "
-                            + "topic={}, consumer group={}", topic, requestHeader.getConsumerGroup());
+            for (String topic : topics) {
+                TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
+                if (null == topicConfig) {
+                    LOGGER.warn("AdminBrokerProcessor#getConsumeStats: topic config does not exist, topic={}", topic);
                     continue;
                 }
-            }
 
-            for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
-                MessageQueue mq = new MessageQueue();
-                mq.setTopic(topic);
-                mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
-                mq.setQueueId(i);
+                TopicQueueMappingDetail mappingDetail = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(topic);
 
-                OffsetWrapper offsetWrapper = new OffsetWrapper();
+                {
+                    SubscriptionData findSubscriptionData =
+                        this.brokerController.getConsumerManager().findSubscriptionData(requestHeader.getConsumerGroup(), topic);
 
-                long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
-                if (brokerOffset < 0) {
-                    brokerOffset = 0;
-                }
-
-                long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(
-                    requestHeader.getConsumerGroup(), topic, i);
-
-                // the consumerOffset cannot be zero for static topic because of the "double read check" strategy
-                // just remain the logic for dynamic topic
-                // maybe we should remove it in the future
-                if (mappingDetail == null) {
-                    if (consumerOffset < 0) {
-                        consumerOffset = 0;
+                    if (null == findSubscriptionData
+                        && this.brokerController.getConsumerManager().findSubscriptionDataCount(requestHeader.getConsumerGroup()) > 0) {
+                        LOGGER.warn(
+                            "AdminBrokerProcessor#getConsumeStats: topic does not exist in consumer group's subscription, "
+                                + "topic={}, consumer group={}", topic, requestHeader.getConsumerGroup());
+                        continue;
                     }
                 }
 
-                long pullOffset = this.brokerController.getConsumerOffsetManager().queryPullOffset(
-                    requestHeader.getConsumerGroup(), topic, i);
+                for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
+                    MessageQueue mq = new MessageQueue();
+                    mq.setTopic(topic);
+                    mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
+                    mq.setQueueId(i);
 
-                offsetWrapper.setBrokerOffset(brokerOffset);
-                offsetWrapper.setConsumerOffset(consumerOffset);
-                offsetWrapper.setPullOffset(Math.max(consumerOffset, pullOffset));
+                    OffsetWrapper offsetWrapper = new OffsetWrapper();
 
-                long timeOffset = consumerOffset - 1;
-                if (timeOffset >= 0) {
-                    long lastTimestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, timeOffset);
-                    if (lastTimestamp > 0) {
-                        offsetWrapper.setLastTimestamp(lastTimestamp);
+                    long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
+                    if (brokerOffset < 0) {
+                        brokerOffset = 0;
                     }
+
+                    long consumerOffset = this.brokerController.getConsumerOffsetManager().queryOffset(
+                        requestHeader.getConsumerGroup(), topic, i);
+
+                    // the consumerOffset cannot be zero for static topic because of the "double read check" strategy
+                    // just remain the logic for dynamic topic
+                    // maybe we should remove it in the future
+                    if (mappingDetail == null) {
+                        if (consumerOffset < 0) {
+                            consumerOffset = 0;
+                        }
+                    }
+
+                    long pullOffset = this.brokerController.getConsumerOffsetManager().queryPullOffset(
+                        requestHeader.getConsumerGroup(), topic, i);
+
+                    offsetWrapper.setBrokerOffset(brokerOffset);
+                    offsetWrapper.setConsumerOffset(consumerOffset);
+                    offsetWrapper.setPullOffset(Math.max(consumerOffset, pullOffset));
+
+                    long timeOffset = consumerOffset - 1;
+                    if (timeOffset >= 0) {
+                        long lastTimestamp = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, timeOffset);
+                        if (lastTimestamp > 0) {
+                            offsetWrapper.setLastTimestamp(lastTimestamp);
+                        }
+                    }
+
+                    consumeStats.getOffsetTable().put(mq, offsetWrapper);
                 }
 
-                consumeStats.getOffsetTable().put(mq, offsetWrapper);
+                double consumeTps = this.brokerController.getBrokerStatsManager().tpsGroupGetNums(requestHeader.getConsumerGroup(), topic);
+
+                consumeTps += consumeStats.getConsumeTps();
+                consumeStats.setConsumeTps(consumeTps);
             }
 
-            double consumeTps = this.brokerController.getBrokerStatsManager().tpsGroupGetNums(requestHeader.getConsumerGroup(), topic);
-
-            consumeTps += consumeStats.getConsumeTps();
-            consumeStats.setConsumeTps(consumeTps);
+            byte[] body = consumeStats.encode();
+            response.setBody(body);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setRemark(null);
+        } catch (ConsumeQueueException e) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
         }
-
-        byte[] body = consumeStats.encode();
-        response.setBody(body);
-        response.setCode(ResponseCode.SUCCESS);
-        response.setRemark(null);
         return response;
     }
 
@@ -2108,7 +2072,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             requestHeader.getTimestamp(), requestHeader.isForce(), isC);
     }
 
-    private Long searchOffsetByTimestamp(String topic, int queueId, long timestamp) {
+    private Long searchOffsetByTimestamp(String topic, int queueId, long timestamp) throws ConsumeQueueException {
         if (timestamp < 0) {
             return brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
         } else {
@@ -2155,25 +2119,31 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         }
 
-        if (queueId >= 0) {
-            if (null != offset && -1 != offset) {
-                long min = brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
-                long max = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
-                if (min >= 0 && offset < min || offset > max + 1) {
-                    response.setCode(ResponseCode.SYSTEM_ERROR);
-                    response.setRemark(
-                        String.format("Target offset %d not in consume queue range [%d-%d]", offset, min, max));
-                    return response;
+        try {
+            if (queueId >= 0) {
+                if (null != offset && -1 != offset) {
+                    long min = brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
+                    long max = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+                    if (min >= 0 && offset < min || offset > max + 1) {
+                        response.setCode(ResponseCode.SYSTEM_ERROR);
+                        response.setRemark(
+                            String.format("Target offset %d not in consume queue range [%d-%d]", offset, min, max));
+                        return response;
+                    }
+                } else {
+                    offset = searchOffsetByTimestamp(topic, queueId, timestamp);
                 }
+                queueOffsetMap.put(queueId, offset);
             } else {
-                offset = searchOffsetByTimestamp(topic, queueId, timestamp);
+                for (int index = 0; index < topicConfig.getReadQueueNums(); index++) {
+                    offset = searchOffsetByTimestamp(topic, index, timestamp);
+                    queueOffsetMap.put(index, offset);
+                }
             }
-            queueOffsetMap.put(queueId, offset);
-        } else {
-            for (int index = 0; index < topicConfig.getReadQueueNums(); index++) {
-                offset = searchOffsetByTimestamp(topic, index, timestamp);
-                queueOffsetMap.put(index, offset);
-            }
+        } catch (ConsumeQueueException e) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+            return response;
         }
 
         if (queueOffsetMap.isEmpty()) {
@@ -2280,8 +2250,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand queryConsumeTimeSpan(ChannelHandlerContext ctx,
         RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        QueryConsumeTimeSpanRequestHeader requestHeader =
-            (QueryConsumeTimeSpanRequestHeader) request.decodeCommandCustomHeader(QueryConsumeTimeSpanRequestHeader.class);
+        QueryConsumeTimeSpanRequestHeader requestHeader = request.decodeCommandCustomHeader(QueryConsumeTimeSpanRequestHeader.class);
 
         final String topic = requestHeader.getTopic();
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
@@ -2303,7 +2272,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             long minTime = this.brokerController.getMessageStore().getEarliestMessageTime(topic, i);
             timeSpan.setMinTimeStamp(minTime);
 
-            long max = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
+            long max;
+            try {
+                max = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
+            } catch (ConsumeQueueException e) {
+                throw new RemotingCommandException("Failed to get max offset in queue", e);
+            }
             long maxTime = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, max - 1);
             timeSpan.setMaxTimeStamp(maxTime);
 
@@ -2317,7 +2291,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
             timeSpan.setConsumeTimeStamp(consumeTime);
 
-            long maxBrokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), i);
+            long maxBrokerOffset;
+            try {
+                maxBrokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(requestHeader.getTopic(), i);
+            } catch (ConsumeQueueException e) {
+                throw new RemotingCommandException("Failed to get max offset in queue", e);
+            }
             if (consumerOffset < maxBrokerOffset) {
                 long nextTime = this.brokerController.getMessageStore().getMessageStoreTimeStamp(topic, i, consumerOffset);
                 timeSpan.setDelayTime(System.currentTimeMillis() - nextTime);
@@ -2552,8 +2531,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private RemotingCommand fetchAllConsumeStatsInBroker(ChannelHandlerContext ctx, RemotingCommand request)
         throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
-        GetConsumeStatsInBrokerHeader requestHeader =
-            (GetConsumeStatsInBrokerHeader) request.decodeCommandCustomHeader(GetConsumeStatsInBrokerHeader.class);
+        GetConsumeStatsInBrokerHeader requestHeader = request.decodeCommandCustomHeader(GetConsumeStatsInBrokerHeader.class);
         boolean isOrder = requestHeader.isOrder();
         ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroups =
             brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable();
@@ -2599,7 +2577,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     mq.setBrokerName(this.brokerController.getBrokerConfig().getBrokerName());
                     mq.setQueueId(i);
                     OffsetWrapper offsetWrapper = new OffsetWrapper();
-                    long brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
+                    long brokerOffset;
+                    try {
+                        brokerOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topic, i);
+                    } catch (ConsumeQueueException e) {
+                        throw new RemotingCommandException("Failed to get max offset", e);
+                    }
                     if (brokerOffset < 0) {
                         brokerOffset = 0;
                     }
@@ -2643,7 +2626,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private HashMap<String, String> prepareRuntimeInfo() {
+    private HashMap<String, String> prepareRuntimeInfo() throws RemotingCommandException {
         HashMap<String, String> runtimeInfo = this.brokerController.getMessageStore().getRuntimeInfo();
 
         for (BrokerAttachedPlugin brokerAttachedPlugin : brokerController.getBrokerAttachedPlugins()) {
@@ -2652,7 +2635,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
 
-        this.brokerController.getScheduleMessageService().buildRunningStats(runtimeInfo);
+        try {
+            this.brokerController.getScheduleMessageService().buildRunningStats(runtimeInfo);
+        } catch (ConsumeQueueException e) {
+            throw new RemotingCommandException("Failed to get max offset in queue", e);
+        }
         runtimeInfo.put("brokerActive", String.valueOf(this.brokerController.isSpecialServiceRunning()));
         runtimeInfo.put("brokerVersionDesc", MQVersion.getVersionDesc(MQVersion.CURRENT_VERSION));
         runtimeInfo.put("brokerVersion", String.valueOf(MQVersion.CURRENT_VERSION));
@@ -3382,6 +3369,115 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
         }
         return false;
+    }
+
+    private CheckRocksdbCqWriteResult doCheckRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        CheckRocksdbCqWriteProgressRequestHeader requestHeader = request.decodeCommandCustomHeader(CheckRocksdbCqWriteProgressRequestHeader.class);
+        String requestTopic = requestHeader.getTopic();
+        MessageStore messageStore = brokerController.getMessageStore();
+        DefaultMessageStore defaultMessageStore;
+        if (messageStore instanceof AbstractPluginMessageStore) {
+            defaultMessageStore = (DefaultMessageStore) ((AbstractPluginMessageStore) messageStore).getNext();
+        } else {
+            defaultMessageStore = (DefaultMessageStore) messageStore;
+        }
+        RocksDBMessageStore rocksDBMessageStore = defaultMessageStore.getRocksDBMessageStore();
+        CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
+
+        if (defaultMessageStore.getMessageStoreConfig().getStoreType().equals(StoreType.DEFAULT_ROCKSDB.getStoreType())) {
+            result.setCheckResult("storeType is DEFAULT_ROCKSDB, no need check");
+            result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue());
+            return result;
+        }
+
+        if (!defaultMessageStore.getMessageStoreConfig().isRocksdbCQDoubleWriteEnable()) {
+            result.setCheckResult("rocksdbCQWriteEnable is false, checkRocksdbCqWriteProgressCommand is invalid");
+            result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
+            return result;
+        }
+
+        ConcurrentMap<String, ConcurrentMap<Integer, ConsumeQueueInterface>> cqTable = defaultMessageStore.getConsumeQueueTable();
+        StringBuilder diffResult = new StringBuilder();
+        try {
+            if (StringUtils.isNotBlank(requestTopic)) {
+                boolean checkResult = processConsumeQueuesForTopic(cqTable.get(requestTopic), requestTopic, rocksDBMessageStore, diffResult, true, requestHeader.getCheckStoreTime());
+                result.setCheckResult(diffResult.toString());
+                result.setCheckStatus(checkResult ? CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue() : CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
+                return result;
+            }
+            int successNum = 0;
+            int checkSize = 0;
+            for (Map.Entry<String, ConcurrentMap<Integer, ConsumeQueueInterface>> topicEntry : cqTable.entrySet()) {
+                boolean checkResult = processConsumeQueuesForTopic(topicEntry.getValue(), topicEntry.getKey(), rocksDBMessageStore, diffResult, false, requestHeader.getCheckStoreTime());
+                successNum += checkResult ? 1 : 0;
+                checkSize++;
+            }
+            // check all topic finish, all topic is ready, checkSize: 100, currentQueueNum: 110      -> ready  (The currentQueueNum means when we do checking, new topics are added.)
+            // check all topic finish, success/all : 89/100, currentQueueNum: 110                    -> not ready
+            boolean checkReady = successNum == checkSize;
+            String checkResultString = checkReady ? String.format("all topic is ready, checkSize: %s, currentQueueNum: %s", checkSize, cqTable.size()) :
+                String.format("success/all : %s/%s, currentQueueNum: %s", successNum, checkSize, cqTable.size());
+            diffResult.append("check all topic finish, ").append(checkResultString);
+            result.setCheckResult(diffResult.toString());
+            result.setCheckStatus(checkReady ? CheckRocksdbCqWriteResult.CheckStatus.CHECK_OK.getValue() : CheckRocksdbCqWriteResult.CheckStatus.CHECK_NOT_OK.getValue());
+        } catch (Exception e) {
+            LOGGER.error("CheckRocksdbCqWriteProgressCommand error", e);
+            result.setCheckResult(e.getMessage() + Arrays.toString(e.getStackTrace()));
+            result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_ERROR.getValue());
+        }
+        return result;
+    }
+
+    private boolean processConsumeQueuesForTopic(ConcurrentMap<Integer, ConsumeQueueInterface> queueMap, String topic, RocksDBMessageStore rocksDBMessageStore, StringBuilder diffResult, boolean printDetail, long checkpointByStoreTime) {
+        boolean processResult = true;
+        for (Map.Entry<Integer, ConsumeQueueInterface> queueEntry : queueMap.entrySet()) {
+            Integer queueId = queueEntry.getKey();
+            ConsumeQueueInterface jsonCq = queueEntry.getValue();
+            ConsumeQueueInterface kvCq = rocksDBMessageStore.getConsumeQueue(topic, queueId);
+            if (printDetail) {
+                String format = String.format("[topic: %s, queue:  %s] \n  kvEarliest : %s |  kvLatest : %s \n fileEarliest: %s | fileEarliest: %s ",
+                    topic, queueId, kvCq.getEarliestUnit(), kvCq.getLatestUnit(), jsonCq.getEarliestUnit(), jsonCq.getLatestUnit());
+                diffResult.append(format).append("\n");
+            }
+
+            long minOffsetByTime = 0L;
+            try {
+                minOffsetByTime = rocksDBMessageStore.getConsumeQueueStore().getOffsetInQueueByTime(topic, queueId, checkpointByStoreTime, BoundaryType.UPPER);
+            } catch (Exception e) {
+                // ignore
+            }
+            long minOffsetInQueue = kvCq.getMinOffsetInQueue();
+            long checkFrom = Math.max(minOffsetInQueue, minOffsetByTime);
+            long checkTo = jsonCq.getMaxOffsetInQueue() - 1;
+            /*
+                                                            checkTo(maxOffsetInQueue - 1)
+                                                                        v
+        fileCq   +------------------------------------------------------+
+        kvCq             +----------------------------------------------+
+                         ^                ^
+                   minOffsetInQueue   minOffsetByTime
+                                   ^
+                        checkFrom = max(minOffsetInQueue, minOffsetByTime)
+             */
+            // The latest message is earlier than the check time
+            Pair<CqUnit, Long> fileLatestCq = jsonCq.getCqUnitAndStoreTime(checkTo);
+            if (fileLatestCq != null) {
+                if (fileLatestCq.getObject2() < checkpointByStoreTime) {
+                    continue;
+                }
+            }
+            for (long i = checkFrom; i <= checkTo; i++) {
+                Pair<CqUnit, Long> fileCqUnit = jsonCq.getCqUnitAndStoreTime(i);
+                Pair<CqUnit, Long> kvCqUnit = kvCq.getCqUnitAndStoreTime(i);
+                if (fileCqUnit == null || kvCqUnit == null || !checkCqUnitEqual(kvCqUnit.getObject1(), fileCqUnit.getObject1())) {
+                    LOGGER.error(String.format("[topic: %s, queue: %s, offset: %s] \n file : %s  \n  kv : %s \n",
+                        topic, queueId, i, kvCqUnit != null ? kvCqUnit.getObject1() : "null", fileCqUnit != null ? fileCqUnit.getObject1() : "null"));
+                    processResult = false;
+                    break;
+                }
+            }
+        }
+        return processResult;
     }
 
     private boolean checkCqUnitEqual(CqUnit cqUnit1, CqUnit cqUnit2) {
