@@ -22,6 +22,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -618,7 +619,8 @@ public class PlainPermissionManager {
 
         // Check the signature
         String signature = AclUtils.calSignature(plainAccessResource.getContent(), ownedAccess.getSecretKey());
-        if (!signature.equals(plainAccessResource.getSignature())) {
+        if (plainAccessResource.getSignature() == null
+            || !MessageDigest.isEqual(signature.getBytes(), plainAccessResource.getSignature().getBytes())) {
             throw new AclException(String.format("Check signature failed for accessKey=%s", plainAccessResource.getAccessKey()));
         }
 
