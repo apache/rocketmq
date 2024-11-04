@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.proxy.mixed;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.rocketmq.common.utils.ServiceProvider;
 import org.apache.rocketmq.proxy.spi.ProxyServer;
 import org.apache.rocketmq.proxy.spi.ProxyServerBase;
 import org.apache.rocketmq.proxy.spi.ProxyServerFactory;
 import org.apache.rocketmq.proxy.spi.ProxyServerFactoryBase;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class MixedProxyServerBuilder extends ProxyServerFactoryBase {
 

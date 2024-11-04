@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.proxy.spi;
 
 import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerStartup;
@@ -33,10 +35,6 @@ import org.apache.rocketmq.proxy.config.ProxyConfig;
 import org.apache.rocketmq.proxy.metrics.ProxyMetricsManager;
 import org.apache.rocketmq.proxy.processor.DefaultMessagingProcessor;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 public class ProxyServerInitializer {
 
@@ -118,10 +116,10 @@ public class ProxyServerInitializer {
     private void initializeThreadPoolMonitor() {
         ProxyConfig config = ConfigurationManager.getProxyConfig();
         ThreadPoolMonitor.config(
-                LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME),
-                LoggerFactory.getLogger(LoggerName.PROXY_WATER_MARK_LOGGER_NAME),
-                config.isEnablePrintJstack(), config.getPrintJstackInMillis(),
-                config.getPrintThreadPoolStatusInMillis());
+            LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME),
+            LoggerFactory.getLogger(LoggerName.PROXY_WATER_MARK_LOGGER_NAME),
+            config.isEnablePrintJstack(), config.getPrintJstackInMillis(),
+            config.getPrintThreadPoolStatusInMillis());
         ThreadPoolMonitor.init();
     }
 

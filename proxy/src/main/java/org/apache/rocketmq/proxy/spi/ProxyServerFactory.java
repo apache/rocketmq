@@ -14,13 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.proxy.spi;
-
-import org.apache.rocketmq.acl.AccessValidator;
 
 import java.util.List;
 import java.util.function.Supplier;
+import org.apache.rocketmq.acl.AccessValidator;
 
 public interface ProxyServerFactory extends Supplier<ProxyServer> {
 

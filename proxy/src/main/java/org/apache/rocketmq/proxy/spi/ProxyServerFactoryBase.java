@@ -14,14 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.proxy.spi;
-
-import org.apache.rocketmq.acl.AccessValidator;
-import org.apache.rocketmq.common.utils.StartAndShutdown;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
 
 public abstract class ProxyServerFactoryBase implements ProxyServerFactory {
 

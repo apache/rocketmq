@@ -19,6 +19,16 @@ package org.apache.rocketmq.proxy;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Iterator;
+import java.util.UUID;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.proxy.config.Configuration;
 import org.junit.After;
@@ -27,13 +37,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Iterator;
-import java.util.UUID;
 
 import static org.apache.rocketmq.proxy.config.ConfigurationManager.RMQ_PROXY_HOME;
 import static org.junit.Assert.assertEquals;

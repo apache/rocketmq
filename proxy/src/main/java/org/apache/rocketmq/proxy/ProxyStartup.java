@@ -17,6 +17,8 @@
 
 package org.apache.rocketmq.proxy;
 
+import java.util.Date;
+import java.util.List;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
@@ -34,9 +36,6 @@ import org.apache.rocketmq.proxy.spi.ProxyServer;
 import org.apache.rocketmq.proxy.spi.ProxyServerFactory;
 import org.apache.rocketmq.proxy.spi.ProxyServerInitializer;
 import org.apache.rocketmq.srvutil.ServerUtil;
-
-import java.util.Date;
-import java.util.List;
 
 public class ProxyStartup {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -56,9 +55,9 @@ public class ProxyStartup {
 
             ProxyServerFactory factory = ServiceProvider.<ProxyServerFactory>loadClass(ProxyServerFactory.class);
             ProxyServer server = factory
-                    .withInitializer(new ProxyServerInitializer(commandLineArgument))
-                    .withAccessValidators(loadAccessValidators())
-                    .get();
+                .withInitializer(new ProxyServerInitializer(commandLineArgument))
+                .withAccessValidators(loadAccessValidators())
+                .get();
 
             server.getStartAndShutdowns().forEach(PROXY_START_AND_SHUTDOWN::appendStartAndShutdown);
 
@@ -95,7 +94,7 @@ public class ProxyStartup {
 
     protected static CommandLineArgument parseCommandLineArgument(String[] args) {
         CommandLine commandLine = ServerUtil.parseCmdLine("mqproxy", args,
-                buildCommandlineOptions(), new DefaultParser());
+            buildCommandlineOptions(), new DefaultParser());
         if (commandLine == null) {
             throw new RuntimeException("parse command line argument failed");
         }

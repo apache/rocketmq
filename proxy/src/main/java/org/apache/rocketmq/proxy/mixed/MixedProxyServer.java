@@ -14,17 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.rocketmq.proxy.mixed;
-
-import org.apache.rocketmq.common.utils.StartAndShutdown;
-import org.apache.rocketmq.proxy.spi.ProxyServer;
-import org.apache.rocketmq.proxy.spi.ProxyServerBase;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.apache.rocketmq.common.utils.StartAndShutdown;
+import org.apache.rocketmq.proxy.spi.ProxyServer;
+import org.apache.rocketmq.proxy.spi.ProxyServerBase;
 
 public class MixedProxyServer extends ProxyServerBase {
 

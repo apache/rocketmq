@@ -23,6 +23,8 @@ import io.grpc.netty.shaded.io.netty.channel.nio.NioEventLoopGroup;
 import io.grpc.netty.shaded.io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.grpc.protobuf.services.ChannelzService;
 import io.grpc.protobuf.services.ProtoReflectionService;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
 import org.apache.rocketmq.common.utils.StartAndShutdown;
@@ -36,9 +38,6 @@ import org.apache.rocketmq.proxy.grpc.interceptor.GlobalExceptionInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
 import org.apache.rocketmq.proxy.grpc.v2.GrpcMessagingApplication;
 import org.apache.rocketmq.proxy.spi.ProxyServerFactoryBase;
-
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class GrpcServerBuilder extends ProxyServerFactoryBase {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
@@ -65,12 +64,12 @@ public class GrpcServerBuilder extends ProxyServerFactoryBase {
         //
         NettyServerBuilder serverBuilder = NettyServerBuilder.forPort(port);
         serverBuilder.addService(application)
-                .addService(ChannelzService.newInstance(100))
-                .addService(ProtoReflectionService.newInstance())
-                .intercept(new AuthenticationInterceptor(validators))
-                .intercept(new GlobalExceptionInterceptor())
-                .intercept(new ContextInterceptor())
-                .intercept(new HeaderInterceptor());
+            .addService(ChannelzService.newInstance(100))
+            .addService(ProtoReflectionService.newInstance())
+            .intercept(new AuthenticationInterceptor(validators))
+            .intercept(new GlobalExceptionInterceptor())
+            .intercept(new ContextInterceptor())
+            .intercept(new HeaderInterceptor());
 
         serverBuilder.protocolNegotiator(new ProxyAndTlsProtocolNegotiator());
 
@@ -93,7 +92,7 @@ public class GrpcServerBuilder extends ProxyServerFactoryBase {
         }
 
         serverBuilder.maxInboundMessageSize(maxInboundMessageSize)
-                .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
+            .maxConnectionIdle(idleTimeMills, TimeUnit.MILLISECONDS);
 
         log.info(
             "grpc server has built. port: {}, tlsKeyPath: {}, tlsCertPath: {}, threadPool: {}, queueCapacity: {}, "
@@ -108,11 +107,11 @@ public class GrpcServerBuilder extends ProxyServerFactoryBase {
         int threadPoolNums = config.getGrpcThreadPoolNums();
         int threadPoolQueueCapacity = config.getGrpcThreadPoolQueueCapacity();
         return ThreadPoolMonitor.createAndMonitor(
-                threadPoolNums,
-                threadPoolNums,
-                1, TimeUnit.MINUTES,
-                "GrpcRequestExecutorThread",
-                threadPoolQueueCapacity
+            threadPoolNums,
+            threadPoolNums,
+            1, TimeUnit.MINUTES,
+            "GrpcRequestExecutorThread",
+            threadPoolQueueCapacity
         );
     }
 }
