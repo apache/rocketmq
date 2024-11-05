@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store;
 
 import com.google.common.base.Strings;
+import io.netty.util.internal.PlatformDependent;
 import java.net.Inet6Address;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -66,8 +67,6 @@ import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLockImpl;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
-
-import sun.nio.ch.DirectBuffer;
 
 /**
  * Store all metadata downtime for recovery, data protection reliability
@@ -2384,7 +2383,7 @@ public class CommitLog implements Swappable {
 
         private byte[] checkFileInPageCache(MappedFile mappedFile) {
             long fileSize = mappedFile.getFileSize();
-            final long address = ((DirectBuffer) mappedFile.getMappedByteBuffer()).address();
+            final long address = PlatformDependent.directBufferAddress(mappedFile.getMappedByteBuffer());
             int pageNums = (int) (fileSize + this.pageSize - 1) / this.pageSize;
             byte[] pageCacheRst = new byte[pageNums];
             int mincore = LibC.INSTANCE.mincore(new Pointer(address), new NativeLong(fileSize), pageCacheRst);
@@ -2461,7 +2460,7 @@ public class CommitLog implements Swappable {
             log.error("setFileReadMode mappedFile is null");
             return -1;
         }
-        final long address = ((DirectBuffer) mappedFile.getMappedByteBuffer()).address();
+        final long address = PlatformDependent.directBufferAddress(mappedFile.getMappedByteBuffer());
         int madvise = LibC.INSTANCE.madvise(new Pointer(address), new NativeLong(mappedFile.getFileSize()), mode);
         if (madvise != 0) {
             log.error("setFileReadMode error fileName: {}, madvise: {}, mode:{}", mappedFile.getFileName(), madvise, mode);

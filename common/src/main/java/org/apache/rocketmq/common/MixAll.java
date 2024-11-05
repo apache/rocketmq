@@ -52,6 +52,7 @@ import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.IOTinyUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import oshi.SystemInfo;
 
 public class MixAll {
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
@@ -119,6 +120,7 @@ public class MixAll {
     public static final String MULTI_PATH_SPLITTER = System.getProperty("rocketmq.broker.multiPathSplitter", ",");
 
     private static final String OS = System.getProperty("os.name").toLowerCase();
+    public static  final SystemInfo SYSTEM_INFO = new SystemInfo();
 
     public static boolean isWindows() {
         return OS.contains("win");
