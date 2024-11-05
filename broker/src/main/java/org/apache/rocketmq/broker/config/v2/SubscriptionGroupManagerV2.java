@@ -72,7 +72,7 @@ public class SubscriptionGroupManagerV2 extends SubscriptionGroupManager {
             while (iterator.isValid()) {
                 SubscriptionGroupConfig subscriptionGroupConfig = parseSubscription(iterator.key(), iterator.value());
                 if (null != subscriptionGroupConfig) {
-                    super.updateSubscriptionGroupConfigWithoutPersist(subscriptionGroupConfig);
+                    super.putSubscriptionGroupConfig(subscriptionGroupConfig);
                 }
                 iterator.next();
             }

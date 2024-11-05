@@ -76,7 +76,7 @@ public class TopicConfigManagerV2 extends TopicConfigManager {
                 byte[] value = iterator.value();
                 TopicConfig topicConfig = parseTopicConfig(key, value);
                 if (null != topicConfig) {
-                    super.updateSingleTopicConfigWithoutPersist(topicConfig);
+                    super.putTopicConfig(topicConfig);
                 }
                 iterator.next();
             }
