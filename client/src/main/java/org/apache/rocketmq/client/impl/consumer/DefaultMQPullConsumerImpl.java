@@ -290,13 +290,12 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         }
 
         //If namespace not null , reset Topic without namespace.
-		String namespace = this.getDefaultMQPullConsumer().getNamespace();
-		if (namespace != null) {
-			for (MessageExt messageExt : msgList) {
-				messageExt.setTopic(NamespaceUtil.withoutNamespace(messageExt.getTopic(), namespace));
-			}
-		}
-
+        String namespace = this.getDefaultMQPullConsumer().getNamespace();
+        if (namespace != null) {
+            for (MessageExt messageExt : msgList) {
+                messageExt.setTopic(NamespaceUtil.withoutNamespace(messageExt.getTopic(), namespace));
+            }
+        }
     }
 
     public void subscriptionAutomatically(final String topic) {
