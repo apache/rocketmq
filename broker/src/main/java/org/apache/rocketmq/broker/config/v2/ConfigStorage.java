@@ -87,8 +87,8 @@ public class ConfigStorage extends AbstractRocksDBStorage {
     protected void initAbleWalWriteOptions() {
         this.ableWalWriteOptions = new WriteOptions();
 
-        // For metadata, prioritize data integrity
-        this.ableWalWriteOptions.setSync(true);
+        // Given that fdatasync is kind of expensive, sync-WAL for every write cannot be afforded.
+        this.ableWalWriteOptions.setSync(false);
 
         // We need WAL for config changes
         this.ableWalWriteOptions.setDisableWAL(false);
