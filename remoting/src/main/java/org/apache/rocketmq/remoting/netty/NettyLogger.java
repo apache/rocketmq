@@ -74,7 +74,7 @@ public class NettyLogger {
                 logger.debug(s);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.info(s);
+                logger.trace(s);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(s);
@@ -93,7 +93,7 @@ public class NettyLogger {
                 logger.debug(s, o);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.info(s, o);
+                logger.trace(s, o);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(s, o);
@@ -112,7 +112,7 @@ public class NettyLogger {
                 logger.debug(s, o, o1);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.info(s, o, o1);
+                logger.trace(s, o, o1);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(s, o, o1);
@@ -131,7 +131,7 @@ public class NettyLogger {
                 logger.debug(s, objects);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.info(s, objects);
+                logger.trace(s, objects);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(s, objects);
@@ -150,7 +150,7 @@ public class NettyLogger {
                 logger.debug(s, throwable);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.info(s, throwable);
+                logger.trace(s, throwable);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(s, throwable);
@@ -169,7 +169,7 @@ public class NettyLogger {
                 logger.debug(EXCEPTION_MESSAGE, throwable);
             }
             if (internalLogLevel.equals(InternalLogLevel.TRACE)) {
-                logger.info(EXCEPTION_MESSAGE, throwable);
+                logger.trace(EXCEPTION_MESSAGE, throwable);
             }
             if (internalLogLevel.equals(InternalLogLevel.INFO)) {
                 logger.info(EXCEPTION_MESSAGE, throwable);
@@ -189,32 +189,32 @@ public class NettyLogger {
 
         @Override
         public void trace(String var1) {
-            logger.info(var1);
+            logger.trace(var1);
         }
 
         @Override
         public void trace(String var1, Object var2) {
-            logger.info(var1, var2);
+            logger.trace(var1, var2);
         }
 
         @Override
         public void trace(String var1, Object var2, Object var3) {
-            logger.info(var1, var2, var3);
+            logger.trace(var1, var2, var3);
         }
 
         @Override
         public void trace(String var1, Object... var2) {
-            logger.info(var1, var2);
+            logger.trace(var1, var2);
         }
 
         @Override
         public void trace(String var1, Throwable var2) {
-            logger.info(var1, var2);
+            logger.trace(var1, var2);
         }
 
         @Override
         public void trace(Throwable var1) {
-            logger.info(EXCEPTION_MESSAGE, var1);
+            logger.trace(EXCEPTION_MESSAGE, var1);
         }
 
         @Override

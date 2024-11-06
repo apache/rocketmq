@@ -175,11 +175,11 @@ public class MessageExtEncoder {
     public PutMessageResult encode(MessageExtBrokerInner msgInner) {
         this.byteBuf.clear();
 
-        if (messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner)) {
+        if (messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ()) {
             return encodeWithoutProperties(msgInner);
         }
 
-        /**
+        /*
          * Serialize message
          */
         final byte[] propertiesData =

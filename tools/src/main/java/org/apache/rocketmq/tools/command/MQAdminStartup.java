@@ -67,6 +67,7 @@ import org.apache.rocketmq.tools.command.consumer.DeleteSubscriptionGroupCommand
 import org.apache.rocketmq.tools.command.consumer.GetConsumerConfigSubCommand;
 import org.apache.rocketmq.tools.command.consumer.SetConsumeModeSubCommand;
 import org.apache.rocketmq.tools.command.consumer.StartMonitoringSubCommand;
+import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupListSubCommand;
 import org.apache.rocketmq.tools.command.consumer.UpdateSubGroupSubCommand;
 import org.apache.rocketmq.tools.command.container.AddBrokerSubCommand;
 import org.apache.rocketmq.tools.command.container.RemoveBrokerSubCommand;
@@ -92,6 +93,7 @@ import org.apache.rocketmq.tools.command.message.QueryMsgByOffsetSubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgByUniqueKeySubCommand;
 import org.apache.rocketmq.tools.command.message.QueryMsgTraceByIdSubCommand;
 import org.apache.rocketmq.tools.command.message.SendMessageCommand;
+import org.apache.rocketmq.tools.command.metadata.RocksDBConfigToJsonCommand;
 import org.apache.rocketmq.tools.command.namesrv.AddWritePermSubCommand;
 import org.apache.rocketmq.tools.command.namesrv.DeleteKvConfigCommand;
 import org.apache.rocketmq.tools.command.namesrv.GetNamesrvConfigCommand;
@@ -102,6 +104,7 @@ import org.apache.rocketmq.tools.command.offset.CloneGroupOffsetCommand;
 import org.apache.rocketmq.tools.command.offset.ResetOffsetByTimeCommand;
 import org.apache.rocketmq.tools.command.offset.SkipAccumulationSubCommand;
 import org.apache.rocketmq.tools.command.producer.ProducerSubCommand;
+import org.apache.rocketmq.tools.command.queue.CheckRocksdbCqWriteProgressCommand;
 import org.apache.rocketmq.tools.command.queue.QueryConsumeQueueCommand;
 import org.apache.rocketmq.tools.command.stats.StatsAllSubCommand;
 import org.apache.rocketmq.tools.command.topic.AllocateMQSubCommand;
@@ -113,6 +116,7 @@ import org.apache.rocketmq.tools.command.topic.TopicRouteSubCommand;
 import org.apache.rocketmq.tools.command.topic.TopicStatusSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateOrderConfCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateStaticTopicSubCommand;
+import org.apache.rocketmq.tools.command.topic.UpdateTopicListSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicPermSubCommand;
 import org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand;
 
@@ -187,8 +191,10 @@ public class MQAdminStartup {
 
     public static void initCommand() {
         initCommand(new UpdateTopicSubCommand());
+        initCommand(new UpdateTopicListSubCommand());
         initCommand(new DeleteTopicSubCommand());
         initCommand(new UpdateSubGroupSubCommand());
+        initCommand(new UpdateSubGroupListSubCommand());
         initCommand(new SetConsumeModeSubCommand());
         initCommand(new DeleteSubscriptionGroupCommand());
         initCommand(new UpdateBrokerConfigSubCommand());
@@ -298,6 +304,8 @@ public class MQAdminStartup {
         initCommand(new GetAclSubCommand());
         initCommand(new ListAclSubCommand());
         initCommand(new CopyAclsSubCommand());
+        initCommand(new RocksDBConfigToJsonCommand());
+        initCommand(new CheckRocksdbCqWriteProgressCommand());
     }
 
     private static void printHelp() {

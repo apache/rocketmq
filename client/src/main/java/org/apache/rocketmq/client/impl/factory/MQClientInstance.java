@@ -152,6 +152,7 @@ public class MQClientInstance {
         this.nettyClientConfig.setClientCallbackExecutorThreads(clientConfig.getClientCallbackExecutorThreads());
         this.nettyClientConfig.setUseTLS(clientConfig.isUseTLS());
         this.nettyClientConfig.setSocksProxyConfig(clientConfig.getSocksProxyConfig());
+        this.nettyClientConfig.setScanAvailableNameSrv(false);
         ClientRemotingProcessor clientRemotingProcessor = new ClientRemotingProcessor(this);
         ChannelEventListener channelEventListener;
         if (clientConfig.isEnableHeartbeatChannelEventListener()) {
@@ -1070,7 +1071,7 @@ public class MQClientInstance {
                         balanced = false;
                     }
                 } catch (Throwable e) {
-                    log.error("doRebalance exception", e);
+                    log.error("doRebalance for consumer group [{}] exception", entry.getKey(), e);
                 }
             }
         }
@@ -1237,7 +1238,7 @@ public class MQClientInstance {
             if (impl instanceof DefaultMQPushConsumerImpl) {
                 consumer = (DefaultMQPushConsumerImpl) impl;
             } else {
-                log.info("[reset-offset] consumer dose not exist. group={}", group);
+                log.info("[reset-offset] consumer does not exist. group={}", group);
                 return;
             }
             consumer.suspend();

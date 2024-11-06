@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
@@ -138,9 +139,13 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
 
             // If set to max offset here, some written messages may be lost
             if (!flatFile.isFlatFileInit()) {
-                currentOffset = Math.max(minOffsetInQueue,
-                    maxOffsetInQueue - storeConfig.getTieredStoreGroupCommitSize());
+                currentOffset = defaultStore.getOffsetInQueueByTime(
+                    topic, queueId, System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(2));
+                currentOffset = Math.max(currentOffset, minOffsetInQueue);
+                currentOffset = Math.min(currentOffset, maxOffsetInQueue);
                 flatFile.initOffset(currentOffset);
+                log.warn("MessageDispatcher#dispatch init, topic={}, queueId={}, offset={}-{}, current={}",
+                    topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset);
                 return CompletableFuture.completedFuture(true);
             }
 
@@ -255,6 +260,10 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                     }
                 );
             }
+        } catch (ConsumeQueueException e) {
+            CompletableFuture<Boolean> future = new CompletableFuture<>();
+            future.completeExceptionally(e);
+            return future;
         } finally {
             flatFile.getFileLock().unlock();
         }

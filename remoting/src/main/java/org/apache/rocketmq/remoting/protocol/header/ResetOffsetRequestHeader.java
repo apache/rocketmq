@@ -31,11 +31,11 @@ public class ResetOffsetRequestHeader extends TopicQueueRequestHeader {
 
     @CFNotNull
     @RocketMQResource(ResourceType.GROUP)
-    private String topic;
+    private String group;
 
     @CFNotNull
     @RocketMQResource(ResourceType.TOPIC)
-    private String group;
+    private String topic;
 
     private int queueId = -1;
 

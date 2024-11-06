@@ -125,22 +125,30 @@ public class ClientManagerActivity extends AbstractRemotingActivity {
         final String producerGroup = requestHeader.getProducerGroup();
         if (producerGroup != null) {
             RemotingChannel channel = this.remotingChannelManager.removeProducerChannel(context, producerGroup, ctx.channel());
-            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-                channel,
-                requestHeader.getClientID(),
-                request.getLanguage(),
-                request.getVersion());
-            this.messagingProcessor.unRegisterProducer(context, producerGroup, clientChannelInfo);
+            if (channel != null) {
+                ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
+                    channel,
+                    requestHeader.getClientID(),
+                    request.getLanguage(),
+                    request.getVersion());
+                this.messagingProcessor.unRegisterProducer(context, producerGroup, clientChannelInfo);
+            } else {
+                log.warn("unregister producer failed, channel not exist, may has been removed, producerGroup={}, channel={}", producerGroup, ctx.channel());
+            }
         }
         final String consumerGroup = requestHeader.getConsumerGroup();
         if (consumerGroup != null) {
             RemotingChannel channel = this.remotingChannelManager.removeConsumerChannel(context, consumerGroup, ctx.channel());
-            ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
-                channel,
-                requestHeader.getClientID(),
-                request.getLanguage(),
-                request.getVersion());
-            this.messagingProcessor.unRegisterConsumer(context, consumerGroup, clientChannelInfo);
+            if (channel != null) {
+                ClientChannelInfo clientChannelInfo = new ClientChannelInfo(
+                    channel,
+                    requestHeader.getClientID(),
+                    request.getLanguage(),
+                    request.getVersion());
+                this.messagingProcessor.unRegisterConsumer(context, consumerGroup, clientChannelInfo);
+            } else {
+                log.warn("unregister consumer failed, channel not exist, may has been removed, consumerGroup={}, channel={}", consumerGroup, ctx.channel());
+            }
         }
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark("");

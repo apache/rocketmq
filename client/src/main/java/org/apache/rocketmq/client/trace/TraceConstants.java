@@ -32,7 +32,7 @@ public class TraceConstants {
     public static final String ROCKETMQ_SUCCESS = "rocketmq.success";
     public static final String ROCKETMQ_TAGS = "rocketmq.tags";
     public static final String ROCKETMQ_KEYS = "rocketmq.keys";
-    public static final String ROCKETMQ_SOTRE_HOST = "rocketmq.store_host";
+    public static final String ROCKETMQ_STORE_HOST = "rocketmq.store_host";
     public static final String ROCKETMQ_BODY_LENGTH = "rocketmq.body_length";
     public static final String ROCKETMQ_MSG_ID = "rocketmq.mgs_id";
     public static final String ROCKETMQ_MSG_TYPE = "rocketmq.mgs_type";
