@@ -37,8 +37,8 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
     private final Supplier<Set<String>> fullStorePathsSupplier;
 
     public MultiPathMappedFileQueue(MessageStoreConfig messageStoreConfig, int mappedFileSize,
-                                    AllocateMappedFileService allocateMappedFileService,
-                                    Supplier<Set<String>> fullStorePathsSupplier) {
+        AllocateMappedFileService allocateMappedFileService,
+        Supplier<Set<String>> fullStorePathsSupplier) {
         super(messageStoreConfig.getStorePathCommitLog(), mappedFileSize, allocateMappedFileService);
         this.config = messageStoreConfig;
         this.fullStorePathsSupplier = fullStorePathsSupplier;
@@ -81,7 +81,7 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
         Set<String> storePath = getPaths();
         Set<String> readonlyPathSet = getReadonlyPaths();
         Set<String> fullStorePaths =
-                fullStorePathsSupplier == null ? Collections.emptySet() : fullStorePathsSupplier.get();
+            fullStorePathsSupplier == null ? Collections.emptySet() : fullStorePathsSupplier.get();
 
 
         HashSet<String> availableStorePath = new HashSet<>(storePath);
@@ -99,10 +99,24 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
 
         String[] paths = availableStorePath.toArray(new String[]{});
         Arrays.sort(paths);
-        String nextFilePath = paths[(int) (fileIdx % paths.length)] + File.separator
+
+        String nextFilePath = null;
+        String nextNextFilePath = null;
+        if (allocateMappedFileService != null) {
+            nextFilePath = allocateMappedFileService.getCachedMappedFilePath(
+                createOffset);
+            nextNextFilePath = allocateMappedFileService.getCachedMappedFilePath(
+                createOffset + this.mappedFileSize);
+        }
+        if (nextFilePath == null) {
+            nextFilePath = paths[(int) (fileIdx % paths.length)] + File.separator
                 + UtilAll.offset2FileName(createOffset);
-        String nextNextFilePath = paths[(int) ((fileIdx + 1) % paths.length)] + File.separator
+        }
+        if (nextNextFilePath == null) {
+            nextNextFilePath = paths[(int) ((fileIdx + 1) % paths.length)] + File.separator
                 + UtilAll.offset2FileName(createOffset + this.mappedFileSize);
+        }
+
         return doCreateMappedFile(nextFilePath, nextNextFilePath);
     }
 
