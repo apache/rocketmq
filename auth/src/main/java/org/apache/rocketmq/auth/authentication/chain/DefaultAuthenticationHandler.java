@@ -64,7 +64,7 @@ public class DefaultAuthenticationHandler implements Handler<DefaultAuthenticati
         }
         String signature = AclSigner.calSignature(context.getContent(), user.getPassword());
         if (context.getSignature() == null
-            || !MessageDigest.isEqual(signature.getBytes(), context.getSignature().getBytes())) {
+            || !MessageDigest.isEqual(signature.getBytes(AclSigner.DEFAULT_CHARSET), context.getSignature().getBytes(AclSigner.DEFAULT_CHARSET))) {
             throw new AuthenticationException("check signature failed.");
         }
     }
