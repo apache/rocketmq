@@ -37,8 +37,8 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
     private final Supplier<Set<String>> fullStorePathsSupplier;
 
     public MultiPathMappedFileQueue(MessageStoreConfig messageStoreConfig, int mappedFileSize,
-        AllocateMappedFileService allocateMappedFileService,
-        Supplier<Set<String>> fullStorePathsSupplier) {
+                                    AllocateMappedFileService allocateMappedFileService,
+                                    Supplier<Set<String>> fullStorePathsSupplier) {
         super(messageStoreConfig.getStorePathCommitLog(), mappedFileSize, allocateMappedFileService);
         this.config = messageStoreConfig;
         this.fullStorePathsSupplier = fullStorePathsSupplier;
@@ -81,7 +81,7 @@ public class MultiPathMappedFileQueue extends MappedFileQueue {
         Set<String> storePath = getPaths();
         Set<String> readonlyPathSet = getReadonlyPaths();
         Set<String> fullStorePaths =
-            fullStorePathsSupplier == null ? Collections.emptySet() : fullStorePathsSupplier.get();
+                fullStorePathsSupplier == null ? Collections.emptySet() : fullStorePathsSupplier.get();
 
 
         HashSet<String> availableStorePath = new HashSet<>(storePath);
