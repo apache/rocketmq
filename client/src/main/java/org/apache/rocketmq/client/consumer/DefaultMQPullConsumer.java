@@ -16,9 +16,11 @@
  */
 package org.apache.rocketmq.client.consumer;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
@@ -33,7 +35,9 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
+import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
+import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 
 /**
  * @deprecated Default pulling consumer. This class will be removed in 2022, and a better implementation
@@ -77,6 +81,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      * Topic set you want to register
      */
     private Set<String> registerTopics = new HashSet<>();
+
+    private final Set<SubscriptionData> registerSubscriptions = Collections.newSetFromMap(new ConcurrentHashMap<>());
     /**
      * Queue allocation algorithm
      */
@@ -251,6 +257,29 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     public void setRegisterTopics(Set<String> registerTopics) {
         this.registerTopics = withNamespace(registerTopics);
+    }
+
+    public Set<SubscriptionData> getRegisterSubscriptions() {
+        return registerSubscriptions;
+    }
+
+    public void addRegisterSubscriptions(String topic, MessageSelector messageSelector) throws MQClientException {
+        try {
+            if (messageSelector == null) {
+                messageSelector = MessageSelector.byTag(SubscriptionData.SUB_ALL);
+            }
+
+            SubscriptionData subscriptionData = FilterAPI.build(withNamespace(topic),
+                messageSelector.getExpression(), messageSelector.getExpressionType());
+
+            this.registerSubscriptions.add(subscriptionData);
+        } catch (Exception e) {
+            throw new MQClientException("add subscription exception", e);
+        }
+    }
+
+    public void clearRegisterSubscriptions() {
+        this.registerSubscriptions.clear();
     }
 
     /**
