@@ -64,7 +64,7 @@ public class AllocateMappedFileService extends ServiceThread {
             }
         }
 
-        String nextFileName = nextFilePath.substring(nextFilePath.lastIndexOf("/") + 1);
+        String nextFileName = nextFilePath.substring(nextFilePath.lastIndexOf(File.separator) + 1);
         AllocateRequest nextReq = new AllocateRequest(nextFilePath, fileSize);
         boolean nextPutOK = this.requestTable.putIfAbsent(nextFileName, nextReq) == null;
 
@@ -82,7 +82,7 @@ public class AllocateMappedFileService extends ServiceThread {
             canSubmitRequests--;
         }
 
-        String nextNextFileName = nextNextFilePath.substring(nextNextFilePath.lastIndexOf("/") + 1);
+        String nextNextFileName = nextNextFilePath.substring(nextNextFilePath.lastIndexOf(File.separator) + 1);
         AllocateRequest nextNextReq = new AllocateRequest(nextNextFilePath, fileSize);
         boolean nextNextPutOK = this.requestTable.putIfAbsent(nextNextFileName, nextNextReq) == null;
         if (nextNextPutOK) {
