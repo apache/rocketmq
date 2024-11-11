@@ -19,7 +19,9 @@ package org.apache.rocketmq.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -191,7 +193,9 @@ public class MultiPathMappedFileQueueTest {
         MappedFile mappedFile1 = mappedFileQueue.tryCreateMappedFile(1024);
 
         assertThat(mappedFile1).isNotNull();
-        assertThat(mappedFile1.getFile().getPath()).isEqualTo("target/unit_test_store/b/00000000000000001024");
+        assertThat(mappedFile1.getFile().getPath()).isEqualTo(
+            String.join(File.separator, Arrays.asList("target", "unit_test_store", "b", "00000000000000001024"))
+        );
 
         mappedFileQueue.shutdown(1000);
         mappedFileQueue.destroy();

@@ -163,7 +163,7 @@ public class AllocateMappedFileService extends ServiceThread {
         AllocateRequest req = null;
         try {
             req = this.requestQueue.take();
-            String fileName = req.getFilePath().substring(req.getFilePath().lastIndexOf("/") + 1);
+            String fileName = req.getFilePath().substring(req.getFilePath().lastIndexOf(File.separator) + 1);
             AllocateRequest expectedRequest = this.requestTable.get(fileName);
             if (null == expectedRequest) {
                 log.warn("this mmap request expired, maybe cause timeout " + req.getFilePath() + " "
