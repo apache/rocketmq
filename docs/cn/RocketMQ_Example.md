@@ -645,7 +645,7 @@ RocketMQ只定义了一些基本语法来支持这个特性。你也可以很容
 
 只有使用push模式的消费者才能用使用SQL92标准的sql语句，接口如下：
 ```
-public void subscribe(finalString topic, final MessageSelector messageSelector)
+public void subscribe(final String topic, final MessageSelector messageSelector)
 ```
 
 ### 5.2 使用样例
