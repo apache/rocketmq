@@ -19,10 +19,8 @@ package org.apache.rocketmq.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.rocketmq.common.BrokerConfig;
@@ -172,7 +170,7 @@ public class MultiPathMappedFileQueueTest {
 
         DefaultMessageStore messageStore = new DefaultMessageStore(config,
             new BrokerStatsManager("CommitlogTest", true),
-            (topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties) -> {},
+            null,
             new BrokerConfig(),
             new ConcurrentHashMap<>());
 
