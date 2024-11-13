@@ -68,4 +68,8 @@ public class PermName {
     public static boolean isPriority(final int perm) {
         return (perm & PERM_PRIORITY) == PERM_PRIORITY;
     }
+
+    public static boolean isNone(final int perm) {
+        return perm == 0;
+    }
 }
