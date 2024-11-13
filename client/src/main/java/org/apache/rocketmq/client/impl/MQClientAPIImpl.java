@@ -3128,10 +3128,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         }
     }
 
-    public MessageRequestModeSerializeWrapper getAllMessageRequestMode(final String brokerAddr) throws MQBrokerException,
+    public MessageRequestModeSerializeWrapper getAllMessageRequestMode(final String brokerAddr, final long timeoutMillis) throws MQBrokerException,
             RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_ALL_MESSAGE_REQUEST_MODE, null);
-        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, 3000);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
         assert response != null;
         switch (response.getCode()) {
             case ResponseCode.SUCCESS: {

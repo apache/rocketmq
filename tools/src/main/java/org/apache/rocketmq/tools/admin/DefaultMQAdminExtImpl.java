@@ -1835,9 +1835,9 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
     }
 
     @Override
-    public MessageRequestModeSerializeWrapper getAllMessageRequestMode(final String brokerAddr)
+    public MessageRequestModeSerializeWrapper getAllMessageRequestMode(final String brokerAddr, final long timeoutMillis)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
-        return this.mqClientInstance.getMQClientAPIImpl().getAllMessageRequestMode(brokerAddr);
+        return this.mqClientInstance.getMQClientAPIImpl().getAllMessageRequestMode(brokerAddr, timeoutMillis);
     }
 
     @Deprecated

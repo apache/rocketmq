@@ -803,9 +803,9 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
-    public MessageRequestModeSerializeWrapper getAllMessageRequestMode(final String brokerAddr)
+    public MessageRequestModeSerializeWrapper getAllMessageRequestMode(final String brokerAddr, final long timeoutMillis)
         throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
-        return this.defaultMQAdminExtImpl.getAllMessageRequestMode(brokerAddr);
+        return this.defaultMQAdminExtImpl.getAllMessageRequestMode(brokerAddr, timeoutMillis);
     }
 
     @Override

@@ -406,7 +406,7 @@ public interface MQAdminExt extends MQAdmin {
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException,
         RemotingConnectException, MQClientException;
 
-    MessageRequestModeSerializeWrapper getAllMessageRequestMode(final String brokerAddr) throws RemotingConnectException,
+    MessageRequestModeSerializeWrapper getAllMessageRequestMode(final String brokerAddr, final long timeoutMillis) throws RemotingConnectException,
         RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 
     @Deprecated
