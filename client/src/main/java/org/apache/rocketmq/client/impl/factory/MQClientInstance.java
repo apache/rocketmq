@@ -1080,29 +1080,28 @@ public class MQClientInstance {
         return balanced;
     }
 
-    public boolean updateRebalanceByBrokerAndClientMap(String group, String topic, MessageRequestMode requestMode) {
+    public boolean updateRebalanceByBrokerAndClientMap(String group, String topic, MessageRequestMode requestMode, int popShareQueueNum) {
         MQConsumerInner consumerInner = this.consumerTable.get(group);
         if (!(consumerInner instanceof DefaultMQPushConsumerImpl)) {
             return true;
         }
 
         DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumerInner;
-        Map<String, String> topicBrokerRebalance = impl.getRebalanceImpl().getTopicBrokerRebalance();
-        Map<String, String> topicClientRebalance = impl.getRebalanceImpl().getTopicClientRebalance();
+        Map<String, Integer> popTopicRebalance = impl.getRebalanceImpl().getPopTopicRebalance();
+        Map<String, String> pullTopicRebalance = impl.getRebalanceImpl().getPullTopicRebalance();
 
-        if (!impl.getDefaultMQPushConsumer().isClientRebalance()) {
-            if (requestMode == MessageRequestMode.POP) {
-                if (!topicBrokerRebalance.containsKey(topic)) {
-                    topicClientRebalance.remove(topic);
-                    topicBrokerRebalance.put(topic, topic);
-                }
-            } else {
-                if (!topicClientRebalance.containsKey(topic)) {
-                    topicBrokerRebalance.remove(topic);
-                    topicClientRebalance.put(topic, topic);
-                }
+        if (requestMode == MessageRequestMode.POP) {
+            if (!popTopicRebalance.containsKey(topic)) {
+                pullTopicRebalance.remove(topic);
+                popTopicRebalance.put(topic, popShareQueueNum);
+            }
+        } else {
+            if (!popTopicRebalance.containsKey(topic)) {
+                popTopicRebalance.remove(topic);
+                pullTopicRebalance.put(topic, topic);
             }
         }
+
         return true;
     }
 

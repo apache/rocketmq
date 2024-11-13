@@ -65,7 +65,7 @@ public abstract class RebalanceImpl {
 
     private Map<String, String> topicBrokerRebalance = new ConcurrentHashMap<>();
     private Map<String, String> topicClientRebalance = new ConcurrentHashMap<>();
-    private Map<String, String> popTopicRebalance = new ConcurrentHashMap<>();
+    private Map<String, Integer> popTopicRebalance = new ConcurrentHashMap<>();
     private Map<String, String> pullTopicRebalance = new ConcurrentHashMap<>();
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
@@ -282,13 +282,8 @@ public abstract class RebalanceImpl {
             try {
                 Set<MessageQueueAssignment> resultSet = mQClientFactory.queryAssignment(topic, consumerGroup,
                     strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT / TIMEOUT_CHECK_TIMES * retryTimes);
-                if (new ArrayList<>(resultSet).get(0).getMode() == MessageRequestMode.POP) {
-                    topicBrokerRebalance.put(topic, topic);
-                    return true;
-                } else {
-                    topicClientRebalance.put(topic, topic);
-                    return false;
-                }
+                topicBrokerRebalance.put(topic, topic);
+                return true;
             } catch (Throwable t) {
                 if (!(t instanceof RemotingTimeoutException)) {
                     log.error("tryQueryAssignment error.", t);
@@ -753,7 +748,7 @@ public abstract class RebalanceImpl {
         return changed;
     }
 
-    public Map<String, String> getPopTopicRebalance() {
+    public Map<String, Integer> getPopTopicRebalance() {
         return popTopicRebalance;
     }
 
@@ -761,7 +756,7 @@ public abstract class RebalanceImpl {
         return pullTopicRebalance;
     }
 
-    public void setPopTopicRebalance(Map<String, String> popTopicRebalance) {
+    public void setPopTopicRebalance(Map<String, Integer> popTopicRebalance) {
         this.popTopicRebalance = popTopicRebalance;
     }
 
@@ -823,14 +818,6 @@ public abstract class RebalanceImpl {
 
     public ConcurrentMap<String, Set<MessageQueue>> getTopicSubscribeInfoTable() {
         return topicSubscribeInfoTable;
-    }
-
-    public Map<String, String> getTopicBrokerRebalance() {
-        return topicBrokerRebalance;
-    }
-
-    public Map<String, String> getTopicClientRebalance() {
-        return topicClientRebalance;
     }
 
     public String getConsumerGroup() {

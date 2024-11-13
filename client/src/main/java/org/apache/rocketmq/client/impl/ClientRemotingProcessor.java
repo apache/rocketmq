@@ -306,7 +306,8 @@ public class ClientRemotingProcessor implements NettyRequestProcessor {
         final String group = requestBody.getConsumerGroup();
         final String topic = requestBody.getTopic();
         final MessageRequestMode requestMode = requestBody.getMode();
-        this.mqClientFactory.updateRebalanceByBrokerAndClientMap(group, topic, requestMode);
+        final int popShareQueueNum = requestBody.getPopShareQueueNum();
+        this.mqClientFactory.updateRebalanceByBrokerAndClientMap(group, topic, requestMode, popShareQueueNum);
 
         response.setCode(ResponseCode.SUCCESS);
         response.setRemark(null);

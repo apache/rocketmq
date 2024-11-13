@@ -34,6 +34,7 @@ import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageQueueForC;
+import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
@@ -46,6 +47,7 @@ import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.GetConsumerStatusBody;
 import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBody;
 import org.apache.rocketmq.remoting.protocol.body.ResetOffsetBodyForC;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetConsumerStatusRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotifyConsumerIdsChangedRequestHeader;
@@ -80,6 +82,24 @@ public class Broker2Client {
         final RemotingCommand request
     ) throws RemotingSendRequestException, RemotingTimeoutException, InterruptedException {
         return this.brokerController.getRemotingServer().invokeSync(channel, request, 10000);
+    }
+
+    public void notifyMessageRequestModeChange(final Channel channel,
+        final String consumerGroup, final String topic, final MessageRequestMode mode, int popShareQueueNum) {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFY_MESSAGE_REQUEST_MODE_TO_CLIENT, null);
+
+        SetMessageRequestModeRequestBody setMessageRequestModeRequestBody = new SetMessageRequestModeRequestBody();
+        setMessageRequestModeRequestBody.setTopic(topic);
+        setMessageRequestModeRequestBody.setConsumerGroup(consumerGroup);
+        setMessageRequestModeRequestBody.setPopShareQueueNum(popShareQueueNum);
+        setMessageRequestModeRequestBody.setMode(mode);
+        request.setBody(setMessageRequestModeRequestBody.encode());
+
+        try {
+            this.brokerController.getRemotingServer().invokeOneway(channel, request, 10);
+        } catch (Exception e) {
+            log.error("notifyMessageRequestMode to client exception. group={}, error={}", consumerGroup, e.toString());
+        }
     }
 
     public void notifyConsumerIdsChanged(

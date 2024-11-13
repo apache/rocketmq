@@ -23,13 +23,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.Map;
-import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
 import org.apache.rocketmq.broker.loadbalance.MessageRequestModeManager;
 import org.apache.rocketmq.broker.topic.TopicRouteInfoManager;
@@ -45,8 +42,6 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
-import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyRequestProcessor;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
@@ -324,19 +319,13 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
         final String consumerGroup = requestBody.getConsumerGroup();
         ConsumerGroupInfo consumerGroupInfo =
                 this.brokerController.getConsumerManager().getConsumerGroupInfo(consumerGroup);
-        Iterator<Map.Entry<Channel, ClientChannelInfo>> it = consumerGroupInfo.getChannelInfoTable().entrySet().iterator();
 
         this.messageRequestModeManager.setMessageRequestMode(topic, consumerGroup, requestBody);
         this.messageRequestModeManager.persist();
-        while (it.hasNext()) {
-            ClientChannelInfo info = it.next().getValue();
-            RemotingCommand clientRequest = RemotingCommand.createRequestCommand(RequestCode.SET_MESSAGE_REQUEST_MODE, null);
-            clientRequest.setBody(requestBody.encode());
-            try {
-                this.brokerController.getBroker2Client().callClient(info.getChannel(), clientRequest);
-            } catch (RemotingSendRequestException | RemotingTimeoutException | InterruptedException e) {
-                log.warn("Failed to notify messageRequestMode changes to the clientAddr:{}", RemotingHelper.parseChannelRemoteAddr(info.getChannel()));
-            }
+
+        for (Channel channel : consumerGroupInfo.getAllChannel()) {
+            this.brokerController.getBroker2Client().notifyMessageRequestModeChange(channel, consumerGroup, requestBody.getTopic(),
+                requestBody.getMode(), requestBody.getPopShareQueueNum());
         }
 
         response.setCode(ResponseCode.SUCCESS);
