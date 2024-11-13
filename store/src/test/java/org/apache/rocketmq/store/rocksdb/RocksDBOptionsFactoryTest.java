@@ -14,21 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.offset;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+package org.apache.rocketmq.store.rocksdb;
 
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assert;
+import org.junit.Test;
+import org.rocksdb.CompressionType;
 
-public class RocksDBOffsetSerializeWrapper extends RemotingSerializable {
-    private ConcurrentMap<Integer, Long> offsetTable = new ConcurrentHashMap(16);
+public class RocksDBOptionsFactoryTest {
 
-    public ConcurrentMap<Integer, Long> getOffsetTable() {
-        return offsetTable;
-    }
-
-    public void setOffsetTable(ConcurrentMap<Integer, Long> offsetTable) {
-        this.offsetTable = offsetTable;
+    @Test
+    public void testBottomMostCompressionType() {
+        MessageStoreConfig config = new MessageStoreConfig();
+        Assert.assertEquals(CompressionType.ZSTD_COMPRESSION,
+            CompressionType.getCompressionType(config.getBottomMostCompressionTypeForConsumeQueueStore()));
+        Assert.assertEquals(CompressionType.LZ4_COMPRESSION, CompressionType.getCompressionType("lz4"));
     }
 }

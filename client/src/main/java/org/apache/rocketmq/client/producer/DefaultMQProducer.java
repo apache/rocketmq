@@ -174,6 +174,21 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     private int backPressureForAsyncSendSize = 100 * 1024 * 1024;
 
+    /**
+     * Maximum hold time of accumulator.
+     */
+    private int batchMaxDelayMs = -1;
+
+    /**
+     * Maximum accumulation message body size for a single messageAccumulation.
+     */
+    private long batchMaxBytes = -1;
+
+    /**
+     * Maximum message body size for produceAccumulator.
+     */
+    private long totalBatchMaxBytes = -1;
+
     private RPCHook rpcHook = null;
 
     /**
@@ -293,7 +308,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.enableTrace = enableMsgTrace;
         this.traceTopic = customizedTraceTopic;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
 
     /**
@@ -320,7 +334,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         this.producerGroup = producerGroup;
         this.rpcHook = rpcHook;
         defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
-        produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
     }
 
     /**
@@ -1168,10 +1181,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void batchMaxDelayMs(int holdMs) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
+        this.batchMaxDelayMs = holdMs;
+        if (this.produceAccumulator != null) {
+            this.produceAccumulator.batchMaxDelayMs(holdMs);
         }
-        this.produceAccumulator.batchMaxDelayMs(holdMs);
     }
 
     public long getBatchMaxBytes() {
@@ -1182,10 +1195,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void batchMaxBytes(long holdSize) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
+        this.batchMaxBytes = holdSize;
+        if (this.produceAccumulator != null) {
+            this.produceAccumulator.batchMaxBytes(holdSize);
         }
-        this.produceAccumulator.batchMaxBytes(holdSize);
     }
 
     public long getTotalBatchMaxBytes() {
@@ -1196,10 +1209,10 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void totalBatchMaxBytes(long totalHoldSize) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
+        this.totalBatchMaxBytes = totalHoldSize;
+        if (this.produceAccumulator != null) {
+            this.produceAccumulator.totalBatchMaxBytes(totalHoldSize);
         }
-        this.produceAccumulator.totalBatchMaxBytes(totalHoldSize);
     }
 
     public boolean getAutoBatch() {
@@ -1210,9 +1223,6 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
     }
 
     public void setAutoBatch(boolean autoBatch) {
-        if (this.produceAccumulator == null) {
-            throw new UnsupportedOperationException("The currently constructed producer does not support autoBatch");
-        }
         this.autoBatch = autoBatch;
     }
 
@@ -1438,5 +1448,22 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
 
     public Compressor getCompressor() {
         return compressor;
+    }
+
+    public void initProduceAccumulator() {
+        this.produceAccumulator = MQClientManager.getInstance().getOrCreateProduceAccumulator(this);
+
+        if (this.batchMaxDelayMs > -1) {
+            this.produceAccumulator.batchMaxDelayMs(this.batchMaxDelayMs);
+        }
+
+        if (this.batchMaxBytes > -1) {
+            this.produceAccumulator.batchMaxBytes(this.batchMaxBytes);
+        }
+
+        if (this.totalBatchMaxBytes > -1) {
+            this.produceAccumulator.totalBatchMaxBytes(this.totalBatchMaxBytes);
+        }
+
     }
 }

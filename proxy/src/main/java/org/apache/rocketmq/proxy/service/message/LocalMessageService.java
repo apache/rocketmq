@@ -176,7 +176,8 @@ public class LocalMessageService implements MessageService {
     }
 
     @Override
-    public CompletableFuture<Void> endTransactionOneway(ProxyContext ctx, String brokerName, EndTransactionRequestHeader requestHeader,
+    public CompletableFuture<Void> endTransactionOneway(ProxyContext ctx, String brokerName,
+        EndTransactionRequestHeader requestHeader,
         long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         SimpleChannel channel = channelManager.createChannel(ctx);
@@ -310,9 +311,8 @@ public class LocalMessageService implements MessageService {
         RemotingCommand command = LocalRemotingCommand.createRequestCommand(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, requestHeader, ctx.getLanguage());
         CompletableFuture<RemotingCommand> future = new CompletableFuture<>();
         try {
-            RemotingCommand response = brokerController.getChangeInvisibleTimeProcessor()
-                .processRequest(channelHandlerContext, command);
-            future.complete(response);
+            future = brokerController.getChangeInvisibleTimeProcessor()
+                .processRequestAsync(channelHandlerContext.channel(), command, true);
         } catch (Exception e) {
             log.error("Fail to process changeInvisibleTime command", e);
             future.completeExceptionally(e);

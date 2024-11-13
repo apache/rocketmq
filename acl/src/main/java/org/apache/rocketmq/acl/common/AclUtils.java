@@ -63,8 +63,7 @@ public class AclUtils {
     }
 
     public static String calSignature(byte[] data, String secretKey) {
-        String signature = AclSigner.calSignature(data, secretKey);
-        return signature;
+        return AclSigner.calSignature(data, secretKey);
     }
 
     public static void IPv6AddressCheck(String netAddress) {

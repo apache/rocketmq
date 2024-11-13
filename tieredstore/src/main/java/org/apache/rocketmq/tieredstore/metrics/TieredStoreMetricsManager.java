@@ -40,6 +40,7 @@ import org.apache.rocketmq.common.metrics.NopLongCounter;
 import org.apache.rocketmq.common.metrics.NopLongHistogram;
 import org.apache.rocketmq.common.metrics.NopObservableLongGauge;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.core.MessageStoreFetcher;
@@ -177,26 +178,30 @@ public class TieredStoreMetricsManager {
             .ofLongs()
             .buildWithCallback(measurement -> {
                 for (FlatMessageFile flatFile : flatFileStore.deepCopyFlatFileToList()) {
+                    try {
 
-                    MessageQueue mq = flatFile.getMessageQueue();
-                    long maxOffset = next.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId());
-                    long maxTimestamp = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), maxOffset - 1);
-                    if (maxTimestamp > 0 && System.currentTimeMillis() - maxTimestamp > TimeUnit.HOURS.toMillis(flatFile.getFileReservedHours())) {
-                        continue;
+                        MessageQueue mq = flatFile.getMessageQueue();
+                        long maxOffset = next.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId());
+                        long maxTimestamp = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), maxOffset - 1);
+                        if (maxTimestamp > 0 && System.currentTimeMillis() - maxTimestamp > TimeUnit.HOURS.toMillis(flatFile.getFileReservedHours())) {
+                            continue;
+                        }
+
+                        Attributes commitLogAttributes = newAttributesBuilder()
+                            .put(LABEL_TOPIC, mq.getTopic())
+                            .put(LABEL_QUEUE_ID, mq.getQueueId())
+                            .put(LABEL_FILE_TYPE, FileSegmentType.COMMIT_LOG.name().toLowerCase())
+                            .build();
+
+                        Attributes consumeQueueAttributes = newAttributesBuilder()
+                            .put(LABEL_TOPIC, mq.getTopic())
+                            .put(LABEL_QUEUE_ID, mq.getQueueId())
+                            .put(LABEL_FILE_TYPE, FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
+                            .build();
+                        measurement.record(Math.max(maxOffset - flatFile.getConsumeQueueMaxOffset(), 0), consumeQueueAttributes);
+                    } catch (ConsumeQueueException e) {
+                        // TODO: handle exception here
                     }
-
-                    Attributes commitLogAttributes = newAttributesBuilder()
-                        .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE_ID, mq.getQueueId())
-                        .put(LABEL_FILE_TYPE, FileSegmentType.COMMIT_LOG.name().toLowerCase())
-                        .build();
-
-                    Attributes consumeQueueAttributes = newAttributesBuilder()
-                        .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE_ID, mq.getQueueId())
-                        .put(LABEL_FILE_TYPE, FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
-                        .build();
-                    measurement.record(Math.max(maxOffset - flatFile.getConsumeQueueMaxOffset(), 0), consumeQueueAttributes);
                 }
             });
 
@@ -206,31 +211,35 @@ public class TieredStoreMetricsManager {
             .ofLongs()
             .buildWithCallback(measurement -> {
                 for (FlatMessageFile flatFile : flatFileStore.deepCopyFlatFileToList()) {
+                    try {
+                        MessageQueue mq = flatFile.getMessageQueue();
 
-                    MessageQueue mq = flatFile.getMessageQueue();
-                    long maxOffset = next.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId());
-                    long maxTimestamp = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), maxOffset - 1);
-                    if (maxTimestamp > 0 && System.currentTimeMillis() - maxTimestamp > TimeUnit.HOURS.toMillis(flatFile.getFileReservedHours())) {
-                        continue;
-                    }
+                        long maxOffset = next.getMaxOffsetInQueue(mq.getTopic(), mq.getQueueId());
+                        long maxTimestamp = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), maxOffset - 1);
+                        if (maxTimestamp > 0 && System.currentTimeMillis() - maxTimestamp > TimeUnit.HOURS.toMillis(flatFile.getFileReservedHours())) {
+                            continue;
+                        }
 
-                    Attributes commitLogAttributes = newAttributesBuilder()
-                        .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE_ID, mq.getQueueId())
-                        .put(LABEL_FILE_TYPE, FileSegmentType.COMMIT_LOG.name().toLowerCase())
-                        .build();
+                        Attributes commitLogAttributes = newAttributesBuilder()
+                            .put(LABEL_TOPIC, mq.getTopic())
+                            .put(LABEL_QUEUE_ID, mq.getQueueId())
+                            .put(LABEL_FILE_TYPE, FileSegmentType.COMMIT_LOG.name().toLowerCase())
+                            .build();
 
-                    Attributes consumeQueueAttributes = newAttributesBuilder()
-                        .put(LABEL_TOPIC, mq.getTopic())
-                        .put(LABEL_QUEUE_ID, mq.getQueueId())
-                        .put(LABEL_FILE_TYPE, FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
-                        .build();
-                    long consumeQueueDispatchOffset = flatFile.getConsumeQueueMaxOffset();
-                    long consumeQueueDispatchLatency = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), consumeQueueDispatchOffset);
-                    if (maxOffset <= consumeQueueDispatchOffset || consumeQueueDispatchLatency < 0) {
-                        measurement.record(0, consumeQueueAttributes);
-                    } else {
-                        measurement.record(System.currentTimeMillis() - consumeQueueDispatchLatency, consumeQueueAttributes);
+                        Attributes consumeQueueAttributes = newAttributesBuilder()
+                            .put(LABEL_TOPIC, mq.getTopic())
+                            .put(LABEL_QUEUE_ID, mq.getQueueId())
+                            .put(LABEL_FILE_TYPE, FileSegmentType.CONSUME_QUEUE.name().toLowerCase())
+                            .build();
+                        long consumeQueueDispatchOffset = flatFile.getConsumeQueueMaxOffset();
+                        long consumeQueueDispatchLatency = next.getMessageStoreTimeStamp(mq.getTopic(), mq.getQueueId(), consumeQueueDispatchOffset);
+                        if (maxOffset <= consumeQueueDispatchOffset || consumeQueueDispatchLatency < 0) {
+                            measurement.record(0, consumeQueueAttributes);
+                        } else {
+                            measurement.record(System.currentTimeMillis() - consumeQueueDispatchLatency, consumeQueueAttributes);
+                        }
+                    } catch (ConsumeQueueException e) {
+                        // TODO: handle exception
                     }
                 }
             });
