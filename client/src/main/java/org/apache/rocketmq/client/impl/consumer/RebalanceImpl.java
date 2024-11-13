@@ -65,6 +65,8 @@ public abstract class RebalanceImpl {
 
     private Map<String, String> topicBrokerRebalance = new ConcurrentHashMap<>();
     private Map<String, String> topicClientRebalance = new ConcurrentHashMap<>();
+    private Map<String, String> popTopicRebalance = new ConcurrentHashMap<>();
+    private Map<String, String> pullTopicRebalance = new ConcurrentHashMap<>();
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy,
@@ -344,6 +346,7 @@ public abstract class RebalanceImpl {
 
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
+                    //change
                     List<MessageQueue> allocateResult = null;
                     try {
                         allocateResult = strategy.allocate(
@@ -743,6 +746,22 @@ public abstract class RebalanceImpl {
         }
 
         return changed;
+    }
+
+    public Map<String, String> getPopTopicRebalance() {
+        return popTopicRebalance;
+    }
+
+    public Map<String, String> getPullTopicRebalance() {
+        return pullTopicRebalance;
+    }
+
+    public void setPopTopicRebalance(Map<String, String> popTopicRebalance) {
+        this.popTopicRebalance = popTopicRebalance;
+    }
+
+    public void setPullTopicRebalance(Map<String, String> pullTopicRebalance) {
+        this.pullTopicRebalance = pullTopicRebalance;
     }
 
     public abstract void messageQueueChanged(final String topic, final Set<MessageQueue> mqAll,
