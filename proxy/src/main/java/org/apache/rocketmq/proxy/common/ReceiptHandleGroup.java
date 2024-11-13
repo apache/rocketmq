@@ -25,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -98,6 +99,7 @@ public class ReceiptHandleGroup {
 
     public static class HandleData {
         private final Semaphore semaphore = new Semaphore(1);
+        private final AtomicLong lastLockTimeMs = new AtomicLong(-1L);
         private volatile boolean needRemove = false;
         private volatile MessageReceiptHandle messageReceiptHandle;
 
@@ -105,15 +107,36 @@ public class ReceiptHandleGroup {
             this.messageReceiptHandle = messageReceiptHandle;
         }
 
-        public boolean lock(long timeoutMs) {
+        public Long lock(long timeoutMs) {
             try {
-                return this.semaphore.tryAcquire(timeoutMs, TimeUnit.MILLISECONDS);
+                boolean result = this.semaphore.tryAcquire(timeoutMs, TimeUnit.MILLISECONDS);
+                long currentTimeMs = System.currentTimeMillis();
+                if (result) {
+                    this.lastLockTimeMs.set(currentTimeMs);
+                    return currentTimeMs;
+                } else {
+                    // if the lock is expired, can be acquired again
+                    long expiredTimeMs = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 3;
+                    if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
+                        synchronized (this) {
+                            if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
+                                this.lastLockTimeMs.set(currentTimeMs);
+                                return currentTimeMs;
+                            }
+                        }
+                    }
+                }
+                return null;
             } catch (InterruptedException e) {
-                return false;
+                return null;
             }
         }
 
-        public void unlock() {
+        public void unlock(long lockTimeMs) {
+            // if the lock is expired, we don't need to unlock it
+            if (System.currentTimeMillis() - lockTimeMs > ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 2) {
+                return;
+            }
             this.semaphore.release();
         }
 
@@ -149,7 +172,8 @@ public class ReceiptHandleGroup {
             if (handleData == null || handleData.needRemove) {
                 return new HandleData(value);
             }
-            if (!handleData.lock(timeout)) {
+            Long lockTimeMs = handleData.lock(timeout);
+            if (lockTimeMs == null) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "try to put handle failed");
             }
             try {
@@ -158,7 +182,7 @@ public class ReceiptHandleGroup {
                 }
                 handleData.messageReceiptHandle = value;
             } finally {
-                handleData.unlock();
+                handleData.unlock(lockTimeMs);
             }
             return handleData;
         });
@@ -176,7 +200,8 @@ public class ReceiptHandleGroup {
         long timeout = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
         AtomicReference<MessageReceiptHandle> res = new AtomicReference<>();
         handleMap.computeIfPresent(new HandleKey(handle), (handleKey, handleData) -> {
-            if (!handleData.lock(timeout)) {
+            Long lockTimeMs = handleData.lock(timeout);
+            if (lockTimeMs == null) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "try to get handle failed");
             }
             try {
@@ -185,7 +210,7 @@ public class ReceiptHandleGroup {
                 }
                 res.set(handleData.messageReceiptHandle);
             } finally {
-                handleData.unlock();
+                handleData.unlock(lockTimeMs);
             }
             return handleData;
         });
@@ -200,7 +225,8 @@ public class ReceiptHandleGroup {
         long timeout = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
         AtomicReference<MessageReceiptHandle> res = new AtomicReference<>();
         handleMap.computeIfPresent(new HandleKey(handle), (handleKey, handleData) -> {
-            if (!handleData.lock(timeout)) {
+            Long lockTimeMs = handleData.lock(timeout);
+            if (lockTimeMs == null) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "try to remove and get handle failed");
             }
             try {
@@ -210,7 +236,7 @@ public class ReceiptHandleGroup {
                 }
                 return null;
             } finally {
-                handleData.unlock();
+                handleData.unlock(lockTimeMs);
             }
         });
         removeHandleMapKeyIfNeed(msgID);
@@ -240,7 +266,8 @@ public class ReceiptHandleGroup {
         }
         long timeout = ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup();
         handleMap.computeIfPresent(new HandleKey(handle), (handleKey, handleData) -> {
-            if (!handleData.lock(timeout)) {
+            Long lockTimeMs = handleData.lock(timeout);
+            if (lockTimeMs == null) {
                 throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, "try to compute failed");
             }
             CompletableFuture<MessageReceiptHandle> future = function.apply(handleData.messageReceiptHandle);
@@ -255,7 +282,7 @@ public class ReceiptHandleGroup {
                         handleData.messageReceiptHandle = messageReceiptHandle;
                     }
                 } finally {
-                    handleData.unlock();
+                    handleData.unlock(lockTimeMs);
                 }
                 if (handleData.needRemove) {
                     handleMap.remove(handleKey, handleData);
