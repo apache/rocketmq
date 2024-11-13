@@ -25,6 +25,7 @@ import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicy;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupRetryPolicyType;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,6 +39,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SubscriptionGroupManagerV2Test {
+
+    private MessageStoreConfig messageStoreConfig;
+
     private ConfigStorage configStorage;
 
     private SubscriptionGroupManagerV2 subscriptionGroupManagerV2;
@@ -68,7 +72,9 @@ public class SubscriptionGroupManagerV2Test {
         Mockito.doReturn(1L).when(messageStore).getStateMachineVersion();
 
         File configStoreDir = tf.newFolder();
-        configStorage = new ConfigStorage(configStoreDir.getAbsolutePath());
+        messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(configStoreDir.getAbsolutePath());
+        configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
         subscriptionGroupManagerV2 = new SubscriptionGroupManagerV2(controller, configStorage);
     }
@@ -98,7 +104,10 @@ public class SubscriptionGroupManagerV2Test {
 
         subscriptionGroupManagerV2.getSubscriptionGroupTable().clear();
         configStorage.shutdown();
+
+        configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
+        subscriptionGroupManagerV2 = new SubscriptionGroupManagerV2(controller, configStorage);
         subscriptionGroupManagerV2.load();
         found = subscriptionGroupManagerV2.findSubscriptionGroupConfig(subscriptionGroupConfig.getGroupName());
         Assert.assertEquals(subscriptionGroupConfig, found);
@@ -132,7 +141,11 @@ public class SubscriptionGroupManagerV2Test {
         Assert.assertNull(found);
 
         configStorage.shutdown();
+
+        configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
+
+        subscriptionGroupManagerV2 = new SubscriptionGroupManagerV2(controller, configStorage);
         subscriptionGroupManagerV2.load();
         found = subscriptionGroupManagerV2.findSubscriptionGroupConfig(subscriptionGroupConfig.getGroupName());
         Assert.assertNull(found);

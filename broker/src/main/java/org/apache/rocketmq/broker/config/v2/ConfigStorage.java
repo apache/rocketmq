@@ -16,15 +16,22 @@
  */
 package org.apache.rocketmq.broker.config.v2;
 
+import io.netty.buffer.PooledByteBufAllocatorMetric;
 import io.netty.util.internal.PlatformDependent;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.config.ConfigHelper;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.ReadOptions;
@@ -43,8 +50,37 @@ public class ConfigStorage extends AbstractRocksDBStorage {
     public static final String DATA_VERSION_KEY = "data_version";
     public static final byte[] DATA_VERSION_KEY_BYTES = DATA_VERSION_KEY.getBytes(StandardCharsets.UTF_8);
 
-    public ConfigStorage(String storePath) {
-        super(storePath + File.separator + "config" + File.separator + "rdb");
+    private final ScheduledExecutorService scheduledExecutorService;
+
+    /**
+     * Number of write ops since previous flush.
+     */
+    private final AtomicInteger writeOpsCounter;
+
+    private final MessageStoreConfig messageStoreConfig;
+
+    public ConfigStorage(MessageStoreConfig messageStoreConfig) {
+        super(messageStoreConfig.getStorePathRootDir() + File.separator + "config" + File.separator + "rdb");
+        this.messageStoreConfig = messageStoreConfig;
+        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("config_storage_"));
+        writeOpsCounter = new AtomicInteger(0);
+    }
+
+    private void statNettyMemory() {
+        PooledByteBufAllocatorMetric metric = AbstractRocksDBStorage.POOLED_ALLOCATOR.metric();
+        LOGGER.info("Netty Memory Usage: {}", metric);
+    }
+
+    @Override
+    public synchronized boolean start() {
+        boolean started = super.start();
+        if (started) {
+            scheduledExecutorService.scheduleWithFixedDelay(() -> statRocksdb(LOGGER), 1, 10, TimeUnit.SECONDS);
+            scheduledExecutorService.scheduleWithFixedDelay(this::statNettyMemory, 10, 10, TimeUnit.SECONDS);
+        } else {
+            LOGGER.error("Failed to start config storage");
+        }
+        return started;
     }
 
     @Override
@@ -58,7 +94,7 @@ public class ConfigStorage extends AbstractRocksDBStorage {
             initOptions();
             List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
 
-            ColumnFamilyOptions defaultOptions = ConfigHelper.createConfigOptions();
+            ColumnFamilyOptions defaultOptions = ConfigHelper.createConfigColumnFamilyOptions();
             this.cfOptions.add(defaultOptions);
             cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, defaultOptions));
 
@@ -66,7 +102,7 @@ public class ConfigStorage extends AbstractRocksDBStorage {
             open(cfDescriptors);
 
             this.defaultCFHandle = cfHandles.get(0);
-        } catch (final Exception e) {
+        } catch (Exception e) {
             AbstractRocksDBStorage.LOGGER.error("postLoad Failed. {}", this.dbPath, e);
             return false;
         }
@@ -75,7 +111,7 @@ public class ConfigStorage extends AbstractRocksDBStorage {
 
     @Override
     protected void preShutdown() {
-
+        scheduledExecutorService.shutdown();
     }
 
     protected void initOptions() {
@@ -105,6 +141,15 @@ public class ConfigStorage extends AbstractRocksDBStorage {
 
     public void write(WriteBatch writeBatch) throws RocksDBException {
         db.write(ableWalWriteOptions, writeBatch);
+        accountWriteOpsForWalFlush();
+    }
+
+    private void accountWriteOpsForWalFlush() throws RocksDBException {
+        int writeCount = writeOpsCounter.incrementAndGet();
+        if (writeCount >= messageStoreConfig.getRocksdbFlushWalFrequency()) {
+            this.db.flushWal(false);
+            writeOpsCounter.getAndAdd(-writeCount);
+        }
     }
 
     public RocksIterator iterate(ByteBuffer beginKey, ByteBuffer endKey) {

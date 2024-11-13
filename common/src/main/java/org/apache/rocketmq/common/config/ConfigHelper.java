@@ -38,7 +38,7 @@ import org.rocksdb.WALRecoveryMode;
 import org.rocksdb.util.SizeUnit;
 
 public class ConfigHelper {
-    public static ColumnFamilyOptions createConfigOptions() {
+    public static ColumnFamilyOptions createConfigColumnFamilyOptions() {
         BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig().
             setFormatVersion(5).
             setIndexType(IndexType.kBinarySearch).
@@ -46,7 +46,7 @@ public class ConfigHelper {
             setBlockSize(32 * SizeUnit.KB).
             setFilterPolicy(new BloomFilter(16, false)).
             // Indicating if we'd put index/filter blocks to the block cache.
-                setCacheIndexAndFilterBlocks(false).
+            setCacheIndexAndFilterBlocks(true).
             setCacheIndexAndFilterBlocksWithHighPriority(true).
             setPinL0FilterAndIndexBlocksInCache(false).
             setPinTopLevelIndexAndFilter(true).
@@ -55,8 +55,7 @@ public class ConfigHelper {
 
         ColumnFamilyOptions options = new ColumnFamilyOptions();
         return options.setMaxWriteBufferNumber(2).
-            // MemTable size, MemTable(cache) -> immutable MemTable(cache) -> SST(disk)
-                setWriteBufferSize(8 * SizeUnit.MB).
+            setWriteBufferSize(64 * SizeUnit.MB).
             setMinWriteBufferNumberToMerge(1).
             setTableFormatConfig(blockBasedTableConfig).
             setMemTableConfig(new SkipListMemTableConfig()).
@@ -67,17 +66,17 @@ public class ConfigHelper {
             setLevel0SlowdownWritesTrigger(8).
             setLevel0StopWritesTrigger(12).
             // The target file size for compaction.
-                setTargetFileSizeBase(64 * SizeUnit.MB).
+            setTargetFileSizeBase(64 * SizeUnit.MB).
             setTargetFileSizeMultiplier(2).
             // The upper-bound of the total size of L1 files in bytes
-                setMaxBytesForLevelBase(256 * SizeUnit.MB).
+            setMaxBytesForLevelBase(256 * SizeUnit.MB).
             setMaxBytesForLevelMultiplier(2).
             setMergeOperator(new StringAppendOperator()).
             setInplaceUpdateSupport(true);
     }
 
     public static DBOptions createConfigDBOptions() {
-        //Turn based on https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide
+        // Tune based on https://github.com/facebook/rocksdb/wiki/RocksDB-Tuning-Guide
         // and http://gitlab.alibaba-inc.com/aloha/aloha/blob/branch_2_5_0/jstorm-core/src/main/java/com/alibaba/jstorm/cache/rocksdb/RocksDbOptionsFactory.java
         DBOptions options = new DBOptions();
         Statistics statistics = new Statistics();
@@ -87,9 +86,12 @@ public class ConfigHelper {
             setInfoLogLevel(InfoLogLevel.INFO_LEVEL).
             setWalRecoveryMode(WALRecoveryMode.SkipAnyCorruptedRecords).
             setManualWalFlush(true).
-            setMaxTotalWalSize(500 * SizeUnit.MB).
-            setWalSizeLimitMB(0).
-            setWalTtlSeconds(0).
+            // This option takes effect only when we have multiple column families
+            // https://github.com/facebook/rocksdb/issues/4180
+            // setMaxTotalWalSize(1024 * SizeUnit.MB).
+            setDbWriteBufferSize(128 * SizeUnit.MB).
+            setBytesPerSync(SizeUnit.MB).
+            setWalBytesPerSync(SizeUnit.MB).
             setCreateIfMissing(true).
             setCreateMissingColumnFamilies(true).
             setMaxOpenFiles(-1).
@@ -99,7 +101,6 @@ public class ConfigHelper {
             setAllowConcurrentMemtableWrite(false).
             setStatistics(statistics).
             setStatsDumpPeriodSec(600).
-            setAtomicFlush(true).
             setMaxBackgroundJobs(32).
             setMaxSubcompactions(4).
             setParanoidChecks(true).

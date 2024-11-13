@@ -153,6 +153,8 @@ public class TopicConfigManagerV2 extends TopicConfigManager {
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
             ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
+            // fdatasync on core metadata change
+            this.persist();
         } catch (RocksDBException e) {
             log.error("Failed to update topic config", e);
         } finally {

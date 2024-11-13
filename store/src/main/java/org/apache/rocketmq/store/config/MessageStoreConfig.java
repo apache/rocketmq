@@ -444,6 +444,11 @@ public class MessageStoreConfig {
 
     private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
 
+    /**
+     * Flush RocksDB WAL frequency, aka, flush WAL every N write ops.
+     */
+    private int rocksdbFlushWalFrequency = 1024;
+
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
     }
@@ -1900,6 +1905,14 @@ public class MessageStoreConfig {
 
     public void setBottomMostCompressionTypeForConsumeQueueStore(String bottomMostCompressionTypeForConsumeQueueStore) {
         this.bottomMostCompressionTypeForConsumeQueueStore = bottomMostCompressionTypeForConsumeQueueStore;
+    }
+
+    public int getRocksdbFlushWalFrequency() {
+        return rocksdbFlushWalFrequency;
+    }
+
+    public void setRocksdbFlushWalFrequency(int rocksdbFlushWalFrequency) {
+        this.rocksdbFlushWalFrequency = rocksdbFlushWalFrequency;
     }
 
     public int getSpinLockCollisionRetreatOptimalDegree() {

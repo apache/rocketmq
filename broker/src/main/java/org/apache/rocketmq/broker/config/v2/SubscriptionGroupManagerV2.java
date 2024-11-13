@@ -139,6 +139,8 @@ public class SubscriptionGroupManagerV2 extends SubscriptionGroupManager {
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
             ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
+            // fdatasync on core metadata change
+            persist();
         } catch (RocksDBException e) {
             log.error("update subscription group config error", e);
         } finally {
