@@ -1105,6 +1105,16 @@ public class MQClientInstance {
         return true;
     }
 
+    public void setClientRebalance(boolean doRebalance, String group) {
+        MQConsumerInner consumerInner = this.consumerTable.get(group);
+        if (!(consumerInner instanceof DefaultMQPushConsumerImpl)) {
+            return;
+        }
+
+        DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumerInner;
+        impl.getDefaultMQPushConsumer().setClientRebalance(doRebalance);
+    }
+
     public MQProducerInner selectProducer(final String group) {
         return this.producerTable.get(group);
     }
