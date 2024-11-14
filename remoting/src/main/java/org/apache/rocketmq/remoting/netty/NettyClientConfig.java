@@ -59,8 +59,6 @@ public class NettyClientConfig {
 
     private boolean enableReconnectForGoAway = true;
 
-    private boolean enableTransparentRetry = true;
-
     public boolean isClientCloseSocketIfTimeout() {
         return clientCloseSocketIfTimeout;
     }
@@ -203,14 +201,6 @@ public class NettyClientConfig {
 
     public void setEnableReconnectForGoAway(boolean enableReconnectForGoAway) {
         this.enableReconnectForGoAway = enableReconnectForGoAway;
-    }
-
-    public boolean isEnableTransparentRetry() {
-        return enableTransparentRetry;
-    }
-
-    public void setEnableTransparentRetry(boolean enableTransparentRetry) {
-        this.enableTransparentRetry = enableTransparentRetry;
     }
 
     public String getSocksProxyConfig() {
