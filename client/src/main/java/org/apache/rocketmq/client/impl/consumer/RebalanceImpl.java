@@ -27,6 +27,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.impl.FindBrokerResult;
@@ -249,9 +252,16 @@ public abstract class RebalanceImpl {
                             balanced = false;
                         }
                     } else {
-                        boolean result = this.rebalanceByTopic(topic, isOrder);
-                        if (!result) {
-                            balanced = false;
+                        if (mQClientFactory.getClientConfig().getEnableRebalanceTransferInPop()) {
+                            boolean result = this.getRebalanceResultFromClient(topic, isOrder);
+                            if (!result) {
+                                balanced = false;
+                            }
+                        } else {
+                            boolean result = this.rebalanceByTopic(topic, isOrder);
+                            if (!result) {
+                                balanced = false;
+                            }
                         }
                     }
                 } catch (Throwable e) {
@@ -416,6 +426,97 @@ public abstract class RebalanceImpl {
         return mqSet.equals(getWorkingMessageQueue(topic));
     }
 
+    private boolean getRebalanceResultFromClient(final String topic, final boolean isOrder) {
+        String strategyName = this.allocateMessageQueueStrategy.getName();
+        Set<MessageQueueAssignment> messageQueueAssignments = null;
+        Set<MessageQueue> mqAll = null;
+        Set<MessageQueue> result = null;
+
+        switch (messageModel) {
+            case BROADCASTING: {
+                mqAll = this.getTopicSubscribeInfoTable().get(topic);
+                result = mqAll;
+                if (result == null) {
+                    log.warn("QueryLoad: no assignment for group[{}], the topic[{}] does not exist.", consumerGroup, topic);
+                }
+                break;
+            }
+            case CLUSTERING: {
+                mqAll = this.getTopicSubscribeInfoTable().get(topic);
+                List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
+
+                if (mqAll == null) {
+                    if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
+                        log.warn("doRebalance, {}, but the topic[{}] not exist.", consumerGroup, topic);
+                    }
+                    break;
+                }
+
+                // prepare for allocate
+                List<MessageQueue> mqList = new ArrayList<>(mqAll);
+                List<MessageQueue> allocateResult = null;
+                Collections.sort(mqList);
+                Collections.sort(cidAll);
+
+                try {
+                    if (popTopicRebalance.containsKey(topic)) {
+                        allocateResult = allocateInPop(this.mQClientFactory.getClientId(), mqList, cidAll, popTopicRebalance.get(topic));
+                    } else {
+                        if (!pullTopicRebalance.containsKey(topic)) {
+                            log.warn("topic[{}] not exist", topic);
+                            pullTopicRebalance.put(topic, topic);
+                        }
+                        allocateResult = allocateMessageQueueStrategy.allocate(consumerGroup, this.mQClientFactory.getClientId(), mqList, cidAll);
+                    }
+
+                    result = new HashSet<>();
+                    if (allocateResult != null) {
+                        result.addAll(allocateResult);
+                    }
+                    break;
+                } catch (Throwable e) {
+                    log.error("QueryLoad: no assignment for group[{}] topic[{}], allocate message queue exception. strategy name: {}, ex: {}", consumerGroup, topic, strategyName, e);
+                    break;
+                }
+            }
+            default:
+                break;
+        }
+
+        if (result != null) {
+            messageQueueAssignments = new HashSet<>();
+            for (MessageQueue mq : result) {
+                MessageQueueAssignment messageQueueAssignment = new MessageQueueAssignment();
+                messageQueueAssignment.setMessageQueue(mq);
+                if (popTopicRebalance.containsKey(topic)) {
+                    messageQueueAssignment.setMode(MessageRequestMode.POP);
+                } else {
+                    messageQueueAssignment.setMode(MessageRequestMode.PULL);
+                }
+                messageQueueAssignments.add(messageQueueAssignment);
+            }
+        }
+
+        // null means invalid result, we should skip the update logic
+        if (messageQueueAssignments == null) {
+            return false;
+        }
+
+        Set<MessageQueue> mqSet = new HashSet<>();
+        for (MessageQueueAssignment messageQueueAssignment : messageQueueAssignments) {
+            mqSet.add(messageQueueAssignment.getMessageQueue());
+        }
+
+        boolean changed = this.updateMessageQueueAssignment(topic, messageQueueAssignments, isOrder);
+        if (changed) {
+            log.info("client rebalanced result changed(transfer to client). allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, assignmentSet={}",
+                    strategyName, consumerGroup, topic, this.mQClientFactory.getClientId(), messageQueueAssignments);
+            this.messageQueueChanged(topic, mqAll, mqSet);
+        }
+
+        return mqSet.equals(getWorkingMessageQueue(topic));
+    }
+
     private Set<MessageQueue> getWorkingMessageQueue(String topic) {
         Set<MessageQueue> queueSet = new HashSet<>();
         for (Entry<MessageQueue, ProcessQueue> entry : this.processQueueTable.entrySet()) {
@@ -437,6 +538,64 @@ public abstract class RebalanceImpl {
         }
 
         return queueSet;
+    }
+
+    private List<MessageQueue> allocateInPop(String clientId, List<MessageQueue> mqAll, List<String> cidAll, int popShareQueueNum) {
+        List<MessageQueue> allocateResult;
+        if (popShareQueueNum <= 0 || popShareQueueNum >= cidAll.size() - 1) {
+            //each client pop all messagequeue
+            allocateResult = new ArrayList<>(mqAll.size());
+            for (MessageQueue mq : mqAll) {
+                //must create new MessageQueue in case of change cache in AssignmentManager
+                MessageQueue newMq = new MessageQueue(mq.getTopic(), mq.getBrokerName(), -1);
+                allocateResult.add(newMq);
+            }
+        } else {
+            if (cidAll.size() <= mqAll.size()) {
+                //consumer working in pop mode could share the MessageQueues assigned to the N (N = popWorkGroupSize) consumer following it in the cid list
+                allocateResult = allocateMessageQueueStrategy.allocate(consumerGroup, clientId, mqAll, cidAll);
+                int index = cidAll.indexOf(clientId);
+                if (index >= 0) {
+                    for (int i = 1; i <= popShareQueueNum; i++) {
+                        index++;
+                        index = index % cidAll.size();
+                        List<MessageQueue> tmp = allocateMessageQueueStrategy.allocate(consumerGroup, cidAll.get(index), mqAll, cidAll);
+                        allocateResult.addAll(tmp);
+                    }
+                }
+            } else {
+                allocateResult = allocate(consumerGroup, clientId, mqAll, cidAll);
+            }
+        }
+
+        return allocateResult;
+    }
+
+    private List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
+                                        List<String> cidAll) {
+        if (StringUtils.isBlank(currentCID)) {
+            throw new IllegalArgumentException("currentCID is empty");
+        }
+
+        if (CollectionUtils.isEmpty(mqAll)) {
+            throw new IllegalArgumentException("mqAll is null or mqAll empty");
+        }
+        if (CollectionUtils.isEmpty(cidAll)) {
+            throw new IllegalArgumentException("cidAll is null or cidAll empty");
+        }
+
+        List<MessageQueue> result = new ArrayList<>();
+        if (!cidAll.contains(currentCID)) {
+            log.info("[BUG] ConsumerGroup: {} The consumerId: {} not in cidAll: {}",
+                    consumerGroup,
+                    currentCID,
+                    cidAll);
+            return result;
+        }
+
+        int index = cidAll.indexOf(currentCID);
+        result.add(mqAll.get(index % mqAll.size()));
+        return result;
     }
 
     private void truncateMessageQueueNotMyTopic() {

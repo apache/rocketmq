@@ -111,6 +111,8 @@ public class ClientConfig {
      */
     protected String traceTopic;
 
+    private boolean enableRebalanceTransferInPop = false;
+
     public String buildMQClientId() {
         StringBuilder sb = new StringBuilder();
         sb.append(this.getClientIP());
@@ -515,6 +517,14 @@ public class ClientConfig {
         this.traceTopic = traceTopic;
     }
 
+    public boolean getEnableRebalanceTransferInPop() {
+        return enableRebalanceTransferInPop;
+    }
+
+    public void setEnableRebalanceTransferInPop(boolean enableRebalanceTransferInPop) {
+        this.enableRebalanceTransferInPop = enableRebalanceTransferInPop;
+    }
+
     @Override
     public String toString() {
         return "ClientConfig{" +
@@ -548,6 +558,7 @@ public class ClientConfig {
             ", enableHeartbeatChannelEventListener=" + enableHeartbeatChannelEventListener +
             ", enableTrace=" + enableTrace +
             ", traceTopic='" + traceTopic + '\'' +
+            ", enableRebalanceTransfer=" + enableRebalanceTransferInPop +
             '}';
     }
 }

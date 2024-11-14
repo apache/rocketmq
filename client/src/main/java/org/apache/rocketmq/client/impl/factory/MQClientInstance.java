@@ -1080,10 +1080,14 @@ public class MQClientInstance {
         return balanced;
     }
 
-    public boolean updateRebalanceByBrokerAndClientMap(String group, String topic, MessageRequestMode requestMode, int popShareQueueNum) {
+    public void updateRebalanceByBrokerAndClientMap(String group, String topic, MessageRequestMode requestMode, int popShareQueueNum) {
+        if (!clientConfig.getEnableRebalanceTransferInPop()) {
+            return;
+        }
+
         MQConsumerInner consumerInner = this.consumerTable.get(group);
         if (!(consumerInner instanceof DefaultMQPushConsumerImpl)) {
-            return true;
+            return;
         }
 
         DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumerInner;
@@ -1096,13 +1100,11 @@ public class MQClientInstance {
                 popTopicRebalance.put(topic, popShareQueueNum);
             }
         } else {
-            if (!popTopicRebalance.containsKey(topic)) {
+            if (!pullTopicRebalance.containsKey(topic)) {
                 popTopicRebalance.remove(topic);
                 pullTopicRebalance.put(topic, topic);
             }
         }
-
-        return true;
     }
 
     public void setClientRebalance(boolean doRebalance, String group) {
