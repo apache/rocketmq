@@ -29,11 +29,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ReceiptHandle;
 import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 
 public class ReceiptHandleGroup {
+    protected final static Logger log = LoggerFactory.getLogger(LoggerName.PROXY_LOGGER_NAME);
 
     // The messages having the same messageId will be deduplicated based on the parameters of broker, queueId, and offset
     protected final Map<String /* msgID */, Map<HandleKey, HandleData>> receiptHandleMap = new ConcurrentHashMap<>();
@@ -120,6 +124,8 @@ public class ReceiptHandleGroup {
                     if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
                         synchronized (this) {
                             if (currentTimeMs - this.lastLockTimeMs.get() > expiredTimeMs) {
+                                log.warn("HandleData lock expired, acquire lock success and reset lock time. " +
+                                    "MessageReceiptHandle={}, lockTime={}", messageReceiptHandle, currentTimeMs);
                                 this.lastLockTimeMs.set(currentTimeMs);
                                 return currentTimeMs;
                             }
@@ -135,6 +141,8 @@ public class ReceiptHandleGroup {
         public void unlock(long lockTimeMs) {
             // if the lock is expired, we don't need to unlock it
             if (System.currentTimeMillis() - lockTimeMs > ConfigurationManager.getProxyConfig().getLockTimeoutMsInHandleGroup() * 2) {
+                log.warn("HandleData lock expired, unlock fail. MessageReceiptHandle={}, lockTime={}, now={}",
+                    messageReceiptHandle, lockTimeMs, System.currentTimeMillis());
                 return;
             }
             this.semaphore.release();
