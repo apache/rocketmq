@@ -19,6 +19,8 @@ package org.apache.rocketmq.client.impl.consumer;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.rebalance.AllocateMessageQueueAveragely;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -61,6 +63,7 @@ public class RebalancePushImplTest {
     private DefaultMQPushConsumer consumer = new DefaultMQPushConsumer();
     private MQClientInstance client = mock(MQClientInstance.class);
     private MQAdminImpl admin = mock(MQAdminImpl.class);
+    private ClientConfig clientConfig = mock(ClientConfig.class);
 
     public RebalancePushImplTest() {
         when(consumerImpl.getDefaultMQPushConsumer()).thenReturn(consumer);
@@ -108,6 +111,8 @@ public class RebalancePushImplTest {
         when(mqClientInstance.findConsumerIdList(anyString(), anyString())).thenReturn(Collections.singletonList(consumerGroup));
         when(mqClientInstance.getClientId()).thenReturn(consumerGroup);
         when(defaultMQPushConsumer.getOffsetStore()).thenReturn(offsetStore);
+        when(mqClientInstance.getClientConfig()).thenReturn(clientConfig);
+        when(clientConfig.getEnableRebalanceTransferInPop()).thenReturn(false);
     }
 
     @Test
