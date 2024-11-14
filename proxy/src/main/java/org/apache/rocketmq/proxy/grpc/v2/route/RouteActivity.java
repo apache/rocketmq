@@ -254,7 +254,7 @@ public class RouteActivity extends AbstractMessingActivity {
         } else if (PermName.isReadable(queueData.getPerm())) {
             r = queueData.getReadQueueNums();
         } else if (PermName.isNone(queueData.getPerm())) {
-            n = 1;
+            n = Math.max(queueData.getWriteQueueNums(), queueData.getReadQueueNums());
         }
 
         // r here means readOnly queue nums, w means writeOnly queue nums, while rw means both readable and writable queue nums.
