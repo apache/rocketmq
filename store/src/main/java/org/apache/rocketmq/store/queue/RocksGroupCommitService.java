@@ -69,27 +69,33 @@ public class RocksGroupCommitService extends ServiceThread {
     }
 
     private void doCommit() {
-        boolean interrupted = false;
-        while (!buffer.isEmpty() && !interrupted) {
-            DispatchRequest dispatchRequest = buffer.poll();
-            if (null != dispatchRequest) {
-                requests.add(dispatchRequest);
-            }
-
-            if (requests.isEmpty()) {
-                break;
-            }
-
-            if (null == dispatchRequest || requests.size() >= PREFERRED_DISPATCH_REQUEST_COUNT) {
-                while (!store.isStopped()) {
-                    try {
-                        // putMessagePosition will clear requests after consume queue building completion
-                        store.putMessagePosition(requests);
-                        break;
-                    } catch (RocksDBException e) {
-                        log.error("Failed to build consume queue in RocksDB", e);
-                    }
+        while (!buffer.isEmpty()) {
+            while (true) {
+                DispatchRequest dispatchRequest = buffer.poll();
+                if (null != dispatchRequest) {
+                    requests.add(dispatchRequest);
                 }
+
+                if (requests.isEmpty()) {
+                    // buffer has been drained
+                    break;
+                }
+
+                if (null == dispatchRequest || requests.size() >= PREFERRED_DISPATCH_REQUEST_COUNT) {
+                    groupCommit();
+                }
+            }
+        }
+    }
+
+    private void groupCommit() {
+        while (!store.isStopped()) {
+            try {
+                // putMessagePosition will clear requests after consume queue building completion
+                store.putMessagePosition(requests);
+                break;
+            } catch (RocksDBException e) {
+                log.error("Failed to build consume queue in RocksDB", e);
             }
         }
     }

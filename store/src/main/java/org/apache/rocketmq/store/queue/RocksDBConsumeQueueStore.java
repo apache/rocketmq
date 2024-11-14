@@ -530,16 +530,6 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     }
 
     @Override
-    public ConcurrentMap<Integer, ConsumeQueueInterface> findConsumeQueueMap(String topic) {
-        if (MixAll.isLmq(topic)) {
-            ConcurrentMap<Integer, ConsumeQueueInterface> result = new ConcurrentHashMap<>(1);
-            result.put(MixAll.LMQ_QUEUE_ID, findOrCreateConsumeQueue(topic, MixAll.LMQ_QUEUE_ID));
-            return result;
-        }
-        return super.findConsumeQueueMap(topic);
-    }
-
-    @Override
     public long rollNextFile(ConsumeQueueInterface consumeQueue, long offset) {
         return 0;
     }
