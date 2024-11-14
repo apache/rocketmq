@@ -51,31 +51,13 @@ public class RebalanceService extends ServiceThread {
     public void run() {
         log.info(this.getServiceName() + " service started");
 
-        if (mqClientFactory.getClientConfig().getEnableRebalanceTransferInPop()) {
-            scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-            scheduledExecutorService.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    MessageRequestModeSerializeWrapper messageRequestModeSerializeWrapper = new MessageRequestModeSerializeWrapper();//mqClientFactory.getMQAdminImpl();
-                    ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> msgRqCodes = messageRequestModeSerializeWrapper.getMessageRequestModeMap();
-                    Set<String> groupSet = new HashSet<>();
-                    for (Map.Entry<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> topicEntry : msgRqCodes.entrySet()) {
-                        for (Map.Entry<String, SetMessageRequestModeRequestBody> groupEntry : topicEntry.getValue().entrySet()) {
-                            mqClientFactory.updateRebalanceByBrokerAndClientMap(groupEntry.getKey(), topicEntry.getKey(),
-                                    groupEntry.getValue().getMode(), groupEntry.getValue().getPopShareQueueNum());
-                            groupSet.add(groupEntry.getKey());
-                        }
-                    }
-
-                    for (String group : groupSet) {
-                        mqClientFactory.setClientRebalance(true, group);
-                    }
-                }
-            }, 1, TimeUnit.MINUTES);
-        }
-
         long realWaitInterval = waitInterval;
         while (!this.isStopped()) {
+            if (mqClientFactory.getClientConfig().getEnableRebalanceTransferInPop()) {
+                if (scheduledExecutorService == null) {
+                    initScheduleTask();
+                }
+            }
             this.waitForRunning(realWaitInterval);
 
             long interval = System.currentTimeMillis() - lastRebalanceTimestamp;
@@ -94,5 +76,32 @@ public class RebalanceService extends ServiceThread {
     @Override
     public String getServiceName() {
         return RebalanceService.class.getSimpleName();
+    }
+
+    private void initScheduleTask() {
+        if (scheduledExecutorService == null) {
+            if (mqClientFactory.getClientConfig().getEnableRebalanceTransferInPop()) {
+                scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+                scheduledExecutorService.schedule(new Runnable() {
+                    @Override
+                    public void run() {
+                        MessageRequestModeSerializeWrapper messageRequestModeSerializeWrapper = new MessageRequestModeSerializeWrapper();//mqClientFactory.getMQAdminImpl();
+                        ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> msgRqCodes = messageRequestModeSerializeWrapper.getMessageRequestModeMap();
+                        Set<String> groupSet = new HashSet<>();
+                        for (Map.Entry<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> topicEntry : msgRqCodes.entrySet()) {
+                            for (Map.Entry<String, SetMessageRequestModeRequestBody> groupEntry : topicEntry.getValue().entrySet()) {
+                                mqClientFactory.updateRebalanceByBrokerAndClientMap(groupEntry.getKey(), topicEntry.getKey(),
+                                        groupEntry.getValue().getMode(), groupEntry.getValue().getPopShareQueueNum());
+                                groupSet.add(groupEntry.getKey());
+                            }
+                        }
+
+                        for (String group : groupSet) {
+                            mqClientFactory.setClientRebalance(true, group);
+                        }
+                    }
+                }, 1, TimeUnit.MINUTES);
+            }
+        }
     }
 }
