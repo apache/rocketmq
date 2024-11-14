@@ -272,6 +272,20 @@ public class RouteActivityTest extends BaseActivityTest {
         assertEquals(4, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
         assertEquals(4, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
         assertEquals(0, partitionWith4R8WPermRW.stream().filter(a -> a.getPermission() == Permission.READ).count());
+
+        // test queueData with 2 read queues, 2 write queues, and no permission, expect 2 no permission queues.
+        QueueData queueDataWith2R2WNoPerm = createQueueData(2, 2, 0);
+        List<MessageQueue> partitionWith2R2WNoPerm = this.routeActivity.genMessageQueueFromQueueData(queueDataWith2R2WNoPerm, GRPC_TOPIC, TopicMessageType.UNSPECIFIED, GRPC_BROKER);
+        assertEquals(2, partitionWith2R2WNoPerm.size());
+        assertEquals(2, partitionWith2R2WNoPerm.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.MESSAGE_TYPE_UNSPECIFIED.getNumber()).count());
+        assertEquals(2, partitionWith2R2WNoPerm.stream().filter(a -> a.getPermission() == Permission.NONE).count());
+
+        // test queueData with 0 read queues, 0 write queues, and no permission, expect 1 no permission queue.
+        QueueData queueDataWith0R0WNoPerm = createQueueData(0, 0, 0);
+        List<MessageQueue> partitionWith0R0WNoPerm = this.routeActivity.genMessageQueueFromQueueData(queueDataWith0R0WNoPerm, GRPC_TOPIC, TopicMessageType.UNSPECIFIED, GRPC_BROKER);
+        assertEquals(1, partitionWith0R0WNoPerm.size());
+        assertEquals(1, partitionWith0R0WNoPerm.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.MESSAGE_TYPE_UNSPECIFIED.getNumber()).count());
+        assertEquals(1, partitionWith0R0WNoPerm.stream().filter(a -> a.getPermission() == Permission.NONE).count());
     }
 
     private static QueueData createQueueData(int r, int w, int perm) {
