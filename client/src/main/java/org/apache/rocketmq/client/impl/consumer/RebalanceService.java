@@ -20,16 +20,6 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.remoting.protocol.body.MessageRequestModeSerializeWrapper;
-import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class RebalanceService extends ServiceThread {
     private static long waitInterval =
@@ -40,7 +30,6 @@ public class RebalanceService extends ServiceThread {
             "rocketmq.client.rebalance.minInterval", "1000"));
     private final Logger log = LoggerFactory.getLogger(RebalanceService.class);
     private final MQClientInstance mqClientFactory;
-    private ScheduledExecutorService scheduledExecutorService;
     private long lastRebalanceTimestamp = System.currentTimeMillis();
 
     public RebalanceService(MQClientInstance mqClientFactory) {
@@ -53,11 +42,6 @@ public class RebalanceService extends ServiceThread {
 
         long realWaitInterval = waitInterval;
         while (!this.isStopped()) {
-            if (mqClientFactory.getClientConfig().getEnableRebalanceTransferInPop()) {
-                if (scheduledExecutorService == null) {
-                    initScheduleTask();
-                }
-            }
             this.waitForRunning(realWaitInterval);
 
             long interval = System.currentTimeMillis() - lastRebalanceTimestamp;
@@ -76,32 +60,5 @@ public class RebalanceService extends ServiceThread {
     @Override
     public String getServiceName() {
         return RebalanceService.class.getSimpleName();
-    }
-
-    private void initScheduleTask() {
-        if (scheduledExecutorService == null) {
-            if (mqClientFactory.getClientConfig().getEnableRebalanceTransferInPop()) {
-                scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-                scheduledExecutorService.schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        MessageRequestModeSerializeWrapper messageRequestModeSerializeWrapper = new MessageRequestModeSerializeWrapper();//mqClientFactory.getMQAdminImpl();
-                        ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> msgRqCodes = messageRequestModeSerializeWrapper.getMessageRequestModeMap();
-                        Set<String> groupSet = new HashSet<>();
-                        for (Map.Entry<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> topicEntry : msgRqCodes.entrySet()) {
-                            for (Map.Entry<String, SetMessageRequestModeRequestBody> groupEntry : topicEntry.getValue().entrySet()) {
-                                mqClientFactory.updateRebalanceByBrokerAndClientMap(groupEntry.getKey(), topicEntry.getKey(),
-                                        groupEntry.getValue().getMode(), groupEntry.getValue().getPopShareQueueNum());
-                                groupSet.add(groupEntry.getKey());
-                            }
-                        }
-
-                        for (String group : groupSet) {
-                            mqClientFactory.setClientRebalance(true, group);
-                        }
-                    }
-                }, 1, TimeUnit.MINUTES);
-            }
-        }
     }
 }

@@ -16,8 +16,13 @@
  */
 package org.apache.rocketmq.client.impl.consumer;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
@@ -31,6 +36,8 @@ import org.apache.rocketmq.common.constant.ConsumeInitMode;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
+import org.apache.rocketmq.remoting.protocol.body.MessageRequestModeSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -38,7 +45,7 @@ import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 public class RebalancePushImpl extends RebalanceImpl {
     private final static long UNLOCK_DELAY_TIME_MILLS = Long.parseLong(System.getProperty("rocketmq.client.unlockDelayTimeMills", "20000"));
     private final DefaultMQPushConsumerImpl defaultMQPushConsumerImpl;
-
+    private ScheduledExecutorService scheduledExecutorService;
 
     public RebalancePushImpl(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
         this(null, null, null, null, defaultMQPushConsumerImpl);
@@ -287,5 +294,48 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public PopProcessQueue createPopProcessQueue() {
         return new PopProcessQueue();
+    }
+
+    public void initScheduleTask() {
+        if (scheduledExecutorService == null) {
+            if (this.mQClientFactory.getClientConfig().getEnableRebalanceTransferInPop()) {
+                scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+                scheduledExecutorService.schedule(new Runnable() {
+                    @Override
+                    public void run() {
+                        MessageRequestModeSerializeWrapper messageRequestModeSerializeWrapper = null;
+                        for (String topic : getPopTopicRebalance().keySet()) {
+                            try {
+                                messageRequestModeSerializeWrapper = mQClientFactory.getMQClientAPIImpl().getAllMessageRequestMode(
+                                        mQClientFactory.findBrokerAddrByTopic(topic), 3000);
+                                break;
+                            } catch (Exception e) {
+                                log.warn("get allMessageRequestMode failed, topic={}, exception={}", topic, e.toString());
+                            }
+                        }
+
+                        ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> msgRqCodes = null;
+                        if (messageRequestModeSerializeWrapper != null) {
+                            msgRqCodes = messageRequestModeSerializeWrapper.getMessageRequestModeMap();
+                        } else {
+                            return;
+                        }
+
+                        Set<String> groupSet = new HashSet<>();
+                        for (Map.Entry<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> topicEntry : msgRqCodes.entrySet()) {
+                            for (Map.Entry<String, SetMessageRequestModeRequestBody> groupEntry : topicEntry.getValue().entrySet()) {
+                                mQClientFactory.updateRebalanceByBrokerAndClientMap(groupEntry.getKey(), topicEntry.getKey(),
+                                        groupEntry.getValue().getMode(), groupEntry.getValue().getPopShareQueueNum());
+                                groupSet.add(groupEntry.getKey());
+                            }
+                        }
+
+                        for (String group : groupSet) {
+                            mQClientFactory.setClientRebalance(true, group);
+                        }
+                    }
+                }, 1, TimeUnit.MINUTES);
+            }
+        }
     }
 }
