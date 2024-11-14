@@ -318,14 +318,16 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
 
         final String consumerGroup = requestBody.getConsumerGroup();
         ConsumerGroupInfo consumerGroupInfo =
-                this.brokerController.getConsumerManager().getConsumerGroupInfo(consumerGroup);
+            this.brokerController.getConsumerManager().getConsumerGroupInfo(consumerGroup);
 
         this.messageRequestModeManager.setMessageRequestMode(topic, consumerGroup, requestBody);
         this.messageRequestModeManager.persist();
 
-        for (Channel channel : consumerGroupInfo.getAllChannel()) {
-            this.brokerController.getBroker2Client().notifyMessageRequestModeChange(channel, consumerGroup, requestBody.getTopic(),
-                requestBody.getMode(), requestBody.getPopShareQueueNum());
+        if (consumerGroupInfo != null) {
+            for (Channel channel : consumerGroupInfo.getAllChannel()) {
+                this.brokerController.getBroker2Client().notifyMessageRequestModeChange(channel, consumerGroup, requestBody.getTopic(),
+                    requestBody.getMode(), requestBody.getPopShareQueueNum());
+            }
         }
 
         response.setCode(ResponseCode.SUCCESS);
