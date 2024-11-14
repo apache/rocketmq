@@ -69,7 +69,7 @@ public class PermName {
         return (perm & PERM_PRIORITY) == PERM_PRIORITY;
     }
 
-    public static boolean isNone(final int perm) {
-        return perm == 0;
+    public static boolean isAccessible(final int perm) {
+        return isReadable(perm) || isWriteable(perm);
     }
 }

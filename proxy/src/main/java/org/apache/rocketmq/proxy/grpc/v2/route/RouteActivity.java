@@ -253,7 +253,7 @@ public class RouteActivity extends AbstractMessingActivity {
             w = queueData.getWriteQueueNums();
         } else if (PermName.isReadable(queueData.getPerm())) {
             r = queueData.getReadQueueNums();
-        } else if (PermName.isNone(queueData.getPerm())) {
+        } else if (!PermName.isAccessible(queueData.getPerm())) {
             n = Math.max(1, Math.max(queueData.getWriteQueueNums(), queueData.getReadQueueNums()));
         }
 
