@@ -56,6 +56,7 @@ import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.client.rpchook.NamespaceRpcHook;
 import org.apache.rocketmq.common.BoundaryType;
+import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
@@ -113,7 +114,6 @@ import org.apache.rocketmq.remoting.protocol.body.BrokerMemberGroup;
 import org.apache.rocketmq.remoting.protocol.body.BrokerReplicasInfo;
 import org.apache.rocketmq.remoting.protocol.body.BrokerStatsData;
 import org.apache.rocketmq.remoting.protocol.body.CheckClientRequestBody;
-import org.apache.rocketmq.remoting.protocol.body.CheckRocksdbCqWriteProgressResponseBody;
 import org.apache.rocketmq.remoting.protocol.body.ClusterAclVersionInfo;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.ConsumeMessageDirectlyResult;
@@ -3020,15 +3020,16 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
-    public CheckRocksdbCqWriteProgressResponseBody checkRocksdbCqWriteProgress(final String brokerAddr, final String topic, final long timeoutMillis) throws InterruptedException,
+    public CheckRocksdbCqWriteResult checkRocksdbCqWriteProgress(final String brokerAddr, final String topic, final long checkStoreTime, final long timeoutMillis) throws InterruptedException,
         RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
         CheckRocksdbCqWriteProgressRequestHeader header = new CheckRocksdbCqWriteProgressRequestHeader();
         header.setTopic(topic);
+        header.setCheckStoreTime(checkStoreTime);
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHECK_ROCKSDB_CQ_WRITE_PROGRESS, header);
         RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
         assert response != null;
         if (ResponseCode.SUCCESS == response.getCode()) {
-            return CheckRocksdbCqWriteProgressResponseBody.decode(response.getBody(), CheckRocksdbCqWriteProgressResponseBody.class);
+            return JSON.parseObject(response.getBody(), CheckRocksdbCqWriteResult.class);
         }
         throw new MQClientException(response.getCode(), response.getRemark());
     }

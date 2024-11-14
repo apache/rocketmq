@@ -32,6 +32,8 @@ public class CheckRocksdbCqWriteProgressRequestHeader implements CommandCustomHe
     @RocketMQResource(ResourceType.TOPIC)
     private String topic;
 
+    private long checkStoreTime;
+
     @Override
     public void checkFields() throws RemotingCommandException {
 
@@ -44,4 +46,13 @@ public class CheckRocksdbCqWriteProgressRequestHeader implements CommandCustomHe
     public void setTopic(String topic) {
         this.topic = topic;
     }
+
+    public long getCheckStoreTime() {
+        return checkStoreTime;
+    }
+
+    public void setCheckStoreTime(long checkStoreTime) {
+        this.checkStoreTime = checkStoreTime;
+    }
+
 }
