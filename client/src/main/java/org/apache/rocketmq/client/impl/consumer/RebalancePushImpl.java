@@ -24,6 +24,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.rocketmq.client.consumer.AllocateMessageQueueStrategy;
 import org.apache.rocketmq.client.consumer.MessageQueueListener;
 import org.apache.rocketmq.client.consumer.store.OffsetStore;
@@ -49,6 +50,7 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     public RebalancePushImpl(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
         this(null, null, null, null, defaultMQPushConsumerImpl);
+        initScheduleTask();
     }
 
     public RebalancePushImpl(String consumerGroup, MessageModel messageModel,
@@ -56,6 +58,7 @@ public class RebalancePushImpl extends RebalanceImpl {
         MQClientInstance mQClientFactory, DefaultMQPushConsumerImpl defaultMQPushConsumerImpl) {
         super(consumerGroup, messageModel, allocateMessageQueueStrategy, mQClientFactory);
         this.defaultMQPushConsumerImpl = defaultMQPushConsumerImpl;
+        initScheduleTask();
     }
 
     @Override
@@ -298,13 +301,27 @@ public class RebalancePushImpl extends RebalanceImpl {
 
     public void initScheduleTask() {
         if (scheduledExecutorService == null) {
-            if (this.mQClientFactory.getClientConfig().getEnableRebalanceTransferInPop()) {
-                scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-                scheduledExecutorService.schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        MessageRequestModeSerializeWrapper messageRequestModeSerializeWrapper = null;
-                        for (String topic : getPopTopicRebalance().keySet()) {
+            scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+            scheduledExecutorService.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    if (!mQClientFactory.getClientConfig().getEnableRebalanceTransferInPop()) {
+                        return;
+                    }
+
+                    MessageRequestModeSerializeWrapper messageRequestModeSerializeWrapper = null;
+                    for (String topic : getPopTopicRebalance().keySet()) {
+                        try {
+                            messageRequestModeSerializeWrapper = mQClientFactory.getMQClientAPIImpl().getAllMessageRequestMode(
+                                mQClientFactory.findBrokerAddrByTopic(topic), 3000);
+                            break;
+                        } catch (Exception e) {
+                            log.warn("get allMessageRequestMode failed, topic={}, exception={}", topic, e.toString());
+                        }
+                    }
+
+                    if (messageRequestModeSerializeWrapper == null) {
+                        for (String topic : getPullTopicRebalance().keySet()) {
                             try {
                                 messageRequestModeSerializeWrapper = mQClientFactory.getMQClientAPIImpl().getAllMessageRequestMode(
                                         mQClientFactory.findBrokerAddrByTopic(topic), 3000);
@@ -313,29 +330,29 @@ public class RebalancePushImpl extends RebalanceImpl {
                                 log.warn("get allMessageRequestMode failed, topic={}, exception={}", topic, e.toString());
                             }
                         }
+                    }
 
-                        ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> msgRqCodes = null;
-                        if (messageRequestModeSerializeWrapper != null) {
-                            msgRqCodes = messageRequestModeSerializeWrapper.getMessageRequestModeMap();
-                        } else {
-                            return;
-                        }
+                    ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> msgRqCodes = null;
+                    if (messageRequestModeSerializeWrapper != null) {
+                        msgRqCodes = messageRequestModeSerializeWrapper.getMessageRequestModeMap();
+                    } else {
+                        return;
+                    }
 
-                        Set<String> groupSet = new HashSet<>();
-                        for (Map.Entry<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> topicEntry : msgRqCodes.entrySet()) {
-                            for (Map.Entry<String, SetMessageRequestModeRequestBody> groupEntry : topicEntry.getValue().entrySet()) {
-                                mQClientFactory.updateRebalanceByBrokerAndClientMap(groupEntry.getKey(), topicEntry.getKey(),
-                                        groupEntry.getValue().getMode(), groupEntry.getValue().getPopShareQueueNum());
-                                groupSet.add(groupEntry.getKey());
-                            }
-                        }
-
-                        for (String group : groupSet) {
-                            mQClientFactory.setClientRebalance(true, group);
+                    Set<String> groupSet = new HashSet<>();
+                    for (Map.Entry<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> topicEntry : msgRqCodes.entrySet()) {
+                        for (Map.Entry<String, SetMessageRequestModeRequestBody> groupEntry : topicEntry.getValue().entrySet()) {
+                            mQClientFactory.updateRebalanceByBrokerAndClientMap(groupEntry.getKey(), topicEntry.getKey(),
+                                groupEntry.getValue().getMode(), groupEntry.getValue().getPopShareQueueNum());
+                            groupSet.add(groupEntry.getKey());
                         }
                     }
-                }, 1, TimeUnit.MINUTES);
-            }
+
+                    for (String group : groupSet) {
+                        mQClientFactory.setClientRebalance(true, group);
+                    }
+                }
+            }, 1, TimeUnit.MINUTES);
         }
     }
 }
