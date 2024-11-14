@@ -70,6 +70,6 @@ public class PermName {
     }
 
     public static boolean isNone(final int perm) {
-    return perm == 0;
-}
+        return perm == 0;
+    }
 }
