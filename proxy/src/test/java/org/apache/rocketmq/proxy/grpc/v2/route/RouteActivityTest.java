@@ -279,6 +279,9 @@ public class RouteActivityTest extends BaseActivityTest {
         assertEquals(2, partitionWith2R2WNoPerm.size());
         assertEquals(2, partitionWith2R2WNoPerm.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.MESSAGE_TYPE_UNSPECIFIED.getNumber()).count());
         assertEquals(2, partitionWith2R2WNoPerm.stream().filter(a -> a.getPermission() == Permission.NONE).count());
+        assertEquals(0, partitionWith2R2WNoPerm.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
+        assertEquals(0, partitionWith2R2WNoPerm.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
+        assertEquals(0, partitionWith2R2WNoPerm.stream().filter(a -> a.getPermission() == Permission.READ).count());
 
         // test queueData with 0 read queues, 0 write queues, and no permission, expect 1 no permission queue.
         QueueData queueDataWith0R0WNoPerm = createQueueData(0, 0, 0);
@@ -286,6 +289,9 @@ public class RouteActivityTest extends BaseActivityTest {
         assertEquals(1, partitionWith0R0WNoPerm.size());
         assertEquals(1, partitionWith0R0WNoPerm.stream().filter(a -> a.getAcceptMessageTypesValue(0) == MessageType.MESSAGE_TYPE_UNSPECIFIED.getNumber()).count());
         assertEquals(1, partitionWith0R0WNoPerm.stream().filter(a -> a.getPermission() == Permission.NONE).count());
+        assertEquals(0, partitionWith0R0WNoPerm.stream().filter(a -> a.getPermission() == Permission.WRITE).count());
+        assertEquals(0, partitionWith0R0WNoPerm.stream().filter(a -> a.getPermission() == Permission.READ_WRITE).count());
+        assertEquals(0, partitionWith0R0WNoPerm.stream().filter(a -> a.getPermission() == Permission.READ).count());
     }
 
     private static QueueData createQueueData(int r, int w, int perm) {
