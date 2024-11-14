@@ -2181,7 +2181,9 @@ public class CommitLog implements Swappable {
                 if (!CommitLog.this.defaultMessageStore.isTransientStorePoolEnable()) {
                     flushCommitLogService.wakeup();
                 } else {
-                    commitRealTimeService.wakeup();
+                    if (defaultMessageStore.getMessageStoreConfig().isWakeCommitWhenPutMessage()) {
+                        commitRealTimeService.wakeup();
+                    }
                 }
             }
         }
