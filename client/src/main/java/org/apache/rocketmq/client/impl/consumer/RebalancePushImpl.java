@@ -308,51 +308,55 @@ public class RebalancePushImpl extends RebalanceImpl {
                     if (!mQClientFactory.getClientConfig().getEnableRebalanceTransferInPop()) {
                         return;
                     }
-
-                    MessageRequestModeSerializeWrapper messageRequestModeSerializeWrapper = null;
-                    for (String topic : getPopTopicRebalance().keySet()) {
-                        try {
-                            messageRequestModeSerializeWrapper = mQClientFactory.getMQClientAPIImpl().getAllMessageRequestMode(
-                                mQClientFactory.findBrokerAddrByTopic(topic), 3000);
-                            break;
-                        } catch (Exception e) {
-                            log.warn("get allMessageRequestMode failed, topic={}, exception={}", topic, e.toString());
-                        }
-                    }
-
-                    if (messageRequestModeSerializeWrapper == null) {
-                        for (String topic : getPullTopicRebalance().keySet()) {
-                            try {
-                                messageRequestModeSerializeWrapper = mQClientFactory.getMQClientAPIImpl().getAllMessageRequestMode(
-                                        mQClientFactory.findBrokerAddrByTopic(topic), 3000);
-                                break;
-                            } catch (Exception e) {
-                                log.warn("get allMessageRequestMode failed, topic={}, exception={}", topic, e.toString());
-                            }
-                        }
-                    }
-
-                    ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> msgRqCodes = null;
-                    if (messageRequestModeSerializeWrapper != null) {
-                        msgRqCodes = messageRequestModeSerializeWrapper.getMessageRequestModeMap();
-                    } else {
-                        return;
-                    }
-
-                    Set<String> groupSet = new HashSet<>();
-                    for (Map.Entry<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> topicEntry : msgRqCodes.entrySet()) {
-                        for (Map.Entry<String, SetMessageRequestModeRequestBody> groupEntry : topicEntry.getValue().entrySet()) {
-                            mQClientFactory.updateRebalanceByBrokerAndClientMap(groupEntry.getKey(), topicEntry.getKey(),
-                                groupEntry.getValue().getMode(), groupEntry.getValue().getPopShareQueueNum());
-                            groupSet.add(groupEntry.getKey());
-                        }
-                    }
-
-                    for (String group : groupSet) {
-                        mQClientFactory.setClientRebalance(true, group);
-                    }
+                    updateMOdeCache();
                 }
             }, 1, TimeUnit.MINUTES);
         }
+    }
+
+    public void updateMOdeCache() {
+        MessageRequestModeSerializeWrapper messageRequestModeSerializeWrapper = null;
+        for (MessageQueue mq : getPopProcessQueueTable().keySet()) {
+            try {
+                messageRequestModeSerializeWrapper = mQClientFactory.getMQClientAPIImpl().getAllMessageRequestMode(
+                        mQClientFactory.findBrokerAddrByTopic(mq.getTopic()), 3000);
+                break;
+            } catch (Exception e) {
+                log.warn("get allMessageRequestMode failed, topic={}, exception={}", mq.getTopic(), e.toString());
+            }
+        }
+
+        if (messageRequestModeSerializeWrapper == null) {
+            for (MessageQueue mq : getProcessQueueTable().keySet()) {
+                try {
+                    messageRequestModeSerializeWrapper = mQClientFactory.getMQClientAPIImpl().getAllMessageRequestMode(
+                            mQClientFactory.findBrokerAddrByTopic(mq.getTopic()), 3000);
+                    break;
+                } catch (Exception e) {
+                    log.warn("get allMessageRequestMode failed, topic={}, exception={}", mq.getTopic(), e.toString());
+                }
+            }
+        }
+
+        ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> msgRqCodes = null;
+        if (messageRequestModeSerializeWrapper != null) {
+            msgRqCodes = messageRequestModeSerializeWrapper.getMessageRequestModeMap();
+        } else {
+            return;
+        }
+
+        Set<String> groupSet = new HashSet<>();
+        for (Map.Entry<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> topicEntry : msgRqCodes.entrySet()) {
+            for (Map.Entry<String, SetMessageRequestModeRequestBody> groupEntry : topicEntry.getValue().entrySet()) {
+                mQClientFactory.updateRebalanceByBrokerAndClientMap(groupEntry.getKey(), topicEntry.getKey(),
+                        groupEntry.getValue().getMode(), groupEntry.getValue().getPopShareQueueNum());
+                groupSet.add(groupEntry.getKey());
+            }
+        }
+
+        for (String group : groupSet) {
+            mQClientFactory.setClientRebalance(true, group);
+        }
+        log.info("MessageRequestMode Cache update success");
     }
 }

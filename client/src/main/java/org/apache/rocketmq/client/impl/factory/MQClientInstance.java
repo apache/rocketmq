@@ -1081,16 +1081,15 @@ public class MQClientInstance {
     }
 
     public void updateRebalanceByBrokerAndClientMap(String group, String topic, MessageRequestMode requestMode, int popShareQueueNum) {
-        if (!clientConfig.getEnableRebalanceTransferInPop()) {
-            return;
-        }
-
         MQConsumerInner consumerInner = this.consumerTable.get(group);
         if (!(consumerInner instanceof DefaultMQPushConsumerImpl)) {
             return;
         }
 
         DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumerInner;
+        if (!impl.getDefaultMQPushConsumer().getEnableRebalanceTransferInPop()) {
+            return;
+        }
         Map<String, Integer> popTopicRebalance = impl.getRebalanceImpl().getPopTopicRebalance();
         Map<String, String> pullTopicRebalance = impl.getRebalanceImpl().getPullTopicRebalance();
 
