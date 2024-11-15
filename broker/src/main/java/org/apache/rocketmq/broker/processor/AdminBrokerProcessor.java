@@ -3113,7 +3113,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 if (old.getUserType() == UserType.SUPER && isNotSuperUserLogin(request)) {
                     throw new AuthenticationException("The super user can only be update by super user");
                 }
-                return this.brokerController.getAuthenticationMetadataManager().updateUser(old);
+                return this.brokerController.getAuthenticationMetadataManager().updateUser(user);
             }).thenAccept(nil -> response.setCode(ResponseCode.SUCCESS))
             .exceptionally(ex -> {
                 LOGGER.error("update user {} error", requestHeader.getUsername(), ex);
