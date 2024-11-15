@@ -1104,6 +1104,8 @@ public class MQClientInstance {
                 pullTopicRebalance.put(topic, topic);
             }
         }
+
+        setClientRebalance(true, group);
     }
 
     public void setClientRebalance(boolean doRebalance, String group) {
