@@ -132,8 +132,8 @@ public class MessageExtEncoder {
         this.byteBuf.writeInt(msgInner.getQueueId());
         // 5 FLAG
         this.byteBuf.writeInt(msgInner.getFlag());
-        // 6 QUEUEOFFSET, need update later
-        this.byteBuf.writeLong(0);
+        // 6 QUEUEOFFSET
+        this.byteBuf.writeLong(msgInner.getQueueOffset());
         // 7 PHYSICALOFFSET, need update later
         this.byteBuf.writeLong(0);
         // 8 SYSFLAG
