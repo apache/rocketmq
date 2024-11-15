@@ -381,6 +381,9 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     @Override
     public void doRebalance() {
+        if (!defaultMQPullConsumer.isEnableRebalance()) {
+            return;
+        }
         if (this.rebalanceImpl != null) {
             this.rebalanceImpl.doRebalance(false);
         }
@@ -388,6 +391,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
 
     @Override
     public boolean tryRebalance() {
+        if (!defaultMQPullConsumer.isEnableRebalance()) {
+            return true;
+        }
+
         if (this.rebalanceImpl != null) {
             return this.rebalanceImpl.doRebalance(false);
         }
