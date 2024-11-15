@@ -51,6 +51,7 @@ public class AllocateMappedFileService extends ServiceThread {
     }
 
     public String getCachedMappedFilePath(long createOffset) {
+
         AllocateRequest req = requestTable.get(UtilAll.offset2FileName(createOffset));
         return req == null ? null : req.getFilePath();
     }
