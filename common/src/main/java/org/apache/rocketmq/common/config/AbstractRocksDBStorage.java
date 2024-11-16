@@ -346,11 +346,12 @@ public abstract class AbstractRocksDBStorage {
             this.db = RocksDB.open(this.options, this.dbPath, cfDescriptors, cfHandles);
         }
         assert cfDescriptors.size() == cfHandles.size();
-        try (Env env = this.db.getEnv()) {
-            env.setBackgroundThreads(8, Priority.LOW);
-        }
+
         if (this.db == null) {
             throw new RocksDBException("open rocksdb null");
+        }
+        try (Env env = this.db.getEnv()) {
+            env.setBackgroundThreads(8, Priority.LOW);
         }
     }
 
