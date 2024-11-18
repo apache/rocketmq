@@ -29,13 +29,15 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ConcurrentHashMapUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
@@ -49,12 +51,12 @@ public class RemotingCommand {
     static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
     private static final int RPC_TYPE = 0; // 0, REQUEST_COMMAND
     private static final int RPC_ONEWAY = 1; // 0, RPC
-    private static final Map<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
-        new HashMap<>();
-    private static final Map<Class, String> CANONICAL_NAME_CACHE = new HashMap<>();
+    private static final ConcurrentMap<Class<? extends CommandCustomHeader>, Field[]> CLASS_HASH_MAP =
+        new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Class<?>, String> CANONICAL_NAME_CACHE = new ConcurrentHashMap<>();
     // 1, Oneway
     // 1, RESPONSE_COMMAND
-    private static final Map<Field, Boolean> NULLABLE_FIELD_CACHE = new HashMap<>();
+    private static final ConcurrentMap<Field, Boolean> NULLABLE_FIELD_CACHE = new ConcurrentHashMap<>();
     private static final String STRING_CANONICAL_NAME = String.class.getCanonicalName();
     private static final String DOUBLE_CANONICAL_NAME_1 = Double.class.getCanonicalName();
     private static final String DOUBLE_CANONICAL_NAME_2 = double.class.getCanonicalName();
@@ -343,42 +345,25 @@ public class RemotingCommand {
 
     //make it able to test
     Field[] getClazzFields(Class<? extends CommandCustomHeader> classHeader) {
-        Field[] field = CLASS_HASH_MAP.get(classHeader);
-
-        if (field == null) {
+        return ConcurrentHashMapUtils.computeIfAbsent(CLASS_HASH_MAP, classHeader, aClass -> {
             Set<Field> fieldList = new HashSet<>();
-            for (Class className = classHeader; className != Object.class; className = className.getSuperclass()) {
+            for (Class<?> className = classHeader; className != Object.class; className = className.getSuperclass()) {
                 Field[] fields = className.getDeclaredFields();
                 fieldList.addAll(Arrays.asList(fields));
             }
-            field = fieldList.toArray(new Field[0]);
-            synchronized (CLASS_HASH_MAP) {
-                CLASS_HASH_MAP.put(classHeader, field);
-            }
-        }
-        return field;
+            return fieldList.toArray(new Field[0]);
+        });
     }
 
     private boolean isFieldNullable(Field field) {
-        if (!NULLABLE_FIELD_CACHE.containsKey(field)) {
-            Annotation annotation = field.getAnnotation(CFNotNull.class);
-            synchronized (NULLABLE_FIELD_CACHE) {
-                NULLABLE_FIELD_CACHE.put(field, annotation == null);
-            }
-        }
-        return NULLABLE_FIELD_CACHE.get(field);
+        return ConcurrentHashMapUtils.computeIfAbsent(NULLABLE_FIELD_CACHE, field, inputField -> {
+            Annotation annotation = inputField.getAnnotation(CFNotNull.class);
+            return annotation == null;
+        });
     }
 
-    private String getCanonicalName(Class clazz) {
-        String name = CANONICAL_NAME_CACHE.get(clazz);
-
-        if (name == null) {
-            name = clazz.getCanonicalName();
-            synchronized (CANONICAL_NAME_CACHE) {
-                CANONICAL_NAME_CACHE.put(clazz, name);
-            }
-        }
-        return name;
+    private String getCanonicalName(Class<?> clazz) {
+        return ConcurrentHashMapUtils.computeIfAbsent(CANONICAL_NAME_CACHE, clazz, Class::getCanonicalName);
     }
 
     public ByteBuffer encode() {
