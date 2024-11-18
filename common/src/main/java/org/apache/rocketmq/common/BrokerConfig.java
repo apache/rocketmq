@@ -227,6 +227,9 @@ public class BrokerConfig extends BrokerIdentity {
     private int popCkMaxBufferSize = 200000;
     private int popCkOffsetMaxQueueSize = 20000;
     private boolean enablePopBatchAck = false;
+    // set the interval to the maxFilterMessageSize in MessageStoreConfig divided by the cq unit size
+    private long popLongPollingForceNotifyInterval = 800;
+    private boolean enableNotifyBeforePopCalculateLag = true;
     private boolean enableNotifyAfterPopOrderLockRelease = true;
     private boolean initPopOffsetByCheckMsgInMem = true;
     // read message from pop retry topic v1, for the compatibility, will be removed in the future version
@@ -1324,6 +1327,22 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setEnableNetWorkFlowControl(boolean enableNetWorkFlowControl) {
         this.enableNetWorkFlowControl = enableNetWorkFlowControl;
+    }
+
+    public long getPopLongPollingForceNotifyInterval() {
+        return popLongPollingForceNotifyInterval;
+    }
+
+    public void setPopLongPollingForceNotifyInterval(long popLongPollingForceNotifyInterval) {
+        this.popLongPollingForceNotifyInterval = popLongPollingForceNotifyInterval;
+    }
+
+    public boolean isEnableNotifyBeforePopCalculateLag() {
+        return enableNotifyBeforePopCalculateLag;
+    }
+
+    public void setEnableNotifyBeforePopCalculateLag(boolean enableNotifyBeforePopCalculateLag) {
+        this.enableNotifyBeforePopCalculateLag = enableNotifyBeforePopCalculateLag;
     }
 
     public boolean isEnableNotifyAfterPopOrderLockRelease() {
