@@ -35,12 +35,14 @@ import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.MessageExtEncoder;
+import org.apache.rocketmq.store.MessageExtEncoder.PutMessageThreadLocal;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreStatsService;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.rocksdb.RocksDBException;
 
 import io.openmessaging.storage.dledger.AppendFuture;
@@ -566,28 +568,42 @@ public class DLedgerCommitLog extends CommitLog {
         // Back to Results
         AppendMessageResult appendResult;
         AppendFuture<AppendEntryResponse> dledgerFuture;
-        EncodeResult encodeResult;
+        PutMessageThreadLocal putMessageThreadLocal = this.getPutMessageThreadLocal().get();
+        final boolean isMultiDispatchMsg = this.getMessageStore().getMessageStoreConfig().isEnableLmq() && msg.needDispatchLMQ();
 
         String topicQueueKey = msg.getTopic() + "-" + msg.getQueueId();
         topicQueueLock.lock(topicQueueKey);
         try {
             defaultMessageStore.assignOffset(msg);
 
-            encodeResult = this.messageSerializer.serialize(msg);
-            if (encodeResult.status != AppendMessageStatus.PUT_OK) {
-                return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, new AppendMessageResult(encodeResult.status)));
+            PutMessageResult putMessageResult = putMessageThreadLocal.getEncoder().encode(msg);
+            if (putMessageResult != null) {
+                return CompletableFuture.completedFuture(putMessageResult);
             }
+            msg.setEncodedBuff(putMessageThreadLocal.getEncoder().getEncoderBuffer());
             putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
             long elapsedTimeInLock;
             long queueOffset;
+            ByteBuffer preEncoder = msg.getEncodedBuff();
+            if (isMultiDispatchMsg) {
+                AppendMessageResult appendMessageResult = MultiDispatchUtils.handlePropertiesForLmqMsg(
+                    preEncoder, msg, defaultMessageStore);
+                if (appendMessageResult != null) {
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, appendMessageResult));
+                }
+            }
+            final int msgLen = preEncoder.getInt(0);
+            preEncoder.position(0);
+            preEncoder.limit(msgLen);
             try {
                 beginTimeInDledgerLock = this.defaultMessageStore.getSystemClock().now();
                 queueOffset = getQueueOffsetByKey(msg, tranType);
-                encodeResult.setQueueOffsetKey(queueOffset, false);
                 AppendEntryRequest request = new AppendEntryRequest();
                 request.setGroup(dLedgerConfig.getGroup());
                 request.setRemoteId(dLedgerServer.getMemberState().getSelfId());
-                request.setBody(encodeResult.getData());
+                byte[] data = new byte[msgLen];
+                preEncoder.get(data);
+                request.setBody(data);
                 dledgerFuture = (AppendFuture<AppendEntryResponse>) dLedgerServer.handleAppend(request);
                 if (dledgerFuture.getPos() == -1) {
                     return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGE_CACHE_BUSY, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
@@ -599,7 +615,7 @@ public class DLedgerCommitLog extends CommitLog {
 
                 String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
                 elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
-                appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, encodeResult.getData().length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
+                appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, data.length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
             } finally {
                 beginTimeInDledgerLock = 0;
                 putMessageLock.unlock();
