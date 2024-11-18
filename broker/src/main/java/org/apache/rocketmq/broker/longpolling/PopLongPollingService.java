@@ -235,12 +235,10 @@ public class PopLongPollingService extends ServiceThread {
         }
 
         if (callback != null && request.getRemotingCommand() != null) {
-            synchronized (request.getRemotingCommand()) {
-                if (request.getRemotingCommand().getCallbackList() == null) {
-                    request.getRemotingCommand().setCallbackList(new ArrayList<>());
-                }
-                request.getRemotingCommand().getCallbackList().add(callback);
+            if (request.getRemotingCommand().getCallbackList() == null) {
+                request.getRemotingCommand().setCallbackList(new ArrayList<>());
             }
+            request.getRemotingCommand().getCallbackList().add(callback);
         }
 
         if (!request.getCtx().channel().isActive()) {

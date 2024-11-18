@@ -31,7 +31,7 @@ public class PopCommandCallback implements CommandCallback {
     private final Consumer<ConsumerLagCalculator.CalculateLagResult> lagRecorder;
 
 
-    public <T, U> PopCommandCallback(
+    public PopCommandCallback(
         BiConsumer<ConsumerLagCalculator.ProcessGroupInfo,
                     Consumer<ConsumerLagCalculator.CalculateLagResult>> biConsumer,
         ConsumerLagCalculator.ProcessGroupInfo info,

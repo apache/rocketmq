@@ -423,11 +423,9 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         SubscriptionData finalSubscriptionData = subscriptionData;
         getMessageFuture.thenApply(restNum -> {
             try {
-                synchronized (request) {
-                    if (request.getCallbackList() != null) {
-                        request.getCallbackList().forEach(CommandCallback::accept);
-                        request.getCallbackList().clear();
-                    }
+                if (request.getCallbackList() != null) {
+                    request.getCallbackList().forEach(CommandCallback::accept);
+                    request.getCallbackList().clear();
                 }
             } catch (Throwable t) {
                 POP_LOGGER.error("PopProcessor execute callback error", t);
