@@ -34,6 +34,7 @@ import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.CommitLog;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
+import org.apache.rocketmq.store.LmqDispatch;
 import org.apache.rocketmq.store.MessageExtEncoder;
 import org.apache.rocketmq.store.MessageExtEncoder.PutMessageThreadLocal;
 import org.apache.rocketmq.store.PutMessageResult;
@@ -41,6 +42,7 @@ import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.SelectMappedBufferResult;
 import org.apache.rocketmq.store.StoreStatsService;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.logfile.MappedFile;
 import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.rocksdb.RocksDBException;
@@ -616,6 +618,15 @@ public class DLedgerCommitLog extends CommitLog {
                 String msgId = MessageDecoder.createMessageId(buffer, msg.getStoreHostBytes(), wroteOffset);
                 elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginTimeInDledgerLock;
                 appendResult = new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, data.length, msgId, System.currentTimeMillis(), queueOffset, elapsedTimeInLock);
+                if (isMultiDispatchMsg) {
+                    try {
+                        LmqDispatch.updateLmqOffsets(defaultMessageStore, msg);
+                    } catch (ConsumeQueueException e) {
+                        // Increase in-memory max offset of the queue should not fail.
+                        log.error("[BUG] DLedger update lmq offset failed");
+                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+                    }
+                }
             } finally {
                 beginTimeInDledgerLock = 0;
                 putMessageLock.unlock();
