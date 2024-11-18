@@ -217,10 +217,8 @@ public class ConsumerLagCalculator {
             }
 
             if (info.isPop && brokerConfig.isEnableNotifyBeforePopCalculateLag()) {
-                PopCommandCallback callback = new PopCommandCallback(
-                    (info2, recorder) -> calculate(info2, lagRecorder), info, lagRecorder);
                 if (popLongPollingService.notifyMessageArriving(info.topic, -1, info.group,
-                    true, null, 0, null, null, callback)) {
+                    true, null, 0, null, null, new PopCommandCallback(this::calculate, info, lagRecorder))) {
                     return;
                 }
             }
