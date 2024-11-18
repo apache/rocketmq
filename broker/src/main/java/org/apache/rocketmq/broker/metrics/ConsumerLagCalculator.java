@@ -363,10 +363,7 @@ public class ConsumerLagCalculator {
             return new Pair<>(lag, consumerStoreTimeStamp);
         }
 
-        long consumerOffset = offsetManager.queryPullOffset(group, topic, queueId);
-        if (consumerOffset < 0) {
-            consumerOffset = offsetManager.queryOffset(group, topic, queueId);
-        }
+        long consumerOffset = offsetManager.queryOffset(group, topic, queueId);
         if (consumerOffset < 0) {
             consumerOffset = brokerOffset;
         }
