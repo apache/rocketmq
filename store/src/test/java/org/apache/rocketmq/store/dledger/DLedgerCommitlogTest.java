@@ -29,6 +29,8 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBatch;
@@ -435,6 +437,54 @@ public class DLedgerCommitlogTest extends MessageStoreTestBase {
         leaderStore.shutdown();
         followerStore.shutdown();
     }
+
+    @Test
+    public void testMultiDispatch() throws Exception {
+        String base = createBaseDir();
+        String peers = String.format("n0-localhost:%d", nextPort());
+        String group = UUID.randomUUID().toString();
+        DefaultMessageStore messageStore = createDledgerMessageStore(base, group, "n0", peers, null, false, 0);
+        messageStore.getMessageStoreConfig().setEnableLmq(true);
+        DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) messageStore.getCommitLog();
+        Boolean success = await().atMost(Duration.ofSeconds(4)).until(() -> dLedgerCommitLog.getdLedgerServer().getMemberState().isLeader(), item -> item);
+        Assert.assertTrue(success);
+        String topic = UUID.randomUUID().toString();
+
+        List<PutMessageResult> results = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            MessageExtBrokerInner msgInner = buildMessage();
+            msgInner.setTopic(topic);
+            msgInner.setQueueId(0);
+            msgInner.putUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH, "%LMQ%123,%LMQ%456");
+            PutMessageResult putMessageResult = messageStore.putMessage(msgInner);
+            results.add(putMessageResult);
+            Assert.assertEquals(PutMessageStatus.PUT_OK, putMessageResult.getPutMessageStatus());
+            Assert.assertEquals(i, putMessageResult.getAppendMessageResult().getLogicsOffset());
+        }
+        await().atMost(Duration.ofSeconds(10)).until(() -> 10 == messageStore.getMaxOffsetInQueue(topic, 0));
+        Assert.assertEquals(0, messageStore.getMinOffsetInQueue(topic, 0));
+        Assert.assertEquals(10, messageStore.getMaxOffsetInQueue(topic, 0));
+        Assert.assertEquals(0, messageStore.dispatchBehindBytes());
+        GetMessageResult getMessageResult = messageStore.getMessage("group", topic, 0, 0, 32, null);
+        Assert.assertEquals(GetMessageStatus.FOUND, getMessageResult.getStatus());
+        Assert.assertEquals(10, getMessageResult.getMessageBufferList().size());
+        Assert.assertEquals(10, getMessageResult.getMessageMapedList().size());
+
+        for (int i = 0; i < results.size(); i++) {
+            ByteBuffer buffer = getMessageResult.getMessageBufferList().get(i);
+            MessageExt messageExt = MessageDecoder.decode(buffer);
+            Assert.assertEquals(i, messageExt.getQueueOffset());
+            Assert.assertEquals(results.get(i).getAppendMessageResult().getMsgId(), messageExt.getMsgId());
+            Assert.assertEquals(results.get(i).getAppendMessageResult().getWroteOffset(), messageExt.getCommitLogOffset());
+        }
+
+        Assert.assertEquals(10, messageStore.getConsumeQueueStore().getLmqQueueOffset("%LMQ%123", 0));
+        Assert.assertEquals(10, messageStore.getConsumeQueueStore().getLmqQueueOffset("%LMQ%456", 0));
+
+        messageStore.destroy();
+        messageStore.shutdown();
+    }
+
 
     private Callable<Boolean> followerCatchesUp(DefaultMessageStore followerStore, String topic) {
         return () -> followerStore.getMaxOffsetInQueue(topic, 0) == 1;

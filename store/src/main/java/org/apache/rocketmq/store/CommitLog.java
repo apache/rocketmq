@@ -64,6 +64,7 @@ import org.apache.rocketmq.store.ha.HAService;
 import org.apache.rocketmq.store.ha.autoswitch.AutoSwitchHAService;
 import org.apache.rocketmq.store.lock.AdaptiveBackOffSpinLockImpl;
 import org.apache.rocketmq.store.logfile.MappedFile;
+import org.apache.rocketmq.store.queue.MultiDispatchUtils;
 import org.apache.rocketmq.store.util.LibC;
 import org.rocksdb.RocksDBException;
 
@@ -624,6 +625,7 @@ public class CommitLog implements Swappable {
 
             return dispatchRequest;
         } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return new DispatchRequest(-1, false /* success */);
@@ -1850,70 +1852,6 @@ public class CommitLog implements Swappable {
             this.crc32ReservedLength = messageStoreConfig.isEnabledAppendPropCRC() ? CommitLog.CRC32_RESERVED_LEN : 0;
         }
 
-        public AppendMessageResult handlePropertiesForLmqMsg(ByteBuffer preEncodeBuffer,
-            final MessageExtBrokerInner msgInner) {
-            if (msgInner.isEncodeCompleted()) {
-                return null;
-            }
-
-            try {
-                LmqDispatch.wrapLmqDispatch(defaultMessageStore, msgInner);
-            } catch (ConsumeQueueException e) {
-                if (e.getCause() instanceof RocksDBException) {
-                    log.error("Failed to wrap multi-dispatch", e);
-                    return new AppendMessageResult(AppendMessageStatus.ROCKSDB_ERROR);
-                }
-                log.error("Failed to wrap multi-dispatch", e);
-                return new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR);
-            }
-
-            msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-
-            final byte[] propertiesData =
-                msgInner.getPropertiesString() == null ? null : msgInner.getPropertiesString().getBytes(MessageDecoder.CHARSET_UTF8);
-
-            boolean needAppendLastPropertySeparator = enabledAppendPropCRC && propertiesData != null && propertiesData.length > 0
-                && propertiesData[propertiesData.length - 1] != MessageDecoder.PROPERTY_SEPARATOR;
-
-            final int propertiesLength = (propertiesData == null ? 0 : propertiesData.length) + (needAppendLastPropertySeparator ? 1 : 0) + crc32ReservedLength;
-
-            if (propertiesLength > Short.MAX_VALUE) {
-                log.warn("putMessage message properties length too long. length={}", propertiesData.length);
-                return new AppendMessageResult(AppendMessageStatus.PROPERTIES_SIZE_EXCEEDED);
-            }
-
-            int msgLenWithoutProperties = preEncodeBuffer.getInt(0);
-
-            int msgLen = msgLenWithoutProperties + 2 + propertiesLength;
-
-            // Exceeds the maximum message
-            if (msgLen > this.messageStoreConfig.getMaxMessageSize()) {
-                log.warn("message size exceeded, msg total size: " + msgLen + ", maxMessageSize: " + this.messageStoreConfig.getMaxMessageSize());
-                return new AppendMessageResult(AppendMessageStatus.MESSAGE_SIZE_EXCEEDED);
-            }
-
-            // Back filling total message length
-            preEncodeBuffer.putInt(0, msgLen);
-            // Modify position to msgLenWithoutProperties
-            preEncodeBuffer.position(msgLenWithoutProperties);
-
-            preEncodeBuffer.putShort((short) propertiesLength);
-
-            if (propertiesLength > crc32ReservedLength) {
-                preEncodeBuffer.put(propertiesData);
-            }
-
-            if (needAppendLastPropertySeparator) {
-                preEncodeBuffer.put((byte) MessageDecoder.PROPERTY_SEPARATOR);
-            }
-            // 18 CRC32
-            preEncodeBuffer.position(preEncodeBuffer.position() + crc32ReservedLength);
-
-            msgInner.setEncodeCompleted(true);
-
-            return null;
-        }
-
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
             final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
@@ -1921,7 +1859,7 @@ public class CommitLog implements Swappable {
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
             boolean isMultiDispatchMsg = messageStoreConfig.isEnableLmq() && msgInner.needDispatchLMQ();
             if (isMultiDispatchMsg) {
-                AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
+                AppendMessageResult appendMessageResult = MultiDispatchUtils.handlePropertiesForLmqMsg(preEncodeBuffer, msgInner, defaultMessageStore);
                 if (appendMessageResult != null) {
                     return appendMessageResult;
                 }
