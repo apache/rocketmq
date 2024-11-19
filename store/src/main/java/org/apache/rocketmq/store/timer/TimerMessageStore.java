@@ -1724,7 +1724,7 @@ public class TimerMessageStore {
 
     public long getEnqueueBehindMillis() {
         if (System.currentTimeMillis() - lastEnqueueButExpiredTime < 2000) {
-            return (System.currentTimeMillis() - lastEnqueueButExpiredStoreTime) / 1000;
+            return System.currentTimeMillis() - lastEnqueueButExpiredStoreTime;
         }
         return 0;
     }
