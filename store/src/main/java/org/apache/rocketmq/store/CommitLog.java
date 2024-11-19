@@ -988,7 +988,6 @@ public class CommitLog implements Swappable {
         PutMessageContext putMessageContext = new PutMessageContext(topicQueueKey);
 
         putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
-
         try {
             long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
             this.beginTimeInLock = beginLockTimestamp;
