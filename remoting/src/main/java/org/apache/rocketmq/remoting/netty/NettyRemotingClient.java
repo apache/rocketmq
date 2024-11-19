@@ -73,6 +73,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.common.utils.ThreadUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -87,6 +88,8 @@ import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.proxy.SocksProxyConfig;
+
+import static org.apache.rocketmq.remoting.common.RemotingHelper.convertChannelFutureToCompletableFuture;
 
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
@@ -554,7 +557,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                 updateChannelLastResponseTime(addr);
                 return response;
             } catch (RemotingSendRequestException e) {
-                LOGGER.warn("invokeSync: send request exception, so close the channel[{}]", channelRemoteAddr);
+                LOGGER.warn("invokeSync: send request exception, so close the channel[addr={}, id={}]", channelRemoteAddr, channel.id());
                 this.closeChannel(addr, channel);
                 throw e;
             } catch (RemotingTimeoutException e) {
@@ -832,45 +835,27 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                         return channelWrapper0;
                     });
                     if (channelWrapper != null && !channelWrapper.isWrapperOf(channel)) {
-                        if (nettyClientConfig.isEnableTransparentRetry()) {
-                            RemotingCommand retryRequest = RemotingCommand.createRequestCommand(request.getCode(), request.readCustomHeader());
-                            retryRequest.setBody(request.getBody());
-                            retryRequest.setExtFields(request.getExtFields());
-                            if (channelWrapper.isOK()) {
-                                long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                                stopwatch.stop();
-                                Channel retryChannel = channelWrapper.getChannel();
-                                if (retryChannel != null && channel != retryChannel) {
-                                    return super.invokeImpl(retryChannel, retryRequest, timeoutMillis - duration);
-                                }
-                            } else {
-                                CompletableFuture<ResponseFuture> future = new CompletableFuture<>();
-                                ChannelFuture channelFuture = channelWrapper.getChannelFuture();
-                                channelFuture.addListener(f -> {
-                                    long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-                                    stopwatch.stop();
-                                    if (f.isSuccess()) {
-                                        Channel retryChannel0 = channelFuture.channel();
-                                        if (retryChannel0 != null && channel != retryChannel0) {
-                                            super.invokeImpl(retryChannel0, retryRequest, timeoutMillis - duration).whenComplete((v, t) -> {
-                                                if (t != null) {
-                                                    future.completeExceptionally(t);
-                                                } else {
-                                                    future.complete(v);
-                                                }
-                                            });
-                                        }
-                                    } else {
-                                        future.completeExceptionally(new RemotingConnectException(channelWrapper.channelAddress));
+                        RemotingCommand retryRequest = RemotingCommand.createRequestCommand(request.getCode(), request.readCustomHeader());
+                        retryRequest.setBody(request.getBody());
+                        retryRequest.setExtFields(request.getExtFields());
+                        CompletableFuture<Void> future = convertChannelFutureToCompletableFuture(channelWrapper.getChannelFuture());
+                        return future.thenCompose(v -> {
+                            long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+                            stopwatch.stop();
+                            return super.invokeImpl(channelWrapper.getChannel(), retryRequest, timeoutMillis - duration)
+                                .thenCompose(r -> {
+                                    if (r.getResponseCommand().getCode() == ResponseCode.GO_AWAY) {
+                                        return FutureUtils.completeExceptionally(new RemotingSendRequestException(channelRemoteAddr,
+                                            new Throwable("Receive GO_AWAY twice in request from channelId=" + channel.id())));
                                     }
+                                    return CompletableFuture.completedFuture(r);
                                 });
-                                return future;
-                            }
-                        }
+                        });
                     } else {
                         LOGGER.warn("invokeImpl receive GO_AWAY, channelWrapper is null or channel is the same in wrapper, channelId={}", channel.id());
                     }
                 }
+                return FutureUtils.completeExceptionally(new RemotingSendRequestException(channelRemoteAddr, new Throwable("Receive GO_AWAY from channelId=" + channel.id())));
             }
             return CompletableFuture.completedFuture(responseFuture);
         }).whenComplete((v, t) -> {

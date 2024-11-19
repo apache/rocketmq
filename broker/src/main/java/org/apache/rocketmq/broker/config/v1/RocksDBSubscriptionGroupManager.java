@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.subscription;
+package org.apache.rocketmq.broker.config.v1;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -27,10 +27,12 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.RocksDBConfigManager;
+import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.utils.DataConverter;
 import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.rocksdb.CompressionType;
 import org.rocksdb.RocksIterator;
 
 public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
@@ -39,7 +41,8 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
     public RocksDBSubscriptionGroupManager(BrokerController brokerController) {
         super(brokerController, false);
-        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs());
+        this.rocksDBConfigManager = new RocksDBConfigManager(rocksdbConfigFilePath(), brokerController.getMessageStoreConfig().getMemTableFlushIntervalMs(),
+            CompressionType.getCompressionType(brokerController.getMessageStoreConfig().getRocksdbCompressionType()));
     }
 
     @Override
@@ -77,10 +80,6 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
 
     private boolean merge() {
-        if (!brokerController.getMessageStoreConfig().isTransferMetadataJsonToRocksdb()) {
-            log.info("the switch  transferMetadataJsonToRocksdb is off, no merge subGroup operation is needed.");
-            return true;
-        }
         if (!UtilAll.isPathExists(this.configFilePath()) && !UtilAll.isPathExists(this.configFilePath() + ".bak")) {
             log.info("subGroup json file does not exist, so skip merge");
             return true;

@@ -19,6 +19,7 @@ package org.apache.rocketmq.broker.processor;
 import com.alibaba.fastjson.JSON;
 import io.opentelemetry.api.common.Attributes;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,6 +55,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.GetMessageResult;
 import org.apache.rocketmq.store.PutMessageResult;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.BatchAckMsg;
 import org.apache.rocketmq.store.pop.PopCheckPoint;
@@ -260,10 +262,14 @@ public class PopReviveService extends ServiceThread {
                 getMessageResult.getMaxOffset(), foundList);
 
         } else {
-            long maxQueueOffset = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
-            if (maxQueueOffset > offset) {
-                POP_LOGGER.error("get message from store return null. topic={}, groupId={}, requestOffset={}, maxQueueOffset={}",
-                    topic, group, offset, maxQueueOffset);
+            try {
+                long maxQueueOffset = brokerController.getMessageStore().getMaxOffsetInQueue(topic, queueId);
+                if (maxQueueOffset > offset) {
+                    POP_LOGGER.error("get message from store return null. topic={}, groupId={}, requestOffset={}, maxQueueOffset={}",
+                        topic, group, offset, maxQueueOffset);
+                }
+            } catch (ConsumeQueueException e) {
+                POP_LOGGER.error("Failed to get max offset in queue", e);
             }
             return null;
         }
@@ -364,7 +370,7 @@ public class PopReviveService extends ServiceThread {
                         firstRt = point.getReviveTime();
                     }
                 } else if (PopAckConstants.ACK_TAG.equals(messageExt.getTags())) {
-                    String raw = new String(messageExt.getBody(), DataConverter.CHARSET_UTF8);
+                    String raw = new String(messageExt.getBody(), StandardCharsets.UTF_8);
                     if (brokerController.getBrokerConfig().isEnablePopLog()) {
                         POP_LOGGER.info("reviveQueueId={}, find ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
                     }
@@ -388,7 +394,7 @@ public class PopReviveService extends ServiceThread {
                         }
                     }
                 } else if (PopAckConstants.BATCH_ACK_TAG.equals(messageExt.getTags())) {
-                    String raw = new String(messageExt.getBody(), DataConverter.CHARSET_UTF8);
+                    String raw = new String(messageExt.getBody(), StandardCharsets.UTF_8);
                     if (brokerController.getBrokerConfig().isEnablePopLog()) {
                         POP_LOGGER.info("reviveQueueId={}, find batch ack, offset:{}, raw : {}", messageExt.getQueueId(), messageExt.getQueueOffset(), raw);
                     }
@@ -594,7 +600,7 @@ public class PopReviveService extends ServiceThread {
         brokerController.getMessageStore().putMessage(ckMsg);
     }
 
-    public long getReviveBehindMillis() {
+    public long getReviveBehindMillis() throws ConsumeQueueException {
         if (currentReviveMessageTimestamp <= 0) {
             return 0;
         }
@@ -605,7 +611,7 @@ public class PopReviveService extends ServiceThread {
         return 0;
     }
 
-    public long getReviveBehindMessages() {
+    public long getReviveBehindMessages() throws ConsumeQueueException {
         if (currentReviveMessageTimestamp <= 0) {
             return 0;
         }

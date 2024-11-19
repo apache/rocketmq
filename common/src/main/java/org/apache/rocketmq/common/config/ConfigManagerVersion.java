@@ -15,21 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.rocketmq.remoting.protocol.body;
+package org.apache.rocketmq.common.config;
 
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
+public enum ConfigManagerVersion {
+    V1("v1"),
+    V2("v2"),
+    ;
+    private final String version;
 
-public class CheckRocksdbCqWriteProgressResponseBody extends RemotingSerializable  {
-
-    String diffResult;
-
-    public String getDiffResult() {
-        return diffResult;
+    ConfigManagerVersion(String version) {
+        this.version = version;
     }
 
-    public void setDiffResult(String diffResult) {
-        this.diffResult = diffResult;
+    public String getVersion() {
+        return version;
     }
-
-
 }

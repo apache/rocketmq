@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicAttributes;
@@ -71,7 +72,6 @@ public class RocksdbTopicConfigManagerTest {
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(basePath);
-        messageStoreConfig.setTransferMetadataJsonToRocksdb(true);
         when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);
         Mockito.lenient().when(brokerController.getMessageStore()).thenReturn(defaultMessageStore);
         Mockito.lenient().when(defaultMessageStore.getStateMachineVersion()).thenReturn(0L);
