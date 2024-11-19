@@ -25,6 +25,7 @@ import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 import org.rocksdb.RocksDBException;
 
 public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInterface {
@@ -47,7 +48,7 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
     }
 
     @Override
-    public Long getMaxOffset(String topic, int queueId) {
+    public Long getMaxOffset(String topic, int queueId) throws ConsumeQueueException {
         return this.queueOffsetOperator.currentQueueOffset(topic + "-" + queueId);
     }
 
@@ -58,7 +59,7 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
     }
 
     @Override
-    public ConcurrentMap getTopicQueueTable() {
+    public ConcurrentMap<String, Long> getTopicQueueTable() {
         return this.queueOffsetOperator.getTopicQueueTable();
     }
 
@@ -75,13 +76,13 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
     }
 
     @Override
-    public void increaseLmqOffset(String queueKey, short messageNum) {
-        queueOffsetOperator.increaseLmqOffset(queueKey, messageNum);
+    public void increaseLmqOffset(String topic, int queueId, short delta) throws ConsumeQueueException {
+        queueOffsetOperator.increaseLmqOffset(topic, queueId, delta);
     }
 
     @Override
-    public long getLmqQueueOffset(String queueKey) {
-        return queueOffsetOperator.getLmqOffset(queueKey);
+    public long getLmqQueueOffset(String topic, int queueId) throws ConsumeQueueException {
+        return queueOffsetOperator.getLmqOffset(topic, queueId, (t, q) -> 0L);
     }
 
     @Override
@@ -105,9 +106,9 @@ public abstract class AbstractConsumeQueueStore implements ConsumeQueueStoreInte
             try {
                 final long phyOffset = cqUnit.getPos();
                 final int size = cqUnit.getSize();
-                long storeTime = this.messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
-                return storeTime;
+                return this.messageStore.getCommitLog().pickupStoreTimestamp(phyOffset, size);
             } catch (Exception e) {
+                log.error("Failed to getStoreTime", e);
             }
         }
         return -1;

@@ -22,6 +22,7 @@ import org.apache.rocketmq.common.annotation.ImportantField;
 import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
+import org.rocksdb.CompressionType;
 
 public class MessageStoreConfig {
 
@@ -105,8 +106,6 @@ public class MessageStoreConfig {
     // default, defaultRocksDB
     @ImportantField
     private String storeType = StoreType.DEFAULT.getStoreType();
-
-    private boolean transferMetadataJsonToRocksdb = false;
 
     // ConsumeQueue file size,default is 30W
     private int mappedFileSizeConsumeQueue = 300000 * ConsumeQueue.CQ_STORE_UNIT_SIZE;
@@ -424,11 +423,7 @@ public class MessageStoreConfig {
 
     private boolean putConsumeQueueDataByFileChannel = true;
 
-    private boolean transferOffsetJsonToRocksdb = false;
-
     private boolean rocksdbCQDoubleWriteEnable = false;
-
-    private int batchWriteKvCqSize = 16;
 
     /**
      * If ConsumeQueueStore is RocksDB based, this option is to configure bottom-most tier compression type.
@@ -445,15 +440,28 @@ public class MessageStoreConfig {
      *
      * LZ4 is the recommended one.
      */
-    private String bottomMostCompressionTypeForConsumeQueueStore = "zstd";
+    private String bottomMostCompressionTypeForConsumeQueueStore = CompressionType.ZSTD_COMPRESSION.getLibraryName();
 
-    public int getBatchWriteKvCqSize() {
-        return batchWriteKvCqSize;
+    private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
+
+    public String getRocksdbCompressionType() {
+        return rocksdbCompressionType;
     }
 
-    public void setBatchWriteKvCqSize(int batchWriteKvCqSize) {
-        this.batchWriteKvCqSize = batchWriteKvCqSize;
+    public void setRocksdbCompressionType(String compressionType) {
+        this.rocksdbCompressionType = compressionType;
     }
+
+    /**
+     * Spin number in the retreat strategy of spin lock
+     * Default is 1000
+     */
+    private int spinLockCollisionRetreatOptimalDegree = 1000;
+
+    /**
+     * Use AdaptiveBackOffLock
+     **/
+    private boolean useABSLock = false;
 
     public boolean isRocksdbCQDoubleWriteEnable() {
         return rocksdbCQDoubleWriteEnable;
@@ -463,13 +471,6 @@ public class MessageStoreConfig {
         this.rocksdbCQDoubleWriteEnable = rocksdbWriteEnable;
     }
 
-    public boolean isTransferOffsetJsonToRocksdb() {
-        return transferOffsetJsonToRocksdb;
-    }
-
-    public void setTransferOffsetJsonToRocksdb(boolean transferOffsetJsonToRocksdb) {
-        this.transferOffsetJsonToRocksdb = transferOffsetJsonToRocksdb;
-    }
 
     public boolean isEnabledAppendPropCRC() {
         return enabledAppendPropCRC;
@@ -1893,19 +1894,27 @@ public class MessageStoreConfig {
         this.putConsumeQueueDataByFileChannel = putConsumeQueueDataByFileChannel;
     }
 
-    public boolean isTransferMetadataJsonToRocksdb() {
-        return transferMetadataJsonToRocksdb;
-    }
-
-    public void setTransferMetadataJsonToRocksdb(boolean transferMetadataJsonToRocksdb) {
-        this.transferMetadataJsonToRocksdb = transferMetadataJsonToRocksdb;
-    }
-
     public String getBottomMostCompressionTypeForConsumeQueueStore() {
         return bottomMostCompressionTypeForConsumeQueueStore;
     }
 
     public void setBottomMostCompressionTypeForConsumeQueueStore(String bottomMostCompressionTypeForConsumeQueueStore) {
         this.bottomMostCompressionTypeForConsumeQueueStore = bottomMostCompressionTypeForConsumeQueueStore;
+    }
+
+    public int getSpinLockCollisionRetreatOptimalDegree() {
+        return spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setSpinLockCollisionRetreatOptimalDegree(int spinLockCollisionRetreatOptimalDegree) {
+        this.spinLockCollisionRetreatOptimalDegree = spinLockCollisionRetreatOptimalDegree;
+    }
+
+    public void setUseABSLock(boolean useABSLock) {
+        this.useABSLock = useABSLock;
+    }
+
+    public boolean getUseABSLock() {
+        return useABSLock;
     }
 }
