@@ -76,8 +76,7 @@ import org.apache.rocketmq.broker.offset.BroadcastOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
 import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
-import org.apache.rocketmq.broker.offset.RocksDBConsumerOffsetManager;
-import org.apache.rocketmq.broker.offset.RocksDBLmqConsumerOffsetManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
 import org.apache.rocketmq.broker.processor.AckMessageProcessor;
@@ -99,12 +98,16 @@ import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
-import org.apache.rocketmq.broker.subscription.RocksDBLmqSubscriptionGroupManager;
-import org.apache.rocketmq.broker.subscription.RocksDBSubscriptionGroupManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBLmqSubscriptionGroupManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
+import org.apache.rocketmq.broker.config.v2.ConsumerOffsetManagerV2;
+import org.apache.rocketmq.broker.config.v2.SubscriptionGroupManagerV2;
+import org.apache.rocketmq.broker.config.v2.TopicConfigManagerV2;
+import org.apache.rocketmq.broker.config.v2.ConfigStorage;
 import org.apache.rocketmq.broker.topic.LmqTopicConfigManager;
-import org.apache.rocketmq.broker.topic.RocksDBLmqTopicConfigManager;
-import org.apache.rocketmq.broker.topic.RocksDBTopicConfigManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBLmqTopicConfigManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingCleanService;
 import org.apache.rocketmq.broker.topic.TopicQueueMappingManager;
@@ -124,6 +127,7 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
+import org.apache.rocketmq.common.config.ConfigManagerVersion;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -232,13 +236,18 @@ public class BrokerController {
     protected final BlockingQueue<Runnable> endTransactionThreadPoolQueue;
     protected final BlockingQueue<Runnable> adminBrokerThreadPoolQueue;
     protected final BlockingQueue<Runnable> loadBalanceThreadPoolQueue;
-    protected final BrokerStatsManager brokerStatsManager;
+    protected BrokerStatsManager brokerStatsManager;
     protected final List<SendMessageHook> sendMessageHookList = new ArrayList<>();
     protected final List<ConsumeMessageHook> consumeMessageHookList = new ArrayList<>();
     protected MessageStore messageStore;
     protected RemotingServer remotingServer;
     protected CountDownLatch remotingServerStartLatch;
     protected RemotingServer fastRemotingServer;
+
+    /**
+     * If {Topic, SubscriptionGroup, Offset}ManagerV2 are used, config entries are stored in RocksDB.
+     */
+    protected ConfigStorage configStorage;
     protected TopicConfigManager topicConfigManager;
     protected SubscriptionGroupManager subscriptionGroupManager;
     protected TopicQueueMappingManager topicQueueMappingManager;
@@ -334,10 +343,15 @@ public class BrokerController {
         this.setStoreHost(new InetSocketAddress(this.getBrokerConfig().getBrokerIP1(), getListenPort()));
         this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat()) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
         this.broadcastOffsetManager = new BroadcastOffsetManager(this);
-        if (this.messageStoreConfig.isEnableRocksDBStore()) {
+        if (ConfigManagerVersion.V2.getVersion().equals(brokerConfig.getConfigManagerVersion())) {
+            this.configStorage = new ConfigStorage(messageStoreConfig.getStorePathRootDir());
+            this.topicConfigManager = new TopicConfigManagerV2(this, configStorage);
+            this.subscriptionGroupManager = new SubscriptionGroupManagerV2(this, configStorage);
+            this.consumerOffsetManager = new ConsumerOffsetManagerV2(this, configStorage);
+        } else if (this.messageStoreConfig.isEnableRocksDBStore()) {
             this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqTopicConfigManager(this) : new RocksDBTopicConfigManager(this);
             this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqSubscriptionGroupManager(this) : new RocksDBSubscriptionGroupManager(this);
-            this.consumerOffsetManager = messageStoreConfig.isEnableLmq() ? new RocksDBLmqConsumerOffsetManager(this) : new RocksDBConsumerOffsetManager(this);
+            this.consumerOffsetManager = new RocksDBConsumerOffsetManager(this);
         } else {
             this.topicConfigManager = messageStoreConfig.isEnableLmq() ? new LmqTopicConfigManager(this) : new TopicConfigManager(this);
             this.subscriptionGroupManager = messageStoreConfig.isEnableLmq() ? new LmqSubscriptionGroupManager(this) : new SubscriptionGroupManager(this);
@@ -771,7 +785,11 @@ public class BrokerController {
     }
 
     public boolean initializeMetadata() {
-        boolean result = this.topicConfigManager.load();
+        boolean result = true;
+        if (null != configStorage) {
+            result = configStorage.start();
+        }
+        result = result && this.topicConfigManager.load();
         result = result && this.topicQueueMappingManager.load();
         result = result && this.consumerOffsetManager.load();
         result = result && this.subscriptionGroupManager.load();
@@ -1010,7 +1028,7 @@ public class BrokerController {
 
     private void initialAcl() {
         if (!this.brokerConfig.isAclEnable()) {
-            LOG.info("The broker dose not enable acl");
+            LOG.info("The broker does not enable acl");
             return;
         }
 
@@ -1545,6 +1563,10 @@ public class BrokerController {
         if (this.consumerOffsetManager != null) {
             this.consumerOffsetManager.persist();
             this.consumerOffsetManager.stop();
+        }
+
+        if (null != configStorage) {
+            configStorage.shutdown();
         }
 
         if (this.authenticationMetadataManager != null) {
@@ -2280,6 +2302,10 @@ public class BrokerController {
 
     public BrokerStatsManager getBrokerStatsManager() {
         return brokerStatsManager;
+    }
+
+    public void setBrokerStatsManager(BrokerStatsManager brokerStatsManager) {
+        this.brokerStatsManager = brokerStatsManager;
     }
 
     public List<SendMessageHook> getSendMessageHookList() {

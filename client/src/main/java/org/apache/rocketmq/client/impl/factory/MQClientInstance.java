@@ -1238,7 +1238,7 @@ public class MQClientInstance {
             if (impl instanceof DefaultMQPushConsumerImpl) {
                 consumer = (DefaultMQPushConsumerImpl) impl;
             } else {
-                log.info("[reset-offset] consumer dose not exist. group={}", group);
+                log.info("[reset-offset] consumer does not exist. group={}", group);
                 return;
             }
             consumer.suspend();

@@ -14,21 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.broker.offset;
+package org.apache.rocketmq.broker.config.v2;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
-import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
-
-public class RocksDBOffsetSerializeWrapper extends RemotingSerializable {
-    private ConcurrentMap<Integer, Long> offsetTable = new ConcurrentHashMap(16);
-
-    public ConcurrentMap<Integer, Long> getOffsetTable() {
-        return offsetTable;
-    }
-
-    public void setOffsetTable(ConcurrentMap<Integer, Long> offsetTable) {
-        this.offsetTable = offsetTable;
-    }
-}
+/*
+ * <strong>Endian</strong>: we use network byte order for all integrals, aka, always big endian.
+ *
+ * Unlike v1 config managers, implementations in this package prioritize data integrity and reliability.
+ * As a result,RocksDB write-ahead-log is always on and changes are immediately flushed. Another significant
+ * difference is that heap-based cache is removed because it is not necessary and duplicated to RocksDB
+ * MemTable/BlockCache.
+ */
