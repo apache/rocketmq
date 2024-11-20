@@ -80,21 +80,22 @@ public class PopLongPollingServiceTest {
     @Test
     public void testNotifyMessageArrivingWithRetryTopic() {
         int queueId = 0;
-        doNothing().when(popLongPollingService).notifyMessageArrivingWithRetryTopic(defaultTopic, queueId, null, 0L, null, null);
+        doNothing().when(popLongPollingService).notifyMessageArrivingWithRetryTopic(defaultTopic, queueId, -1L, null, 0L, null, null);
         popLongPollingService.notifyMessageArrivingWithRetryTopic(defaultTopic, queueId);
-        verify(popLongPollingService, times(1)).notifyMessageArrivingWithRetryTopic(defaultTopic, queueId, null, 0L, null, null);
+        verify(popLongPollingService, times(1)).notifyMessageArrivingWithRetryTopic(defaultTopic, queueId, -1L, null, 0L, null, null);
     }
     
     @Test
     public void testNotifyMessageArriving() {
         int queueId = 0;
         Long tagsCode = 123L;
+        long offset = 123L;
         long msgStoreTime = System.currentTimeMillis();
         byte[] filterBitMap = new byte[]{0x01};
         Map<String, String> properties = new ConcurrentHashMap<>();
-        doNothing().when(popLongPollingService).notifyMessageArriving(defaultTopic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
-        popLongPollingService.notifyMessageArrivingWithRetryTopic(defaultTopic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
-        verify(popLongPollingService).notifyMessageArriving(defaultTopic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
+        doNothing().when(popLongPollingService).notifyMessageArriving(defaultTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
+        popLongPollingService.notifyMessageArrivingWithRetryTopic(defaultTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
+        verify(popLongPollingService).notifyMessageArriving(defaultTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
     }
     
     @Test
