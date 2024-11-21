@@ -435,6 +435,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean appendCkAsync = false;
 
+    private boolean clearRetryTopicWhenDeleteTopic = true;
+
     /**
      * V2 is recommended in cases where LMQ feature is extensively used.
      */
@@ -1903,6 +1905,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setAppendCkAsync(boolean appendCkAsync) {
         this.appendCkAsync = appendCkAsync;
+    }
+
+    public boolean isClearRetryTopicWhenDeleteTopic() {
+        return clearRetryTopicWhenDeleteTopic;
+    }
+
+    public void setClearRetryTopicWhenDeleteTopic(boolean clearRetryTopicWhenDeleteTopic) {
+        this.clearRetryTopicWhenDeleteTopic = clearRetryTopicWhenDeleteTopic;
     }
 
     public String getConfigManagerVersion() {
