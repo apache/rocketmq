@@ -176,19 +176,6 @@ public class MQClientInstance {
 
                 @Override
                 public void onChannelActive(String remoteAddr, Channel channel) {
-                    for (Map.Entry<String, HashMap<Long, String>> addressEntry : brokerAddrTable.entrySet()) {
-                        for (Map.Entry<Long, String> entry : addressEntry.getValue().entrySet()) {
-                            String addr = entry.getValue();
-                            if (addr.equals(remoteAddr)) {
-                                long id = entry.getKey();
-                                String brokerName = addressEntry.getKey();
-                                if (sendHeartbeatToBroker(id, brokerName, addr)) {
-                                    rebalanceImmediately();
-                                }
-                                break;
-                            }
-                        }
-                    }
                 }
             };
         } else {
