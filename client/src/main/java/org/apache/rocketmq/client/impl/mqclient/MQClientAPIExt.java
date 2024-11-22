@@ -74,6 +74,8 @@ import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
@@ -621,6 +623,26 @@ public class MQClientAPIExt extends MQClientAPIImpl {
                 future0.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark()));
             }
             return future0;
+        });
+    }
+
+    public CompletableFuture<String> recallMessageAsync(String brokerAddr,
+        RecallMessageRequestHeader requestHeader, long timeoutMillis) {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RECALL_MESSAGE, requestHeader);
+        return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
+            CompletableFuture<String> future = new CompletableFuture<>();
+            if (ResponseCode.SUCCESS == response.getCode()) {
+                try {
+                    RecallMessageResponseHeader responseHeader =
+                        response.decodeCommandCustomHeader(RecallMessageResponseHeader.class);
+                    future.complete(responseHeader.getMsgId());
+                } catch (Throwable t) {
+                    future.completeExceptionally(t);
+                }
+            } else {
+                future.completeExceptionally(new MQBrokerException(response.getCode(), response.getRemark(), brokerAddr));
+            }
+            return future;
         });
     }
 
