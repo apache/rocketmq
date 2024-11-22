@@ -435,6 +435,9 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean appendCkAsync = false;
 
+
+    private boolean enableLmqStats = false;
+
     /**
      * V2 is recommended in cases where LMQ feature is extensively used.
      */
@@ -1903,6 +1906,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setAppendCkAsync(boolean appendCkAsync) {
         this.appendCkAsync = appendCkAsync;
+    }
+
+    public boolean isEnableLmqStats() {
+        return enableLmqStats;
+    }
+
+    public void setEnableLmqStats(boolean enableLmqStats) {
+        this.enableLmqStats = enableLmqStats;
     }
 
     public String getConfigManagerVersion() {
