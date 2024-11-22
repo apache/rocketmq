@@ -19,6 +19,7 @@ package org.apache.rocketmq.proxy.processor;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import org.apache.commons.codec.DecoderException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
@@ -32,6 +33,7 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageId;
+import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.common.utils.FutureUtils;
@@ -49,6 +51,7 @@ import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 
 public class ProducerProcessor extends AbstractProcessor {
@@ -118,6 +121,33 @@ public class ProducerProcessor extends AbstractProcessor {
                             this.serviceManager.getTopicRouteService().updateFaultItem(finalMessageQueue.getBrokerName(),endTimestamp - beginTimestampFirst, false, true);
                         }
                     });
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
+    public CompletableFuture<String> recallMessage(ProxyContext ctx, String topic,
+                                                   String recallHandle, long timeoutMillis) {
+        CompletableFuture<String> future = new CompletableFuture<>();
+        try {
+            if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()) {
+                TopicMessageType messageType = serviceManager.getMetadataService().getTopicMessageType(ctx, topic);
+                topicMessageTypeValidator.validate(messageType, TopicMessageType.DELAY);
+            }
+
+            RecallMessageHandle.HandleV1 handleEntity;
+            try {
+                handleEntity = (RecallMessageHandle.HandleV1) RecallMessageHandle.decodeHandle(recallHandle);
+            } catch (DecoderException e) {
+                throw new ProxyException(ProxyExceptionCode.INTERNAL_SERVER_ERROR, e.getMessage());
+            }
+            String brokerName = handleEntity.getBrokerName();
+            RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+            requestHeader.setTopic(topic);
+            requestHeader.setRecallHandle(recallHandle);
+            requestHeader.setBrokerName(brokerName);
+            future = serviceManager.getMessageService().recallMessage(ctx, brokerName, requestHeader, timeoutMillis);
         } catch (Throwable t) {
             future.completeExceptionally(t);
         }

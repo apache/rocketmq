@@ -443,6 +443,8 @@ public class BrokerConfig extends BrokerIdentity {
      */
     private String configManagerVersion = ConfigManagerVersion.V1.getVersion();
 
+    private boolean allowRecallWhenBrokerNotWriteable = true;
+
     public String getConfigBlackList() {
         return configBlackList;
     }
@@ -1922,5 +1924,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setConfigManagerVersion(String configManagerVersion) {
         this.configManagerVersion = configManagerVersion;
+    }
+
+    public boolean isAllowRecallWhenBrokerNotWriteable() {
+        return allowRecallWhenBrokerNotWriteable;
+    }
+
+    public void setAllowRecallWhenBrokerNotWriteable(boolean allowRecallWhenBrokerNotWriteable) {
+        this.allowRecallWhenBrokerNotWriteable = allowRecallWhenBrokerNotWriteable;
     }
 }
