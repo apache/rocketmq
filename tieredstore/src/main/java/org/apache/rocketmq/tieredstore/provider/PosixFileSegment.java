@@ -30,7 +30,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
-import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.stream.FileSegmentInputStream;
@@ -230,6 +229,6 @@ public class PosixFileSegment extends FileSegment {
                 return false;
             }
             return true;
-        }, MessageStoreExecutor.getInstance().bufferCommitExecutor);
+        });
     }
 }
