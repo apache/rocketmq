@@ -25,6 +25,7 @@ import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryRouteRequest;
+import apache.rocketmq.v2.RecallMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.SendMessageRequest;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ public class RequestMapping {
             put(QueryRouteRequest.getDescriptor().getFullName(), RequestCode.GET_ROUTEINFO_BY_TOPIC);
             put(HeartbeatRequest.getDescriptor().getFullName(), RequestCode.HEART_BEAT);
             put(SendMessageRequest.getDescriptor().getFullName(), RequestCode.SEND_MESSAGE_V2);
+            put(RecallMessageRequest.getDescriptor().getFullName(), RequestCode.RECALL_MESSAGE);
             put(QueryAssignmentRequest.getDescriptor().getFullName(), RequestCode.GET_ROUTEINFO_BY_TOPIC);
             put(ReceiveMessageRequest.getDescriptor().getFullName(), RequestCode.PULL_MESSAGE);
             put(AckMessageRequest.getDescriptor().getFullName(), RequestCode.UPDATE_CONSUMER_OFFSET);
