@@ -16,23 +16,29 @@
  */
 package org.apache.rocketmq.store.stats;
 
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 
 public class LmqBrokerStatsManager extends BrokerStatsManager {
 
-    public LmqBrokerStatsManager(String clusterName, boolean enableQueueStat) {
-        super(clusterName, enableQueueStat);
+    private final BrokerConfig brokerConfig;
+
+    public LmqBrokerStatsManager(BrokerConfig brokerConfig) {
+        super(brokerConfig.getBrokerClusterName(), brokerConfig.isEnableDetailStat());
+        this.brokerConfig = brokerConfig;
     }
 
     @Override
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
         String lmqGroup = group;
         String lmqTopic = topic;
-        if (MixAll.isLmq(group)) {
-            lmqGroup = MixAll.LMQ_PREFIX;
-        }
-        if (MixAll.isLmq(topic)) {
-            lmqTopic = MixAll.LMQ_PREFIX;
+        if (!brokerConfig.isEnableLmqStats()) {
+            if (MixAll.isLmq(group)) {
+                lmqGroup = MixAll.LMQ_PREFIX;
+            }
+            if (MixAll.isLmq(topic)) {
+                lmqTopic = MixAll.LMQ_PREFIX;
+            }
         }
         super.incGroupGetNums(lmqGroup, lmqTopic, incValue);
     }
@@ -41,25 +47,28 @@ public class LmqBrokerStatsManager extends BrokerStatsManager {
     public void incGroupGetSize(final String group, final String topic, final int incValue) {
         String lmqGroup = group;
         String lmqTopic = topic;
-        if (MixAll.isLmq(group)) {
-            lmqGroup = MixAll.LMQ_PREFIX;
-        }
-        if (MixAll.isLmq(topic)) {
-            lmqTopic = MixAll.LMQ_PREFIX;
+        if (!brokerConfig.isEnableLmqStats()) {
+            if (MixAll.isLmq(group)) {
+                lmqGroup = MixAll.LMQ_PREFIX;
+            }
+            if (MixAll.isLmq(topic)) {
+                lmqTopic = MixAll.LMQ_PREFIX;
+            }
         }
         super.incGroupGetSize(lmqGroup, lmqTopic, incValue);
     }
-
 
     @Override
     public void incGroupAckNums(final String group, final String topic, final int incValue) {
         String lmqGroup = group;
         String lmqTopic = topic;
-        if (MixAll.isLmq(group)) {
-            lmqGroup = MixAll.LMQ_PREFIX;
-        }
-        if (MixAll.isLmq(topic)) {
-            lmqTopic = MixAll.LMQ_PREFIX;
+        if (!brokerConfig.isEnableLmqStats()) {
+            if (MixAll.isLmq(group)) {
+                lmqGroup = MixAll.LMQ_PREFIX;
+            }
+            if (MixAll.isLmq(topic)) {
+                lmqTopic = MixAll.LMQ_PREFIX;
+            }
         }
         super.incGroupAckNums(lmqGroup, lmqTopic, incValue);
     }
@@ -68,11 +77,13 @@ public class LmqBrokerStatsManager extends BrokerStatsManager {
     public void incGroupCkNums(final String group, final String topic, final int incValue) {
         String lmqGroup = group;
         String lmqTopic = topic;
-        if (MixAll.isLmq(group)) {
-            lmqGroup = MixAll.LMQ_PREFIX;
-        }
-        if (MixAll.isLmq(topic)) {
-            lmqTopic = MixAll.LMQ_PREFIX;
+        if (!brokerConfig.isEnableLmqStats()) {
+            if (MixAll.isLmq(group)) {
+                lmqGroup = MixAll.LMQ_PREFIX;
+            }
+            if (MixAll.isLmq(topic)) {
+                lmqTopic = MixAll.LMQ_PREFIX;
+            }
         }
         super.incGroupCkNums(lmqGroup, lmqTopic, incValue);
     }
@@ -81,11 +92,13 @@ public class LmqBrokerStatsManager extends BrokerStatsManager {
     public void incGroupGetLatency(final String group, final String topic, final int queueId, final int incValue) {
         String lmqGroup = group;
         String lmqTopic = topic;
-        if (MixAll.isLmq(group)) {
-            lmqGroup = MixAll.LMQ_PREFIX;
-        }
-        if (MixAll.isLmq(topic)) {
-            lmqTopic = MixAll.LMQ_PREFIX;
+        if (!brokerConfig.isEnableLmqStats()) {
+            if (MixAll.isLmq(group)) {
+                lmqGroup = MixAll.LMQ_PREFIX;
+            }
+            if (MixAll.isLmq(topic)) {
+                lmqTopic = MixAll.LMQ_PREFIX;
+            }
         }
         super.incGroupGetLatency(lmqGroup, lmqTopic, queueId, incValue);
     }
@@ -94,11 +107,13 @@ public class LmqBrokerStatsManager extends BrokerStatsManager {
     public void incSendBackNums(final String group, final String topic) {
         String lmqGroup = group;
         String lmqTopic = topic;
-        if (MixAll.isLmq(group)) {
-            lmqGroup = MixAll.LMQ_PREFIX;
-        }
-        if (MixAll.isLmq(topic)) {
-            lmqTopic = MixAll.LMQ_PREFIX;
+        if (!brokerConfig.isEnableLmqStats()) {
+            if (MixAll.isLmq(group)) {
+                lmqGroup = MixAll.LMQ_PREFIX;
+            }
+            if (MixAll.isLmq(topic)) {
+                lmqTopic = MixAll.LMQ_PREFIX;
+            }
         }
         super.incSendBackNums(lmqGroup, lmqTopic);
     }
@@ -107,11 +122,13 @@ public class LmqBrokerStatsManager extends BrokerStatsManager {
     public double tpsGroupGetNums(final String group, final String topic) {
         String lmqGroup = group;
         String lmqTopic = topic;
-        if (MixAll.isLmq(group)) {
-            lmqGroup = MixAll.LMQ_PREFIX;
-        }
-        if (MixAll.isLmq(topic)) {
-            lmqTopic = MixAll.LMQ_PREFIX;
+        if (!brokerConfig.isEnableLmqStats()) {
+            if (MixAll.isLmq(group)) {
+                lmqGroup = MixAll.LMQ_PREFIX;
+            }
+            if (MixAll.isLmq(topic)) {
+                lmqTopic = MixAll.LMQ_PREFIX;
+            }
         }
         return super.tpsGroupGetNums(lmqGroup, lmqTopic);
     }
@@ -121,11 +138,13 @@ public class LmqBrokerStatsManager extends BrokerStatsManager {
         final long fallBehind) {
         String lmqGroup = group;
         String lmqTopic = topic;
-        if (MixAll.isLmq(group)) {
-            lmqGroup = MixAll.LMQ_PREFIX;
-        }
-        if (MixAll.isLmq(topic)) {
-            lmqTopic = MixAll.LMQ_PREFIX;
+        if (!brokerConfig.isEnableLmqStats()) {
+            if (MixAll.isLmq(group)) {
+                lmqGroup = MixAll.LMQ_PREFIX;
+            }
+            if (MixAll.isLmq(topic)) {
+                lmqTopic = MixAll.LMQ_PREFIX;
+            }
         }
         super.recordDiskFallBehindTime(lmqGroup, lmqTopic, queueId, fallBehind);
     }
@@ -135,11 +154,13 @@ public class LmqBrokerStatsManager extends BrokerStatsManager {
         final long fallBehind) {
         String lmqGroup = group;
         String lmqTopic = topic;
-        if (MixAll.isLmq(group)) {
-            lmqGroup = MixAll.LMQ_PREFIX;
-        }
-        if (MixAll.isLmq(topic)) {
-            lmqTopic = MixAll.LMQ_PREFIX;
+        if (!brokerConfig.isEnableLmqStats()) {
+            if (MixAll.isLmq(group)) {
+                lmqGroup = MixAll.LMQ_PREFIX;
+            }
+            if (MixAll.isLmq(topic)) {
+                lmqTopic = MixAll.LMQ_PREFIX;
+            }
         }
         super.recordDiskFallBehindSize(lmqGroup, lmqTopic, queueId, fallBehind);
     }

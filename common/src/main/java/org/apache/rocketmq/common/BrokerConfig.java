@@ -437,6 +437,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean clearRetryTopicWhenDeleteTopic = true;
 
+    private boolean enableLmqStats = false;
+
     /**
      * V2 is recommended in cases where LMQ feature is extensively used.
      */
@@ -1913,6 +1915,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setClearRetryTopicWhenDeleteTopic(boolean clearRetryTopicWhenDeleteTopic) {
         this.clearRetryTopicWhenDeleteTopic = clearRetryTopicWhenDeleteTopic;
+
+    public boolean isEnableLmqStats() {
+        return enableLmqStats;
+    }
+
+    public void setEnableLmqStats(boolean enableLmqStats) {
+        this.enableLmqStats = enableLmqStats;
     }
 
     public String getConfigManagerVersion() {
