@@ -1915,6 +1915,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setClearRetryTopicWhenDeleteTopic(boolean clearRetryTopicWhenDeleteTopic) {
         this.clearRetryTopicWhenDeleteTopic = clearRetryTopicWhenDeleteTopic;
+    }
 
     public boolean isEnableLmqStats() {
         return enableLmqStats;
