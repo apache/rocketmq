@@ -98,6 +98,7 @@ public class MessageStoreConfig {
     private boolean timerSkipUnknownError = false;
     private boolean timerWarmEnable = false;
     private boolean timerStopDequeue = false;
+    private boolean timerEnableRetryUntilSuccess = false;
     private int timerCongestNumEachSlot = Integer.MAX_VALUE;
 
     private int timerMetricSmallThreshold = 1000000;
@@ -1679,6 +1680,14 @@ public class MessageStoreConfig {
 
     public void setTimerSkipUnknownError(boolean timerSkipUnknownError) {
         this.timerSkipUnknownError = timerSkipUnknownError;
+    }
+
+    public boolean isTimerEnableRetryUntilSuccess() {
+        return timerEnableRetryUntilSuccess;
+    }
+
+    public void setTimerEnableRetryUntilSuccess(boolean timerEnableRetryUntilSuccess) {
+        this.timerEnableRetryUntilSuccess = timerEnableRetryUntilSuccess;
     }
 
     public boolean isTimerWarmEnable() {
