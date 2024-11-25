@@ -1526,7 +1526,7 @@ public class TimerMessageStore {
                                 break;
 
                             } catch (Throwable t) {
-                                TimerMessageStore.LOGGER.warn("Error processing message, msg: {}", tr.getMsg(), t);
+                                TimerMessageStore.LOGGER.info("Unknown error", t);
                                 if (storeConfig.isTimerSkipUnknownError()) {
                                     break;
                                 } else {
