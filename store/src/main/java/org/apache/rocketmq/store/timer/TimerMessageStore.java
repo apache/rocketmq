@@ -1541,11 +1541,9 @@ public class TimerMessageStore {
                     TimerMessageStore.LOGGER.error("Error occurred in " + getServiceName(), e);
                 }
             }
-
             TimerMessageStore.LOGGER.info(this.getServiceName() + " service end");
             setState(AbstractStateService.END);
         }
-
     }
 
     public class TimerDequeueGetMessageService extends AbstractStateService {
