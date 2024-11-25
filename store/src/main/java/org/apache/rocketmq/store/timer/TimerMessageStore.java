@@ -1098,7 +1098,6 @@ public class TimerMessageStore {
 
                 case MESSAGE_ILLEGAL:
                 case PROPERTIES_SIZE_EXCEEDED:
-                    LOGGER.warn("Skipping message due to unrecoverable error, msg: {}", message);
                     return PUT_NO_RETRY;
 
                 case SERVICE_NOT_AVAILABLE:
@@ -1508,16 +1507,17 @@ public class TimerMessageStore {
                                     if (result == PUT_OK) {
                                         processed = true;
                                     } else if (result == PUT_NO_RETRY) {
-                                        LOGGER.warn("Skipping message due to unrecoverable error. Msg: {}", msg);
+                                        TimerMessageStore.LOGGER.warn("Skipping message due to unrecoverable error. Msg: {}", msg);
                                         processed = true;
                                     } else {
                                         retryCount++;
+                                        // Without enabling TimerEnableRetryUntilSuccess, messages will retry up to 3 times before being discarded
                                         if (!storeConfig.isTimerEnableRetryUntilSuccess() && retryCount >= 3) {
-                                            LOGGER.error("Message processing failed after {} retries. Msg: {}", retryCount, msg);
+                                            TimerMessageStore.LOGGER.error("Message processing failed after {} retries. Msg: {}", retryCount, msg);
                                             processed = true;
                                         } else {
                                             Thread.sleep(500L * precisionMs / 1000);
-                                            LOGGER.warn("Retrying to process message. Retry count: {}, Msg: {}", retryCount, msg);
+                                            TimerMessageStore.LOGGER.warn("Retrying to process message. Retry count: {}, Msg: {}", retryCount, msg);
                                         }
                                     }
                                 }
@@ -1526,7 +1526,7 @@ public class TimerMessageStore {
                                 break;
 
                             } catch (Throwable t) {
-                                LOGGER.warn("Error processing message, msg: {}", tr.getMsg(), t);
+                                TimerMessageStore.LOGGER.warn("Error processing message, msg: {}", tr.getMsg(), t);
                                 if (storeConfig.isTimerSkipUnknownError()) {
                                     break;
                                 } else {
