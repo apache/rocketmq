@@ -1491,7 +1491,7 @@ public class TimerMessageStore {
                                 DefaultStoreMetricsManager.incTimerDequeueCount(getRealTopic(msgExt));
 
                                 if (tr.getEnqueueTime() == Long.MAX_VALUE) {
-                                    // Never enqueue, mark it
+                                    // Never enqueue, mark it.
                                     MessageAccessor.putProperty(msgExt, TIMER_ENQUEUE_MS, String.valueOf(Long.MAX_VALUE));
                                 }
 
