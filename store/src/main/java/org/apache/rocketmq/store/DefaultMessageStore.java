@@ -2797,7 +2797,7 @@ public class DefaultMessageStore implements MessageStore {
     class ReputMessageService extends ServiceThread {
 
         protected volatile long reputFromOffset = 0;
-        protected volatile long currentReputTimestamp = 0;
+        protected volatile long currentReputTimestamp = System.currentTimeMillis();
 
         public long getReputFromOffset() {
             return reputFromOffset;
