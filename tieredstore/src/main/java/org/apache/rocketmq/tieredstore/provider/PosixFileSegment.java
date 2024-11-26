@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tieredstore.provider;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Supplier;
 import com.google.common.io.ByteStreams;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.common.AttributesBuilder;
@@ -30,6 +31,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.metrics.TieredStoreMetricsManager;
 import org.apache.rocketmq.tieredstore.stream.FileSegmentInputStream;
@@ -58,9 +60,9 @@ public class PosixFileSegment extends FileSegment {
     private volatile FileChannel writeFileChannel;
 
     public PosixFileSegment(MessageStoreConfig storeConfig,
-        FileSegmentType fileType, String filePath, long baseOffset) {
+        FileSegmentType fileType, String filePath, long baseOffset, MessageStoreExecutor executor) {
 
-        super(storeConfig, fileType, filePath, baseOffset);
+        super(storeConfig, fileType, filePath, baseOffset, executor);
 
         // basePath
         String basePath = StringUtils.defaultString(storeConfig.getTieredStoreFilePath(),
@@ -168,32 +170,30 @@ public class PosixFileSegment extends FileSegment {
         AttributesBuilder attributesBuilder = newAttributesBuilder()
             .put(LABEL_OPERATION, OPERATION_POSIX_READ);
 
-        CompletableFuture<ByteBuffer> future = new CompletableFuture<>();
-        ByteBuffer byteBuffer = ByteBuffer.allocate(length);
-        try {
-            readFileChannel.position(position);
-            readFileChannel.read(byteBuffer);
-            byteBuffer.flip();
-            byteBuffer.limit(length);
+        return CompletableFuture.supplyAsync((Supplier<ByteBuffer>) () -> {
+            ByteBuffer byteBuffer = ByteBuffer.allocate(length);
+            try {
+                readFileChannel.position(position);
+                readFileChannel.read(byteBuffer);
+                byteBuffer.flip();
+                byteBuffer.limit(length);
 
-            attributesBuilder.put(LABEL_SUCCESS, true);
-            long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
-            TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
+                attributesBuilder.put(LABEL_SUCCESS, true);
+                long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
+                TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
 
-            Attributes metricsAttributes = newAttributesBuilder()
-                .put(LABEL_OPERATION, OPERATION_POSIX_READ)
-                .build();
-            int downloadedBytes = byteBuffer.remaining();
-            TieredStoreMetricsManager.downloadBytes.record(downloadedBytes, metricsAttributes);
-
-            future.complete(byteBuffer);
-        } catch (IOException e) {
-            long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
-            attributesBuilder.put(LABEL_SUCCESS, false);
-            TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
-            future.completeExceptionally(e);
-        }
-        return future;
+                Attributes metricsAttributes = newAttributesBuilder()
+                    .put(LABEL_OPERATION, OPERATION_POSIX_READ)
+                    .build();
+                int downloadedBytes = byteBuffer.remaining();
+                TieredStoreMetricsManager.downloadBytes.record(downloadedBytes, metricsAttributes);
+            } catch (IOException e) {
+                long costTime = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
+                attributesBuilder.put(LABEL_SUCCESS, false);
+                TieredStoreMetricsManager.providerRpcLatency.record(costTime, attributesBuilder.build());
+            }
+            return byteBuffer;
+        }, executor.bufferFetchExecutor);
     }
 
     @Override
@@ -229,6 +229,6 @@ public class PosixFileSegment extends FileSegment {
                 return false;
             }
             return true;
-        });
+        }, executor.bufferCommitExecutor);
     }
 }

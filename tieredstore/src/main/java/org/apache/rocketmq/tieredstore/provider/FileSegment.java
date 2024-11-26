@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.exception.TieredStoreErrorCode;
@@ -45,6 +46,7 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
     protected final MessageStoreConfig storeConfig;
 
     protected final long maxSize;
+    protected final MessageStoreExecutor executor;
     protected final ReentrantLock fileLock = new ReentrantLock();
     protected final Semaphore commitLock = new Semaphore(1);
 
@@ -58,13 +60,14 @@ public abstract class FileSegment implements Comparable<FileSegment>, FileSegmen
     protected volatile FileSegmentInputStream fileSegmentInputStream;
     protected volatile CompletableFuture<Boolean> flightCommitRequest;
 
-    public FileSegment(MessageStoreConfig storeConfig,
-        FileSegmentType fileType, String filePath, long baseOffset) {
+    public FileSegment(MessageStoreConfig storeConfig, FileSegmentType fileType,
+        String filePath, long baseOffset, MessageStoreExecutor executor) {
 
         this.storeConfig = storeConfig;
         this.fileType = fileType;
         this.filePath = filePath;
         this.baseOffset = baseOffset;
+        this.executor = executor;
         this.maxSize = this.getMaxSizeByFileType();
     }
 
