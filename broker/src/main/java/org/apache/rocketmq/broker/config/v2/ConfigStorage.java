@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.config.v2;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.netty.buffer.PooledByteBufAllocatorMetric;
 import io.netty.util.internal.PlatformDependent;
 import java.io.File;
@@ -23,11 +24,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.config.ConfigHelper;
@@ -62,7 +63,11 @@ public class ConfigStorage extends AbstractRocksDBStorage {
     public ConfigStorage(MessageStoreConfig messageStoreConfig) {
         super(messageStoreConfig.getStorePathRootDir() + File.separator + "config" + File.separator + "rdb");
         this.messageStoreConfig = messageStoreConfig;
-        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("config_storage_"));
+        ThreadFactory threadFactory = new ThreadFactoryBuilder()
+            .setDaemon(true)
+            .setNameFormat("config-storage-%d")
+            .build();
+        scheduledExecutorService = new ScheduledThreadPoolExecutor(2, threadFactory);
         writeOpsCounter = new AtomicInteger(0);
     }
 
@@ -149,6 +154,15 @@ public class ConfigStorage extends AbstractRocksDBStorage {
         if (writeCount >= messageStoreConfig.getRocksdbFlushWalFrequency()) {
             this.db.flushWal(false);
             writeOpsCounter.getAndAdd(-writeCount);
+            this.scheduledExecutorService.submit(() -> {
+                try {
+                    long start = System.currentTimeMillis();
+                    this.db.syncWal();
+                    LOGGER.info("WAL fsync of RocksDB[{}] completed, taking {}ms", this.dbPath, System.currentTimeMillis() - start);
+                } catch (RocksDBException e) {
+                    LOGGER.error("[BUG]Unexpected exception raised while SyncWAL, RocksDB={}", this.dbPath, e);
+                }
+            });
         }
     }
 
