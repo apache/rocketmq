@@ -23,6 +23,7 @@ import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
 import org.rocksdb.CompressionType;
+import org.rocksdb.util.SizeUnit;
 
 public class MessageStoreConfig {
 
@@ -448,6 +449,8 @@ public class MessageStoreConfig {
      * Flush RocksDB WAL frequency, aka, flush WAL every N write ops.
      */
     private int rocksdbFlushWalFrequency = 1024;
+
+    private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
 
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
@@ -1913,6 +1916,14 @@ public class MessageStoreConfig {
 
     public void setRocksdbFlushWalFrequency(int rocksdbFlushWalFrequency) {
         this.rocksdbFlushWalFrequency = rocksdbFlushWalFrequency;
+    }
+
+    public long getRocksdbWalFileRollingThreshold() {
+        return rocksdbWalFileRollingThreshold;
+    }
+
+    public void setRocksdbWalFileRollingThreshold(long rocksdbWalFileRollingThreshold) {
+        this.rocksdbWalFileRollingThreshold = rocksdbWalFileRollingThreshold;
     }
 
     public int getSpinLockCollisionRetreatOptimalDegree() {

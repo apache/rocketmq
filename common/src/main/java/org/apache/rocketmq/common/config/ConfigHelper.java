@@ -54,7 +54,7 @@ public class ConfigHelper {
             setWholeKeyFiltering(true);
 
         ColumnFamilyOptions options = new ColumnFamilyOptions();
-        return options.setMaxWriteBufferNumber(2).
+        return options.setMaxWriteBufferNumber(4).
             setWriteBufferSize(64 * SizeUnit.MB).
             setMinWriteBufferNumberToMerge(1).
             setTableFormatConfig(blockBasedTableConfig).

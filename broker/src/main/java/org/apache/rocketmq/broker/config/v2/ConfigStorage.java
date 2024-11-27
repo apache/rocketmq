@@ -30,6 +30,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
@@ -37,6 +38,7 @@ import org.apache.rocketmq.common.config.ConfigHelper;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.FlushOptions;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -59,6 +61,8 @@ public class ConfigStorage extends AbstractRocksDBStorage {
      * Number of write ops since previous flush.
      */
     private final AtomicInteger writeOpsCounter;
+
+    private final AtomicLong estimateWalFileSize = new AtomicLong(0L);
 
     private final MessageStoreConfig messageStoreConfig;
 
@@ -154,11 +158,12 @@ public class ConfigStorage extends AbstractRocksDBStorage {
 
     public void write(WriteBatch writeBatch) throws RocksDBException {
         db.write(ableWalWriteOptions, writeBatch);
-        accountWriteOps();
+        accountWriteOps(writeBatch.getDataSize());
     }
 
-    private void accountWriteOps() {
+    private void accountWriteOps(long dataSize) {
         writeOpsCounter.incrementAndGet();
+        estimateWalFileSize.addAndGet(dataSize);
     }
 
     public RocksIterator iterate(ByteBuffer beginKey, ByteBuffer endKey) {
@@ -195,6 +200,8 @@ public class ConfigStorage extends AbstractRocksDBStorage {
 
         private final Stopwatch stopwatch = Stopwatch.createUnstarted();
 
+        private final FlushOptions flushOptions = new FlushOptions();
+
         @Override
         public String getServiceName() {
             return "FlushSyncService";
@@ -202,6 +209,8 @@ public class ConfigStorage extends AbstractRocksDBStorage {
 
         @Override
         public void run() {
+            flushOptions.setAllowWriteStall(false);
+            flushOptions.setWaitForFlush(true);
             log.info("{} service started", this.getServiceName());
             while (!this.isStopped()) {
                 try {
@@ -217,6 +226,7 @@ public class ConfigStorage extends AbstractRocksDBStorage {
                 log.warn("{} raised an exception while performing flush-and-sync WAL on exit",
                     this.getServiceName(), e);
             }
+            flushOptions.close();
             log.info("{} service end", this.getServiceName());
         }
 
@@ -225,6 +235,11 @@ public class ConfigStorage extends AbstractRocksDBStorage {
             if (0 == writeOps) {
                 // No write ops to flush
                 return;
+            }
+
+            if (ConfigStorage.this.estimateWalFileSize.get() >= messageStoreConfig.getRocksdbWalFileRollingThreshold()) {
+                ConfigStorage.this.flush(flushOptions);
+                estimateWalFileSize.set(0L);
             }
 
             // Flush and Sync WAL if we have committed enough writes
