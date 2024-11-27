@@ -191,7 +191,7 @@ public class BrokerController {
     private final NettyClientConfig nettyClientConfig;
     protected final MessageStoreConfig messageStoreConfig;
     private final AuthConfig authConfig;
-    protected final ConsumerOffsetManager consumerOffsetManager;
+    protected ConsumerOffsetManager consumerOffsetManager;
     protected final BroadcastOffsetManager broadcastOffsetManager;
     protected final ConsumerManager consumerManager;
     protected final ConsumerFilterManager consumerFilterManager;
@@ -1312,6 +1312,11 @@ public class BrokerController {
     public ConsumerOffsetManager getConsumerOffsetManager() {
         return consumerOffsetManager;
     }
+
+    public void setConsumerOffsetManager(ConsumerOffsetManager consumerOffsetManager) {
+        this.consumerOffsetManager = consumerOffsetManager;
+    }
+
 
     public BroadcastOffsetManager getBroadcastOffsetManager() {
         return broadcastOffsetManager;

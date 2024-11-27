@@ -435,6 +435,7 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean appendCkAsync = false;
 
+    private boolean clearRetryTopicWhenDeleteTopic = true;
 
     private boolean enableLmqStats = false;
 
@@ -1906,6 +1907,14 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setAppendCkAsync(boolean appendCkAsync) {
         this.appendCkAsync = appendCkAsync;
+    }
+
+    public boolean isClearRetryTopicWhenDeleteTopic() {
+        return clearRetryTopicWhenDeleteTopic;
+    }
+
+    public void setClearRetryTopicWhenDeleteTopic(boolean clearRetryTopicWhenDeleteTopic) {
+        this.clearRetryTopicWhenDeleteTopic = clearRetryTopicWhenDeleteTopic;
     }
 
     public boolean isEnableLmqStats() {
