@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.broker.config.v2;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.netty.buffer.PooledByteBufAllocatorMetric;
 import io.netty.util.internal.PlatformDependent;
@@ -29,6 +30,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.config.ConfigHelper;
@@ -60,6 +62,8 @@ public class ConfigStorage extends AbstractRocksDBStorage {
 
     private final MessageStoreConfig messageStoreConfig;
 
+    private final FlushSyncService flushSyncService;
+
     public ConfigStorage(MessageStoreConfig messageStoreConfig) {
         super(messageStoreConfig.getStorePathRootDir() + File.separator + "config" + File.separator + "rdb");
         this.messageStoreConfig = messageStoreConfig;
@@ -67,8 +71,10 @@ public class ConfigStorage extends AbstractRocksDBStorage {
             .setDaemon(true)
             .setNameFormat("config-storage-%d")
             .build();
-        scheduledExecutorService = new ScheduledThreadPoolExecutor(2, threadFactory);
+        scheduledExecutorService = new ScheduledThreadPoolExecutor(1, threadFactory);
         writeOpsCounter = new AtomicInteger(0);
+        this.flushSyncService = new FlushSyncService();
+        this.flushSyncService.setDaemon(true);
     }
 
     private void statNettyMemory() {
@@ -82,6 +88,7 @@ public class ConfigStorage extends AbstractRocksDBStorage {
         if (started) {
             scheduledExecutorService.scheduleWithFixedDelay(() -> statRocksdb(LOGGER), 1, 10, TimeUnit.SECONDS);
             scheduledExecutorService.scheduleWithFixedDelay(this::statNettyMemory, 10, 10, TimeUnit.SECONDS);
+            this.flushSyncService.start();
         } else {
             LOGGER.error("Failed to start config storage");
         }
@@ -117,6 +124,7 @@ public class ConfigStorage extends AbstractRocksDBStorage {
     @Override
     protected void preShutdown() {
         scheduledExecutorService.shutdown();
+        flushSyncService.shutdown();
     }
 
     protected void initOptions() {
@@ -146,24 +154,11 @@ public class ConfigStorage extends AbstractRocksDBStorage {
 
     public void write(WriteBatch writeBatch) throws RocksDBException {
         db.write(ableWalWriteOptions, writeBatch);
-        accountWriteOpsForWalFlush();
+        accountWriteOps();
     }
 
-    private void accountWriteOpsForWalFlush() throws RocksDBException {
-        int writeCount = writeOpsCounter.incrementAndGet();
-        if (writeCount >= messageStoreConfig.getRocksdbFlushWalFrequency()) {
-            this.db.flushWal(false);
-            writeOpsCounter.getAndAdd(-writeCount);
-            this.scheduledExecutorService.submit(() -> {
-                try {
-                    long start = System.currentTimeMillis();
-                    this.db.syncWal();
-                    LOGGER.info("WAL fsync of RocksDB[{}] completed, taking {}ms", this.dbPath, System.currentTimeMillis() - start);
-                } catch (RocksDBException e) {
-                    LOGGER.error("[BUG]Unexpected exception raised while SyncWAL, RocksDB={}", this.dbPath, e);
-                }
-            });
-        }
+    private void accountWriteOps() {
+        writeOpsCounter.incrementAndGet();
     }
 
     public RocksIterator iterate(ByteBuffer beginKey, ByteBuffer endKey) {
@@ -182,6 +177,76 @@ public class ConfigStorage extends AbstractRocksDBStorage {
             RocksIterator iterator = db.newIterator(defaultCFHandle, readOptions);
             iterator.seek(beginKey.slice());
             return iterator;
+        }
+    }
+
+    /**
+     * RocksDB writes contain 3 stages: application memory buffer --> OS Page Cache --> Disk.
+     * Given that we are having DBOptions::manual_wal_flush, we need to manually call DB::FlushWAL and DB::SyncWAL
+     * Note: DB::FlushWAL(true) will internally call DB::SyncWAL.
+     * <p>
+     * See <a href="https://rocksdb.org/blog/2017/08/25/flushwal.html">Flush And Sync WAL blog</a>
+     */
+    class FlushSyncService extends ServiceThread {
+
+        private long lastSyncTime = 0;
+
+        private static final long MAX_SYNC_INTERVAL_IN_MILLIS = 100;
+
+        private final Stopwatch stopwatch = Stopwatch.createUnstarted();
+
+        @Override
+        public String getServiceName() {
+            return "FlushSyncService";
+        }
+
+        @Override
+        public void run() {
+            log.info("{} service started", this.getServiceName());
+            while (!this.isStopped()) {
+                try {
+                    this.waitForRunning(10);
+                    this.flushAndSyncWAL(false);
+                } catch (Exception e) {
+                    log.warn("{} service has exception. ", this.getServiceName(), e);
+                }
+            }
+            try {
+                flushAndSyncWAL(true);
+            } catch (Exception e) {
+                log.warn("{} raised an exception while performing flush-and-sync WAL on exit",
+                    this.getServiceName(), e);
+            }
+            log.info("{} service end", this.getServiceName());
+        }
+
+        private void flushAndSyncWAL(boolean onExit) throws RocksDBException {
+            int writeOps = writeOpsCounter.get();
+            if (0 == writeOps) {
+                // No write ops to flush
+                return;
+            }
+
+            // Flush and Sync WAL if we have committed enough writes
+            if (writeOps >= messageStoreConfig.getRocksdbFlushWalFrequency() || onExit) {
+                stopwatch.reset().start();
+                ConfigStorage.this.db.flushWal(true);
+                long elapsed = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
+                writeOpsCounter.getAndAdd(-writeOps);
+                lastSyncTime = System.currentTimeMillis();
+                LOGGER.debug("Flush and Sync WAL of RocksDB[{}] costs {}ms, write-ops={}", dbPath, elapsed, writeOps);
+                return;
+            }
+            // Flush and Sync WAL if some writes are out there for a period of time
+            long elapsedTime = System.currentTimeMillis() - lastSyncTime;
+            if (elapsedTime > MAX_SYNC_INTERVAL_IN_MILLIS) {
+                stopwatch.reset().start();
+                ConfigStorage.this.db.flushWal(true);
+                long elapsed = stopwatch.stop().elapsed(TimeUnit.MILLISECONDS);
+                LOGGER.debug("Flush and Sync WAL of RocksDB[{}] costs {}ms, write-ops={}", dbPath, elapsed, writeOps);
+                writeOpsCounter.getAndAdd(-writeOps);
+                lastSyncTime = System.currentTimeMillis();
+            }
         }
     }
 }
