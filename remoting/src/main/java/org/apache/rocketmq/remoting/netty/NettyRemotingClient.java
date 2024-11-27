@@ -377,9 +377,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
             this.eventLoopGroupWorker.shutdownGracefully();
 
-            if (this.nettyEventExecutor != null) {
-                this.nettyEventExecutor.shutdown();
-            }
+            this.nettyEventExecutor.shutdown();
 
             if (this.defaultEventExecutorGroup != null) {
                 this.defaultEventExecutorGroup.shutdownGracefully();
@@ -964,22 +962,19 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         }
 
         for (final String namesrvAddr : nameServerList) {
-            scanExecutor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        Channel channel = NettyRemotingClient.this.getAndCreateChannel(namesrvAddr);
-                        if (channel != null) {
-                            NettyRemotingClient.this.availableNamesrvAddrMap.putIfAbsent(namesrvAddr, true);
-                        } else {
-                            Boolean value = NettyRemotingClient.this.availableNamesrvAddrMap.remove(namesrvAddr);
-                            if (value != null) {
-                                LOGGER.warn("scanAvailableNameSrv remove unconnected address {}", namesrvAddr);
-                            }
+            scanExecutor.execute(() -> {
+                try {
+                    Channel channel = NettyRemotingClient.this.getAndCreateChannel(namesrvAddr);
+                    if (channel != null) {
+                        NettyRemotingClient.this.availableNamesrvAddrMap.putIfAbsent(namesrvAddr, true);
+                    } else {
+                        Boolean value = NettyRemotingClient.this.availableNamesrvAddrMap.remove(namesrvAddr);
+                        if (value != null) {
+                            LOGGER.warn("scanAvailableNameSrv remove unconnected address {}", namesrvAddr);
                         }
-                    } catch (Exception e) {
-                        LOGGER.error("scanAvailableNameSrv get channel of {} failed, ", namesrvAddr, e);
                     }
+                } catch (Exception e) {
+                    LOGGER.error("scanAvailableNameSrv get channel of {} failed, ", namesrvAddr, e);
                 }
             });
         }
