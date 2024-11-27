@@ -160,9 +160,6 @@ public class MQClientInstance {
             channelEventListener = new ChannelEventListener() {
                 private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = MQClientInstance.this.brokerAddrTable;
                 
-                private final ConcurrentMap<String, Boolean> brokerConnectionIsFirstTable = new ConcurrentHashMap<>();
-
-                
                 @Override
                 public void onChannelConnect(String remoteAddr, Channel channel) {
                 }
@@ -181,25 +178,16 @@ public class MQClientInstance {
 
                 @Override
                 public void onChannelActive(String remoteAddr, Channel channel) {
-                    
-                    if (Objects.isNull(brokerConnectionIsFirstTable.get(remoteAddr))) {
-                        brokerConnectionIsFirstTable.put(remoteAddr, Boolean.TRUE);
-                    } else {
-                        for (Map.Entry<String, HashMap<Long, String>> addressEntry : brokerAddrTable.entrySet()) {
-                            for (Map.Entry<Long, String> entry : addressEntry.getValue().entrySet()) {
-                                String addr = entry.getValue();
-                                if (addr.equals(remoteAddr)) {
-                                    long id = entry.getKey();
-                                    String brokerName = addressEntry.getKey();
-                                    if (sendHeartbeatToBroker(id, brokerName, addr)) {
-                                        rebalanceImmediately();
-                                    }
-                                    break;
+
+                    brokerAddrTable.forEach((brokerName, addrMap) -> {
+                        addrMap.forEach((brokerId, addr) -> {
+                            if (Objects.equals(addr, remoteAddr)) {
+                                if (sendHeartbeatToBroker(brokerId, brokerName, addr, false)) {
+                                    rebalanceImmediately();
                                 }
                             }
-                        }
-                    } 
-
+                        });
+                    });
                 }
             };
         } else {
@@ -602,6 +590,18 @@ public class MQClientInstance {
     }
 
     public boolean sendHeartbeatToBroker(long id, String brokerName, String addr) {
+        return sendHeartbeatToBroker(id, brokerName, addr, true);
+    }
+
+    /**
+     * @param id
+     * @param brokerName
+     * @param addr
+     * @param strictLockMode When the connection is initially established, sending a heartbeat will simultaneously trigger the onChannelActive event to acquire the lock again, causing an exception. Therefore,
+     *                       the exception that occurs when sending the heartbeat during the initial onChannelActive event can be ignored.
+     * @return
+     */
+    public boolean sendHeartbeatToBroker(long id, String brokerName, String addr, boolean strictLockMode) {
         if (this.lockHeartbeat.tryLock()) {
             final HeartbeatData heartbeatDataWithSub = this.prepareHeartbeatData(false);
             final boolean producerEmpty = heartbeatDataWithSub.getProducerDataSet().isEmpty();
@@ -626,7 +626,9 @@ public class MQClientInstance {
                 this.lockHeartbeat.unlock();
             }
         } else {
-            log.warn("lock heartBeat, but failed. [{}]", this.clientId);
+            if (strictLockMode) {
+                log.warn("lock heartBeat, but failed. [{}]", this.clientId);
+            }
         }
         return false;
     }
