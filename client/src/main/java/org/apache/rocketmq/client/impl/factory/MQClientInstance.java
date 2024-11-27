@@ -25,7 +25,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -158,6 +157,7 @@ public class MQClientInstance {
         ChannelEventListener channelEventListener;
         if (clientConfig.isEnableHeartbeatChannelEventListener()) {
             channelEventListener = new ChannelEventListener() {
+                
                 private final ConcurrentMap<String, HashMap<Long, String>> brokerAddrTable = MQClientInstance.this.brokerAddrTable;
                 
                 @Override
@@ -178,16 +178,19 @@ public class MQClientInstance {
 
                 @Override
                 public void onChannelActive(String remoteAddr, Channel channel) {
-
-                    brokerAddrTable.forEach((brokerName, addrMap) -> {
-                        addrMap.forEach((brokerId, addr) -> {
-                            if (Objects.equals(addr, remoteAddr)) {
-                                if (sendHeartbeatToBroker(brokerId, brokerName, addr, false)) {
+                    for (Map.Entry<String, HashMap<Long, String>> addressEntry : brokerAddrTable.entrySet()) {
+                        for (Map.Entry<Long, String> entry : addressEntry.getValue().entrySet()) {
+                            String addr = entry.getValue();
+                            if (addr.equals(remoteAddr)) {
+                                long id = entry.getKey();
+                                String brokerName = addressEntry.getKey();
+                                if (sendHeartbeatToBroker(id, brokerName, addr, false)) {
                                     rebalanceImmediately();
                                 }
+                                break;
                             }
-                        });
-                    });
+                        }
+                    }
                 }
             };
         } else {
