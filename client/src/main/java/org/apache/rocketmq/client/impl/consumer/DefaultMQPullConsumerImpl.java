@@ -649,6 +649,10 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
             String brokerAddr = (null != destBrokerName) ? this.mQClientFactory.findBrokerAddressInPublish(destBrokerName)
                 : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
 
+            if (UtilAll.isBlank(brokerAddr)) {
+                throw new MQClientException("Broker[" + destBrokerName + "] master node does not exist", null);
+            }
+
             if (UtilAll.isBlank(consumerGroup)) {
                 consumerGroup = this.defaultMQPullConsumer.getConsumerGroup();
             }
