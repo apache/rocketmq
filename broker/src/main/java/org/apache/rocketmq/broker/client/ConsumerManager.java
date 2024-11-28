@@ -311,12 +311,24 @@ public class ConsumerManager {
     public HashSet<String> queryTopicConsumeByWho(final String topic) {
         HashSet<String> groups = new HashSet<>();
         Iterator<Entry<String, ConsumerGroupInfo>> it = this.consumerTable.entrySet().iterator();
+        Iterator<Entry<String, ConsumerGroupInfo>> compensate = consumerCompensationTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<String, ConsumerGroupInfo> entry = it.next();
             ConcurrentMap<String, SubscriptionData> subscriptionTable =
                 entry.getValue().getSubscriptionTable();
             if (subscriptionTable.containsKey(topic)) {
                 groups.add(entry.getKey());
+            }
+        }
+
+        if (groups.isEmpty()) {
+            while (compensate.hasNext()) {
+                Entry<String, ConsumerGroupInfo> entry = compensate.next();
+                ConcurrentMap<String, SubscriptionData> subscriptionTable =
+                        entry.getValue().getSubscriptionTable();
+                if (subscriptionTable.containsKey(topic)) {
+                    groups.add(entry.getKey());
+                }
             }
         }
         return groups;
