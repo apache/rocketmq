@@ -56,10 +56,13 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     private final MessageListenerConcurrently messageListener;
     private final BlockingQueue<Runnable> consumeRequestQueue;
     private final ExecutorService consumeExecutor;
+    private final boolean isConsumeExecutorFromUser;
     private final String consumerGroup;
 
     private final ScheduledExecutorService scheduledExecutorService;
+    private final boolean isScheduledExecutorServiceFromUser;
     private final ScheduledExecutorService cleanExpireMsgExecutors;
+    private final boolean isCleanExpireMsgExecutorsFromUser;
 
     public ConsumeMessageConcurrentlyService(DefaultMQPushConsumerImpl defaultMQPushConsumerImpl,
         MessageListenerConcurrently messageListener) {
@@ -72,7 +75,9 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         String consumerGroupTag = (consumerGroup.length() > 100 ? consumerGroup.substring(0, 100) : consumerGroup) + "_";
         if (this.defaultMQPushConsumer.getConsumeExecutor() != null) {
             this.consumeExecutor = this.defaultMQPushConsumer.getConsumeExecutor();
+            this.isConsumeExecutorFromUser = true;
         } else {
+            this.isConsumeExecutorFromUser = false;
             this.consumeExecutor = new ThreadPoolExecutor(
                     this.defaultMQPushConsumer.getConsumeThreadMin(),
                     this.defaultMQPushConsumer.getConsumeThreadMax(),
@@ -83,14 +88,18 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         }
 
         if (this.defaultMQPushConsumer.getConsumeMessageScheduledExecutor() != null) {
+            this.isScheduledExecutorServiceFromUser = true;
             this.scheduledExecutorService = this.defaultMQPushConsumer.getConsumeMessageScheduledExecutor();
         } else {
+            this.isScheduledExecutorServiceFromUser = false;
             this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("ConsumeMessageScheduledThread_" + consumerGroupTag));
         }
 
         if (this.defaultMQPushConsumer.getCleanExpireMsgScheduledExecutor() != null) {
+            this.isCleanExpireMsgExecutorsFromUser = true;
            this.cleanExpireMsgExecutors = this.defaultMQPushConsumer.getCleanExpireMsgScheduledExecutor();
         } else {
+            this.isCleanExpireMsgExecutorsFromUser = false;
             this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CleanExpireMsgScheduledThread_" + consumerGroupTag));
         }
     }
@@ -111,9 +120,15 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
     }
 
     public void shutdown(long awaitTerminateMillis) {
-        this.scheduledExecutorService.shutdown();
-        ThreadUtils.shutdownGracefully(this.consumeExecutor, awaitTerminateMillis, TimeUnit.MILLISECONDS);
-        this.cleanExpireMsgExecutors.shutdown();
+        if (!isScheduledExecutorServiceFromUser) {
+            this.scheduledExecutorService.shutdown();
+        }
+        if (!isConsumeExecutorFromUser) {
+            ThreadUtils.shutdownGracefully(this.consumeExecutor, awaitTerminateMillis, TimeUnit.MILLISECONDS);
+        }
+        if (!isCleanExpireMsgExecutorsFromUser) {
+            this.cleanExpireMsgExecutors.shutdown();
+        }
     }
 
     @Override

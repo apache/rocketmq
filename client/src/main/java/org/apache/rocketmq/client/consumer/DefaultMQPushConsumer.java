@@ -175,14 +175,17 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     /**
      * Concurrently max span offset.it has no effect on sequential consumption
+     * Lifecycle managed by the provider
      */
     private ScheduledExecutorService consumeMessageScheduledExecutor;
     /**
      * Thread pool for handling expired messages
+     * Lifecycle managed by the provider
      */
     private ScheduledExecutorService cleanExpireMsgScheduledExecutor;
     /**
      * Thread pool for handling normal messages
+     * Lifecycle managed by the provider
      */
     private ExecutorService consumeExecutor;
 
