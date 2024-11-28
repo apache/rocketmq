@@ -1071,6 +1071,7 @@ public class TimerMessageStore {
 
     //0 succ; 1 fail, need retry; 2 fail, do not retry;
     public int doPut(MessageExtBrokerInner message, boolean roll) throws Exception {
+
         if (!roll && null != message.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)) {
             LOGGER.warn("Trying do put delete timer msg:[{}] roll:[{}]", message, roll);
             return PUT_NO_RETRY;
