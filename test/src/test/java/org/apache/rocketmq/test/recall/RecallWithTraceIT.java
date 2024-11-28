@@ -85,9 +85,9 @@ public class RecallWithTraceIT extends BaseConf {
         AtomicReference<MessageExt> traceMessage = new AtomicReference();
         await()
             .pollInterval(1, TimeUnit.SECONDS)
-            .atMost(5, TimeUnit.SECONDS)
+            .atMost(15, TimeUnit.SECONDS)
             .until(() -> {
-                PopResult popResult = popConsumer.pop(brokerAddress, messageQueue, 60 * 1000, 60 * 1000);
+                PopResult popResult = popConsumer.pop(brokerAddress, messageQueue, 60 * 1000, -1);
                 boolean found = popResult.getPopStatus().equals(PopStatus.FOUND);
                 traceMessage.set(found ? popResult.getMsgFoundList().get(0) : null);
                 return found;

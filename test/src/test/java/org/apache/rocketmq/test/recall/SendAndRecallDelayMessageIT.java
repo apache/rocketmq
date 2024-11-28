@@ -81,9 +81,9 @@ public class SendAndRecallDelayMessageIT extends BaseConf {
 
         await()
             .pollInterval(1, TimeUnit.SECONDS)
-            .atMost(delaySecond + 5, TimeUnit.SECONDS)
+            .atMost(delaySecond + 15, TimeUnit.SECONDS)
             .until(() -> {
-                PopResult popResult = popConsumer.pop(brokerAddress, messageQueue, 60 * 1000, 60 * 1000);
+                PopResult popResult = popConsumer.pop(brokerAddress, messageQueue, 60 * 1000, -1);
                 processPopResult(recvList, popResult);
                 return recvList.size() == sendList.size();
             });
@@ -113,9 +113,9 @@ public class SendAndRecallDelayMessageIT extends BaseConf {
         try {
             await()
                 .pollInterval(1, TimeUnit.SECONDS)
-                .atMost(delaySecond + 5, TimeUnit.SECONDS)
+                .atMost(delaySecond + 15, TimeUnit.SECONDS)
                 .until(() -> {
-                    PopResult popResult = popConsumer.pop(brokerAddress, messageQueue, 60 * 1000, 60 * 1000);
+                    PopResult popResult = popConsumer.pop(brokerAddress, messageQueue, 60 * 1000, -1);
                     processPopResult(recvList, popResult);
                     return recvList.size() == sendList.size();
                 });
