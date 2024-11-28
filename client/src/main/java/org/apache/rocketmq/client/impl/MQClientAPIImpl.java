@@ -774,7 +774,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         final DefaultMQProducerImpl producer
     ) {
         int tmp = curTimes.incrementAndGet();
-        if (needRetry && tmp <= timesTotal) {
+        if (needRetry && tmp <= timesTotal && timeoutMillis > 0) {
             String retryBrokerName = brokerName;//by default, it will send to the same broker
             if (topicPublishInfo != null) { //select one message queue accordingly, in order to determine which broker to send
                 MessageQueue mqChosen = producer.selectOneMessageQueue(topicPublishInfo, brokerName, false);
