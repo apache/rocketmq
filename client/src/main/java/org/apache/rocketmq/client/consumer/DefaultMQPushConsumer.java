@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.client.consumer;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.consumer.listener.MessageListener;
@@ -169,6 +172,19 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * Threshold for dynamic adjustment of the number of thread pool
      */
     private long adjustThreadPoolNumsThreshold = 100000;
+
+    /**
+     * Concurrently max span offset.it has no effect on sequential consumption
+     */
+    private ScheduledExecutorService consumeMessageScheduledExecutor;
+    /**
+     * Thread pool for handling expired messages
+     */
+    private ScheduledExecutorService cleanExpireMsgScheduledExecutor;
+    /**
+     * Thread pool for handling normal messages
+     */
+    private ExecutorService consumeExecutor;
 
     /**
      * Concurrently max span offset.it has no effect on sequential consumption
@@ -925,6 +941,30 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
 
     public void setAdjustThreadPoolNumsThreshold(long adjustThreadPoolNumsThreshold) {
         this.adjustThreadPoolNumsThreshold = adjustThreadPoolNumsThreshold;
+    }
+
+    public ScheduledExecutorService getConsumeMessageScheduledExecutor() {
+        return consumeMessageScheduledExecutor;
+    }
+
+    public void setConsumeMessageScheduledExecutor(ScheduledExecutorService consumeMessageScheduledExecutor) {
+        this.consumeMessageScheduledExecutor = consumeMessageScheduledExecutor;
+    }
+
+    public ScheduledExecutorService getCleanExpireMsgScheduledExecutor() {
+        return cleanExpireMsgScheduledExecutor;
+    }
+
+    public void setCleanExpireMsgScheduledExecutor(ScheduledExecutorService cleanExpireMsgScheduledExecutor) {
+        this.cleanExpireMsgScheduledExecutor = cleanExpireMsgScheduledExecutor;
+    }
+
+    public ExecutorService getConsumeExecutor() {
+        return consumeExecutor;
+    }
+
+    public void setConsumeExecutor(ExecutorService consumeExecutor) {
+        this.consumeExecutor = consumeExecutor;
     }
 
     public int getMaxReconsumeTimes() {
