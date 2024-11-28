@@ -1071,7 +1071,6 @@ public class TimerMessageStore {
 
     //0 succ; 1 fail, need retry; 2 fail, do not retry;
     public int doPut(MessageExtBrokerInner message, boolean roll) throws Exception {
-
         if (!roll && null != message.getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)) {
             LOGGER.warn("Trying do put delete timer msg:[{}] roll:[{}]", message, roll);
             return PUT_NO_RETRY;
@@ -1098,6 +1097,8 @@ public class TimerMessageStore {
 
                 case MESSAGE_ILLEGAL:
                 case PROPERTIES_SIZE_EXCEEDED:
+                case WHEEL_TIMER_NOT_ENABLE:
+                case WHEEL_TIMER_MSG_ILLEGAL:
                     return PUT_NO_RETRY;
 
                 case SERVICE_NOT_AVAILABLE:
@@ -1454,7 +1455,6 @@ public class TimerMessageStore {
     }
 
     public class TimerDequeuePutMessageService extends AbstractStateService {
-
         @Override
         public String getServiceName() {
             return getServiceThreadName() + this.getClass().getSimpleName();
