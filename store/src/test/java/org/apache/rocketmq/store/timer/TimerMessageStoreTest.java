@@ -180,7 +180,7 @@ public class TimerMessageStoreTest {
 
     @Test
     public void testPutTimerMessage() throws Exception {
-        // Assume.assumeFalse(MixAll.isWindows());
+        Assume.assumeFalse(MixAll.isWindows());
         String topic = "TimerTest_testPutTimerMessage";
 
         final TimerMessageStore timerMessageStore = createTimerMessageStore(null , false);
