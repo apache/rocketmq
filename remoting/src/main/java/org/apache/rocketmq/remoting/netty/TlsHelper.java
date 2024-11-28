@@ -216,8 +216,9 @@ public class TlsHelper {
             return ClientAuth.NONE;
         }
 
+        String authModeUpper = authMode.toUpperCase();
         for (ClientAuth clientAuth : ClientAuth.values()) {
-            if (clientAuth.name().equals(authMode.toUpperCase())) {
+            if (clientAuth.name().equals(authModeUpper)) {
                 return clientAuth;
             }
         }

@@ -480,7 +480,13 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     public ConsumeQueueInterface findOrCreateConsumeQueue(String topic, int queueId) {
         ConcurrentMap<Integer, ConsumeQueueInterface> map = this.consumeQueueTable.get(topic);
         if (null == map) {
-            ConcurrentMap<Integer, ConsumeQueueInterface> newMap = new ConcurrentHashMap<>(128);
+            ConcurrentMap<Integer, ConsumeQueueInterface> newMap;
+            if (MixAll.isLmq(topic)) {
+                // For LMQ, no need to over allocate internal hashtable
+                newMap = new ConcurrentHashMap<>(1, 1.0F);
+            } else {
+                newMap = new ConcurrentHashMap<>(8);
+            }
             ConcurrentMap<Integer, ConsumeQueueInterface> oldMap = this.consumeQueueTable.putIfAbsent(topic, newMap);
             if (oldMap != null) {
                 map = oldMap;

@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.commons.collections.MapUtils;
 import org.apache.rocketmq.broker.BrokerController;
+import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
@@ -75,7 +76,6 @@ public class RocksdbTransferOffsetAndCqTest {
         brokerConfig.setConsumerOffsetUpdateVersionStep(10);
         MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
         messageStoreConfig.setStorePathRootDir(basePath);
-        messageStoreConfig.setTransferOffsetJsonToRocksdb(true);
         messageStoreConfig.setRocksdbCQDoubleWriteEnable(true);
         Mockito.lenient().when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         Mockito.lenient().when(brokerController.getMessageStoreConfig()).thenReturn(messageStoreConfig);

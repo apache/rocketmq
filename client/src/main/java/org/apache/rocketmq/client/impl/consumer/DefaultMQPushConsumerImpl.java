@@ -767,6 +767,9 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
             } else {
                 String brokerAddr = (null != brokerName) ? this.mQClientFactory.findBrokerAddressInPublish(brokerName)
                     : RemotingHelper.parseSocketAddressAddr(msg.getStoreHost());
+                if (UtilAll.isBlank(brokerAddr)) {
+                    throw new MQClientException("Broker[" + brokerName + "] master node does not exist", null);
+                }
                 this.mQClientFactory.getMQClientAPIImpl().consumerSendMessageBack(brokerAddr, brokerName, msg,
                     this.defaultMQPushConsumer.getConsumerGroup(), delayLevel, 5000, getMaxReconsumeTimes());
             }
@@ -1006,10 +1009,16 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 break;
         }
 
-        this.updateTopicSubscribeInfoWhenSubscriptionChanged();
-        this.mQClientFactory.checkClientInBroker();
-        if (this.mQClientFactory.sendHeartbeatToAllBrokerWithLock()) {
-            this.mQClientFactory.rebalanceImmediately();
+        try {
+            this.updateTopicSubscribeInfoWhenSubscriptionChanged();
+            this.mQClientFactory.checkClientInBroker();
+            if (this.mQClientFactory.sendHeartbeatToAllBrokerWithLock()) {
+                this.mQClientFactory.rebalanceImmediately();
+            }
+        } catch (Exception e) {
+            log.warn("Start the consumer {} fail.", this.defaultMQPushConsumer.getConsumerGroup(), e);
+            shutdown();
+            throw e;
         }
     }
 

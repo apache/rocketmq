@@ -17,6 +17,7 @@
 package org.apache.rocketmq.common;
 
 import org.apache.rocketmq.common.annotation.ImportantField;
+import org.apache.rocketmq.common.config.ConfigManagerVersion;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.MessageRequestMode;
 import org.apache.rocketmq.common.metrics.MetricsExporterType;
@@ -226,6 +227,9 @@ public class BrokerConfig extends BrokerIdentity {
     private int popCkMaxBufferSize = 200000;
     private int popCkOffsetMaxQueueSize = 20000;
     private boolean enablePopBatchAck = false;
+    // set the interval to the maxFilterMessageSize in MessageStoreConfig divided by the cq unit size
+    private long popLongPollingForceNotifyInterval = 800;
+    private boolean enableNotifyBeforePopCalculateLag = true;
     private boolean enableNotifyAfterPopOrderLockRelease = true;
     private boolean initPopOffsetByCheckMsgInMem = true;
     // read message from pop retry topic v1, for the compatibility, will be removed in the future version
@@ -430,6 +434,15 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean appendAckAsync = false;
 
     private boolean appendCkAsync = false;
+
+    private boolean clearRetryTopicWhenDeleteTopic = true;
+
+    private boolean enableLmqStats = false;
+
+    /**
+     * V2 is recommended in cases where LMQ feature is extensively used.
+     */
+    private String configManagerVersion = ConfigManagerVersion.V1.getVersion();
 
     public String getConfigBlackList() {
         return configBlackList;
@@ -1320,6 +1333,22 @@ public class BrokerConfig extends BrokerIdentity {
         this.enableNetWorkFlowControl = enableNetWorkFlowControl;
     }
 
+    public long getPopLongPollingForceNotifyInterval() {
+        return popLongPollingForceNotifyInterval;
+    }
+
+    public void setPopLongPollingForceNotifyInterval(long popLongPollingForceNotifyInterval) {
+        this.popLongPollingForceNotifyInterval = popLongPollingForceNotifyInterval;
+    }
+
+    public boolean isEnableNotifyBeforePopCalculateLag() {
+        return enableNotifyBeforePopCalculateLag;
+    }
+
+    public void setEnableNotifyBeforePopCalculateLag(boolean enableNotifyBeforePopCalculateLag) {
+        this.enableNotifyBeforePopCalculateLag = enableNotifyBeforePopCalculateLag;
+    }
+
     public boolean isEnableNotifyAfterPopOrderLockRelease() {
         return enableNotifyAfterPopOrderLockRelease;
     }
@@ -1878,5 +1907,29 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setAppendCkAsync(boolean appendCkAsync) {
         this.appendCkAsync = appendCkAsync;
+    }
+
+    public boolean isClearRetryTopicWhenDeleteTopic() {
+        return clearRetryTopicWhenDeleteTopic;
+    }
+
+    public void setClearRetryTopicWhenDeleteTopic(boolean clearRetryTopicWhenDeleteTopic) {
+        this.clearRetryTopicWhenDeleteTopic = clearRetryTopicWhenDeleteTopic;
+    }
+
+    public boolean isEnableLmqStats() {
+        return enableLmqStats;
+    }
+
+    public void setEnableLmqStats(boolean enableLmqStats) {
+        this.enableLmqStats = enableLmqStats;
+    }
+
+    public String getConfigManagerVersion() {
+        return configManagerVersion;
+    }
+
+    public void setConfigManagerVersion(String configManagerVersion) {
+        this.configManagerVersion = configManagerVersion;
     }
 }
