@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.BrokerMetricsManager;
@@ -376,7 +377,9 @@ public class PopReviveService extends ServiceThread {
                     }
                     AckMsg ackMsg = JSON.parseObject(raw, AckMsg.class);
                     PopMetricsManager.incPopReviveAckGetCount(ackMsg, queueId);
-                    String mergeKey = ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime() + ackMsg.getBrokerName();
+                    String brokerName = StringUtils.isNotBlank(ackMsg.getBrokerName()) ?
+                        ackMsg.getBrokerName() : brokerController.getBrokerConfig().getBrokerName();
+                    String mergeKey = ackMsg.getTopic() + ackMsg.getConsumerGroup() + ackMsg.getQueueId() + ackMsg.getStartOffset() + ackMsg.getPopTime() + brokerName;
                     PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
                         if (!brokerController.getBrokerConfig().isEnableSkipLongAwaitingAck()) {
@@ -401,7 +404,9 @@ public class PopReviveService extends ServiceThread {
 
                     BatchAckMsg bAckMsg = JSON.parseObject(raw, BatchAckMsg.class);
                     PopMetricsManager.incPopReviveAckGetCount(bAckMsg, queueId);
-                    String mergeKey = bAckMsg.getTopic() + bAckMsg.getConsumerGroup() + bAckMsg.getQueueId() + bAckMsg.getStartOffset() + bAckMsg.getPopTime() + bAckMsg.getBrokerName();
+                    String brokerName = StringUtils.isNotBlank(bAckMsg.getBrokerName()) ?
+                        bAckMsg.getBrokerName() : brokerController.getBrokerConfig().getBrokerName();
+                    String mergeKey = bAckMsg.getTopic() + bAckMsg.getConsumerGroup() + bAckMsg.getQueueId() + bAckMsg.getStartOffset() + bAckMsg.getPopTime() + brokerName;
                     PopCheckPoint point = map.get(mergeKey);
                     if (point == null) {
                         if (!brokerController.getBrokerConfig().isEnableSkipLongAwaitingAck()) {

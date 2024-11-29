@@ -77,8 +77,11 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
             return;
         }
 
-        String configType = commandLine.getOptionValue("configType").trim().toLowerCase();
-        path += "/" + configType;
+        String configType = commandLine.getOptionValue("configType").trim();
+        if (!path.endsWith("/")) {
+            path += "/";
+        }
+        path += configType;
 
         boolean jsonEnable = false;
         if (commandLine.hasOption("jsonEnable")) {

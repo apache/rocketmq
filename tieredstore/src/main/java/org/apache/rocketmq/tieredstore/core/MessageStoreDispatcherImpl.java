@@ -92,8 +92,10 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             semaphore.acquire();
             this.doScheduleDispatch(flatFile, false)
                 .whenComplete((future, throwable) -> semaphore.release());
-        } catch (InterruptedException e) {
+        } catch (Throwable t) {
             semaphore.release();
+            log.error("MessageStore dispatch error, topic={}, queueId={}",
+                flatFile.getMessageQueue().getTopic(), flatFile.getMessageQueue().getQueueId(), t);
         }
     }
 
@@ -156,8 +158,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             }
 
             if (currentOffset < minOffsetInQueue) {
-                log.warn("MessageDispatcher#dispatch, current offset is too small, " +
-                        "topic={}, queueId={}, offset={}-{}, current={}",
+                log.warn("MessageDispatcher#dispatch, current offset is too small, topic={}, queueId={}, offset={}-{}, current={}",
                     topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset);
                 flatFileStore.destroyFile(flatFile.getMessageQueue());
                 flatFileStore.computeIfAbsent(new MessageQueue(topic, brokerName, queueId));
@@ -165,16 +166,14 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             }
 
             if (currentOffset > maxOffsetInQueue) {
-                log.warn("MessageDispatcher#dispatch, current offset is too large, " +
-                        "topic: {}, queueId: {}, offset={}-{}, current={}",
+                log.warn("MessageDispatcher#dispatch, current offset is too large, topic={}, queueId={}, offset={}-{}, current={}",
                     topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset);
                 return CompletableFuture.completedFuture(false);
             }
 
             long interval = TimeUnit.HOURS.toMillis(storeConfig.getCommitLogRollingInterval());
             if (flatFile.rollingFile(interval)) {
-                log.info("MessageDispatcher#dispatch, rolling file, " +
-                        "topic: {}, queueId: {}, offset={}-{}, current={}",
+                log.info("MessageDispatcher#dispatch, rolling file, topic={}, queueId={}, offset={}-{}, current={}",
                     topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset);
             }
 
@@ -189,8 +188,20 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
 
             ConsumeQueueInterface consumeQueue = defaultStore.getConsumeQueue(topic, queueId);
             CqUnit cqUnit = consumeQueue.get(currentOffset);
+            if (cqUnit == null) {
+                log.warn("MessageDispatcher#dispatch cq not found, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                    topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+                return CompletableFuture.completedFuture(false);
+            }
+
             SelectMappedBufferResult message =
                 defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
+            if (message == null) {
+                log.warn("MessageDispatcher#dispatch message not found, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                    topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+                return CompletableFuture.completedFuture(false);
+            }
+
             boolean timeout = MessageFormatUtil.getStoreTimeStamp(message.getByteBuffer()) +
                 storeConfig.getTieredStoreGroupCommitTimeout() < System.currentTimeMillis();
             boolean bufferFull = maxOffsetInQueue - currentOffset > storeConfig.getTieredStoreGroupCommitCount();
@@ -198,6 +209,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             if (!timeout && !bufferFull && !force) {
                 log.debug("MessageDispatcher#dispatch hold, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
                     topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+                message.release();
                 return CompletableFuture.completedFuture(false);
             } else {
                 if (MessageFormatUtil.getStoreTimeStamp(message.getByteBuffer()) +
@@ -205,11 +217,11 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                     log.warn("MessageDispatcher#dispatch behind too much, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
                         topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
                 } else {
-                    log.info("MessageDispatcher#dispatch, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                    log.info("MessageDispatcher#dispatch success, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
                         topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
                 }
+                message.release();
             }
-            message.release();
 
             long offset = currentOffset;
             for (; offset < targetOffset; offset++) {
@@ -279,7 +291,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                 }
                 flatFile.release();
             }
-        }, MessageStoreExecutor.getInstance().bufferCommitExecutor);
+        }, storeExecutor.bufferCommitExecutor);
     }
 
     /**
@@ -301,8 +313,12 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
     public void run() {
         log.info("{} service started", this.getServiceName());
         while (!this.isStopped()) {
-            flatFileStore.deepCopyFlatFileToList().forEach(this::dispatchWithSemaphore);
-            this.waitForRunning(Duration.ofSeconds(20).toMillis());
+            try {
+                flatFileStore.deepCopyFlatFileToList().forEach(this::dispatchWithSemaphore);
+                this.waitForRunning(Duration.ofSeconds(20).toMillis());
+            } catch (Throwable t) {
+                log.error("MessageStore dispatch error", t);
+            }
         }
         log.info("{} service shutdown", this.getServiceName());
     }

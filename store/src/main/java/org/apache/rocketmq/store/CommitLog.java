@@ -2179,9 +2179,13 @@ public class CommitLog implements Swappable {
             // Asynchronous flush
             else {
                 if (!CommitLog.this.defaultMessageStore.isTransientStorePoolEnable()) {
-                    flushCommitLogService.wakeup();
+                    if (defaultMessageStore.getMessageStoreConfig().isWakeFlushWhenPutMessage()) {
+                        flushCommitLogService.wakeup();
+                    }
                 } else {
-                    commitRealTimeService.wakeup();
+                    if (defaultMessageStore.getMessageStoreConfig().isWakeCommitWhenPutMessage()) {
+                        commitRealTimeService.wakeup();
+                    }
                 }
             }
         }
@@ -2204,9 +2208,13 @@ public class CommitLog implements Swappable {
             // Asynchronous flush
             else {
                 if (!CommitLog.this.defaultMessageStore.isTransientStorePoolEnable()) {
-                    flushCommitLogService.wakeup();
+                    if (defaultMessageStore.getMessageStoreConfig().isWakeFlushWhenPutMessage()) {
+                        flushCommitLogService.wakeup();
+                    }
                 } else {
-                    commitRealTimeService.wakeup();
+                    if (defaultMessageStore.getMessageStoreConfig().isWakeCommitWhenPutMessage()) {
+                        commitRealTimeService.wakeup();
+                    }
                 }
                 return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
             }
