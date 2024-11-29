@@ -428,8 +428,14 @@ public class CommitLog implements Swappable {
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
         final boolean checkDupInfo, final boolean readBody) {
         try {
+            if (byteBuffer.remaining() <= 4) {
+                return new DispatchRequest(-1, false /* fail */);
+            }
             // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
+            if (byteBuffer.remaining() < totalSize) {
+                return new DispatchRequest(-1, false /* fail */);
+            }
 
             // 2 MAGIC CODE
             int magicCode = byteBuffer.getInt();
@@ -624,6 +630,7 @@ public class CommitLog implements Swappable {
 
             return dispatchRequest;
         } catch (Exception e) {
+            log.error("checkMessageAndReturnSize failed, may can not dispatch", e);
         }
 
         return new DispatchRequest(-1, false /* success */);
