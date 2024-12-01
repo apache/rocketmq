@@ -190,7 +190,7 @@ public class ConfigStorage extends AbstractRocksDBStorage {
      * Given that we are having DBOptions::manual_wal_flush, we need to manually call DB::FlushWAL and DB::SyncWAL
      * Note: DB::FlushWAL(true) will internally call DB::SyncWAL.
      * <p>
-     * See <a href="https://rocksdb.org/blog/2017/08/25/flushwal.html">Flush And Sync WAL blog</a>
+     * See <a href="https://rocksdb.org/blog/2017/08/25/flushwal.html">Flush And Sync WAL</a>
      */
     class FlushSyncService extends ServiceThread {
 
@@ -237,6 +237,13 @@ public class ConfigStorage extends AbstractRocksDBStorage {
                 return;
             }
 
+            /*
+             * Normally, when MemTables become full then immutable, RocksDB threads will automatically flush them to L0
+             * SST files. The use case here is different: the MemTable may never get full and immutable given that the
+             * volume of data involved is relatively small. Further, we are constantly modifying the key-value pairs and
+             * generating WAL entries. The WAL file size can grow up to dozens of gigabytes without manual triggering of
+             * flush.
+             */
             if (ConfigStorage.this.estimateWalFileSize.get() >= messageStoreConfig.getRocksdbWalFileRollingThreshold()) {
                 ConfigStorage.this.flush(flushOptions);
                 estimateWalFileSize.set(0L);

@@ -85,6 +85,13 @@ public class ConfigHelper {
             setDbLogDir(getDBLogDir()).
             setInfoLogLevel(InfoLogLevel.INFO_LEVEL).
             setWalRecoveryMode(WALRecoveryMode.SkipAnyCorruptedRecords).
+            /*
+             * We use manual flush to achieve desired balance between reliability and performance:
+             * for metadata that matters, including {topic, subscription}-config changes, each write incurs a
+             * flush-and-sync to ensure reliability; for {commit, pull}-offset advancements, group-flush are offered for
+             * every N(configurable, 1024 by default) writes or aging of writes, similar to OS page-cache flush
+             * mechanism.
+             */
             setManualWalFlush(true).
             // This option takes effect only when we have multiple column families
             // https://github.com/facebook/rocksdb/issues/4180
