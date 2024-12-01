@@ -137,7 +137,7 @@ public class SubscriptionGroupManagerV2 extends SubscriptionGroupManager {
         try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.put(keyBuf.nioBuffer(), valueBuf.nioBuffer());
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
+            ConfigHelper.stampDataVersion(writeBatch, TableId.SUBSCRIPTION_GROUP, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
             // fdatasync on core metadata change
             persist();
@@ -165,7 +165,7 @@ public class SubscriptionGroupManagerV2 extends SubscriptionGroupManager {
         try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.delete(ConfigHelper.readBytes(keyBuf));
             long stateMachineVersion = brokerController.getMessageStore().getStateMachineVersion();
-            ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
+            ConfigHelper.stampDataVersion(writeBatch, TableId.SUBSCRIPTION_GROUP, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
         } catch (RocksDBException e) {
             log.error("Failed to remove subscription group config by group-name={}", groupName, e);
