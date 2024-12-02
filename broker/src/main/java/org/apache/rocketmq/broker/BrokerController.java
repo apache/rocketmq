@@ -344,7 +344,7 @@ public class BrokerController {
         this.brokerStatsManager = messageStoreConfig.isEnableLmq() ? new LmqBrokerStatsManager(this.brokerConfig) : new BrokerStatsManager(this.brokerConfig.getBrokerClusterName(), this.brokerConfig.isEnableDetailStat());
         this.broadcastOffsetManager = new BroadcastOffsetManager(this);
         if (ConfigManagerVersion.V2.getVersion().equals(brokerConfig.getConfigManagerVersion())) {
-            this.configStorage = new ConfigStorage(messageStoreConfig.getStorePathRootDir());
+            this.configStorage = new ConfigStorage(messageStoreConfig);
             this.topicConfigManager = new TopicConfigManagerV2(this, configStorage);
             this.subscriptionGroupManager = new SubscriptionGroupManagerV2(this, configStorage);
             this.consumerOffsetManager = new ConsumerOffsetManagerV2(this, configStorage);
