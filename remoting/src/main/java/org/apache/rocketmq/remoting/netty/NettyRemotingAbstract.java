@@ -320,9 +320,10 @@ public abstract class NettyRemotingAbstract {
         return () -> {
             Exception exception = null;
             RemotingCommand response;
+            String remoteAddr = null;
 
             try {
-                String remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
+                remoteAddr = RemotingHelper.parseChannelRemoteAddr(ctx.channel());
                 try {
                     doBeforeRpcHooks(remoteAddr, cmd);
                 } catch (AbortProcessException e) {
@@ -359,7 +360,7 @@ public abstract class NettyRemotingAbstract {
                 response.setOpaque(opaque);
                 writeResponse(ctx.channel(), cmd, response);
             } catch (Throwable e) {
-                log.error("process request exception", e);
+                log.error("process request exception, remoteAddr: {}", remoteAddr, e);
                 log.error(cmd.toString());
 
                 if (!cmd.isOnewayRPC()) {
