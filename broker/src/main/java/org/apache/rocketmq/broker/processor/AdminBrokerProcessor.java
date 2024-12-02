@@ -76,6 +76,7 @@ import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
+import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UnlockCallback;
 import org.apache.rocketmq.common.UtilAll;
@@ -534,11 +535,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             String attributesModification = requestHeader.getAttributes();
             topicConfig.setAttributes(AttributeParser.parseToMap(attributesModification));
 
-            if (topicConfig.getTopicMessageType() == TopicMessageType.MIXED
-                && !brokerController.getBrokerConfig().isEnableMixedMessageType()) {
-                response.setCode(ResponseCode.SYSTEM_ERROR);
-                response.setRemark("MIXED message type is not supported.");
-                return response;
+            if (!brokerController.getBrokerConfig().isEnableMixedMessageType() && topicConfig.getAttributes() != null) {
+                // Get attribute by key with prefix sign
+                String msgTypeAttrKey = AttributeParser.ATTR_ADD_PLUS_SIGN + TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName();
+                String msgTypeAttrValue = topicConfig.getAttributes().get(msgTypeAttrKey);
+                if (msgTypeAttrValue != null && msgTypeAttrValue.equals(TopicMessageType.MIXED.getValue())) {
+                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setRemark("MIXED message type is not supported.");
+                    return response;
+                }
             }
 
             if (topicConfig.equals(this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic))) {
@@ -609,11 +614,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                         return response;
                     }
                 }
-                if (topicConfig.getTopicMessageType() == TopicMessageType.MIXED
-                    && !brokerController.getBrokerConfig().isEnableMixedMessageType()) {
-                    response.setCode(ResponseCode.SYSTEM_ERROR);
-                    response.setRemark("MIXED message type is not supported.");
-                    return response;
+                if (!brokerController.getBrokerConfig().isEnableMixedMessageType() && topicConfig.getAttributes() != null) {
+                    // Get attribute by key with prefix sign
+                    String msgTypeAttrKey = AttributeParser.ATTR_ADD_PLUS_SIGN + TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName();
+                    String msgTypeAttrValue = topicConfig.getAttributes().get(msgTypeAttrKey);
+                    if (msgTypeAttrValue != null && msgTypeAttrValue.equals(TopicMessageType.MIXED.getValue())) {
+                        response.setCode(ResponseCode.SYSTEM_ERROR);
+                        response.setRemark("MIXED message type is not supported.");
+                        return response;
+                    }
                 }
                 if (topicConfig.equals(this.brokerController.getTopicConfigManager().getTopicConfigTable().get(topic))) {
                     LOGGER.info("Broker receive request to update or create topic={}, but topicConfig has  no changes , so idempotent, caller address={}",
