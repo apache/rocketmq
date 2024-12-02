@@ -24,6 +24,7 @@ import org.apache.rocketmq.common.attribute.CQType;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.base.IntegrationTestBase;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -122,6 +123,48 @@ public class SendAndRecallDelayMessageIT extends BaseConf {
         } catch (Exception e) {
         }
         assertEquals(sendList.size() - recallCount, recvList.size());
+    }
+
+    @Test
+    public void testSendAndRecall_ukCollision() throws Exception {
+        int delaySecond = 5;
+        String topic = MQRandomUtils.getRandomTopic();
+        String collisionTopic = MQRandomUtils.getRandomTopic();
+        IntegrationTestBase.initTopic(topic, NAMESRV_ADDR, BROKER1_NAME, 1, CQType.SimpleCQ, TopicMessageType.DELAY);
+        IntegrationTestBase.initTopic(collisionTopic, NAMESRV_ADDR, BROKER1_NAME, 1, CQType.SimpleCQ, TopicMessageType.DELAY);
+        MessageQueue messageQueue = new MessageQueue(topic, BROKER1_NAME, 0);
+        String brokerAddress = brokerController1.getBrokerAddr();
+
+        List<Message> sendList = buildSendMessageList(topic, delaySecond);
+        List<Message> recvList = new ArrayList<>();
+        int recallCount = 0;
+
+        for (Message message : sendList) {
+            SendResult sendResult = producer.getProducer().send(message);
+            if (sendResult.getRecallHandle() != null) {
+                RecallMessageHandle.HandleV1 handleEntity =
+                    (RecallMessageHandle.HandleV1) RecallMessageHandle.decodeHandle(sendResult.getRecallHandle());
+                String collisionHandle = RecallMessageHandle.HandleV1.buildHandle(collisionTopic,
+                    handleEntity.getBrokerName(), handleEntity.getTimestampStr(), handleEntity.getMessageId());
+                String messageId = producer.getProducer().recallMessage(collisionTopic, collisionHandle);
+                assertEquals(sendResult.getMsgId(), messageId);
+                recallCount += 1;
+            }
+        }
+        assertEquals(sendList.size() - 2, recallCount); // one normal and one delay-level message
+
+        try {
+            await()
+                .pollInterval(1, TimeUnit.SECONDS)
+                .atMost(delaySecond + 15, TimeUnit.SECONDS)
+                .until(() -> {
+                    PopResult popResult = popConsumer.pop(brokerAddress, messageQueue, 60 * 1000, -1);
+                    processPopResult(recvList, popResult);
+                    return recvList.size() == sendList.size();
+                });
+        } catch (Exception e) {
+        }
+        assertEquals(sendList.size(), recvList.size());
     }
 
     private void processPopResult(List<Message> recvList, PopResult popResult) {

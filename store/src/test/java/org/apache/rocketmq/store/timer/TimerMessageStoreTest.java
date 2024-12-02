@@ -306,7 +306,7 @@ public class TimerMessageStoreTest {
 
         MessageExtBrokerInner delMsg = buildMessage(delayMs, topic, false);
         transformTimerMessage(timerMessageStore,delMsg);
-        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, uniqKey);
+        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, TimerMessageStore.buildDeleteKey(topic, uniqKey));
         delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
 
@@ -319,6 +319,49 @@ public class TimerMessageStoreTest {
 
         // The last one should be null.
         assertNull(getOneMessage(topic, 0, 4, 500));
+    }
+
+    @Test
+    public void testDeleteTimerMessage_ukCollision() throws Exception {
+        String topic = "TimerTest_testDeleteTimerMessage";
+        String collisionTopic = "TimerTest_testDeleteTimerMessage_collision";
+
+        TimerMessageStore timerMessageStore = createTimerMessageStore(null);
+        timerMessageStore.load();
+        timerMessageStore.start(true);
+
+        long curr = System.currentTimeMillis() / precisionMs * precisionMs;
+        long delayMs = curr + 1000;
+
+        MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
+        transformTimerMessage(timerMessageStore, inner);
+        String firstUniqKey = MessageClientIDSetter.getUniqID(inner);
+        assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(inner).getPutMessageStatus());
+
+        inner = buildMessage(delayMs, topic, false);
+        transformTimerMessage(timerMessageStore, inner);
+        String secondUniqKey = MessageClientIDSetter.getUniqID(inner);
+        assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(inner).getPutMessageStatus());
+
+        MessageExtBrokerInner delMsg = buildMessage(delayMs, "whatever", false);
+        transformTimerMessage(timerMessageStore, delMsg);
+        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, TimerMessageStore.buildDeleteKey(topic, firstUniqKey));
+        delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
+        assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
+
+        delMsg = buildMessage(delayMs, "whatever", false);
+        transformTimerMessage(timerMessageStore, delMsg);
+        MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, TimerMessageStore.buildDeleteKey(collisionTopic, secondUniqKey));
+        delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
+        assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
+
+        // The first one should have been deleted, the second one should not be deleted.
+        ByteBuffer msgBuff = getOneMessage(topic, 0, 0, 3000);
+        assertNotNull(msgBuff);
+        MessageExt msgExt = MessageDecoder.decode(msgBuff);
+        assertNotNull(msgExt);
+        assertNotEquals(firstUniqKey, MessageClientIDSetter.getUniqID(msgExt));
+        assertEquals(secondUniqKey, MessageClientIDSetter.getUniqID(msgExt));
     }
 
     @Test
