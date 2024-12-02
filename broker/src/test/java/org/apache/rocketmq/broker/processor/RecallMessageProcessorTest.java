@@ -106,7 +106,7 @@ public class RecallMessageProcessorTest {
         Map<String, String> properties = MessageDecoder.string2messageProperties(msg.getPropertiesString());
         Assert.assertEquals(timestampStr, properties.get(MessageConst.PROPERTY_TIMER_DELIVER_MS));
         Assert.assertEquals(id, properties.get(MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX));
-        Assert.assertEquals(id, properties.get(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
+        Assert.assertEquals(TOPIC + "+" + id, properties.get(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
     }
 
     @Test
