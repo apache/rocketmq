@@ -886,6 +886,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerAclConfigResponseHeader.class);
 
+        if (!brokerController.getBrokerConfig().isAclEnable()) {
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark("The broker does not enable acl.");
+            return response;
+        }
+
         final GetBrokerAclConfigResponseHeader responseHeader = (GetBrokerAclConfigResponseHeader) response.readCustomHeader();
 
         try {
