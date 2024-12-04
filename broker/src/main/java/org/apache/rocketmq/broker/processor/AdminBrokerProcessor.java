@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.plain.PlainAccessValidator;
 import org.apache.rocketmq.auth.authentication.enums.UserType;
 import org.apache.rocketmq.auth.authentication.exception.AuthenticationException;
@@ -771,26 +772,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         this.brokerController.getMessageStore().deleteTopics(Sets.newHashSet(topic));
     }
 
-    private synchronized RemotingCommand updateAndCreateAccessConfig(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private synchronized RemotingCommand updateAndCreateAccessConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        final CreateAccessConfigRequestHeader requestHeader =
-            (CreateAccessConfigRequestHeader) request.decodeCommandCustomHeader(CreateAccessConfigRequestHeader.class);
-
-        PlainAccessConfig accessConfig = new PlainAccessConfig();
-        accessConfig.setAccessKey(requestHeader.getAccessKey());
-        accessConfig.setSecretKey(requestHeader.getSecretKey());
-        accessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
-        accessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
-        accessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
-        accessConfig.setTopicPerms(UtilAll.split(requestHeader.getTopicPerms(), ","));
-        accessConfig.setGroupPerms(UtilAll.split(requestHeader.getGroupPerms(), ","));
-        accessConfig.setAdmin(requestHeader.isAdmin());
         try {
+            ensureAclEnabled();
 
+            final CreateAccessConfigRequestHeader requestHeader = request.decodeCommandCustomHeader(CreateAccessConfigRequestHeader.class);
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
-            if (accessValidator.updateAccessConfig(accessConfig)) {
+            if (accessValidator.updateAccessConfig(createAccessConfig(requestHeader))) {
                 response.setCode(ResponseCode.SUCCESS);
                 response.setOpaque(request.getOpaque());
                 response.markResponseType();
@@ -813,15 +803,28 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    private synchronized RemotingCommand deleteAccessConfig(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
+    private PlainAccessConfig createAccessConfig(final CreateAccessConfigRequestHeader requestHeader) {
+        PlainAccessConfig accessConfig = new PlainAccessConfig();
+        accessConfig.setAccessKey(requestHeader.getAccessKey());
+        accessConfig.setSecretKey(requestHeader.getSecretKey());
+        accessConfig.setWhiteRemoteAddress(requestHeader.getWhiteRemoteAddress());
+        accessConfig.setDefaultTopicPerm(requestHeader.getDefaultTopicPerm());
+        accessConfig.setDefaultGroupPerm(requestHeader.getDefaultGroupPerm());
+        accessConfig.setTopicPerms(UtilAll.split(requestHeader.getTopicPerms(), ","));
+        accessConfig.setGroupPerms(UtilAll.split(requestHeader.getGroupPerms(), ","));
+        accessConfig.setAdmin(requestHeader.isAdmin());
+        return accessConfig;
+    }
+
+    private synchronized RemotingCommand deleteAccessConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        final DeleteAccessConfigRequestHeader requestHeader =
-            (DeleteAccessConfigRequestHeader) request.decodeCommandCustomHeader(DeleteAccessConfigRequestHeader.class);
         LOGGER.info("DeleteAccessConfig called by {}", RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
         try {
+            ensureAclEnabled();
+
+            final DeleteAccessConfigRequestHeader requestHeader = request.decodeCommandCustomHeader(DeleteAccessConfigRequestHeader.class);
             String accessKey = requestHeader.getAccessKey();
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
             if (accessValidator.deleteAccessConfig(accessKey)) {
@@ -848,15 +851,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return null;
     }
 
-    private synchronized RemotingCommand updateGlobalWhiteAddrsConfig(ChannelHandlerContext ctx,
-        RemotingCommand request) throws RemotingCommandException {
-
+    private synchronized RemotingCommand updateGlobalWhiteAddrsConfig(ChannelHandlerContext ctx, RemotingCommand request) {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
 
-        final UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader =
-            (UpdateGlobalWhiteAddrsConfigRequestHeader) request.decodeCommandCustomHeader(UpdateGlobalWhiteAddrsConfigRequestHeader.class);
-
         try {
+            ensureAclEnabled();
+
+            final UpdateGlobalWhiteAddrsConfigRequestHeader requestHeader = request.decodeCommandCustomHeader(UpdateGlobalWhiteAddrsConfigRequestHeader.class);
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
             if (accessValidator.updateGlobalWhiteAddrsConfig(UtilAll.split(requestHeader.getGlobalWhiteAddrs(), ","),
                 requestHeader.getAclFileFullPath())) {
@@ -883,18 +884,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand getBrokerAclConfigVersion(ChannelHandlerContext ctx, RemotingCommand request) {
-
         final RemotingCommand response = RemotingCommand.createResponseCommand(GetBrokerAclConfigResponseHeader.class);
 
-        if (!brokerController.getBrokerConfig().isAclEnable()) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
-            response.setRemark("The broker does not enable acl.");
-            return response;
-        }
-
-        final GetBrokerAclConfigResponseHeader responseHeader = (GetBrokerAclConfigResponseHeader) response.readCustomHeader();
-
         try {
+            ensureAclEnabled();
+
+            final GetBrokerAclConfigResponseHeader responseHeader = (GetBrokerAclConfigResponseHeader) response.readCustomHeader();
             AccessValidator accessValidator = this.brokerController.getAccessValidatorMap().get(PlainAccessValidator.class);
 
             responseHeader.setVersion(accessValidator.getAclConfigVersion());
@@ -907,9 +902,16 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return response;
         } catch (Exception e) {
             LOGGER.error("Failed to generate a proper getBrokerAclConfigVersion response", e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+            return response;
         }
+    }
 
-        return null;
+    private void ensureAclEnabled() {
+        if (!brokerController.getBrokerConfig().isAclEnable()) {
+            throw new AclException("The broker does not enable acl.");
+        }
     }
 
     private RemotingCommand getUnknownCmdResponse(ChannelHandlerContext ctx, RemotingCommand request) {
