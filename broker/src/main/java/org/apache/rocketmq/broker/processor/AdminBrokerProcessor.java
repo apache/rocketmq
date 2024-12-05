@@ -1090,7 +1090,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             }
             int mode = Integer.parseInt(extFields.get(FIleReadaheadMode.READ_AHEAD_MODE));
             if (mode != LibC.MADV_RANDOM && mode != LibC.MADV_NORMAL) {
-                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setCode(ResponseCode.INVALID_PARAMETER);
                 response.setRemark("set commitlog readahead mode param value error");
                 return response;
             }
@@ -3079,7 +3079,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         CreateUserRequestHeader requestHeader = request.decodeCommandCustomHeader(CreateUserRequestHeader.class);
         if (StringUtils.isEmpty(requestHeader.getUsername())) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("The username is blank");
             return response;
         }
@@ -3111,7 +3111,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         UpdateUserRequestHeader requestHeader = request.decodeCommandCustomHeader(UpdateUserRequestHeader.class);
         if (StringUtils.isEmpty(requestHeader.getUsername())) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("The username is blank");
             return response;
         }
@@ -3175,7 +3175,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         GetUserRequestHeader requestHeader = request.decodeCommandCustomHeader(GetUserRequestHeader.class);
 
         if (StringUtils.isBlank(requestHeader.getUsername())) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("The username is blank");
             return response;
         }

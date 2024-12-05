@@ -113,7 +113,7 @@ public class Broker2Client {
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
         if (null == topicConfig) {
             log.error("[reset-offset] reset offset failed, no topic in this broker. topic={}", topic);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.TOPIC_NOT_EXIST);
             response.setRemark("[reset-offset] reset offset failed, no topic in this broker. topic=" + topic);
             return response;
         }
