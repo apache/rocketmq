@@ -424,7 +424,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         SubscriptionGroupConfig groupConfig = this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().get(requestHeader.getGroup());
         if (groupConfig == null) {
             LOGGER.error("No group in this broker, client: {} group: {}", ctx.channel().remoteAddress(), requestHeader.getGroup());
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.SUBSCRIPTION_GROUP_NOT_EXIST);
             response.setRemark("No group in this broker");
             return response;
         }
@@ -513,13 +513,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         try {
             TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
             if (!result.isValid()) {
-                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setCode(ResponseCode.INVALID_PARAMETER);
                 response.setRemark(result.getRemark());
                 return response;
             }
             if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
                 if (TopicValidator.isSystemTopic(topic)) {
-                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setCode(ResponseCode.INVALID_PARAMETER);
                     response.setRemark("The topic[" + topic + "] is conflict with system topic.");
                     return response;
                 }
@@ -540,7 +540,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 String msgTypeAttrKey = AttributeParser.ATTR_ADD_PLUS_SIGN + TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName();
                 String msgTypeAttrValue = topicConfig.getAttributes().get(msgTypeAttrKey);
                 if (msgTypeAttrValue != null && msgTypeAttrValue.equals(TopicMessageType.MIXED.getValue())) {
-                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setCode(ResponseCode.INVALID_PARAMETER);
                     response.setRemark("MIXED message type is not supported.");
                     return response;
                 }
@@ -603,13 +603,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 String topic = topicConfig.getTopicName();
                 TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
                 if (!result.isValid()) {
-                    response.setCode(ResponseCode.SYSTEM_ERROR);
+                    response.setCode(ResponseCode.INVALID_PARAMETER);
                     response.setRemark(result.getRemark());
                     return response;
                 }
                 if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
                     if (TopicValidator.isSystemTopic(topic)) {
-                        response.setCode(ResponseCode.SYSTEM_ERROR);
+                        response.setCode(ResponseCode.INVALID_PARAMETER);
                         response.setRemark("The topic[" + topic + "] is conflict with system topic.");
                         return response;
                     }
@@ -619,7 +619,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                     String msgTypeAttrKey = AttributeParser.ATTR_ADD_PLUS_SIGN + TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName();
                     String msgTypeAttrValue = topicConfig.getAttributes().get(msgTypeAttrKey);
                     if (msgTypeAttrValue != null && msgTypeAttrValue.equals(TopicMessageType.MIXED.getValue())) {
-                        response.setCode(ResponseCode.SYSTEM_ERROR);
+                        response.setCode(ResponseCode.INVALID_PARAMETER);
                         response.setRemark("MIXED message type is not supported.");
                         return response;
                     }
@@ -673,13 +673,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         TopicValidator.ValidateTopicResult result = TopicValidator.validateTopic(topic);
         if (!result.isValid()) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(result.getRemark());
             return response;
         }
         if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
             if (TopicValidator.isSystemTopic(topic)) {
-                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setCode(ResponseCode.INVALID_PARAMETER);
                 response.setRemark("The topic[" + topic + "] is conflict with system topic.");
                 return response;
             }
@@ -720,14 +720,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         String topic = requestHeader.getTopic();
 
         if (UtilAll.isBlank(topic)) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark("The specified topic is blank.");
             return response;
         }
 
         if (brokerController.getBrokerConfig().isValidateSystemTopicWhenUpdateTopic()) {
             if (TopicValidator.isSystemTopic(topic)) {
-                response.setCode(ResponseCode.SYSTEM_ERROR);
+                response.setCode(ResponseCode.INVALID_PARAMETER);
                 response.setRemark("The topic[" + topic + "] is conflict with system topic.");
                 return response;
             }
