@@ -30,139 +30,57 @@ public class LmqBrokerStatsManager extends BrokerStatsManager {
 
     @Override
     public void incGroupGetNums(final String group, final String topic, final int incValue) {
-        String lmqGroup = group;
-        String lmqTopic = topic;
-        if (!brokerConfig.isEnableLmqStats()) {
-            if (MixAll.isLmq(group)) {
-                lmqGroup = MixAll.LMQ_PREFIX;
-            }
-            if (MixAll.isLmq(topic)) {
-                lmqTopic = MixAll.LMQ_PREFIX;
-            }
-        }
-        super.incGroupGetNums(lmqGroup, lmqTopic, incValue);
+        super.incGroupGetNums(getAdjustedGroup(group), getAdjustedTopic(topic), incValue);
     }
 
     @Override
     public void incGroupGetSize(final String group, final String topic, final int incValue) {
-        String lmqGroup = group;
-        String lmqTopic = topic;
-        if (!brokerConfig.isEnableLmqStats()) {
-            if (MixAll.isLmq(group)) {
-                lmqGroup = MixAll.LMQ_PREFIX;
-            }
-            if (MixAll.isLmq(topic)) {
-                lmqTopic = MixAll.LMQ_PREFIX;
-            }
-        }
-        super.incGroupGetSize(lmqGroup, lmqTopic, incValue);
+        super.incGroupGetSize(getAdjustedGroup(group), getAdjustedTopic(topic), incValue);
     }
 
     @Override
     public void incGroupAckNums(final String group, final String topic, final int incValue) {
-        String lmqGroup = group;
-        String lmqTopic = topic;
-        if (!brokerConfig.isEnableLmqStats()) {
-            if (MixAll.isLmq(group)) {
-                lmqGroup = MixAll.LMQ_PREFIX;
-            }
-            if (MixAll.isLmq(topic)) {
-                lmqTopic = MixAll.LMQ_PREFIX;
-            }
-        }
-        super.incGroupAckNums(lmqGroup, lmqTopic, incValue);
+        super.incGroupAckNums(getAdjustedGroup(group), getAdjustedTopic(topic), incValue);
     }
 
     @Override
     public void incGroupCkNums(final String group, final String topic, final int incValue) {
-        String lmqGroup = group;
-        String lmqTopic = topic;
-        if (!brokerConfig.isEnableLmqStats()) {
-            if (MixAll.isLmq(group)) {
-                lmqGroup = MixAll.LMQ_PREFIX;
-            }
-            if (MixAll.isLmq(topic)) {
-                lmqTopic = MixAll.LMQ_PREFIX;
-            }
-        }
-        super.incGroupCkNums(lmqGroup, lmqTopic, incValue);
+        super.incGroupCkNums(getAdjustedGroup(group), getAdjustedTopic(topic), incValue);
     }
 
     @Override
     public void incGroupGetLatency(final String group, final String topic, final int queueId, final int incValue) {
-        String lmqGroup = group;
-        String lmqTopic = topic;
-        if (!brokerConfig.isEnableLmqStats()) {
-            if (MixAll.isLmq(group)) {
-                lmqGroup = MixAll.LMQ_PREFIX;
-            }
-            if (MixAll.isLmq(topic)) {
-                lmqTopic = MixAll.LMQ_PREFIX;
-            }
-        }
-        super.incGroupGetLatency(lmqGroup, lmqTopic, queueId, incValue);
+        super.incGroupGetLatency(getAdjustedGroup(group), getAdjustedTopic(topic), queueId, incValue);
     }
 
     @Override
     public void incSendBackNums(final String group, final String topic) {
-        String lmqGroup = group;
-        String lmqTopic = topic;
-        if (!brokerConfig.isEnableLmqStats()) {
-            if (MixAll.isLmq(group)) {
-                lmqGroup = MixAll.LMQ_PREFIX;
-            }
-            if (MixAll.isLmq(topic)) {
-                lmqTopic = MixAll.LMQ_PREFIX;
-            }
-        }
-        super.incSendBackNums(lmqGroup, lmqTopic);
+        super.incSendBackNums(getAdjustedGroup(group), getAdjustedTopic(topic));
     }
 
     @Override
     public double tpsGroupGetNums(final String group, final String topic) {
-        String lmqGroup = group;
-        String lmqTopic = topic;
-        if (!brokerConfig.isEnableLmqStats()) {
-            if (MixAll.isLmq(group)) {
-                lmqGroup = MixAll.LMQ_PREFIX;
-            }
-            if (MixAll.isLmq(topic)) {
-                lmqTopic = MixAll.LMQ_PREFIX;
-            }
-        }
-        return super.tpsGroupGetNums(lmqGroup, lmqTopic);
+        return super.tpsGroupGetNums(getAdjustedGroup(group), getAdjustedTopic(topic));
     }
 
     @Override
     public void recordDiskFallBehindTime(final String group, final String topic, final int queueId,
         final long fallBehind) {
-        String lmqGroup = group;
-        String lmqTopic = topic;
-        if (!brokerConfig.isEnableLmqStats()) {
-            if (MixAll.isLmq(group)) {
-                lmqGroup = MixAll.LMQ_PREFIX;
-            }
-            if (MixAll.isLmq(topic)) {
-                lmqTopic = MixAll.LMQ_PREFIX;
-            }
-        }
-        super.recordDiskFallBehindTime(lmqGroup, lmqTopic, queueId, fallBehind);
+        super.recordDiskFallBehindTime(getAdjustedGroup(group), getAdjustedTopic(topic), queueId, fallBehind);
     }
 
     @Override
     public void recordDiskFallBehindSize(final String group, final String topic, final int queueId,
         final long fallBehind) {
-        String lmqGroup = group;
-        String lmqTopic = topic;
-        if (!brokerConfig.isEnableLmqStats()) {
-            if (MixAll.isLmq(group)) {
-                lmqGroup = MixAll.LMQ_PREFIX;
-            }
-            if (MixAll.isLmq(topic)) {
-                lmqTopic = MixAll.LMQ_PREFIX;
-            }
-        }
-        super.recordDiskFallBehindSize(lmqGroup, lmqTopic, queueId, fallBehind);
+        super.recordDiskFallBehindSize(getAdjustedGroup(group), getAdjustedTopic(topic), queueId, fallBehind);
+    }
+
+    private String getAdjustedGroup(String group) {
+        return !brokerConfig.isEnableLmqStats() && MixAll.isLmq(group) ? MixAll.LMQ_PREFIX : group;
+    }
+
+    private String getAdjustedTopic(String topic) {
+        return !brokerConfig.isEnableLmqStats() && MixAll.isLmq(topic) ? MixAll.LMQ_PREFIX : topic;
     }
 
 }
