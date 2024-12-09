@@ -518,7 +518,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
      * Check if the address list should be updated
      */
     private static boolean shouldUpdateAddressList(List<String> newAddresses, List<String> oldAddresses) {
-        if (newAddresses == null || newAddresses.isEmpty()) {
+        if (newAddresses.isEmpty()) {
             return false;
         }
 
