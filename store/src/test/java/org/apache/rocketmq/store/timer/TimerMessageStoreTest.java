@@ -259,8 +259,7 @@ public class TimerMessageStoreTest {
                 latch.countDown();
             }
         }).start();
-        latch.await(10, TimeUnit.SECONDS);
-
+        latch.await(5, TimeUnit.SECONDS);
         assertTrue(timerMessageStore.dequeuePutQueue.isEmpty());
         verify(mockMessageStore, times(6)).putMessage(any(MessageExtBrokerInner.class));
     }
