@@ -25,6 +25,7 @@ import apache.rocketmq.v2.HeartbeatRequest;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryRouteRequest;
+import apache.rocketmq.v2.RecallMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.SendMessageRequest;
 import apache.rocketmq.v2.Subscription;
@@ -100,6 +101,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                 throw new AuthorizationException("message is null.");
             }
             result = newPubContext(metadata, request.getMessages(0).getTopic());
+        }
+        if (message instanceof RecallMessageRequest) {
+            RecallMessageRequest request = (RecallMessageRequest) message;
+            result = newPubContext(metadata, request.getTopic());
         }
         if (message instanceof EndTransactionRequest) {
             EndTransactionRequest request = (EndTransactionRequest) message;
@@ -206,6 +211,10 @@ public class DefaultAuthorizationContextBuilder implements AuthorizationContextB
                         topic = Resource.ofTopic(fields.get(B));
                         result.add(DefaultAuthorizationContext.of(subject, topic, Action.PUB, sourceIp));
                     }
+                    break;
+                case RequestCode.RECALL_MESSAGE:
+                    topic = Resource.ofTopic(fields.get(TOPIC));
+                    result.add(DefaultAuthorizationContext.of(subject, topic, Action.PUB, sourceIp));
                     break;
                 case RequestCode.END_TRANSACTION:
                     if (StringUtils.isNotBlank(fields.get(TOPIC))) {

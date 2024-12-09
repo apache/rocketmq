@@ -41,6 +41,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
@@ -118,6 +119,8 @@ import org.apache.rocketmq.remoting.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SearchOffsetResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
@@ -142,6 +145,7 @@ import org.apache.rocketmq.remoting.protocol.statictopic.TopicQueueMappingInfo;
 import org.apache.rocketmq.remoting.protocol.subscription.GroupForbidden;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.assertj.core.api.Assertions;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -170,6 +174,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -2026,6 +2031,77 @@ public class MQClientAPIImplTest {
         assertNotNull(actual);
         assertEquals("subject", actual.get(0).getSubject());
         assertEquals(1, actual.get(0).getPolicies().size());
+    }
+
+    @Test
+    public void testRecallMessage() throws RemotingException, InterruptedException, MQBrokerException {
+        RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+        requestHeader.setProducerGroup(group);
+        requestHeader.setTopic(topic);
+        requestHeader.setRecallHandle("handle");
+        requestHeader.setBrokerName(brokerName);
+
+        // success
+        mockInvokeSync();
+        String msgId = MessageClientIDSetter.createUniqID();
+        RecallMessageResponseHeader responseHeader = new RecallMessageResponseHeader();
+        responseHeader.setMsgId(msgId);
+        setResponseHeader(responseHeader);
+        String result = mqClientAPI.recallMessage(defaultBrokerAddr, requestHeader, defaultTimeout);
+        assertEquals(msgId, result);
+
+        // error
+        when(response.getCode()).thenReturn(ResponseCode.SYSTEM_ERROR);
+        when(response.getRemark()).thenReturn("error");
+        MQBrokerException e = assertThrows(MQBrokerException.class, () -> {
+            mqClientAPI.recallMessage(defaultBrokerAddr, requestHeader, defaultTimeout);
+        });
+        assertEquals(ResponseCode.SYSTEM_ERROR, e.getResponseCode());
+        assertEquals("error", e.getErrorMessage());
+        assertEquals(defaultBrokerAddr, e.getBrokerAddr());
+    }
+
+    @Test
+    public void testRecallMessageAsync() throws RemotingException, InterruptedException {
+        RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+        requestHeader.setProducerGroup(group);
+        requestHeader.setTopic(topic);
+        requestHeader.setRecallHandle("handle");
+        requestHeader.setBrokerName(brokerName);
+        String msgId = "msgId";
+        doAnswer((Answer<Void>) mock -> {
+            InvokeCallback callback = mock.getArgument(3);
+            RemotingCommand request = mock.getArgument(1);
+            RemotingCommand response = RemotingCommand.createResponseCommand(RecallMessageResponseHeader.class);
+            response.setCode(ResponseCode.SUCCESS);
+            response.setOpaque(request.getOpaque());
+            RecallMessageResponseHeader responseHeader = (RecallMessageResponseHeader) response.readCustomHeader();
+            responseHeader.setMsgId(msgId);
+            ResponseFuture responseFuture = new ResponseFuture(null, request.getOpaque(), 3 * 1000, null, null);
+            responseFuture.setResponseCommand(response);
+            callback.operationSucceed(responseFuture.getResponseCommand());
+            return null;
+        }).when(remotingClient).invokeAsync(anyString(), any(RemotingCommand.class), anyLong(), any(InvokeCallback.class));
+
+        final CountDownLatch done = new CountDownLatch(1);
+        mqClientAPI.recallMessageAsync(defaultBrokerAddr, requestHeader,
+            defaultTimeout, new InvokeCallback() {
+                @Override
+                public void operationComplete(ResponseFuture responseFuture) {
+                }
+
+                @Override
+                public void operationSucceed(RemotingCommand response) {
+                    RecallMessageResponseHeader responseHeader = (RecallMessageResponseHeader) response.readCustomHeader();
+                    Assert.assertEquals(msgId, responseHeader.getMsgId());
+                    done.countDown();
+                }
+
+                @Override
+                public void operationFail(Throwable throwable) {
+                }
+            });
+        done.await();
     }
 
     private Properties createProperties() {
