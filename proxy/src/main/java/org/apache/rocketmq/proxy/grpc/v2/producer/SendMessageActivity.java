@@ -341,6 +341,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
                         .setOffset(result.getQueueOffset())
                         .setMessageId(StringUtils.defaultString(result.getMsgId()))
                         .setTransactionId(StringUtils.defaultString(result.getTransactionId()))
+                        .setRecallHandle(StringUtils.defaultString(result.getRecallHandle()))
                         .build();
                     break;
                 default:

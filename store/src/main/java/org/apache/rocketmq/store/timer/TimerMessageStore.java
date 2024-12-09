@@ -1599,7 +1599,8 @@ public class TimerMessageStore {
                                     if (null == uniqueKey) {
                                         LOGGER.warn("No uniqueKey for msg:{}", msgExt);
                                     }
-                                    if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0 && tr.getDeleteList().contains(uniqueKey)) {
+                                    if (null != uniqueKey && tr.getDeleteList() != null && tr.getDeleteList().size() > 0
+                                        && tr.getDeleteList().contains(buildDeleteKey(getRealTopic(msgExt), uniqueKey))) {
                                         //Normally, it cancels out with the +1 above
                                         addMetric(msgExt, -1);
                                         doRes = true;
@@ -1908,5 +1909,10 @@ public class TimerMessageStore {
 
     public TimerCheckpoint getTimerCheckpoint() {
         return timerCheckpoint;
+    }
+
+    // identify a message by topic + uk, like query operation
+    public static String buildDeleteKey(String realTopic, String uniqueKey) {
+        return realTopic + "+" + uniqueKey;
     }
 }

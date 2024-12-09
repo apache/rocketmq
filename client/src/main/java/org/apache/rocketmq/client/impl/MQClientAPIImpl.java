@@ -204,6 +204,8 @@ import org.apache.rocketmq.remoting.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QuerySubscriptionByConsumerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryTopicConsumeByWhoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryTopicsByConsumerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.RemoveBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResetMasterFlushOffsetHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
@@ -853,6 +855,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             uniqMsgId,
             responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
         sendResult.setTransactionId(responseHeader.getTransactionId());
+        sendResult.setRecallHandle(responseHeader.getRecallHandle());
         String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
         if (regionId == null || regionId.isEmpty()) {
             regionId = MixAll.DEFAULT_TRACE_REGION_ID;
@@ -3524,5 +3527,50 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
                 break;
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public String recallMessage(
+        final String addr,
+        RecallMessageRequestHeader requestHeader,
+        final long timeoutMillis
+    ) throws RemotingException, MQBrokerException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RECALL_MESSAGE, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                RecallMessageResponseHeader responseHeader =
+                    response.decodeCommandCustomHeader(RecallMessageResponseHeader.class);
+                return responseHeader.getMsgId();
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+    }
+
+    public void recallMessageAsync(
+        final String addr,
+        final RecallMessageRequestHeader requestHeader,
+        final long timeoutMillis,
+        final InvokeCallback invokeCallback
+    ) throws RemotingException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RECALL_MESSAGE, requestHeader);
+
+        this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
+            @Override
+            public void operationComplete(ResponseFuture responseFuture) {
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
+                invokeCallback.operationSucceed(response);
+            }
+
+            @Override
+            public void operationFail(Throwable throwable) {
+                invokeCallback.operationFail(throwable);
+            }
+        });
     }
 }

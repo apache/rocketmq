@@ -14,12 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.rocketmq.client.trace;
 
-public enum TraceType {
-    Pub,
-    Recall,
-    SubBefore,
-    SubAfter,
-    EndTransaction,
+package org.apache.rocketmq.remoting.protocol.header;
+
+import org.apache.rocketmq.remoting.CommandCustomHeader;
+import org.apache.rocketmq.remoting.annotation.CFNotNull;
+import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+
+public class RecallMessageResponseHeader implements CommandCustomHeader {
+    @CFNotNull
+    private String msgId;
+    @Override
+    public void checkFields() throws RemotingCommandException {
+    }
+
+    public String getMsgId() {
+        return msgId;
+    }
+
+    public void setMsgId(String msgId) {
+        this.msgId = msgId;
+    }
 }
