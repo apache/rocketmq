@@ -379,7 +379,7 @@ public class TimerMessageStoreTest {
         String topic = "TimerTest_testDeleteTimerMessage";
         String collisionTopic = "TimerTest_testDeleteTimerMessage_collision";
 
-        TimerMessageStore timerMessageStore = createTimerMessageStore(null);
+        TimerMessageStore timerMessageStore = createTimerMessageStore(null , false);
         timerMessageStore.load();
         timerMessageStore.start(true);
 
