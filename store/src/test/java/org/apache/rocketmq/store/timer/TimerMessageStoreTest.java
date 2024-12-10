@@ -259,8 +259,7 @@ public class TimerMessageStoreTest {
                 latch.countDown();
             }
         }).start();
-        latch.await(10, TimeUnit.SECONDS);
-
+        latch.await(5, TimeUnit.SECONDS);
         assertTrue(timerMessageStore.dequeuePutQueue.isEmpty());
         verify(mockMessageStore, times(6)).putMessage(any(MessageExtBrokerInner.class));
     }
@@ -379,7 +378,7 @@ public class TimerMessageStoreTest {
         String topic = "TimerTest_testDeleteTimerMessage";
         String collisionTopic = "TimerTest_testDeleteTimerMessage_collision";
 
-        TimerMessageStore timerMessageStore = createTimerMessageStore(null);
+        TimerMessageStore timerMessageStore = createTimerMessageStore(null , false);
         timerMessageStore.load();
         timerMessageStore.start(true);
 
