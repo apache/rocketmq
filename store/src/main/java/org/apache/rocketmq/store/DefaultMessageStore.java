@@ -1556,6 +1556,10 @@ public class DefaultMessageStore implements MessageStore {
     public long dispatchBehindBytes() {
         return this.reputMessageService.behind();
     }
+    @Override
+    public long dispatchBehindMilliseconds() {
+        return this.reputMessageService.behindMs();
+    }
 
     public long flushBehindBytes() {
         if (this.messageStoreConfig.isTransientStorePoolEnable()) {
@@ -2793,6 +2797,7 @@ public class DefaultMessageStore implements MessageStore {
     class ReputMessageService extends ServiceThread {
 
         protected volatile long reputFromOffset = 0;
+        protected volatile long currentReputTimestamp = System.currentTimeMillis();
 
         public long getReputFromOffset() {
             return reputFromOffset;
@@ -2800,6 +2805,10 @@ public class DefaultMessageStore implements MessageStore {
 
         public void setReputFromOffset(long reputFromOffset) {
             this.reputFromOffset = reputFromOffset;
+        }
+
+        public long getCurrentReputTimestamp() {
+            return currentReputTimestamp;
         }
 
         @Override
@@ -2824,6 +2833,15 @@ public class DefaultMessageStore implements MessageStore {
             return DefaultMessageStore.this.getConfirmOffset() - this.reputFromOffset;
         }
 
+        public long behindMs() {
+            long lastCommitLogFileTimeStamp = System.currentTimeMillis();
+            MappedFile lastMappedFile = DefaultMessageStore.this.commitLog.getMappedFileQueue().getLastMappedFile();
+            if (lastMappedFile != null) {
+                lastCommitLogFileTimeStamp = lastMappedFile.getStoreTimestamp();
+            }
+            return Math.max(0, lastCommitLogFileTimeStamp - this.currentReputTimestamp);
+        }
+
         public boolean isCommitLogAvailable() {
             return this.reputFromOffset < getReputEndOffset();
         }
@@ -2838,7 +2856,11 @@ public class DefaultMessageStore implements MessageStore {
                     this.reputFromOffset, DefaultMessageStore.this.commitLog.getMinOffset());
                 this.reputFromOffset = DefaultMessageStore.this.commitLog.getMinOffset();
             }
-            for (boolean doNext = true; this.isCommitLogAvailable() && doNext; ) {
+            boolean isCommitLogAvailable = isCommitLogAvailable();
+            if (!isCommitLogAvailable) {
+                currentReputTimestamp = System.currentTimeMillis();
+            }
+            for (boolean doNext = true; isCommitLogAvailable && doNext; ) {
 
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
 
@@ -2861,6 +2883,7 @@ public class DefaultMessageStore implements MessageStore {
 
                         if (dispatchRequest.isSuccess()) {
                             if (size > 0) {
+                                currentReputTimestamp = dispatchRequest.getStoreTimestamp();
                                 DefaultMessageStore.this.doDispatch(dispatchRequest);
 
                                 if (!notifyMessageArriveInBatch) {
