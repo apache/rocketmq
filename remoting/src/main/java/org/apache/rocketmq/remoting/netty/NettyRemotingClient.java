@@ -526,13 +526,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return true;
         }
 
-        for (String addr : newAddresses) {
-            if (!oldAddresses.contains(addr)) {
-                return true;
-            }
-        }
-
-        return false;
+        return !new HashSet<>(newAddresses).containsAll(oldAddresses);
     }
 
     /**
