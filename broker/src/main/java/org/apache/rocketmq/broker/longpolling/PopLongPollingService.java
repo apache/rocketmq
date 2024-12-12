@@ -50,6 +50,7 @@ public class PopLongPollingService extends ServiceThread {
 
     private static final Logger POP_LOGGER =
         LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+
     private final BrokerController brokerController;
     private final NettyRequestProcessor processor;
     private final ConcurrentHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap;

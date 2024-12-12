@@ -1004,4 +1004,10 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         return defaultMQAdminExtImpl.listAcl(brokerAddr, subjectFilter, resourceFilter);
     }
+
+    @Override
+    public void exportPopRecords(String brokerAddr, long timeout) throws RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.exportPopRecords(brokerAddr, timeout);
+    }
 }

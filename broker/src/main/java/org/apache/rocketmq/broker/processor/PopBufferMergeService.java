@@ -62,7 +62,7 @@ public class PopBufferMergeService extends ServiceThread {
     private final int countOfSecond1 = (int) (1000 / interval);
     private final int countOfSecond30 = (int) (30 * 1000 / interval);
 
-    private final List<Byte> batchAckIndexList = new ArrayList(32);
+    private final List<Byte> batchAckIndexList = new ArrayList<>(32);
     private volatile boolean master = false;
 
     public PopBufferMergeService(BrokerController brokerController, PopMessageProcessor popMessageProcessor) {
@@ -645,7 +645,7 @@ public class PopBufferMergeService extends ServiceThread {
         ackMsg.setQueueId(point.getQueueId());
         ackMsg.setPopTime(point.getPopTime());
         ackMsg.setBrokerName(point.getBrokerName());
-        msgInner.setTopic(popMessageProcessor.reviveTopic);
+        msgInner.setTopic(popMessageProcessor.getReviveTopic());
         msgInner.setBody(JSON.toJSONString(ackMsg).getBytes(DataConverter.CHARSET_UTF8));
         msgInner.setQueueId(pointWrapper.getReviveQueueId());
         msgInner.setTags(PopAckConstants.ACK_TAG);
@@ -701,7 +701,7 @@ public class PopBufferMergeService extends ServiceThread {
         batchAckMsg.setTopic(point.getTopic());
         batchAckMsg.setQueueId(point.getQueueId());
         batchAckMsg.setPopTime(point.getPopTime());
-        msgInner.setTopic(popMessageProcessor.reviveTopic);
+        msgInner.setTopic(popMessageProcessor.getReviveTopic());
         msgInner.setBody(JSON.toJSONString(batchAckMsg).getBytes(DataConverter.CHARSET_UTF8));
         msgInner.setQueueId(pointWrapper.getReviveQueueId());
         msgInner.setTags(PopAckConstants.BATCH_ACK_TAG);
@@ -751,7 +751,7 @@ public class PopBufferMergeService extends ServiceThread {
         }
         PopCheckPoint point = pointWrapper.getCk();
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
-        msgInner.setTopic(popMessageProcessor.reviveTopic);
+        msgInner.setTopic(popMessageProcessor.getReviveTopic());
         msgInner.setBody((pointWrapper.getReviveQueueId() + "-" + pointWrapper.getReviveQueueOffset()).getBytes(StandardCharsets.UTF_8));
         msgInner.setQueueId(pointWrapper.getReviveQueueId());
         msgInner.setTags(PopAckConstants.CK_TAG);

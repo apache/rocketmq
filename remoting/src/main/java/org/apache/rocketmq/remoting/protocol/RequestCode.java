@@ -95,6 +95,7 @@ public class RequestCode {
     public static final int CHANGE_MESSAGE_INVISIBLETIME = 200053;
     public static final int NOTIFICATION = 200054;
     public static final int POLLING_INFO = 200055;
+    public static final int POP_ROLLBACK = 200056;
 
     public static final int PUT_KV_CONFIG = 100;
 
