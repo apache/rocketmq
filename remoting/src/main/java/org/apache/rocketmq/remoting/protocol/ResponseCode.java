@@ -72,12 +72,6 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int NO_MESSAGE = 208;
 
-    public static final int UPDATE_AND_CREATE_ACL_CONFIG_FAILED = 209;
-
-    public static final int DELETE_ACL_CONFIG_FAILED = 210;
-
-    public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED = 211;
-
     public static final int POLLING_FULL = 209;
 
     public static final int POLLING_TIMEOUT = 210;
@@ -134,4 +128,10 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int USER_NOT_EXIST = 3001;
 
     public static final int POLICY_NOT_EXIST = 3002;
+
+    public static final int UPDATE_AND_CREATE_ACL_CONFIG_FAILED = 4001;
+
+    public static final int DELETE_ACL_CONFIG_FAILED = 4002;
+
+    public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED = 4003;
 }
