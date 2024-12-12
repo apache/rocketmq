@@ -21,7 +21,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -34,13 +33,14 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.ArrayList;
+import java.util.Properties;
+import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
@@ -54,6 +54,12 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class MixAll {
+    private MixAll() {
+        // Prevent class from being instantiated from outside
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
+
     public static final String ROCKETMQ_HOME_ENV = "ROCKETMQ_HOME";
     public static final String ROCKETMQ_HOME_PROPERTY = "rocketmq.home.dir";
     public static final String NAMESRV_ADDR_ENV = "NAMESRV_ADDR";
@@ -87,8 +93,8 @@ public class MixAll {
 
     public static final long FIRST_BROKER_CONTROLLER_ID = 1L;
     public static final long CURRENT_JVM_PID = getPID();
-    public final static int UNIT_PRE_SIZE_FOR_MSG = 28;
-    public final static int ALL_ACK_IN_SYNC_STATE_SET = -1;
+    public static final int UNIT_PRE_SIZE_FOR_MSG = 28;
+    public static final int ALL_ACK_IN_SYNC_STATE_SET = -1;
 
     public static final String RETRY_GROUP_TOPIC_PREFIX = "%RETRY%";
     public static final String DLQ_GROUP_TOPIC_PREFIX = "%DLQ%";
@@ -109,10 +115,9 @@ public class MixAll {
     public static final String ROCKETMQ_ZONE_MODE_PROPERTY = "rocketmq.zone.mode";
     public static final String ZONE_NAME = "__ZONE_NAME";
     public static final String ZONE_MODE = "__ZONE_MODE";
-    public final static String RPC_REQUEST_HEADER_NAMESPACED_FIELD = "nsd";
-    public final static String RPC_REQUEST_HEADER_NAMESPACE_FIELD = "ns";
+    public static final String RPC_REQUEST_HEADER_NAMESPACED_FIELD = "nsd";
+    public static final String RPC_REQUEST_HEADER_NAMESPACE_FIELD = "ns";
 
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     public static final String LOGICAL_QUEUE_MOCK_BROKER_PREFIX = "__syslo__";
     public static final String METADATA_SCOPE_GLOBAL = "__global__";
     public static final String LOGICAL_QUEUE_MOCK_BROKER_NAME_NOT_EXIST = "__syslo__none__";
@@ -128,12 +133,14 @@ public class MixAll {
         return OS.contains("mac");
     }
 
+    @SuppressWarnings("unused")
     public static boolean isUnix() {
         return OS.contains("nix")
             || OS.contains("nux")
             || OS.contains("aix");
     }
 
+    @SuppressWarnings("unused")
     public static boolean isSolaris() {
         return OS.contains("sunos");
     }
@@ -169,11 +176,10 @@ public class MixAll {
             int split = brokerAddr.lastIndexOf(":");
             String ip = brokerAddr.substring(0, split);
             String port = brokerAddr.substring(split + 1);
-            String brokerAddrNew = ip + ":" + (Integer.parseInt(port) - 2);
-            return brokerAddrNew;
-        } else {
-            return brokerAddr;
+            return ip + ":" + (Integer.parseInt(port) - 2);
         }
+
+        return brokerAddr;
     }
 
     public static long getPID() {
@@ -225,7 +231,7 @@ public class MixAll {
             }
 
             if (result) {
-                return new String(data, DEFAULT_CHARSET);
+                return new String(data, StandardCharsets.UTF_8);
             }
         }
         return null;
@@ -242,11 +248,13 @@ public class MixAll {
             in.read(data, 0, len);
             return new String(data, StandardCharsets.UTF_8);
         } catch (Exception ignored) {
+            // NO Sonar
         } finally {
             if (null != in) {
                 try {
                     in.close();
                 } catch (IOException ignored) {
+                    // NO Sonar
                 }
             }
         }
@@ -262,31 +270,25 @@ public class MixAll {
         final boolean onlyImportantField) {
         Field[] fields = object.getClass().getDeclaredFields();
         for (Field field : fields) {
-            if (!Modifier.isStatic(field.getModifiers())) {
-                String name = field.getName();
-                if (!name.startsWith("this")) {
-                    if (onlyImportantField) {
-                        Annotation annotation = field.getAnnotation(ImportantField.class);
-                        if (null == annotation) {
-                            continue;
-                        }
-                    }
+            String name = field.getName();
+            if (Modifier.isStatic(field.getModifiers()) || name.startsWith("this") ||
+                    onlyImportantField && Objects.isNull(field.getAnnotation(ImportantField.class))) {
+                continue;
+            }
 
-                    Object value = null;
-                    try {
-                        field.setAccessible(true);
-                        value = field.get(object);
-                        if (null == value) {
-                            value = "";
-                        }
-                    } catch (IllegalAccessException e) {
-                        log.error("Failed to obtain object properties", e);
-                    }
-
-                    if (logger != null) {
-                        logger.info(name + "=" + value);
-                    }
+            Object value = null;
+            try {
+                field.setAccessible(true);
+                value = field.get(object);
+                if (null == value) {
+                    value = "";
                 }
+            } catch (IllegalAccessException e) {
+                log.error("Failed to obtain object properties", e);
+            }
+
+            if (logger != null) {
+                logger.info(name + "=" + value);
             }
         }
     }
@@ -300,7 +302,10 @@ public class MixAll {
         Set<Map.Entry<Object, Object>> entrySet = isSort ? new TreeMap<>(properties).entrySet() : properties.entrySet();
         for (Map.Entry<Object, Object> entry : entrySet) {
             if (entry.getValue() != null) {
-                sb.append(entry.getKey().toString() + "=" + entry.getValue().toString() + "\n");
+                sb.append(entry.getKey().toString())
+                    .append("=")
+                    .append(entry.getValue().toString())
+                    .append("\n");
             }
         }
         return sb.toString();
@@ -309,7 +314,7 @@ public class MixAll {
     public static Properties string2Properties(final String str) {
         Properties properties = new Properties();
         try {
-            InputStream in = new ByteArrayInputStream(str.getBytes(DEFAULT_CHARSET));
+            InputStream in = new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8));
             properties.load(in);
         } catch (Exception e) {
             log.error("Failed to handle properties", e);
@@ -323,28 +328,23 @@ public class MixAll {
         Properties properties = new Properties();
 
         Class<?> objectClass = object.getClass();
-        while (true) {
-            Field[] fields = objectClass.getDeclaredFields();
-            for (Field field : fields) {
-                if (!Modifier.isStatic(field.getModifiers())) {
-                    String name = field.getName();
-                    if (!name.startsWith("this")) {
-                        Object value = null;
-                        try {
-                            field.setAccessible(true);
-                            value = field.get(object);
-                        } catch (IllegalAccessException e) {
-                            log.error("Failed to handle properties", e);
-                        }
-
-                        if (value != null) {
-                            properties.setProperty(name, value.toString());
-                        }
-                    }
+        while (objectClass != Object.class && objectClass.getSuperclass() != Object.class) {
+            for (Field field : objectClass.getDeclaredFields()) {
+                String name = field.getName();
+                if (Modifier.isStatic(field.getModifiers()) || name.startsWith("this")) {
+                    continue;
                 }
-            }
-            if (objectClass == Object.class || objectClass.getSuperclass() == Object.class) {
-                break;
+                Object value = null;
+                try {
+                    field.setAccessible(true);
+                    value = field.get(object);
+                } catch (IllegalAccessException e) {
+                    log.error("Failed to handle properties", e);
+                }
+
+                if (value != null) {
+                    properties.setProperty(name, value.toString());
+                }
             }
             objectClass = objectClass.getSuperclass();
         }
@@ -355,39 +355,47 @@ public class MixAll {
     public static void properties2Object(final Properties p, final Object object) {
         Method[] methods = object.getClass().getMethods();
         for (Method method : methods) {
-            String mn = method.getName();
-            if (mn.startsWith("set")) {
+            String methodName = method.getName();
+            Class<?>[] pt = method.getParameterTypes();
+            if (methodName.startsWith("set") && pt.length > 0) {
                 try {
-                    String tmp = mn.substring(4);
-                    String first = mn.substring(3, 4);
-
-                    String key = first.toLowerCase() + tmp;
+                    String suffix = methodName.substring(4);
+                    String first = methodName.substring(3, 4);
+                    String key = first.toLowerCase() + suffix;
                     String property = p.getProperty(key);
-                    if (property != null) {
-                        Class<?>[] pt = method.getParameterTypes();
-                        if (pt.length > 0) {
-                            String cn = pt[0].getSimpleName();
-                            Object arg;
-                            if (cn.equals("int") || cn.equals("Integer")) {
+                    if (Objects.nonNull(property)) {
+                        Object arg;
+                        switch (pt[0].getSimpleName()) {
+                            case "int":
+                            case "Integer":
                                 arg = Integer.parseInt(property);
-                            } else if (cn.equals("long") || cn.equals("Long")) {
+                                break;
+                            case "long":
+                            case "Long":
                                 arg = Long.parseLong(property);
-                            } else if (cn.equals("double") || cn.equals("Double")) {
+                                break;
+                            case "double":
+                            case "Double":
                                 arg = Double.parseDouble(property);
-                            } else if (cn.equals("boolean") || cn.equals("Boolean")) {
+                                break;
+                            case "boolean":
+                            case "Boolean":
                                 arg = Boolean.parseBoolean(property);
-                            } else if (cn.equals("float") || cn.equals("Float")) {
+                                break;
+                            case "float":
+                            case "Float":
                                 arg = Float.parseFloat(property);
-                            } else if (cn.equals("String")) {
-                                property = property.trim();
-                                arg = property;
-                            } else {
+                                break;
+                            case "String":
+                                arg = property.trim();
+                                break;
+                            default:
                                 continue;
-                            }
-                            method.invoke(object, arg);
                         }
+                        method.invoke(object, arg);
                     }
-                } catch (Throwable ignored) {
+                } catch (Exception ignore) {
+                    // NO Sonar
                 }
             }
         }
@@ -397,6 +405,7 @@ public class MixAll {
         return p1.equals(p2);
     }
 
+    @SuppressWarnings("unused")
     public static boolean isPropertyValid(Properties props, String key, Predicate<String> validator) {
         return validator.test(props.getProperty(key));
     }
@@ -422,13 +431,14 @@ public class MixAll {
     private static String localhost() {
         try {
             return InetAddress.getLocalHost().getHostAddress();
-        } catch (Throwable e) {
+        } catch (Exception e) {
             try {
                 String candidatesHost = getLocalhostByNetworkInterface();
                 if (candidatesHost != null)
                     return candidatesHost;
 
             } catch (Exception ignored) {
+                // NO Sonar
             }
 
             throw new RuntimeException("InetAddress java.net.InetAddress.getLocalHost() throws UnknownHostException" + FAQUrl.suggestTodo(FAQUrl.UNKNOWN_HOST_EXCEPTION), e);
@@ -446,17 +456,21 @@ public class MixAll {
             if ("docker0".equals(networkInterface.getName()) || !networkInterface.isUp()) {
                 continue;
             }
-            Enumeration<InetAddress> addrs = networkInterface.getInetAddresses();
-            while (addrs.hasMoreElements()) {
-                InetAddress address = addrs.nextElement();
-                if (address.isLoopbackAddress()) {
-                    continue;
-                }
+            Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+            while (addresses.hasMoreElements()) {
+                InetAddress address = addresses.nextElement();
+                boolean skip = address.isLoopbackAddress();
+
                 //ip4 higher priority
                 if (address instanceof Inet6Address) {
+                    skip = true;
                     candidatesHost.add(address.getHostAddress());
+                }
+
+                if (skip) {
                     continue;
                 }
+
                 return address.getHostAddress();
             }
         }
@@ -495,6 +509,7 @@ public class MixAll {
         return Integer.compare(x, y);
     }
 
+    @SuppressWarnings("unused")
     public static int compareLong(long x, long y) {
         return Long.compare(x, y);
     }
@@ -509,21 +524,18 @@ public class MixAll {
     }
 
     public static boolean isSysConsumerGroupForNoColdReadLimit(String consumerGroup) {
-        if (DEFAULT_CONSUMER_GROUP.equals(consumerGroup)
-            || TOOLS_CONSUMER_GROUP.equals(consumerGroup)
-            || SCHEDULE_CONSUMER_GROUP.equals(consumerGroup)
-            || FILTERSRV_CONSUMER_GROUP.equals(consumerGroup)
-            || MONITOR_CONSUMER_GROUP.equals(consumerGroup)
-            || SELF_TEST_CONSUMER_GROUP.equals(consumerGroup)
-            || ONS_HTTP_PROXY_GROUP.equals(consumerGroup)
-            || CID_ONSAPI_PERMISSION_GROUP.equals(consumerGroup)
-            || CID_ONSAPI_OWNER_GROUP.equals(consumerGroup)
-            || CID_ONSAPI_PULL_GROUP.equals(consumerGroup)
-            || CID_SYS_RMQ_TRANS.equals(consumerGroup)
-            || consumerGroup.startsWith(CID_RMQ_SYS_PREFIX)) {
-            return true;
-        }
-        return false;
+        return DEFAULT_CONSUMER_GROUP.equals(consumerGroup)
+                || TOOLS_CONSUMER_GROUP.equals(consumerGroup)
+                || SCHEDULE_CONSUMER_GROUP.equals(consumerGroup)
+                || FILTERSRV_CONSUMER_GROUP.equals(consumerGroup)
+                || MONITOR_CONSUMER_GROUP.equals(consumerGroup)
+                || SELF_TEST_CONSUMER_GROUP.equals(consumerGroup)
+                || ONS_HTTP_PROXY_GROUP.equals(consumerGroup)
+                || CID_ONSAPI_PERMISSION_GROUP.equals(consumerGroup)
+                || CID_ONSAPI_OWNER_GROUP.equals(consumerGroup)
+                || CID_ONSAPI_PULL_GROUP.equals(consumerGroup)
+                || CID_SYS_RMQ_TRANS.equals(consumerGroup)
+                || consumerGroup.startsWith(CID_RMQ_SYS_PREFIX);
     }
 
     public static boolean topicAllowsLMQ(String topic) {

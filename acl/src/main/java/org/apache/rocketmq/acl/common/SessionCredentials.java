@@ -43,6 +43,7 @@ public class SessionCredentials {
         try {
             keyContent = MixAll.file2String(KEY_FILE);
         } catch (IOException ignore) {
+            // NO Sonar
         }
         if (keyContent != null) {
             Properties prop = MixAll.string2Properties(keyContent);

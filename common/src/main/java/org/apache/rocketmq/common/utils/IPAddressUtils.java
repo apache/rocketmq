@@ -22,6 +22,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 
 public class IPAddressUtils {
+    private IPAddressUtils() {
+        // Prevent class from being instantiated from outside
+    }
 
     private static final String SLASH = "/";
 

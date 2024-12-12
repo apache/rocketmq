@@ -22,6 +22,11 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 public class ChannelUtil {
+    private ChannelUtil() {
+        // Prevent class from being instantiated from outside
+    }
+
+    @SuppressWarnings("unused")
     public static String getRemoteIp(Channel channel) {
         InetSocketAddress inetSocketAddress = (InetSocketAddress) channel.remoteAddress();
         if (inetSocketAddress == null) {

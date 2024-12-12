@@ -17,6 +17,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.MixAll;
 
 public class NameServerAddressUtils {
+    private NameServerAddressUtils() {
+        // Prevent class from being instantiated from outside
+    }
+
     public static final String INSTANCE_PREFIX = "MQ_INST_";
     public static final String INSTANCE_REGEX = INSTANCE_PREFIX + "\\w+_\\w+";
     public static final String ENDPOINT_PREFIX = "(\\w+://|)";

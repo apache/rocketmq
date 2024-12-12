@@ -31,19 +31,20 @@ import java.nio.file.Files;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Map;
+import java.util.List;
+import java.util.Objects;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
-import java.util.Collections;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -51,14 +52,17 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class UtilAll {
+    private UtilAll() {
+        // Prevent class from being instantiated from outside
+    }
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
     private static final Logger STORE_LOG = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
     public static final String YYYY_MM_DD_HH_MM_SS = "yyyy-MM-dd HH:mm:ss";
     public static final String YYYY_MM_DD_HH_MM_SS_SSS = "yyyy-MM-dd#HH:mm:ss:SSS";
     public static final String YYYYMMDDHHMMSS = "yyyyMMddHHmmss";
-    private final static char[] HEX_ARRAY;
-    private final static int PID;
+    private static final char[] HEX_ARRAY;
+    private static final int PID;
 
     static {
         HEX_ARRAY = "0123456789ABCDEF".toCharArray();
@@ -88,8 +92,8 @@ public class UtilAll {
         }
         try {
             timeUnit.sleep(timeOut);
-        } catch (Throwable ignored) {
-
+        } catch (Exception ignored) {
+            // NO Sonar
         }
     }
 
@@ -131,6 +135,7 @@ public class UtilAll {
         return false;
     }
 
+    @SuppressWarnings("unused")
     public static String timeMillisToHumanString() {
         return timeMillisToHumanString(System.currentTimeMillis());
     }
@@ -179,6 +184,7 @@ public class UtilAll {
         return cal.getTimeInMillis();
     }
 
+    @SuppressWarnings("unused")
     public static long computeNextHalfHourTimeMillis() {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(System.currentTimeMillis());
@@ -216,6 +222,7 @@ public class UtilAll {
             cal.get(Calendar.SECOND));
     }
 
+    @SuppressWarnings("unused")
     public static long getTotalSpace(final String path) {
         if (null == path || path.isEmpty())
             return -1;
@@ -377,8 +384,6 @@ public class UtilAll {
             }
             byteArrayOutputStream.flush();
             result = byteArrayOutputStream.toByteArray();
-        } catch (IOException e) {
-            throw e;
         } finally {
             try {
                 byteArrayInputStream.close();
@@ -421,6 +426,7 @@ public class UtilAll {
             try {
                 byteArrayOutputStream.close();
             } catch (IOException ignored) {
+                // NO Sonar
             }
 
             defeater.end();
@@ -429,6 +435,7 @@ public class UtilAll {
         return result;
     }
 
+    @SuppressWarnings("unused")
     public static int asInt(String str, int defaultValue) {
         try {
             return Integer.parseInt(str);
@@ -437,6 +444,7 @@ public class UtilAll {
         }
     }
 
+    @SuppressWarnings("unused")
     public static long asLong(String str, long defaultValue) {
         try {
             return Long.parseLong(str);
@@ -464,10 +472,8 @@ public class UtilAll {
     }
 
     public static String frontStringAtLeast(final String str, final int size) {
-        if (str != null) {
-            if (str.length() > size) {
-                return str.substring(0, size);
-            }
+        if (str != null && str.length() > size) {
+            return str.substring(0, size);
         }
 
         return str;
@@ -484,9 +490,7 @@ public class UtilAll {
     public static String jstack(Map<Thread, StackTraceElement[]> map) {
         StringBuilder result = new StringBuilder();
         try {
-            Iterator<Map.Entry<Thread, StackTraceElement[]>> ite = map.entrySet().iterator();
-            while (ite.hasNext()) {
-                Map.Entry<Thread, StackTraceElement[]> entry = ite.next();
+            for (Map.Entry<Thread, StackTraceElement[]> entry : map.entrySet()) {
                 StackTraceElement[] elements = entry.getValue();
                 Thread thread = entry.getKey();
                 if (elements != null && elements.length > 0) {
@@ -498,7 +502,7 @@ public class UtilAll {
                     result.append("\n");
                 }
             }
-        } catch (Throwable e) {
+        } catch (Exception e) {
             result.append(exceptionSimpleDesc(e));
         }
 
@@ -570,9 +574,9 @@ public class UtilAll {
         if (ip.length != 4) {
             return null;
         }
-        return new StringBuilder().append(ip[0] & 0xFF).append(".").append(
-                ip[1] & 0xFF).append(".").append(ip[2] & 0xFF)
-            .append(".").append(ip[3] & 0xFF).toString();
+        return (ip[0] & 0xFF) + "." +
+                (ip[1] & 0xFF) + "." + (ip[2] & 0xFF) +
+                "." + (ip[3] & 0xFF);
     }
 
     public static String ipToIPv6Str(byte[] ip) {
@@ -606,23 +610,17 @@ public class UtilAll {
                     ip =  addresses.nextElement();
                     if (ip instanceof Inet4Address) {
                         byte[] ipByte = ip.getAddress();
-                        if (ipByte.length == 4) {
-                            if (ipCheck(ipByte)) {
-                                if (!isInternalIP(ipByte)) {
-                                    return ipByte;
-                                } else if (internalIP == null || internalIP[0] == (byte) 127) {
-                                    internalIP = ipByte;
-                                }
+                        if (ipByte.length == 4 && ipCheck(ipByte)) {
+                            if (!isInternalIP(ipByte)) {
+                                return ipByte;
+                            } else if (internalIP == null || internalIP[0] == (byte) 127) {
+                                internalIP = ipByte;
                             }
                         }
                     } else if (ip instanceof Inet6Address) {
                         byte[] ipByte = ip.getAddress();
-                        if (ipByte.length == 16) {
-                            if (ipV6Check(ipByte)) {
-                                if (!isInternalV6IP(ip)) {
-                                    return ipByte;
-                                }
-                            }
+                        if (ipByte.length == 16 && ipV6Check(ipByte) && !isInternalV6IP(ip)) {
+                            return ipByte;
                         }
                     }
                 }
@@ -645,8 +643,10 @@ public class UtilAll {
             file.delete();
         } else if (file.isDirectory()) {
             File[] files = file.listFiles();
-            for (File file1 : files) {
-                deleteFile(file1);
+            if (Objects.nonNull(files)) {
+                for (File file1 : files) {
+                    deleteFile(file1);
+                }
             }
             file.delete();
         }
@@ -674,7 +674,7 @@ public class UtilAll {
         }
 
         if (StringUtils.isBlank(str)) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         String[] addrArray = str.split(splitter);
@@ -689,7 +689,7 @@ public class UtilAll {
             return;
         }
         File[] files = file.listFiles();
-        if (files == null || files.length <= 0) {
+        if (files == null || files.length == 0) {
             file.delete();
             STORE_LOG.info("delete empty direct, {}", file.getPath());
         }

@@ -17,14 +17,18 @@
 
 package org.apache.rocketmq.common.utils;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import org.apache.commons.codec.binary.Hex;
 
 public class BinaryUtil {
+    private BinaryUtil() {
+        // Prevent class from being instantiated from outside
+    }
+
     public static byte[] calculateMd5(byte[] binaryData) {
-        MessageDigest messageDigest = null;
+        MessageDigest messageDigest;
         try {
             messageDigest = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
@@ -34,8 +38,9 @@ public class BinaryUtil {
         return messageDigest.digest();
     }
 
+    @SuppressWarnings("unused")
     public static String generateMd5(String bodyStr) {
-        byte[] bytes = calculateMd5(bodyStr.getBytes(Charset.forName("UTF-8")));
+        byte[] bytes = calculateMd5(bodyStr.getBytes(StandardCharsets.UTF_8));
         return Hex.encodeHexString(bytes, false);
     }
 
@@ -46,8 +51,8 @@ public class BinaryUtil {
 
     /**
      * Returns true if subject contains only bytes that are spec-compliant ASCII characters.
-     * @param subject
-     * @return
+     * @param subject -
+     * @return is ascii or not
      */
     public static boolean isAscii(byte[] subject) {
         if (subject == null) {

@@ -21,6 +21,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 public class FutureUtils {
+    private FutureUtils() {
+        // Prevent class from being instantiated from outside
+    }
 
     public static <T> CompletableFuture<T> appendNextFuture(CompletableFuture<T> future,
         CompletableFuture<T> nextFuture, ExecutorService executor) {

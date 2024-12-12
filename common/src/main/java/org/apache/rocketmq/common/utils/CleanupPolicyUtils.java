@@ -25,6 +25,11 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class CleanupPolicyUtils {
+    private CleanupPolicyUtils() {
+        // Prevent class from being instantiated from outside
+    }
+
+    @SuppressWarnings("unused")
     public static boolean isCompaction(Optional<TopicConfig> topicConfig) {
         return Objects.equals(CleanupPolicy.COMPACTION, getDeletePolicy(topicConfig));
     }

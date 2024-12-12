@@ -34,6 +34,10 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public final class ThreadUtils {
+    private ThreadUtils() {
+        // Prevent class from being instantiated from outside
+    }
+
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.TOOLS_LOGGER_NAME);
 
     public static ExecutorService newSingleThreadExecutor(String processName, boolean isDaemon) {
@@ -213,11 +217,4 @@ public final class ThreadUtils {
         }
     }
 
-    /**
-     * A constructor to stop this class being constructed.
-     */
-    private ThreadUtils() {
-        // Unused
-
-    }
 }

@@ -29,6 +29,9 @@ import static org.apache.rocketmq.common.message.MessageDecoder.NAME_VALUE_SEPAR
 import static org.apache.rocketmq.common.message.MessageDecoder.PROPERTY_SEPARATOR;
 
 public class MessageUtils {
+    private MessageUtils() {
+        // Prevent class from being instantiated from outside
+    }
 
     public static int getShardingKeyIndex(String shardingKey, int indexSize) {
         return Math.abs(Hashing.murmur3_32().hashBytes(shardingKey.getBytes(StandardCharsets.UTF_8)).asInt() % indexSize);
@@ -68,11 +71,10 @@ public class MessageUtils {
                             break;
                         }
                         startIdx = idx1 + name.length();
-                        if (idx1 == 0 || propertiesString.charAt(idx1 - 1) == PROPERTY_SEPARATOR) {
-                            if (propertiesString.length() > idx1 + name.length()
+                        if ((idx1 == 0 || propertiesString.charAt(idx1 - 1) == PROPERTY_SEPARATOR)
+                                && propertiesString.length() > idx1 + name.length()
                                 && propertiesString.charAt(idx1 + name.length()) == NAME_VALUE_SEPARATOR) {
-                                break;
-                            }
+                            break;
                         }
                     }
                     if (idx1 == -1) {

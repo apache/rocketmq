@@ -34,19 +34,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IOTinyUtils {
+    private IOTinyUtils() {
+        // Prevent class from being instantiated from outside
+    }
 
-    static public String toString(InputStream input, String encoding) throws IOException {
+    public static String toString(InputStream input, String encoding) throws IOException {
         return (null == encoding) ? toString(new InputStreamReader(input, StandardCharsets.UTF_8)) : toString(new InputStreamReader(
             input, encoding));
     }
 
-    static public String toString(Reader reader) throws IOException {
+    public static String toString(Reader reader) throws IOException {
         CharArrayWriter sw = new CharArrayWriter();
         copy(reader, sw);
         return sw.toString();
     }
 
-    static public long copy(Reader input, Writer output) throws IOException {
+    public static long copy(Reader input, Writer output) throws IOException {
         char[] buffer = new char[1 << 12];
         long count = 0;
         for (int n = 0; (n = input.read(buffer)) >= 0; ) {
@@ -56,7 +59,7 @@ public class IOTinyUtils {
         return count;
     }
 
-    static public List<String> readLines(Reader input) throws IOException {
+    public static List<String> readLines(Reader input) throws IOException {
         BufferedReader reader = toBufferedReader(input);
         List<String> list = new ArrayList<>();
         String line;
@@ -71,11 +74,11 @@ public class IOTinyUtils {
         return list;
     }
 
-    static private BufferedReader toBufferedReader(Reader reader) {
+    private static BufferedReader toBufferedReader(Reader reader) {
         return reader instanceof BufferedReader ? (BufferedReader) reader : new BufferedReader(reader);
     }
 
-    static public void copyFile(String source, String target) throws IOException {
+    public static void copyFile(String source, String target) throws IOException {
         File sf = new File(source);
         if (!sf.exists()) {
             throw new IllegalArgumentException("source file does not exist.");
@@ -86,19 +89,9 @@ public class IOTinyUtils {
             throw new RuntimeException("failed to create target file.");
         }
 
-        FileChannel sc = null;
-        FileChannel tc = null;
-        try {
-            tc = new FileOutputStream(tf).getChannel();
-            sc = new FileInputStream(sf).getChannel();
+        try (FileChannel tc = new FileOutputStream(tf).getChannel();
+             FileChannel sc = new FileInputStream(sf).getChannel()) {
             sc.transferTo(0, sc.size(), tc);
-        } finally {
-            if (null != sc) {
-                sc.close();
-            }
-            if (null != tc) {
-                tc.close();
-            }
         }
     }
 
@@ -145,14 +138,8 @@ public class IOTinyUtils {
     }
 
     public static void writeStringToFile(File file, String data, String encoding) throws IOException {
-        OutputStream os = null;
-        try {
-            os = new FileOutputStream(file);
+        try (OutputStream os = new FileOutputStream(file)) {
             os.write(data.getBytes(encoding));
-        } finally {
-            if (null != os) {
-                os.close();
-            }
         }
     }
 }

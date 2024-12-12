@@ -20,6 +20,10 @@ package org.apache.rocketmq.common.utils;
 import java.util.UUID;
 
 public class CorrelationIdUtil {
+    private CorrelationIdUtil() {
+        // Prevent class from being instantiated from outside
+    }
+
     public static String createCorrelationId() {
         return UUID.randomUUID().toString();
     }

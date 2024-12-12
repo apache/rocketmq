@@ -50,6 +50,7 @@ public abstract class AbstractStartAndShutdown implements StartAndShutdown {
         }
     }
 
+    @SuppressWarnings("unused")
     public void appendStart(Start start) {
         this.appendStartAndShutdown(new StartAndShutdown() {
             @Override

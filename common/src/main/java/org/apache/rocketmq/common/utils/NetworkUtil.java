@@ -39,6 +39,10 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 
 public class NetworkUtil {
+    private NetworkUtil() {
+        // Prevent class from being instantiated from outside
+    }
+
     public static final String OS_NAME = System.getProperty("os.name");
 
     private static final Logger log = LoggerFactory.getLogger(LoggerName.COMMON_LOGGER_NAME);
@@ -64,18 +68,14 @@ public class NetworkUtil {
 
         if (isLinuxPlatform()) {
             try {
-                final Class<?> providerClazz = Class.forName("sun.nio.ch.EPollSelectorProvider");
-                try {
-                    final Method method = providerClazz.getMethod("provider");
-                    final SelectorProvider selectorProvider = (SelectorProvider) method.invoke(null);
-                    if (selectorProvider != null) {
-                        result = selectorProvider.openSelector();
-                    }
-                } catch (final Exception e) {
-                    log.warn("Open ePoll Selector for linux platform exception", e);
+                Class<?> providerClazz = Class.forName("sun.nio.ch.EPollSelectorProvider");
+                Method method = providerClazz.getMethod("provider");
+                SelectorProvider selectorProvider = (SelectorProvider) method.invoke(null);
+                if (selectorProvider != null) {
+                    result = selectorProvider.openSelector();
                 }
-            } catch (final Exception e) {
-                // ignore
+            } catch (Exception e) {
+                log.warn("Open ePoll Selector for linux platform exception", e);
             }
         }
 
@@ -105,17 +105,13 @@ public class NetworkUtil {
                 final InetAddress address = en.nextElement();
                 if (address instanceof Inet4Address) {
                     byte[] ipByte = address.getAddress();
-                    if (ipByte.length == 4) {
-                        if (validator.isValidInet4Address(UtilAll.ipToIPv4Str(ipByte))) {
-                            inetAddressList.add(address);
-                        }
+                    if (ipByte.length == 4 && validator.isValidInet4Address(UtilAll.ipToIPv4Str(ipByte))) {
+                        inetAddressList.add(address);
                     }
                 } else if (address instanceof Inet6Address) {
                     byte[] ipByte = address.getAddress();
-                    if (ipByte.length == 16) {
-                        if (validator.isValidInet6Address(UtilAll.ipToIPv6Str(ipByte))) {
-                            inetAddressList.add(address);
-                        }
+                    if (ipByte.length == 16 && validator.isValidInet6Address(UtilAll.ipToIPv6Str(ipByte))) {
+                        inetAddressList.add(address);
                     }
                 }
             }
@@ -187,12 +183,9 @@ public class NetworkUtil {
     }
 
     public static String socketAddress2String(final SocketAddress addr) {
-        StringBuilder sb = new StringBuilder();
         InetSocketAddress inetSocketAddress = (InetSocketAddress) addr;
-        sb.append(inetSocketAddress.getAddress().getHostAddress());
-        sb.append(":");
-        sb.append(inetSocketAddress.getPort());
-        return sb.toString();
+        return inetSocketAddress.getAddress().getHostAddress() +
+                ":" + inetSocketAddress.getPort();
     }
 
     public static String convert2IpString(final String addr) {

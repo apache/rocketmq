@@ -16,17 +16,21 @@
  */
 package org.apache.rocketmq.common.utils;
 
+import java.util.Objects;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 
 public class ExceptionUtils {
+    private ExceptionUtils() {
+        // Prevent class from being instantiated from outside
+    }
 
     public static Throwable getRealException(Throwable throwable) {
-        if (throwable instanceof CompletionException || throwable instanceof ExecutionException) {
-            if (throwable.getCause() != null) {
-                throwable = throwable.getCause();
-            }
+        if ((throwable instanceof CompletionException || throwable instanceof ExecutionException)
+                && Objects.nonNull(throwable.getCause())) {
+             throwable = throwable.getCause();
         }
+
         return throwable;
     }
 
