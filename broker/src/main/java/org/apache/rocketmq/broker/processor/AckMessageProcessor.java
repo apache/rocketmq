@@ -313,11 +313,9 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
         if (requestHeader != null && batchAck == null) {
             String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
-            brokerName = ExtraInfoUtil.getBrokerName(extraInfo);
             String groupId = requestHeader.getConsumerGroup();
             String topicId = requestHeader.getTopic();
             int queueId = requestHeader.getQueueId();
-            long startOffset = ExtraInfoUtil.getCkQueueOffset(extraInfo);
             long ackOffset = requestHeader.getOffset();
             long popTime = ExtraInfoUtil.getPopTime(extraInfo);
             long invisibleTime = ExtraInfoUtil.getInvisibleTime(extraInfo);
@@ -373,7 +371,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 this.brokerController.getBrokerStatsManager().incBrokerAckNums(ackCount);
                 this.brokerController.getBrokerStatsManager().incGroupAckNums(groupId, topicId, ackCount);
             } catch (ConsumeQueueException e) {
-                throw new RemotingCommandException("Failed to get max offset in queue", e);
+                throw new RemotingCommandException("Failed to ack message", e);
             }
         }
     }

@@ -372,16 +372,19 @@ public class PopConsumerService extends ServiceThread {
                 }
                 return CompletableFuture.completedFuture(result);
             }).whenComplete((result, throwable) -> {
-                if (throwable != null) {
-                    log.error("PopConsumerService popAsync get message error",
-                        throwable instanceof CompletionException ? throwable.getCause() : throwable);
+                try {
+                    if (throwable != null) {
+                        log.error("PopConsumerService popAsync get message error",
+                            throwable instanceof CompletionException ? throwable.getCause() : throwable);
+                    }
+                    if (result.getMessageCount() > 0) {
+                        log.debug("PopConsumerService popAsync result, found={}, groupId={}, topicId={}, queueId={}, " +
+                                "batchSize={}, invisibleTime={}, fifo={}, attemptId={}, filter={}", result.getMessageCount(),
+                            groupId, topicId, queueId, batchSize, invisibleTime, fifo, attemptId, filter);
+                    }
+                } finally {
+                    consumerLockService.unlock(groupId, topicId);
                 }
-                if (result.getMessageCount() > 0) {
-                    log.debug("PopConsumerService popAsync result, found={}, groupId={}, topicId={}, queueId={}, " +
-                            "batchSize={}, invisibleTime={}, fifo={}, attemptId={}, filter={}", result.getMessageCount(),
-                        groupId, topicId, queueId, batchSize, invisibleTime, fifo, attemptId, filter);
-                }
-                consumerLockService.unlock(groupId, topicId);
             });
         } catch (Throwable t) {
             log.error("PopConsumerService popAsync error", t);
