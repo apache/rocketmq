@@ -252,7 +252,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return response;
         }
         if (requestHeader.getMaxMsgNums() > 32) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(String.format("the broker[%s] pop message's num is greater than 32",
                 this.brokerController.getBrokerConfig().getBrokerIP1()));
             return response;
@@ -288,7 +288,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(),
                 channel.remoteAddress());
             POP_LOGGER.warn(errorInfo);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(errorInfo);
             return response;
         }

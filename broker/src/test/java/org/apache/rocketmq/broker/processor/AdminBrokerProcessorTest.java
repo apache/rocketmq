@@ -317,7 +317,7 @@ public class AdminBrokerProcessorTest {
         for (String topic : systemTopicSet) {
             RemotingCommand request = buildCreateTopicRequest(topic);
             RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-            assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+            assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
             assertThat(response.getRemark()).isEqualTo("The topic[" + topic + "] is conflict with system topic.");
         }
 
@@ -325,7 +325,7 @@ public class AdminBrokerProcessorTest {
         String topic = "";
         RemotingCommand request = buildCreateTopicRequest(topic);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
 
         topic = "TEST_CREATE_TOPIC";
         request = buildCreateTopicRequest(topic);
@@ -339,7 +339,7 @@ public class AdminBrokerProcessorTest {
         attributes.put("+message.type", "MIXED");
         request = buildCreateTopicRequest(topic, attributes);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
         // test allow MIXED topic type
         brokerController.getBrokerConfig().setEnableMixedMessageType(true);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
@@ -351,14 +351,14 @@ public class AdminBrokerProcessorTest {
         List<String> systemTopicList = new ArrayList<>(systemTopicSet);
         RemotingCommand request = buildCreateTopicListRequest(systemTopicList);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
         assertThat(response.getRemark()).isEqualTo("The topic[" + systemTopicList.get(0) + "] is conflict with system topic.");
 
         List<String> inValidTopicList = new ArrayList<>();
         inValidTopicList.add("");
         request = buildCreateTopicListRequest(inValidTopicList);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
 
         List<String> topicList = new ArrayList<>();
         topicList.add("TEST_CREATE_TOPIC");
@@ -378,7 +378,7 @@ public class AdminBrokerProcessorTest {
         attributes.put("+message.type", "MIXED");
         request = buildCreateTopicListRequest(topicList, attributes);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
         // test allow MIXED topic type
         brokerController.getBrokerConfig().setEnableMixedMessageType(true);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
@@ -400,7 +400,7 @@ public class AdminBrokerProcessorTest {
         for (String topic : systemTopicSet) {
             RemotingCommand request = buildDeleteTopicRequest(topic);
             RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-            assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+            assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
             assertThat(response.getRemark()).isEqualTo("The topic[" + topic + "] is conflict with system topic.");
         }
 
@@ -1065,7 +1065,7 @@ public class AdminBrokerProcessorTest {
         extfields.put(FIleReadaheadMode.READ_AHEAD_MODE, String.valueOf(LibC.MADV_DONTNEED));
         request.setExtFields(extfields);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
 
         extfields.clear();
         extfields.put(FIleReadaheadMode.READ_AHEAD_MODE, String.valueOf(LibC.MADV_NORMAL));
