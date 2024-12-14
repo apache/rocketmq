@@ -20,6 +20,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.annotation.JSONField;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 public class PopConsumerRecord {
 
@@ -100,8 +101,8 @@ public class PopConsumerRecord {
         byte[] bytes = new byte[length];
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         buffer.putLong(this.getVisibilityTimeout());
-        buffer.put(groupId.getBytes()).put((byte) '@');
-        buffer.put(topicId.getBytes()).put((byte) '@');
+        buffer.put(groupId.getBytes(StandardCharsets.UTF_8)).put((byte) '@');
+        buffer.put(topicId.getBytes(StandardCharsets.UTF_8)).put((byte) '@');
         buffer.putInt(queueId).put((byte) '@');
         buffer.putLong(offset);
         return bytes;
