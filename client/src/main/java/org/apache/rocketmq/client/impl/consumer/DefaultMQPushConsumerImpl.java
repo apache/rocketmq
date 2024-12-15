@@ -510,7 +510,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
         try {
             this.makeSureStateOK();
         } catch (MQClientException e) {
-            log.warn("pullMessage exception, consumer state not ok", e);
+            log.warn("popMessage exception, consumer state not ok", e);
             this.executePopPullRequestLater(popRequest, pullTimeDelayMillsWhenException);
             return;
         }
