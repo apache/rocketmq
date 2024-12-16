@@ -1615,6 +1615,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
         SubscriptionGroupConfig config = RemotingSerializable.decode(request.getBody(), SubscriptionGroupConfig.class);
         if (config != null) {
+            if (!updateSubGroupPreCheck(config, response)) {
+                return response;
+            }
             this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfig(config);
         }
 
@@ -1638,7 +1641,11 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final List<SubscriptionGroupConfig> groupConfigList = subscriptionGroupList.getGroupConfigList();
 
         final StringBuilder builder = new StringBuilder();
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         for (SubscriptionGroupConfig config : groupConfigList) {
+            if (!updateSubGroupPreCheck(config, response)) {
+                return response;
+            }
             builder.append(config.getGroupName()).append(";");
         }
         final String groupNames = builder.toString();
@@ -1646,7 +1653,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             groupNames,
             RemotingHelper.parseChannelRemoteAddr(ctx.channel()));
 
-        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
             this.brokerController.getSubscriptionGroupManager().updateSubscriptionGroupConfigList(groupConfigList);
             response.setCode(ResponseCode.SUCCESS);
@@ -1663,6 +1669,15 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         }
 
         return response;
+    }
+
+    private boolean updateSubGroupPreCheck(SubscriptionGroupConfig config,RemotingCommand resp) {
+        if (StringUtils.isBlank(config.getGroupName())) {
+            resp.setCode(ResponseCode.ILLEGAL_ARGUMENT);
+            resp.setRemark("The subscription group name cannot be empty");
+            return false;
+        }
+        return true;
     }
 
     private void initConsumerOffset(String clientHost, String groupName, int mode, TopicConfig topicConfig)
