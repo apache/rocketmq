@@ -28,7 +28,7 @@ public class ExceptionUtils {
     public static Throwable getRealException(Throwable throwable) {
         if ((throwable instanceof CompletionException || throwable instanceof ExecutionException)
                 && Objects.nonNull(throwable.getCause())) {
-             throwable = throwable.getCause();
+            throwable = throwable.getCause();
         }
 
         return throwable;
