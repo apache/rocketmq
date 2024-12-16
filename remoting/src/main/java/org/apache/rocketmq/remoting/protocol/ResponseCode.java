@@ -84,6 +84,12 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int FLOW_CONTROL = 215;
 
+    public static final int UPDATE_AND_CREATE_ACL_CONFIG_FAILED = 216;
+
+    public static final int DELETE_ACL_CONFIG_FAILED = 217;
+
+    public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED = 218;
+
     public static final int NOT_LEADER_FOR_QUEUE = 501;
 
     public static final int ILLEGAL_OPERATION = 604;
@@ -129,9 +135,4 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int POLICY_NOT_EXIST = 3002;
 
-    public static final int UPDATE_AND_CREATE_ACL_CONFIG_FAILED = 4001;
-
-    public static final int DELETE_ACL_CONFIG_FAILED = 4002;
-
-    public static final int UPDATE_GLOBAL_WHITE_ADDRS_CONFIG_FAILED = 4003;
 }
