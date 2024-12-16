@@ -433,7 +433,7 @@ public class CommitLog implements Swappable {
             }
             // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
-            if (byteBuffer.remaining() < totalSize) {
+            if (byteBuffer.remaining() < totalSize - 4) {
                 return new DispatchRequest(-1, false /* fail */);
             }
 
