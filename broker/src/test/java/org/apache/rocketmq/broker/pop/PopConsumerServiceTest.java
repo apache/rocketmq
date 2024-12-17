@@ -314,9 +314,9 @@ public class PopConsumerServiceTest {
         consumerService.getPopConsumerStore().start();
         consumerService.ackAsync(
             current, 10, groupId, topicId, queueId, 100).join();
-
         consumerService.changeInvisibilityDuration(current, 10,
             current + 100, 10, groupId, topicId, queueId, 100);
+        consumerService.shutdown();
     }
 
     @Test
@@ -382,6 +382,7 @@ public class PopConsumerServiceTest {
                 Triple.of(Mockito.mock(MessageExt.class), null, false)))
             .when(consumerServiceSpy).getMessageAsync(any(PopConsumerRecord.class));
         consumerServiceSpy.revive(20 * 1000, 1);
+        consumerService.shutdown();
     }
 
     @Test
