@@ -197,13 +197,13 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                 long nextOpOffset = pullResult.getNextBeginOffset();
                 int putInQueueCount = 0;
                 int escapeFailCnt = 0;
-                Long removedOpOffset;
 
                 while (true) {
                     if (System.currentTimeMillis() - startTime > MAX_PROCESS_TIME_LIMIT) {
                         log.info("Queue={} process time reach max={}", messageQueue, MAX_PROCESS_TIME_LIMIT);
                         break;
                     }
+                    Long removedOpOffset;
                     if ((removedOpOffset = removeMap.remove(i)) != null) {
                         log.debug("Half offset {} has been committed/rolled back", i);
                         opMsgMap.get(removedOpOffset).remove(i);
