@@ -456,8 +456,8 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             if (-1 == prepareQueueOffset) {
                 return false;
             } else {
-                if (removeMap.containsKey(prepareQueueOffset)) {
-                    long tmpOpOffset = removeMap.remove(prepareQueueOffset);
+                Long tmpOpOffset;
+                if ((tmpOpOffset = removeMap.remove(prepareQueueOffset)) != null) {
                     doneOpOffset.add(tmpOpOffset);
                     log.info("removeMap contain prepareQueueOffset. real_topic={},uniqKey={},immunityTime={},offset={}",
                             msgExt.getUserProperty(MessageConst.PROPERTY_REAL_TOPIC),
