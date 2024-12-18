@@ -203,7 +203,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
                         log.info("Queue={} process time reach max={}", messageQueue, MAX_PROCESS_TIME_LIMIT);
                         break;
                     }
-                    Long removedOpOffset;
+                    Long removedOpOffset = null;
                     if ((removedOpOffset = removeMap.remove(i)) != null) {
                         log.debug("Half offset {} has been committed/rolled back", i);
                         opMsgMap.get(removedOpOffset).remove(i);
@@ -456,7 +456,7 @@ public class TransactionalMessageServiceImpl implements TransactionalMessageServ
             if (-1 == prepareQueueOffset) {
                 return false;
             } else {
-                Long tmpOpOffset;
+                Long tmpOpOffset = null;
                 if ((tmpOpOffset = removeMap.remove(prepareQueueOffset)) != null) {
                     doneOpOffset.add(tmpOpOffset);
                     log.info("removeMap contain prepareQueueOffset. real_topic={},uniqKey={},immunityTime={},offset={}",
