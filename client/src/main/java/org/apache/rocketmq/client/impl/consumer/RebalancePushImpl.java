@@ -140,10 +140,6 @@ public class RebalancePushImpl extends RebalanceImpl {
         return defaultMQPushConsumerImpl.getDefaultMQPushConsumer().isClientRebalance() || defaultMQPushConsumerImpl.isConsumeOrderly() || MessageModel.BROADCASTING.equals(messageModel);
     }
 
-    public boolean removeUnnecessaryPopMessageQueue(final MessageQueue mq, final PopProcessQueue pq) {
-        return true;
-    }
-
     @Override
     public ConsumeType consumeType() {
         return ConsumeType.CONSUME_PASSIVELY;
@@ -286,11 +282,6 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public ProcessQueue createProcessQueue() {
         return new ProcessQueue();
-    }
-
-    @Override
-    public ProcessQueue createProcessQueue(String topicName) {
-        return createProcessQueue();
     }
 
     @Override

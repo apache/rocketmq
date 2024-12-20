@@ -33,6 +33,7 @@ import org.apache.rocketmq.acl.common.AclException;
 import org.apache.rocketmq.acl.common.AuthenticationHeader;
 import org.apache.rocketmq.acl.plain.PlainAccessResource;
 import org.apache.rocketmq.common.constant.GrpcConstants;
+import org.apache.rocketmq.proxy.common.utils.GrpcUtils;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 
 public class AuthenticationInterceptor implements ServerInterceptor {
@@ -49,8 +50,8 @@ public class AuthenticationInterceptor implements ServerInterceptor {
             @Override
             public void onMessage(R message) {
                 GeneratedMessageV3 messageV3 = (GeneratedMessageV3) message;
-                headers.put(GrpcConstants.RPC_NAME, messageV3.getDescriptorForType().getFullName());
-                headers.put(GrpcConstants.SIMPLE_RPC_NAME, messageV3.getDescriptorForType().getName());
+                GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.RPC_NAME, messageV3.getDescriptorForType().getFullName());
+                GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.SIMPLE_RPC_NAME, messageV3.getDescriptorForType().getName());
                 if (ConfigurationManager.getProxyConfig().isEnableACL()) {
                     try {
                         AuthenticationHeader authenticationHeader = AuthenticationHeader.builder()
@@ -85,7 +86,7 @@ public class AuthenticationInterceptor implements ServerInterceptor {
 
             if (accessResource instanceof PlainAccessResource) {
                 PlainAccessResource plainAccessResource = (PlainAccessResource) accessResource;
-                headers.put(GrpcConstants.AUTHORIZATION_AK, plainAccessResource.getAccessKey());
+                GrpcUtils.putHeaderIfNotExist(headers, GrpcConstants.AUTHORIZATION_AK, plainAccessResource.getAccessKey());
             }
         }
     }

@@ -64,7 +64,7 @@ public class FileWatchService extends LifecycleAwareServiceThread {
                 this.waitForRunning(WATCH_INTERVAL);
                 for (Map.Entry<String, String> entry : currentHash.entrySet()) {
                     String newHash = md5Digest(entry.getKey());
-                    if (!newHash.equals(currentHash.get(entry.getKey()))) {
+                    if (!newHash.equals(entry.getValue())) {
                         entry.setValue(newHash);
                         listener.onChanged(entry.getKey());
                     }

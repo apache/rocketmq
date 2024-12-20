@@ -18,6 +18,7 @@ package org.apache.rocketmq.broker.processor;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import org.apache.rocketmq.broker.BrokerController;
@@ -40,6 +41,7 @@ import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.NotificationRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.NotificationResponseHeader;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
 public class NotificationProcessor implements NettyRequestProcessor {
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
@@ -58,8 +60,16 @@ public class NotificationProcessor implements NettyRequestProcessor {
         return false;
     }
 
+    // When a new message is written to CommitLog, this method would be called.
+    // Suspended long polling will receive notification and be wakeup.
+    public void notifyMessageArriving(final String topic, final int queueId, long offset,
+        Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
+        this.popLongPollingService.notifyMessageArrivingWithRetryTopic(
+            topic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
+    }
+
     public void notifyMessageArriving(final String topic, final int queueId) {
-        popLongPollingService.notifyMessageArrivingWithRetryTopic(topic, queueId);
+        this.popLongPollingService.notifyMessageArrivingWithRetryTopic(topic, queueId);
     }
 
     @Override
@@ -102,7 +112,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
             String errorInfo = String.format("queueId[%d] is illegal, topic:[%s] topicConfig.readQueueNums:[%d] consumer:[%s]",
                 requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), channel.remoteAddress());
             POP_LOGGER.warn(errorInfo);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(errorInfo);
             return response;
         }
@@ -160,13 +170,15 @@ public class NotificationProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private boolean hasMsgFromTopic(String topicName, int randomQ, NotificationRequestHeader requestHeader) {
+    private boolean hasMsgFromTopic(String topicName, int randomQ, NotificationRequestHeader requestHeader)
+        throws RemotingCommandException {
         boolean hasMsg;
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topicName);
         return hasMsgFromTopic(topicConfig, randomQ, requestHeader);
     }
 
-    private boolean hasMsgFromTopic(TopicConfig topicConfig, int randomQ, NotificationRequestHeader requestHeader) {
+    private boolean hasMsgFromTopic(TopicConfig topicConfig, int randomQ, NotificationRequestHeader requestHeader)
+        throws RemotingCommandException {
         boolean hasMsg;
         if (topicConfig != null) {
             for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
@@ -180,15 +192,19 @@ public class NotificationProcessor implements NettyRequestProcessor {
         return false;
     }
 
-    private boolean hasMsgFromQueue(String targetTopic, NotificationRequestHeader requestHeader, int queueId) {
+    private boolean hasMsgFromQueue(String targetTopic, NotificationRequestHeader requestHeader, int queueId) throws RemotingCommandException {
         if (Boolean.TRUE.equals(requestHeader.getOrder())) {
             if (this.brokerController.getConsumerOrderInfoManager().checkBlock(requestHeader.getAttemptId(), requestHeader.getTopic(), requestHeader.getConsumerGroup(), queueId, 0)) {
                 return false;
             }
         }
         long offset = getPopOffset(targetTopic, requestHeader.getConsumerGroup(), queueId);
-        long restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(targetTopic, queueId) - offset;
-        return restNum > 0;
+        try {
+            long restNum = this.brokerController.getMessageStore().getMaxOffsetInQueue(targetTopic, queueId) - offset;
+            return restNum > 0;
+        } catch (ConsumeQueueException e) {
+            throw new RemotingCommandException("Failed tp get max offset in queue", e);
+        }
     }
 
     private long getPopOffset(String topic, String cid, int queueId) {

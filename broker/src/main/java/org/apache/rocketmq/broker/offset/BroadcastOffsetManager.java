@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.ServiceThread;
+import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
 /**
  * manage the offset of broadcast.
@@ -72,7 +73,7 @@ public class BroadcastOffsetManager extends ServiceThread {
      * @return -1 means no init offset, use the queueOffset in pullRequestHeader
      */
     public Long queryInitOffset(String topic, String groupId, int queueId, String clientId, long requestOffset,
-        boolean fromProxy) {
+        boolean fromProxy) throws ConsumeQueueException {
 
         BroadcastOffsetData broadcastOffsetData = offsetStoreMap.get(buildKey(topic, groupId));
         if (broadcastOffsetData == null) {
@@ -84,29 +85,26 @@ public class BroadcastOffsetManager extends ServiceThread {
         }
 
         final AtomicLong offset = new AtomicLong(-1L);
-        broadcastOffsetData.clientOffsetStore.compute(clientId, (clientIdK, offsetStore) -> {
-            if (offsetStore == null) {
-                offsetStore = new BroadcastTimedOffsetStore(fromProxy);
-            }
+        BroadcastTimedOffsetStore offsetStore = broadcastOffsetData.clientOffsetStore.get(clientId);
+        if (offsetStore == null) {
+            offsetStore = new BroadcastTimedOffsetStore(fromProxy);
+            broadcastOffsetData.clientOffsetStore.put(clientId, offsetStore);
+        }
 
-            if (offsetStore.fromProxy && requestOffset < 0) {
-                // when from proxy and requestOffset is -1
-                // means proxy need a init offset to pull message
-                offset.set(getOffset(offsetStore, topic, groupId, queueId));
-                return offsetStore;
-            }
-
-            if (offsetStore.fromProxy == fromProxy) {
-                return offsetStore;
-            }
-
+        if (offsetStore.fromProxy && requestOffset < 0) {
+            // when from proxy and requestOffset is -1
+            // means proxy need a init offset to pull message
             offset.set(getOffset(offsetStore, topic, groupId, queueId));
-            return offsetStore;
-        });
+        } else {
+            if (offsetStore.fromProxy != fromProxy) {
+                offset.set(getOffset(offsetStore, topic, groupId, queueId));
+            }
+        }
         return offset.get();
     }
 
-    private long getOffset(BroadcastTimedOffsetStore offsetStore, String topic, String groupId, int queueId) {
+    private long getOffset(BroadcastTimedOffsetStore offsetStore, String topic, String groupId, int queueId)
+        throws ConsumeQueueException {
         long storeOffset = -1;
         if (offsetStore != null) {
             storeOffset = offsetStore.offsetStore.readOffset(queueId);

@@ -103,8 +103,4 @@ public class RebalancePullImpl extends RebalanceImpl {
         return null;
     }
 
-    public ProcessQueue createProcessQueue(String topicName) {
-        return createProcessQueue();
-    }
-
 }

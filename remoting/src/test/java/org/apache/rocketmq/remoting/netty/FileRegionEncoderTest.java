@@ -21,15 +21,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.channel.FileRegion;
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Random;
 import java.util.UUID;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class FileRegionEncoderTest {
 
@@ -50,7 +49,7 @@ public class FileRegionEncoderTest {
         random.nextBytes(data);
         write(file, data);
         FileRegion fileRegion = new DefaultFileRegion(file, 0, dataLength);
-        Assert.assertEquals(0, fileRegion.transfered());
+        Assert.assertEquals(0, fileRegion.transferred());
         Assert.assertEquals(dataLength, fileRegion.count());
         Assert.assertTrue(channel.writeOutbound(fileRegion));
         ByteBuf out = (ByteBuf) channel.readOutbound();

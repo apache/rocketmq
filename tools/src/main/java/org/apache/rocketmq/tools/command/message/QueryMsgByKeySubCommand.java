@@ -23,6 +23,8 @@ import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.exception.RemotingException;
+
 import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
@@ -41,7 +43,7 @@ public class QueryMsgByKeySubCommand implements SubCommand {
 
     @Override
     public Options buildCommandlineOptions(Options options) {
-        Option opt = new Option("t", "topic", true, "topic name");
+        Option opt = new Option("t", "topic", true, "Topic name");
         opt.setRequired(true);
         options.addOption(opt);
 
@@ -57,7 +59,11 @@ public class QueryMsgByKeySubCommand implements SubCommand {
         opt.setRequired(false);
         options.addOption(opt);
 
-        opt = new Option("c", "maxNum", true, "The maximum number of messages returned by the query, default:64");
+        opt = new Option("m", "maxNum", true, "The maximum number of messages returned by the query, default:64");
+        opt.setRequired(false);
+        options.addOption(opt);
+
+        opt = new Option("c", "cluster", true, "Cluster name or lmq parent topic, lmq is used to find the route.");
         opt.setRequired(false);
         options.addOption(opt);
 
@@ -77,16 +83,20 @@ public class QueryMsgByKeySubCommand implements SubCommand {
             long beginTimestamp = 0;
             long endTimestamp = Long.MAX_VALUE;
             int maxNum = 64;
+            String clusterName = null;
             if (commandLine.hasOption("b")) {
                 beginTimestamp = Long.parseLong(commandLine.getOptionValue("b").trim());
             }
             if (commandLine.hasOption("e")) {
                 endTimestamp = Long.parseLong(commandLine.getOptionValue("e").trim());
             }
-            if (commandLine.hasOption("c")) {
-                maxNum = Integer.parseInt(commandLine.getOptionValue("c").trim());
+            if (commandLine.hasOption("m")) {
+                maxNum = Integer.parseInt(commandLine.getOptionValue("m").trim());
             }
-            this.queryByKey(defaultMQAdminExt, topic, key, maxNum, beginTimestamp, endTimestamp);
+            if (commandLine.hasOption("c")) {
+                clusterName = commandLine.getOptionValue("c").trim();
+            }
+            this.queryByKey(defaultMQAdminExt, clusterName, topic, key, maxNum, beginTimestamp, endTimestamp);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + " command failed", e);
         } finally {
@@ -94,12 +104,13 @@ public class QueryMsgByKeySubCommand implements SubCommand {
         }
     }
 
-    private void queryByKey(final DefaultMQAdminExt admin, final String topic, final String key, int maxNum, long begin,
+    private void queryByKey(final DefaultMQAdminExt admin, final String cluster, final String topic, final String key, int maxNum, long begin,
         long end)
-        throws MQClientException, InterruptedException {
+        throws MQClientException, InterruptedException, RemotingException {
         admin.start();
 
-        QueryResult queryResult = admin.queryMessage(topic, key, maxNum, begin, end);
+        QueryResult queryResult = admin.queryMessage(cluster, topic, key, maxNum, begin, end);
+
         System.out.printf("%-50s %4s %40s%n",
             "#Message ID",
             "#QID",

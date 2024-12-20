@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.tools.command.export;
 
 import com.alibaba.fastjson.JSONObject;
@@ -76,7 +77,11 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
             return;
         }
 
-        String configType = commandLine.getOptionValue("configType").trim().toLowerCase();
+        String configType = commandLine.getOptionValue("configType").trim();
+        if (!path.endsWith("/")) {
+            path += "/";
+        }
+        path += configType;
 
         boolean jsonEnable = false;
         if (commandLine.hasOption("jsonEnable")) {
@@ -86,7 +91,7 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
 
         ConfigRocksDBStorage kvStore = new ConfigRocksDBStorage(path, true /* readOnly */);
         if (!kvStore.start()) {
-            System.out.print("RocksDB load error, path=" + path + "\n");
+            System.out.printf("RocksDB load error, path=%s\n" , path);
             return;
         }
 

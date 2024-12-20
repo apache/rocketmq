@@ -7,6 +7,7 @@ on:
       - master
       - develop
       - bazel
+
 jobs:
   build:
     name: "bazel-compile (${{ matrix.os }})"

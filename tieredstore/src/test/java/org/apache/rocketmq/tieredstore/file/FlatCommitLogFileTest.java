@@ -77,6 +77,7 @@ public class FlatCommitLogFileTest {
             byteBuffer.putLong(MessageFormatUtil.QUEUE_OFFSET_POSITION, i);
             Assert.assertEquals(AppendResult.SUCCESS, flatFile.append(byteBuffer, i));
             TimeUnit.MILLISECONDS.sleep(2);
+            storeConfig.setCommitLogRollingMinimumSize(byteBuffer.remaining());
             Assert.assertTrue(flatFile.tryRollingFile(1));
         }
         Assert.assertEquals(4, flatFile.fileSegmentTable.size());
