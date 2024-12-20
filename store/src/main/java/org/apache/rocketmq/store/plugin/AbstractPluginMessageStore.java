@@ -294,6 +294,11 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     }
 
     @Override
+    public long dispatchBehindMilliseconds() {
+        return next.dispatchBehindMilliseconds();
+    }
+
+    @Override
     public long flush() {
         return next.flush();
     }

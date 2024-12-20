@@ -65,6 +65,7 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.CommandCallback;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.metrics.RemotingMetricsManager;
@@ -97,8 +98,10 @@ import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL
 import static org.apache.rocketmq.remoting.metrics.RemotingMetricsConstant.LABEL_RESULT;
 
 public class PopMessageProcessor implements NettyRequestProcessor {
+
     private static final Logger POP_LOGGER =
         LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
+
     private final BrokerController brokerController;
     private final Random random = new Random(System.currentTimeMillis());
     String reviveTopic;
@@ -196,15 +199,15 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         }
     }
 
-    public void notifyMessageArriving(final String topic, final int queueId,
+    public void notifyMessageArriving(final String topic, final int queueId, long offset,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         popLongPollingService.notifyMessageArrivingWithRetryTopic(
-            topic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
+            topic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
     }
 
     public void notifyMessageArriving(final String topic, final int queueId, final String cid) {
         popLongPollingService.notifyMessageArriving(
-            topic, queueId, cid, null, 0L, null, null);
+            topic, queueId, cid, false, null, 0L, null, null);
     }
 
     @Override
@@ -249,7 +252,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
             return response;
         }
         if (requestHeader.getMaxMsgNums() > 32) {
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(String.format("the broker[%s] pop message's num is greater than 32",
                 this.brokerController.getBrokerConfig().getBrokerIP1()));
             return response;
@@ -285,7 +288,7 @@ public class PopMessageProcessor implements NettyRequestProcessor {
                 requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(),
                 channel.remoteAddress());
             POP_LOGGER.warn(errorInfo);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(errorInfo);
             return response;
         }
@@ -419,6 +422,15 @@ public class PopMessageProcessor implements NettyRequestProcessor {
         final RemotingCommand finalResponse = response;
         SubscriptionData finalSubscriptionData = subscriptionData;
         getMessageFuture.thenApply(restNum -> {
+            try {
+                if (request.getCallbackList() != null) {
+                    request.getCallbackList().forEach(CommandCallback::accept);
+                    request.getCallbackList().clear();
+                }
+            } catch (Throwable t) {
+                POP_LOGGER.error("PopProcessor execute callback error", t);
+            }
+
             if (!getMessageResult.getMessageBufferList().isEmpty()) {
                 finalResponse.setCode(ResponseCode.SUCCESS);
                 getMessageResult.setStatus(GetMessageStatus.FOUND);

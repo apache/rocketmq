@@ -323,22 +323,26 @@ public class CommitLog implements Swappable {
         boolean checkDupInfo = this.defaultMessageStore.getMessageStoreConfig().isDuplicationEnable();
         final List<MappedFile> mappedFiles = this.mappedFileQueue.getMappedFiles();
         if (!mappedFiles.isEmpty()) {
-            // Began to recover from the last third file
-            int index = mappedFiles.size() - 3;
-            if (index < 0) {
-                index = 0;
+            int index = mappedFiles.size() - 1;
+            while (index > 0) {
+                MappedFile mappedFile = mappedFiles.get(index);
+                if (mappedFile.getFileFromOffset() <= maxPhyOffsetOfConsumeQueue) {
+                    // It's safe to recover from this mapped file
+                    break;
+                }
+                index--;
             }
+            // TODO: Discuss if we need to load more commit-log mapped files into memory.
 
             MappedFile mappedFile = mappedFiles.get(index);
             ByteBuffer byteBuffer = mappedFile.sliceByteBuffer();
             long processOffset = mappedFile.getFileFromOffset();
             long mappedFileOffset = 0;
             long lastValidMsgPhyOffset = this.getConfirmOffset();
-            // normal recover doesn't require dispatching
-            boolean doDispatch = false;
             while (true) {
                 DispatchRequest dispatchRequest = this.checkMessageAndReturnSize(byteBuffer, checkCRCOnRecover, checkDupInfo);
                 int size = dispatchRequest.getMsgSize();
+                boolean doDispatch = dispatchRequest.getCommitLogOffset() > maxPhyOffsetOfConsumeQueue;
                 // Normal data
                 if (dispatchRequest.isSuccess() && size > 0) {
                     lastValidMsgPhyOffset = processOffset + mappedFileOffset;
@@ -425,8 +429,14 @@ public class CommitLog implements Swappable {
     public DispatchRequest checkMessageAndReturnSize(java.nio.ByteBuffer byteBuffer, final boolean checkCRC,
         final boolean checkDupInfo, final boolean readBody) {
         try {
+            if (byteBuffer.remaining() <= 4) {
+                return new DispatchRequest(-1, false /* fail */);
+            }
             // 1 TOTAL SIZE
             int totalSize = byteBuffer.getInt();
+            if (byteBuffer.remaining() < totalSize - 4) {
+                return new DispatchRequest(-1, false /* fail */);
+            }
 
             // 2 MAGIC CODE
             int magicCode = byteBuffer.getInt();
@@ -621,6 +631,7 @@ public class CommitLog implements Swappable {
 
             return dispatchRequest;
         } catch (Exception e) {
+            log.error("checkMessageAndReturnSize failed, may can not dispatch", e);
         }
 
         return new DispatchRequest(-1, false /* success */);
@@ -2213,7 +2224,9 @@ public class CommitLog implements Swappable {
             // Asynchronous flush
             else {
                 if (!CommitLog.this.defaultMessageStore.isTransientStorePoolEnable()) {
-                    flushCommitLogService.wakeup();
+                    if (defaultMessageStore.getMessageStoreConfig().isWakeFlushWhenPutMessage()) {
+                        flushCommitLogService.wakeup();
+                    }
                 } else {
                     if (defaultMessageStore.getMessageStoreConfig().isWakeCommitWhenPutMessage()) {
                         commitRealTimeService.wakeup();
@@ -2240,9 +2253,13 @@ public class CommitLog implements Swappable {
             // Asynchronous flush
             else {
                 if (!CommitLog.this.defaultMessageStore.isTransientStorePoolEnable()) {
-                    flushCommitLogService.wakeup();
+                    if (defaultMessageStore.getMessageStoreConfig().isWakeFlushWhenPutMessage()) {
+                        flushCommitLogService.wakeup();
+                    }
                 } else {
-                    commitRealTimeService.wakeup();
+                    if (defaultMessageStore.getMessageStoreConfig().isWakeCommitWhenPutMessage()) {
+                        commitRealTimeService.wakeup();
+                    }
                 }
                 return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
             }

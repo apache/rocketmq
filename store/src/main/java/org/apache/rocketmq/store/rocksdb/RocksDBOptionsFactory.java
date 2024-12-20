@@ -22,6 +22,7 @@ import org.rocksdb.BlockBasedTableConfig;
 import org.rocksdb.BloomFilter;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompactionOptionsUniversal;
+import org.rocksdb.CompactionPriority;
 import org.rocksdb.CompactionStopStyle;
 import org.rocksdb.CompactionStyle;
 import org.rocksdb.CompressionType;
@@ -79,6 +80,7 @@ public class RocksDBOptionsFactory {
                 setCompressionType(compressionType).
                 setBottommostCompressionType(bottomMostCompressionType).
                 setNumLevels(7).
+                setCompactionPriority(CompactionPriority.MinOverlappingRatio).
                 setCompactionStyle(CompactionStyle.UNIVERSAL).
                 setCompactionOptionsUniversal(compactionOption).
                 setMaxCompactionBytes(100 * SizeUnit.GB).
@@ -144,10 +146,8 @@ public class RocksDBOptionsFactory {
                 setInfoLogLevel(InfoLogLevel.INFO_LEVEL).
                 setWalRecoveryMode(WALRecoveryMode.PointInTimeRecovery).
                 setManualWalFlush(true).
-                setMaxTotalWalSize(0).
-                setWalSizeLimitMB(0).
-                setWalTtlSeconds(0).
                 setCreateIfMissing(true).
+                setBytesPerSync(SizeUnit.MB).
                 setCreateMissingColumnFamilies(true).
                 setMaxOpenFiles(-1).
                 setMaxLogFileSize(SizeUnit.GB).
@@ -156,6 +156,7 @@ public class RocksDBOptionsFactory {
                 setAllowConcurrentMemtableWrite(false).
                 setStatistics(statistics).
                 setAtomicFlush(true).
+                setCompactionReadaheadSize(4 * SizeUnit.MB).
                 setMaxBackgroundJobs(32).
                 setMaxSubcompactions(8).
                 setParanoidChecks(true).

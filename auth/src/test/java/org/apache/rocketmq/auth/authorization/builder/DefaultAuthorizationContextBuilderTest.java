@@ -28,6 +28,7 @@ import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.Publishing;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryRouteRequest;
+import apache.rocketmq.v2.RecallMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
@@ -65,6 +66,7 @@ import org.apache.rocketmq.remoting.protocol.header.HeartbeatRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeaderV2;
 import org.apache.rocketmq.remoting.protocol.header.UnregisterClientRequestHeader;
@@ -121,6 +123,19 @@ public class DefaultAuthorizationContextBuilderTest {
         Assert.assertEquals(result.get(0).getSourceIp(), "192.168.0.1");
         Assert.assertEquals(result.get(0).getChannelId(), "channel-id");
         Assert.assertEquals(result.get(0).getRpcCode(), SendMessageRequest.getDescriptor().getFullName());
+
+        request = RecallMessageRequest.newBuilder()
+            .setTopic(Resource.newBuilder().setName("topic").build())
+            .setRecallHandle("handle")
+            .build();
+        result = builder.build(metadata, request);
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals(result.get(0).getSubject().getSubjectKey(), "User:rocketmq");
+        Assert.assertEquals(result.get(0).getResource().getResourceKey(), "Topic:topic");
+        Assert.assertTrue(result.get(0).getActions().containsAll(Arrays.asList(Action.PUB)));
+        Assert.assertEquals(result.get(0).getSourceIp(), "192.168.0.1");
+        Assert.assertEquals(result.get(0).getChannelId(), "channel-id");
+        Assert.assertEquals(result.get(0).getRpcCode(), RecallMessageRequest.getDescriptor().getFullName());
 
         request = EndTransactionRequest.newBuilder()
             .setTopic(Resource.newBuilder().setName("topic").build())
@@ -314,6 +329,22 @@ public class DefaultAuthorizationContextBuilderTest {
         Assert.assertEquals("User:rocketmq", result.get(0).getSubject().getSubjectKey());
         Assert.assertEquals("Group:group", result.get(0).getResource().getResourceKey());
         Assert.assertTrue(result.get(0).getActions().containsAll(Arrays.asList(Action.SUB)));
+
+        RecallMessageRequestHeader recallMessageRequestHeader = new RecallMessageRequestHeader();
+        recallMessageRequestHeader.setTopic("topic");
+        recallMessageRequestHeader.setRecallHandle("handle");
+        request = RemotingCommand.createRequestCommand(RequestCode.RECALL_MESSAGE, recallMessageRequestHeader);
+        request.setVersion(441);
+        request.addExtField("AccessKey", "rocketmq");
+        request.makeCustomHeaderToNet();
+        result = builder.build(channelHandlerContext, request);
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals("User:rocketmq", result.get(0).getSubject().getSubjectKey());
+        Assert.assertEquals("Topic:topic", result.get(0).getResource().getResourceKey());
+        Assert.assertTrue(result.get(0).getActions().containsAll(Arrays.asList(Action.PUB)));
+        Assert.assertEquals("192.168.0.1", result.get(0).getSourceIp());
+        Assert.assertEquals("channel-id", result.get(0).getChannelId());
+        Assert.assertEquals(RequestCode.RECALL_MESSAGE + "", result.get(0).getRpcCode());
 
         EndTransactionRequestHeader endTransactionRequestHeader = new EndTransactionRequestHeader();
         endTransactionRequestHeader.setTopic("topic");

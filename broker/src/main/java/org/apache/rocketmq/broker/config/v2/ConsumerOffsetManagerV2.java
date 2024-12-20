@@ -97,7 +97,7 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
             // TODO: we have to make a copy here as WriteBatch lacks ByteBuffer API here
             writeBatch.deleteRange(ConfigHelper.readBytes(beginKey), ConfigHelper.readBytes(endKey));
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
+            ConfigHelper.stampDataVersion(writeBatch, TableId.CONSUMER_OFFSET, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
         } catch (RocksDBException e) {
             LOG.error("Failed to removeConsumerOffset, topicAtGroup={}", topicAtGroup, e);
@@ -138,7 +138,7 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
             writeBatch.deleteRange(ConfigHelper.readBytes(beginKey), ConfigHelper.readBytes(endKey));
             MessageStore messageStore = brokerController.getMessageStore();
             long stateMachineVersion = messageStore != null ? messageStore.getStateMachineVersion() : 0;
-            ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
+            ConfigHelper.stampDataVersion(writeBatch, TableId.CONSUMER_OFFSET, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
         } catch (RocksDBException e) {
             LOG.error("Failed to consumer offsets by group={}", group, e);
@@ -194,7 +194,7 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
             writeBatch.put(keyBuf.nioBuffer(), valueBuf.nioBuffer());
             MessageStore messageStore = brokerController.getMessageStore();
             long stateMachineVersion = messageStore != null ? messageStore.getStateMachineVersion() : 0;
-            ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
+            ConfigHelper.stampDataVersion(writeBatch, TableId.CONSUMER_OFFSET, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
         } catch (RocksDBException e) {
             LOG.error("Failed to commit consumer offset", e);
@@ -394,7 +394,7 @@ public class ConsumerOffsetManagerV2 extends ConsumerOffsetManager {
         try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.put(keyBuf.nioBuffer(), valueBuf.nioBuffer());
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
+            ConfigHelper.stampDataVersion(writeBatch, TableId.PULL_OFFSET, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
         } catch (RocksDBException e) {
             LOG.error("Failed to commit pull offset. group={}, topic={}, queueId={}, offset={}",

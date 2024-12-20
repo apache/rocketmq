@@ -47,6 +47,7 @@ import org.apache.rocketmq.remoting.protocol.header.GetMinOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PopMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.PullMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryConsumerOffsetRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.UpdateConsumerOffsetRequestHeader;
 
@@ -227,6 +228,16 @@ public class ClusterMessageService implements MessageService {
         GetMinOffsetRequestHeader requestHeader, long timeoutMillis) {
         return this.mqClientAPIFactory.getClient().getMinOffset(
             messageQueue.getBrokerAddr(),
+            requestHeader,
+            timeoutMillis
+        );
+    }
+
+    @Override
+    public CompletableFuture<String> recallMessage(ProxyContext ctx, String brokerName,
+        RecallMessageRequestHeader requestHeader, long timeoutMillis) {
+        return this.mqClientAPIFactory.getClient().recallMessageAsync(
+            this.resolveBrokerAddr(ctx, brokerName),
             requestHeader,
             timeoutMillis
         );
