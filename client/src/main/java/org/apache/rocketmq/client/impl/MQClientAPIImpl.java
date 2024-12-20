@@ -3573,4 +3573,16 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             }
         });
     }
+
+    public void exportPopRecord(String brokerAddr, long timeout) throws RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(
+            RequestCode.POP_ROLLBACK, null);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeout);
+        assert response != null;
+        if (response.getCode() == SUCCESS) {
+            return;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
 }

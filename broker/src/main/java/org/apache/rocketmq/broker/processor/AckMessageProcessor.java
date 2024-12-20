@@ -23,6 +23,9 @@ import java.util.BitSet;
 import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.PopMetricsManager;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
+import org.apache.rocketmq.broker.pop.PopConsumerLockService;
 import org.apache.rocketmq.common.KeyBuilder;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
@@ -50,6 +53,7 @@ import org.apache.rocketmq.store.pop.AckMsg;
 import org.apache.rocketmq.store.pop.BatchAckMsg;
 
 public class AckMessageProcessor implements NettyRequestProcessor {
+
     private static final Logger POP_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
     private final String reviveTopic;
@@ -57,7 +61,8 @@ public class AckMessageProcessor implements NettyRequestProcessor {
 
     public AckMessageProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
-        this.reviveTopic = PopAckConstants.buildClusterReviveTopic(this.brokerController.getBrokerConfig().getBrokerClusterName());
+        this.reviveTopic = PopAckConstants.buildClusterReviveTopic(
+            this.brokerController.getBrokerConfig().getBrokerClusterName());
         this.popReviveServices = new PopReviveService[this.brokerController.getBrokerConfig().getReviveQueueNum()];
         for (int i = 0; i < this.brokerController.getBrokerConfig().getReviveQueueNum(); i++) {
             this.popReviveServices[i] = new PopReviveService(brokerController, reviveTopic, i);
@@ -149,8 +154,11 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 response.setRemark(errorInfo);
                 return response;
             }
-
-            appendAck(requestHeader, null, response, channel, null);
+            if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
+                appendAckNew(requestHeader, null, response, channel, null);
+            } else {
+                appendAck(requestHeader, null, response, channel, null);
+            }
         } else if (request.getCode() == RequestCode.BATCH_ACK_MESSAGE) {
             if (request.getBody() != null) {
                 reqBody = BatchAckMessageRequestBody.decode(request.getBody(), BatchAckMessageRequestBody.class);
@@ -160,7 +168,11 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 return response;
             }
             for (BatchAck bAck : reqBody.getAcks()) {
-                appendAck(null, bAck, response, channel, reqBody.getBrokerName());
+                if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
+                    appendAckNew(null, bAck, response, channel, reqBody.getBrokerName());
+                } else {
+                    appendAck(null, bAck, response, channel, reqBody.getBrokerName());
+                }
             }
         } else {
             POP_LOGGER.error("AckMessageProcessor failed to process RequestCode: {}, consumer: {} ", request.getCode(), RemotingHelper.parseChannelRemoteAddr(channel));
@@ -296,6 +308,74 @@ public class AckMessageProcessor implements NettyRequestProcessor {
         }
     }
 
+    private void appendAckNew(final AckMessageRequestHeader requestHeader, final BatchAck batchAck,
+        final RemotingCommand response, final Channel channel, String brokerName) throws RemotingCommandException {
+
+        if (requestHeader != null && batchAck == null) {
+            String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
+            String groupId = requestHeader.getConsumerGroup();
+            String topicId = requestHeader.getTopic();
+            int queueId = requestHeader.getQueueId();
+            long ackOffset = requestHeader.getOffset();
+            long popTime = ExtraInfoUtil.getPopTime(extraInfo);
+            long invisibleTime = ExtraInfoUtil.getInvisibleTime(extraInfo);
+
+            int reviveQueueId = ExtraInfoUtil.getReviveQid(extraInfo);
+            if (reviveQueueId == KeyBuilder.POP_ORDER_REVIVE_QUEUE) {
+                ackOrderlyNew(topicId, groupId, queueId, ackOffset, popTime, invisibleTime, channel, response);
+            } else {
+                this.brokerController.getPopConsumerService().ackAsync(
+                    popTime, invisibleTime, groupId, topicId, queueId, ackOffset);
+            }
+
+            this.brokerController.getBrokerStatsManager().incBrokerAckNums(1);
+            this.brokerController.getBrokerStatsManager().incGroupAckNums(groupId, topicId, 1);
+        } else {
+            String groupId = batchAck.getConsumerGroup();
+            String topicId = ExtraInfoUtil.getRealTopic(
+                batchAck.getTopic(), batchAck.getConsumerGroup(), batchAck.getRetry());
+            int queueId = batchAck.getQueueId();
+            int reviveQueueId = batchAck.getReviveQueueId();
+            long startOffset = batchAck.getStartOffset();
+            long popTime = batchAck.getPopTime();
+            long invisibleTime = batchAck.getInvisibleTime();
+
+            try {
+                long minOffset = this.brokerController.getMessageStore().getMinOffsetInQueue(topicId, queueId);
+                long maxOffset = this.brokerController.getMessageStore().getMaxOffsetInQueue(topicId, queueId);
+                if (minOffset == -1 || maxOffset == -1) {
+                    POP_LOGGER.error("Illegal topic or queue found when batch ack {}", batchAck);
+                    return;
+                }
+
+                int ackCount = 0;
+                // Maintain consistency with the old implementation code style
+                BitSet bitSet = batchAck.getBitSet();
+                for (int i = bitSet.nextSetBit(0); i >= 0; i = bitSet.nextSetBit(i + 1)) {
+                    if (i == Integer.MAX_VALUE) {
+                        break;
+                    }
+                    long offset = startOffset + i;
+                    if (offset < minOffset || offset > maxOffset) {
+                        continue;
+                    }
+                    if (reviveQueueId == KeyBuilder.POP_ORDER_REVIVE_QUEUE) {
+                        ackOrderlyNew(topicId, groupId, queueId, offset, popTime, invisibleTime, channel, response);
+                    } else {
+                        this.brokerController.getPopConsumerService().ackAsync(
+                            popTime, invisibleTime, groupId, topicId, queueId, offset);
+                    }
+                    ackCount++;
+                }
+
+                this.brokerController.getBrokerStatsManager().incBrokerAckNums(ackCount);
+                this.brokerController.getBrokerStatsManager().incGroupAckNums(groupId, topicId, ackCount);
+            } catch (ConsumeQueueException e) {
+                throw new RemotingCommandException("Failed to ack message", e);
+            }
+        }
+    }
+
     private void handlePutMessageResult(PutMessageResult putMessageResult, AckMsg ackMsg, String topic,
         String consumeGroup, long popTime, int qId, int ackCount) {
         if (putMessageResult.getPutMessageStatus() != PutMessageStatus.PUT_OK
@@ -323,9 +403,7 @@ public class AckMessageProcessor implements NettyRequestProcessor {
                 return;
             }
             long nextOffset = brokerController.getConsumerOrderInfoManager().commitAndNext(
-                topic, consumeGroup,
-                qId, ackOffset,
-                popTime);
+                topic, consumeGroup, qId, ackOffset, popTime);
             if (nextOffset > -1) {
                 if (!this.brokerController.getConsumerOffsetManager().hasOffsetReset(topic, consumeGroup, qId)) {
                     this.brokerController.getConsumerOffsetManager().commitOffset(
@@ -346,5 +424,56 @@ public class AckMessageProcessor implements NettyRequestProcessor {
             this.brokerController.getPopMessageProcessor().getQueueLockManager().unLock(lockKey);
         }
         brokerController.getPopInflightMessageCounter().decrementInFlightMessageNum(topic, consumeGroup, popTime, qId, 1);
+    }
+
+    protected void ackOrderlyNew(String topic, String consumeGroup, int qId, long ackOffset, long popTime,
+        long invisibleTime, Channel channel, RemotingCommand response) {
+
+        ConsumerOffsetManager consumerOffsetManager = this.brokerController.getConsumerOffsetManager();
+        ConsumerOrderInfoManager consumerOrderInfoManager = brokerController.getConsumerOrderInfoManager();
+        PopConsumerLockService consumerLockService = this.brokerController.getPopConsumerService().getConsumerLockService();
+
+        long oldOffset = consumerOffsetManager.queryOffset(consumeGroup, topic, qId);
+        if (ackOffset < oldOffset) {
+            return;
+        }
+
+        while (!consumerLockService.tryLock(consumeGroup, topic)) {
+        }
+
+        try {
+            // double check
+            oldOffset = consumerOffsetManager.queryOffset(consumeGroup, topic, qId);
+            if (ackOffset < oldOffset) {
+                return;
+            }
+
+            long nextOffset = consumerOrderInfoManager.commitAndNext(topic, consumeGroup, qId, ackOffset, popTime);
+            if (brokerController.getBrokerConfig().isPopConsumerKVServiceLog()) {
+                POP_LOGGER.info("PopConsumerService ack orderly, time={}, topicId={}, groupId={}, queueId={}, " +
+                        "offset={}, next={}", popTime, topic, consumeGroup, qId, ackOffset, nextOffset);
+            }
+
+            if (nextOffset > -1L) {
+                if (!consumerOffsetManager.hasOffsetReset(topic, consumeGroup, qId)) {
+                    String remoteAddress = RemotingHelper.parseSocketAddressAddr(channel.remoteAddress());
+                    consumerOffsetManager.commitOffset(remoteAddress, consumeGroup, topic, qId, nextOffset);
+                }
+                if (!consumerOrderInfoManager.checkBlock(null, topic, consumeGroup, qId, invisibleTime)) {
+                    this.brokerController.getPopMessageProcessor().notifyMessageArriving(topic, qId, consumeGroup);
+                }
+                return;
+            }
+
+            if (nextOffset == -1) {
+                String errorInfo = String.format("offset is illegal, key:%s %s %s, old:%d, commit:%d, next:%d, %s",
+                    consumeGroup, topic, qId, oldOffset, ackOffset, nextOffset, channel.remoteAddress());
+                POP_LOGGER.warn(errorInfo);
+                response.setCode(ResponseCode.MESSAGE_ILLEGAL);
+                response.setRemark(errorInfo);
+            }
+        } finally {
+            consumerLockService.unlock(consumeGroup, topic);
+        }
     }
 }
