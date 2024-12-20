@@ -406,6 +406,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getAcl(ctx, request);
             case RequestCode.AUTH_LIST_ACL:
                 return this.listAcl(ctx, request);
+            case RequestCode.POP_ROLLBACK:
+                return this.transferPopToFsStore(ctx, request);
             default:
                 return getUnknownCmdResponse(ctx, request);
         }
@@ -2186,6 +2188,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         String brokerName = brokerController.getBrokerConfig().getBrokerName();
         for (Map.Entry<Integer, Long> entry : queueOffsetMap.entrySet()) {
             brokerController.getPopInflightMessageCounter().clearInFlightMessageNum(topic, group, entry.getKey());
+            if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
+                brokerController.getPopConsumerService().clearCache(group, topic, queueId);
+            }
             body.getOffsetTable().put(new MessageQueue(topic, brokerName, entry.getKey()), entry.getValue());
         }
 
@@ -3520,5 +3525,20 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             return false;
         }
         return cqUnit1.getTagsCode() == cqUnit2.getTagsCode();
+    }
+
+    private RemotingCommand transferPopToFsStore(ChannelHandlerContext ctx, RemotingCommand request) {
+        final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        try {
+            if (brokerController.getPopConsumerService() != null) {
+                brokerController.getPopConsumerService().transferToFsStore();
+            }
+            response.setCode(ResponseCode.SUCCESS);
+        } catch (Exception e) {
+            LOGGER.error("PopConsumerStore transfer from kvStore to fsStore finish [{}]", request, e);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(e.getMessage());
+        }
+        return response;
     }
 }

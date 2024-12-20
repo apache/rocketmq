@@ -172,7 +172,6 @@ public class NotificationProcessor implements NettyRequestProcessor {
 
     private boolean hasMsgFromTopic(String topicName, int randomQ, NotificationRequestHeader requestHeader)
         throws RemotingCommandException {
-        boolean hasMsg;
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topicName);
         return hasMsgFromTopic(topicConfig, randomQ, requestHeader);
     }
@@ -212,13 +211,16 @@ public class NotificationProcessor implements NettyRequestProcessor {
         if (offset < 0) {
             offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
         }
-        long bufferOffset = this.brokerController.getPopMessageProcessor().getPopBufferMergeService()
-            .getLatestOffset(topic, cid, queueId);
-        if (bufferOffset < 0) {
-            return offset;
+
+        long bufferOffset;
+        if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
+            bufferOffset = this.brokerController.getConsumerOffsetManager().queryPullOffset(cid, topic, queueId);
         } else {
-            return bufferOffset > offset ? bufferOffset : offset;
+            bufferOffset = this.brokerController.getPopMessageProcessor()
+                .getPopBufferMergeService().getLatestOffset(topic, cid, queueId);
         }
+
+        return bufferOffset < 0L ? offset : Math.max(bufferOffset, offset);
     }
 
     public PopLongPollingService getPopLongPollingService() {
