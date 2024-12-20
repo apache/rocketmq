@@ -66,7 +66,7 @@ public class PopConsumerLockService {
             Map.Entry<String, TimedLock> entry = iterator.next();
             if (System.currentTimeMillis() - entry.getValue().getLockTime() > timeout) {
                 log.info("PopConsumerLockService remove timeout lock, " +
-                    "key={}, value={}", entry.getKey(), entry.getValue());
+                    "key={}, locked={}", entry.getKey(), entry.getValue().lock.get());
                 iterator.remove();
             }
         }
