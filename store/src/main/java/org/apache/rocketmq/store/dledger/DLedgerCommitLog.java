@@ -709,7 +709,7 @@ public class DLedgerCommitLog extends CommitLog {
             if (appendFuture.getPos() == -1) {
                 log.warn("HandleAppend return false due to error code {}", appendFuture.get().getCode());
                 return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.OS_PAGE_CACHE_BUSY,
-                        new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
+                    new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR)));
             }
             dledgerFuture = (BatchAppendFuture<AppendEntryResponse>) appendFuture;
 
