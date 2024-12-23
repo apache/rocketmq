@@ -20,7 +20,9 @@ package org.apache.rocketmq.proxy.remoting.activity;
 import io.netty.channel.ChannelHandlerContext;
 import java.time.Duration;
 import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
@@ -65,8 +67,9 @@ public class SendMessageActivity extends AbstractRemotingActivity {
         SendMessageRequestHeader requestHeader = SendMessageRequestHeader.parseRequestHeader(request);
         String topic = requestHeader.getTopic();
         Map<String, String> property = MessageDecoder.string2messageProperties(requestHeader.getProperties());
+        String syncFlag = property.get(MessageConst.PROPERTY_SYNC_FLAG);
         TopicMessageType messageType = TopicMessageType.parseFromMessageProperty(property);
-        if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()) {
+        if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck() && !StringUtils.equals(syncFlag, "1")) {
             if (topicMessageTypeValidator != null) {
                 // Do not check retry or dlq topic
                 if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
