@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tieredstore.file;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -123,6 +124,11 @@ public class FlatMessageFile implements FlatFileInterface {
     @Override
     public Lock getFileLock() {
         return this.fileLock;
+    }
+
+    @VisibleForTesting
+    public Semaphore getCommitLock() {
+        return commitLock;
     }
 
     @Override

@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.tieredstore.core;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.opentelemetry.api.common.Attributes;
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -91,6 +92,11 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
         return MessageStoreDispatcher.class.getSimpleName();
     }
 
+    @VisibleForTesting
+    public Map<FlatFileInterface, GroupCommitContext> getFailedGroupCommitMap() {
+        return failedGroupCommitMap;
+    }
+
     public void dispatchWithSemaphore(FlatFileInterface flatFile) {
         try {
             if (stopped) {
@@ -162,7 +168,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             if (commitOffset < currentOffset) {
                 this.commitAsync(flatFile).whenComplete((result, throwable) -> {
                     if (throwable != null) {
-                        log.error("topic: {}, queueId: {} flat file flush cache failed more than twice.", topic, queueId, throwable);
+                        log.error("MessageDispatcher#flatFile commitOffset less than currentOffset, commitAsync again failed. topic: {}, queueId: {} ", topic, queueId, throwable);
                     }
                 });
                 return CompletableFuture.completedFuture(false);
@@ -302,7 +308,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                             //next commit async,execute constructIndexFile.
                             GroupCommitContext oldCommit = failedGroupCommitMap.put(flatFile, groupCommitContext);
                             if (oldCommit != null) {
-                                log.warn("MessageDispatcher#dispatch, topic={}, queueId={}  old failed commit context not release", topic, queueId);
+                                log.warn("MessageDispatcher#commitAsync failed,flatFile old failed commit context not release, topic={}, queueId={}  ", topic, queueId);
                                 oldCommit.release();
                             }
                         }
@@ -326,7 +332,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
         return flatFile.commitAsync();
     }
 
-    private void constructIndexFile(long topicId, GroupCommitContext groupCommitContext) {
+    public void constructIndexFile(long topicId, GroupCommitContext groupCommitContext) {
         MessageStoreExecutor.getInstance().bufferCommitExecutor.submit(() -> {
             if (storeConfig.isMessageIndexEnable()) {
                 try {
@@ -355,7 +361,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             request.getCommitLogOffset(), request.getMsgSize(), request.getStoreTimestamp());
     }
 
-    private void releaseClosedPendingGroupCommit() {
+    public void releaseClosedPendingGroupCommit() {
         Iterator<Map.Entry<FlatFileInterface, GroupCommitContext>> iterator = failedGroupCommitMap.entrySet().iterator();
         while (iterator.hasNext()) {
             Map.Entry<FlatFileInterface, GroupCommitContext> entry = iterator.next();
