@@ -148,6 +148,9 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
             if (result.getMessageCount() == maxCount) {
                 break;
             }
+            if (result.getBufferTotalSize() >= storeConfig.getReadAheadMessageSizeThreshold()) {
+                break;
+            }
         }
         result.setStatus(result.getMessageCount() > 0 ?
             GetMessageStatus.FOUND : GetMessageStatus.NO_MATCHED_MESSAGE);
