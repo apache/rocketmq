@@ -20,20 +20,19 @@ package org.apache.rocketmq.proxy.remoting.activity;
 import io.netty.channel.ChannelHandlerContext;
 import java.time.Duration;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.attribute.TopicMessageType;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
-import org.apache.rocketmq.remoting.protocol.RequestCode;
-import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.processor.MessagingProcessor;
 import org.apache.rocketmq.proxy.processor.validator.DefaultTopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.processor.validator.TopicMessageTypeValidator;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
+import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 
 public class SendMessageActivity extends AbstractRemotingActivity {
     TopicMessageTypeValidator topicMessageTypeValidator;
@@ -67,9 +66,8 @@ public class SendMessageActivity extends AbstractRemotingActivity {
         SendMessageRequestHeader requestHeader = SendMessageRequestHeader.parseRequestHeader(request);
         String topic = requestHeader.getTopic();
         Map<String, String> property = MessageDecoder.string2messageProperties(requestHeader.getProperties());
-        String syncFlag = property.get(MessageConst.PROPERTY_SYNC_FLAG);
         TopicMessageType messageType = TopicMessageType.parseFromMessageProperty(property);
-        if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck() && !StringUtils.equals(syncFlag, "1")) {
+        if (isNeedCheckTopicMessageType(property)) {
             if (topicMessageTypeValidator != null) {
                 // Do not check retry or dlq topic
                 if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
@@ -89,5 +87,10 @@ public class SendMessageActivity extends AbstractRemotingActivity {
     protected RemotingCommand consumerSendMessage(ChannelHandlerContext ctx, RemotingCommand request,
         ProxyContext context) throws Exception {
         return request(ctx, request, context, Duration.ofSeconds(3).toMillis());
+    }
+
+    private boolean isNeedCheckTopicMessageType(Map<String, String> property) {
+        return ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()
+            && !property.containsKey(MessageConst.PROPERTY_TRANSFER_FLAG);
     }
 }

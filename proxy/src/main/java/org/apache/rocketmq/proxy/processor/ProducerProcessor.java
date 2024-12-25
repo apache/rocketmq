@@ -74,9 +74,7 @@ public class ProducerProcessor extends AbstractProcessor {
         try {
             Message message = messageList.get(0);
             String topic = message.getTopic();
-
-            String syncFlag = message.getProperty(MessageConst.PROPERTY_SYNC_FLAG);
-            if (ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck() && !StringUtils.equals(syncFlag, "1")) {
+            if (isNeedCheckTopicMessageType(message)) {
                 if (topicMessageTypeValidator != null) {
                     // Do not check retry or dlq topic
                     if (!NamespaceUtil.isRetryTopic(topic) && !NamespaceUtil.isDLQTopic(topic)) {
@@ -263,4 +261,8 @@ public class ProducerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
+    private boolean isNeedCheckTopicMessageType(Message message) {
+        return ConfigurationManager.getProxyConfig().isEnableTopicMessageTypeCheck()
+            && !message.hasProperty(MessageConst.PROPERTY_TRANSFER_FLAG);
+    }
 }
