@@ -106,6 +106,7 @@ public class MessageStoreDispatcherImplTest {
         Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
         Mockito.when(messageStore.getFlatFileStore()).thenReturn(fileStore);
         Mockito.when(messageStore.getIndexService()).thenReturn(indexService);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(new org.apache.rocketmq.store.config.MessageStoreConfig());
 
         // mock message
         ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
