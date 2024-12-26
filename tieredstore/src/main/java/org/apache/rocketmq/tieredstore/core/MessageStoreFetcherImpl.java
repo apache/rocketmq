@@ -56,6 +56,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
     private final String brokerName;
     private final MetadataStore metadataStore;
     private final MessageStoreConfig storeConfig;
+    private final org.apache.rocketmq.store.config.MessageStoreConfig messageStoreConfig;
     private final TieredMessageStore messageStore;
     private final IndexService indexService;
     private final FlatFileStore flatFileStore;
@@ -71,6 +72,7 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
         FlatFileStore flatFileStore, IndexService indexService) {
 
         this.storeConfig = storeConfig;
+        this.messageStoreConfig = messageStore.getMessageStoreConfig();
         this.brokerName = storeConfig.getBrokerName();
         this.flatFileStore = flatFileStore;
         this.messageStore = messageStore;
@@ -146,6 +148,9 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
                 buffer.getStartOffset(), buffer.getByteBuffer(), buffer.getSize(), null);
             result.addMessageExt(bufferResult, current, buffer.getTagCode());
             if (result.getMessageCount() == maxCount) {
+                break;
+            }
+            if (result.getBufferTotalSize() >= messageStoreConfig.getMaxTransferBytesOnMessageInMemory()) {
                 break;
             }
         }
