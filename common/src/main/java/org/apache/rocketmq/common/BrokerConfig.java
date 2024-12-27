@@ -453,6 +453,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean allowRecallWhenBrokerNotWriteable = true;
 
+    private boolean recallMessageEnable = false;
+
     public String getConfigBlackList() {
         return configBlackList;
     }
@@ -1995,5 +1997,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setAllowRecallWhenBrokerNotWriteable(boolean allowRecallWhenBrokerNotWriteable) {
         this.allowRecallWhenBrokerNotWriteable = allowRecallWhenBrokerNotWriteable;
+    }
+
+    public boolean isRecallMessageEnable() {
+        return recallMessageEnable;
+    }
+
+    public void setRecallMessageEnable(boolean recallMessageEnable) {
+        this.recallMessageEnable = recallMessageEnable;
     }
 }
