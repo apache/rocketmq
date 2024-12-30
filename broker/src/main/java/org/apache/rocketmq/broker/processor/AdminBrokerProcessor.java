@@ -2187,9 +2187,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         ResetOffsetBody body = new ResetOffsetBody();
         String brokerName = brokerController.getBrokerConfig().getBrokerName();
         for (Map.Entry<Integer, Long> entry : queueOffsetMap.entrySet()) {
-            brokerController.getPopInflightMessageCounter().clearInFlightMessageNum(topic, group, entry.getKey());
+            if (brokerController.getPopInflightMessageCounter() != null) {
+                brokerController.getPopInflightMessageCounter().clearInFlightMessageNum(topic, group, entry.getKey());
+            }
             if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
-                brokerController.getPopConsumerService().clearCache(group, topic, queueId);
+                brokerController.getPopConsumerService().clearCache(group, topic, entry.getKey());
+                brokerController.getConsumerOffsetManager().commitPullOffset(
+                    "ResetOffsetInner", group, topic, entry.getKey(), entry.getValue());
             }
             body.getOffsetTable().put(new MessageQueue(topic, brokerName, entry.getKey()), entry.getValue());
         }
