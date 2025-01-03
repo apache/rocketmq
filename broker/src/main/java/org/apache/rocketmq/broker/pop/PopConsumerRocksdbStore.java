@@ -28,7 +28,6 @@ import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompactRangeOptions;
-import org.rocksdb.DBOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
@@ -63,7 +62,7 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         this.deleteOptions = new WriteOptions();
         this.deleteOptions.setSync(false);
         this.deleteOptions.setLowPri(true);
-        this.deleteOptions.setDisableWAL(true);
+        this.deleteOptions.setDisableWAL(false);
         this.deleteOptions.setNoSlowdown(false);
 
         this.compactRangeOptions = new CompactRangeOptions();
@@ -83,14 +82,10 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
             initOptions();
 
             // init column family here
-            ColumnFamilyOptions defaultOptions = new ColumnFamilyOptions().optimizeForSmallDb();
-            ColumnFamilyOptions popStateOptions = new ColumnFamilyOptions().optimizeForSmallDb();
+            ColumnFamilyOptions defaultOptions = RocksDBOptionsFactory.createPopCFOptions();
+            ColumnFamilyOptions popStateOptions = RocksDBOptionsFactory.createPopCFOptions();
             this.cfOptions.add(defaultOptions);
             this.cfOptions.add(popStateOptions);
-
-            this.options = new DBOptions()
-                .setCreateIfMissing(true)
-                .setCreateMissingColumnFamilies(true);
 
             List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
             cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, defaultOptions));
