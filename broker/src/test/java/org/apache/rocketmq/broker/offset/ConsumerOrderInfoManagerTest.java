@@ -384,9 +384,7 @@ public class ConsumerOrderInfoManagerTest {
 
         SubscriptionGroupManager subscriptionGroupManager = mock(SubscriptionGroupManager.class);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
-        ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupConfigConcurrentMap = new ConcurrentHashMap<>();
-        subscriptionGroupConfigConcurrentMap.put(GROUP, new SubscriptionGroupConfig());
-        when(subscriptionGroupManager.getSubscriptionGroupTable()).thenReturn(subscriptionGroupConfigConcurrentMap);
+        when(subscriptionGroupManager.containsSubscriptionGroup(GROUP)).thenReturn(true);
 
         TopicConfig topicConfig = new TopicConfig(TOPIC);
         when(topicConfigManager.selectTopicConfig(eq(TOPIC))).thenReturn(topicConfig);
