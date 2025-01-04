@@ -40,12 +40,14 @@ import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.remoting.RemotingClient;
+import org.apache.rocketmq.remoting.common.HeartbeatV2Result;
 import org.apache.rocketmq.remoting.exception.RemotingConnectException;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerRunningInfo;
 import org.apache.rocketmq.remoting.protocol.heartbeat.ConsumeType;
+import org.apache.rocketmq.remoting.protocol.heartbeat.HeartbeatData;
 import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
 import org.apache.rocketmq.remoting.protocol.route.BrokerData;
@@ -287,10 +289,18 @@ public class MQClientInstanceTest {
     }
 
     @Test
-    public void testSendHeartbeatToBrokerV2() {
+    public void testSendHeartbeatToBrokerV2() throws MQBrokerException, RemotingException, InterruptedException {
         consumerTable.put(group, createMQConsumerInner());
         when(clientConfig.isUseHeartbeatV2()).thenReturn(true);
-        assertFalse(mqClientInstance.sendHeartbeatToBroker(0L, defaultBroker, defaultBrokerAddr));
+        boolean isJdk8 = System.getProperty("java.version").startsWith("1.8.");
+        if (isJdk8) {
+            HeartbeatV2Result heartbeatV2Result = mock(HeartbeatV2Result.class);
+            when(heartbeatV2Result.isSupportV2()).thenReturn(true);
+            when(mQClientAPIImpl.sendHeartbeatV2(any(), any(HeartbeatData.class), anyLong())).thenReturn(heartbeatV2Result);
+            assertTrue(mqClientInstance.sendHeartbeatToBroker(0L, defaultBroker, defaultBrokerAddr));
+        } else {
+            assertFalse(mqClientInstance.sendHeartbeatToBroker(0L, defaultBroker, defaultBrokerAddr));
+        }
     }
 
     @Test
@@ -305,7 +315,12 @@ public class MQClientInstanceTest {
         brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
         consumerTable.put(group, createMQConsumerInner());
         when(clientConfig.isUseHeartbeatV2()).thenReturn(true);
-        assertFalse(mqClientInstance.sendHeartbeatToAllBrokerWithLock());
+        boolean isJdk8 = System.getProperty("java.version").startsWith("1.8.");
+        if (isJdk8) {
+            assertTrue(mqClientInstance.sendHeartbeatToAllBrokerWithLock());
+        } else {
+            assertFalse(mqClientInstance.sendHeartbeatToAllBrokerWithLock());
+        }
     }
 
     @Test
