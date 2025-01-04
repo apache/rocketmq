@@ -20,6 +20,7 @@ import java.util.HashSet;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.protocol.body.Connection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -40,11 +41,11 @@ public class ConsumerStatusSubCommandTest {
 
     @Before
     public void before() {
-        boolean isJdk8 = System.getProperty("java.version").startsWith("1.8.");
-        if (isJdk8) {
-            brokerMocker = startOneBroker();
-            nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
+        if (!MixAll.isJdk8()) {
+            return;
         }
+        brokerMocker = startOneBroker();
+        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
@@ -59,8 +60,7 @@ public class ConsumerStatusSubCommandTest {
 
     @Test
     public void testExecute() throws SubCommandException {
-        boolean isJdk8 = System.getProperty("java.version").startsWith("1.8.");
-        if (!isJdk8) {
+        if (!MixAll.isJdk8()) {
             return;
         }
         ConsumerStatusSubCommand cmd = new ConsumerStatusSubCommand();

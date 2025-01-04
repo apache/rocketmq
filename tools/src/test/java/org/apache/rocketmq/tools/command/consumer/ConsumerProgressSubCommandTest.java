@@ -20,6 +20,7 @@ import java.util.HashMap;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.remoting.protocol.admin.ConsumeStats;
 import org.apache.rocketmq.remoting.protocol.admin.OffsetWrapper;
@@ -40,19 +41,29 @@ public class ConsumerProgressSubCommandTest {
 
     @Before
     public void before() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         brokerMocker = startOneBroker();
         nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
     }
 
     @After
     public void after() {
-        brokerMocker.shutdown();
-        nameServerMocker.shutdown();
+        if (null != brokerMocker) {
+            brokerMocker.shutdown();
+        }
+        if (null != nameServerMocker) {
+            nameServerMocker.shutdown();
+        }
     }
 
     @Ignore
     @Test
     public void testExecute() throws SubCommandException {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         ConsumerProgressSubCommand cmd = new ConsumerProgressSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-g default-group",

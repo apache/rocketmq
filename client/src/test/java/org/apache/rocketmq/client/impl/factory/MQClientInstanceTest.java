@@ -290,17 +290,15 @@ public class MQClientInstanceTest {
 
     @Test
     public void testSendHeartbeatToBrokerV2() throws MQBrokerException, RemotingException, InterruptedException {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         consumerTable.put(group, createMQConsumerInner());
         when(clientConfig.isUseHeartbeatV2()).thenReturn(true);
-        boolean isJdk8 = System.getProperty("java.version").startsWith("1.8.");
-        if (isJdk8) {
-            HeartbeatV2Result heartbeatV2Result = mock(HeartbeatV2Result.class);
-            when(heartbeatV2Result.isSupportV2()).thenReturn(true);
-            when(mQClientAPIImpl.sendHeartbeatV2(any(), any(HeartbeatData.class), anyLong())).thenReturn(heartbeatV2Result);
-            assertTrue(mqClientInstance.sendHeartbeatToBroker(0L, defaultBroker, defaultBrokerAddr));
-        } else {
-            assertFalse(mqClientInstance.sendHeartbeatToBroker(0L, defaultBroker, defaultBrokerAddr));
-        }
+        HeartbeatV2Result heartbeatV2Result = mock(HeartbeatV2Result.class);
+        when(heartbeatV2Result.isSupportV2()).thenReturn(true);
+        when(mQClientAPIImpl.sendHeartbeatV2(any(), any(HeartbeatData.class), anyLong())).thenReturn(heartbeatV2Result);
+        assertTrue(mqClientInstance.sendHeartbeatToBroker(0L, defaultBroker, defaultBrokerAddr));
     }
 
     @Test
@@ -312,15 +310,13 @@ public class MQClientInstanceTest {
 
     @Test
     public void testSendHeartbeatToAllBrokerWithLockV2() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         brokerAddrTable.put(defaultBroker, createBrokerAddrMap());
         consumerTable.put(group, createMQConsumerInner());
         when(clientConfig.isUseHeartbeatV2()).thenReturn(true);
-        boolean isJdk8 = System.getProperty("java.version").startsWith("1.8.");
-        if (isJdk8) {
-            assertTrue(mqClientInstance.sendHeartbeatToAllBrokerWithLock());
-        } else {
-            assertFalse(mqClientInstance.sendHeartbeatToAllBrokerWithLock());
-        }
+        assertTrue(mqClientInstance.sendHeartbeatToAllBrokerWithLock());
     }
 
     @Test

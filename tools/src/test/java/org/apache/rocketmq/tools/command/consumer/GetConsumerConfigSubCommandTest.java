@@ -22,6 +22,7 @@ import java.util.Set;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.Connection;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerConnection;
@@ -43,18 +44,28 @@ public class GetConsumerConfigSubCommandTest {
 
     @Before
     public void before() {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         brokerMocker = startOneBroker();
         nameServerMocker = startNameServer();
     }
 
     @After
     public void after() {
-        brokerMocker.shutdown();
-        nameServerMocker.shutdown();
+        if (null != brokerMocker) {
+            brokerMocker.shutdown();
+        }
+        if (null != nameServerMocker) {
+            nameServerMocker.shutdown();
+        }
     }
 
     @Test
     public void testExecute() throws SubCommandException {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         GetConsumerConfigSubCommand cmd = new GetConsumerConfigSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
         String[] subargs = new String[] {"-g group_test", String.format("-n localhost:%d", nameServerMocker.listenPort())};

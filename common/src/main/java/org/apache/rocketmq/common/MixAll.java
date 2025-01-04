@@ -128,6 +128,10 @@ public class MixAll {
         return OS.contains("mac");
     }
 
+    public static boolean isJdk8() {
+        return System.getProperty("java.version").startsWith("1.8.");
+    }
+
     public static boolean isUnix() {
         return OS.contains("nix")
             || OS.contains("nux")
