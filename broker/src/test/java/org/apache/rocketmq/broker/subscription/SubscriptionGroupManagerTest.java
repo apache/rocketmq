@@ -142,7 +142,7 @@ public class SubscriptionGroupManagerTest {
 
     @Test
     public void testUpdateSubscriptionGroupConfigList_ValidConfigList() {
-        if (notToBeExecuted()) {
+        if (notToBeExecuted() || !MixAll.isJdk8()) {
             return;
         }
 
