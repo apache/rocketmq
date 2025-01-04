@@ -102,7 +102,8 @@ public class PopLongPollingServiceTest {
     public void testNotifyMessageArrivingValidRequest() throws Exception {
         String cid = "CID_1";
         int queueId = 0;
-        ConcurrentHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap = new ConcurrentHashMap<>();
+        ConcurrentLinkedHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentHashMap<String, Byte>>()
+            .maximumWeightedCapacity(10).build();
         ConcurrentHashMap<String, Byte> cids = new ConcurrentHashMap<>();
         cids.put(cid, (byte) 1);
         topicCidMap.put(defaultTopic, cids);
@@ -194,7 +195,8 @@ public class PopLongPollingServiceTest {
         when(requestHeader.getPollTime()).thenReturn(1000L);
         when(requestHeader.getTopic()).thenReturn(defaultTopic);
         when(requestHeader.getConsumerGroup()).thenReturn("defaultGroup");
-        ConcurrentHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap = new ConcurrentHashMap<>();
+        ConcurrentLinkedHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentHashMap<String, Byte>>()
+            .maximumWeightedCapacity(10).build();
         ConcurrentHashMap<String, Byte> cids = new ConcurrentHashMap<>();
         cids.put(cid, (byte) 1);
         topicCidMap.put(defaultTopic, cids);
