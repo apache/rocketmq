@@ -17,6 +17,7 @@
 
 package org.apache.rocketmq.remoting;
 
+import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.remoting.common.TlsMode;
 import org.apache.rocketmq.remoting.exception.RemotingSendRequestException;
@@ -281,6 +282,9 @@ public class TlsTest {
 
     @Test
     public void testTlsConfigThroughFile() throws Exception {
+        if (!MixAll.isJdk8()) {
+            return;
+        }
         File file = tempFolder.newFile("tls.config");
         tlsTestModeEnable = true;
 
