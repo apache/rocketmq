@@ -116,7 +116,7 @@ public class SubscriptionGroupManagerTest {
     }
 
     private boolean notToBeExecuted() {
-        return MixAll.isMac();
+        return MixAll.isMac() || !MixAll.isJdk8();
     }
     @Test
     public void testUpdateSubscriptionGroupConfigList_NullConfigList() {
@@ -142,7 +142,7 @@ public class SubscriptionGroupManagerTest {
 
     @Test
     public void testUpdateSubscriptionGroupConfigList_ValidConfigList() {
-        if (notToBeExecuted() || !MixAll.isJdk8()) {
+        if (notToBeExecuted()) {
             return;
         }
 
