@@ -285,6 +285,7 @@ public class TlsTest {
         if (!MixAll.isJdk8()) {
             return;
         }
+        
         File file = tempFolder.newFile("tls.config");
         tlsTestModeEnable = true;
 
