@@ -386,6 +386,42 @@ public class PopConsumerServiceTest {
     }
 
     @Test
+    public void reviveBackoffRetryTest() {
+        Mockito.when(brokerController.getEscapeBridge()).thenReturn(Mockito.mock(EscapeBridge.class));
+        PopConsumerService consumerServiceSpy = Mockito.spy(consumerService);
+
+        consumerService.getPopConsumerStore().start();
+
+        long popTime = 1000000000L;
+        long invisibleTime = 60 * 1000L;
+        PopConsumerRecord record = new PopConsumerRecord();
+        record.setPopTime(popTime);
+        record.setInvisibleTime(invisibleTime);
+        record.setTopicId("topic");
+        record.setGroupId("group");
+        record.setQueueId(0);
+        record.setOffset(0);
+        consumerService.getPopConsumerStore().writeRecords(Collections.singletonList(record));
+
+        Mockito.doReturn(CompletableFuture.completedFuture(Triple.of(Mockito.mock(MessageExt.class), "", false)))
+            .when(consumerServiceSpy).getMessageAsync(any(PopConsumerRecord.class));
+        Mockito.when(brokerController.getEscapeBridge().putMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenReturn(
+            new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, new AppendMessageResult(AppendMessageStatus.UNKNOWN_ERROR))
+        );
+
+        long visibleTimestamp = popTime + invisibleTime;
+
+        // revive fails
+        Assert.assertEquals(1, consumerServiceSpy.revive(visibleTimestamp, 1));
+        // should be invisible now
+        Assert.assertEquals(0, consumerService.getPopConsumerStore().scanExpiredRecords(visibleTimestamp, 1).size());
+        // will be visible again in 10 seconds
+        Assert.assertEquals(1, consumerService.getPopConsumerStore().scanExpiredRecords(visibleTimestamp + 10 * 1000, 1).size());
+
+        consumerService.shutdown();
+    }
+
+    @Test
     public void transferToFsStoreTest() {
         Assert.assertNotNull(consumerService.getServiceName());
         List<PopConsumerRecord> consumerRecordList = IntStream.range(0, 3)
