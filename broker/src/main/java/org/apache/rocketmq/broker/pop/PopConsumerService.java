@@ -496,10 +496,13 @@ public class PopConsumerService extends ServiceThread {
                     if (record.getAttemptTimes() < brokerConfig.getPopReviveMaxAttemptTimes()) {
                         long backoffInterval = 1000L * REWRITE_INTERVALS_IN_SECONDS[
                             Math.min(REWRITE_INTERVALS_IN_SECONDS.length, record.getAttemptTimes())];
-                        record.setInvisibleTime(record.getInvisibleTime() + backoffInterval);
-                        record.setAttemptTimes(record.getAttemptTimes() + 1);
-                        failureList.add(record);
-                        log.warn("PopConsumerService revive backoff retry, record={}", record);
+                        long nextInvisibleTime = record.getInvisibleTime() + backoffInterval;
+                        PopConsumerRecord retryRecord = new PopConsumerRecord(record.getPopTime(), record.getGroupId(),
+                            record.getTopicId(), record.getQueueId(), record.getRetryFlag(), nextInvisibleTime,
+                            record.getOffset(), record.getAttemptId());
+                        retryRecord.setAttemptTimes(record.getAttemptTimes() + 1);
+                        failureList.add(retryRecord);
+                        log.warn("PopConsumerService revive backoff retry, record={}", retryRecord);
                     } else {
                         log.error("PopConsumerService drop record, message may be lost, record={}", record);
                     }
