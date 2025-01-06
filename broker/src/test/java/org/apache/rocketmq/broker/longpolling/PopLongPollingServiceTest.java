@@ -55,20 +55,20 @@ public class PopLongPollingServiceTest {
     
     @Mock
     private BrokerController brokerController;
-    
+
     @Mock
     private NettyRequestProcessor processor;
-    
+
     @Mock
     private ChannelHandlerContext ctx;
-    
+
     @Mock
     private ExecutorService pullMessageExecutor;
-    
+
     private PopLongPollingService popLongPollingService;
-    
+
     private final String defaultTopic = "defaultTopic";
-    
+
     @Before
     public void init() {
         BrokerConfig brokerConfig = new BrokerConfig();
@@ -76,7 +76,7 @@ public class PopLongPollingServiceTest {
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         popLongPollingService = spy(new PopLongPollingService(brokerController, processor, true));
     }
-    
+
     @Test
     public void testNotifyMessageArrivingWithRetryTopic() {
         int queueId = 0;
@@ -84,31 +84,32 @@ public class PopLongPollingServiceTest {
         popLongPollingService.notifyMessageArrivingWithRetryTopic(defaultTopic, queueId);
         verify(popLongPollingService, times(1)).notifyMessageArrivingWithRetryTopic(defaultTopic, queueId, -1L, null, 0L, null, null);
     }
-    
+
     @Test
     public void testNotifyMessageArriving() {
         int queueId = 0;
         Long tagsCode = 123L;
         long offset = 123L;
         long msgStoreTime = System.currentTimeMillis();
-        byte[] filterBitMap = new byte[]{0x01};
+        byte[] filterBitMap = new byte[] {0x01};
         Map<String, String> properties = new ConcurrentHashMap<>();
         doNothing().when(popLongPollingService).notifyMessageArriving(defaultTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
         popLongPollingService.notifyMessageArrivingWithRetryTopic(defaultTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
         verify(popLongPollingService).notifyMessageArriving(defaultTopic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
     }
-    
+
     @Test
     public void testNotifyMessageArrivingValidRequest() throws Exception {
         String cid = "CID_1";
         int queueId = 0;
-        ConcurrentHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap = new ConcurrentHashMap<>();
+        ConcurrentLinkedHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentHashMap<String, Byte>>()
+            .maximumWeightedCapacity(10).build();
         ConcurrentHashMap<String, Byte> cids = new ConcurrentHashMap<>();
         cids.put(cid, (byte) 1);
         topicCidMap.put(defaultTopic, cids);
         popLongPollingService = new PopLongPollingService(brokerController, processor, true);
         ConcurrentLinkedHashMap<String, ConcurrentSkipListSet<PopRequest>> pollingMap =
-                new ConcurrentLinkedHashMap.Builder<String, ConcurrentSkipListSet<PopRequest>>().maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize()).build();
+            new ConcurrentLinkedHashMap.Builder<String, ConcurrentSkipListSet<PopRequest>>().maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize()).build();
         Channel channel = mock(Channel.class);
         when(channel.isActive()).thenReturn(true);
         PopRequest popRequest = mock(PopRequest.class);
@@ -126,19 +127,19 @@ public class PopLongPollingServiceTest {
         boolean actual = popLongPollingService.notifyMessageArriving(defaultTopic, queueId, cid, null, 0, null, null);
         assertFalse(actual);
     }
-    
+
     @Test
     public void testWakeUpNullRequest() {
         assertFalse(popLongPollingService.wakeUp(null));
     }
-    
+
     @Test
     public void testWakeUpIncompleteRequest() {
         PopRequest request = mock(PopRequest.class);
         when(request.complete()).thenReturn(false);
         assertFalse(popLongPollingService.wakeUp(request));
     }
-    
+
     @Test
     public void testWakeUpInactiveChannel() {
         PopRequest request = mock(PopRequest.class);
@@ -150,7 +151,7 @@ public class PopLongPollingServiceTest {
         when(brokerController.getPullMessageExecutor()).thenReturn(pullMessageExecutor);
         assertTrue(popLongPollingService.wakeUp(request));
     }
-    
+
     @Test
     public void testWakeUpValidRequestWithException() throws Exception {
         PopRequest request = mock(PopRequest.class);
@@ -168,7 +169,7 @@ public class PopLongPollingServiceTest {
         captor.getValue().run();
         verify(processor).processRequest(any(), any());
     }
-    
+
     @Test
     public void testPollingNotPolling() {
         ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
@@ -180,7 +181,7 @@ public class PopLongPollingServiceTest {
         PollingResult result = popLongPollingService.polling(ctx, remotingCommand, requestHeader, subscriptionData, messageFilter);
         assertEquals(PollingResult.NOT_POLLING, result);
     }
-    
+
     @Test
     public void testPollingServicePollingTimeout() throws IllegalAccessException {
         String cid = "CID_1";
@@ -194,7 +195,8 @@ public class PopLongPollingServiceTest {
         when(requestHeader.getPollTime()).thenReturn(1000L);
         when(requestHeader.getTopic()).thenReturn(defaultTopic);
         when(requestHeader.getConsumerGroup()).thenReturn("defaultGroup");
-        ConcurrentHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap = new ConcurrentHashMap<>();
+        ConcurrentLinkedHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentHashMap<String, Byte>>()
+            .maximumWeightedCapacity(10).build();
         ConcurrentHashMap<String, Byte> cids = new ConcurrentHashMap<>();
         cids.put(cid, (byte) 1);
         topicCidMap.put(defaultTopic, cids);
@@ -202,7 +204,7 @@ public class PopLongPollingServiceTest {
         PollingResult result = popLongPollingService.polling(ctx, remotingCommand, requestHeader, subscriptionData, messageFilter);
         assertEquals(PollingResult.POLLING_TIMEOUT, result);
     }
-    
+
     @Test
     public void testPollingPollingSuc() {
         ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
