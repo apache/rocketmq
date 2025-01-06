@@ -281,7 +281,7 @@ public class ConsumerOrderInfoManager extends ConfigManager {
                 continue;
             }
 
-            if (this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().get(group) == null) {
+            if (!this.brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(group)) {
                 iterator.remove();
                 log.info("Group not exist, Clean order info, {}:{}", topicAtGroup, qs);
                 continue;
