@@ -629,6 +629,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         switch (communicationMode) {
             case ONEWAY:
                 this.remotingClient.invokeOneway(addr, request, timeoutMillis);
+                if (instance != null) {
+                    instance.getProducerStatsManager().incSendTimes(msg.getTopic(), 1);
+                    instance.getProducerStatsManager().incSendRT(msg.getTopic(), System.currentTimeMillis() - beginStartTime);
+                }
                 return null;
             case ASYNC:
                 final AtomicInteger times = new AtomicInteger();
@@ -644,7 +648,19 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
                 if (timeoutMillis < costTimeSync) {
                     throw new RemotingTooMuchRequestException("sendMessage call timeout");
                 }
-                return this.sendMessageSync(addr, brokerName, msg, timeoutMillis - costTimeSync, request);
+                try {
+                    SendResult result = this.sendMessageSync(addr, brokerName, msg, timeoutMillis - costTimeSync, request);
+                    if (instance != null) {
+                        instance.getProducerStatsManager().incSendTimes(msg.getTopic(), 1);
+                        instance.getProducerStatsManager().incSendRT(msg.getTopic(), System.currentTimeMillis() - beginStartTime);
+                    }
+                    return result;
+                } catch (Exception e) {
+                    if (instance != null) {
+                        instance.getProducerStatsManager().incSendFailedTimes(msg.getTopic(), 1);
+                    }
+                    throw e;
+                }
             default:
                 assert false;
                 break;
@@ -709,6 +725,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
                         }
 
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - beginStartTime, false, true);
+                        if (instance != null) {
+                            instance.getProducerStatsManager().incSendTimes(msg.getTopic(), 1);
+                            instance.getProducerStatsManager().incSendRT(msg.getTopic(), cost);
+                        }
                         return;
                     }
 
@@ -726,6 +746,10 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
                         }
 
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - beginStartTime, false, true);
+                        if (instance != null) {
+                            instance.getProducerStatsManager().incSendTimes(msg.getTopic(), 1);
+                            instance.getProducerStatsManager().incSendRT(msg.getTopic(), cost);
+                        }
                     } catch (Exception e) {
                         producer.updateFaultItem(brokerName, System.currentTimeMillis() - beginStartTime, true, true);
                         onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
@@ -737,6 +761,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
                 public void operationFail(Throwable throwable) {
                     producer.updateFaultItem(brokerName, System.currentTimeMillis() - beginStartTime, true, true);
                     long cost = System.currentTimeMillis() - beginStartTime;
+                    if (instance != null) {
+                        instance.getProducerStatsManager().incSendFailedTimes(msg.getTopic(), 1);
+                    }
                     if (throwable instanceof RemotingSendRequestException) {
                         MQClientException ex = new MQClientException("send request failed", throwable);
                         onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
@@ -756,6 +783,9 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         } catch (Exception ex) {
             long cost = System.currentTimeMillis() - beginStartTime;
             producer.updateFaultItem(brokerName, cost, true, false);
+            if (instance != null) {
+                instance.getProducerStatsManager().incSendFailedTimes(msg.getTopic(), 1);
+            }
             onExceptionImpl(brokerName, msg, timeoutMillis - cost, request, sendCallback, topicPublishInfo, instance,
                 retryTimesWhenSendFailed, times, ex, context, true, producer);
         }

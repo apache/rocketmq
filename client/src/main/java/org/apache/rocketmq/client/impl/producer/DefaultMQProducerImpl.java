@@ -1061,6 +1061,10 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             requestHeader,
                             timeout - costTimeSync,
                             communicationMode,
+                            null,
+                            null,
+                            this.mQClientFactory,
+                            0,
                             context,
                             this);
                         break;
