@@ -50,9 +50,8 @@ public interface PopConsumerKVStore {
 
     /**
      * Scans and returns a list of expired consumer records before the current time.
-     * @param currentTime The current revive checkpoint timestamp.
      * @param maxCount The maximum number of records to return.
      * @return A list of expired consumer records.
      */
-    List<PopConsumerRecord> scanExpiredRecords(long currentTime, int maxCount);
+    List<PopConsumerRecord> scanExpiredRecords(long lowerTime, long upperTime, int maxCount);
 }
