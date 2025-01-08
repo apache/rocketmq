@@ -38,7 +38,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
 
     protected static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    protected RocksDBConfigManager rocksDBConfigManager;
+    protected transient RocksDBConfigManager rocksDBConfigManager;
 
     public RocksDBConsumerOffsetManager(BrokerController brokerController) {
         super(brokerController);
@@ -136,6 +136,11 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         } finally {
             writeBatch.close();
         }
+    }
+
+    public synchronized void exportToJson() {
+        LOG.info("RocksDBConsumerOffsetManager export consumer offset to json file");
+        super.persist();
     }
 
     private void putWriteBatch(final WriteBatch writeBatch, final String topicGroupName, final ConcurrentMap<Integer, Long> offsetMap) throws Exception {

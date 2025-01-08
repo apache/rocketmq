@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -60,6 +61,9 @@ import org.apache.rocketmq.broker.auth.converter.AclConverter;
 import org.apache.rocketmq.broker.auth.converter.UserConverter;
 import org.apache.rocketmq.broker.client.ClientChannelInfo;
 import org.apache.rocketmq.broker.client.ConsumerGroupInfo;
+import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBSubscriptionGroupManager;
+import org.apache.rocketmq.broker.config.v1.RocksDBTopicConfigManager;
 import org.apache.rocketmq.broker.controller.ReplicasManager;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
@@ -159,6 +163,7 @@ import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExchangeHAInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExchangeHAInfoResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
@@ -239,7 +244,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     protected final BrokerController brokerController;
     protected Set<String> configBlackList = new HashSet<>();
-    private final ExecutorService asyncExecuteWorker = new ThreadPoolExecutor(0, 1, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
+    private final ExecutorService asyncExecuteWorker = new ThreadPoolExecutor(0, 4, 60L, TimeUnit.SECONDS, new SynchronousQueue<>());
 
     public AdminBrokerProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -356,6 +361,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return queryConsumeQueue(ctx, request);
             case RequestCode.CHECK_ROCKSDB_CQ_WRITE_PROGRESS:
                 return this.checkRocksdbCqWriteProgress(ctx, request);
+            case RequestCode.EXPORT_ROCKSDB_CONFIG_TO_JSON:
+                return this.exportRocksDBConfigToJson(ctx, request);
             case RequestCode.UPDATE_AND_GET_GROUP_FORBIDDEN:
                 return this.updateAndGetGroupForbidden(ctx, request);
             case RequestCode.GET_SUBSCRIPTIONGROUP_CONFIG:
@@ -492,6 +499,51 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
         response.setBody(JSON.toJSONBytes(result));
+        return response;
+    }
+
+    private RemotingCommand exportRocksDBConfigToJson(ChannelHandlerContext ctx,
+        RemotingCommand request) throws RemotingCommandException {
+        ExportRocksDBConfigToJsonRequestHeader requestHeader = request.decodeCommandCustomHeader(ExportRocksDBConfigToJsonRequestHeader.class);
+        List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configTypes = requestHeader.fetchConfigType();
+        List<CompletableFuture<Void>> futureList = new ArrayList<>(configTypes.size());
+        for (ExportRocksDBConfigToJsonRequestHeader.ConfigType type : configTypes) {
+            switch (type) {
+                case topics:
+                    if (this.brokerController.getTopicConfigManager() instanceof RocksDBTopicConfigManager) {
+                        RocksDBTopicConfigManager rocksDBTopicConfigManager = (RocksDBTopicConfigManager) this.brokerController.getTopicConfigManager();
+                        futureList.add(CompletableFuture.runAsync(rocksDBTopicConfigManager::exportToJson, asyncExecuteWorker));
+                    }
+                    break;
+                case subscriptionGroups:
+                    if (this.brokerController.getSubscriptionGroupManager() instanceof RocksDBSubscriptionGroupManager) {
+                        RocksDBSubscriptionGroupManager rocksDBSubscriptionGroupManager = (RocksDBSubscriptionGroupManager) this.brokerController.getSubscriptionGroupManager();
+                        futureList.add(CompletableFuture.runAsync(rocksDBSubscriptionGroupManager::exportToJson, asyncExecuteWorker));
+                    }
+                    break;
+                case consumerOffsets:
+                    if (this.brokerController.getConsumerOffsetManager() instanceof RocksDBConsumerOffsetManager) {
+                        RocksDBConsumerOffsetManager rocksDBConsumerOffsetManager = (RocksDBConsumerOffsetManager) this.brokerController.getConsumerOffsetManager();
+                        futureList.add(CompletableFuture.runAsync(rocksDBConsumerOffsetManager::exportToJson, asyncExecuteWorker));
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        try {
+            CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).join();
+        } catch (CompletionException e) {
+            RemotingCommand response = RemotingCommand.createResponseCommand(null);
+            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setRemark(String.valueOf(e));
+            return response;
+        }
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        response.setCode(ResponseCode.SUCCESS);
+        response.setRemark("export done.");
         return response;
     }
 
