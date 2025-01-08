@@ -365,7 +365,7 @@ public abstract class AbstractRocksDBStorage {
         }
         if (postLoad()) {
             this.loaded = true;
-            LOGGER.info("RocksDB[{}] starts OK", this.dbPath);
+            LOGGER.info("RocksDB [{}] starts OK", this.dbPath);
             this.closed = false;
             return true;
         } else {
@@ -437,9 +437,9 @@ public abstract class AbstractRocksDBStorage {
             this.options = null;
 
             this.loaded = false;
-            LOGGER.info("shutdown OK. {}", this.dbPath);
+            LOGGER.info("RocksDB shutdown OK. {}", this.dbPath);
         } catch (Exception e) {
-            LOGGER.error("shutdown Failed. {}", this.dbPath, e);
+            LOGGER.error("RocksDB shutdown failed. {}", this.dbPath, e);
             return false;
         }
         return true;

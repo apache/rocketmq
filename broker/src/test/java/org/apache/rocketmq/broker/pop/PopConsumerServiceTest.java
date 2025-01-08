@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.io.FileUtils;
@@ -371,17 +372,17 @@ public class PopConsumerServiceTest {
 
         Mockito.doReturn(CompletableFuture.completedFuture(null))
             .when(consumerServiceSpy).getMessageAsync(any(PopConsumerRecord.class));
-        consumerServiceSpy.revive(20 * 1000, 1);
+        consumerServiceSpy.revive(new AtomicLong(20 * 1000), 1);
 
         Mockito.doReturn(CompletableFuture.completedFuture(
                 Triple.of(null, "GetMessageResult is null", false)))
             .when(consumerServiceSpy).getMessageAsync(any(PopConsumerRecord.class));
-        consumerServiceSpy.revive(20 * 1000, 1);
+        consumerServiceSpy.revive(new AtomicLong(20 * 1000), 1);
 
         Mockito.doReturn(CompletableFuture.completedFuture(
                 Triple.of(Mockito.mock(MessageExt.class), null, false)))
             .when(consumerServiceSpy).getMessageAsync(any(PopConsumerRecord.class));
-        consumerServiceSpy.revive(20 * 1000, 1);
+        consumerServiceSpy.revive(new AtomicLong(20 * 1000), 1);
         consumerService.shutdown();
     }
 
@@ -412,11 +413,11 @@ public class PopConsumerServiceTest {
         long visibleTimestamp = popTime + invisibleTime;
 
         // revive fails
-        Assert.assertEquals(1, consumerServiceSpy.revive(visibleTimestamp, 1));
+        Assert.assertEquals(1, consumerServiceSpy.revive(new AtomicLong(visibleTimestamp), 1));
         // should be invisible now
-        Assert.assertEquals(0, consumerService.getPopConsumerStore().scanExpiredRecords(visibleTimestamp, 1).size());
+        Assert.assertEquals(0, consumerService.getPopConsumerStore().scanExpiredRecords(0, visibleTimestamp, 1).size());
         // will be visible again in 10 seconds
-        Assert.assertEquals(1, consumerService.getPopConsumerStore().scanExpiredRecords(visibleTimestamp + 10 * 1000, 1).size());
+        Assert.assertEquals(1, consumerService.getPopConsumerStore().scanExpiredRecords(visibleTimestamp, System.currentTimeMillis() + visibleTimestamp + 10 * 1000, 1).size());
 
         consumerService.shutdown();
     }
