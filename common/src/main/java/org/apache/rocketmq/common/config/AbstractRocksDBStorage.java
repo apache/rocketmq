@@ -381,6 +381,7 @@ public abstract class AbstractRocksDBStorage {
     public synchronized boolean shutdown() {
         try {
             if (!this.loaded) {
+                LOGGER.info("shutdown OK. {} is not loaded", this.dbPath);
                 return true;
             }
 

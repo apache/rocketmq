@@ -59,11 +59,6 @@ public class RocksDBMessageStore extends DefaultMessageStore {
     }
 
     @Override
-    public FlushConsumeQueueService createFlushConsumeQueueService() {
-        return new RocksDBFlushConsumeQueueService();
-    }
-
-    @Override
     public CorrectLogicOffsetService createCorrectLogicOffsetService() {
         return new RocksDBCorrectLogicOffsetService();
     }
@@ -198,6 +193,7 @@ public class RocksDBMessageStore extends DefaultMessageStore {
                 throw new RuntimeException("load consume queue failed");
             }
             super.loadCheckPoint();
+            this.flushConsumeQueueService.start();
             this.consumeQueueStore.start();
         } catch (Exception e) {
             ERROR_LOG.error("loadAndStartConsumerServiceOnly error", e);
