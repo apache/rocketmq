@@ -536,12 +536,14 @@ public class PopConsumerService extends ServiceThread {
             upperTime : consumerRecords.get(consumerRecords.size() - 1).getVisibilityTimeout());
 
         if (brokerConfig.isEnablePopBufferMerge()) {
-            log.info("PopConsumerService, key size={}, cache size={}, revive count={}, failure count={}, behind={}ms, scan={}ms, cost={}ms",
+            log.info("PopConsumerService, key size={}, cache size={}, revive count={}, failure count={}, " +
+                    "behindInMillis={}, scanInMillis={}, costInMillis={}",
                 popConsumerCache.getCacheKeySize(), popConsumerCache.getCacheSize(),
                 consumerRecords.size(), failureList.size(), upperTime - currentTime.get(),
                 scanCostTime, stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } else {
-            log.info("PopConsumerService, revive count={}, failure count={}, behind={}ms, scan={}ms, cost={}ms",
+            log.info("PopConsumerService, revive count={}, failure count={}, " +
+                    "behindInMillis={}, scanInMillis={}, costInMillis={}",
                 consumerRecords.size(), failureList.size(), upperTime - currentTime.get(),
                 scanCostTime, stopwatch.elapsed(TimeUnit.MILLISECONDS));
         }
