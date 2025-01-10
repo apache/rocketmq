@@ -49,6 +49,7 @@ import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.common.utils.ExceptionUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.ChannelEventListener;
@@ -602,7 +603,7 @@ public abstract class NettyRemotingAbstract {
             })
             .thenAccept(responseFuture -> invokeCallback.operationSucceed(responseFuture.getResponseCommand()))
             .exceptionally(t -> {
-                invokeCallback.operationFail(t);
+                invokeCallback.operationFail(ExceptionUtils.getRealException(t));
                 return null;
             });
     }
