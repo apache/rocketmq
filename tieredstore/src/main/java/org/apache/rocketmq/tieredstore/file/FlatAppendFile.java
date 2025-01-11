@@ -215,6 +215,11 @@ public class FlatAppendFile {
             }
         }
 
+        if (index < 0) {
+            log.error("FlatAppendFile#readAsync offset={} is lower than minimum offset:{}", offset, fileSegmentList.get(0).getBaseOffset());
+            return CompletableFuture.completedFuture(null);
+        }
+
         FileSegment fileSegment1 = fileSegmentList.get(index);
         FileSegment fileSegment2 = offset + length > fileSegment1.getCommitOffset() &&
             fileSegmentList.size() > index + 1 ? fileSegmentList.get(index + 1) : null;
