@@ -91,7 +91,7 @@ public class DefaultConsumerIdsChangeListener implements ConsumerIdsChangeListen
                             this.brokerController.getBroker2Client().notifyConsumerIdsChanged(chl, group);
                         }
                         if (isNormalCompletion) {
-                            activeGroupNotifyMap.remove(group);
+                            activeGroupNotifyMap.computeIfPresent(group, (k, val) -> val == currentNotifyTaskControl ? null : val);
                         }
                     } else {
                         consumerChannelMap.put(group, channels);
