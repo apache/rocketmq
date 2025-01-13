@@ -18,14 +18,15 @@ package org.apache.rocketmq.remoting.protocol.header;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class ExportRocksDBConfigToJsonRequestHeaderTest {
     @Test
     public void configTypeTest() {
         List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configTypes = new ArrayList<>();
-        configTypes.add(ExportRocksDBConfigToJsonRequestHeader.ConfigType.topics);
-        configTypes.add(ExportRocksDBConfigToJsonRequestHeader.ConfigType.subscriptionGroups);
+        configTypes.add(ExportRocksDBConfigToJsonRequestHeader.ConfigType.TOPICS);
+        configTypes.add(ExportRocksDBConfigToJsonRequestHeader.ConfigType.SUBSCRIPTION_GROUPS);
 
         String string = ExportRocksDBConfigToJsonRequestHeader.ConfigType.toString(configTypes);
 
@@ -35,6 +36,16 @@ public class ExportRocksDBConfigToJsonRequestHeaderTest {
 
         List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> topics = ExportRocksDBConfigToJsonRequestHeader.ConfigType.fromString("topics");
         assert topics.size() == 1;
-        assert topics.get(0).equals(ExportRocksDBConfigToJsonRequestHeader.ConfigType.topics);
+        assert topics.get(0).equals(ExportRocksDBConfigToJsonRequestHeader.ConfigType.TOPICS);
+
+        List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> mix = ExportRocksDBConfigToJsonRequestHeader.ConfigType.fromString("toPics; subScriptiongroups");
+        assert mix.size() == 2;
+        assert mix.get(0).equals(ExportRocksDBConfigToJsonRequestHeader.ConfigType.TOPICS);
+        assert mix.get(1).equals(ExportRocksDBConfigToJsonRequestHeader.ConfigType.SUBSCRIPTION_GROUPS);
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            ExportRocksDBConfigToJsonRequestHeader.ConfigType.fromString("topics; subscription");
+        });
+
     }
 }

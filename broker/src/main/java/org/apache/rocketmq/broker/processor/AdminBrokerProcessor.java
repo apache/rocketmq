@@ -509,19 +509,19 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         List<CompletableFuture<Void>> futureList = new ArrayList<>(configTypes.size());
         for (ExportRocksDBConfigToJsonRequestHeader.ConfigType type : configTypes) {
             switch (type) {
-                case topics:
+                case TOPICS:
                     if (this.brokerController.getTopicConfigManager() instanceof RocksDBTopicConfigManager) {
                         RocksDBTopicConfigManager rocksDBTopicConfigManager = (RocksDBTopicConfigManager) this.brokerController.getTopicConfigManager();
                         futureList.add(CompletableFuture.runAsync(rocksDBTopicConfigManager::exportToJson, asyncExecuteWorker));
                     }
                     break;
-                case subscriptionGroups:
+                case SUBSCRIPTION_GROUPS:
                     if (this.brokerController.getSubscriptionGroupManager() instanceof RocksDBSubscriptionGroupManager) {
                         RocksDBSubscriptionGroupManager rocksDBSubscriptionGroupManager = (RocksDBSubscriptionGroupManager) this.brokerController.getSubscriptionGroupManager();
                         futureList.add(CompletableFuture.runAsync(rocksDBSubscriptionGroupManager::exportToJson, asyncExecuteWorker));
                     }
                     break;
-                case consumerOffsets:
+                case CONSUMER_OFFSETS:
                     if (this.brokerController.getConsumerOffsetManager() instanceof RocksDBConsumerOffsetManager) {
                         RocksDBConsumerOffsetManager rocksDBConsumerOffsetManager = (RocksDBConsumerOffsetManager) this.brokerController.getConsumerOffsetManager();
                         futureList.add(CompletableFuture.runAsync(rocksDBConsumerOffsetManager::exportToJson, asyncExecuteWorker));

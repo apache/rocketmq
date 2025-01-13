@@ -31,16 +31,33 @@ public class ExportRocksDBConfigToJsonRequestHeader implements CommandCustomHead
     private static final String CONFIG_TYPE_SEPARATOR = ";";
 
     public enum ConfigType {
-        topics,
-        subscriptionGroups,
-        consumerOffsets;
+        TOPICS(0, "topics"),
+        SUBSCRIPTION_GROUPS(1, "subscriptionGroups"),
+        CONSUMER_OFFSETS(2, "consumerOffsets");
+
+        private final int code;
+        private final String typeName;
+
+        ConfigType(int code, String typeName) {
+            this.code = code;
+            this.typeName = typeName;
+        }
+
+        public static ConfigType getConfigTypeByName(String typeName) {
+            for (ConfigType configType : ConfigType.values()) {
+                if (configType.getTypeName().equalsIgnoreCase(typeName.trim())) {
+                    return configType;
+                }
+            }
+            throw new IllegalArgumentException("Unknown config type: " + typeName);
+        }
 
         public static List<ConfigType> fromString(String ordinal) {
-            String[] configTypeStrings = StringUtils.split(ordinal, CONFIG_TYPE_SEPARATOR);
+            String[] configTypeNames = StringUtils.split(ordinal, CONFIG_TYPE_SEPARATOR);
             List<ConfigType> configTypes = new ArrayList<>();
-            for (String configTypeString : configTypeStrings) {
-                if (StringUtils.isNotEmpty(configTypeString)) {
-                    configTypes.add(ConfigType.valueOf(configTypeString));
+            for (String configTypeName : configTypeNames) {
+                if (StringUtils.isNotEmpty(configTypeName)) {
+                    configTypes.add(getConfigTypeByName(configTypeName));
                 }
             }
             return configTypes;
@@ -49,9 +66,17 @@ public class ExportRocksDBConfigToJsonRequestHeader implements CommandCustomHead
         public static String toString(List<ConfigType> configTypes) {
             StringBuilder sb = new StringBuilder();
             for (ConfigType configType : configTypes) {
-                sb.append(configType.name()).append(CONFIG_TYPE_SEPARATOR);
+                sb.append(configType.getTypeName()).append(CONFIG_TYPE_SEPARATOR);
             }
             return sb.toString();
+        }
+
+        public int getCode() {
+            return code;
+        }
+
+        public String getTypeName() {
+            return typeName;
         }
     }
 

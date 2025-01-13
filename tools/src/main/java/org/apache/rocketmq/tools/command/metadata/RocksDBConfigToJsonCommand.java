@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -169,9 +170,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                 return null;
             }
         } else {
-            typeList.add(ExportRocksDBConfigToJsonRequestHeader.ConfigType.topics);
-            typeList.add(ExportRocksDBConfigToJsonRequestHeader.ConfigType.subscriptionGroups);
-            typeList.add(ExportRocksDBConfigToJsonRequestHeader.ConfigType.consumerOffsets);
+            typeList.addAll(Arrays.asList(ExportRocksDBConfigToJsonRequestHeader.ConfigType.values()));
         }
         return typeList;
     }
@@ -189,7 +188,7 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
     private static Map<String, JSONObject> getConfigMapFromRocksDB(String path,
         ExportRocksDBConfigToJsonRequestHeader.ConfigType configType) {
 
-        if (ExportRocksDBConfigToJsonRequestHeader.ConfigType.consumerOffsets.equals(configType)) {
+        if (ExportRocksDBConfigToJsonRequestHeader.ConfigType.CONSUMER_OFFSETS.equals(configType)) {
             return loadConsumerOffsets(path);
         }
 
@@ -215,10 +214,10 @@ public class RocksDBConfigToJsonCommand implements SubCommand {
                     JSONObject.parseObject(new String(kvDataVersion, DataConverter.CHARSET_UTF8)));
             }
 
-            if (ExportRocksDBConfigToJsonRequestHeader.ConfigType.topics.equals(configType)) {
+            if (ExportRocksDBConfigToJsonRequestHeader.ConfigType.TOPICS.equals(configType)) {
                 configMap.put("topicConfigTable", configTable);
             }
-            if (ExportRocksDBConfigToJsonRequestHeader.ConfigType.subscriptionGroups.equals(configType)) {
+            if (ExportRocksDBConfigToJsonRequestHeader.ConfigType.SUBSCRIPTION_GROUPS.equals(configType)) {
                 configMap.put("subscriptionGroupTable", configTable);
             }
             return configMap;
