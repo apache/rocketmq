@@ -68,6 +68,9 @@ public class FlatCommitLogFile extends FlatAppendFile {
             .thenApply(buffer -> {
                 firstOffset.set(MessageFormatUtil.getQueueOffset(buffer));
                 return firstOffset.get();
+            }).exceptionally(e -> {
+                log.error("Get min offset from file failed, filePath={}", filePath, e);
+                return GET_OFFSET_ERROR;
             });
     }
 
