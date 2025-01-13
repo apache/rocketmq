@@ -164,6 +164,9 @@ public class TopicRouteInfoManager {
 
         log.info("the topic[{}] subscribe message queue changed, old[{}] ,new[{}]", topic, oldSubscribeInfo, newSubscribeInfo);
         topicSubscribeInfoTable.put(topic, newSubscribeInfo);
+
+        brokerController.getPopRebalanceCacheManager().removeTopicCache(topic);
+
         return true;
 
     }

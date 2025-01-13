@@ -157,6 +157,8 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
      * @param clientId
      * @param messageModel
      * @param strategyName
+     * @param setMessageRequestModeRequestBody
+     * @param ctx
      * @return the MessageQueues assigned to this client
      */
     private Set<MessageQueue> doLoadBalance(final String topic, final String consumerGroup, final String clientId,
@@ -193,6 +195,15 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                     return mqSet;
                 }
 
+                // search cache, avoiding unnecessary allocate
+                int popShareQueueNum = setMessageRequestModeRequestBody.getPopShareQueueNum();
+                assignedQueueSet = brokerController.getPopRebalanceCacheManager().getLoadBalanceDate(topic, clientId, strategyName, popShareQueueNum);
+                if (assignedQueueSet != null) {
+                    return assignedQueueSet;
+                }
+
+                long version = brokerController.getPopRebalanceCacheManager().getVersion(topic);
+
                 List<String> cidAll = null;
                 ConsumerGroupInfo consumerGroupInfo = this.brokerController.getConsumerManager().getConsumerGroupInfo(consumerGroup);
                 if (consumerGroupInfo != null) {
@@ -218,7 +229,7 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
 
                     if (setMessageRequestModeRequestBody != null && setMessageRequestModeRequestBody.getMode() == MessageRequestMode.POP) {
                         allocateResult = allocate4Pop(allocateMessageQueueStrategy, consumerGroup, clientId, mqAll,
-                            cidAll, setMessageRequestModeRequestBody.getPopShareQueueNum());
+                            cidAll, popShareQueueNum);
 
                     } else {
                         allocateResult = allocateMessageQueueStrategy.allocate(consumerGroup, clientId, mqAll, cidAll);
@@ -232,6 +243,10 @@ public class QueryAssignmentProcessor implements NettyRequestProcessor {
                 if (allocateResult != null) {
                     assignedQueueSet.addAll(allocateResult);
                 }
+
+                // add cache, for easy use next time
+                brokerController.getPopRebalanceCacheManager().putLoadBalanceDate(topic, clientId, strategyName, popShareQueueNum, assignedQueueSet, version);
+
                 break;
             }
             default:

@@ -79,23 +79,7 @@ import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
-import org.apache.rocketmq.broker.processor.AckMessageProcessor;
-import org.apache.rocketmq.broker.processor.AdminBrokerProcessor;
-import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
-import org.apache.rocketmq.broker.processor.ClientManageProcessor;
-import org.apache.rocketmq.broker.processor.ConsumerManageProcessor;
-import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
-import org.apache.rocketmq.broker.processor.NotificationProcessor;
-import org.apache.rocketmq.broker.processor.PeekMessageProcessor;
-import org.apache.rocketmq.broker.processor.PollingInfoProcessor;
-import org.apache.rocketmq.broker.processor.PopInflightMessageCounter;
-import org.apache.rocketmq.broker.processor.PopMessageProcessor;
-import org.apache.rocketmq.broker.processor.PullMessageProcessor;
-import org.apache.rocketmq.broker.processor.QueryAssignmentProcessor;
-import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
-import org.apache.rocketmq.broker.processor.RecallMessageProcessor;
-import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
-import org.apache.rocketmq.broker.processor.SendMessageProcessor;
+import org.apache.rocketmq.broker.processor.*;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
@@ -219,6 +203,7 @@ public class BrokerController {
     protected final ConsumerIdsChangeListener consumerIdsChangeListener;
     protected final EndTransactionProcessor endTransactionProcessor;
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
+    private final PopRebalanceCacheManager popRebalanceCacheManager = new PopRebalanceCacheManager();
     private final TopicRouteInfoManager topicRouteInfoManager;
     protected BrokerOuterAPI brokerOuterAPI;
     protected ScheduledExecutorService scheduledExecutorService;
@@ -375,7 +360,7 @@ public class BrokerController {
         this.replyMessageProcessor = new ReplyMessageProcessor(this);
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService, this.popMessageProcessor, this.notificationProcessor);
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
-        this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener, this.brokerStatsManager, this.brokerConfig);
+        this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener, this.brokerStatsManager, this.brokerConfig, this);
         this.producerManager = new ProducerManager(this.brokerStatsManager);
         this.consumerFilterManager = new ConsumerFilterManager(this);
         this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
@@ -2523,6 +2508,10 @@ public class BrokerController {
 
     public TopicRouteInfoManager getTopicRouteInfoManager() {
         return this.topicRouteInfoManager;
+    }
+
+    public PopRebalanceCacheManager getPopRebalanceCacheManager() {
+        return this.popRebalanceCacheManager;
     }
 
     public BlockingQueue<Runnable> getClientManagerThreadPoolQueue() {
