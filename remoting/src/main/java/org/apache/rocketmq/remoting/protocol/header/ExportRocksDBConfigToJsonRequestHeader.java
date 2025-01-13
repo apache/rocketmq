@@ -31,15 +31,13 @@ public class ExportRocksDBConfigToJsonRequestHeader implements CommandCustomHead
     private static final String CONFIG_TYPE_SEPARATOR = ";";
 
     public enum ConfigType {
-        TOPICS(0, "topics"),
-        SUBSCRIPTION_GROUPS(1, "subscriptionGroups"),
-        CONSUMER_OFFSETS(2, "consumerOffsets");
+        TOPICS("topics"),
+        SUBSCRIPTION_GROUPS("subscriptionGroups"),
+        CONSUMER_OFFSETS("consumerOffsets");
 
-        private final int code;
         private final String typeName;
 
-        ConfigType(int code, String typeName) {
-            this.code = code;
+        ConfigType(String typeName) {
             this.typeName = typeName;
         }
 
@@ -69,10 +67,6 @@ public class ExportRocksDBConfigToJsonRequestHeader implements CommandCustomHead
                 sb.append(configType.getTypeName()).append(CONFIG_TYPE_SEPARATOR);
             }
             return sb.toString();
-        }
-
-        public int getCode() {
-            return code;
         }
 
         public String getTypeName() {
