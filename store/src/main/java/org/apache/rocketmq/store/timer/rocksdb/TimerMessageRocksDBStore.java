@@ -36,20 +36,20 @@ public class TimerMessageRocksDBStore {
 
     private final TimerMessageKVStore timerMessageKVStore;
     private final MessageStore messageStore;
-    private final TimerCheckpoint timerCheckpoint;
     private final BrokerStatsManager brokerStatsManager;
+    private final MessageStoreConfig storeConfig;
+    private final TimerMetrics timerMetrics;
 
     private final int slotSize;
     private final int readCount;
-    protected final int precisionMs;
-    protected final MessageStoreConfig storeConfig;
-    protected TimerMetrics timerMetrics;
+    private final int precisionMs;
+
+    private long commitOffset;
 
     public TimerMessageRocksDBStore(final MessageStore messageStore, final MessageStoreConfig storeConfig,
-        TimerCheckpoint timerCheckpoint, TimerMetrics timerMetrics, final BrokerStatsManager brokerStatsManager) {
+        TimerMetrics timerMetrics, final BrokerStatsManager brokerStatsManager) {
         this.storeConfig = storeConfig;
         this.messageStore = messageStore;
-        this.timerCheckpoint = timerCheckpoint;
         this.timerMetrics = timerMetrics;
         this.brokerStatsManager = brokerStatsManager;
 
@@ -60,5 +60,13 @@ public class TimerMessageRocksDBStore {
             storeConfig.getStorePathRootDir(), ROCKSDB_DIRECTORY).toString());
     }
 
+    public void load() {
+        boolean result = timerMessageKVStore.start();
+        result &= this.timerMetrics.load();
+        calcTimerDistribution();
+    }
 
+    private void calcTimerDistribution() {
+
+    }
 }

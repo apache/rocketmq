@@ -38,16 +38,18 @@ public interface TimerMessageKVStore {
     /**
      * Write the timer message records to the timer message kv store.
      * @param consumerRecordList the list of timer message records to be written.
+     * @param offset the cq offset of the timer message records to be written.
      * Default is store common timer message.
      */
-    void writeDefaultRecords(List<TimerMessageRecord> consumerRecordList);
+    void writeDefaultRecords(List<TimerMessageRecord> consumerRecordList, long offset);
 
     /**
      * Write the timer message records to the timer message kv store.
      * @param columnFamily the column family of the timer message kv store.
      * @param consumerRecordList the list of timer message records to be written.
+     * @param offset the cq offset of the timer message records to be written.
      */
-    void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList);
+    void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset);
 
     /**
      * Delete the timer message records from the timer message kv store.
@@ -81,4 +83,10 @@ public interface TimerMessageKVStore {
      * @return the list of timer message records.
      */
     List<TimerMessageRecord> scanExpiredRecords(byte[] columnFamily, long lowerTime, long upperTime, int maxCount);
+
+    /**
+     * Get the commit offset of the timer message kv store.
+     * @return the commit offset of the timer message kv store.
+     */
+    long getCommitOffset();
 }

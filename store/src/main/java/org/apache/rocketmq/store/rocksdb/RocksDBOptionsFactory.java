@@ -233,6 +233,57 @@ public class RocksDBOptionsFactory {
                 .setOptimizeFiltersForHits(true);
     }
 
+    public static ColumnFamilyOptions createTimerMetricCFOptions() {
+        BlockBasedTableConfig blockBasedTableConfig = new BlockBasedTableConfig()
+                .setFormatVersion(5)
+                .setIndexType(IndexType.kBinarySearch)
+                .setDataBlockIndexType(DataBlockIndexType.kDataBlockBinaryAndHash)
+                .setDataBlockHashTableUtilRatio(0.75)
+                .setBlockSize(4 * SizeUnit.KB)
+                .setMetadataBlockSize(4 * SizeUnit.KB)
+                .setFilterPolicy(new BloomFilter(16, false))
+                .setCacheIndexAndFilterBlocks(false)
+                .setCacheIndexAndFilterBlocksWithHighPriority(true)
+                .setPinL0FilterAndIndexBlocksInCache(false)
+                .setPinTopLevelIndexAndFilter(true)
+                .setBlockCache(new LRUCache(64 * SizeUnit.MB, 8, false)) // 调整缓存大小为 512 MB
+                .setWholeKeyFiltering(true);
+
+        CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal()
+                .setSizeRatio(100)
+                .setMaxSizeAmplificationPercent(25)
+                .setAllowTrivialMove(true)
+                .setMinMergeWidth(2)
+                .setMaxMergeWidth(Integer.MAX_VALUE)
+                .setStopStyle(CompactionStopStyle.CompactionStopStyleTotalSize)
+                .setCompressionSizePercent(-1);
+
+        //noinspection resource
+        return new ColumnFamilyOptions()
+                .setMaxWriteBufferNumber(4)
+                .setWriteBufferSize(64 * SizeUnit.MB)
+                .setMinWriteBufferNumberToMerge(1)
+                .setTableFormatConfig(blockBasedTableConfig)
+                .setMemTableConfig(new SkipListMemTableConfig())
+                .setCompressionType(CompressionType.NO_COMPRESSION)
+                .setBottommostCompressionType(CompressionType.NO_COMPRESSION)
+                .setNumLevels(7)
+                .setCompactionPriority(CompactionPriority.MinOverlappingRatio)
+                .setCompactionStyle(CompactionStyle.UNIVERSAL)
+                .setCompactionOptionsUniversal(compactionOption)
+                .setMaxCompactionBytes(100 * SizeUnit.GB)
+                .setSoftPendingCompactionBytesLimit(100 * SizeUnit.GB)
+                .setHardPendingCompactionBytesLimit(256 * SizeUnit.GB)
+                .setLevel0FileNumCompactionTrigger(2)
+                .setLevel0SlowdownWritesTrigger(8)
+                .setLevel0StopWritesTrigger(10)
+                .setTargetFileSizeBase(128 * SizeUnit.MB)
+                .setTargetFileSizeMultiplier(2)
+                .setMergeOperator(new StringAppendOperator())
+                .setReportBgIoStats(true)
+                .setOptimizeFiltersForHits(true);
+    }
+
     /**
      * Create a rocksdb db options, the user must take care to close it after closing db.
      * @return

@@ -45,9 +45,14 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
     public final static byte[] TRANSACTION_COLUMN_FAMILY = "transaction".getBytes(StandardCharsets.UTF_8);
     public final static byte[] POP_COLUMN_FAMILY = "pop".getBytes(StandardCharsets.UTF_8);
+    private final static byte[] OFFSET_KEY = "offset".getBytes(StandardCharsets.UTF_8);
+
+    // key : 100 * n (delay time); value : long (msg number)
+    private final static byte[] METRIC_COLUMN_FAMILY = "metric".getBytes(StandardCharsets.UTF_8);
 
     private ColumnFamilyHandle popColumnFamilyHandle;
     private ColumnFamilyHandle transactionColumnFamilyHandle;
+    private ColumnFamilyHandle metricColumnFamilyHandle;
 
     private WriteOptions writeOptions;
     private WriteOptions deleteOptions;
@@ -88,20 +93,24 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             ColumnFamilyOptions defaultOptions = RocksDBOptionsFactory.createTimerCFOptions();
             ColumnFamilyOptions popOptions = RocksDBOptionsFactory.createTimerCFOptions();
             ColumnFamilyOptions transactionOptions = RocksDBOptionsFactory.createTimerCFOptions();
+            ColumnFamilyOptions metricOptions = RocksDBOptionsFactory.createTimerMetricCFOptions();
 
             this.cfOptions.add(defaultOptions);
             this.cfOptions.add(popOptions);
             this.cfOptions.add(transactionOptions);
+            this.cfOptions.add(metricOptions);
 
             List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
             cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, defaultOptions));
             cfDescriptors.add(new ColumnFamilyDescriptor(POP_COLUMN_FAMILY, popOptions));
             cfDescriptors.add(new ColumnFamilyDescriptor(TRANSACTION_COLUMN_FAMILY, transactionOptions));
+            cfDescriptors.add(new ColumnFamilyDescriptor(METRIC_COLUMN_FAMILY, metricOptions));
 
             this.open(cfDescriptors);
             this.defaultCFHandle = cfHandles.get(0);
             this.popColumnFamilyHandle = cfHandles.get(1);
             this.transactionColumnFamilyHandle = cfHandles.get(2);
+            this.metricColumnFamilyHandle = cfHandles.get(3);
 
             log.debug("Timer message on rocksdb init, filePath={}", this.dbPath);
         } catch (final Exception e) {
@@ -128,6 +137,9 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
         if (this.popColumnFamilyHandle != null) {
             this.popColumnFamilyHandle.close();
         }
+        if (this.metricColumnFamilyHandle != null) {
+            this.metricColumnFamilyHandle.close();
+        }
     }
 
     @Override
@@ -136,12 +148,14 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void writeDefaultRecords(List<TimerMessageRecord> consumerRecordList) {
+    public void writeDefaultRecords(List<TimerMessageRecord> consumerRecordList, long offset) {
         if (!consumerRecordList.isEmpty()) {
             try (WriteBatch writeBatch = new WriteBatch()) {
                 for (TimerMessageRecord record : consumerRecordList) {
                     writeBatch.put(defaultCFHandle, record.getKeyBytes(), record.getValueBytes());
                 }
+                // atomically update offset
+                writeBatch.put(OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
                 this.db.write(writeOptions, writeBatch);
             } catch (RocksDBException e) {
                 throw new RuntimeException("Write record error", e);
@@ -150,7 +164,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList) {
+    public void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
 
         if (cfHandle != null && !consumerRecordList.isEmpty()) {
@@ -158,6 +172,8 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
                 for (TimerMessageRecord record : consumerRecordList) {
                     writeBatch.put(cfHandle, record.getKeyBytes(), record.getValueBytes());
                 }
+                // atomically update offset
+                writeBatch.put(OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
                 this.db.write(writeOptions, writeBatch);
             } catch (RocksDBException e) {
                 throw new RuntimeException("Write record error", e);
@@ -247,4 +263,15 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
         return records;
     }
+
+    @Override
+    public long getCommitOffset() {
+        try {
+            byte[] offsetBytes = db.get(OFFSET_KEY);
+            return offsetBytes == null ? 0 : ByteBuffer.wrap(offsetBytes).getLong();
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Get commit offset error", e);
+        }
+    }
+    // TODO metrics impl + basic
 }
