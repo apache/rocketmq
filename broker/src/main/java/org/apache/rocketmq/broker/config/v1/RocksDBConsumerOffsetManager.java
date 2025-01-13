@@ -100,7 +100,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             byte[] keyBytes = topicAtGroup.getBytes(DataConverter.CHARSET_UTF8);
             this.rocksDBConfigManager.delete(keyBytes);
         } catch (Exception e) {
-            LOG.error("kv remove consumerOffset Failed, {}", topicAtGroup);
+            log.error("kv remove consumerOffset Failed, {}", topicAtGroup);
         }
     }
 
@@ -109,7 +109,7 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
         RocksDBOffsetSerializeWrapper wrapper = JSON.parseObject(body, RocksDBOffsetSerializeWrapper.class);
 
         this.offsetTable.put(topicAtGroup, wrapper.getOffsetTable());
-        LOG.info("load exist local offset, {}, {}", topicAtGroup, wrapper.getOffsetTable());
+        log.info("load exist local offset, {}, {}", topicAtGroup, wrapper.getOffsetTable());
     }
 
     public String rocksdbConfigFilePath() {
@@ -132,14 +132,14 @@ public class RocksDBConsumerOffsetManager extends ConsumerOffsetManager {
             this.rocksDBConfigManager.batchPutWithWal(writeBatch);
             this.rocksDBConfigManager.flushWAL();
         } catch (Exception e) {
-            LOG.error("consumer offset persist Failed", e);
+            log.error("consumer offset persist Failed", e);
         } finally {
             writeBatch.close();
         }
     }
 
     public synchronized void exportToJson() {
-        LOG.info("RocksDBConsumerOffsetManager export consumer offset to json file");
+        log.info("RocksDBConsumerOffsetManager export consumer offset to json file");
         super.persist();
     }
 
