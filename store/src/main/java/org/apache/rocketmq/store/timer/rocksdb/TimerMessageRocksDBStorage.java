@@ -61,12 +61,12 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
         this.deleteOptions = new WriteOptions();
         this.deleteOptions.setSync(false);
-        this.deleteOptions.setDisableWAL(false);
+        this.deleteOptions.setDisableWAL(true);
         this.deleteOptions.setNoSlowdown(false);
 
         this.writeOptions = new WriteOptions();
         this.writeOptions.setSync(false);
-        this.writeOptions.setDisableWAL(false);
+        this.writeOptions.setDisableWAL(true);
         this.writeOptions.setNoSlowdown(false);
 
         this.compactRangeOptions = new CompactRangeOptions();

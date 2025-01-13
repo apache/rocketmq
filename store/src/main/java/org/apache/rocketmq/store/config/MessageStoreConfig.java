@@ -472,6 +472,14 @@ public class MessageStoreConfig {
      **/
     private boolean useABSLock = false;
 
+    /**
+     * Maximum number of messages to be read each time
+     * -1 ： read all messages
+     */
+    private int readCountTimerOnRocksDB = -1;
+
+    private boolean enableTimerMessageOnRocksDB = false;
+
     public boolean isRocksdbCQDoubleWriteEnable() {
         return rocksdbCQDoubleWriteEnable;
     }
@@ -1949,5 +1957,21 @@ public class MessageStoreConfig {
 
     public boolean getUseABSLock() {
         return useABSLock;
+    }
+
+    public void setReadCountTimerOnRocksDB(int readCountTimerOnRocksDB) {
+        this.readCountTimerOnRocksDB = readCountTimerOnRocksDB;
+    }
+
+    public int getReadCountTimerOnRocksDB() {
+        return readCountTimerOnRocksDB;
+    }
+
+    public void setEnableTimerMessageOnRocksDB(boolean enableTimerMessageOnRocksDB) {
+        this.enableTimerMessageOnRocksDB = enableTimerMessageOnRocksDB;
+    }
+
+    public boolean getEnableTimerMessageOnRocksDB() {
+        return enableTimerMessageOnRocksDB;
     }
 }
