@@ -88,4 +88,13 @@ public class TimerMessageRecord {
     public long getOffsetPY() {
         return offsetPY;
     }
+
+    @Override
+    public String toString() {
+        return "TimerMessageRecord{" +
+            "delayTime=" + delayTime +
+            ", offsetPY=" + offsetPY +
+            ", sizeReal=" + sizeReal +
+            '}';
+    }
 }

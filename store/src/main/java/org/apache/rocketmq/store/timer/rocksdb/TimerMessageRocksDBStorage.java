@@ -20,19 +20,31 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.store.rocksdb.RocksDBOptionsFactory;
-import org.rocksdb.*;
+import org.rocksdb.RocksDB;
+import org.rocksdb.WriteBatch;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.WriteOptions;
+import org.rocksdb.ReadOptions;
+import org.rocksdb.CompactRangeOptions;
+import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.Slice;
+import org.rocksdb.RocksIterator;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implements TimerMessageKVStore {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
-    public final static byte[] TRANSACTION_COLUMN_FAMILY = "transaction".getBytes();
-    public final static byte[] POP_COLUMN_FAMILY = "pop".getBytes();
+    public final static byte[] TRANSACTION_COLUMN_FAMILY = "transaction".getBytes(StandardCharsets.UTF_8);
+    public final static byte[] POP_COLUMN_FAMILY = "pop".getBytes(StandardCharsets.UTF_8);
 
     private ColumnFamilyHandle popColumnFamilyHandle;
     private ColumnFamilyHandle transactionColumnFamilyHandle;
@@ -125,31 +137,114 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
     @Override
     public void writeDefaultRecords(List<TimerMessageRecord> consumerRecordList) {
-
+        if (!consumerRecordList.isEmpty()) {
+            try (WriteBatch writeBatch = new WriteBatch()) {
+                for (TimerMessageRecord record : consumerRecordList) {
+                    writeBatch.put(defaultCFHandle, record.getKeyBytes(), record.getValueBytes());
+                }
+                this.db.write(writeOptions, writeBatch);
+            } catch (RocksDBException e) {
+                throw new RuntimeException("Write record error", e);
+            }
+        }
     }
 
     @Override
     public void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList) {
+        ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
 
+        if (cfHandle != null && !consumerRecordList.isEmpty()) {
+            try (WriteBatch writeBatch = new WriteBatch()) {
+                for (TimerMessageRecord record : consumerRecordList) {
+                    writeBatch.put(cfHandle, record.getKeyBytes(), record.getValueBytes());
+                }
+                this.db.write(writeOptions, writeBatch);
+            } catch (RocksDBException e) {
+                throw new RuntimeException("Write record error", e);
+            }
+        }
     }
 
     @Override
     public void deleteDefaultRecords(List<TimerMessageRecord> consumerRecordList) {
-
+        if (!consumerRecordList.isEmpty()) {
+            try (WriteBatch writeBatch = new WriteBatch()) {
+                for (TimerMessageRecord record : consumerRecordList) {
+                    writeBatch.delete(defaultCFHandle, record.getKeyBytes());
+                }
+                this.db.write(deleteOptions, writeBatch);
+            } catch (RocksDBException e) {
+                throw new RuntimeException("Delete record error", e);
+            }
+        }
     }
 
     @Override
     public void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList) {
+        ColumnFamilyHandle deleteCfHandle = getColumnFamily(columnFamily);;
 
+        if (deleteCfHandle != null && !consumerRecordList.isEmpty()) {
+            try (WriteBatch writeBatch = new WriteBatch()) {
+                for (TimerMessageRecord record : consumerRecordList) {
+                    writeBatch.delete(deleteCfHandle, record.getKeyBytes());
+                }
+                this.db.write(deleteOptions, writeBatch);
+            } catch (RocksDBException e) {
+                throw new RuntimeException("Delete record error", e);
+            }
+        }
+    }
+
+    private ColumnFamilyHandle getColumnFamily(byte[] columnFamily) {
+        ColumnFamilyHandle cfHandle;
+        if (columnFamily == POP_COLUMN_FAMILY) {
+            cfHandle = popColumnFamilyHandle;
+        } else if (columnFamily == TRANSACTION_COLUMN_FAMILY) {
+            cfHandle = transactionColumnFamilyHandle;
+        } else if (columnFamily == RocksDB.DEFAULT_COLUMN_FAMILY) {
+            cfHandle = defaultCFHandle;
+        } else {
+            throw new RuntimeException("Unknown column family");
+        }
+
+        return cfHandle;
     }
 
     @Override
     public List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime) {
-        return Collections.emptyList();
+        List<TimerMessageRecord> records = new ArrayList<>();
+        ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
+
+        try (ReadOptions readOptions = new ReadOptions()
+            .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array()))
+            .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
+            RocksIterator iterator = db.newIterator(cfHandle, readOptions)) {
+            iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());
+            while (iterator.isValid()) {
+                records.add(TimerMessageRecord.decode(iterator.value()));
+                iterator.next();
+            }
+        }
+
+        return records;
     }
 
     @Override
     public List<TimerMessageRecord> scanExpiredRecords(byte[] columnFamily, long lowerTime, long upperTime, int maxCount) {
-        return Collections.emptyList();
+        List<TimerMessageRecord> records = new ArrayList<>();
+        ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
+
+        try (ReadOptions readOptions = new ReadOptions()
+                .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array()))
+                .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
+             RocksIterator iterator = db.newIterator(cfHandle, readOptions)) {
+            iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());
+            while (iterator.isValid() && records.size() < maxCount) {
+                records.add(TimerMessageRecord.decode(iterator.value()));
+                iterator.next();
+            }
+        }
+
+        return records;
     }
 }
