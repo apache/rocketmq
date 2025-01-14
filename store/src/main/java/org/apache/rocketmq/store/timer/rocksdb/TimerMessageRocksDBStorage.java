@@ -45,7 +45,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
     public final static byte[] TRANSACTION_COLUMN_FAMILY = "transaction".getBytes(StandardCharsets.UTF_8);
     public final static byte[] POP_COLUMN_FAMILY = "pop".getBytes(StandardCharsets.UTF_8);
-    private final static byte[] OFFSET_KEY = "offset".getBytes(StandardCharsets.UTF_8);
+    private final static byte[] TIMER_OFFSET_KEY = "timer_offset".getBytes(StandardCharsets.UTF_8);
 
     // key : 100 * n (delay time); value : long (msg number)
     private final static byte[] METRIC_COLUMN_FAMILY = "metric".getBytes(StandardCharsets.UTF_8);
@@ -148,14 +148,15 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void writeDefaultRecords(List<TimerMessageRecord> consumerRecordList, long offset) {
+    public void writeDefaultRecords(List<TimerMessageRecord> consumerRecordList, long offset, int timestamp) {
         if (!consumerRecordList.isEmpty()) {
             try (WriteBatch writeBatch = new WriteBatch()) {
                 for (TimerMessageRecord record : consumerRecordList) {
                     writeBatch.put(defaultCFHandle, record.getKeyBytes(), record.getValueBytes());
                 }
                 // atomically update offset
-                writeBatch.put(OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
+                writeBatch.put(TIMER_OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
+                syncMetric(timestamp / 100, consumerRecordList.size(), writeBatch);
                 this.db.write(writeOptions, writeBatch);
             } catch (RocksDBException e) {
                 throw new RuntimeException("Write record error", e);
@@ -164,7 +165,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset) {
+    public void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset, int timestamp) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
 
         if (cfHandle != null && !consumerRecordList.isEmpty()) {
@@ -173,7 +174,8 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
                     writeBatch.put(cfHandle, record.getKeyBytes(), record.getValueBytes());
                 }
                 // atomically update offset
-                writeBatch.put(OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
+                writeBatch.put(TIMER_OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
+                syncMetric(timestamp / 100, consumerRecordList.size(), writeBatch);
                 this.db.write(writeOptions, writeBatch);
             } catch (RocksDBException e) {
                 throw new RuntimeException("Write record error", e);
@@ -182,12 +184,13 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void deleteDefaultRecords(List<TimerMessageRecord> consumerRecordList) {
+    public void deleteDefaultRecords(List<TimerMessageRecord> consumerRecordList, int timestamp) {
         if (!consumerRecordList.isEmpty()) {
             try (WriteBatch writeBatch = new WriteBatch()) {
                 for (TimerMessageRecord record : consumerRecordList) {
                     writeBatch.delete(defaultCFHandle, record.getKeyBytes());
                 }
+                syncMetric(timestamp / 100, - consumerRecordList.size(), writeBatch);
                 this.db.write(deleteOptions, writeBatch);
             } catch (RocksDBException e) {
                 throw new RuntimeException("Delete record error", e);
@@ -196,7 +199,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList) {
+    public void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, int timestamp) {
         ColumnFamilyHandle deleteCfHandle = getColumnFamily(columnFamily);;
 
         if (deleteCfHandle != null && !consumerRecordList.isEmpty()) {
@@ -204,6 +207,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
                 for (TimerMessageRecord record : consumerRecordList) {
                     writeBatch.delete(deleteCfHandle, record.getKeyBytes());
                 }
+                syncMetric(timestamp / 100, - consumerRecordList.size(), writeBatch);
                 this.db.write(deleteOptions, writeBatch);
             } catch (RocksDBException e) {
                 throw new RuntimeException("Delete record error", e);
@@ -267,11 +271,35 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     @Override
     public long getCommitOffset() {
         try {
-            byte[] offsetBytes = db.get(OFFSET_KEY);
+            byte[] offsetBytes = db.get(TIMER_OFFSET_KEY);
             return offsetBytes == null ? 0 : ByteBuffer.wrap(offsetBytes).getLong();
         } catch (RocksDBException e) {
             throw new RuntimeException("Get commit offset error", e);
         }
     }
-    // TODO metrics impl + basic
+
+    @Override
+    public int getMetricSize(int lowerTime, int upperTime) {
+        int metricSize = 0;
+
+        try (ReadOptions readOptions = new ReadOptions()
+                .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array()))
+                .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
+             RocksIterator iterator = db.newIterator(metricColumnFamilyHandle, readOptions)) {
+            iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());
+            while (iterator.isValid()) {
+                metricSize += ByteBuffer.wrap(iterator.value()).getInt();
+                iterator.next();
+            }
+        }
+        return metricSize;
+    }
+
+    private void syncMetric(int key, int update, WriteBatch writeBatch) {
+        try {
+            writeBatch.put(metricColumnFamilyHandle, ByteBuffer.allocate(4).putInt(key).array(), ByteBuffer.allocate(4).putInt(update).array());
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Sync metric error", e);
+        }
+    }
 }
