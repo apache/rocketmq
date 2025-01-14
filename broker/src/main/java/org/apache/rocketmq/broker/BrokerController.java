@@ -79,7 +79,24 @@ import org.apache.rocketmq.broker.offset.LmqConsumerOffsetManager;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
 import org.apache.rocketmq.broker.plugin.BrokerAttachedPlugin;
-import org.apache.rocketmq.broker.processor.*;
+import org.apache.rocketmq.broker.pop.PopConsumerService;
+import org.apache.rocketmq.broker.processor.AckMessageProcessor;
+import org.apache.rocketmq.broker.processor.AdminBrokerProcessor;
+import org.apache.rocketmq.broker.processor.ChangeInvisibleTimeProcessor;
+import org.apache.rocketmq.broker.processor.ClientManageProcessor;
+import org.apache.rocketmq.broker.processor.ConsumerManageProcessor;
+import org.apache.rocketmq.broker.processor.EndTransactionProcessor;
+import org.apache.rocketmq.broker.processor.NotificationProcessor;
+import org.apache.rocketmq.broker.processor.PeekMessageProcessor;
+import org.apache.rocketmq.broker.processor.PollingInfoProcessor;
+import org.apache.rocketmq.broker.processor.PopInflightMessageCounter;
+import org.apache.rocketmq.broker.processor.PopMessageProcessor;
+import org.apache.rocketmq.broker.processor.PullMessageProcessor;
+import org.apache.rocketmq.broker.processor.QueryAssignmentProcessor;
+import org.apache.rocketmq.broker.processor.QueryMessageProcessor;
+import org.apache.rocketmq.broker.processor.RecallMessageProcessor;
+import org.apache.rocketmq.broker.processor.ReplyMessageProcessor;
+import org.apache.rocketmq.broker.processor.SendMessageProcessor;
 import org.apache.rocketmq.broker.schedule.ScheduleMessageService;
 import org.apache.rocketmq.broker.slave.SlaveSynchronize;
 import org.apache.rocketmq.broker.subscription.LmqSubscriptionGroupManager;
@@ -182,6 +199,7 @@ public class BrokerController {
     protected final ConsumerFilterManager consumerFilterManager;
     protected final ConsumerOrderInfoManager consumerOrderInfoManager;
     protected final PopInflightMessageCounter popInflightMessageCounter;
+    protected final PopConsumerService popConsumerService;
     protected final ProducerManager producerManager;
     protected final ScheduleMessageService scheduleMessageService;
     protected final ClientHousekeepingService clientHousekeepingService;
@@ -364,6 +382,7 @@ public class BrokerController {
         this.consumerFilterManager = new ConsumerFilterManager(this);
         this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
         this.popInflightMessageCounter = new PopInflightMessageCounter(this);
+        this.popConsumerService = brokerConfig.isPopConsumerKVServiceInit() ? new PopConsumerService(this) : null;
         this.clientHousekeepingService = new ClientHousekeepingService(this);
         this.broker2Client = new Broker2Client(this);
         this.scheduleMessageService = new ScheduleMessageService(this);
@@ -1298,6 +1317,10 @@ public class BrokerController {
         return popInflightMessageCounter;
     }
 
+    public PopConsumerService getPopConsumerService() {
+        return popConsumerService;
+    }
+
     public ConsumerOffsetManager getConsumerOffsetManager() {
         return consumerOffsetManager;
     }
@@ -1401,12 +1424,13 @@ public class BrokerController {
             this.pullRequestHoldService.shutdown();
         }
 
-        {
-            this.popMessageProcessor.getPopLongPollingService().shutdown();
-            this.popMessageProcessor.getQueueLockManager().shutdown();
+        if (this.popConsumerService != null) {
+            this.popConsumerService.shutdown();
         }
 
         {
+            this.popMessageProcessor.getPopLongPollingService().shutdown();
+            this.popMessageProcessor.getQueueLockManager().shutdown();
             this.popMessageProcessor.getPopBufferMergeService().shutdown();
             this.ackMessageProcessor.shutdownPopReviveService();
         }
@@ -1657,16 +1681,24 @@ public class BrokerController {
 
         if (this.popMessageProcessor != null) {
             this.popMessageProcessor.getPopLongPollingService().start();
-            this.popMessageProcessor.getPopBufferMergeService().start();
+            if (brokerConfig.isPopConsumerFSServiceInit()) {
+                this.popMessageProcessor.getPopBufferMergeService().start();
+            }
             this.popMessageProcessor.getQueueLockManager().start();
         }
 
         if (this.ackMessageProcessor != null) {
-            this.ackMessageProcessor.startPopReviveService();
+            if (brokerConfig.isPopConsumerFSServiceInit()) {
+                this.ackMessageProcessor.startPopReviveService();
+            }
         }
 
         if (this.notificationProcessor != null) {
             this.notificationProcessor.getPopLongPollingService().start();
+        }
+
+        if (this.popConsumerService != null) {
+            this.popConsumerService.start();
         }
 
         if (this.topicQueueMappingCleanService != null) {

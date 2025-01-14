@@ -236,6 +236,13 @@ public class BrokerConfig extends BrokerIdentity {
     private boolean retrieveMessageFromPopRetryTopicV1 = true;
     private boolean enableRetryTopicV2 = false;
     private int popFromRetryProbability = 20;
+    private boolean popConsumerFSServiceInit = true;
+    private boolean popConsumerKVServiceLog = false;
+    private boolean popConsumerKVServiceInit = false;
+    private boolean popConsumerKVServiceEnable = false;
+    private int popReviveMaxReturnSizePerRead = 16 * 1024;
+    private int popReviveMaxAttemptTimes = 16;
+
     private boolean realTimeNotifyConsumerChange = true;
 
     private boolean litePullMessageEnable = true;
@@ -446,6 +453,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private boolean allowRecallWhenBrokerNotWriteable = true;
 
+    private boolean recallMessageEnable = false;
+
     public String getConfigBlackList() {
         return configBlackList;
     }
@@ -590,6 +599,53 @@ public class BrokerConfig extends BrokerIdentity {
         this.popFromRetryProbability = popFromRetryProbability;
     }
 
+    public boolean isPopConsumerFSServiceInit() {
+        return popConsumerFSServiceInit;
+    }
+
+    public void setPopConsumerFSServiceInit(boolean popConsumerFSServiceInit) {
+        this.popConsumerFSServiceInit = popConsumerFSServiceInit;
+    }
+
+    public boolean isPopConsumerKVServiceLog() {
+        return popConsumerKVServiceLog;
+    }
+
+    public void setPopConsumerKVServiceLog(boolean popConsumerKVServiceLog) {
+        this.popConsumerKVServiceLog = popConsumerKVServiceLog;
+    }
+
+    public boolean isPopConsumerKVServiceInit() {
+        return popConsumerKVServiceInit;
+    }
+
+    public void setPopConsumerKVServiceInit(boolean popConsumerKVServiceInit) {
+        this.popConsumerKVServiceInit = popConsumerKVServiceInit;
+    }
+
+    public boolean isPopConsumerKVServiceEnable() {
+        return popConsumerKVServiceEnable;
+    }
+
+    public void setPopConsumerKVServiceEnable(boolean popConsumerKVServiceEnable) {
+        this.popConsumerKVServiceEnable = popConsumerKVServiceEnable;
+    }
+
+    public int getPopReviveMaxReturnSizePerRead() {
+        return popReviveMaxReturnSizePerRead;
+    }
+
+    public void setPopReviveMaxReturnSizePerRead(int popReviveMaxReturnSizePerRead) {
+        this.popReviveMaxReturnSizePerRead = popReviveMaxReturnSizePerRead;
+    }
+
+    public int getPopReviveMaxAttemptTimes() {
+        return popReviveMaxAttemptTimes;
+    }
+
+    public void setPopReviveMaxAttemptTimes(int popReviveMaxAttemptTimes) {
+        this.popReviveMaxAttemptTimes = popReviveMaxAttemptTimes;
+    }
 
     public boolean isTraceOn() {
         return traceOn;
@@ -1941,5 +1997,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setAllowRecallWhenBrokerNotWriteable(boolean allowRecallWhenBrokerNotWriteable) {
         this.allowRecallWhenBrokerNotWriteable = allowRecallWhenBrokerNotWriteable;
+    }
+
+    public boolean isRecallMessageEnable() {
+        return recallMessageEnable;
+    }
+
+    public void setRecallMessageEnable(boolean recallMessageEnable) {
+        this.recallMessageEnable = recallMessageEnable;
     }
 }

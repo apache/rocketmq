@@ -138,6 +138,7 @@ public class IntegrationTestBase {
         brokerConfig.setEnableCalcFilterBitMap(true);
         brokerConfig.setAppendAckAsync(true);
         brokerConfig.setAppendCkAsync(true);
+        brokerConfig.setRecallMessageEnable(true);
         storeConfig.setEnableConsumeQueueExt(true);
         brokerConfig.setLoadBalancePollNameServerInterval(500);
         storeConfig.setStorePathRootDir(baseDir);

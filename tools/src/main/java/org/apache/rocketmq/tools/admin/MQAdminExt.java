@@ -61,6 +61,7 @@ import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -392,6 +393,10 @@ public interface MQAdminExt extends MQAdmin {
         final long index, final int count, final String consumerGroup)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
 
+    void exportRocksDBConfigToJson(String brokerAddr,
+        List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configType)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException;
+
     boolean resumeCheckHalfMessage(final String topic,
         final String msgId) throws RemotingException, MQClientException, InterruptedException, MQBrokerException;
 
@@ -526,4 +531,7 @@ public interface MQAdminExt extends MQAdmin {
     AclInfo getAcl(String brokerAddr, String subject) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 
     List<AclInfo> listAcl(String brokerAddr, String subjectFilter, String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
+
+    void exportPopRecords(String brokerAddr, long timeout) throws RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException;
 }

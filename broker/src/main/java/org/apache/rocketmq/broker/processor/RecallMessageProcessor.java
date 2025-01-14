@@ -57,6 +57,12 @@ public class RecallMessageProcessor implements NettyRequestProcessor {
         final RecallMessageRequestHeader requestHeader =
             request.decodeCommandCustomHeader(RecallMessageRequestHeader.class);
 
+        if (!brokerController.getBrokerConfig().isRecallMessageEnable()) {
+            response.setCode(ResponseCode.NO_PERMISSION);
+            response.setRemark("recall failed, operation is forbidden");
+            return response;
+        }
+
         if (BrokerRole.SLAVE == brokerController.getMessageStoreConfig().getBrokerRole()) {
             response.setCode(ResponseCode.SLAVE_NOT_AVAILABLE);
             response.setRemark("recall failed, broker service not available");

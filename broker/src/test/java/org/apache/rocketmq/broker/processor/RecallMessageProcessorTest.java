@@ -89,6 +89,7 @@ public class RecallMessageProcessorTest {
         when(brokerController.getMessageStore()).thenReturn(messageStore);
         when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(brokerConfig.getBrokerName()).thenReturn(BROKER_NAME);
+        when(brokerConfig.isRecallMessageEnable()).thenReturn(true);
         when(brokerController.getBrokerStatsManager()).thenReturn(brokerStatsManager);
         when(handlerContext.channel()).thenReturn(channel);
         recallMessageProcessor = new RecallMessageProcessor(brokerController);
@@ -132,6 +133,14 @@ public class RecallMessageProcessorTest {
                 Assert.assertEquals(ResponseCode.SYSTEM_ERROR, response.getCode());
             }
         }
+    }
+
+    @Test
+    public void testProcessRequest_notEnable() throws RemotingCommandException {
+        when(brokerConfig.isRecallMessageEnable()).thenReturn(false);
+        RemotingCommand request = mockRequest(0, TOPIC, TOPIC, "id", BROKER_NAME);
+        RemotingCommand response = recallMessageProcessor.processRequest(handlerContext, request);
+        Assert.assertEquals(ResponseCode.NO_PERMISSION, response.getCode());
     }
 
     @Test
