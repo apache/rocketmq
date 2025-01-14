@@ -583,7 +583,7 @@ public class CommitLog implements Swappable {
                             }
                         }
                     }
-                    if (expectedCRC > 0) {
+                    if (expectedCRC >= 0) {
                         ByteBuffer tmpBuffer = byteBuffer.duplicate();
                         tmpBuffer.position(tmpBuffer.position() - totalSize);
                         tmpBuffer.limit(tmpBuffer.position() + totalSize - CommitLog.CRC32_RESERVED_LEN);

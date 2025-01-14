@@ -28,10 +28,11 @@ import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.CompactRangeOptions;
-import org.rocksdb.DBOptions;
+import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.Slice;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 import org.slf4j.Logger;
@@ -44,7 +45,7 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
 
     private WriteOptions writeOptions;
     private WriteOptions deleteOptions;
-    private ColumnFamilyHandle columnFamilyHandle;
+    protected ColumnFamilyHandle columnFamilyHandle;
 
     public PopConsumerRocksdbStore(String filePath) {
         super(filePath);
@@ -61,9 +62,8 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
         this.writeOptions.setNoSlowdown(false);
 
         this.deleteOptions = new WriteOptions();
-        this.deleteOptions.setSync(false);
-        this.deleteOptions.setLowPri(true);
-        this.deleteOptions.setDisableWAL(true);
+        this.deleteOptions.setSync(true);
+        this.deleteOptions.setDisableWAL(false);
         this.deleteOptions.setNoSlowdown(false);
 
         this.compactRangeOptions = new CompactRangeOptions();
@@ -83,14 +83,10 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
             initOptions();
 
             // init column family here
-            ColumnFamilyOptions defaultOptions = new ColumnFamilyOptions().optimizeForSmallDb();
-            ColumnFamilyOptions popStateOptions = new ColumnFamilyOptions().optimizeForSmallDb();
+            ColumnFamilyOptions defaultOptions = RocksDBOptionsFactory.createPopCFOptions();
+            ColumnFamilyOptions popStateOptions = RocksDBOptionsFactory.createPopCFOptions();
             this.cfOptions.add(defaultOptions);
             this.cfOptions.add(popStateOptions);
-
-            this.options = new DBOptions()
-                .setCreateIfMissing(true)
-                .setCreateMissingColumnFamilies(true);
 
             List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
             cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, defaultOptions));
@@ -140,18 +136,19 @@ public class PopConsumerRocksdbStore extends AbstractRocksDBStorage implements P
     }
 
     @Override
-    public List<PopConsumerRecord> scanExpiredRecords(long currentTime, int maxCount) {
+    // https://github.com/facebook/rocksdb/issues/10300
+    public List<PopConsumerRecord> scanExpiredRecords(long lower, long upper, int maxCount) {
         // In RocksDB, we can use SstPartitionerFixedPrefixFactory in cfOptions
         // and new ColumnFamilyOptions().useFixedLengthPrefixExtractor() to
         // configure prefix indexing to improve the performance of scans.
         // However, in the current implementation, this is not the bottleneck.
         List<PopConsumerRecord> consumerRecordList = new ArrayList<>();
-        try (RocksIterator iterator = db.newIterator(this.columnFamilyHandle)) {
-            iterator.seekToFirst();
+        try (ReadOptions scanOptions = new ReadOptions()
+            .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lower).array()))
+            .setIterateUpperBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upper).array()));
+             RocksIterator iterator = db.newIterator(this.columnFamilyHandle, scanOptions)) {
+            iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lower).array());
             while (iterator.isValid() && consumerRecordList.size() < maxCount) {
-                if (ByteBuffer.wrap(iterator.key()).getLong() > currentTime) {
-                    break;
-                }
                 consumerRecordList.add(PopConsumerRecord.decode(iterator.value()));
                 iterator.next();
             }

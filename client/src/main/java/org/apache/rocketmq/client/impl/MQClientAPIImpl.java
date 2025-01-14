@@ -164,6 +164,7 @@ import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupReque
 import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
@@ -776,7 +777,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         final DefaultMQProducerImpl producer
     ) {
         int tmp = curTimes.incrementAndGet();
-        if (needRetry && tmp <= timesTotal) {
+        if (needRetry && tmp <= timesTotal && timeoutMillis > 0) {
             String retryBrokerName = brokerName;//by default, it will send to the same broker
             if (topicPublishInfo != null) { //select one message queue accordingly, in order to determine which broker to send
                 MessageQueue mqChosen = producer.selectOneMessageQueue(topicPublishInfo, brokerName, false);
@@ -3034,6 +3035,21 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             return JSON.parseObject(response.getBody(), CheckRocksdbCqWriteResult.class);
         }
         throw new MQClientException(response.getCode(), response.getRemark());
+    }
+
+    public void exportRocksDBConfigToJson(final String brokerAddr,
+        final List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configType,
+        final long timeoutMillis) throws InterruptedException,
+        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+        ExportRocksDBConfigToJsonRequestHeader header = new ExportRocksDBConfigToJsonRequestHeader();
+        header.updateConfigType(configType);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.EXPORT_ROCKSDB_CONFIG_TO_JSON, header);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        assert response != null;
+
+        if (ResponseCode.SUCCESS != response.getCode()) {
+            throw new MQClientException(response.getCode(), response.getRemark());
+        }
     }
 
     public void checkClientInBroker(final String brokerAddr, final String consumerGroup,

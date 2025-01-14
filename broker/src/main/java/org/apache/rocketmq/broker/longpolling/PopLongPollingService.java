@@ -52,7 +52,7 @@ public class PopLongPollingService extends ServiceThread {
         LoggerFactory.getLogger(LoggerName.ROCKETMQ_POP_LOGGER_NAME);
     private final BrokerController brokerController;
     private final NettyRequestProcessor processor;
-    private final ConcurrentHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap;
+    private final ConcurrentLinkedHashMap<String, ConcurrentHashMap<String, Byte>> topicCidMap;
     private final ConcurrentLinkedHashMap<String, ConcurrentSkipListSet<PopRequest>> pollingMap;
     private long lastCleanTime = 0;
 
@@ -63,7 +63,8 @@ public class PopLongPollingService extends ServiceThread {
         this.brokerController = brokerController;
         this.processor = processor;
         // 100000 topic default,  100000 lru topic + cid + qid
-        this.topicCidMap = new ConcurrentHashMap<>(brokerController.getBrokerConfig().getPopPollingMapSize());
+        this.topicCidMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentHashMap<String, Byte>>()
+            .maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize() * 2L).build();
         this.pollingMap = new ConcurrentLinkedHashMap.Builder<String, ConcurrentSkipListSet<PopRequest>>()
             .maximumWeightedCapacity(this.brokerController.getBrokerConfig().getPopPollingMapSize()).build();
         this.notifyLast = notifyLast;
@@ -350,7 +351,7 @@ public class PopLongPollingService extends ServiceThread {
                     Map.Entry<String, ConcurrentHashMap<String, Byte>> entry = topicCidMapIter.next();
                     String topic = entry.getKey();
                     if (brokerController.getTopicConfigManager().selectTopicConfig(topic) == null) {
-                        POP_LOGGER.info("remove not exit topic {} in topicCidMap!", topic);
+                        POP_LOGGER.info("remove nonexistent topic {} in topicCidMap!", topic);
                         topicCidMapIter.remove();
                         continue;
                     }
@@ -358,8 +359,8 @@ public class PopLongPollingService extends ServiceThread {
                     while (cidMapIter.hasNext()) {
                         Map.Entry<String, Byte> cidEntry = cidMapIter.next();
                         String cid = cidEntry.getKey();
-                        if (!brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(cid)) {
-                            POP_LOGGER.info("remove not exit sub {} of topic {} in topicCidMap!", cid, topic);
+                        if (!brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(cid)) {
+                            POP_LOGGER.info("remove nonexistent subscription group {} of topic {} in topicCidMap!", cid, topic);
                             cidMapIter.remove();
                         }
                     }
@@ -380,12 +381,12 @@ public class PopLongPollingService extends ServiceThread {
                     String topic = keyArray[0];
                     String cid = keyArray[1];
                     if (brokerController.getTopicConfigManager().selectTopicConfig(topic) == null) {
-                        POP_LOGGER.info("remove not exit topic {} in pollingMap!", topic);
+                        POP_LOGGER.info("remove nonexistent topic {} in pollingMap!", topic);
                         pollingMapIter.remove();
                         continue;
                     }
-                    if (!brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().containsKey(cid)) {
-                        POP_LOGGER.info("remove not exit sub {} of topic {} in pollingMap!", cid, topic);
+                    if (!brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(cid)) {
+                        POP_LOGGER.info("remove nonexistent subscription group {} of topic {} in pollingMap!", cid, topic);
                         pollingMapIter.remove();
                     }
                 }
