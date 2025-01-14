@@ -27,7 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -49,7 +48,6 @@ public class ConsumerManager {
     protected final BrokerStatsManager brokerStatsManager;
     private final long channelExpiredTimeout;
     private final long subscriptionExpiredTimeout;
-    private BrokerController brokerController;
 
     public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener, long expiredTimeout) {
         this.consumerIdsChangeListenerList.add(consumerIdsChangeListener);
@@ -59,12 +57,11 @@ public class ConsumerManager {
     }
 
     public ConsumerManager(final ConsumerIdsChangeListener consumerIdsChangeListener,
-        final BrokerStatsManager brokerStatsManager, BrokerConfig brokerConfig, BrokerController brokerController) {
+        final BrokerStatsManager brokerStatsManager, BrokerConfig brokerConfig) {
         this.consumerIdsChangeListenerList.add(consumerIdsChangeListener);
         this.brokerStatsManager = brokerStatsManager;
         this.channelExpiredTimeout = brokerConfig.getChannelExpiredTimeout();
         this.subscriptionExpiredTimeout = brokerConfig.getSubscriptionExpiredTimeout();
-        this.brokerController = brokerController;
     }
 
     public ClientChannelInfo findChannel(final String group, final String clientId) {
@@ -138,9 +135,6 @@ public class ConsumerManager {
             Entry<String, ConsumerGroupInfo> next = it.next();
             ConsumerGroupInfo info = next.getValue();
             ClientChannelInfo clientChannelInfo = info.doChannelCloseEvent(remoteAddr, channel);
-
-            brokerController.getPopRebalanceCacheManager().removeTopicCaches(info.getSubscribeTopics());
-
             if (clientChannelInfo != null) {
                 callConsumerIdsChangeListener(ConsumerGroupEvent.CLIENT_UNREGISTER, next.getKey(), clientChannelInfo, info.getSubscribeTopics());
                 if (info.getChannelInfoTable().isEmpty()) {
@@ -212,9 +206,6 @@ public class ConsumerManager {
         }
 
         callConsumerIdsChangeListener(ConsumerGroupEvent.REGISTER, group, subList, clientChannelInfo);
-
-        brokerController.getPopRebalanceCacheManager().removeTopicCaches(consumerGroupInfo.getSubscribeTopics());
-
         return r1 || r2;
     }
 
@@ -234,10 +225,7 @@ public class ConsumerManager {
         if (null != this.brokerStatsManager) {
             this.brokerStatsManager.incConsumerRegisterTime((int) (System.currentTimeMillis() - start));
         }
-
-        brokerController.getPopRebalanceCacheManager().removeTopicCaches(consumerGroupInfo.getSubscribeTopics());
-
-        return updateChannelRst;
+       return updateChannelRst;
     }
 
     public void unregisterConsumer(final String group, final ClientChannelInfo clientChannelInfo,
@@ -245,9 +233,6 @@ public class ConsumerManager {
         ConsumerGroupInfo consumerGroupInfo = this.consumerTable.get(group);
         if (null != consumerGroupInfo) {
             boolean removed = consumerGroupInfo.unregisterChannel(clientChannelInfo);
-
-            brokerController.getPopRebalanceCacheManager().removeTopicCaches(consumerGroupInfo.getSubscribeTopics());
-
             if (removed) {
                 callConsumerIdsChangeListener(ConsumerGroupEvent.CLIENT_UNREGISTER, group, clientChannelInfo, consumerGroupInfo.getSubscribeTopics());
             }

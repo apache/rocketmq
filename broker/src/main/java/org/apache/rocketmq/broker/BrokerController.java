@@ -203,7 +203,6 @@ public class BrokerController {
     protected final ConsumerIdsChangeListener consumerIdsChangeListener;
     protected final EndTransactionProcessor endTransactionProcessor;
     private final RebalanceLockManager rebalanceLockManager = new RebalanceLockManager();
-    private final PopRebalanceCacheManager popRebalanceCacheManager = new PopRebalanceCacheManager();
     private final TopicRouteInfoManager topicRouteInfoManager;
     protected BrokerOuterAPI brokerOuterAPI;
     protected ScheduledExecutorService scheduledExecutorService;
@@ -360,7 +359,7 @@ public class BrokerController {
         this.replyMessageProcessor = new ReplyMessageProcessor(this);
         this.messageArrivingListener = new NotifyMessageArrivingListener(this.pullRequestHoldService, this.popMessageProcessor, this.notificationProcessor);
         this.consumerIdsChangeListener = new DefaultConsumerIdsChangeListener(this);
-        this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener, this.brokerStatsManager, this.brokerConfig, this);
+        this.consumerManager = new ConsumerManager(this.consumerIdsChangeListener, this.brokerStatsManager, this.brokerConfig);
         this.producerManager = new ProducerManager(this.brokerStatsManager);
         this.consumerFilterManager = new ConsumerFilterManager(this);
         this.consumerOrderInfoManager = new ConsumerOrderInfoManager(this);
@@ -2508,10 +2507,6 @@ public class BrokerController {
 
     public TopicRouteInfoManager getTopicRouteInfoManager() {
         return this.topicRouteInfoManager;
-    }
-
-    public PopRebalanceCacheManager getPopRebalanceCacheManager() {
-        return this.popRebalanceCacheManager;
     }
 
     public BlockingQueue<Runnable> getClientManagerThreadPoolQueue() {
