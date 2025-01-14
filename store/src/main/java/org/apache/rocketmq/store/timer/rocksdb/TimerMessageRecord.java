@@ -17,6 +17,7 @@
 package org.apache.rocketmq.store.timer.rocksdb;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import org.apache.rocketmq.common.message.MessageExt;
 
 import java.nio.ByteBuffer;
 
@@ -24,7 +25,9 @@ public class TimerMessageRecord {
     // key: delayTime + offsetPY
     private long delayTime;
     private long offsetPY;
-
+    private int flag;
+    private MessageExt messageExt;
+    private boolean roll;
     // value: sizeReal
     private int sizeReal;
 
@@ -34,10 +37,11 @@ public class TimerMessageRecord {
     public TimerMessageRecord() {
     }
 
-    public TimerMessageRecord(long delayTime, long offsetPY, int sizeReal) {
+    public TimerMessageRecord(long delayTime, long offsetPY, int sizeReal, int flag) {
         this.delayTime = delayTime;
         this.offsetPY = offsetPY;
         this.sizeReal = sizeReal;
+        this.flag = flag;
     }
 
     @JSONField(serialize = false)
@@ -87,6 +91,30 @@ public class TimerMessageRecord {
 
     public long getOffsetPY() {
         return offsetPY;
+    }
+
+    public int getFlag() {
+        return flag;
+    }
+
+    public void setFlag(int flag) {
+        this.flag = flag;
+    }
+
+    public boolean isRoll() {
+        return roll;
+    }
+
+    public void setRoll(boolean roll) {
+        this.roll = roll;
+    }
+
+    public MessageExt getMessageExt() {
+        return messageExt;
+    }
+
+    public void setMessageExt(MessageExt messageExt) {
+        this.messageExt = messageExt;
     }
 
     @Override

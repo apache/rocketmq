@@ -86,10 +86,10 @@ public interface TimerMessageKVStore {
      * @param maxCount the max count of the timer message records to be return.
      * @return the list of timer message records.
      */
-    List<TimerMessageRecord> scanExpiredRecords(byte[] columnFamily, long lowerTime, long upperTime, int maxCount);
+    List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime, int maxCount);
 
     /**
-     * Get the commit offset of the timer message kv store.
+     * Get the commit offset of the timer message kv store from cq.
      * @return the commit offset of the timer message kv store.
      */
     long getCommitOffset();
@@ -101,4 +101,11 @@ public interface TimerMessageKVStore {
      * @return sum.
      */
     int getMetricSize(int lowerTime, int upperTime);
+
+    /**
+     * Get the checkpoint of the timer message kv store.
+     * @param columnFamily the column family of the timer message kv store.
+     * @return the checkpoint of the timer message kv store.
+     */
+    int getCheckpoint(byte[] columnFamily);
 }

@@ -45,10 +45,10 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
     public final static byte[] TRANSACTION_COLUMN_FAMILY = "transaction".getBytes(StandardCharsets.UTF_8);
     public final static byte[] POP_COLUMN_FAMILY = "pop".getBytes(StandardCharsets.UTF_8);
-    private final static byte[] TIMER_OFFSET_KEY = "timer_offset".getBytes(StandardCharsets.UTF_8);
+    public final static byte[] TIMER_OFFSET_KEY = "timer_offset".getBytes(StandardCharsets.UTF_8);
 
     // key : 100 * n (delay time); value : long (msg number)
-    private final static byte[] METRIC_COLUMN_FAMILY = "metric".getBytes(StandardCharsets.UTF_8);
+    public final static byte[] METRIC_COLUMN_FAMILY = "metric".getBytes(StandardCharsets.UTF_8);
 
     private ColumnFamilyHandle popColumnFamilyHandle;
     private ColumnFamilyHandle transactionColumnFamilyHandle;
@@ -246,11 +246,18 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             }
         }
 
+        try (WriteBatch writeBatch = new WriteBatch()) {
+            // sync checkpoint
+            writeBatch.put(RocksDB.DEFAULT_COLUMN_FAMILY, ByteBuffer.allocate(8).putLong(upperTime).array());
+            this.db.write(deleteOptions, writeBatch);
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Delete record error", e);
+        }
         return records;
     }
 
     @Override
-    public List<TimerMessageRecord> scanExpiredRecords(byte[] columnFamily, long lowerTime, long upperTime, int maxCount) {
+    public List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime, int maxCount) {
         List<TimerMessageRecord> records = new ArrayList<>();
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
 
@@ -265,6 +272,13 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             }
         }
 
+        try (WriteBatch writeBatch = new WriteBatch()) {
+            // sync checkpoint
+            writeBatch.put(columnFamily, ByteBuffer.allocate(8).putLong(upperTime).array());
+            this.db.write(deleteOptions, writeBatch);
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Delete record error", e);
+        }
         return records;
     }
 
@@ -293,6 +307,16 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             }
         }
         return metricSize;
+    }
+
+    @Override
+    public int getCheckpoint(byte[] columnFamily) {
+        try {
+            byte[] checkpointBytes = db.get(columnFamily);
+            return checkpointBytes == null ? 0 : ByteBuffer.wrap(checkpointBytes).getInt();
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Get checkpoint error", e);
+        }
     }
 
     private void syncMetric(int key, int update, WriteBatch writeBatch) {
