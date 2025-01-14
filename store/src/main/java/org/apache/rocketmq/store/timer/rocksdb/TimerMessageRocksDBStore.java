@@ -18,6 +18,7 @@ package org.apache.rocketmq.store.timer.rocksdb;
 
 import com.conversantmedia.util.concurrent.DisruptorBlockingQueue;
 import io.opentelemetry.api.common.Attributes;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -59,11 +60,12 @@ public class TimerMessageRocksDBStore {
     public static final int DAY_SECS = 24 * 3600;
     public static final int DEFAULT_CAPACITY = 1024;
     public static final int INITIAL = 0, RUNNING = 1, HAULT = 2, SHUTDOWN = 3;
+    public static final int PUT_OK = 0, PUT_NEED_RETRY = 1, PUT_NO_RETRY = 2;
     public static final String TIMER_TOPIC = TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer";
     public static final String TIMER_OUT_MS = MessageConst.PROPERTY_TIMER_OUT_MS;
     public static final String TIMER_ROLL_TIMES = MessageConst.PROPERTY_TIMER_ROLL_TIMES;
     public static final String TIMER_DEQUEUE_MS = MessageConst.PROPERTY_TIMER_DEQUEUE_MS;
-    public static final int PUT_OK = 0, PUT_NEED_RETRY = 1, PUT_NO_RETRY = 2;
+    public static final String TIMER_ENQUEUE_MS = MessageConst.PROPERTY_TIMER_ENQUEUE_MS;
 
     private final TimerMessageKVStore timerMessageKVStore;
     private final MessageStore messageStore;
@@ -159,7 +161,6 @@ public class TimerMessageRocksDBStore {
         this.timerGetMessageServices.add(new TimerGetMessageService(columnFamily));
         this.timerWarmServices.add(new TimerWarmService(columnFamily));
     }
-
     // ----------------------------------------------------------------------------------------------------------------
     private void initService() {
         this.timerEnqueueGetService = new TimerEnqueueGetService();
@@ -173,26 +174,23 @@ public class TimerMessageRocksDBStore {
 
         if (storeConfig.isTimerEnableDisruptor()) {
             this.enqueuePutQueue = new DisruptorBlockingQueue<>(DEFAULT_CAPACITY);
-            this.dequeuePutQueue = new DisruptorBlockingQueue<List<TimerMessageRecord>>(DEFAULT_CAPACITY);
+            this.dequeuePutQueue = new DisruptorBlockingQueue<>(DEFAULT_CAPACITY);
             this.dequeueGetQueue = new DisruptorBlockingQueue<>(DEFAULT_CAPACITY);
         } else {
             this.enqueuePutQueue = new LinkedBlockingDeque<>(DEFAULT_CAPACITY);
-            this.dequeuePutQueue = new LinkedBlockingDeque<List<TimerMessageRecord>>(DEFAULT_CAPACITY);
+            this.dequeuePutQueue = new LinkedBlockingDeque<>(DEFAULT_CAPACITY);
             this.dequeueGetQueue = new LinkedBlockingDeque<>(DEFAULT_CAPACITY);
         }
         this.commitOffset = timerMessageKVStore.getCommitOffset();
     }
 
     private void calcTimerDistribution() {
-        long startTime = System.currentTimeMillis();
         int slotNumber = precisionMs / 100;
         int rocksdbNumber = 0;
         for (int i = 0; i < this.slotSize; i++) {
             timerMetrics.resetDistPair(i, timerMessageKVStore.getMetricSize(rocksdbNumber, rocksdbNumber + slotNumber - 1));
             rocksdbNumber += slotNumber;
         }
-        long endTime = System.currentTimeMillis();
-        log.debug("Total cost Time: {}", endTime - startTime);
     }
 
     private String getServiceThreadName() {
@@ -285,7 +283,11 @@ public class TimerMessageRocksDBStore {
                 for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
                     int tag = entry1.getKey();
                     timerMessageKVStore.writeAssignRecords(getColumnFamily(tag), entry1.getValue(), commitOffset, (int) (delayTime / precisionMs % slotSize));
+                    for (TimerMessageRecord record : entry1.getValue()) {
+                        addMetric(record.getMessageExt(), 1);
+                    }
                 }
+                addMetric((int) (delayTime / precisionMs % slotSize), entry.getValue().size());
             }
         }
     }
@@ -309,13 +311,10 @@ public class TimerMessageRocksDBStore {
                     for (TimerMessageRecord record : timerMessageRecord) {
                         MessageExt messageExt = getMessageByCommitOffset(record.getOffsetPY(), record.getSizeReal());
                         long delayedTime = Long.parseLong(messageExt.getProperty(TIMER_OUT_MS));
-                        if (delayedTime >= System.currentTimeMillis() + precisionMs * 3L) {
-                            record.setRoll(true);
-                        } else {
-                            record.setRoll(false);
-                        }
+                        record.setRoll(delayedTime >= System.currentTimeMillis() + precisionMs * 3L);
+                        addMetric(messageExt, -1);
                     }
-                    while (!dequeuePutQueue.offer(timerMessageRecord, 3, TimeUnit.SECONDS));
+                    while (!dequeuePutQueue.offer(timerMessageRecord, 3, TimeUnit.SECONDS)) {}
                 } catch (InterruptedException e) {
                     log.error("Error occurred in " + getServiceName(), e);
                 }
@@ -395,6 +394,8 @@ public class TimerMessageRocksDBStore {
                 try {
                     if (-1 == dequeue(checkpoint, columnFamily)) {
                         waitForRunning(100L * precisionMs / 1000);
+                    } else {
+                        checkpoint++;
                     }
                 } catch (Throwable e) {
                     log.error("Error occurred in " + getServiceName(), e);
@@ -465,10 +466,13 @@ public class TimerMessageRocksDBStore {
                     MessageExt msgExt = getMessageByCommitOffset(offsetPy, sizePy);
 
                     if (null != msgExt) {
+                        // TODO delete msg : use unique key
                         long delayedTime = Long.parseLong(msgExt.getProperty(TIMER_OUT_MS));
                         int flag = msgExt.getFlag();
                         TimerMessageRecord timerRequest = new TimerMessageRecord(delayedTime, offsetPy, sizePy, flag);
                         while(!enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {}
+                        timerRequest.setMessageExt(msgExt);
+
                         Attributes attributes = DefaultStoreMetricsManager.newAttributesBuilder()
                                 .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
                         DefaultStoreMetricsManager.timerMessageSetLatency.record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
@@ -518,8 +522,9 @@ public class TimerMessageRocksDBStore {
         }
 
         List<TimerMessageRecord> timerMessageRecords = timerMessageKVStore.scanRecords(columnFamily, checkpoint, checkpoint + 1);
-        while (!dequeueGetQueue.offer(timerMessageRecords, 3, TimeUnit.SECONDS));
+        while (!dequeueGetQueue.offer(timerMessageRecords, 3, TimeUnit.SECONDS)) {}
         timerMessageKVStore.deleteAssignRecords(columnFamily, timerMessageRecords, checkpoint);
+        addMetric(checkpoint, timerMessageRecords.size());
         return 0;
     }
 
@@ -625,5 +630,20 @@ public class TimerMessageRocksDBStore {
             }
         }
         return PUT_NEED_RETRY;
+    }
+
+    private void addMetric(MessageExt msg, int value) {
+        if (null == msg || null == msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC)) {
+            return;
+        }
+        if (msg.getProperty(TIMER_ENQUEUE_MS) != null
+            && NumberUtils.toLong(msg.getProperty(TIMER_ENQUEUE_MS)) == Long.MAX_VALUE) {
+            return;
+        }
+        timerMetrics.addAndGet(msg, value);
+    }
+
+    private void addMetric(int delayTime, int value) {
+        timerMetrics.updateDistPair(delayTime, value);
     }
 }
