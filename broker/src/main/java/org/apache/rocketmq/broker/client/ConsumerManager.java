@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
+import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -206,6 +207,7 @@ public class ConsumerManager {
         }
 
         callConsumerIdsChangeListener(ConsumerGroupEvent.REGISTER, group, subList, clientChannelInfo);
+
         return r1 || r2;
     }
 
@@ -225,7 +227,7 @@ public class ConsumerManager {
         if (null != this.brokerStatsManager) {
             this.brokerStatsManager.incConsumerRegisterTime((int) (System.currentTimeMillis() - start));
         }
-       return updateChannelRst;
+        return updateChannelRst;
     }
 
     public void unregisterConsumer(final String group, final ClientChannelInfo clientChannelInfo,

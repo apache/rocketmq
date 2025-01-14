@@ -76,7 +76,7 @@ public class ConsumerManagerTest {
         clientChannelInfo = new ClientChannelInfo(channel, CLIENT_ID, LanguageCode.JAVA, VERSION);
         DefaultConsumerIdsChangeListener defaultConsumerIdsChangeListener = new DefaultConsumerIdsChangeListener(brokerController);
         BrokerStatsManager brokerStatsManager = new BrokerStatsManager(brokerConfig);
-        consumerManager = spy(new ConsumerManager(defaultConsumerIdsChangeListener, brokerStatsManager, brokerConfig, brokerController));
+        consumerManager = spy(new ConsumerManager(defaultConsumerIdsChangeListener, brokerStatsManager, brokerConfig));
         ConsumerFilterManager consumerFilterManager = mock(ConsumerFilterManager.class);
         when(brokerController.getConsumerFilterManager()).thenReturn(consumerFilterManager);
     }
