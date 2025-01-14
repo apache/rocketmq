@@ -154,7 +154,7 @@ public class PeekMessageProcessorTest {
     public void testProcessRequest_QueueIdError() throws RemotingCommandException {
         RemotingCommand request = createPeekMessageRequest("group","topic",17);
         RemotingCommand response = peekMessageProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
     }
 
     private RemotingCommand createPeekMessageRequest(String group,String topic,int queueId) {

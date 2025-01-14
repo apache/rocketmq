@@ -18,7 +18,16 @@ package org.apache.rocketmq.common.config;
 
 import com.google.common.collect.Maps;
 import io.netty.buffer.PooledByteBufAllocator;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.utils.ThreadUtils;
@@ -42,16 +51,6 @@ import org.rocksdb.Statistics;
 import org.rocksdb.Status;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
-
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractRocksDBStorage {
     protected static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.ROCKSDB_LOGGER_NAME);
@@ -365,7 +364,7 @@ public abstract class AbstractRocksDBStorage {
         }
         if (postLoad()) {
             this.loaded = true;
-            LOGGER.info("RocksDB[{}] starts OK", this.dbPath);
+            LOGGER.info("RocksDB [{}] starts OK", this.dbPath);
             this.closed = false;
             return true;
         } else {
@@ -381,6 +380,7 @@ public abstract class AbstractRocksDBStorage {
     public synchronized boolean shutdown() {
         try {
             if (!this.loaded) {
+                LOGGER.info("RocksDBStorage is not loaded, shutdown OK. dbPath={}, readOnly={}", this.dbPath, this.readOnly);
                 return true;
             }
 
@@ -437,9 +437,9 @@ public abstract class AbstractRocksDBStorage {
             this.options = null;
 
             this.loaded = false;
-            LOGGER.info("shutdown OK. {}", this.dbPath);
+            LOGGER.info("RocksDB shutdown OK. {}", this.dbPath);
         } catch (Exception e) {
-            LOGGER.error("shutdown Failed. {}", this.dbPath, e);
+            LOGGER.error("RocksDB shutdown failed. {}", this.dbPath, e);
             return false;
         }
         return true;

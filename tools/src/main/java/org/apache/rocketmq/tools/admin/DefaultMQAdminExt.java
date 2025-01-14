@@ -65,6 +65,7 @@ import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicList;
 import org.apache.rocketmq.remoting.protocol.body.UserInfo;
+import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.ElectMasterResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.controller.GetMetaDataResponseHeader;
 import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
@@ -779,6 +780,13 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     }
 
     @Override
+    public void exportRocksDBConfigToJson(String brokerAddr,
+        List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configType)
+        throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+        this.defaultMQAdminExtImpl.exportRocksDBConfigToJson(brokerAddr, configType);
+    }
+
+    @Override
     public boolean resumeCheckHalfMessage(String topic,
         String msgId)
         throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
@@ -1003,5 +1011,11 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
     public List<AclInfo> listAcl(String brokerAddr, String subjectFilter,
         String resourceFilter) throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
         return defaultMQAdminExtImpl.listAcl(brokerAddr, subjectFilter, resourceFilter);
+    }
+
+    @Override
+    public void exportPopRecords(String brokerAddr, long timeout) throws RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        defaultMQAdminExtImpl.exportPopRecords(brokerAddr, timeout);
     }
 }

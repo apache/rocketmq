@@ -148,6 +148,10 @@ public class MessageStoreFetcherImpl implements MessageStoreFetcher {
             if (result.getMessageCount() == maxCount) {
                 break;
             }
+            long maxTransferBytes = messageStore.getMessageStoreConfig().getMaxTransferBytesOnMessageInMemory();
+            if (result.getBufferTotalSize() >= maxTransferBytes) {
+                break;
+            }
         }
         result.setStatus(result.getMessageCount() > 0 ?
             GetMessageStatus.FOUND : GetMessageStatus.NO_MATCHED_MESSAGE);

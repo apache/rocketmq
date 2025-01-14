@@ -32,7 +32,7 @@ import org.rocksdb.CompressionType;
 
 public class RocksDBTopicConfigManager extends TopicConfigManager {
 
-    protected RocksDBConfigManager rocksDBConfigManager;
+    protected transient RocksDBConfigManager rocksDBConfigManager;
 
     public RocksDBTopicConfigManager(BrokerController brokerController) {
         super(brokerController, false);
@@ -137,6 +137,11 @@ public class RocksDBTopicConfigManager extends TopicConfigManager {
         if (brokerController.getMessageStoreConfig().isRealTimePersistRocksDBConfig()) {
             this.rocksDBConfigManager.flushWAL();
         }
+    }
+
+    public synchronized void exportToJson() {
+        log.info("RocksDBTopicConfigManager export topic config to json file");
+        super.persist();
     }
 
     public String rocksdbConfigFilePath() {
