@@ -55,6 +55,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
+import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 import org.rocksdb.RocksDBException;
 
@@ -626,6 +627,16 @@ public abstract class AbstractPluginMessageStore implements MessageStore {
     @Override
     public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
         next.setTimerMessageStore(timerMessageStore);
+    }
+
+    @Override
+    public TimerMessageRocksDBStore getTimerMessageRocksDBStore() {
+        return next.getTimerMessageRocksDBStore();
+    }
+
+    @Override
+    public void setTimerMessageRocksDBStore(TimerMessageRocksDBStore timerMessageRocksDBStore) {
+        next.setTimerMessageRocksDBStore(timerMessageRocksDBStore);
     }
 
     @Override

@@ -52,6 +52,8 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
     private ColumnFamilyHandle popColumnFamilyHandle;
     private ColumnFamilyHandle transactionColumnFamilyHandle;
+
+    // Supports 100ms level statistics
     private ColumnFamilyHandle metricColumnFamilyHandle;
 
     private WriteOptions writeOptions;
@@ -312,10 +314,10 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public int getCheckpoint(byte[] columnFamily) {
+    public long getCheckpoint(byte[] columnFamily) {
         try {
             byte[] checkpointBytes = db.get(columnFamily);
-            return checkpointBytes == null ? 0 : ByteBuffer.wrap(checkpointBytes).getInt();
+            return checkpointBytes == null ? 0 : ByteBuffer.wrap(checkpointBytes).getLong();
         } catch (RocksDBException e) {
             throw new RuntimeException("Get checkpoint error", e);
         }

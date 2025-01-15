@@ -107,5 +107,5 @@ public interface TimerMessageKVStore {
      * @param columnFamily the column family of the timer message kv store.
      * @return the checkpoint of the timer message kv store.
      */
-    int getCheckpoint(byte[] columnFamily);
+    long getCheckpoint(byte[] columnFamily);
 }

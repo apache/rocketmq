@@ -41,6 +41,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
+import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 import org.rocksdb.RocksDBException;
 import io.opentelemetry.api.common.AttributesBuilder;
@@ -207,6 +208,10 @@ public interface MessageStore {
     TimerMessageStore getTimerMessageStore();
 
     void setTimerMessageStore(TimerMessageStore timerMessageStore);
+
+    TimerMessageRocksDBStore getTimerMessageRocksDBStore();
+
+    void setTimerMessageRocksDBStore(TimerMessageRocksDBStore timerMessageRocksDBStore);
 
     /**
      * Get the offset of the message in the commit log, which is also known as physical offset.

@@ -146,7 +146,9 @@ public class DefaultStoreMetricsManager {
                 measurement.record(System.currentTimeMillis() - earliestMessageTime, newAttributesBuilder().build());
             });
 
-        if (messageStore.getMessageStoreConfig().isTimerWheelEnable()) {
+        if (messageStore.getMessageStoreConfig().getEnableTimerMessageOnRocksDB()) {
+            // TODO add timer metrics
+        } else if (messageStore.getMessageStoreConfig().isTimerWheelEnable()) {
             timerEnqueueLag = meter.gaugeBuilder(GAUGE_TIMER_ENQUEUE_LAG)
                 .setDescription("Timer enqueue messages lag")
                 .ofLongs()

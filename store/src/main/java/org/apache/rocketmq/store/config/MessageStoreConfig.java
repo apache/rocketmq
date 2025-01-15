@@ -478,6 +478,12 @@ public class MessageStoreConfig {
      */
     private int readCountTimerOnRocksDB = -1;
 
+    /**
+     * When enabled, the scheduled task is started.
+     * if time wheel is enabled, the time wheel only the correct ones are supported
+     * The message will be written to rocksdb.
+     * Close the time wheel when the file timing message is 0
+     */
     private boolean enableTimerMessageOnRocksDB = false;
 
     public boolean isRocksdbCQDoubleWriteEnable() {

@@ -2692,7 +2692,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         runtimeInfo.put("earliestMessageTimeStamp", String.valueOf(this.brokerController.getMessageStore().getEarliestMessageTime()));
         runtimeInfo.put("startAcceptSendRequestTimeStamp", String.valueOf(this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp()));
 
-        if (this.brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
+        if (this.brokerController.getMessageStoreConfig().getEnableTimerMessageOnRocksDB()) {
+            // TODO
+        } else if (this.brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
             runtimeInfo.put("timerReadBehind", String.valueOf(this.brokerController.getMessageStore().getTimerMessageStore().getDequeueBehind()));
             runtimeInfo.put("timerOffsetBehind", String.valueOf(this.brokerController.getMessageStore().getTimerMessageStore().getEnqueueBehindMessages()));
             runtimeInfo.put("timerCongestNum", String.valueOf(this.brokerController.getMessageStore().getTimerMessageStore().getAllCongestNum()));

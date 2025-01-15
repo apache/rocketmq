@@ -302,7 +302,8 @@ public class TimerMessageRocksDBStore {
                     if (delayTime < System.currentTimeMillis()) {
                         expired.add(tr);
                     } else {
-                        increase.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
+                        tr.setDelayTime(delayTime / precisionMs % slotSize);
+                        increase.computeIfAbsent(delayTime / precisionMs % slotSize, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
                     }
                 }
             }
@@ -420,7 +421,7 @@ public class TimerMessageRocksDBStore {
 
     private class TimerGetMessageService extends ServiceThread {
         private final byte[] columnFamily;
-        private int checkpoint;
+        private long checkpoint;
 
         public TimerGetMessageService(byte[] columnFamily) {
             this.columnFamily = columnFamily;
@@ -440,7 +441,7 @@ public class TimerMessageRocksDBStore {
                     if (-1 == dequeue(checkpoint, columnFamily)) {
                         waitForRunning(100L * precisionMs / 1000);
                     } else {
-                        checkpoint++;
+                        checkpoint += precisionMs;
                     }
                 } catch (Throwable e) {
                     log.error("Error occurred in " + getServiceName(), e);
@@ -452,11 +453,11 @@ public class TimerMessageRocksDBStore {
 
     private class TimerWarmService extends ServiceThread {
         private final byte[] columnFamily;
-        private int checkpoint;
+        private long checkpoint;
 
         public TimerWarmService(byte[] columnFamily) {
             this.columnFamily = columnFamily;
-            this.checkpoint = timerMessageKVStore.getCheckpoint(columnFamily);
+            checkpoint = System.currentTimeMillis() + precisionMs;
         }
 
         @Override
@@ -473,7 +474,7 @@ public class TimerMessageRocksDBStore {
                     if (-1 == checkpoint) {
                         waitForRunning(100L * precisionMs / 1000);
                     } else {
-                        this.checkpoint = checkpoint;
+                        this.checkpoint += precisionMs;
                     }
                 } catch (Throwable e) {
                     log.error("Error occurred in " + getServiceName(), e);
@@ -559,30 +560,32 @@ public class TimerMessageRocksDBStore {
         return null;
     }
 
-    private int dequeue(int checkpoint, byte[] columnFamily) throws InterruptedException {
-        if (checkpoint < System.currentTimeMillis() / precisionMs % slotSize) {
+    private int dequeue(long checkpoint, byte[] columnFamily) throws InterruptedException {
+        if (checkpoint > System.currentTimeMillis() / precisionMs % slotSize) {
             return -1;
         }
+        int slot = (int) (checkpoint / precisionMs % slotSize);
 
-        List<TimerMessageRecord> timerMessageRecords = timerMessageKVStore.scanRecords(columnFamily, checkpoint, checkpoint + 1);
+        List<TimerMessageRecord> timerMessageRecords = timerMessageKVStore.scanRecords(columnFamily, slot, slot + 1);
         while (!dequeueGetQueue.offer(timerMessageRecords, 3, TimeUnit.SECONDS)) {}
-        addMetric(checkpoint, -timerMessageRecords.size());
+        addMetric(slot, -timerMessageRecords.size());
         return 0;
     }
 
-    private int warm(int checkpoint, byte[] columnFamily) {
+    private int warm(long checkpoint, byte[] columnFamily) {
         if (!storeConfig.isTimerWarmEnable()) {
             return -1;
         }
-        if (checkpoint < System.currentTimeMillis() / precisionMs % slotSize + 1) {
-            checkpoint = (int) (System.currentTimeMillis() / precisionMs % slotSize + 1);
+        if (checkpoint < System.currentTimeMillis() + precisionMs) {
+            checkpoint = System.currentTimeMillis() + precisionMs;
         }
-        if (checkpoint >= System.currentTimeMillis() / precisionMs % slotSize + 3) {
+        if (checkpoint >= System.currentTimeMillis() + 3L * precisionMs) {
             return -1;
         }
 
-        timerMessageKVStore.scanRecords(columnFamily, checkpoint, checkpoint + 1);
-        return checkpoint + 1;
+        int slot = (int) (checkpoint / precisionMs % slotSize);
+        timerMessageKVStore.scanRecords(columnFamily, slot, slot + 1);
+        return 0;
     }
 
     private MessageExtBrokerInner convert(MessageExt messageExt, boolean needRoll) {
@@ -687,5 +690,29 @@ public class TimerMessageRocksDBStore {
 
     private void addMetric(int delayTime, int value) {
         timerMetrics.updateDistPair(delayTime, value);
+    }
+
+    public TimerMetrics getTimerMetrics() {
+        return this.timerMetrics;
+    }
+
+    public long getDequeueBehind() {
+        return 0;
+    }
+
+    public long getEnqueueBehindMessages() {
+        return 0;
+    }
+
+    public long getAllCongestNum() {
+        return 0;
+    }
+
+    public long getEnqueueTps() {
+        return 0;
+    }
+
+    public long getDequeueTps() {
+        return 0;
     }
 }
