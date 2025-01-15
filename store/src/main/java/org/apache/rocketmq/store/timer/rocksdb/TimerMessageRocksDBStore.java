@@ -113,6 +113,9 @@ public class TimerMessageRocksDBStore {
         this.readCount = storeConfig.getReadCountTimerOnRocksDB();
         this.timerMessageKVStore = new TimerMessageRocksDBStorage(Paths.get(
             storeConfig.getStorePathRootDir(), ROCKSDB_DIRECTORY).toString());
+
+        this.timerGetMessageServices = new ArrayList<>();
+        this.timerWarmServices = new ArrayList<>();
     }
 
     public boolean load() {
@@ -127,6 +130,7 @@ public class TimerMessageRocksDBStore {
         if (state == RUNNING) {
             return;
         }
+        this.commitOffset = timerMessageKVStore.getCommitOffset();
         this.timerEnqueueGetService.start();
         this.timerEnqueuePutService.start();
         this.timerDequeueGetService.start();
@@ -198,7 +202,6 @@ public class TimerMessageRocksDBStore {
             this.dequeuePutQueue = new LinkedBlockingDeque<>(DEFAULT_CAPACITY);
             this.dequeueGetQueue = new LinkedBlockingDeque<>(DEFAULT_CAPACITY);
         }
-        this.commitOffset = timerMessageKVStore.getCommitOffset();
     }
 
     private void calcTimerDistribution() {
@@ -298,6 +301,9 @@ public class TimerMessageRocksDBStore {
             List<TimerMessageRecord> trs = fetchTimerMessageRecord();
             List<TimerMessageRecord> expired = new ArrayList<>();
 
+            if (null == trs) {
+                return;
+            }
             for (TimerMessageRecord tr : trs) {
                 long delayTime = tr.getDelayTime();
                 int flag = tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_FLAG) == null ?
@@ -435,7 +441,6 @@ public class TimerMessageRocksDBStore {
 
         public TimerGetMessageService(byte[] columnFamily) {
             this.columnFamily = columnFamily;
-            this.checkpoint = timerMessageKVStore.getCheckpoint(columnFamily);
         }
 
         @Override
@@ -445,6 +450,7 @@ public class TimerMessageRocksDBStore {
 
         @Override
         public void run() {
+            this.checkpoint = timerMessageKVStore.getCheckpoint(columnFamily);
             log.info(this.getServiceName() + " service start");
             while (!this.isStopped()) {
                 try {

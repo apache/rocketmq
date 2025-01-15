@@ -147,7 +147,7 @@ public class SendResult {
     @Override
     public String toString() {
         return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", offsetMsgId=" + offsetMsgId + ", messageQueue=" + messageQueue
-            + ", queueOffset=" + queueOffset + ", recallHandle=" + recallHandle + "]";
+            + ", queueOffset=" + queueOffset + ", recallHandle=" + recallHandle + ", delayTime=" + delayTime + "]";
     }
 
     public void setRawRespBody(byte[] body) {
