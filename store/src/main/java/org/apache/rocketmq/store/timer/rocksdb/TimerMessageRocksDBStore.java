@@ -534,7 +534,7 @@ public class TimerMessageRocksDBStore {
                         TimerMessageRecord timerRequest = new TimerMessageRecord(delayedTime, MessageClientIDSetter.getUniqID(msgExt), offsetPy, sizePy);
                         timerRequest.setMessageExt(msgExt);
 
-                        while(!enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {
+                        while (!enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {
                         }
                         Attributes attributes = DefaultStoreMetricsManager.newAttributesBuilder()
                                 .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
