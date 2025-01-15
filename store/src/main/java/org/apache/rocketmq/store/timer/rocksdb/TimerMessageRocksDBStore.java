@@ -27,6 +27,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.MessageStore;
@@ -271,14 +272,24 @@ public class TimerMessageRocksDBStore {
         }
 
         private void fetchAndPutTimerRequest() throws Exception {
-            Map<Long, Map<Integer, List<TimerMessageRecord>>> map = new HashMap<>();
+            Map<Long, Map<Integer, List<TimerMessageRecord>>> increase = new HashMap<>();
+            Map<Long, Map<Integer, List<TimerMessageRecord>>> delete = new HashMap<>();
             List<TimerMessageRecord> trs = fetchTimerMessageRecord();
 
             for (TimerMessageRecord tr : trs) {
                 long delayTime = tr.getDelayTime();
-                map.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(tr.getFlag(), k -> new ArrayList<>()).add(tr);
+                if (tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null) {
+                    delayTime = Long.parseLong(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_MS));
+                    // Construct original message
+                    tr.setUniqueKey(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
+                    tr.setDelayTime(delayTime);
+                    delete.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(tr.getFlag(), k -> new ArrayList<>()).add(tr);
+                } else {
+                    increase.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(tr.getFlag(), k -> new ArrayList<>()).add(tr);
+                }
             }
-            for (Map.Entry<Long, Map<Integer, List<TimerMessageRecord>>> entry : map.entrySet()) {
+
+            for (Map.Entry<Long, Map<Integer, List<TimerMessageRecord>>> entry : increase.entrySet()) {
                 long delayTime = entry.getKey();
                 for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
                     int tag = entry1.getKey();
@@ -288,6 +299,18 @@ public class TimerMessageRocksDBStore {
                     }
                 }
                 addMetric((int) (delayTime / precisionMs % slotSize), entry.getValue().size());
+            }
+
+            for (Map.Entry<Long, Map<Integer, List<TimerMessageRecord>>> entry : delete.entrySet()) {
+                long delayTime = entry.getKey();
+                for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
+                    int tag = entry1.getKey();
+                    timerMessageKVStore.deleteAssignRecords(getColumnFamily(tag), entry1.getValue(), (int) (delayTime / precisionMs % slotSize));
+                    for (TimerMessageRecord record : entry1.getValue()) {
+                        addMetric(record.getMessageExt(), -1);
+                    }
+                }
+                addMetric((int) (delayTime / precisionMs % slotSize), -entry.getValue().size());
             }
         }
     }
@@ -307,13 +330,16 @@ public class TimerMessageRocksDBStore {
                     if (null == timerMessageRecord || timerMessageRecord.isEmpty()) {
                         continue;
                     }
-
                     for (TimerMessageRecord record : timerMessageRecord) {
                         MessageExt messageExt = getMessageByCommitOffset(record.getOffsetPY(), record.getSizeReal());
                         long delayedTime = Long.parseLong(messageExt.getProperty(TIMER_OUT_MS));
+                        record.setMessageExt(messageExt);
+                        record.setDelayTime(delayedTime);
+                        record.setUniqueKey(MessageClientIDSetter.getUniqID(messageExt));
                         record.setRoll(delayedTime >= System.currentTimeMillis() + precisionMs * 3L);
                         addMetric(messageExt, -1);
                     }
+
                     while (!dequeuePutQueue.offer(timerMessageRecord, 3, TimeUnit.SECONDS)) {}
                 } catch (InterruptedException e) {
                     log.error("Error occurred in " + getServiceName(), e);
@@ -466,13 +492,12 @@ public class TimerMessageRocksDBStore {
                     MessageExt msgExt = getMessageByCommitOffset(offsetPy, sizePy);
 
                     if (null != msgExt) {
-                        // TODO delete msg : use unique key
                         long delayedTime = Long.parseLong(msgExt.getProperty(TIMER_OUT_MS));
                         int flag = msgExt.getFlag();
-                        TimerMessageRecord timerRequest = new TimerMessageRecord(delayedTime, offsetPy, sizePy, flag);
-                        while(!enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {}
+                        TimerMessageRecord timerRequest = new TimerMessageRecord(delayedTime, MessageClientIDSetter.getUniqID(msgExt), offsetPy, sizePy, flag);
                         timerRequest.setMessageExt(msgExt);
 
+                        while(!enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {}
                         Attributes attributes = DefaultStoreMetricsManager.newAttributesBuilder()
                                 .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
                         DefaultStoreMetricsManager.timerMessageSetLatency.record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
@@ -523,8 +548,7 @@ public class TimerMessageRocksDBStore {
 
         List<TimerMessageRecord> timerMessageRecords = timerMessageKVStore.scanRecords(columnFamily, checkpoint, checkpoint + 1);
         while (!dequeueGetQueue.offer(timerMessageRecords, 3, TimeUnit.SECONDS)) {}
-        timerMessageKVStore.deleteAssignRecords(columnFamily, timerMessageRecords, checkpoint);
-        addMetric(checkpoint, timerMessageRecords.size());
+        addMetric(checkpoint, -timerMessageRecords.size());
         return 0;
     }
 

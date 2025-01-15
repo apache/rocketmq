@@ -249,6 +249,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
         try (WriteBatch writeBatch = new WriteBatch()) {
             // sync checkpoint
             writeBatch.put(RocksDB.DEFAULT_COLUMN_FAMILY, ByteBuffer.allocate(8).putLong(upperTime).array());
+            deleteAssignRecords(columnFamily, records, (int) lowerTime);
             this.db.write(deleteOptions, writeBatch);
         } catch (RocksDBException e) {
             throw new RuntimeException("Delete record error", e);
@@ -275,6 +276,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
         try (WriteBatch writeBatch = new WriteBatch()) {
             // sync checkpoint
             writeBatch.put(columnFamily, ByteBuffer.allocate(8).putLong(upperTime).array());
+            deleteAssignRecords(columnFamily, records, (int) lowerTime);
             this.db.write(deleteOptions, writeBatch);
         } catch (RocksDBException e) {
             throw new RuntimeException("Delete record error", e);

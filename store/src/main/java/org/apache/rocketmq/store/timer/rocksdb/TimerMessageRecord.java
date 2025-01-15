@@ -20,25 +20,26 @@ import com.alibaba.fastjson.annotation.JSONField;
 import org.apache.rocketmq.common.message.MessageExt;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 public class TimerMessageRecord {
-    // key: delayTime + offsetPY
+    // key: delayTime + uniqueKey
     private long delayTime;
-    private long offsetPY;
+    private String uniqueKey;
     private int flag;
     private MessageExt messageExt;
     private boolean roll;
-    // value: sizeReal
+    // value: sizeReal + offsetPY
     private int sizeReal;
-
-    private final static int keyLength = Long.BYTES + Long.BYTES;
-    private final static int valueLength = Integer.BYTES;
+    private long offsetPY;
+    private final static int valueLength = Integer.BYTES + Long.BYTES;
 
     public TimerMessageRecord() {
     }
 
-    public TimerMessageRecord(long delayTime, long offsetPY, int sizeReal, int flag) {
+    public TimerMessageRecord(long delayTime, String uniqueKey, long offsetPY, int sizeReal, int flag) {
         this.delayTime = delayTime;
+        this.uniqueKey = uniqueKey;
         this.offsetPY = offsetPY;
         this.sizeReal = sizeReal;
         this.flag = flag;
@@ -46,9 +47,11 @@ public class TimerMessageRecord {
 
     @JSONField(serialize = false)
     public byte[] getKeyBytes() {
+        int keyLength = Long.BYTES + uniqueKey.length();
         byte[] keyBytes = new byte[keyLength];
         ByteBuffer buffer = ByteBuffer.wrap(keyBytes);
         buffer.putLong(this.getDelayTime()).putLong(this.getOffsetPY());
+        buffer.put(uniqueKey.getBytes(StandardCharsets.UTF_8));
         return keyBytes;
     }
 
@@ -57,15 +60,15 @@ public class TimerMessageRecord {
         byte[] valueBytes = new byte[valueLength];
         ByteBuffer buffer = ByteBuffer.wrap(valueBytes);
         buffer.putInt(this.getSizeReal());
+        buffer.putLong(this.getOffsetPY());
         return valueBytes;
     }
 
     public static TimerMessageRecord decode(byte[] body) {
         TimerMessageRecord timerMessageRecord = new TimerMessageRecord();
         ByteBuffer buffer = ByteBuffer.wrap(body);
-        timerMessageRecord.setDelayTime(buffer.getLong());
-        timerMessageRecord.setOffsetPY(buffer.getLong());
         timerMessageRecord.setSizeReal(buffer.getInt());
+        timerMessageRecord.setOffsetPY(buffer.getLong());
         return timerMessageRecord;
     }
 
@@ -115,6 +118,14 @@ public class TimerMessageRecord {
 
     public void setMessageExt(MessageExt messageExt) {
         this.messageExt = messageExt;
+    }
+
+    public String getUniqueKey() {
+        return uniqueKey;
+    }
+
+    public void setUniqueKey(String uniqueKey) {
+        this.uniqueKey = uniqueKey;
     }
 
     @Override
