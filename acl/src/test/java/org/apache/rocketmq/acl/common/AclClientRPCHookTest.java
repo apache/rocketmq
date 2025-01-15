@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class AclClientRPCHookTest {
     protected ConcurrentHashMap<Class<? extends CommandCustomHeader>, Field[]> fieldCache =
         new ConcurrentHashMap<>();
-    private AclClientRPCHook aclClientRPCHook = new AclClientRPCHook(null);
+    private AclClientRPCHook aclClientRPCHook = new AclClientRPCHook((SessionCredentials) null);
 
     @Test
     public void testParseRequestContent() {
