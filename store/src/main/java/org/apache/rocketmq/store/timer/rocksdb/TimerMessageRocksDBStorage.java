@@ -202,7 +202,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
     @Override
     public void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, int timestamp) {
-        ColumnFamilyHandle deleteCfHandle = getColumnFamily(columnFamily);;
+        ColumnFamilyHandle deleteCfHandle = getColumnFamily(columnFamily);
 
         if (deleteCfHandle != null && !consumerRecordList.isEmpty()) {
             try (WriteBatch writeBatch = new WriteBatch()) {

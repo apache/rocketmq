@@ -324,7 +324,8 @@ public class TimerMessageRocksDBStore {
                 }
             }
 
-            while (!expired.isEmpty() && !dequeueGetQueue.offer(expired, 100, TimeUnit.MILLISECONDS)) {}
+            while (!expired.isEmpty() && !dequeueGetQueue.offer(expired, 100, TimeUnit.MILLISECONDS)) {
+            }
             for (Map.Entry<Long, Map<Integer, List<TimerMessageRecord>>> entry : increase.entrySet()) {
                 long delayTime = entry.getKey();
                 for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
@@ -376,7 +377,8 @@ public class TimerMessageRocksDBStore {
                         addMetric(messageExt, -1);
                     }
 
-                    while (!dequeuePutQueue.offer(timerMessageRecord, 3, TimeUnit.SECONDS)) {}
+                    while (!dequeuePutQueue.offer(timerMessageRecord, 3, TimeUnit.SECONDS)) {
+                    }
                 } catch (InterruptedException e) {
                     log.error("Error occurred in " + getServiceName(), e);
                 }
@@ -532,7 +534,8 @@ public class TimerMessageRocksDBStore {
                         TimerMessageRecord timerRequest = new TimerMessageRecord(delayedTime, MessageClientIDSetter.getUniqID(msgExt), offsetPy, sizePy);
                         timerRequest.setMessageExt(msgExt);
 
-                        while(!enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {}
+                        while(!enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {
+                        }
                         Attributes attributes = DefaultStoreMetricsManager.newAttributesBuilder()
                                 .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
                         DefaultStoreMetricsManager.timerMessageSetLatency.record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
@@ -583,7 +586,8 @@ public class TimerMessageRocksDBStore {
         int slot = (int) (checkpoint / precisionMs % slotSize);
 
         List<TimerMessageRecord> timerMessageRecords = timerMessageKVStore.scanRecords(columnFamily, slot, slot + 1);
-        while (!dequeueGetQueue.offer(timerMessageRecords, 3, TimeUnit.SECONDS)) {}
+        while (!dequeueGetQueue.offer(timerMessageRecords, 3, TimeUnit.SECONDS)) {
+        }
         addMetric(slot, -timerMessageRecords.size());
         return 0;
     }

@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.store.timer.rocksdb;
 
-import com.alibaba.fastjson.annotation.JSONField;
 import org.apache.rocketmq.common.message.MessageExt;
 
 import java.nio.ByteBuffer;
@@ -35,7 +34,7 @@ public class TimerMessageRecord {
     // value: sizeReal + offsetPY
     private int sizeReal;
     private long offsetPY;
-    private final static int valueLength = Integer.BYTES + Long.BYTES;
+    private final static int VALUE_LENGTH = Integer.BYTES + Long.BYTES;
 
     public TimerMessageRecord() {
     }
@@ -47,9 +46,9 @@ public class TimerMessageRecord {
         this.sizeReal = sizeReal;
     }
 
-    @JSONField(serialize = false)
     public byte[] getKeyBytes() {
-        int keyLength = Long.BYTES + uniqueKey.length();
+        byte[] value = uniqueKey.getBytes(StandardCharsets.UTF_8);
+        int keyLength = Long.BYTES + value.length;
         byte[] keyBytes = new byte[keyLength];
         ByteBuffer buffer = ByteBuffer.wrap(keyBytes);
         buffer.putLong(this.getDelayTime()).putLong(this.getOffsetPY());
@@ -57,9 +56,8 @@ public class TimerMessageRecord {
         return keyBytes;
     }
 
-    @JSONField(serialize = false)
     public byte[] getValueBytes() {
-        byte[] valueBytes = new byte[valueLength];
+        byte[] valueBytes = new byte[VALUE_LENGTH];
         ByteBuffer buffer = ByteBuffer.wrap(valueBytes);
         buffer.putInt(this.getSizeReal());
         buffer.putLong(this.getOffsetPY());

@@ -474,7 +474,7 @@ public class MessageStoreConfig {
 
     /**
      * Maximum number of messages to be read each time
-     * -1 ： read all messages
+     * -1 : read all messages
      */
     private int readCountTimerOnRocksDB = -1;
 

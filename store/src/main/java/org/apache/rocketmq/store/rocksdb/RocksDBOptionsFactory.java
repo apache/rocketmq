@@ -246,7 +246,7 @@ public class RocksDBOptionsFactory {
                 .setCacheIndexAndFilterBlocksWithHighPriority(true)
                 .setPinL0FilterAndIndexBlocksInCache(false)
                 .setPinTopLevelIndexAndFilter(true)
-                .setBlockCache(new LRUCache(64 * SizeUnit.MB, 8, false)) // 调整缓存大小为 512 MB
+                .setBlockCache(new LRUCache(64 * SizeUnit.MB, 8, false))
                 .setWholeKeyFiltering(true);
 
         CompactionOptionsUniversal compactionOption = new CompactionOptionsUniversal()
