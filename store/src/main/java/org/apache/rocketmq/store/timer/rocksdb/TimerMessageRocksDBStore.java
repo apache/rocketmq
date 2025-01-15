@@ -53,6 +53,8 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRecord.TIMER_MESSAGE_POP_FLAG;
 import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRecord.TIMER_MESSAGE_TRANSACTION_FLAG;
@@ -96,6 +98,7 @@ public class TimerMessageRocksDBStore {
     private BlockingQueue<List<TimerMessageRecord>> dequeueGetQueue;
     private BlockingQueue<List<TimerMessageRecord>> dequeuePutQueue;
 
+    ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     private long commitOffset;
 
     public TimerMessageRocksDBStore(final MessageStore messageStore, final MessageStoreConfig storeConfig,
@@ -137,14 +140,21 @@ public class TimerMessageRocksDBStore {
         for (TimerDequeuePutService timerDequeuePutService : timerDequeuePutServices) {
             timerDequeuePutService.start();
         }
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                timerMetrics.persist();
+            }
+        }, storeConfig.getTimerFlushIntervalMs(), storeConfig.getTimerFlushIntervalMs(), TimeUnit.MILLISECONDS);
         state = RUNNING;
     }
 
     public void shutdown() {
-        if (state == SHUTDOWN) {
+        if (state != RUNNING || state == SHUTDOWN) {
             return;
         }
         state = SHUTDOWN;
+
         this.timerEnqueueGetService.shutdown();
         this.timerEnqueuePutService.shutdown();
         this.timerDequeueGetService.shutdown();
