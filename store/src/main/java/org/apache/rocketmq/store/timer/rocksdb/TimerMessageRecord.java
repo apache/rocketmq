@@ -23,10 +23,13 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public class TimerMessageRecord {
+    public final static int TIMER_MESSAGE_DEFAULT_FLAG = 0;
+    public final static int TIMER_MESSAGE_TRANSACTION_FLAG = 1;
+    public final static int TIMER_MESSAGE_POP_FLAG = 2;
+
     // key: delayTime + uniqueKey
     private long delayTime;
     private String uniqueKey;
-    private int flag;
     private MessageExt messageExt;
     private boolean roll;
     // value: sizeReal + offsetPY
@@ -37,12 +40,11 @@ public class TimerMessageRecord {
     public TimerMessageRecord() {
     }
 
-    public TimerMessageRecord(long delayTime, String uniqueKey, long offsetPY, int sizeReal, int flag) {
+    public TimerMessageRecord(long delayTime, String uniqueKey, long offsetPY, int sizeReal) {
         this.delayTime = delayTime;
         this.uniqueKey = uniqueKey;
         this.offsetPY = offsetPY;
         this.sizeReal = sizeReal;
-        this.flag = flag;
     }
 
     @JSONField(serialize = false)
@@ -94,14 +96,6 @@ public class TimerMessageRecord {
 
     public long getOffsetPY() {
         return offsetPY;
-    }
-
-    public int getFlag() {
-        return flag;
-    }
-
-    public void setFlag(int flag) {
-        this.flag = flag;
     }
 
     public boolean isRoll() {

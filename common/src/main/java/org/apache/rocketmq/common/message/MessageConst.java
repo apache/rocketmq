@@ -96,6 +96,7 @@ public class MessageConst {
     public static final String PROPERTY_TIMER_OUT_MS = "TIMER_OUT_MS";
     public static final String PROPERTY_TIMER_DEL_UNIQKEY = "TIMER_DEL_UNIQKEY";
     public static final String PROPERTY_TIMER_DEL_MS = "TIMER_DEL_MS";
+    public static final String PROPERTY_TIMER_DEL_FLAG = "TIMER_DEL_FLAG";
     public static final String PROPERTY_TIMER_DELAY_LEVEL = "TIMER_DELAY_LEVEL";
     public static final String PROPERTY_TIMER_DELAY_MS = "TIMER_DELAY_MS";
     public static final String PROPERTY_CRC32 = "__CRC32#";
@@ -153,6 +154,7 @@ public class MessageConst {
         STRING_HASH_SET.add(PROPERTY_TIMER_OUT_MS);
         STRING_HASH_SET.add(PROPERTY_TIMER_DEL_UNIQKEY);
         STRING_HASH_SET.add(PROPERTY_TIMER_DEL_MS);
+        STRING_HASH_SET.add(PROPERTY_TIMER_DEL_FLAG);
         STRING_HASH_SET.add(PROPERTY_TIMER_DELAY_LEVEL);
         STRING_HASH_SET.add(PROPERTY_BORN_HOST);
         STRING_HASH_SET.add(PROPERTY_BORN_TIMESTAMP);

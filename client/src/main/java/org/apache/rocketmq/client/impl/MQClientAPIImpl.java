@@ -856,6 +856,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
         sendResult.setTransactionId(responseHeader.getTransactionId());
         sendResult.setRecallHandle(responseHeader.getRecallHandle());
+        sendResult.setDelayTime(responseHeader.getDelayTime());
         String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
         if (regionId == null || regionId.isEmpty()) {
             regionId = MixAll.DEFAULT_TRACE_REGION_ID;

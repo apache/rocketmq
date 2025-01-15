@@ -40,6 +40,7 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMetrics;
+import org.rocksdb.RocksDB;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +53,11 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.LinkedBlockingDeque;
+
+import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRecord.TIMER_MESSAGE_POP_FLAG;
+import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRecord.TIMER_MESSAGE_TRANSACTION_FLAG;
+import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStorage.POP_COLUMN_FAMILY;
+import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStorage.TRANSACTION_COLUMN_FAMILY;
 
 public class TimerMessageRocksDBStore {
     private final static Logger log = LoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -206,8 +212,13 @@ public class TimerMessageRocksDBStore {
     }
 
     private byte[] getColumnFamily(int flag) {
-        // TODO
-        return null;
+        if (flag == TIMER_MESSAGE_TRANSACTION_FLAG) {
+            return TRANSACTION_COLUMN_FAMILY;
+        } else if (flag == TIMER_MESSAGE_POP_FLAG) {
+            return POP_COLUMN_FAMILY;
+        } else {
+            return RocksDB.DEFAULT_COLUMN_FAMILY;
+        }
     }
 
     private class TimerEnqueueGetService extends ServiceThread {
@@ -275,20 +286,28 @@ public class TimerMessageRocksDBStore {
             Map<Long, Map<Integer, List<TimerMessageRecord>>> increase = new HashMap<>();
             Map<Long, Map<Integer, List<TimerMessageRecord>>> delete = new HashMap<>();
             List<TimerMessageRecord> trs = fetchTimerMessageRecord();
+            List<TimerMessageRecord> expired = new ArrayList<>();
 
             for (TimerMessageRecord tr : trs) {
                 long delayTime = tr.getDelayTime();
+                int flag = tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_FLAG) == null ?
+                    0 : Integer.parseInt(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_FLAG));
                 if (tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null) {
                     delayTime = Long.parseLong(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_MS));
                     // Construct original message
                     tr.setUniqueKey(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
                     tr.setDelayTime(delayTime);
-                    delete.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(tr.getFlag(), k -> new ArrayList<>()).add(tr);
+                    delete.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
                 } else {
-                    increase.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(tr.getFlag(), k -> new ArrayList<>()).add(tr);
+                    if (delayTime < System.currentTimeMillis()) {
+                        expired.add(tr);
+                    } else {
+                        increase.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
+                    }
                 }
             }
 
+            while (!expired.isEmpty() && !dequeueGetQueue.offer(expired, 100, TimeUnit.MILLISECONDS)) {}
             for (Map.Entry<Long, Map<Integer, List<TimerMessageRecord>>> entry : increase.entrySet()) {
                 long delayTime = entry.getKey();
                 for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
@@ -493,8 +512,7 @@ public class TimerMessageRocksDBStore {
 
                     if (null != msgExt) {
                         long delayedTime = Long.parseLong(msgExt.getProperty(TIMER_OUT_MS));
-                        int flag = msgExt.getFlag();
-                        TimerMessageRecord timerRequest = new TimerMessageRecord(delayedTime, MessageClientIDSetter.getUniqID(msgExt), offsetPy, sizePy, flag);
+                        TimerMessageRecord timerRequest = new TimerMessageRecord(delayedTime, MessageClientIDSetter.getUniqID(msgExt), offsetPy, sizePy);
                         timerRequest.setMessageExt(msgExt);
 
                         while(!enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {}

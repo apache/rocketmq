@@ -30,6 +30,7 @@ public class SendResult {
     private boolean traceOn = true;
     private byte[] rawRespBody;
     private String recallHandle;
+    private long delayTime;
 
     public SendResult() {
     }
@@ -133,6 +134,14 @@ public class SendResult {
 
     public void setRecallHandle(String recallHandle) {
         this.recallHandle = recallHandle;
+    }
+
+    public long getDelayTime() {
+        return delayTime;
+    }
+
+    public void setDelayTime(long delayTime) {
+        this.delayTime = delayTime;
     }
 
     @Override
