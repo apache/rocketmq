@@ -186,12 +186,13 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void deleteDefaultRecords(List<TimerMessageRecord> consumerRecordList, int timestamp) {
+    public void deleteDefaultRecords(List<TimerMessageRecord> consumerRecordList, int timestamp, long offset) {
         if (!consumerRecordList.isEmpty()) {
             try (WriteBatch writeBatch = new WriteBatch()) {
                 for (TimerMessageRecord record : consumerRecordList) {
                     writeBatch.delete(defaultCFHandle, record.getKeyBytes());
                 }
+                writeBatch.put(TIMER_OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
                 syncMetric(timestamp / 100, - consumerRecordList.size(), writeBatch);
                 this.db.write(deleteOptions, writeBatch);
             } catch (RocksDBException e) {
@@ -201,7 +202,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, int timestamp) {
+    public void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, int timestamp, long offset) {
         ColumnFamilyHandle deleteCfHandle = getColumnFamily(columnFamily);
 
         if (deleteCfHandle != null && !consumerRecordList.isEmpty()) {
@@ -209,6 +210,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
                 for (TimerMessageRecord record : consumerRecordList) {
                     writeBatch.delete(deleteCfHandle, record.getKeyBytes());
                 }
+                writeBatch.put(TIMER_OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
                 syncMetric(timestamp / 100, - consumerRecordList.size(), writeBatch);
                 this.db.write(deleteOptions, writeBatch);
             } catch (RocksDBException e) {

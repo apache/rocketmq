@@ -99,7 +99,7 @@ public class TimerMessageRocksDBStore {
     private BlockingQueue<List<TimerMessageRecord>> dequeuePutQueue;
 
     ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-    private long commitOffset;
+    private volatile long commitOffset;
 
     public TimerMessageRocksDBStore(final MessageStore messageStore, final MessageStoreConfig storeConfig,
         TimerMetrics timerMetrics, final BrokerStatsManager brokerStatsManager) {
@@ -342,7 +342,7 @@ public class TimerMessageRocksDBStore {
                 long delayTime = entry.getKey();
                 for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
                     int tag = entry1.getKey();
-                    timerMessageKVStore.deleteAssignRecords(getColumnFamily(tag), entry1.getValue(), (int) delayTime);
+                    timerMessageKVStore.deleteAssignRecords(getColumnFamily(tag), entry1.getValue(), (int) delayTime, commitOffset);
                     for (TimerMessageRecord record : entry1.getValue()) {
                         addMetric(record.getMessageExt(), -1);
                     }

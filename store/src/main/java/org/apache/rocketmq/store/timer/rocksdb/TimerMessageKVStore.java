@@ -59,7 +59,7 @@ public interface TimerMessageKVStore {
      * @param timestamp the key of the timer message metric column family.
      * Default is delete common timer message.
      */
-    void deleteDefaultRecords(List<TimerMessageRecord> consumerRecordList, int timestamp);
+    void deleteDefaultRecords(List<TimerMessageRecord> consumerRecordList, int timestamp, long offset);
 
     /**
      * Delete the timer message records from the timer message kv store.
@@ -67,7 +67,7 @@ public interface TimerMessageKVStore {
      * @param consumerRecordList the list of timer message records to be deleted.
      * @param timestamp the key of the timer message metric column family.
      */
-    void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, int timestamp);
+    void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, int timestamp, long offset);
 
     /**
      * Scan the timer message records from the timer message kv store.
