@@ -304,7 +304,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     public long getCheckpoint(byte[] columnFamily) {
         try {
             byte[] checkpointBytes = db.get(columnFamily);
-            return checkpointBytes == null ? 0 : ByteBuffer.wrap(checkpointBytes).getLong();
+            return checkpointBytes == null ? System.currentTimeMillis() : ByteBuffer.wrap(checkpointBytes).getLong();
         } catch (RocksDBException e) {
             throw new RuntimeException("Get checkpoint error", e);
         }

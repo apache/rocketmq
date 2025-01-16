@@ -659,7 +659,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         if (timestampStr != null && realTopic != null && !realTopic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
             timestampStr = String.valueOf(Long.parseLong(timestampStr) + 1); // consider of floor
             String recallHandle = RecallMessageHandle.HandleV1.buildHandle(realTopic,
-                brokerController.getBrokerConfig().getBrokerName(), timestampStr, MessageClientIDSetter.getUniqID(msg));
+                brokerController.getBrokerConfig().getBrokerName(), timestampStr, MessageClientIDSetter.getUniqID(msg), responseHeader.getDelayTime());
             responseHeader.setRecallHandle(recallHandle);
         }
 
