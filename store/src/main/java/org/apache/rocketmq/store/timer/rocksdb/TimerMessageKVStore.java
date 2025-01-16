@@ -76,7 +76,7 @@ public interface TimerMessageKVStore {
      * @param upperTime the upper time of the timer message records to be scanned.
      * @return the list of timer message records.
      */
-    List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime);
+    List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime, long timestamp);
 
     /**
      * Scan the expired timer message records from the timer message kv store.
