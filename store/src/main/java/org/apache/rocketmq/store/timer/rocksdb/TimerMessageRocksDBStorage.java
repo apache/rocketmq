@@ -244,15 +244,9 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());
             while (iterator.isValid()) {
                 records.add(TimerMessageRecord.decode(iterator.value()));
+                db.delete(cfHandle, iterator.key());
                 iterator.next();
             }
-        }
-
-        try (WriteBatch writeBatch = new WriteBatch()) {
-            // sync checkpoint
-            writeBatch.put(RocksDB.DEFAULT_COLUMN_FAMILY, ByteBuffer.allocate(8).putLong(timestamp).array());
-            deleteAssignRecords(columnFamily, records, (int) lowerTime);
-            this.db.write(deleteOptions, writeBatch);
         } catch (RocksDBException e) {
             throw new RuntimeException("Delete record error", e);
         }

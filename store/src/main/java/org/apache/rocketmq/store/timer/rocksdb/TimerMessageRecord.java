@@ -30,7 +30,7 @@ public class TimerMessageRecord {
     private long delayTime;
     private String uniqueKey;
     private MessageExt messageExt;
-    private boolean roll;
+    private boolean roll = false;
     // value: sizeReal + offsetPY
     private int sizeReal;
     private long offsetPY;

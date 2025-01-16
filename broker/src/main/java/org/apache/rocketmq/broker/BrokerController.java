@@ -847,9 +847,9 @@ public class BrokerController {
                 this.timerMessageRocksDBStore = new TimerMessageRocksDBStore(messageStore, messageStoreConfig, timerMetrics, brokerStatsManager);
                 if (this.messageStoreConfig.isTimerWheelEnable()) {
                     this.messageStoreConfig.setTimerStopEnqueue(true);
-                    this.timerMessageRocksDBStore.createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);
                 }
                 this.messageStore.setTimerMessageRocksDBStore(this.timerMessageRocksDBStore);
+                this.timerMessageRocksDBStore.createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);
                 this.timerMessageRocksDBStore.createTimer(TimerMessageRocksDBStorage.POP_COLUMN_FAMILY);
                 this.timerMessageRocksDBStore.createTimer(TimerMessageRocksDBStorage.TRANSACTION_COLUMN_FAMILY);
             }
