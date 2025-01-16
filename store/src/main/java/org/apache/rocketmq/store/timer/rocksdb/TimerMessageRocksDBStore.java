@@ -361,7 +361,7 @@ public class TimerMessageRocksDBStore {
         @Override
         public void run() {
             TimerMessageRocksDBStore.log.info(this.getServiceName() + " service start");
-            while (!this.isStopped()) {
+            while (!this.isStopped() || !dequeueGetQueue.isEmpty()) {
                 try {
                     List<TimerMessageRecord> timerMessageRecord = dequeueGetQueue.poll(100L * precisionMs / 1000, TimeUnit.MILLISECONDS);
                     if (null == timerMessageRecord || timerMessageRecord.isEmpty()) {
@@ -396,7 +396,7 @@ public class TimerMessageRocksDBStore {
         @Override
         public void run() {
             TimerMessageRocksDBStore.log.info(this.getServiceName() + " service start");
-            while (!this.isStopped()) {
+            while (!this.isStopped() || !dequeuePutQueue.isEmpty()) {
                 try {
                     List<TimerMessageRecord> timerMessageRecord = dequeuePutQueue.poll(100L * precisionMs / 1000, TimeUnit.MILLISECONDS);
                     if (null == timerMessageRecord || timerMessageRecord.isEmpty()) {
