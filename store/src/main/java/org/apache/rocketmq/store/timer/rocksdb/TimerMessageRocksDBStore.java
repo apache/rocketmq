@@ -242,17 +242,17 @@ public class TimerMessageRocksDBStore {
 
         @Override
         public void run() {
-            log.info(this.getServiceName() + " service start");
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service start");
             while (!this.isStopped()) {
                 try {
                     if (!enqueue(0)) {
                         waitForRunning(100L * precisionMs / 1000);
                     }
                 } catch (Throwable e) {
-                    log.error("Error occurred in " + getServiceName(), e);
+                    TimerMessageRocksDBStore.log.error("Error occurred in " + getServiceName(), e);
                 }
             }
-            log.info(this.getServiceName() + " service end");
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service end");
         }
     }
 
@@ -264,15 +264,15 @@ public class TimerMessageRocksDBStore {
 
         @Override
         public void run() {
-            log.info(this.getServiceName() + " service start");
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service start");
             while (!this.isStopped() || !enqueuePutQueue.isEmpty()) {
                 try {
                     fetchAndPutTimerRequest();
                 } catch (Throwable e) {
-                    log.error("Unknown error", e);
+                    TimerMessageRocksDBStore.log.error("Unknown error", e);
                 }
             }
-            log.info(this.getServiceName() + " service end");
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service end");
         }
 
         private List<TimerMessageRecord> fetchTimerMessageRecord() throws InterruptedException {
@@ -315,7 +315,7 @@ public class TimerMessageRocksDBStore {
                     tr.setDelayTime(delayTime);
                     delete.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
                 } else {
-                    if (delayTime < System.currentTimeMillis()) {
+                    if (delayTime <= System.currentTimeMillis()) {
                         expired.add(tr);
                     } else {
                         tr.setDelayTime(delayTime / precisionMs % slotSize);
@@ -330,24 +330,24 @@ public class TimerMessageRocksDBStore {
                 long delayTime = entry.getKey();
                 for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
                     int tag = entry1.getKey();
-                    timerMessageKVStore.writeAssignRecords(getColumnFamily(tag), entry1.getValue(), commitOffset, (int) (delayTime / precisionMs % slotSize));
+                    timerMessageKVStore.writeAssignRecords(getColumnFamily(tag), entry1.getValue(), commitOffset, (int) delayTime);
                     for (TimerMessageRecord record : entry1.getValue()) {
                         addMetric(record.getMessageExt(), 1);
                     }
                 }
-                addMetric((int) (delayTime / precisionMs % slotSize), entry.getValue().size());
+                addMetric((int) delayTime, entry.getValue().size());
             }
 
             for (Map.Entry<Long, Map<Integer, List<TimerMessageRecord>>> entry : delete.entrySet()) {
                 long delayTime = entry.getKey();
                 for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
                     int tag = entry1.getKey();
-                    timerMessageKVStore.deleteAssignRecords(getColumnFamily(tag), entry1.getValue(), (int) (delayTime / precisionMs % slotSize));
+                    timerMessageKVStore.deleteAssignRecords(getColumnFamily(tag), entry1.getValue(), (int) delayTime);
                     for (TimerMessageRecord record : entry1.getValue()) {
                         addMetric(record.getMessageExt(), -1);
                     }
                 }
-                addMetric((int) (delayTime / precisionMs % slotSize), -entry.getValue().size());
+                addMetric((int) delayTime, -entry.getValue().size());
             }
         }
     }
@@ -360,8 +360,8 @@ public class TimerMessageRocksDBStore {
 
         @Override
         public void run() {
-            log.info(this.getServiceName() + " service start");
-            while (!this.isStopped() && !dequeueGetQueue.isEmpty()) {
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service start");
+            while (!this.isStopped()) {
                 try {
                     List<TimerMessageRecord> timerMessageRecord = dequeueGetQueue.poll(100L * precisionMs / 1000, TimeUnit.MILLISECONDS);
                     if (null == timerMessageRecord || timerMessageRecord.isEmpty()) {
@@ -380,9 +380,10 @@ public class TimerMessageRocksDBStore {
                     while (!dequeuePutQueue.offer(timerMessageRecord, 3, TimeUnit.SECONDS)) {
                     }
                 } catch (InterruptedException e) {
-                    log.error("Error occurred in " + getServiceName(), e);
+                    TimerMessageRocksDBStore.log.error("Error occurred in " + getServiceName(), e);
                 }
             }
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service end");
         }
     }
 
@@ -394,14 +395,13 @@ public class TimerMessageRocksDBStore {
 
         @Override
         public void run() {
-            log.info(this.getServiceName() + " service start");
-            while (!this.isStopped() && !dequeuePutQueue.isEmpty()) {
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service start");
+            while (!this.isStopped()) {
                 try {
                     List<TimerMessageRecord> timerMessageRecord = dequeuePutQueue.poll(100L * precisionMs / 1000, TimeUnit.MILLISECONDS);
                     if (null == timerMessageRecord || timerMessageRecord.isEmpty()) {
                         continue;
                     }
-
                     for (TimerMessageRecord record : timerMessageRecord) {
                         MessageExt msg = record.getMessageExt();
                         MessageExtBrokerInner messageExtBrokerInner = convert(msg, record.isRoll());
@@ -414,26 +414,27 @@ public class TimerMessageRocksDBStore {
                             if (result == PUT_OK) {
                                 processed = true;
                             } else if (result == PUT_NO_RETRY) {
-                                log.warn("Skipping message due to unrecoverable error. Msg: {}", msg);
+                                TimerMessageRocksDBStore.log.warn("Skipping message due to unrecoverable error. Msg: {}", msg);
                                 processed = true;
                             } else {
                                 retryCount++;
                                 // Without enabling TimerEnableRetryUntilSuccess, messages will retry up to 3 times before being discarded
                                 if (!storeConfig.isTimerEnableRetryUntilSuccess() && retryCount >= 3) {
-                                    log.error("Message processing failed after {} retries. Msg: {}", retryCount, msg);
+                                    TimerMessageRocksDBStore.log.error("Message processing failed after {} retries. Msg: {}", retryCount, msg);
                                     processed = true;
                                 } else {
                                     Thread.sleep(500L * precisionMs / 1000);
-                                    log.warn("Retrying to process message. Retry count: {}, Msg: {}", retryCount, msg);
+                                    TimerMessageRocksDBStore.log.warn("Retrying to process message. Retry count: {}, Msg: {}", retryCount, msg);
                                 }
                             }
                         }
                     }
 
                 } catch (InterruptedException e) {
-                    log.error("Error occurred in " + getServiceName(), e);
+                    TimerMessageRocksDBStore.log.error("Error occurred in " + getServiceName(), e);
                 }
             }
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service end");
         }
     }
 
@@ -453,7 +454,7 @@ public class TimerMessageRocksDBStore {
         @Override
         public void run() {
             this.checkpoint = timerMessageKVStore.getCheckpoint(columnFamily);
-            log.info(this.getServiceName() + " service start");
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service start");
             while (!this.isStopped()) {
                 try {
                     if (-1 == dequeue(checkpoint, columnFamily)) {
@@ -462,10 +463,11 @@ public class TimerMessageRocksDBStore {
                         checkpoint += precisionMs;
                     }
                 } catch (Throwable e) {
-                    log.error("Error occurred in " + getServiceName(), e);
+                    TimerMessageRocksDBStore.log.error("Error occurred in " + getServiceName(), e);
+                    throw new RuntimeException(e);
                 }
             }
-            log.info(this.getServiceName() + " service end");
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service end");
         }
     }
 
@@ -485,7 +487,7 @@ public class TimerMessageRocksDBStore {
 
         @Override
         public void run() {
-            log.info(this.getServiceName() + " service start");
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service start");
             while (!this.isStopped()) {
                 try {
                     int checkpoint = warm(this.checkpoint, columnFamily);
@@ -495,10 +497,10 @@ public class TimerMessageRocksDBStore {
                         this.checkpoint += precisionMs;
                     }
                 } catch (Throwable e) {
-                    log.error("Error occurred in " + getServiceName(), e);
+                    TimerMessageRocksDBStore.log.error("Error occurred in " + getServiceName(), e);
                 }
             }
-            log.info(this.getServiceName() + " service end");
+            TimerMessageRocksDBStore.log.info(this.getServiceName() + " service end");
         }
     }
     // -----------------------------------------------------------------------------------------------------------------
@@ -580,12 +582,15 @@ public class TimerMessageRocksDBStore {
     }
 
     private int dequeue(long checkpoint, byte[] columnFamily) throws InterruptedException {
-        if (checkpoint > System.currentTimeMillis() / precisionMs % slotSize) {
+        if (checkpoint > System.currentTimeMillis()) {
             return -1;
         }
         int slot = (int) (checkpoint / precisionMs % slotSize);
 
-        List<TimerMessageRecord> timerMessageRecords = timerMessageKVStore.scanRecords(columnFamily, slot, slot + 1);
+        List<TimerMessageRecord> timerMessageRecords = timerMessageKVStore.scanRecords(columnFamily, slot, slot + 1, checkpoint);
+        if (timerMessageRecords == null || timerMessageRecords.isEmpty()) {
+            return 0;
+        }
         while (!dequeueGetQueue.offer(timerMessageRecords, 3, TimeUnit.SECONDS)) {
         }
         addMetric(slot, -timerMessageRecords.size());
@@ -604,7 +609,7 @@ public class TimerMessageRocksDBStore {
         }
 
         int slot = (int) (checkpoint / precisionMs % slotSize);
-        timerMessageKVStore.scanRecords(columnFamily, slot, slot + 1);
+        timerMessageKVStore.scanRecords(columnFamily, slot, slot + 1, readCount);
         return 0;
     }
 
