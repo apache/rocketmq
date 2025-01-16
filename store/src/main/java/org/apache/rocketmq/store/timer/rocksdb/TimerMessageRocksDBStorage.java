@@ -239,7 +239,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
         try (ReadOptions readOptions = new ReadOptions()
             .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array()))
-            .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
+            .setIterateUpperBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
             RocksIterator iterator = db.newIterator(cfHandle, readOptions)) {
             iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());
             while (iterator.isValid()) {
@@ -266,7 +266,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
         try (ReadOptions readOptions = new ReadOptions()
                 .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array()))
-                .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
+                .setIterateUpperBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
              RocksIterator iterator = db.newIterator(cfHandle, readOptions)) {
             iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());
             while (iterator.isValid() && records.size() < maxCount) {

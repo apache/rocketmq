@@ -51,8 +51,8 @@ public class TimerMessageRecord {
         int keyLength = Long.BYTES + value.length;
         byte[] keyBytes = new byte[keyLength];
         ByteBuffer buffer = ByteBuffer.wrap(keyBytes);
-        buffer.putLong(this.getDelayTime()).putLong(this.getOffsetPY());
-        buffer.put(uniqueKey.getBytes(StandardCharsets.UTF_8));
+        buffer.putLong(this.getDelayTime());
+        buffer.put(value);
         return keyBytes;
     }
 
