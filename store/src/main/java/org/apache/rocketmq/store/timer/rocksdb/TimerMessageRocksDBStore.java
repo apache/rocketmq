@@ -312,7 +312,8 @@ public class TimerMessageRocksDBStore {
                 if (tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null) {
                     // Construct original message
                     tr.setDelayTime(delayTime / precisionMs % slotSize);
-                    tr.setUniqueKey(TimerMessageStore.extractUniqueKey(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)));
+                    tr.setUniqueKey(TimerMessageStore.extractUniqueKey(tr.getMessageExt().
+                        getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)));
                     delete.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
                 } else {
                     if (delayTime <= System.currentTimeMillis()) {
@@ -321,7 +322,8 @@ public class TimerMessageRocksDBStore {
                         addMetric((int) (delayTime / precisionMs % slotSize), 1);
                     } else {
                         tr.setDelayTime(delayTime / precisionMs % slotSize);
-                        increase.computeIfAbsent(delayTime / precisionMs % slotSize, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
+                        increase.computeIfAbsent(delayTime / precisionMs % slotSize, k -> new HashMap<>()).
+                            computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
                     }
                 }
             }
@@ -535,13 +537,14 @@ public class TimerMessageRocksDBStore {
 
                     if (null != msgExt) {
                         long delayedTime = Long.parseLong(msgExt.getProperty(TIMER_OUT_MS));
-                        TimerMessageRecord timerRequest = new TimerMessageRecord(delayedTime, MessageClientIDSetter.getUniqID(msgExt), offsetPy, sizePy);
+                        TimerMessageRecord timerRequest = new TimerMessageRecord(delayedTime,
+                            MessageClientIDSetter.getUniqID(msgExt), offsetPy, sizePy);
                         timerRequest.setMessageExt(msgExt);
 
                         while (!enqueuePutQueue.offer(timerRequest, 3, TimeUnit.SECONDS)) {
                         }
                         Attributes attributes = DefaultStoreMetricsManager.newAttributesBuilder()
-                                .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
+                            .put(DefaultStoreMetricsConstant.LABEL_TOPIC, msgExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC)).build();
                         DefaultStoreMetricsManager.timerMessageSetLatency.record((delayedTime - msgExt.getBornTimestamp()) / 1000, attributes);
                     }
                 } catch (Exception e) {
@@ -633,17 +636,14 @@ public class TimerMessageRocksDBStore {
         msgInner.setFlag(msgExt.getFlag());
         MessageAccessor.setProperties(msgInner, MessageAccessor.deepCopyProperties(msgExt.getProperties()));
         TopicFilterType topicFilterType = MessageExt.parseTopicFilterType(msgInner.getSysFlag());
-        long tagsCodeValue =
-                MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
+        long tagsCodeValue = MessageExtBrokerInner.tagsString2tagsCode(topicFilterType, msgInner.getTags());
         msgInner.setTagsCode(tagsCodeValue);
         msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgExt.getProperties()));
-
         msgInner.setSysFlag(msgExt.getSysFlag());
         msgInner.setBornTimestamp(msgExt.getBornTimestamp());
         msgInner.setBornHost(msgExt.getBornHost());
         msgInner.setStoreHost(msgExt.getStoreHost());
         msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
-
         msgInner.setWaitStoreMsgOK(false);
 
         if (needRoll) {

@@ -77,7 +77,8 @@ public class TimerMessageRocksDBStoreTest {
         storeConfig = new MessageStoreConfig();
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
-        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest", false), new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
+        messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",
+            false), new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
 
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
