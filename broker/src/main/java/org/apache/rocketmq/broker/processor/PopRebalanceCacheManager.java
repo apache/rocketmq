@@ -41,7 +41,7 @@ public class PopRebalanceCacheManager {
                     // Check whether the consumer group and queue information have changed
                     List<MessageQueue> oldMqAll = topicMqAll.get(topic);
                     List<String> oldCidAll = topicCidAll.get(topic);
-                    if(oldMqAll == null || oldCidAll == null || !oldMqAll.equals(cidAll) || !oldCidAll.equals(mqAll)){
+                    if(oldMqAll == null || oldCidAll == null || !oldMqAll.equals(mqAll) || !oldCidAll.equals(cidAll)){
                         return null;
                     }
 
