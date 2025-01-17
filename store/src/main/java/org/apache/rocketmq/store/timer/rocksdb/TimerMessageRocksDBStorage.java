@@ -20,6 +20,8 @@ import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.config.AbstractRocksDBStorage;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.store.rocksdb.RocksDBOptionsFactory;
+import org.apache.rocketmq.logging.org.slf4j.Logger;
+import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.rocksdb.RocksDB;
 import org.rocksdb.WriteBatch;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -31,9 +33,6 @@ import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.Slice;
 import org.rocksdb.RocksIterator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
