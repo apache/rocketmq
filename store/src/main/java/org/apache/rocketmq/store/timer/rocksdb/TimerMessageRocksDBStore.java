@@ -726,24 +726,4 @@ public class TimerMessageRocksDBStore {
     public long getCommitOffset() {
         return commitOffset;
     }
-
-    public long getDequeueBehind() {
-        return 0;
-    }
-
-    public long getEnqueueBehindMessages() {
-        return 0;
-    }
-
-    public long getAllCongestNum() {
-        return 0;
-    }
-
-    public long getEnqueueTps() {
-        return 0;
-    }
-
-    public long getDequeueTps() {
-        return 0;
-    }
 }

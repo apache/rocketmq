@@ -265,7 +265,7 @@ public class TimerMessageRocksDBStoreTest {
         timerMessageStore.load();
         timerMessageStore.start();
 
-        long delayMs = System.currentTimeMillis() + 1000;
+        long delayMs = System.currentTimeMillis() + 2000;
         String uniqKey = null;
         for (int i = 0; i < 5; i++) {
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
@@ -323,7 +323,6 @@ public class TimerMessageRocksDBStoreTest {
         for (int i = 0; i < 5; i++) {
             ByteBuffer msgBuff = getOneMessage(topic, 0, i, 1000);
             assertNotNull(msgBuff);
-            // assertThat(System.currentTimeMillis()).isLessThan(delayMs + precisionMs);
         }
         assertNull(getOneMessage(topic, 0, 5, 1000));
 
@@ -332,6 +331,7 @@ public class TimerMessageRocksDBStoreTest {
         MessageAccessor.putProperty(expiredInner, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, "XXX");
         PutMessageResult putMessageResult = transformTimerMessage(timerMessageStore, expiredInner);
         assertEquals(PutMessageStatus.WHEEL_TIMER_MSG_ILLEGAL, putMessageResult.getPutMessageStatus());
+        timerMessageStore.shutdown();
     }
 
     @Test
