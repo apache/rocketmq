@@ -21,6 +21,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.rocketmq.broker.BrokerController;
@@ -53,6 +54,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -144,6 +146,87 @@ public class QueryAssignmentProcessorTest {
 
         assertThat(mqs1).hasSize(1);
         assertThat(mqs2).isEmpty();
+    }
+
+    @Test
+    public void testDoLoadBalanceWithCache() throws Exception {
+        for (int i = 2; i < 11; i++) {
+            Channel channel = Mockito.mock(Channel.class);
+            String clientId = "127.0.0." + i;
+            ClientChannelInfo clientInfo = new ClientChannelInfo(channel, clientId, LanguageCode.JAVA, 0);
+            ConsumerData consumerData = createConsumerData(group, topic);
+            brokerController.getConsumerManager().registerConsumer(
+                    consumerData.getGroupName(),
+                    clientInfo,
+                    consumerData.getConsumeType(),
+                    consumerData.getMessageModel(),
+                    consumerData.getConsumeFromWhere(),
+                    consumerData.getSubscriptionDataSet(),
+                    false
+            );
+        }
+
+        Method method = queryAssignmentProcessor.getClass()
+                .getDeclaredMethod("doLoadBalance", String.class, String.class, String.class, MessageModel.class,
+                        String.class, SetMessageRequestModeRequestBody.class, ChannelHandlerContext.class);
+        method.setAccessible(true);
+
+        // 1. the effect of caching is represented by LMQ
+        long startTime = System.nanoTime();
+        SetMessageRequestModeRequestBody setMessageRequestModeRequestBody = new SetMessageRequestModeRequestBody();
+        setMessageRequestModeRequestBody.setPopShareQueueNum(1);
+        setMessageRequestModeRequestBody.setMode(MessageRequestMode.POP);
+
+        Set<MessageQueue> mqs1 = (Set<MessageQueue>) method.invoke(
+                queryAssignmentProcessor, MixAll.LMQ_PREFIX + topic, group, "127.0.0.1", MessageModel.CLUSTERING,
+                new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
+        long duration = System.nanoTime() - startTime;
+        System.out.println("[LMQ]First call duration: " + duration + " ns");
+        assertThat(mqs1).hasSize(1);
+
+        for (int i = 0; i < 5; i++) {
+            startTime = System.nanoTime();
+            mqs1 = (Set<MessageQueue>) method.invoke(
+                    queryAssignmentProcessor, MixAll.LMQ_PREFIX + topic, group, "127.0.0.1", MessageModel.CLUSTERING,
+                    new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
+            duration = System.nanoTime() - startTime;
+            System.out.println("[LMQ]Subsequent call " + (i + 1) + " duration: " + duration + " ns");
+            assertThat(mqs1).hasSize(1);
+        }
+
+        // 2. the effect of caching is represented by normal condition
+        int iterations = 5;
+        long totalDurationFirstCall = 0;
+        long totalDurationSubsequentCalls = 0;
+        Set<MessageQueue> initialQueues = new HashSet<>();
+        for (int i = 0; i < 15; i++) {
+            initialQueues.add(new MessageQueue(topic, "broker-1", i));
+        }
+
+        for (int j = 0; j < iterations; j++) {
+            when(topicRouteInfoManager.getTopicSubscribeInfo(topic)).thenReturn(initialQueues);
+
+            startTime = System.nanoTime();
+            mqs1 = (Set<MessageQueue>) method.invoke(
+                    queryAssignmentProcessor, topic, group, "127.0.0.1", MessageModel.CLUSTERING,
+                    new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
+            duration = System.nanoTime() - startTime;
+            totalDurationFirstCall += duration;
+            System.out.println("[normal]First call duration: " + duration + " ns");
+
+            for (int i = 0; i < 5; i++) {
+                startTime = System.nanoTime();
+                method.invoke(queryAssignmentProcessor, topic, group, "127.0.0.1", MessageModel.CLUSTERING,
+                        new AllocateMessageQueueAveragely().getName(), setMessageRequestModeRequestBody, handlerContext);
+                duration = System.nanoTime() - startTime;
+                totalDurationSubsequentCalls += duration;
+                System.out.println("[normal]Subsequent call " + (i + 1) + " duration: " + duration + " ns");
+            }
+            initialQueues.remove(initialQueues.iterator().next());
+        }
+
+        System.out.println("Average duration for first call: " + (totalDurationFirstCall / iterations) + " ns");
+        System.out.println("Average duration for subsequent calls: " + (totalDurationSubsequentCalls / (iterations * 5)) + " ns");
     }
 
     @Test
