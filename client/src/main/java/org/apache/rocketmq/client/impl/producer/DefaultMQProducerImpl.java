@@ -780,7 +780,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                         long curTimeout = timeout - costTime;
                         // In order to prevent the broker from being unresponsive for a long time and thus being unable to retry next time,
                         // if there is another chance for retry next time, the maximum sending time is modified to the maximum sendMsgMaxTimeoutPerRequest.
-                        if(defaultMQProducer.getSendMsgMaxTimeoutPerRequest() > -1 && times + 1 < timesTotal
+                        if (defaultMQProducer.getSendMsgMaxTimeoutPerRequest() > -1 && times + 1 < timesTotal
                                 && curTimeout > defaultMQProducer.getSendMsgMaxTimeoutPerRequest()) {
                             curTimeout = defaultMQProducer.getSendMsgMaxTimeoutPerRequest();
                         }
