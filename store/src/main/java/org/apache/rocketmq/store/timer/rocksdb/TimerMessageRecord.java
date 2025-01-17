@@ -126,6 +126,9 @@ public class TimerMessageRecord {
             "delayTime=" + delayTime +
             ", offsetPY=" + offsetPY +
             ", sizeReal=" + sizeReal +
+            ", messageExt=" + messageExt +
+            ", roll=" + roll +
+            ", uniqueKey='" + uniqueKey + '\'' +
             '}';
     }
 }

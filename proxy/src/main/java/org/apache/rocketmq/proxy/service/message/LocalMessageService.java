@@ -156,7 +156,6 @@ public class LocalMessageService implements MessageService {
             sendResult.setTransactionId(responseHeader.getTransactionId());
             sendResult.setOffsetMsgId(responseHeader.getMsgId());
             sendResult.setRecallHandle(responseHeader.getRecallHandle());
-            sendResult.setDelayTime(responseHeader.getDelayTime());
             return Collections.singletonList(sendResult);
         });
     }

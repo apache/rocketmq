@@ -40,24 +40,16 @@ public class RecallMessageHandle {
         private String brokerName;
         private String timestampStr;
         private String messageId; // id of unique key
-        private long delaytime;
 
-        public HandleV1(String topic, String brokerName, String timestamp, String messageId, long delaytime) {
+        public HandleV1(String topic, String brokerName, String timestamp, String messageId) {
             this.version = VERSION_1;
             this.topic = topic;
             this.brokerName = brokerName;
             this.timestampStr = timestamp;
             this.messageId = messageId;
-            this.delaytime = delaytime;
         }
 
         // no param check
-        public static String buildHandle(String topic, String brokerName, String timestampStr, String messageId, long delaytime) {
-            String rawString = String.join(SEPARATOR, VERSION_1, topic, brokerName, timestampStr, messageId, String.valueOf(delaytime));
-            return Base64.getUrlEncoder().encodeToString(rawString.getBytes(UTF_8));
-        }
-
-        // TODO
         public static String buildHandle(String topic, String brokerName, String timestampStr, String messageId) {
             String rawString = String.join(SEPARATOR, VERSION_1, topic, brokerName, timestampStr, messageId);
             return Base64.getUrlEncoder().encodeToString(rawString.getBytes(UTF_8));
@@ -82,10 +74,6 @@ public class RecallMessageHandle {
         public String getVersion() {
             return version;
         }
-
-        public long getDelaytime() {
-            return delaytime;
-        }
     }
 
     public static RecallMessageHandle decodeHandle(String handle) throws DecoderException {
@@ -103,6 +91,6 @@ public class RecallMessageHandle {
         if (!VERSION_1.equals(items[0]) || items.length < 5) {
             throw new DecoderException("recall handle is invalid");
         }
-        return new HandleV1(items[1], items[2], items[3], items[4], Long.parseLong(items[5]));
+        return new HandleV1(items[1], items[2], items[3], items[4]);
     }
 }
