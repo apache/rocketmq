@@ -1915,4 +1915,12 @@ public class TimerMessageStore {
     public static String buildDeleteKey(String realTopic, String uniqueKey) {
         return realTopic + "+" + uniqueKey;
     }
+
+    public static String extractUniqueKey(String deleteKey) {
+        int separatorIndex = deleteKey.indexOf('+');
+        if (separatorIndex == -1) {
+            throw new IllegalArgumentException("Invalid deleteKey format");
+        }
+        return deleteKey.substring(separatorIndex + 1);
+    }
 }

@@ -39,6 +39,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
 import org.rocksdb.RocksDB;
 import org.slf4j.Logger;
@@ -309,14 +310,15 @@ public class TimerMessageRocksDBStore {
                 int flag = tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_FLAG) == null ?
                     0 : Integer.parseInt(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_FLAG));
                 if (tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY) != null) {
-                    delayTime = Long.parseLong(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_MS));
                     // Construct original message
-                    tr.setUniqueKey(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY));
-                    tr.setDelayTime(delayTime);
+                    tr.setDelayTime(delayTime / precisionMs % slotSize);
+                    tr.setUniqueKey(TimerMessageStore.extractUniqueKey(tr.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)));
                     delete.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
                 } else {
                     if (delayTime <= System.currentTimeMillis()) {
                         expired.add(tr);
+                        addMetric(tr.getMessageExt(), 1);
+                        addMetric((int) (delayTime / precisionMs % slotSize), 1);
                     } else {
                         tr.setDelayTime(delayTime / precisionMs % slotSize);
                         increase.computeIfAbsent(delayTime / precisionMs % slotSize, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
@@ -374,7 +376,6 @@ public class TimerMessageRocksDBStore {
                         record.setDelayTime(delayedTime);
                         record.setUniqueKey(MessageClientIDSetter.getUniqID(messageExt));
                         record.setRoll(delayedTime >= System.currentTimeMillis() + precisionMs * 3L);
-                        addMetric(messageExt, -1);
                     }
 
                     while (!dequeuePutQueue.offer(timerMessageRecord, 3, TimeUnit.SECONDS)) {
@@ -428,6 +429,7 @@ public class TimerMessageRocksDBStore {
                                 }
                             }
                         }
+                        addMetric(msg, -1);
                     }
 
                 } catch (InterruptedException e) {
@@ -719,6 +721,10 @@ public class TimerMessageRocksDBStore {
 
     public TimerMetrics getTimerMetrics() {
         return this.timerMetrics;
+    }
+
+    public long getCommitOffset() {
+        return commitOffset;
     }
 
     public long getDequeueBehind() {
