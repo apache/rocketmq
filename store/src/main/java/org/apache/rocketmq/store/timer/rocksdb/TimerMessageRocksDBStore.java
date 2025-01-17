@@ -101,7 +101,7 @@ public class TimerMessageRocksDBStore {
 
     ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     private volatile long commitOffset;
-    private boolean allowDequeue;
+    private boolean allowDequeue = true;
 
     public TimerMessageRocksDBStore(final MessageStore messageStore, final MessageStoreConfig storeConfig,
         TimerMetrics timerMetrics, final BrokerStatsManager brokerStatsManager) {
