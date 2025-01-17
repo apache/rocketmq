@@ -16,8 +16,6 @@
  */
 package org.apache.rocketmq.store.timer.rocksdb;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.TopicFilterType;
@@ -39,7 +37,11 @@ import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.StoreTestUtils;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
 import org.apache.rocketmq.store.timer.TimerMetrics;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
 import org.rocksdb.RocksDB;
 
 import java.io.File;
@@ -57,10 +59,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore.TIMER_TOPIC;
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class TimerMessageRocksDBStoreTest {
-    private static final Log log = LogFactory.getLog(TimerMessageRocksDBStoreTest.class);
     MessageStore messageStore;
     MessageStoreConfig storeConfig;
     int precisionMs = 500;
@@ -140,7 +145,7 @@ public class TimerMessageRocksDBStoreTest {
 
         try {
             if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC) != null) {
-                deliverMs = System.currentTimeMillis() + Integer.parseInt(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) * 1000;
+                deliverMs = System.currentTimeMillis() + Integer.parseInt(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_SEC)) * 1000L;
             } else if (msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS) != null) {
                 deliverMs = System.currentTimeMillis() + Integer.parseInt(msg.getProperty(MessageConst.PROPERTY_TIMER_DELAY_MS));
             } else {
@@ -234,7 +239,7 @@ public class TimerMessageRocksDBStoreTest {
         timerMessageStore.load();
         timerMessageStore.start();
 
-        long delayMs = System.currentTimeMillis() - 2 * precisionMs;
+        long delayMs = System.currentTimeMillis() - 2L * precisionMs;
         for (int i = 0; i < 10; i++) {
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
             transformTimerMessage(timerMessageStore, inner);
