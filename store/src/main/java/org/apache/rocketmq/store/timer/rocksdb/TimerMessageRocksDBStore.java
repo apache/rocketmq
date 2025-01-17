@@ -402,6 +402,9 @@ public class TimerMessageRocksDBStore {
             TimerMessageRocksDBStore.log.info(this.getServiceName() + " service start");
             while (!this.isStopped() || !dequeuePutQueue.isEmpty()) {
                 try {
+                    if (!allowDequeue) {
+                        continue;
+                    }
                     List<TimerMessageRecord> timerMessageRecord = dequeuePutQueue.poll(100L * precisionMs / 1000, TimeUnit.MILLISECONDS);
                     if (null == timerMessageRecord || timerMessageRecord.isEmpty()) {
                         continue;
