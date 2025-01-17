@@ -87,7 +87,6 @@ public class TimerMessageRocksDBStoreTest {
 
         storeHost = new InetSocketAddress(InetAddress.getLocalHost(), 8123);
         bornHost = new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0);
-        messageStore.destroy();
         assertTrue(messageStore.load());
         messageStore.start();
     }
