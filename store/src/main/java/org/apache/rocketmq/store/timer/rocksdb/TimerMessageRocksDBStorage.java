@@ -62,6 +62,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
         super(filePath);
     }
 
+    @Override
     protected void initOptions() {
         this.options = RocksDBOptionsFactory.createDBOptions();
 
@@ -149,23 +150,6 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void writeDefaultRecords(List<TimerMessageRecord> consumerRecordList, long offset, int timestamp) {
-        if (!consumerRecordList.isEmpty()) {
-            try (WriteBatch writeBatch = new WriteBatch()) {
-                for (TimerMessageRecord record : consumerRecordList) {
-                    writeBatch.put(defaultCFHandle, record.getKeyBytes(), record.getValueBytes());
-                }
-                // atomically update offset
-                writeBatch.put(TIMER_OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
-                syncMetric(timestamp / 100, consumerRecordList.size(), writeBatch);
-                this.db.write(writeOptions, writeBatch);
-            } catch (RocksDBException e) {
-                throw new RuntimeException("Write record error", e);
-            }
-        }
-    }
-
-    @Override
     public void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset, int timestamp) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
 
@@ -180,22 +164,6 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
                 this.db.write(writeOptions, writeBatch);
             } catch (RocksDBException e) {
                 throw new RuntimeException("Write record error", e);
-            }
-        }
-    }
-
-    @Override
-    public void deleteDefaultRecords(List<TimerMessageRecord> consumerRecordList, int timestamp, long offset) {
-        if (!consumerRecordList.isEmpty()) {
-            try (WriteBatch writeBatch = new WriteBatch()) {
-                for (TimerMessageRecord record : consumerRecordList) {
-                    writeBatch.delete(defaultCFHandle, record.getKeyBytes());
-                }
-                writeBatch.put(TIMER_OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
-                syncMetric(timestamp / 100, - consumerRecordList.size(), writeBatch);
-                this.db.write(deleteOptions, writeBatch);
-            } catch (RocksDBException e) {
-                throw new RuntimeException("Delete record error", e);
             }
         }
     }
@@ -250,24 +218,6 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             }
         } catch (RocksDBException e) {
             throw new RuntimeException("Delete record error", e);
-        }
-        return records;
-    }
-
-    @Override
-    public List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime, int maxCount) {
-        List<TimerMessageRecord> records = new ArrayList<>();
-        ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
-
-        try (ReadOptions readOptions = new ReadOptions()
-                .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array()))
-                .setIterateUpperBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
-             RocksIterator iterator = db.newIterator(cfHandle, readOptions)) {
-            iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());
-            while (iterator.isValid() && records.size() < maxCount) {
-                records.add(TimerMessageRecord.decode(iterator.value()));
-                iterator.next();
-            }
         }
         return records;
     }

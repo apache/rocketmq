@@ -22,9 +22,11 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 public class TimerMessageRecord {
-    public final static int TIMER_MESSAGE_DEFAULT_FLAG = 0;
-    public final static int TIMER_MESSAGE_TRANSACTION_FLAG = 1;
-    public final static int TIMER_MESSAGE_POP_FLAG = 2;
+    enum Flag {
+        DEFAULT,
+        TRANSACTION,
+        POP
+    }
 
     // key: delayTime + uniqueKey
     private long delayTime;

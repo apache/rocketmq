@@ -37,29 +37,12 @@ public interface TimerMessageKVStore {
 
     /**
      * Write the timer message records to the timer message kv store.
-     * @param consumerRecordList the list of timer message records to be written.
-     * @param offset the cq offset of the timer message records to be written.
-     * @param timestamp the key of the timer message metric column family.
-     * Default is store common timer message.
-     */
-    void writeDefaultRecords(List<TimerMessageRecord> consumerRecordList, long offset, int timestamp);
-
-    /**
-     * Write the timer message records to the timer message kv store.
      * @param columnFamily the column family of the timer message kv store.
      * @param consumerRecordList the list of timer message records to be written.
      * @param offset the cq offset of the timer message records to be written.
      * @param timestamp the key of the timer message metric column family.
      */
     void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset, int timestamp);
-
-    /**
-     * Delete the timer message records from the timer message kv store.
-     * @param consumerRecordList the list of timer message records to be deleted.
-     * @param timestamp the key of the timer message metric column family.
-     * Default is delete common timer message.
-     */
-    void deleteDefaultRecords(List<TimerMessageRecord> consumerRecordList, int timestamp, long offset);
 
     /**
      * Delete the timer message records from the timer message kv store.
@@ -77,16 +60,6 @@ public interface TimerMessageKVStore {
      * @return the list of timer message records.
      */
     List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime, long timestamp);
-
-    /**
-     * Scan the expired timer message records from the timer message kv store.
-     * @param columnFamily the column family of the timer message kv store.
-     * @param lowerTime the lower time of the timer message records to be scanned.
-     * @param upperTime the upper time of the timer message records to be scanned.
-     * @param maxCount the max count of the timer message records to be return.
-     * @return the list of timer message records.
-     */
-    List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime, int maxCount);
 
     /**
      * Get the commit offset of the timer message kv store from cq.

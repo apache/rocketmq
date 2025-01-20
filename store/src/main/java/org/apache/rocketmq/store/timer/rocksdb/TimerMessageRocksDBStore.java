@@ -57,8 +57,6 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRecord.TIMER_MESSAGE_POP_FLAG;
-import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRecord.TIMER_MESSAGE_TRANSACTION_FLAG;
 import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStorage.POP_COLUMN_FAMILY;
 import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStorage.TRANSACTION_COLUMN_FAMILY;
 
@@ -227,9 +225,10 @@ public class TimerMessageRocksDBStore {
     }
 
     private byte[] getColumnFamily(int flag) {
-        if (flag == TIMER_MESSAGE_TRANSACTION_FLAG) {
+        TimerMessageRecord.Flag tag = TimerMessageRecord.Flag.valueOf(String.valueOf(flag));
+        if (TimerMessageRecord.Flag.TRANSACTION == tag) {
             return TRANSACTION_COLUMN_FAMILY;
-        } else if (flag == TIMER_MESSAGE_POP_FLAG) {
+        } else if (tag == TimerMessageRecord.Flag.POP) {
             return POP_COLUMN_FAMILY;
         } else {
             return RocksDB.DEFAULT_COLUMN_FAMILY;

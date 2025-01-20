@@ -662,10 +662,6 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
                 brokerController.getBrokerConfig().getBrokerName(), timestampStr, MessageClientIDSetter.getUniqID(msg));
             responseHeader.setRecallHandle(recallHandle);
         }
-
-        if (msg.getProperty(MessageConst.PROPERTY_TIMER_OUT_MS) != null) {
-            responseHeader.setDelayTime(Long.parseLong(msg.getProperty(MessageConst.PROPERTY_TIMER_OUT_MS)));
-        }
     }
 
     private String diskUtil() {

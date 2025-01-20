@@ -30,7 +30,6 @@ public class SendResult {
     private boolean traceOn = true;
     private byte[] rawRespBody;
     private String recallHandle;
-    private long delayTime;
 
     public SendResult() {
     }
@@ -136,18 +135,10 @@ public class SendResult {
         this.recallHandle = recallHandle;
     }
 
-    public long getDelayTime() {
-        return delayTime;
-    }
-
-    public void setDelayTime(long delayTime) {
-        this.delayTime = delayTime;
-    }
-
     @Override
     public String toString() {
         return "SendResult [sendStatus=" + sendStatus + ", msgId=" + msgId + ", offsetMsgId=" + offsetMsgId + ", messageQueue=" + messageQueue
-            + ", queueOffset=" + queueOffset + ", recallHandle=" + recallHandle + ", delayTime=" + delayTime + "]";
+            + ", queueOffset=" + queueOffset + ", recallHandle=" + recallHandle + "]";
     }
 
     public void setRawRespBody(byte[] body) {
