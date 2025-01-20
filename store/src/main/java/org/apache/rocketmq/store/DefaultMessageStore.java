@@ -113,7 +113,6 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
 import org.apache.rocketmq.store.timer.TimerMessageStore;
-import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 import org.rocksdb.RocksDBException;
 
@@ -167,7 +166,6 @@ public class DefaultMessageStore implements MessageStore {
 
     protected StoreCheckpoint storeCheckpoint;
     private TimerMessageStore timerMessageStore;
-    private TimerMessageRocksDBStore timerMessageRocksDBStore;
 
     private final LinkedList<CommitLogDispatcher> dispatcherList;
 
@@ -1028,16 +1026,6 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public void setTimerMessageStore(TimerMessageStore timerMessageStore) {
         this.timerMessageStore = timerMessageStore;
-    }
-
-    @Override
-    public TimerMessageRocksDBStore getTimerMessageRocksDBStore() {
-        return this.timerMessageRocksDBStore;
-    }
-
-    @Override
-    public void setTimerMessageRocksDBStore(TimerMessageRocksDBStore timerMessageRocksDBStore) {
-        this.timerMessageRocksDBStore = timerMessageRocksDBStore;
     }
 
     @Override
@@ -1933,9 +1921,6 @@ public class DefaultMessageStore implements MessageStore {
 
     @Override
     public long getTimingMessageCount(String topic) {
-        if (timerMessageRocksDBStore != null) {
-            return timerMessageRocksDBStore.getTimerMetrics().getTimingCount(topic);
-        }
         if (null == timerMessageStore) {
             return 0L;
         } else {

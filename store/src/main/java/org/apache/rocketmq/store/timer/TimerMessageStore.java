@@ -71,6 +71,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.queue.ReferredIterator;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore;
 import org.apache.rocketmq.store.util.PerfCounter;
 
 public class TimerMessageStore {
@@ -158,6 +159,7 @@ public class TimerMessageStore {
     protected volatile boolean shouldRunningDequeue;
     private final BrokerStatsManager brokerStatsManager;
     private Function<MessageExtBrokerInner, PutMessageResult> escapeBridgeHook;
+    private TimerMessageRocksDBStore timerRocksDBStore;
 
     public TimerMessageStore(final MessageStore messageStore, final MessageStoreConfig storeConfig,
         TimerCheckpoint timerCheckpoint, TimerMetrics timerMetrics,
@@ -212,6 +214,7 @@ public class TimerMessageStore {
             dequeuePutQueue = new LinkedBlockingDeque<>(DEFAULT_CAPACITY);
         }
         this.brokerStatsManager = brokerStatsManager;
+        this.timerRocksDBStore = new TimerMessageRocksDBStore(messageStore, storeConfig, timerMetrics, brokerStatsManager);
     }
 
     public void initService() {
@@ -238,6 +241,7 @@ public class TimerMessageStore {
         this.initService();
         boolean load = timerLog.load();
         load = load && this.timerMetrics.load();
+        load = load && timerRocksDBStore.load();
         recover();
         calcTimerDistribution();
         return load;
@@ -464,6 +468,7 @@ public class TimerMessageStore {
     }
 
     public void start() {
+        timerRocksDBStore.start();
         this.shouldStartTime = storeConfig.getDisappearTimeAfterStart() + System.currentTimeMillis();
         maybeMoveWriteTime();
         enqueueGetService.start();
@@ -552,6 +557,7 @@ public class TimerMessageStore {
         timerWheel.shutdown(false);
 
         this.scheduler.shutdown();
+        this.timerRocksDBStore.shutdown();
         UtilAll.cleanBuffer(this.bufferLocal.get());
         this.bufferLocal.remove();
     }
@@ -653,7 +659,7 @@ public class TimerMessageStore {
     }
 
     public boolean enqueue(int queueId) {
-        if (storeConfig.isTimerStopEnqueue()) {
+        if (storeConfig.isTimerStopEnqueue() || storeConfig.getEnableTimerMessageOnRocksDB()) {
             return false;
         }
         if (!isRunningEnqueue()) {
@@ -1735,6 +1741,9 @@ public class TimerMessageStore {
     }
 
     public boolean isReject(long deliverTimeMs) {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return true;
+        }
         long congestNum = timerWheel.getNum(deliverTimeMs);
         if (congestNum <= storeConfig.getTimerCongestNumEachSlot()) {
             return false;

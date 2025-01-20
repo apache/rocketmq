@@ -88,9 +88,9 @@ public class TimerMessageRocksDBStore {
 
     private TimerEnqueueGetService timerEnqueueGetService;
     private TimerEnqueuePutService timerEnqueuePutService;
-    private TimerDequeueGetService timerDequeueGetService;
     private List<TimerGetMessageService> timerGetMessageServices;
     private List<TimerWarmService> timerWarmServices;
+    private TimerDequeueGetService[] timerDequeueGetServices;
     private TimerDequeuePutService[] timerDequeuePutServices;
 
     private BlockingQueue<TimerMessageRecord> enqueuePutQueue;
@@ -99,7 +99,6 @@ public class TimerMessageRocksDBStore {
 
     ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     private volatile long commitOffset;
-    private boolean allowDequeue = true;
 
     public TimerMessageRocksDBStore(final MessageStore messageStore, final MessageStoreConfig storeConfig,
         TimerMetrics timerMetrics, final BrokerStatsManager brokerStatsManager) {
@@ -133,8 +132,10 @@ public class TimerMessageRocksDBStore {
         this.commitOffset = timerMessageKVStore.getCommitOffset();
         this.timerEnqueueGetService.start();
         this.timerEnqueuePutService.start();
-        this.timerDequeueGetService.start();
 
+        for (TimerDequeueGetService timerDequeueGetService : timerDequeueGetServices) {
+            timerDequeueGetService.start();
+        }
         for (TimerWarmService timerWarmService : timerWarmServices) {
             timerWarmService.start();
         }
@@ -161,8 +162,10 @@ public class TimerMessageRocksDBStore {
 
         this.timerEnqueueGetService.shutdown();
         this.timerEnqueuePutService.shutdown();
-        this.timerDequeueGetService.shutdown();
 
+        for (TimerDequeueGetService timerDequeueGetService : timerDequeueGetServices) {
+            timerDequeueGetService.shutdown();
+        }
         for (TimerWarmService timerWarmService : timerWarmServices) {
             timerWarmService.shutdown();
         }
@@ -179,18 +182,28 @@ public class TimerMessageRocksDBStore {
     }
 
     public void createTimer(byte[] columnFamily) {
-        this.timerGetMessageServices.add(new TimerGetMessageService(columnFamily));
+        for (int i = 0; i < storeConfig.getTimerGetMessageThreadNum(); i++) {
+            this.timerGetMessageServices.add(new TimerGetMessageService(columnFamily));
+        }
         this.timerWarmServices.add(new TimerWarmService(columnFamily));
     }
     // ----------------------------------------------------------------------------------------------------------------
     private void initService() {
+        createTimer(TRANSACTION_COLUMN_FAMILY);
+        createTimer(POP_COLUMN_FAMILY);
+        createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);
         this.timerEnqueueGetService = new TimerEnqueueGetService();
         this.timerEnqueuePutService = new TimerEnqueuePutService();
-        this.timerDequeueGetService = new TimerDequeueGetService();
+
         int getThreadNum = Math.max(storeConfig.getTimerGetMessageThreadNum(), 1);
-        this.timerDequeuePutServices = new TimerDequeuePutService[getThreadNum];
+        int putThreadNum = Math.max(storeConfig.getTimerPutMessageThreadNum(), 1);
+        this.timerDequeuePutServices = new TimerDequeuePutService[putThreadNum];
+        this.timerDequeueGetServices = new TimerDequeueGetService[getThreadNum];
         for (int i = 0; i < timerDequeuePutServices.length; i++) {
             timerDequeuePutServices[i] = new TimerDequeuePutService();
+        }
+        for (int i = 0; i < timerDequeueGetServices.length; i++) {
+            timerDequeueGetServices[i] = new TimerDequeueGetService();
         }
 
         if (storeConfig.isTimerEnableDisruptor()) {
@@ -205,6 +218,7 @@ public class TimerMessageRocksDBStore {
     }
 
     private void calcTimerDistribution() {
+        // TODO fix
         int slotNumber = precisionMs / 100;
         int rocksdbNumber = 0;
         for (int i = 0; i < this.slotSize; i++) {
@@ -296,7 +310,7 @@ public class TimerMessageRocksDBStore {
             return trs;
         }
 
-        private void fetchAndPutTimerRequest() throws Exception {
+        private void fetchAndPutTimerRequest() throws InterruptedException {
             Map<Long, Map<Integer, List<TimerMessageRecord>>> increase = new HashMap<>();
             Map<Long, Map<Integer, List<TimerMessageRecord>>> delete = new HashMap<>();
             List<TimerMessageRecord> trs = fetchTimerMessageRecord();
@@ -401,9 +415,6 @@ public class TimerMessageRocksDBStore {
             TimerMessageRocksDBStore.log.info(this.getServiceName() + " service start");
             while (!this.isStopped() || !dequeuePutQueue.isEmpty()) {
                 try {
-                    if (!allowDequeue) {
-                        continue;
-                    }
                     List<TimerMessageRecord> timerMessageRecord = dequeuePutQueue.poll(100L * precisionMs / 1000, TimeUnit.MILLISECONDS);
                     if (null == timerMessageRecord || timerMessageRecord.isEmpty()) {
                         continue;
@@ -512,6 +523,10 @@ public class TimerMessageRocksDBStore {
     }
     // -----------------------------------------------------------------------------------------------------------------
     public boolean enqueue(int queueId) {
+        if (!storeConfig.getEnableTimerMessageOnRocksDB() || storeConfig.isTimerStopEnqueue()) {
+            return false;
+        }
+
         ConsumeQueueInterface cq = this.messageStore.getConsumeQueue(TIMER_TOPIC, queueId);
         if (null == cq) {
             return false;
@@ -590,7 +605,7 @@ public class TimerMessageRocksDBStore {
     }
 
     private int dequeue(long checkpoint, byte[] columnFamily) throws InterruptedException {
-        if (!allowDequeue) {
+        if (storeConfig.isTimerStopDequeue()) {
             return -1;
         }
         if (checkpoint > System.currentTimeMillis()) {
@@ -731,9 +746,5 @@ public class TimerMessageRocksDBStore {
 
     public long getCommitOffset() {
         return commitOffset;
-    }
-
-    public void setAllowDequeue(boolean allowDequeue) {
-        this.allowDequeue = allowDequeue;
     }
 }

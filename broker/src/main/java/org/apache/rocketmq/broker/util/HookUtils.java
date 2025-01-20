@@ -133,8 +133,7 @@ public class HookUtils {
             || tranType == MessageSysFlag.TRANSACTION_COMMIT_TYPE) {
             if (!isRolledTimerMessage(msg)) {
                 if (checkIfTimerMessage(msg)) {
-                    if (!brokerController.getMessageStoreConfig().isTimerWheelEnable() && !brokerController.getMessageStoreConfig()
-                        .getEnableTimerMessageOnRocksDB()) {
+                    if (!brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
                         //wheel timer is not enabled, reject the message
                         return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_NOT_ENABLE, null);
                     }
@@ -205,7 +204,7 @@ public class HookUtils {
                 deliverMs = deliverMs / timerPrecisionMs * timerPrecisionMs;
             }
 
-            if (brokerController.getTimerMessageRocksDBStore() == null && brokerController.getTimerMessageStore().isReject(deliverMs)) {
+            if (brokerController.getTimerMessageStore().isReject(deliverMs)) {
                 return new PutMessageResult(PutMessageStatus.WHEEL_TIMER_FLOW_CONTROL, null);
             }
             MessageAccessor.putProperty(msg, MessageConst.PROPERTY_TIMER_OUT_MS, deliverMs + "");

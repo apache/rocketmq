@@ -2674,8 +2674,9 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                         group,
                         topic,
                         i);
-                    if (consumerOffset < 0)
+                    if (consumerOffset < 0) {
                         consumerOffset = 0;
+                    }
 
                     offsetWrapper.setBrokerOffset(brokerOffset);
                     offsetWrapper.setConsumerOffset(consumerOffset);
@@ -2744,9 +2745,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         runtimeInfo.put("earliestMessageTimeStamp", String.valueOf(this.brokerController.getMessageStore().getEarliestMessageTime()));
         runtimeInfo.put("startAcceptSendRequestTimeStamp", String.valueOf(this.brokerController.getBrokerConfig().getStartAcceptSendRequestTimeStamp()));
 
-        if (this.brokerController.getMessageStoreConfig().getEnableTimerMessageOnRocksDB()) {
-            // TODO metric sync
-        } else if (this.brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
+        if (this.brokerController.getMessageStoreConfig().isTimerWheelEnable()) {
             runtimeInfo.put("timerReadBehind", String.valueOf(this.brokerController.getMessageStore().getTimerMessageStore().getDequeueBehind()));
             runtimeInfo.put("timerOffsetBehind", String.valueOf(this.brokerController.getMessageStore().getTimerMessageStore().getEnqueueBehindMessages()));
             runtimeInfo.put("timerCongestNum", String.valueOf(this.brokerController.getMessageStore().getTimerMessageStore().getAllCongestNum()));
