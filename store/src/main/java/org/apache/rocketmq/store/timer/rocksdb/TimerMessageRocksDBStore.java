@@ -184,9 +184,7 @@ public class TimerMessageRocksDBStore {
     }
 
     public void createTimer(byte[] columnFamily) {
-        for (int i = 0; i < storeConfig.getTimerGetMessageThreadNum(); i++) {
-            this.timerGetMessageServices.add(new TimerGetMessageService(columnFamily));
-        }
+        this.timerGetMessageServices.add(new TimerGetMessageService(columnFamily));
         this.timerWarmServices.add(new TimerWarmService(columnFamily));
     }
     // ----------------------------------------------------------------------------------------------------------------

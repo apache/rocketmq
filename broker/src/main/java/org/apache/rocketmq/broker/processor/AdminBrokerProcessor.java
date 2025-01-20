@@ -2674,9 +2674,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                         group,
                         topic,
                         i);
-                    if (consumerOffset < 0) {
+                    if (consumerOffset < 0)
                         consumerOffset = 0;
-                    }
 
                     offsetWrapper.setBrokerOffset(brokerOffset);
                     offsetWrapper.setConsumerOffset(consumerOffset);
