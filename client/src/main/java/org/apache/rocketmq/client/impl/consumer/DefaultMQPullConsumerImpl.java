@@ -774,14 +774,6 @@ public class DefaultMQPullConsumerImpl implements MQConsumerInner {
         Validators.checkGroup(this.defaultMQPullConsumer.getConsumerGroup());
 
         // consumerGroup
-        if (null == this.defaultMQPullConsumer.getConsumerGroup()) {
-            throw new MQClientException(
-                "consumerGroup is null"
-                    + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL),
-                null);
-        }
-
-        // consumerGroup
         if (this.defaultMQPullConsumer.getConsumerGroup().equals(MixAll.DEFAULT_CONSUMER_GROUP)) {
             throw new MQClientException(
                 "consumerGroup can not equal "
