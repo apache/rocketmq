@@ -74,13 +74,11 @@ public class TimerMessageRocksDBStoreTest {
     private SocketAddress storeHost;
     Set<String> baseDirs = new HashSet<>();
 
-
     @Before
     public void setUp() throws Exception {
         String baseDir = StoreTestUtils.createBaseDir();
         this.baseDirs.add(baseDir);
         storeConfig = new MessageStoreConfig();
-        storeConfig.isEnableRocksDBStore();
         storeConfig.setEnableTimerMessageOnRocksDB(true);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
@@ -183,7 +181,7 @@ public class TimerMessageRocksDBStoreTest {
     @Test
     public void testDoNormalTimer() throws Exception {
         Assume.assumeFalse(MixAll.isWindows());
-        String topic = "TimerTest_testPutTimerMessage";
+        String topic = "TimerRocksdbTest_testPutTimerMessage";
 
         final TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
         timerMessageStore.createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);
@@ -234,7 +232,7 @@ public class TimerMessageRocksDBStoreTest {
         Assume.assumeFalse(MixAll.isMac());
         Assume.assumeFalse(MixAll.isWindows());
 
-        String topic = "TimerTest_testPutExpiredTimerMessage";
+        String topic = "TimerRocksdbTest_testPutExpiredTimerMessage";
 
         TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
         timerMessageStore.createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);
@@ -260,7 +258,7 @@ public class TimerMessageRocksDBStoreTest {
 
     @Test
     public void testDeleteTimerMessage() throws Exception {
-        String topic = "TimerTest_testDeleteTimerMessage";
+        String topic = "TimerRocksdbTest_testDeleteTimerMessage";
 
         TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
         timerMessageStore.createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);
@@ -298,7 +296,7 @@ public class TimerMessageRocksDBStoreTest {
 
     @Test
     public void testPutDeleteTimerMessage() throws Exception {
-        String topic = "TimerTest_testPutDeleteTimerMessage";
+        String topic = "TimerRocksdbTest_testPutDeleteTimerMessage";
 
         final TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
         timerMessageStore.createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);

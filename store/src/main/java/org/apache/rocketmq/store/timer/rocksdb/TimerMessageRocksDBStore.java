@@ -179,6 +179,8 @@ public class TimerMessageRocksDBStore {
         this.dequeueGetQueue.clear();
         this.enqueuePutQueue.clear();
         this.dequeuePutQueue.clear();
+        this.scheduledExecutorService.shutdown();
+        this.timerMessageKVStore.shutdown();
     }
 
     public void createTimer(byte[] columnFamily) {

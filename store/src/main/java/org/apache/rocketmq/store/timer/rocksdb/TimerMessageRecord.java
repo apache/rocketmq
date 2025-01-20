@@ -53,7 +53,7 @@ public class TimerMessageRecord {
         int keyLength = Long.BYTES + value.length;
         byte[] keyBytes = new byte[keyLength];
         ByteBuffer buffer = ByteBuffer.wrap(keyBytes);
-        buffer.putLong(this.getDelayTime());
+        buffer.putLong(delayTime);
         buffer.put(value);
         return keyBytes;
     }
