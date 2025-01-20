@@ -239,7 +239,14 @@ public class TimerMessageRocksDBStore {
     }
 
     private byte[] getColumnFamily(int flag) {
-        TimerMessageRecord.Flag tag = TimerMessageRecord.Flag.valueOf(String.valueOf(flag));
+        TimerMessageRecord.Flag tag;
+        switch (flag) {
+            case 1 : tag = TimerMessageRecord.Flag.TRANSACTION;
+                break;
+            case 2 : tag = TimerMessageRecord.Flag.POP;
+                break;
+            default : tag = TimerMessageRecord.Flag.DEFAULT;
+        }
         if (TimerMessageRecord.Flag.TRANSACTION == tag) {
             return TRANSACTION_COLUMN_FAMILY;
         } else if (tag == TimerMessageRecord.Flag.POP) {

@@ -1742,7 +1742,7 @@ public class TimerMessageStore {
 
     public boolean isReject(long deliverTimeMs) {
         if (storeConfig.getEnableTimerMessageOnRocksDB()) {
-            return true;
+            return false;
         }
         long congestNum = timerWheel.getNum(deliverTimeMs);
         if (congestNum <= storeConfig.getTimerCongestNumEachSlot()) {

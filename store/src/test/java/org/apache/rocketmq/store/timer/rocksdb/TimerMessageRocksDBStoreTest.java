@@ -80,6 +80,8 @@ public class TimerMessageRocksDBStoreTest {
         String baseDir = StoreTestUtils.createBaseDir();
         this.baseDirs.add(baseDir);
         storeConfig = new MessageStoreConfig();
+        storeConfig.isEnableRocksDBStore();
+        storeConfig.setEnableTimerMessageOnRocksDB(true);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
         messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",
@@ -180,6 +182,7 @@ public class TimerMessageRocksDBStoreTest {
 
     @Test
     public void testDoNormalTimer() throws Exception {
+        Assume.assumeFalse(MixAll.isWindows());
         String topic = "TimerTest_testPutTimerMessage";
 
         final TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
