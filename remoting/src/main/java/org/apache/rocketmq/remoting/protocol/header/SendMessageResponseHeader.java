@@ -37,7 +37,6 @@ public class SendMessageResponseHeader implements CommandCustomHeader, FastCodes
     private String transactionId;
     private String batchUniqId;
     private String recallHandle;
-    private Long delayTime;
 
     @Override
     public void checkFields() throws RemotingCommandException {
@@ -51,7 +50,6 @@ public class SendMessageResponseHeader implements CommandCustomHeader, FastCodes
         writeIfNotNull(out, "transactionId", transactionId);
         writeIfNotNull(out, "batchUniqId", batchUniqId);
         writeIfNotNull(out, "recallHandle", recallHandle);
-        writeIfNotNull(out, "delayTime", delayTime);
     }
 
     @Override
@@ -84,11 +82,6 @@ public class SendMessageResponseHeader implements CommandCustomHeader, FastCodes
         str = fields.get("recallHandle");
         if (str != null) {
             this.recallHandle = str;
-        }
-
-        str = fields.get("delayTime");
-        if (str != null) {
-            this.delayTime = Long.parseLong(str);
         }
     }
 
@@ -138,13 +131,5 @@ public class SendMessageResponseHeader implements CommandCustomHeader, FastCodes
 
     public void setRecallHandle(String recallHandle) {
         this.recallHandle = recallHandle;
-    }
-
-    public Long getDelayTime() {
-        return delayTime;
-    }
-
-    public void setDelayTime(Long delayTime) {
-        this.delayTime = delayTime;
     }
 }

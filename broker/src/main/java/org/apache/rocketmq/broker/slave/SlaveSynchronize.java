@@ -238,9 +238,7 @@ public class SlaveSynchronize {
         String masterAddrBak = this.masterAddr;
         if (masterAddrBak != null) {
             try {
-                if (null != brokerController.getMessageStore().getTimerMessageRocksDBStore()) {
-                    // TODO metric sync
-                } else if (null != brokerController.getMessageStore().getTimerMessageStore()) {
+                if (null != brokerController.getMessageStore().getTimerMessageStore()) {
                     TimerMetrics.TimerMetricsSerializeWrapper metricsSerializeWrapper =
                             this.brokerController.getBrokerOuterAPI().getTimerMetrics(masterAddrBak);
                     if (!brokerController.getMessageStore().getTimerMessageStore().getTimerMetrics().getDataVersion().equals(metricsSerializeWrapper.getDataVersion())) {

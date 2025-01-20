@@ -831,12 +831,12 @@ public class BrokerController {
                 messageStoreConfig, brokerStatsManager, messageArrivingListener, brokerConfig, configuration);
             this.messageStore = MessageStoreFactory.build(context, defaultMessageStore);
             this.messageStore.getDispatcherList().addFirst(new CommitLogDispatcherCalcBitMap(this.brokerConfig, this.consumerFilterManager));
-
             if (messageStoreConfig.isTimerWheelEnable()) {
                 this.timerCheckpoint = new TimerCheckpoint(BrokerPathConfigHelper.getTimerCheckPath(messageStoreConfig.getStorePathRootDir()));
                 TimerMetrics timerMetrics = new TimerMetrics(BrokerPathConfigHelper.getTimerMetricsPath(messageStoreConfig.getStorePathRootDir()));
                 this.timerMessageStore = new TimerMessageStore(messageStore, messageStoreConfig, timerCheckpoint, timerMetrics, brokerStatsManager);
-                this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));this.messageStore.setTimerMessageStore(this.timerMessageStore);
+                this.timerMessageStore.registerEscapeBridgeHook(msg -> escapeBridge.putMessage(msg));
+                this.messageStore.setTimerMessageStore(this.timerMessageStore);
             }
         } catch (Exception e) {
             result = false;
