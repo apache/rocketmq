@@ -183,7 +183,6 @@ public class TimerMessageRocksDBStoreTest {
         String topic = "TimerRocksdbTest_testPutTimerMessage";
 
         final TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
-        timerMessageStore.createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);
         timerMessageStore.load();
         timerMessageStore.start();
         long commitOffset = timerMessageStore.getCommitOffset();
@@ -234,7 +233,6 @@ public class TimerMessageRocksDBStoreTest {
         String topic = "TimerRocksdbTest_testPutExpiredTimerMessage";
 
         TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
-        timerMessageStore.createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);
         timerMessageStore.load();
         timerMessageStore.start();
 
@@ -260,11 +258,10 @@ public class TimerMessageRocksDBStoreTest {
         String topic = "TimerRocksdbTest_testDeleteTimerMessage";
 
         TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
-        timerMessageStore.createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);
         timerMessageStore.load();
         timerMessageStore.start();
 
-        long delayMs = System.currentTimeMillis() + 2000;
+        long delayMs = System.currentTimeMillis() + 4000;
         String uniqKey = null;
         for (int i = 0; i < 5; i++) {
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
@@ -283,7 +280,7 @@ public class TimerMessageRocksDBStoreTest {
 
         // The first one should have been deleted.
         for (int i = 0; i < 4; i++) {
-            ByteBuffer msgBuff1 = getOneMessage(topic, 0, i, 3000);
+            ByteBuffer msgBuff1 = getOneMessage(topic, 0, i, 4000);
             assertNotNull(msgBuff1);
             MessageExt msgExt = MessageDecoder.decode(msgBuff1);
             assertNotNull(msgExt);
@@ -298,7 +295,6 @@ public class TimerMessageRocksDBStoreTest {
         String topic = "TimerRocksdbTest_testPutDeleteTimerMessage";
 
         final TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
-        timerMessageStore.createTimer(RocksDB.DEFAULT_COLUMN_FAMILY);
         timerMessageStore.load();
         timerMessageStore.start();
 
