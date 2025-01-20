@@ -61,7 +61,6 @@ import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStore.T
 import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
