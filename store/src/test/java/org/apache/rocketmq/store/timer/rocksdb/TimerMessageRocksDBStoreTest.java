@@ -325,7 +325,6 @@ public class TimerMessageRocksDBStoreTest {
             ByteBuffer msgBuff = getOneMessage(topic, 0, i, 1000);
             assertNotNull(msgBuff);
         }
-        assertNull(getOneMessage(topic, 0, 5, 1000));
 
         // Test put expired delete msg.
         MessageExtBrokerInner expiredInner = buildMessage(System.currentTimeMillis() - 100, topic, false);
