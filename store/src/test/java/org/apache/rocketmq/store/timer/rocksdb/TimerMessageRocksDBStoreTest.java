@@ -42,7 +42,6 @@ import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.rocksdb.RocksDB;
 
 import java.io.File;
 import java.net.InetAddress;
