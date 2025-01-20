@@ -342,7 +342,6 @@ public class TimerMessageRocksDBStore {
                     if (delayTime <= System.currentTimeMillis()) {
                         expired.add(tr);
                         addMetric(tr.getMessageExt(), 1);
-                        addMetric((int) (delayTime / precisionMs % slotSize), 1);
                     } else {
                         tr.setDelayTime(delayTime / precisionMs % slotSize);
                         increase.computeIfAbsent(delayTime / precisionMs % slotSize, k -> new HashMap<>()).

@@ -265,7 +265,7 @@ public class TimerMessageRocksDBStoreTest {
         timerMessageStore.load();
         timerMessageStore.start();
 
-        long delayMs = System.currentTimeMillis() + 4000;
+        long delayMs = System.currentTimeMillis() + 2000;
         String uniqKey = null;
         for (int i = 0; i < 5; i++) {
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
@@ -281,7 +281,6 @@ public class TimerMessageRocksDBStoreTest {
         MessageAccessor.putProperty(delMsg, MessageConst.PROPERTY_TIMER_DEL_UNIQKEY, TimerMessageStore.buildDeleteKey(topic, uniqKey));
         delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
-        Thread.sleep(1000);
 
         // The first one should have been deleted.
         ByteBuffer msgBuff = getOneMessage(topic, 0, 0, 3000);
@@ -305,7 +304,7 @@ public class TimerMessageRocksDBStoreTest {
         timerMessageStore.start();
 
         long curr = System.currentTimeMillis() / precisionMs * precisionMs;
-        final long delayMs = curr + 2000;
+        final long delayMs = curr + 1000;
         for (int i = 0; i < 5; i++) {
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
             transformTimerMessage(timerMessageStore, inner);
@@ -317,9 +316,6 @@ public class TimerMessageRocksDBStoreTest {
         MessageAccessor.putProperty(delMsg, TimerMessageStore.TIMER_DELETE_UNIQUE_KEY, "XXX+1");
         delMsg.setPropertiesString(MessageDecoder.messageProperties2String(delMsg.getProperties()));
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
-
-        // Wait until currReadTimeMs catches up current time and delayMs is over.
-        Thread.sleep(2000);
 
         for (int i = 0; i < 5; i++) {
             ByteBuffer msgBuff = getOneMessage(topic, 0, i, 1000);
