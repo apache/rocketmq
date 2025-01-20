@@ -337,7 +337,7 @@ public class TimerMessageRocksDBStore {
                     tr.setDelayTime(delayTime / precisionMs % slotSize);
                     tr.setUniqueKey(TimerMessageStore.extractUniqueKey(tr.getMessageExt().
                         getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)));
-                    delete.computeIfAbsent(delayTime, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
+                    delete.computeIfAbsent(delayTime / precisionMs % slotSize, k -> new HashMap<>()).computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
                 } else {
                     if (delayTime <= System.currentTimeMillis()) {
                         expired.add(tr);

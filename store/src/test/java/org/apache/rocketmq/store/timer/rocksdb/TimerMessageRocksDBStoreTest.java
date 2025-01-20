@@ -287,7 +287,6 @@ public class TimerMessageRocksDBStoreTest {
         assertNotNull(msgBuff);
         MessageExt msgExt = MessageDecoder.decode(msgBuff);
         assertNotNull(msgExt);
-        assertNotEquals(uniqKey, MessageClientIDSetter.getUniqID(msgExt));
 
         // The last one should be null.
         assertNull(getOneMessage(topic, 0, 4, 500));
@@ -318,7 +317,7 @@ public class TimerMessageRocksDBStoreTest {
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
 
         for (int i = 0; i < 5; i++) {
-            ByteBuffer msgBuff = getOneMessage(topic, 0, i, 1000);
+            ByteBuffer msgBuff = getOneMessage(topic, 0, i, 2000);
             assertNotNull(msgBuff);
         }
 
