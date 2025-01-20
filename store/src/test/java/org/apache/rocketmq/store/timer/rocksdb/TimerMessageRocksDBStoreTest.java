@@ -282,10 +282,10 @@ public class TimerMessageRocksDBStoreTest {
         assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(delMsg).getPutMessageStatus());
 
         // The first one should have been deleted.
-        for (int i = 1; i < 4; i++) {
-            ByteBuffer msgBuff = getOneMessage(topic, 0, i, 3000);
-            assertNotNull(msgBuff);
-            MessageExt msgExt = MessageDecoder.decode(msgBuff);
+        for (int i = 0; i < 4; i++) {
+            ByteBuffer msgBuff1 = getOneMessage(topic, 0, i, 3000);
+            assertNotNull(msgBuff1);
+            MessageExt msgExt = MessageDecoder.decode(msgBuff1);
             assertNotNull(msgExt);
         }
         // The last one should be null.
