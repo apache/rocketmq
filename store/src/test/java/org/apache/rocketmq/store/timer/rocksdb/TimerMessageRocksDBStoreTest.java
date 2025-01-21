@@ -187,6 +187,8 @@ public class TimerMessageRocksDBStoreTest {
         long commitOffset = timerMessageStore.getCommitOffset();
         long curr = System.currentTimeMillis() / precisionMs * precisionMs;
         long delayMs = curr + 3000;
+        storeConfig.setTimerStopDequeue(true);
+
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 5; j++) {
                 MessageExtBrokerInner inner = buildMessage((i % 2 == 0) ? 3000 : delayMs, topic + i, i % 2 == 0);
@@ -207,7 +209,7 @@ public class TimerMessageRocksDBStoreTest {
         for (int i = 0; i < 10; i++) {
             Assert.assertEquals(5, timerMessageStore.getTimerMetrics().getTimingCount(topic + i));
         }
-
+        storeConfig.setTimerStopDequeue(false);
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 5; j++) {
                 ByteBuffer msgBuff = getOneMessage(topic + i, 0, j, 4000);

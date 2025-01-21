@@ -1725,6 +1725,10 @@ public class MessageStoreConfig {
         return timerStopDequeue;
     }
 
+    public void setTimerStopDequeue(boolean timerStopDequeue) {
+        this.timerStopDequeue = timerStopDequeue;
+    }
+
     public int getTimerMetricSmallThreshold() {
         return timerMetricSmallThreshold;
     }
