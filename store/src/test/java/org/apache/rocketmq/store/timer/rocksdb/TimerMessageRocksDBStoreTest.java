@@ -262,7 +262,7 @@ public class TimerMessageRocksDBStoreTest {
         timerMessageStore.load();
         timerMessageStore.start();
 
-        long delayMs = System.currentTimeMillis() + 4000;
+        long delayMs = System.currentTimeMillis() + 3000;
         String uniqKey = null;
         for (int i = 0; i < 5; i++) {
             MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
