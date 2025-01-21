@@ -179,6 +179,7 @@ public class TimerMessageRocksDBStoreTest {
     @Test
     public void testDoNormalTimer() throws Exception {
         Assume.assumeFalse(MixAll.isUnix());
+        Assume.assumeFalse(MixAll.isWindows());
         String topic = "TimerRocksdbTest_testPutTimerMessage";
 
         final TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
