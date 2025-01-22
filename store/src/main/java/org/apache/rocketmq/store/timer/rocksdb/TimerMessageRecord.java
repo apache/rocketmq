@@ -36,6 +36,7 @@ public class TimerMessageRecord {
     // value: sizeReal + offsetPY
     private int sizeReal;
     private long offsetPY;
+    private long readOffset;
     private final static int VALUE_LENGTH = Integer.BYTES + Long.BYTES;
 
     public TimerMessageRecord() {
@@ -120,6 +121,14 @@ public class TimerMessageRecord {
 
     public void setUniqueKey(String uniqueKey) {
         this.uniqueKey = uniqueKey;
+    }
+
+    public void setReadOffset(long readOffset) {
+        this.readOffset = readOffset;
+    }
+
+    public long getReadOffset() {
+        return readOffset;
     }
 
     @Override

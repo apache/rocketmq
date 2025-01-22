@@ -44,8 +44,8 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
     public final static byte[] TRANSACTION_COLUMN_FAMILY = "transaction".getBytes(StandardCharsets.UTF_8);
     public final static byte[] POP_COLUMN_FAMILY = "pop".getBytes(StandardCharsets.UTF_8);
-    public final static byte[] TIMER_OFFSET_KEY = "timer_offset".getBytes(StandardCharsets.UTF_8);
-
+    // It is used to mark the CQ file scanning site
+    public final static byte[] TIMER_WRITE_OFFSET_KEY = "write_timer_offset".getBytes(StandardCharsets.UTF_8);
     // key : 100 * n (delay time); value : long (msg number)
     public final static byte[] METRIC_COLUMN_FAMILY = "metric".getBytes(StandardCharsets.UTF_8);
 
@@ -150,7 +150,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset, int timestamp) {
+    public void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset) {
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
 
         if (cfHandle != null && !consumerRecordList.isEmpty()) {
@@ -158,9 +158,10 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
                 for (TimerMessageRecord record : consumerRecordList) {
                     writeBatch.put(cfHandle, record.getKeyBytes(), record.getValueBytes());
                 }
-                // atomically update offset
-                writeBatch.put(TIMER_OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
-                syncMetric(timestamp / 100, consumerRecordList.size(), writeBatch);
+                if (offset != -1) {
+                    // -1 means not sync
+                    syncCommitOffset(offset, writeBatch);
+                }
                 this.db.write(writeOptions, writeBatch);
             } catch (RocksDBException e) {
                 throw new RuntimeException("Write record error", e);
@@ -169,7 +170,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, int timestamp, long offset) {
+    public void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset) {
         ColumnFamilyHandle deleteCfHandle = getColumnFamily(columnFamily);
 
         if (deleteCfHandle != null && !consumerRecordList.isEmpty()) {
@@ -177,8 +178,10 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
                 for (TimerMessageRecord record : consumerRecordList) {
                     writeBatch.delete(deleteCfHandle, record.getKeyBytes());
                 }
-                writeBatch.put(TIMER_OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
-                syncMetric(timestamp / 100, - consumerRecordList.size(), writeBatch);
+                if (offset != -1) {
+                    // -1 means delete type messages instead of thread scans
+                    syncCheckpoint(columnFamily, offset, writeBatch);
+                }
                 this.db.write(deleteOptions, writeBatch);
             } catch (RocksDBException e) {
                 throw new RuntimeException("Delete record error", e);
@@ -202,7 +205,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime, long timestamp) {
+    public List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime) {
         List<TimerMessageRecord> records = new ArrayList<>();
         ColumnFamilyHandle cfHandle = getColumnFamily(columnFamily);
 
@@ -213,11 +216,8 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());
             while (iterator.isValid()) {
                 records.add(TimerMessageRecord.decode(iterator.value()));
-                db.delete(cfHandle, iterator.key());
                 iterator.next();
             }
-        } catch (RocksDBException e) {
-            throw new RuntimeException("Delete record error", e);
         }
         return records;
     }
@@ -225,7 +225,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     @Override
     public long getCommitOffset() {
         try {
-            byte[] offsetBytes = db.get(TIMER_OFFSET_KEY);
+            byte[] offsetBytes = db.get(TIMER_WRITE_OFFSET_KEY);
             return offsetBytes == null ? 0 : ByteBuffer.wrap(offsetBytes).getLong();
         } catch (RocksDBException e) {
             throw new RuntimeException("Get commit offset error", e);
@@ -256,6 +256,22 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             return checkpointBytes == null ? System.currentTimeMillis() : ByteBuffer.wrap(checkpointBytes).getLong();
         } catch (RocksDBException e) {
             throw new RuntimeException("Get checkpoint error", e);
+        }
+    }
+
+    private void syncCheckpoint(byte[] columnFamily, long checkpoint, WriteBatch writeBatch) {
+        try {
+            writeBatch.put(columnFamily, ByteBuffer.allocate(8).putLong(checkpoint).array());
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Sync checkpoint error", e);
+        }
+    }
+
+    private void syncCommitOffset(long offset, WriteBatch writeBatch) {
+        try {
+            writeBatch.put(TIMER_WRITE_OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Sync commit offset error", e);
         }
     }
 

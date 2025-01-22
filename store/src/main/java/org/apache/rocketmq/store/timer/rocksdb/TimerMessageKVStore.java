@@ -40,17 +40,16 @@ public interface TimerMessageKVStore {
      * @param columnFamily the column family of the timer message kv store.
      * @param consumerRecordList the list of timer message records to be written.
      * @param offset the cq offset of the timer message records to be written.
-     * @param timestamp the key of the timer message metric column family.
      */
-    void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset, int timestamp);
+    void writeAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset);
 
     /**
      * Delete the timer message records from the timer message kv store.
      * @param columnFamily the column family of the timer message kv store.
      * @param consumerRecordList the list of timer message records to be deleted.
-     * @param timestamp the key of the timer message metric column family.
+     * @param offset the wheel offset of the timer message records to be read.
      */
-    void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, int timestamp, long offset);
+    void deleteAssignRecords(byte[] columnFamily, List<TimerMessageRecord> consumerRecordList, long offset);
 
     /**
      * Scan the timer message records from the timer message kv store.
@@ -59,7 +58,7 @@ public interface TimerMessageKVStore {
      * @param upperTime the upper time of the timer message records to be scanned.
      * @return the list of timer message records.
      */
-    List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime, long timestamp);
+    List<TimerMessageRecord> scanRecords(byte[] columnFamily, long lowerTime, long upperTime);
 
     /**
      * Get the commit offset of the timer message kv store from cq.
