@@ -42,7 +42,7 @@ public class GetConsumeStatsRequestHeader extends TopicRequestHeader {
     private String topic;
 
     // if topicList is provided, topic will be ignored
-    @RocketMQResource(ResourceType.TOPIC)
+    @RocketMQResource(value = ResourceType.TOPIC, splitter = TOPIC_NAME_SEPARATOR)
     private String topicList;
 
     @Override
