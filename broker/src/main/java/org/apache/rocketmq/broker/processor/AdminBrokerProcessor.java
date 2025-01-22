@@ -1947,16 +1947,14 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         try {
             final GetConsumeStatsRequestHeader requestHeader = request.decodeCommandCustomHeader(GetConsumeStatsRequestHeader.class);
+            List<String> topicListProvided = requestHeader.fetchTopicList();
+            String topicProvided = requestHeader.getTopic();
+            String group = requestHeader.getConsumerGroup();
+
             ConsumeStats consumeStats = new ConsumeStats();
+            Set<String> topicsForCollecting = getTopicsForCollecting(topicListProvided, topicProvided, group);
 
-            Set<String> topics = new HashSet<>();
-            if (UtilAll.isBlank(requestHeader.getTopic())) {
-                topics = this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(requestHeader.getConsumerGroup());
-            } else {
-                topics.add(requestHeader.getTopic());
-            }
-
-            for (String topic : topics) {
+            for (String topic : topicsForCollecting) {
                 TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
                 if (null == topicConfig) {
                     LOGGER.warn("AdminBrokerProcessor#getConsumeStats: topic config does not exist, topic={}", topic);
@@ -1964,20 +1962,6 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 }
 
                 TopicQueueMappingDetail mappingDetail = this.brokerController.getTopicQueueMappingManager().getTopicQueueMapping(topic);
-
-                {
-                    SubscriptionData findSubscriptionData =
-                        this.brokerController.getConsumerManager().findSubscriptionData(requestHeader.getConsumerGroup(), topic);
-
-                    if (null == findSubscriptionData
-                        && this.brokerController.getConsumerManager().findSubscriptionDataCount(requestHeader.getConsumerGroup()) > 0) {
-                        LOGGER.warn(
-                            "AdminBrokerProcessor#getConsumeStats: topic does not exist in consumer group's subscription, "
-                                + "topic={}, consumer group={}", topic, requestHeader.getConsumerGroup());
-                        continue;
-                    }
-                }
-
                 for (int i = 0; i < topicConfig.getReadQueueNums(); i++) {
                     MessageQueue mq = new MessageQueue();
                     mq.setTopic(topic);
@@ -2036,6 +2020,37 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             response.setRemark(e.getMessage());
         }
         return response;
+    }
+
+    private Set<String> getTopicsForCollecting(List<String> topicListProvided, String topicProvided, String group) {
+        Set<String> topicsForCollecting = new HashSet<>();
+        if (!topicListProvided.isEmpty()) {
+            // if topic list is provided, only collect the topics in the list
+            // and ignore subscription check
+            topicsForCollecting.addAll(topicListProvided);
+        } else {
+            // In order to be compatible with the old logic,
+            // even if the topic has been provided here, the subscription will be checked.
+            if (UtilAll.isBlank(topicProvided)) {
+                topicsForCollecting.addAll(
+                    this.brokerController.getConsumerOffsetManager().whichTopicByConsumer(group));
+            } else {
+                topicsForCollecting.add(topicProvided);
+            }
+            int subscriptionCount = this.brokerController.getConsumerManager().findSubscriptionDataCount(group);
+            Iterator<String> iterator = topicsForCollecting.iterator();
+            while (iterator.hasNext()) {
+                String topic = iterator.next();
+                SubscriptionData findSubscriptionData = this.brokerController.getConsumerManager().findSubscriptionData(group, topic);
+                if (findSubscriptionData == null && subscriptionCount > 0) {
+                    LOGGER.warn(
+                        "AdminBrokerProcessor#getConsumeStats: topic does not exist in consumer group's subscription, topic={}, consumer group={}",
+                        topic, group);
+                    iterator.remove();
+                }
+            }
+        }
+        return topicsForCollecting;
     }
 
     private RemotingCommand getAllConsumerOffset(ChannelHandlerContext ctx, RemotingCommand request) {
