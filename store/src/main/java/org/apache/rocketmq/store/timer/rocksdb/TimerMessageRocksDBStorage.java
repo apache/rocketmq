@@ -259,6 +259,11 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
         }
     }
 
+    @Override
+    public void syncMetric(int key, int update) {
+        // TODO sync metric
+    }
+
     private void syncCheckpoint(byte[] columnFamily, long checkpoint, WriteBatch writeBatch) {
         try {
             writeBatch.put(columnFamily, ByteBuffer.allocate(8).putLong(checkpoint).array());
@@ -272,14 +277,6 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             writeBatch.put(TIMER_WRITE_OFFSET_KEY, ByteBuffer.allocate(8).putLong(offset).array());
         } catch (RocksDBException e) {
             throw new RuntimeException("Sync commit offset error", e);
-        }
-    }
-
-    private void syncMetric(int key, int update, WriteBatch writeBatch) {
-        try {
-            writeBatch.put(metricColumnFamilyHandle, ByteBuffer.allocate(4).putInt(key).array(), ByteBuffer.allocate(4).putInt(update).array());
-        } catch (RocksDBException e) {
-            throw new RuntimeException("Sync metric error", e);
         }
     }
 }

@@ -80,4 +80,11 @@ public interface TimerMessageKVStore {
      * @return the checkpoint of the timer message kv store.
      */
     long getCheckpoint(byte[] columnFamily);
+
+    /**
+     * Sync the metric of the timer message kv store.
+     * @param key the key of the metric.
+     * @param update the value of the metric.
+     */
+    void syncMetric(int key, int update);
 }
