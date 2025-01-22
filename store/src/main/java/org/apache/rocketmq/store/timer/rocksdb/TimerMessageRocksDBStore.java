@@ -357,11 +357,11 @@ public class TimerMessageRocksDBStore {
 
             while (!expired.isEmpty() && !dequeueGetQueue.offer(expired, 100, TimeUnit.MILLISECONDS)) {
             }
-            for (Map.Entry<Integer, List<TimerMessageRecord>> entry : delete.entrySet()) {
-                timerMessageKVStore.deleteAssignRecords(getColumnFamily(entry.getKey()), entry.getValue(), -1);
-            }
             for (Map.Entry<Integer, List<TimerMessageRecord>> entry : increase.entrySet()) {
                 timerMessageKVStore.writeAssignRecords(getColumnFamily(entry.getKey()), entry.getValue(), -1);
+            }
+            for (Map.Entry<Integer, List<TimerMessageRecord>> entry : delete.entrySet()) {
+                timerMessageKVStore.deleteAssignRecords(getColumnFamily(entry.getKey()), entry.getValue(), -1);
             }
             // sync cq read offset
             timerMessageKVStore.writeAssignRecords(getColumnFamily(0), new ArrayList<>(), commitOffset.addAndGet(trs.size()));
