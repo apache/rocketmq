@@ -221,7 +221,7 @@ public class TimerMessageRocksDBStore {
     }
 
     private void calcTimerDistribution() {
-        // TODO fix
+        // TODO fix sync metric
         int slotNumber = precisionMs / 100;
         int rocksdbNumber = 0;
         for (int i = 0; i < this.slotSize; i++) {
@@ -366,7 +366,7 @@ public class TimerMessageRocksDBStore {
             // sync cq read offset
             timerMessageKVStore.writeAssignRecords(getColumnFamily(0), new ArrayList<>(), commitOffset.addAndGet(trs.size()));
 
-            // sync metric
+            // TODO sync metric
             for (Map.Entry<Long, Map<Integer, List<TimerMessageRecord>>> entry : deleteMetric.entrySet()) {
                 long delayTime = entry.getKey();
                 for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
