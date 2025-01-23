@@ -76,6 +76,7 @@ public interface TimerMessageKVStore {
 
     /**
      * Get the checkpoint of the timer message kv store.
+     * Key : columnFamily byte[]; Value : checkpoint long.
      * @param columnFamily the column family of the timer message kv store.
      * @return the checkpoint of the timer message kv store.
      */
@@ -86,5 +87,5 @@ public interface TimerMessageKVStore {
      * @param key the key of the metric.
      * @param update the value of the metric.
      */
-    void syncMetric(long key, long update);
+    void syncMetric(long key, int update);
 }

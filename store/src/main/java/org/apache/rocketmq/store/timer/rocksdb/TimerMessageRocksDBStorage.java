@@ -238,7 +238,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
 
         try (ReadOptions readOptions = new ReadOptions()
                 .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array()))
-                .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
+                .setIterateUpperBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
             RocksIterator iterator = db.newIterator(metricColumnFamilyHandle, readOptions)) {
             iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());
             while (iterator.isValid()) {
@@ -260,9 +260,14 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public void syncMetric(long key, long update) {
+    public void syncMetric(long key, int update) {
         try {
-            db.put(metricColumnFamilyHandle, ByteBuffer.allocate(8).putLong(key).array(), ByteBuffer.allocate(4).putInt((int) update).array());
+            byte[] keyBytes = db.get(metricColumnFamilyHandle, ByteBuffer.allocate(8).putLong(key).array());
+            if (keyBytes != null) {
+                ByteBuffer oldValue = ByteBuffer.wrap(keyBytes);
+                update = oldValue.getInt() + update;
+            }
+            db.put(metricColumnFamilyHandle, ByteBuffer.allocate(8).putLong(key).array(), ByteBuffer.allocate(4).putInt(update).array());
         } catch (RocksDBException e) {
             throw new RuntimeException("Sync metric to RocksDB error", e);
         }

@@ -66,7 +66,7 @@ import static org.junit.Assert.assertNull;
 public class TimerMessageRocksDBStoreTest {
     MessageStore messageStore;
     MessageStoreConfig storeConfig;
-    int precisionMs = 500;
+    int precisionMs = 1;
     AtomicInteger counter = new AtomicInteger(0);
     private SocketAddress bornHost;
     private SocketAddress storeHost;
@@ -80,6 +80,8 @@ public class TimerMessageRocksDBStoreTest {
         storeConfig.setEnableTimerMessageOnRocksDB(true);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + File.separator + "commitlog");
+        storeConfig.setTimerPrecision(1);
+        precisionMs = storeConfig.getTimerPrecisionMs();
         messageStore = new DefaultMessageStore(storeConfig, new BrokerStatsManager("TimerTest",
             false), new MyMessageArrivingListener(), new BrokerConfig(), new ConcurrentHashMap<>());
 
@@ -158,9 +160,7 @@ public class TimerMessageRocksDBStoreTest {
             }
 
             int timerPrecisionMs = storeConfig.getTimerPrecisionMs();
-            if (deliverMs % timerPrecisionMs == 0) {
-                deliverMs -= timerPrecisionMs;
-            } else {
+            if (deliverMs % timerPrecisionMs != 0) {
                 deliverMs = deliverMs / timerPrecisionMs * timerPrecisionMs;
             }
 
@@ -331,6 +331,31 @@ public class TimerMessageRocksDBStoreTest {
     public void testExtractUniqueKey() {
         String deleteKey = TimerMessageStore.buildDeleteKey("topic", "123456");
         assertEquals("123456", TimerMessageStore.extractUniqueKey(deleteKey));
+    }
+
+    @Test
+    public void testGetTimerMetrics() {
+        String topic = "TimerRocksdbTest_testGetTimerMetrics";
+        TimerMessageRocksDBStore timerMessageStore = createTimerMessageRocksDBStore(null);
+        timerMessageStore.load();
+        timerMessageStore.start();
+        storeConfig.setTimerStopDequeue(true);
+        long delayMs = System.currentTimeMillis() + 3000;
+
+        for (int i = 0; i < 10; i++) {
+            MessageExtBrokerInner inner = buildMessage(delayMs, topic, false);
+            transformTimerMessage(timerMessageStore, inner);
+            assertEquals(PutMessageStatus.PUT_OK, messageStore.putMessage(inner).getPutMessageStatus());
+        }
+        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> timerMessageStore.getTimerMessageKVStore().
+            getMetricSize(delayMs / precisionMs * precisionMs % timerMessageStore.getMetricsIntervalMs(),
+            delayMs / precisionMs * precisionMs % timerMessageStore.getMetricsIntervalMs() + precisionMs) == 10);
+
+        storeConfig.setTimerStopDequeue(false);
+        await().atMost(3000, TimeUnit.MILLISECONDS).until(() -> timerMessageStore.getTimerMessageKVStore().
+            getMetricSize(delayMs / precisionMs * precisionMs % timerMessageStore.getMetricsIntervalMs(),
+            delayMs / precisionMs * precisionMs % timerMessageStore.getMetricsIntervalMs() + precisionMs) == 0);
+        timerMessageStore.shutdown();
     }
 
     private class MyMessageArrivingListener implements MessageArrivingListener {

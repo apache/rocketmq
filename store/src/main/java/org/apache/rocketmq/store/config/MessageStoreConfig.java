@@ -1649,6 +1649,22 @@ public class MessageStoreConfig {
         this.timerPrecisionMs = candidates[candidates.length - 1];
     }
 
+    // visible for test
+    public void setTimerPrecision(int timerPrecisionMs) {
+        if (enableTimerMessageOnRocksDB) {
+            this.timerPrecisionMs = timerPrecisionMs;
+            return;
+        }
+        int[] candidates = {100, 200, 500, 1000};
+        for (int i = 1; i < candidates.length; i++) {
+            if (timerPrecisionMs < candidates[i]) {
+                this.timerPrecisionMs = candidates[i - 1];
+                return;
+            }
+        }
+        this.timerPrecisionMs = candidates[candidates.length - 1];
+    }
+
     public int getTimerRollWindowSlot() {
         return timerRollWindowSlot;
     }

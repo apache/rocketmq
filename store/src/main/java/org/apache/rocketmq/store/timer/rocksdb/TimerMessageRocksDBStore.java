@@ -227,7 +227,7 @@ public class TimerMessageRocksDBStore {
         int slotNumber = precisionMs;
         int rocksdbNumber = 0;
         for (int i = 0; i < this.slotSize; i++) {
-            timerMetrics.updateDistPair(i, timerMessageKVStore.getMetricSize(rocksdbNumber, rocksdbNumber + slotNumber - 1));
+            timerMetrics.updateDistPair(i, timerMessageKVStore.getMetricSize(rocksdbNumber, rocksdbNumber + slotNumber));
             rocksdbNumber += slotNumber;
         }
     }
@@ -436,12 +436,16 @@ public class TimerMessageRocksDBStore {
                 try {
                     List<TimerMessageRecord> timerMessageRecord = dequeuePutQueue.poll(100L * precisionMs / 1000, TimeUnit.MILLISECONDS);
                     int flag = 0;
+                    long delayTime = -1;
                     if (null == timerMessageRecord || timerMessageRecord.isEmpty()) {
                         continue;
                     }
                     for (TimerMessageRecord record : timerMessageRecord) {
                         MessageExt msg = record.getMessageExt();
                         MessageExtBrokerInner messageExtBrokerInner = convert(msg, record.isRoll());
+                        if (delayTime == -1) {
+                            delayTime = Long.parseLong(record.getMessageExt().getProperty(TIMER_OUT_MS));
+                        }
                         flag = record.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_FLAG) == null ?
                             0 : Integer.parseInt(record.getMessageExt().getProperty(MessageConst.PROPERTY_TIMER_DEL_FLAG));
                         boolean processed = false;
@@ -470,6 +474,7 @@ public class TimerMessageRocksDBStore {
                         addMetric(msg, -1);
                         addMetric((int) (Long.parseLong(msg.getProperty(TIMER_OUT_MS)) / precisionMs % slotSize), -1);
                     }
+                    timerMessageKVStore.syncMetric(delayTime % metricsIntervalMs, -timerMessageRecord.size());
                     timerMessageKVStore.deleteAssignRecords(getColumnFamily(flag), timerMessageRecord, timerMessageRecord.get(0).getReadOffset());
                 } catch (InterruptedException e) {
                     TimerMessageRocksDBStore.log.error("Error occurred in " + getServiceName(), e);
@@ -801,5 +806,13 @@ public class TimerMessageRocksDBStore {
 
     public long getDequeueBehindMillis() {
         return System.currentTimeMillis() - timerGetMessageServices.get(0).checkpoint;
+    }
+
+    public TimerMessageKVStore getTimerMessageKVStore() {
+        return timerMessageKVStore;
+    }
+
+    public long getMetricsIntervalMs() {
+        return metricsIntervalMs;
     }
 }
