@@ -86,5 +86,5 @@ public interface TimerMessageKVStore {
      * @param key the key of the metric.
      * @param update the value of the metric.
      */
-    void syncMetric(int key, int update);
+    void syncMetric(long key, long update);
 }

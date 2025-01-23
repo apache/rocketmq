@@ -164,7 +164,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
                 }
                 this.db.write(writeOptions, writeBatch);
             } catch (RocksDBException e) {
-                throw new RuntimeException("Write record error", e);
+                throw new RuntimeException("Write record on RoCKsDB error", e);
             }
         }
     }
@@ -184,7 +184,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
                 }
                 this.db.write(deleteOptions, writeBatch);
             } catch (RocksDBException e) {
-                throw new RuntimeException("Delete record error", e);
+                throw new RuntimeException("Delete record on RocksDB error", e);
             }
         }
     }
@@ -228,7 +228,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             byte[] offsetBytes = db.get(TIMER_WRITE_OFFSET_KEY);
             return offsetBytes == null ? 0 : ByteBuffer.wrap(offsetBytes).getLong();
         } catch (RocksDBException e) {
-            throw new RuntimeException("Get commit offset error", e);
+            throw new RuntimeException("Get commit offset from RocksDB error", e);
         }
     }
 
@@ -239,7 +239,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
         try (ReadOptions readOptions = new ReadOptions()
                 .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array()))
                 .setIterateLowerBound(new Slice(ByteBuffer.allocate(Long.BYTES).putLong(upperTime).array()));
-             RocksIterator iterator = db.newIterator(metricColumnFamilyHandle, readOptions)) {
+            RocksIterator iterator = db.newIterator(metricColumnFamilyHandle, readOptions)) {
             iterator.seek(ByteBuffer.allocate(Long.BYTES).putLong(lowerTime).array());
             while (iterator.isValid()) {
                 metricSize += ByteBuffer.wrap(iterator.value()).getInt();
@@ -255,20 +255,24 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
             byte[] checkpointBytes = db.get(columnFamily);
             return checkpointBytes == null ? System.currentTimeMillis() : ByteBuffer.wrap(checkpointBytes).getLong();
         } catch (RocksDBException e) {
-            throw new RuntimeException("Get checkpoint error", e);
+            throw new RuntimeException("Get checkpoint to RocksDB error", e);
         }
     }
 
     @Override
-    public void syncMetric(int key, int update) {
-        // TODO sync metric
+    public void syncMetric(long key, long update) {
+        try {
+            db.put(metricColumnFamilyHandle, ByteBuffer.allocate(8).putLong(key).array(), ByteBuffer.allocate(4).putInt((int) update).array());
+        } catch (RocksDBException e) {
+            throw new RuntimeException("Sync metric to RocksDB error", e);
+        }
     }
 
     private void syncCheckpoint(byte[] columnFamily, long checkpoint, WriteBatch writeBatch) {
         try {
             writeBatch.put(columnFamily, ByteBuffer.allocate(8).putLong(checkpoint).array());
         } catch (RocksDBException e) {
-            throw new RuntimeException("Sync checkpoint error", e);
+            throw new RuntimeException("Sync checkpoint to RocksDB error", e);
         }
     }
 

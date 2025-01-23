@@ -83,8 +83,8 @@ public class TimerMessageRocksDBStore {
     private final TimerMetrics timerMetrics;
 
     private final int slotSize;
-    private final int readCount;
     private final int precisionMs;
+    private final long metricsIntervalMs;
     private volatile int state = INITIAL;
 
     private TimerEnqueueGetService timerEnqueueGetService;
@@ -111,7 +111,7 @@ public class TimerMessageRocksDBStore {
 
         this.precisionMs = storeConfig.getTimerPrecisionMs();
         this.slotSize = 1000 * TIMER_WHEEL_TTL_DAY / precisionMs * DAY_SECS;
-        this.readCount = storeConfig.getReadCountTimerOnRocksDB();
+        this.metricsIntervalMs = 1000L * TIMER_WHEEL_TTL_DAY * DAY_SECS;
         this.timerMessageKVStore = new TimerMessageRocksDBStorage(Paths.get(
             storeConfig.getStorePathRootDir(), ROCKSDB_DIRECTORY).toString());
 
@@ -221,11 +221,10 @@ public class TimerMessageRocksDBStore {
     }
 
     private void calcTimerDistribution() {
-        // TODO fix sync metric
-        int slotNumber = precisionMs / 100;
+        int slotNumber = precisionMs;
         int rocksdbNumber = 0;
         for (int i = 0; i < this.slotSize; i++) {
-            timerMetrics.resetDistPair(i, timerMessageKVStore.getMetricSize(rocksdbNumber, rocksdbNumber + slotNumber - 1));
+            timerMetrics.updateDistPair(i, timerMessageKVStore.getMetricSize(rocksdbNumber, rocksdbNumber + slotNumber - 1));
             rocksdbNumber += slotNumber;
         }
     }
@@ -326,10 +325,10 @@ public class TimerMessageRocksDBStore {
             if (null == trs) {
                 return;
             }
-            Map<Long, Map<Integer, List<TimerMessageRecord>>> increaseMetric = new HashMap<>();
-            Map<Long, Map<Integer, List<TimerMessageRecord>>> deleteMetric = new HashMap<>();
-            Map<Integer, List<TimerMessageRecord>> increase = new HashMap<>();
-            Map<Integer, List<TimerMessageRecord>> delete = new HashMap<>();
+            Map<Long/* delayTime */, List<TimerMessageRecord>> increaseMetric = new HashMap<>();
+            Map<Long/* delayTime */, List<TimerMessageRecord>> deleteMetric = new HashMap<>();
+            Map<Integer/* columnFamily */, List<TimerMessageRecord>> increase = new HashMap<>();
+            Map<Integer/* columnFamily */, List<TimerMessageRecord>> delete = new HashMap<>();
             List<TimerMessageRecord> expired = new ArrayList<>();
 
             for (TimerMessageRecord tr : trs) {
@@ -341,16 +340,15 @@ public class TimerMessageRocksDBStore {
                     tr.setDelayTime(delayTime / precisionMs % slotSize);
                     tr.setUniqueKey(TimerMessageStore.extractUniqueKey(tr.getMessageExt().
                         getProperty(MessageConst.PROPERTY_TIMER_DEL_UNIQKEY)));
-                    deleteMetric.computeIfAbsent(delayTime / precisionMs % slotSize, k -> new HashMap<>()).
-                        computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
+                    deleteMetric.computeIfAbsent(delayTime % metricsIntervalMs, k -> new ArrayList<>()).add(tr);
                     delete.computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
                 } else if (delayTime <= System.currentTimeMillis()) {
                     expired.add(tr);
                     addMetric(tr.getMessageExt(), 1);
+                    addMetric((int) (Long.parseLong(tr.getMessageExt().getProperty(TIMER_OUT_MS)) / precisionMs % slotSize), 1);
                 } else {
                     tr.setDelayTime(delayTime / precisionMs % slotSize);
-                    increaseMetric.computeIfAbsent(delayTime / precisionMs % slotSize, k -> new HashMap<>()).
-                        computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
+                    increaseMetric.computeIfAbsent(delayTime % metricsIntervalMs, k -> new ArrayList<>()).add(tr);
                     increase.computeIfAbsent(flag, k -> new ArrayList<>()).add(tr);
                 }
             }
@@ -366,24 +364,21 @@ public class TimerMessageRocksDBStore {
             // sync cq read offset
             timerMessageKVStore.writeAssignRecords(getColumnFamily(0), new ArrayList<>(), commitOffset.addAndGet(trs.size()));
 
-            // TODO sync metric
-            for (Map.Entry<Long, Map<Integer, List<TimerMessageRecord>>> entry : deleteMetric.entrySet()) {
+            for (Map.Entry<Long, List<TimerMessageRecord>> entry : deleteMetric.entrySet()) {
                 long delayTime = entry.getKey();
-                for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
-                    for (TimerMessageRecord record : entry1.getValue()) {
-                        addMetric(record.getMessageExt(), -1);
-                    }
+                for (TimerMessageRecord record : entry.getValue()) {
+                    addMetric(record.getMessageExt(), -1);
+                    addMetric((int) (Long.parseLong(record.getMessageExt().getProperty(TIMER_OUT_MS)) / precisionMs % slotSize), -1);
                 }
-                addMetric((int) delayTime, -entry.getValue().size());
+                timerMessageKVStore.syncMetric(delayTime, -entry.getValue().size());
             }
-            for (Map.Entry<Long, Map<Integer, List<TimerMessageRecord>>> entry : increaseMetric.entrySet()) {
+            for (Map.Entry<Long, List<TimerMessageRecord>> entry : increaseMetric.entrySet()) {
                 long delayTime = entry.getKey();
-                for (Map.Entry<Integer, List<TimerMessageRecord>> entry1 : entry.getValue().entrySet()) {
-                    for (TimerMessageRecord record : entry1.getValue()) {
-                        addMetric(record.getMessageExt(), 1);
-                    }
+                for (TimerMessageRecord record : entry.getValue()) {
+                    addMetric(record.getMessageExt(), 1);
+                    addMetric((int) (Long.parseLong(record.getMessageExt().getProperty(TIMER_OUT_MS)) / precisionMs % slotSize), 1);
                 }
-                addMetric((int) delayTime, entry.getValue().size());
+                timerMessageKVStore.syncMetric(delayTime, entry.getValue().size());
             }
         }
     }
@@ -467,6 +462,7 @@ public class TimerMessageRocksDBStore {
                             }
                         }
                         addMetric(msg, -1);
+                        addMetric((int) (Long.parseLong(msg.getProperty(TIMER_OUT_MS)) / precisionMs % slotSize), -1);
                     }
                     timerMessageKVStore.deleteAssignRecords(getColumnFamily(flag), timerMessageRecord, timerMessageRecord.get(0).getReadOffset());
                 } catch (InterruptedException e) {
@@ -643,7 +639,6 @@ public class TimerMessageRocksDBStore {
         }
         while (!dequeueGetQueue.offer(timerMessageRecords, 3, TimeUnit.SECONDS)) {
         }
-        addMetric(slot, -timerMessageRecords.size());
         return 0;
     }
 
