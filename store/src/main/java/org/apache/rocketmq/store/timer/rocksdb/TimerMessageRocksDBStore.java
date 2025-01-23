@@ -86,6 +86,8 @@ public class TimerMessageRocksDBStore {
     private final int precisionMs;
     private final long metricsIntervalMs;
     private volatile int state = INITIAL;
+    private long lastEnqueueButExpiredTime;
+    private long lastEnqueueButExpiredStoreTime;
 
     private TimerEnqueueGetService timerEnqueueGetService;
     private TimerEnqueuePutService timerEnqueuePutService;
@@ -99,8 +101,8 @@ public class TimerMessageRocksDBStore {
     private BlockingQueue<List<TimerMessageRecord>> dequeuePutQueue;
 
     ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-    private AtomicLong commitOffset = new AtomicLong(0);
-    private AtomicLong readOffset = new AtomicLong(0);
+    private final AtomicLong commitOffset = new AtomicLong(0);
+    private final AtomicLong readOffset = new AtomicLong(0);
 
     public TimerMessageRocksDBStore(final MessageStore messageStore, final MessageStoreConfig storeConfig,
         TimerMetrics timerMetrics, final BrokerStatsManager brokerStatsManager) {
@@ -190,6 +192,7 @@ public class TimerMessageRocksDBStore {
         this.timerGetMessageServices.add(new TimerGetMessageService(columnFamily));
         this.timerWarmServices.add(new TimerWarmService(columnFamily));
     }
+
     // ----------------------------------------------------------------------------------------------------------------
     private void initService() {
         createTimer(TRANSACTION_COLUMN_FAMILY);
@@ -243,11 +246,14 @@ public class TimerMessageRocksDBStore {
     private byte[] getColumnFamily(int flag) {
         TimerMessageRecord.Flag tag;
         switch (flag) {
-            case 1 : tag = TimerMessageRecord.Flag.TRANSACTION;
+            case 1:
+                tag = TimerMessageRecord.Flag.TRANSACTION;
                 break;
-            case 2 : tag = TimerMessageRecord.Flag.POP;
+            case 2:
+                tag = TimerMessageRecord.Flag.POP;
                 break;
-            default : tag = TimerMessageRecord.Flag.DEFAULT;
+            default:
+                tag = TimerMessageRecord.Flag.DEFAULT;
         }
         if (TimerMessageRecord.Flag.TRANSACTION == tag) {
             return TRANSACTION_COLUMN_FAMILY;
@@ -538,6 +544,7 @@ public class TimerMessageRocksDBStore {
             TimerMessageRocksDBStore.log.info(this.getServiceName() + " service end");
         }
     }
+
     // -----------------------------------------------------------------------------------------------------------------
     public boolean enqueue(int queueId) {
         if (!storeConfig.getEnableTimerMessageOnRocksDB() || storeConfig.isTimerStopEnqueue()) {
@@ -571,6 +578,8 @@ public class TimerMessageRocksDBStore {
                     MessageExt msgExt = getMessageByCommitOffset(offsetPy, sizePy);
 
                     if (null != msgExt) {
+                        lastEnqueueButExpiredTime = System.currentTimeMillis();
+                        lastEnqueueButExpiredStoreTime = msgExt.getStoreTimestamp();
                         long delayedTime = Long.parseLong(msgExt.getProperty(TIMER_OUT_MS));
                         TimerMessageRecord timerRequest = new TimerMessageRecord(delayedTime,
                             MessageClientIDSetter.getUniqID(msgExt), offsetPy, sizePy);
@@ -765,5 +774,32 @@ public class TimerMessageRocksDBStore {
 
     public long getCommitOffset() {
         return commitOffset.get();
+    }
+
+    public long getAllCongestNum() {
+        return timerMessageKVStore.getMetricSize(0, metricsIntervalMs);
+    }
+
+    public long getCongestNum(long deliverTimeMs) {
+        long slot = deliverTimeMs / precisionMs % slotSize;
+        return timerMessageKVStore.getMetricSize(slot * precisionMs, (slot + 1) * precisionMs);
+    }
+
+    public long getEnqueueBehindMessages() {
+        long tmpQueueOffset = readOffset.get();
+        ConsumeQueueInterface cq = messageStore.getConsumeQueue(TIMER_TOPIC, 0);
+        long maxOffsetInQueue = cq == null ? 0 : cq.getMaxOffsetInQueue();
+        return maxOffsetInQueue - tmpQueueOffset;
+    }
+
+    public long getEnqueueBehindMillis() {
+        if (System.currentTimeMillis() - lastEnqueueButExpiredTime < 2000) {
+            return System.currentTimeMillis() - lastEnqueueButExpiredStoreTime;
+        }
+        return 0;
+    }
+
+    public long getDequeueBehindMillis() {
+        return System.currentTimeMillis() - timerGetMessageServices.get(0).checkpoint;
     }
 }

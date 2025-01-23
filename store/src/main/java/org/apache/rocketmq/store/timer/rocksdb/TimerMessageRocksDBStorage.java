@@ -233,7 +233,7 @@ public class TimerMessageRocksDBStorage extends AbstractRocksDBStorage implement
     }
 
     @Override
-    public int getMetricSize(int lowerTime, int upperTime) {
+    public int getMetricSize(long lowerTime, long upperTime) {
         int metricSize = 0;
 
         try (ReadOptions readOptions = new ReadOptions()

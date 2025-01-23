@@ -1733,10 +1733,16 @@ public class TimerMessageStore {
     }
 
     public long getAllCongestNum() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getAllCongestNum();
+        }
         return timerWheel.getAllNum(currReadTimeMs);
     }
 
     public long getCongestNum(long deliverTimeMs) {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getCongestNum(deliverTimeMs);
+        }
         return timerWheel.getNum(deliverTimeMs);
     }
 
@@ -1758,6 +1764,9 @@ public class TimerMessageStore {
     }
 
     public long getEnqueueBehindMessages() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getEnqueueBehindMessages();
+        }
         long tmpQueueOffset = currQueueOffset;
         ConsumeQueueInterface cq = messageStore.getConsumeQueue(TIMER_TOPIC, 0);
         long maxOffsetInQueue = cq == null ? 0 : cq.getMaxOffsetInQueue();
@@ -1765,6 +1774,9 @@ public class TimerMessageStore {
     }
 
     public long getEnqueueBehindMillis() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getEnqueueBehindMillis();
+        }
         if (System.currentTimeMillis() - lastEnqueueButExpiredTime < 2000) {
             return System.currentTimeMillis() - lastEnqueueButExpiredStoreTime;
         }
@@ -1776,10 +1788,13 @@ public class TimerMessageStore {
     }
 
     public long getDequeueBehindMessages() {
-        return timerWheel.getAllNum(currReadTimeMs);
+        return getAllCongestNum();
     }
 
     public long getDequeueBehindMillis() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getDequeueBehindMillis();
+        }
         return System.currentTimeMillis() - currReadTimeMs;
     }
 

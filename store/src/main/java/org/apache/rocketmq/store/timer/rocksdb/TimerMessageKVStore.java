@@ -72,7 +72,7 @@ public interface TimerMessageKVStore {
      * @param upperTime the upper time of the timer message records to be scanned.
      * @return sum.
      */
-    int getMetricSize(int lowerTime, int upperTime);
+    int getMetricSize(long lowerTime, long upperTime);
 
     /**
      * Get the checkpoint of the timer message kv store.
