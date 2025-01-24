@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.PermName;
+import org.apache.rocketmq.common.help.FAQUrl;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public class ValidatorsTest {
             Validators.checkGroup(null);
             fail("excepted MQClientException for group name is blank");
         } catch (MQClientException e) {
-            assertThat(e.getErrorMessage()).isEqualTo("the specified group is blank");
+            assertThat(e.getErrorMessage()).isEqualTo("the specified group is blank" + FAQUrl.suggestTodo(FAQUrl.CLIENT_PARAMETER_CHECK_URL));
         }
     }
 
