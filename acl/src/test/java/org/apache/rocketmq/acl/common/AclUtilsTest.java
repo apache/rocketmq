@@ -36,9 +36,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class AclUtilsTest {
@@ -54,7 +52,7 @@ public class AclUtilsTest {
         addressList.add("1.1.1.2");
         addressList.add("1.1.1.3");
         addressList.add("1.1.1.4");
-        assertEquals(newAddressList, addressList);
+        Assert.assertEquals(newAddressList, addressList);
 
         // IPv6 test
         String ipv6Address = "1:ac41:9987::bb22:666:{1,2,3,4}";
@@ -67,7 +65,7 @@ public class AclUtilsTest {
         ipv6AddressList.add("1:ac41:9987::bb22:666:2");
         ipv6AddressList.add("1:ac41:9987::bb22:666:3");
         ipv6AddressList.add("1:ac41:9987::bb22:666:4");
-        assertEquals(newIPv6AddressList, ipv6AddressList);
+        Assert.assertEquals(newIPv6AddressList, ipv6AddressList);
     }
 
     @Test
@@ -77,9 +75,9 @@ public class AclUtilsTest {
         for (int i = 0; i < 6; i++) {
             boolean isScope = AclUtils.isScope(address, 4);
             if (i == 3) {
-                assertTrue(isScope);
+                Assert.assertTrue(isScope);
             } else {
-                assertFalse(isScope);
+                Assert.assertFalse(isScope);
             }
             address = address + ".12";
         }
@@ -89,46 +87,46 @@ public class AclUtilsTest {
     public void testIsScope_Array() {
         String[] address = StringUtils.split("12.12.12.12", ".");
         boolean isScope = AclUtils.isScope(address, 4);
-        assertTrue(isScope);
+        Assert.assertTrue(isScope);
         isScope = AclUtils.isScope(address, 3);
-        assertTrue(isScope);
+        Assert.assertTrue(isScope);
 
         address = StringUtils.split("12.12.1222.1222", ".");
         isScope = AclUtils.isScope(address, 4);
-        assertFalse(isScope);
+        Assert.assertFalse(isScope);
         isScope = AclUtils.isScope(address, 3);
-        assertFalse(isScope);
+        Assert.assertFalse(isScope);
 
         // IPv6 test
         address = StringUtils.split("1050:0000:0000:0000:0005:0600:300c:326b", ":");
         isScope = AclUtils.isIPv6Scope(address, 8);
-        assertTrue(isScope);
+        Assert.assertTrue(isScope);
         isScope = AclUtils.isIPv6Scope(address, 4);
-        assertTrue(isScope);
+        Assert.assertTrue(isScope);
 
         address = StringUtils.split("1050:9876:0000:0000:0005:akkg:300c:326b", ":");
         isScope = AclUtils.isIPv6Scope(address, 8);
-        assertFalse(isScope);
+        Assert.assertFalse(isScope);
         isScope = AclUtils.isIPv6Scope(address, 4);
-        assertTrue(isScope);
+        Assert.assertTrue(isScope);
 
         address = StringUtils.split(AclUtils.expandIP("1050::0005:akkg:300c:326b", 8), ":");
         isScope = AclUtils.isIPv6Scope(address, 8);
-        assertFalse(isScope);
+        Assert.assertFalse(isScope);
         isScope = AclUtils.isIPv6Scope(address, 4);
-        assertTrue(isScope);
+        Assert.assertTrue(isScope);
     }
 
     @Test
     public void testIsScope_String() {
         for (int i = 0; i < 256; i++) {
             boolean isScope = AclUtils.isScope(i + "");
-            assertTrue(isScope);
+            Assert.assertTrue(isScope);
         }
         boolean isScope = AclUtils.isScope("-1");
-        assertFalse(isScope);
+        Assert.assertFalse(isScope);
         isScope = AclUtils.isScope("256");
-        assertFalse(isScope);
+        Assert.assertFalse(isScope);
     }
 
     @Test
@@ -138,9 +136,9 @@ public class AclUtilsTest {
             Assert.assertTrue(isScope);
         }
         boolean isScope = AclUtils.isScope(-1);
-        assertFalse(isScope);
+        Assert.assertFalse(isScope);
         isScope = AclUtils.isScope(256);
-        assertFalse(isScope);
+        Assert.assertFalse(isScope);
 
         // IPv6 test
         int min = Integer.parseInt("0", 16);
@@ -150,62 +148,62 @@ public class AclUtilsTest {
             Assert.assertTrue(isScope);
         }
         isScope = AclUtils.isIPv6Scope(-1);
-        assertFalse(isScope);
+        Assert.assertFalse(isScope);
         isScope = AclUtils.isIPv6Scope(max + 1);
-        assertFalse(isScope);
+        Assert.assertFalse(isScope);
     }
 
     @Test
     public void testIsAsterisk() {
         boolean isAsterisk = AclUtils.isAsterisk("*");
-        assertTrue(isAsterisk);
+        Assert.assertTrue(isAsterisk);
 
         isAsterisk = AclUtils.isAsterisk(",");
-        assertFalse(isAsterisk);
+        Assert.assertFalse(isAsterisk);
     }
 
     @Test
     public void testIsComma() {
         boolean isColon = AclUtils.isComma(",");
-        assertTrue(isColon);
+        Assert.assertTrue(isColon);
 
         isColon = AclUtils.isComma("-");
-        assertFalse(isColon);
+        Assert.assertFalse(isColon);
     }
 
     @Test
     public void testIsMinus() {
         boolean isMinus = AclUtils.isMinus("-");
-        assertTrue(isMinus);
+        Assert.assertTrue(isMinus);
 
         isMinus = AclUtils.isMinus("*");
-        assertFalse(isMinus);
+        Assert.assertFalse(isMinus);
     }
 
     @Test
     public void testV6ipProcess() {
         String remoteAddr = "5::7:6:1-200:*";
-        assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0000:0000:0000:0007:0006");
+        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0000:0000:0000:0007:0006");
 
         remoteAddr = "5::7:6:1-200";
-        assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0000:0000:0000:0000:0007:0006");
+        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0000:0000:0000:0000:0007:0006");
         remoteAddr = "5::7:6:*";
-        assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0000:0000:0000:0000:0007:0006");
+        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0000:0000:0000:0000:0007:0006");
 
         remoteAddr = "5:7:6:*";
-        assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0007:0006");
+        Assert.assertEquals(AclUtils.v6ipProcess(remoteAddr), "0005:0007:0006");
     }
 
     @Test
     public void testExpandIP() {
-        assertEquals(AclUtils.expandIP("::", 8), "0000:0000:0000:0000:0000:0000:0000:0000");
-        assertEquals(AclUtils.expandIP("::1", 8), "0000:0000:0000:0000:0000:0000:0000:0001");
-        assertEquals(AclUtils.expandIP("3::", 8), "0003:0000:0000:0000:0000:0000:0000:0000");
-        assertEquals(AclUtils.expandIP("2::2", 8), "0002:0000:0000:0000:0000:0000:0000:0002");
-        assertEquals(AclUtils.expandIP("4::aac4:92", 8), "0004:0000:0000:0000:0000:0000:AAC4:0092");
-        assertEquals(AclUtils.expandIP("ab23:56:901a::cc6:765:bb:9011", 8), "AB23:0056:901A:0000:0CC6:0765:00BB:9011");
-        assertEquals(AclUtils.expandIP("ab23:56:901a:1:cc6:765:bb:9011", 8), "AB23:0056:901A:0001:0CC6:0765:00BB:9011");
-        assertEquals(AclUtils.expandIP("5::7:6", 6), "0005:0000:0000:0000:0007:0006");
+        Assert.assertEquals(AclUtils.expandIP("::", 8), "0000:0000:0000:0000:0000:0000:0000:0000");
+        Assert.assertEquals(AclUtils.expandIP("::1", 8), "0000:0000:0000:0000:0000:0000:0000:0001");
+        Assert.assertEquals(AclUtils.expandIP("3::", 8), "0003:0000:0000:0000:0000:0000:0000:0000");
+        Assert.assertEquals(AclUtils.expandIP("2::2", 8), "0002:0000:0000:0000:0000:0000:0000:0002");
+        Assert.assertEquals(AclUtils.expandIP("4::aac4:92", 8), "0004:0000:0000:0000:0000:0000:AAC4:0092");
+        Assert.assertEquals(AclUtils.expandIP("ab23:56:901a::cc6:765:bb:9011", 8), "AB23:0056:901A:0000:0CC6:0765:00BB:9011");
+        Assert.assertEquals(AclUtils.expandIP("ab23:56:901a:1:cc6:765:bb:9011", 8), "AB23:0056:901A:0001:0CC6:0765:00BB:9011");
+        Assert.assertEquals(AclUtils.expandIP("5::7:6", 6), "0005:0000:0000:0000:0007:0006");
     }
 
     @SuppressWarnings("unchecked")
@@ -213,8 +211,8 @@ public class AclUtilsTest {
     public void testGetYamlDataObject() throws IOException {
         try (InputStream is = AclUtilsTest.class.getClassLoader().getResourceAsStream("conf/plain_acl_correct.yml")) {
             Map<String, Object> map = AclUtils.getYamlDataObject(is, Map.class);
-            assertNotNull(map);
-            assertFalse(map.isEmpty());
+            Assert.assertNotNull(map);
+            Assert.assertFalse(map.isEmpty());
         }
     }
 
@@ -232,7 +230,7 @@ public class AclUtilsTest {
     public void writeDataObject2YamlFileTest() throws IOException {
         String targetFileName = randomTmpFile();
         File transport = new File(targetFileName);
-        assertTrue(transport.createNewFile());
+        Assert.assertTrue(transport.createNewFile());
         transport.deleteOnExit();
 
         PlainAccessData aclYamlMap = new PlainAccessData();
@@ -255,14 +253,14 @@ public class AclUtilsTest {
         };
         accounts.add(accountsMap);
         aclYamlMap.setAccounts(accounts);
-        assertTrue(AclUtils.writeDataObject(targetFileName, aclYamlMap));
+        Assert.assertTrue(AclUtils.writeDataObject(targetFileName, aclYamlMap));
     }
 
     @Test
     public void updateExistedYamlFileTest() throws IOException {
         String targetFileName = randomTmpFile();
         File transport = new File(targetFileName);
-        assertTrue(transport.createNewFile());
+        Assert.assertTrue(transport.createNewFile());
         transport.deleteOnExit();
 
         PlainAccessData aclYamlMap = new PlainAccessData();
@@ -286,21 +284,21 @@ public class AclUtilsTest {
 
         PlainAccessData readableMap = AclUtils.getYamlDataObject(targetFileName, PlainAccessData.class);
         List<String> updatedGlobalWhiteRemoteAddrs = readableMap.getGlobalWhiteRemoteAddresses();
-        assertEquals("192.168.1.2", updatedGlobalWhiteRemoteAddrs.get(0));
+        Assert.assertEquals("192.168.1.2", updatedGlobalWhiteRemoteAddrs.get(0));
     }
 
     @Test
     public void getYamlDataIgnoreFileNotFoundExceptionTest() {
 
         JSONObject yamlDataObject = AclUtils.getYamlDataObject("plain_acl.yml", JSONObject.class);
-        assertNull(yamlDataObject);
+        Assert.assertNull(yamlDataObject);
     }
 
     @Test
     public void getAclRPCHookTest() throws IOException {
         try (InputStream is = AclUtilsTest.class.getClassLoader().getResourceAsStream("conf/plain_acl_incomplete.yml")) {
             RPCHook incompleteContRPCHook = AclUtils.getAclRPCHook(is);
-            assertNull(incompleteContRPCHook);
+            Assert.assertNull(incompleteContRPCHook);
         }
     }
 
