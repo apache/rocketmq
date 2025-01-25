@@ -40,7 +40,7 @@ load("@rules_jvm_external//:defs.bzl", "maven_install")
 maven_install(
     artifacts = [
         "junit:junit:4.13.2",
-        "com.alibaba:fastjson:1.2.76",
+        "com.alibaba:fastjson:1.2.83",
         "com.alibaba.fastjson2:fastjson2:2.0.43",
         "org.hamcrest:hamcrest-library:1.3",
         "io.netty:netty-all:4.1.65.Final",
