@@ -55,6 +55,7 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.client.rpchook.NamespaceRpcHook;
+import org.apache.rocketmq.common.AsyncTask;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.MQVersion;
@@ -149,6 +150,7 @@ import org.apache.rocketmq.remoting.protocol.header.AckMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.AddBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ChangeInvisibleTimeResponseHeader;
+import org.apache.rocketmq.remoting.protocol.header.CheckAsyncTaskStatusRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CheckRocksdbCqWriteProgressRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.CloneGroupOffsetRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ConsumeMessageDirectlyResultRequestHeader;
@@ -3598,6 +3600,19 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         assert response != null;
         if (response.getCode() == SUCCESS) {
             return;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public List<AsyncTask> checkAsyncTaskStatus(String brokerAddr, CheckAsyncTaskStatusRequestHeader requestHeader,
+        long timeoutMillis)
+        throws RemotingConnectException, RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.CHECK_ASYNC_TASK_STATUS,
+            requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        assert response != null;
+        if (response.getCode() == SUCCESS) {
+            return RemotingSerializable.decodeList(response.getBody(), AsyncTask.class);
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }
