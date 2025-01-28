@@ -200,6 +200,7 @@
         <module>controller</module>
         <module>proxy</module>
         <module>tieredstore</module>
+        <module>grpc-netty-codec-haproxy-shaded</module>
     </modules>
 
     <build>
@@ -928,9 +929,9 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>io.github.aliyunmq</groupId>
-                <artifactId>rocketmq-grpc-netty-codec-haproxy</artifactId>
-                <version>1.0.0</version>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>grpc-netty-codec-haproxy-shaded</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.conversantmedia</groupId>

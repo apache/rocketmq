@@ -80,8 +80,14 @@
             <artifactId>protobuf-java-util</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.github.aliyunmq</groupId>
-            <artifactId>rocketmq-grpc-netty-codec-haproxy</artifactId>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>grpc-netty-codec-haproxy-shaded</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.netty</groupId>
+                    <artifactId>netty-codec-haproxy</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
