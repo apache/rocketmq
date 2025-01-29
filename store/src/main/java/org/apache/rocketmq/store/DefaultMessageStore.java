@@ -517,11 +517,9 @@ public class DefaultMessageStore implements MessageStore {
             if (this.compactionService != null) {
                 this.compactionService.shutdown();
             }
-
-            if (messageStoreConfig.isRocksdbCQDoubleWriteEnable()) {
+            if (messageStoreConfig.isRocksdbCQDoubleWriteEnable() && this.rocksDBMessageStore != null) {
                 this.rocksDBMessageStore.consumeQueueStore.shutdown();
             }
-
             this.flushConsumeQueueService.shutdown();
             this.allocateMappedFileService.shutdown();
             this.storeCheckpoint.flush();

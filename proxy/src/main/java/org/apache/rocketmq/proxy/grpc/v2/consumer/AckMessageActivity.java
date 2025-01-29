@@ -34,6 +34,7 @@ import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.v2.AbstractMessingActivity;
 import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcChannelManager;
+import org.apache.rocketmq.proxy.grpc.v2.channel.GrpcClientChannel;
 import org.apache.rocketmq.proxy.grpc.v2.common.GrpcClientSettingsManager;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.proxy.processor.BatchAckResult;
@@ -193,10 +194,12 @@ public class AckMessageActivity extends AbstractMessingActivity {
 
     protected String getHandleString(ProxyContext ctx, String group, AckMessageRequest request, AckMessageEntry ackMessageEntry) {
         String handleString = ackMessageEntry.getReceiptHandle();
-
-        MessageReceiptHandle messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, grpcChannelManager.getChannel(ctx.getClientID()), group, ackMessageEntry.getMessageId(), ackMessageEntry.getReceiptHandle());
-        if (messageReceiptHandle != null) {
-            handleString = messageReceiptHandle.getReceiptHandleStr();
+        GrpcClientChannel channel = grpcChannelManager.getChannel(ctx.getClientID());
+        if (channel != null) {
+            MessageReceiptHandle messageReceiptHandle = messagingProcessor.removeReceiptHandle(ctx, channel, group, ackMessageEntry.getMessageId(), ackMessageEntry.getReceiptHandle());
+            if (messageReceiptHandle != null) {
+                handleString = messageReceiptHandle.getReceiptHandleStr();
+            }
         }
         return handleString;
     }

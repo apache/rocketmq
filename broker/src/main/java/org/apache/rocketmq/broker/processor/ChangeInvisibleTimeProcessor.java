@@ -24,6 +24,9 @@ import java.util.concurrent.TimeUnit;
 import java.nio.charset.StandardCharsets;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.metrics.PopMetricsManager;
+import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
+import org.apache.rocketmq.broker.offset.ConsumerOrderInfoManager;
+import org.apache.rocketmq.broker.pop.PopConsumerLockService;
 import org.apache.rocketmq.common.PopAckConstants;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -133,15 +136,36 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         }
 
         String[] extraInfo = ExtraInfoUtil.split(requestHeader.getExtraInfo());
+        if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
+            if (ExtraInfoUtil.isOrder(extraInfo)) {
+                return this.processChangeInvisibleTimeForOrderNew(
+                    requestHeader, extraInfo, response, responseHeader);
+            }
+            try {
+                long current = System.currentTimeMillis();
+                brokerController.getPopConsumerService().changeInvisibilityDuration(
+                    ExtraInfoUtil.getPopTime(extraInfo), ExtraInfoUtil.getInvisibleTime(extraInfo), current,
+                    requestHeader.getInvisibleTime(), requestHeader.getConsumerGroup(), requestHeader.getTopic(),
+                    requestHeader.getQueueId(), requestHeader.getOffset());
+                responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
+                responseHeader.setPopTime(current);
+                responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+            } catch (Exception e) {
+                response.setCode(ResponseCode.SYSTEM_ERROR);
+            }
+            return CompletableFuture.completedFuture(response);
+        }
 
         if (ExtraInfoUtil.isOrder(extraInfo)) {
-            return CompletableFuture.completedFuture(processChangeInvisibleTimeForOrder(requestHeader, extraInfo, response, responseHeader));
+            return CompletableFuture.completedFuture(
+                processChangeInvisibleTimeForOrder(requestHeader, extraInfo, response, responseHeader));
         }
 
         // add new ck
         long now = System.currentTimeMillis();
+        CompletableFuture<Boolean> futureResult = appendCheckPointThenAckOrigin(requestHeader,
+            ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now, extraInfo);
 
-        CompletableFuture<Boolean> futureResult = appendCheckPointThenAckOrigin(requestHeader, ExtraInfoUtil.getReviveQid(extraInfo), requestHeader.getQueueId(), requestHeader.getOffset(), now, extraInfo);
         return futureResult.thenCompose(result -> {
             if (result) {
                 responseHeader.setInvisibleTime(requestHeader.getInvisibleTime());
@@ -152,6 +176,50 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
             }
             return CompletableFuture.completedFuture(response);
         });
+    }
+
+    @SuppressWarnings({"StatementWithEmptyBody", "DuplicatedCode"})
+    public CompletableFuture<RemotingCommand> processChangeInvisibleTimeForOrderNew(
+        ChangeInvisibleTimeRequestHeader requestHeader, String[] extraInfo,
+        RemotingCommand response, ChangeInvisibleTimeResponseHeader responseHeader) {
+
+        String groupId = requestHeader.getConsumerGroup();
+        String topicId = requestHeader.getTopic();
+        Integer queueId = requestHeader.getQueueId();
+        long popTime = ExtraInfoUtil.getPopTime(extraInfo);
+
+        PopConsumerLockService consumerLockService =
+            this.brokerController.getPopConsumerService().getConsumerLockService();
+        ConsumerOffsetManager consumerOffsetManager = this.brokerController.getConsumerOffsetManager();
+        ConsumerOrderInfoManager consumerOrderInfoManager = brokerController.getConsumerOrderInfoManager();
+
+        long oldOffset = consumerOffsetManager.queryOffset(groupId, topicId, queueId);
+        if (requestHeader.getOffset() < oldOffset) {
+            return CompletableFuture.completedFuture(response);
+        }
+
+        while (!consumerLockService.tryLock(groupId, topicId)) {
+        }
+
+        try {
+            // double check
+            oldOffset = consumerOffsetManager.queryOffset(groupId, topicId, queueId);
+            if (requestHeader.getOffset() < oldOffset) {
+                return CompletableFuture.completedFuture(response);
+            }
+
+            long visibilityTimeout = System.currentTimeMillis() + requestHeader.getInvisibleTime();
+            consumerOrderInfoManager.updateNextVisibleTime(
+                topicId, groupId, queueId, requestHeader.getOffset(), popTime, visibilityTimeout);
+
+            responseHeader.setInvisibleTime(visibilityTimeout - popTime);
+            responseHeader.setPopTime(popTime);
+            responseHeader.setReviveQid(ExtraInfoUtil.getReviveQid(extraInfo));
+        } finally {
+            consumerLockService.unlock(groupId, topicId);
+        }
+
+        return CompletableFuture.completedFuture(response);
     }
 
     protected RemotingCommand processChangeInvisibleTimeForOrder(ChangeInvisibleTimeRequestHeader requestHeader,

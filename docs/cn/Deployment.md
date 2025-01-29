@@ -69,7 +69,7 @@ $ nohup sh mqbroker -n 192.168.1.1:9876 -c $ROCKETMQ_HOME/conf/2m-noslave/broker
 ...
 ```
 
-上面显示的启动命令用于单个NameServer的情况。对于多个NameServer的集群，broker 启动命令中-n参数后面的地址列表用分号隔开，例如 192.168.1.1:9876;192.161.2:9876
+上面显示的启动命令用于单个NameServer的情况。对于多个NameServer的集群，broker 启动命令中-n参数后面的地址列表用分号隔开，例如 192.168.1.1:9876;192.168.1.2:9876
 
 ### 3 多Master多Slave模式-异步复制
 
@@ -167,5 +167,4 @@ RocketMQ 5.0 开始支持自动主从切换的模式，可参考以下文档
 [部署文档](controller/deploy.md)
 
 [设计思想](controller/design.md)
-
 
