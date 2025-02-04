@@ -16,13 +16,19 @@
  */
 package org.apache.rocketmq.remoting.protocol.header.controller;
 
+import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.action.RocketMQAction;
+import org.apache.rocketmq.common.resource.ResourceType;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
+import org.apache.rocketmq.remoting.protocol.RequestCode;
 
+@RocketMQAction(value = RequestCode.CONTROLLER_ALTER_SYNC_STATE_SET, resource = ResourceType.CLUSTER, action = Action.UPDATE)
 public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
     private String brokerName;
     private Long masterBrokerId;
     private Integer masterEpoch;
+    private long invokeTime = System.currentTimeMillis();
 
     public AlterSyncStateSetRequestHeader() {
     }
@@ -31,6 +37,14 @@ public class AlterSyncStateSetRequestHeader implements CommandCustomHeader {
         this.brokerName = brokerName;
         this.masterBrokerId = masterBrokerId;
         this.masterEpoch = masterEpoch;
+    }
+
+    public long getInvokeTime() {
+        return invokeTime;
+    }
+
+    public void setInvokeTime(long invokeTime) {
+        this.invokeTime = invokeTime;
     }
 
     public String getBrokerName() {

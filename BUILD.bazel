@@ -44,5 +44,6 @@ java_library(
         "@maven//:org_awaitility_awaitility",
         "@maven//:org_openjdk_jmh_jmh_core",
         "@maven//:org_openjdk_jmh_jmh_generator_annprocess",
+        "@maven//:org_mockito_mockito_junit_jupiter",
     ],
 )

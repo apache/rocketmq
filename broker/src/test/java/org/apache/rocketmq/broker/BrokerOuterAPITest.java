@@ -20,28 +20,43 @@ package org.apache.rocketmq.broker;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import io.netty.channel.DefaultChannelPromise;
+import io.netty.util.concurrent.DefaultEventExecutor;
+import org.apache.commons.lang3.tuple.Triple;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.broker.out.BrokerOuterAPI;
+import org.apache.rocketmq.client.consumer.PullResult;
+import org.apache.rocketmq.client.consumer.PullStatus;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.BrokerIdentity;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.message.MessageDecoder;
+import org.apache.rocketmq.common.message.MessageExt;
+import org.apache.rocketmq.remoting.common.SemaphoreReleaseOnlyOnce;
 import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
+import org.apache.rocketmq.remoting.netty.ResponseFuture;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.remoting.protocol.RemotingSerializable;
 import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.body.ClusterInfo;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.header.PullMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.QueryDataVersionResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.namesrv.RegisterBrokerResponseHeader;
 import org.apache.rocketmq.remoting.protocol.namesrv.RegisterBrokerResult;
@@ -55,9 +70,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Spy;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PrepareForTest;
+import org.powermock.modules.junit4.PowerMockRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -68,9 +86,11 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.AdditionalMatchers.or;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(PowerMockRunner.class)
+@PrepareForTest(NettyRemotingClient.class)
 public class BrokerOuterAPITest {
     @Mock
     private ChannelHandlerContext handlerContext;
@@ -93,7 +113,7 @@ public class BrokerOuterAPITest {
     private BrokerOuterAPI brokerOuterAPI;
 
     public void init() throws Exception {
-        brokerOuterAPI = new BrokerOuterAPI(new NettyClientConfig());
+        brokerOuterAPI = new BrokerOuterAPI(new NettyClientConfig(), new AuthConfig());
         Field field = BrokerOuterAPI.class.getDeclaredField("remotingClient");
         field.setAccessible(true);
         field.set(brokerOuterAPI, nettyRemotingClient);
@@ -116,6 +136,9 @@ public class BrokerOuterAPITest {
 
     @Test
     public void test_needRegister_timeout() throws Exception {
+        if (MixAll.isMac()) {
+            return;
+        }
         init();
         brokerOuterAPI.start();
 
@@ -250,4 +273,154 @@ public class BrokerOuterAPITest {
         });
         Assert.assertTrue(result.get());
     }
+
+    @Test
+    public void testPullMessageFromSpecificBrokerAsync_createChannel_null() throws Exception {
+        NettyRemotingClient mockClient = PowerMockito.spy(new NettyRemotingClient(new NettyClientConfig()));
+        PowerMockito.when(mockClient, "getAndCreateChannelAsync", any()).thenReturn(null);
+        BrokerOuterAPI api = new BrokerOuterAPI(new NettyClientConfig(), new AuthConfig());
+        Field field = BrokerOuterAPI.class.getDeclaredField("remotingClient");
+        field.setAccessible(true);
+        field.set(api, mockClient);
+
+        Triple<PullResult, String, Boolean> rst = api.pullMessageFromSpecificBrokerAsync("", "", "", "", 1, 1, 1, 3000L).join();
+        Assert.assertNull(rst.getLeft());
+        Assert.assertTrue(rst.getMiddle().contains("connect"));
+        Assert.assertTrue(rst.getRight()); // need retry
+    }
+
+    @Test
+    public void testPullMessageFromSpecificBrokerAsync_createChannel_future_notSuccess() throws Exception {
+        NettyRemotingClient mockClient = PowerMockito.spy(new NettyRemotingClient(new NettyClientConfig()));
+        DefaultChannelPromise promise = PowerMockito.spy(new DefaultChannelPromise(PowerMockito.mock(Channel.class), new DefaultEventExecutor()));
+        PowerMockito.when(mockClient, "getAndCreateChannelAsync", any()).thenReturn(promise);
+        BrokerOuterAPI api = new BrokerOuterAPI(new NettyClientConfig(), new AuthConfig());
+        Field field = BrokerOuterAPI.class.getDeclaredField("remotingClient");
+        field.setAccessible(true);
+        field.set(api, mockClient);
+
+        promise.tryFailure(new Throwable());
+        Triple<PullResult, String, Boolean> rst
+                = api.pullMessageFromSpecificBrokerAsync("", "", "", "", 1, 1, 1, 3000L).join();
+        Assert.assertNull(rst.getLeft());
+        Assert.assertTrue(rst.getMiddle().contains("connect"));
+        Assert.assertTrue(rst.getRight()); // need retry
+    }
+
+    // skip other future status test
+
+    @Test
+    public void testPullMessageFromSpecificBrokerAsync_timeout() throws Exception {
+        Channel channel = Mockito.mock(Channel.class);
+        when(channel.isActive()).thenReturn(true);
+        NettyRemotingClient mockClient = PowerMockito.spy(new NettyRemotingClient(new NettyClientConfig()));
+        DefaultChannelPromise promise = PowerMockito.spy(new DefaultChannelPromise(PowerMockito.mock(Channel.class), new DefaultEventExecutor()));
+        PowerMockito.when(mockClient, "getAndCreateChannelAsync", any()).thenReturn(promise);
+        when(promise.channel()).thenReturn(channel);
+        BrokerOuterAPI api = new BrokerOuterAPI(new NettyClientConfig(), new AuthConfig());
+        Field field = BrokerOuterAPI.class.getDeclaredField("remotingClient");
+        field.setAccessible(true);
+        field.set(api, mockClient);
+
+        CompletableFuture<ResponseFuture> future = new CompletableFuture<>();
+        doReturn(future).when(mockClient).invokeImpl(any(Channel.class), any(RemotingCommand.class), anyLong());
+        promise.trySuccess(null);
+        future.completeExceptionally(new RemotingTimeoutException("wait response on the channel timeout"));
+        Triple<PullResult, String, Boolean> rst = api.pullMessageFromSpecificBrokerAsync("", "", "", "", 1, 1, 1, 3000L).join();
+        Assert.assertNull(rst.getLeft());
+        Assert.assertTrue(rst.getMiddle().contains("timeout"));
+        Assert.assertTrue(rst.getRight()); // need retry
+    }
+
+    @Test
+    public void testPullMessageFromSpecificBrokerAsync_brokerReturn_pullStatusCode() throws Exception {
+        Channel channel = Mockito.mock(Channel.class);
+        when(channel.isActive()).thenReturn(true);
+        NettyRemotingClient mockClient = PowerMockito.spy(new NettyRemotingClient(new NettyClientConfig()));
+        DefaultChannelPromise promise = PowerMockito.spy(new DefaultChannelPromise(PowerMockito.mock(Channel.class), new DefaultEventExecutor()));
+        PowerMockito.when(mockClient, "getAndCreateChannelAsync", any()).thenReturn(promise);
+        when(promise.channel()).thenReturn(channel);
+        BrokerOuterAPI api = new BrokerOuterAPI(new NettyClientConfig(), new AuthConfig());
+        Field field = BrokerOuterAPI.class.getDeclaredField("remotingClient");
+        field.setAccessible(true);
+        field.set(api, mockClient);
+
+        int[] respCodes = new int[] {ResponseCode.SUCCESS, ResponseCode.PULL_NOT_FOUND, ResponseCode.PULL_RETRY_IMMEDIATELY, ResponseCode.PULL_OFFSET_MOVED};
+        PullStatus[] respStatus = new PullStatus[] {PullStatus.FOUND, PullStatus.NO_NEW_MSG, PullStatus.NO_MATCHED_MSG, PullStatus.OFFSET_ILLEGAL};
+        for (int i = 0; i < respCodes.length; i++) {
+            CompletableFuture<ResponseFuture> future = new CompletableFuture<>();
+            doReturn(future).when(mockClient).invokeImpl(any(Channel.class), any(RemotingCommand.class), anyLong());
+            RemotingCommand response = mockPullMessageResponse(respCodes[i]);
+            ResponseFuture responseFuture = new ResponseFuture(channel, 0, null, 1000,
+                    resp -> { }, new SemaphoreReleaseOnlyOnce(new Semaphore(1)));
+            responseFuture.setResponseCommand(response);
+            promise.trySuccess(null);
+            future.complete(responseFuture);
+
+            Triple<PullResult, String, Boolean> rst = api.pullMessageFromSpecificBrokerAsync("", "", "", "", 1, 1, 1, 3000L).join();
+            Assert.assertEquals(respStatus[i], rst.getLeft().getPullStatus());
+            if (ResponseCode.SUCCESS == respCodes[i]) {
+                Assert.assertEquals(1, rst.getLeft().getMsgFoundList().size());
+            } else {
+                Assert.assertNull(rst.getLeft().getMsgFoundList());
+            }
+            Assert.assertEquals(respStatus[i].name(), rst.getMiddle());
+            Assert.assertFalse(rst.getRight()); // no retry
+        }
+    }
+
+    @Test
+    public void testPullMessageFromSpecificBrokerAsync_brokerReturn_allOtherResponseCode() throws Exception {
+        Channel channel = Mockito.mock(Channel.class);
+        when(channel.isActive()).thenReturn(true);
+        NettyRemotingClient mockClient = PowerMockito.spy(new NettyRemotingClient(new NettyClientConfig()));
+        DefaultChannelPromise promise = PowerMockito.spy(new DefaultChannelPromise(PowerMockito.mock(Channel.class), new DefaultEventExecutor()));
+        PowerMockito.when(mockClient, "getAndCreateChannelAsync", any()).thenReturn(promise);
+        when(promise.channel()).thenReturn(channel);
+        BrokerOuterAPI api = new BrokerOuterAPI(new NettyClientConfig(), new AuthConfig());
+        Field field = BrokerOuterAPI.class.getDeclaredField("remotingClient");
+        field.setAccessible(true);
+        field.set(api, mockClient);
+
+        CompletableFuture<ResponseFuture> future = new CompletableFuture<>();
+        doReturn(future).when(mockClient).invokeImpl(any(Channel.class), any(RemotingCommand.class), anyLong());
+        // test one code here, skip others
+        RemotingCommand response = mockPullMessageResponse(ResponseCode.SUBSCRIPTION_NOT_EXIST);
+        ResponseFuture responseFuture = new ResponseFuture(channel, 0, null, 1000,
+                resp -> { }, new SemaphoreReleaseOnlyOnce(new Semaphore(1)));
+        responseFuture.setResponseCommand(response);
+        promise.trySuccess(null);
+        future.complete(responseFuture);
+
+        Triple<PullResult, String, Boolean> rst = api.pullMessageFromSpecificBrokerAsync("", "", "", "", 1, 1, 1, 3000L).join();
+        Assert.assertNull(rst.getLeft());
+        Assert.assertTrue(rst.getMiddle().contains(ResponseCode.SUBSCRIPTION_NOT_EXIST + ""));
+        Assert.assertTrue(rst.getRight()); // need retry
+    }
+
+    private RemotingCommand mockPullMessageResponse(int responseCode) throws Exception {
+        RemotingCommand response = RemotingCommand.createResponseCommand(PullMessageResponseHeader.class);
+        response.setCode(responseCode);
+        if (responseCode == ResponseCode.SUCCESS) {
+            MessageExt msg = new MessageExt();
+            msg.setBody("HW".getBytes());
+            msg.setTopic("topic");
+            msg.setBornHost(new InetSocketAddress("127.0.0.1", 9000));
+            msg.setStoreHost(new InetSocketAddress("127.0.0.1", 9000));
+            byte[] encode = MessageDecoder.encode(msg, false);
+            response.setBody(encode);
+        }
+        PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
+        responseHeader.setNextBeginOffset(0L);
+        responseHeader.setMaxOffset(0L);
+        responseHeader.setMinOffset(0L);
+        responseHeader.setOffsetDelta(0L);
+        responseHeader.setTopicSysFlag(0);
+        responseHeader.setGroupSysFlag(0);
+        responseHeader.setSuggestWhichBrokerId(0L);
+        responseHeader.setForbiddenType(0);
+        response.makeCustomHeaderToNet();
+        return response;
+    }
+
 }

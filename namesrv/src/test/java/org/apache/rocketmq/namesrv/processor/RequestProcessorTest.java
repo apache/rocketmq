@@ -449,6 +449,42 @@ public class RequestProcessorTest {
     }
 
     @Test
+    public void testQueryDataVersion()throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.QUERY_DATA_VERSION);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testGetBrokerMemberBroker() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.GET_BROKER_MEMBER_GROUP);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testBrokerHeartBeat() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.BROKER_HEARTBEAT);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testAddWritePermOfBroker() throws RemotingCommandException {
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        when(ctx.channel()).thenReturn(null);
+        RemotingCommand request = getRemotingCommand(RequestCode.ADD_WRITE_PERM_OF_BROKER);
+        RemotingCommand remotingCommand = defaultRequestProcessor.processRequest(ctx, request);
+        assertThat(remotingCommand.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
     public void testWipeWritePermOfBroker() throws RemotingCommandException {
         ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
         when(ctx.channel()).thenReturn(null);

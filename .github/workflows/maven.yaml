@@ -4,6 +4,7 @@ on:
     types: [opened, reopened, synchronize]
   push:
     branches: [master, develop, bazel]
+
 jobs:
   java_build:
     name: "maven-compile (${{ matrix.os }}, JDK-${{ matrix.jdk }})"
@@ -18,10 +19,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Set up JDK ${{ matrix.jdk }}
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.jdk }}
-          distribution: "adopt"
+          # See https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
+          # AdoptOpenJDK got moved to Eclipse Temurin and won't be updated anymore.
+          distribution: "corretto"
           cache: "maven"
       - name: Build with Maven
         run: mvn -B package --file pom.xml
+
+      - name: Upload Auth JVM crash logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-crash-logs
+          path: /Users/runner/work/rocketmq/rocketmq/auth/hs_err_pid*.log
+          retention-days: 1
+
+      - name: Upload broker JVM crash logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-crash-logs
+          path: /Users/runner/work/rocketmq/rocketmq/broker/hs_err_pid*.log
+          retention-days: 1

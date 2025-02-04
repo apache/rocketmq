@@ -55,6 +55,8 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int FILTER_DATA_NOT_LATEST = 28;
 
+    public static final int INVALID_PARAMETER = 29;
+
     public static final int TRANSACTION_SHOULD_COMMIT = 200;
 
     public static final int TRANSACTION_SHOULD_ROLLBACK = 201;
@@ -126,4 +128,12 @@ public class ResponseCode extends RemotingSysResponseCode {
     public static final int CONTROLLER_ALTER_SYNC_STATE_SET_FAILED = 2013;
 
     public static final int CONTROLLER_BROKER_ID_INVALID = 2014;
+
+    public static final int CONTROLLER_JRAFT_INTERNAL_ERROR = 2015;
+
+    public static final int CONTROLLER_BROKER_LIVE_INFO_NOT_EXISTS = 2016;
+
+    public static final int USER_NOT_EXIST = 3001;
+
+    public static final int POLICY_NOT_EXIST = 3002;
 }

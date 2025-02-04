@@ -34,25 +34,26 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.logfile.DefaultMappedFile;
-import org.apache.rocketmq.tieredstore.TieredStoreTestUtil;
+import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
-import org.apache.rocketmq.tieredstore.common.TieredMessageStoreConfig;
-import org.apache.rocketmq.tieredstore.common.TieredStoreExecutor;
-import org.apache.rocketmq.tieredstore.file.TieredFileAllocator;
-import org.apache.rocketmq.tieredstore.util.TieredStoreUtil;
+import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
+import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
+import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
+import org.apache.rocketmq.tieredstore.util.MessageStoreUtilTest;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.awaitility.Awaitility.await;
 
 public class IndexStoreServiceTest {
 
-    private static final Logger log = LoggerFactory.getLogger(TieredStoreUtil.TIERED_STORE_LOGGER_NAME);
+    private static final Logger log = LoggerFactory.getLogger(MessageStoreUtil.TIERED_STORE_LOGGER_NAME);
 
     private static final String TOPIC_NAME = "TopicTest";
     private static final int TOPIC_ID = 123;
@@ -62,22 +63,22 @@ public class IndexStoreServiceTest {
     private static final Set<String> KEY_SET = Collections.singleton("MessageKey");
 
     private String filePath;
-    private TieredMessageStoreConfig storeConfig;
-    private TieredFileAllocator fileAllocator;
+    private MessageStoreConfig storeConfig;
+    private FlatFileFactory fileAllocator;
     private IndexStoreService indexService;
 
     @Before
     public void init() throws IOException, ClassNotFoundException, NoSuchMethodException {
-        TieredStoreExecutor.init();
         filePath = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
         String directory = Paths.get(System.getProperty("user.home"), "store_test", filePath).toString();
-        storeConfig = new TieredMessageStoreConfig();
+        storeConfig = new MessageStoreConfig();
         storeConfig.setStorePathRootDir(directory);
         storeConfig.setTieredStoreFilePath(directory);
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(5);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(20);
-        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.posix.PosixFileSegment");
-        fileAllocator = new TieredFileAllocator(storeConfig);
+        storeConfig.setTieredBackendServiceProvider("org.apache.rocketmq.tieredstore.provider.PosixFileSegment");
+        MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
+        fileAllocator = new FlatFileFactory(metadataStore, storeConfig);
     }
 
     @After
@@ -86,15 +87,13 @@ public class IndexStoreServiceTest {
             indexService.shutdown();
             indexService.destroy();
         }
-        TieredStoreTestUtil.destroyMetadataStore();
-        TieredStoreTestUtil.destroyTempDir(storeConfig.getStorePathRootDir());
-        TieredStoreTestUtil.destroyTempDir(storeConfig.getTieredStoreFilePath());
-        TieredStoreExecutor.shutdown();
+        MessageStoreUtilTest.deleteStoreDirectory(storeConfig.getTieredStoreFilePath());
     }
 
     @Test
     public void basicServiceTest() throws InterruptedException {
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         for (int i = 0; i < 50; i++) {
             Assert.assertEquals(AppendResult.SUCCESS, indexService.putKey(
                 TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, i * 100, MESSAGE_SIZE, System.currentTimeMillis()));
@@ -107,6 +106,7 @@ public class IndexStoreServiceTest {
     @Test
     public void doConvertOldFormatTest() throws IOException {
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         long timestamp = indexService.getTimeStoreTable().firstKey();
         Assert.assertEquals(AppendResult.SUCCESS, indexService.putKey(
             TOPIC_NAME, TOPIC_ID, QUEUE_ID, KEY_SET, MESSAGE_OFFSET, MESSAGE_SIZE, timestamp));
@@ -118,8 +118,9 @@ public class IndexStoreServiceTest {
         mappedFile.shutdown(10 * 1000);
 
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         ConcurrentSkipListMap<Long, IndexFile> timeStoreTable = indexService.getTimeStoreTable();
-        Assert.assertEquals(1, timeStoreTable.size());
+        Assert.assertEquals(2, timeStoreTable.size());
         Assert.assertEquals(Long.valueOf(timestamp), timeStoreTable.firstKey());
         mappedFile.destroy(10 * 1000);
     }
@@ -131,6 +132,7 @@ public class IndexStoreServiceTest {
         storeConfig.setTieredStoreIndexFileMaxHashSlotNum(500);
         storeConfig.setTieredStoreIndexFileMaxIndexNum(2000);
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         long timestamp = System.currentTimeMillis();
 
         // first item is invalid
@@ -207,6 +209,7 @@ public class IndexStoreServiceTest {
     @Test
     public void restartServiceTest() throws InterruptedException {
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         for (int i = 0; i < 20; i++) {
             AppendResult result = indexService.putKey(
                 TOPIC_NAME, TOPIC_ID, QUEUE_ID, Collections.singleton(String.valueOf(i)),
@@ -216,10 +219,10 @@ public class IndexStoreServiceTest {
         }
         long timestamp = indexService.getTimeStoreTable().firstKey();
         indexService.shutdown();
-        indexService = new IndexStoreService(fileAllocator, filePath);
-        Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
 
+        indexService = new IndexStoreService(fileAllocator, filePath);
         indexService.start();
+        Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
         await().atMost(Duration.ofMinutes(1)).pollInterval(Duration.ofSeconds(1)).until(() -> {
             ArrayList<IndexFile> files = new ArrayList<>(indexService.getTimeStoreTable().values());
             return IndexFile.IndexStatusEnum.UPLOAD.equals(files.get(0).getFileStatus());
@@ -227,8 +230,9 @@ public class IndexStoreServiceTest {
         indexService.shutdown();
 
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
         Assert.assertEquals(timestamp, indexService.getTimeStoreTable().firstKey().longValue());
-        Assert.assertEquals(2, indexService.getTimeStoreTable().size());
+        Assert.assertEquals(4, indexService.getTimeStoreTable().size());
         Assert.assertEquals(IndexFile.IndexStatusEnum.UPLOAD,
             indexService.getTimeStoreTable().firstEntry().getValue().getFileStatus());
     }
@@ -237,6 +241,7 @@ public class IndexStoreServiceTest {
     public void queryFromFileTest() throws InterruptedException, ExecutionException {
         long timestamp = System.currentTimeMillis();
         indexService = new IndexStoreService(fileAllocator, filePath);
+        indexService.start();
 
         // three files, echo contains 19 items
         for (int i = 0; i < 3; i++) {

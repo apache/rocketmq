@@ -36,7 +36,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
 import org.apache.rocketmq.common.message.MessageRequestMode;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
@@ -60,11 +59,7 @@ public abstract class RebalanceImpl {
     protected MessageModel messageModel;
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
     protected MQClientInstance mQClientFactory;
-    private static final int TIMEOUT_CHECK_TIMES = 3;
     private static final int QUERY_ASSIGNMENT_TIMEOUT = 3000;
-
-    private Map<String, String> topicBrokerRebalance = new ConcurrentHashMap<>();
-    private Map<String, String> topicClientRebalance = new ConcurrentHashMap<>();
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy,
@@ -241,10 +236,16 @@ public abstract class RebalanceImpl {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
                 try {
-                    if (!clientRebalance(topic) && tryQueryAssignment(topic)) {
-                        balanced = this.getRebalanceResultFromBroker(topic, isOrder);
+                    if (!clientRebalance(topic)) {
+                        boolean result = this.getRebalanceResultFromBroker(topic, isOrder);
+                        if (!result) {
+                            balanced = false;
+                        }
                     } else {
-                        balanced = this.rebalanceByTopic(topic, isOrder);
+                        boolean result = this.rebalanceByTopic(topic, isOrder);
+                        if (!result) {
+                            balanced = false;
+                        }
                     }
                 } catch (Throwable e) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -260,38 +261,6 @@ public abstract class RebalanceImpl {
         return balanced;
     }
 
-    private boolean tryQueryAssignment(String topic) {
-        if (topicClientRebalance.containsKey(topic)) {
-            return false;
-        }
-
-        if (topicBrokerRebalance.containsKey(topic)) {
-            return true;
-        }
-        String strategyName = allocateMessageQueueStrategy != null ? allocateMessageQueueStrategy.getName() : null;
-        int retryTimes = 0;
-        while (retryTimes++ < TIMEOUT_CHECK_TIMES) {
-            try {
-                Set<MessageQueueAssignment> resultSet = mQClientFactory.queryAssignment(topic, consumerGroup,
-                    strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT / TIMEOUT_CHECK_TIMES * retryTimes);
-                topicBrokerRebalance.put(topic, topic);
-                return true;
-            } catch (Throwable t) {
-                if (!(t instanceof RemotingTimeoutException)) {
-                    log.error("tryQueryAssignment error.", t);
-                    topicClientRebalance.put(topic, topic);
-                    return false;
-                }
-            }
-        }
-        if (retryTimes >= TIMEOUT_CHECK_TIMES) {
-            // if never success before and timeout exceed TIMEOUT_CHECK_TIMES, force client rebalance
-            topicClientRebalance.put(topic, topic);
-            return false;
-        }
-        return true;
-    }
-
     public ConcurrentMap<String, SubscriptionData> getSubscriptionInner() {
         return subscriptionInner;
     }
@@ -302,7 +271,7 @@ public abstract class RebalanceImpl {
             case BROADCASTING: {
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 if (mqSet != null) {
-                    boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
+                    boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, false);
                     if (changed) {
                         this.messageQueueChanged(topic, mqSet, mqSet);
                         log.info("messageQueueChanged {} {} {} {}", consumerGroup, topic, mqSet, mqSet);
@@ -454,24 +423,10 @@ public abstract class RebalanceImpl {
                 }
             }
         }
-
-        Iterator<Map.Entry<String, String>> clientIter = topicClientRebalance.entrySet().iterator();
-        while (clientIter.hasNext()) {
-            if (!subTable.containsKey(clientIter.next().getKey())) {
-                clientIter.remove();
-            }
-        }
-
-        Iterator<Map.Entry<String, String>> brokerIter = topicBrokerRebalance.entrySet().iterator();
-        while (brokerIter.hasNext()) {
-            if (!subTable.containsKey(brokerIter.next().getKey())) {
-                brokerIter.remove();
-            }
-        }
     }
 
     private boolean updateProcessQueueTableInRebalance(final String topic, final Set<MessageQueue> mqSet,
-        final boolean isOrder) {
+        final boolean needLockMq) {
         boolean changed = false;
 
         // drop process queues no longer belong me
@@ -512,14 +467,14 @@ public abstract class RebalanceImpl {
         List<PullRequest> pullRequestList = new ArrayList<>();
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
-                if (isOrder && !this.lock(mq)) {
+                if (needLockMq && !this.lock(mq)) {
                     log.warn("doRebalance, {}, add a new mq failed, {}, because lock failed", consumerGroup, mq);
                     allMQLocked = false;
                     continue;
                 }
 
                 this.removeDirtyOffset(mq);
-                ProcessQueue pq = createProcessQueue(topic);
+                ProcessQueue pq = createProcessQueue();
                 pq.setLocked(true);
                 long nextOffset = this.computePullFromWhere(mq);
                 if (nextOffset >= 0) {
@@ -772,8 +727,6 @@ public abstract class RebalanceImpl {
     public abstract ProcessQueue createProcessQueue();
 
     public abstract PopProcessQueue createPopProcessQueue();
-
-    public abstract ProcessQueue createProcessQueue(String topicName);
 
     public void removeProcessQueue(final MessageQueue mq) {
         ProcessQueue prev = this.processQueueTable.remove(mq);

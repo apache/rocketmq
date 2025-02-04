@@ -40,12 +40,12 @@ import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.utils.FutureUtils;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.proxy.common.ProxyContext;
 import org.apache.rocketmq.proxy.common.ProxyException;
 import org.apache.rocketmq.proxy.common.ProxyExceptionCode;
-import org.apache.rocketmq.proxy.common.utils.FutureUtils;
 import org.apache.rocketmq.proxy.common.utils.ProxyUtils;
 import org.apache.rocketmq.proxy.service.ServiceManager;
 import org.apache.rocketmq.proxy.service.message.ReceiptHandleMessage;
@@ -96,7 +96,7 @@ public class ConsumerProcessor extends AbstractProcessor {
             }
             return popMessage(ctx, messageQueue, consumerGroup, topic, maxMsgNums, invisibleTime, pollTime, initMode,
                 subscriptionData, fifo, popMessageResultFilter, attemptId, timeoutMillis);
-        }  catch (Throwable t) {
+        } catch (Throwable t) {
             future.completeExceptionally(t);
         }
         return future;
@@ -137,7 +137,6 @@ public class ConsumerProcessor extends AbstractProcessor {
             requestHeader.setExp(subscriptionData.getSubString());
             requestHeader.setOrder(fifo);
             requestHeader.setAttemptId(attemptId);
-            requestHeader.setBornTime(System.currentTimeMillis());
 
             future = this.serviceManager.getMessageService().popMessage(
                     ctx,
@@ -288,7 +287,8 @@ public class ConsumerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
-    protected CompletableFuture<List<BatchAckResult>> processBrokerHandle(ProxyContext ctx, String consumerGroup, String topic, List<ReceiptHandleMessage> handleMessageList, long timeoutMillis) {
+    protected CompletableFuture<List<BatchAckResult>> processBrokerHandle(ProxyContext ctx, String consumerGroup,
+        String topic, List<ReceiptHandleMessage> handleMessageList, long timeoutMillis) {
         return this.serviceManager.getMessageService().batchAckMessage(ctx, handleMessageList, consumerGroup, topic, timeoutMillis)
             .thenApply(result -> {
                 List<BatchAckResult> results = new ArrayList<>();
@@ -394,6 +394,24 @@ public class ConsumerProcessor extends AbstractProcessor {
         return FutureUtils.addExecutor(future, this.executor);
     }
 
+    public CompletableFuture<Void> updateConsumerOffsetAsync(ProxyContext ctx, MessageQueue messageQueue,
+        String consumerGroup, long commitOffset, long timeoutMillis) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            AddressableMessageQueue addressableMessageQueue = serviceManager.getTopicRouteService()
+                .buildAddressableMessageQueue(ctx, messageQueue);
+            UpdateConsumerOffsetRequestHeader requestHeader = new UpdateConsumerOffsetRequestHeader();
+            requestHeader.setConsumerGroup(consumerGroup);
+            requestHeader.setTopic(addressableMessageQueue.getTopic());
+            requestHeader.setQueueId(addressableMessageQueue.getQueueId());
+            requestHeader.setCommitOffset(commitOffset);
+            future = serviceManager.getMessageService().updateConsumerOffsetAsync(ctx, addressableMessageQueue, requestHeader, timeoutMillis);
+        } catch (Throwable t) {
+            future.completeExceptionally(t);
+        }
+        return FutureUtils.addExecutor(future, this.executor);
+    }
+
     public CompletableFuture<Long> queryConsumerOffset(ProxyContext ctx, MessageQueue messageQueue,
         String consumerGroup, long timeoutMillis) {
         CompletableFuture<Long> future = new CompletableFuture<>();
@@ -414,49 +432,59 @@ public class ConsumerProcessor extends AbstractProcessor {
     public CompletableFuture<Set<MessageQueue>> lockBatchMQ(ProxyContext ctx, Set<MessageQueue> mqSet,
         String consumerGroup, String clientId, long timeoutMillis) {
         CompletableFuture<Set<MessageQueue>> future = new CompletableFuture<>();
-        Set<MessageQueue> successSet = new CopyOnWriteArraySet<>();
-        Set<AddressableMessageQueue> addressableMessageQueueSet = buildAddressableSet(ctx, mqSet);
-        Map<String, List<AddressableMessageQueue>> messageQueueSetMap = buildAddressableMapByBrokerName(addressableMessageQueueSet);
-        List<CompletableFuture<Void>> futureList = new ArrayList<>();
-        messageQueueSetMap.forEach((k, v) -> {
-            LockBatchRequestBody requestBody = new LockBatchRequestBody();
-            requestBody.setConsumerGroup(consumerGroup);
-            requestBody.setClientId(clientId);
-            requestBody.setMqSet(v.stream().map(AddressableMessageQueue::getMessageQueue).collect(Collectors.toSet()));
-            CompletableFuture<Void> future0 = serviceManager.getMessageService()
-                .lockBatchMQ(ctx, v.get(0), requestBody, timeoutMillis)
-                .thenAccept(successSet::addAll);
-            futureList.add(FutureUtils.addExecutor(future0, this.executor));
-        });
-        CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).whenComplete((v, t) -> {
-            if (t != null) {
-                log.error("LockBatchMQ failed", t);
-            }
-            future.complete(successSet);
-        });
+        try {
+            Set<MessageQueue> successSet = new CopyOnWriteArraySet<>();
+            Set<AddressableMessageQueue> addressableMessageQueueSet = buildAddressableSet(ctx, mqSet);
+            Map<String, List<AddressableMessageQueue>> messageQueueSetMap = buildAddressableMapByBrokerName(addressableMessageQueueSet);
+            List<CompletableFuture<Void>> futureList = new ArrayList<>();
+            messageQueueSetMap.forEach((k, v) -> {
+                LockBatchRequestBody requestBody = new LockBatchRequestBody();
+                requestBody.setConsumerGroup(consumerGroup);
+                requestBody.setClientId(clientId);
+                requestBody.setMqSet(v.stream().map(AddressableMessageQueue::getMessageQueue).collect(Collectors.toSet()));
+                CompletableFuture<Void> future0 = serviceManager.getMessageService()
+                    .lockBatchMQ(ctx, v.get(0), requestBody, timeoutMillis)
+                    .thenAccept(successSet::addAll);
+                futureList.add(FutureUtils.addExecutor(future0, this.executor));
+            });
+            CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).whenComplete((v, t) -> {
+                if (t != null) {
+                    log.error("LockBatchMQ failed, group={}", consumerGroup, t);
+                }
+                future.complete(successSet);
+            });
+        } catch (Throwable t) {
+            log.error("LockBatchMQ exception, group={}", consumerGroup, t);
+            future.completeExceptionally(t);
+        }
         return FutureUtils.addExecutor(future, this.executor);
     }
 
     public CompletableFuture<Void> unlockBatchMQ(ProxyContext ctx, Set<MessageQueue> mqSet,
         String consumerGroup, String clientId, long timeoutMillis) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        Set<AddressableMessageQueue> addressableMessageQueueSet = buildAddressableSet(ctx, mqSet);
-        Map<String, List<AddressableMessageQueue>> messageQueueSetMap = buildAddressableMapByBrokerName(addressableMessageQueueSet);
-        List<CompletableFuture<Void>> futureList = new ArrayList<>();
-        messageQueueSetMap.forEach((k, v) -> {
-            UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
-            requestBody.setConsumerGroup(consumerGroup);
-            requestBody.setClientId(clientId);
-            requestBody.setMqSet(v.stream().map(AddressableMessageQueue::getMessageQueue).collect(Collectors.toSet()));
-            CompletableFuture<Void> future0 = serviceManager.getMessageService().unlockBatchMQ(ctx, v.get(0), requestBody, timeoutMillis);
-            futureList.add(FutureUtils.addExecutor(future0, this.executor));
-        });
-        CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).whenComplete((v, t) -> {
-            if (t != null) {
-                log.error("UnlockBatchMQ failed", t);
-            }
-            future.complete(null);
-        });
+        try {
+            Set<AddressableMessageQueue> addressableMessageQueueSet = buildAddressableSet(ctx, mqSet);
+            Map<String, List<AddressableMessageQueue>> messageQueueSetMap = buildAddressableMapByBrokerName(addressableMessageQueueSet);
+            List<CompletableFuture<Void>> futureList = new ArrayList<>();
+            messageQueueSetMap.forEach((k, v) -> {
+                UnlockBatchRequestBody requestBody = new UnlockBatchRequestBody();
+                requestBody.setConsumerGroup(consumerGroup);
+                requestBody.setClientId(clientId);
+                requestBody.setMqSet(v.stream().map(AddressableMessageQueue::getMessageQueue).collect(Collectors.toSet()));
+                CompletableFuture<Void> future0 = serviceManager.getMessageService().unlockBatchMQ(ctx, v.get(0), requestBody, timeoutMillis);
+                futureList.add(FutureUtils.addExecutor(future0, this.executor));
+            });
+            CompletableFuture.allOf(futureList.toArray(new CompletableFuture[0])).whenComplete((v, t) -> {
+                if (t != null) {
+                    log.error("UnlockBatchMQ failed, group={}", consumerGroup, t);
+                }
+                future.complete(null);
+            });
+        } catch (Throwable t) {
+            log.error("UnlockBatchMQ exception, group={}", consumerGroup, t);
+            future.completeExceptionally(t);
+        }
         return FutureUtils.addExecutor(future, this.executor);
     }
 
@@ -492,9 +520,9 @@ public class ConsumerProcessor extends AbstractProcessor {
 
     protected Set<AddressableMessageQueue> buildAddressableSet(ProxyContext ctx, Set<MessageQueue> mqSet) {
         Set<AddressableMessageQueue> addressableMessageQueueSet = new HashSet<>(mqSet.size());
-        for (MessageQueue mq:mqSet) {
+        for (MessageQueue mq : mqSet) {
             try {
-                addressableMessageQueueSet.add(serviceManager.getTopicRouteService().buildAddressableMessageQueue(ctx, mq)) ;
+                addressableMessageQueueSet.add(serviceManager.getTopicRouteService().buildAddressableMessageQueue(ctx, mq));
             } catch (Exception e) {
                 log.error("build addressable message queue fail, messageQueue = {}", mq, e);
             }
@@ -505,7 +533,13 @@ public class ConsumerProcessor extends AbstractProcessor {
     protected HashMap<String, List<AddressableMessageQueue>> buildAddressableMapByBrokerName(
         final Set<AddressableMessageQueue> mqSet) {
         HashMap<String, List<AddressableMessageQueue>> result = new HashMap<>();
+        if (mqSet == null) {
+            return result;
+        }
         for (AddressableMessageQueue mq : mqSet) {
+            if (mq == null) {
+                continue;
+            }
             List<AddressableMessageQueue> mqs = result.computeIfAbsent(mq.getBrokerName(), k -> new ArrayList<>());
             mqs.add(mq);
         }

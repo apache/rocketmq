@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.acl.AccessValidator;
+import org.apache.rocketmq.auth.config.AuthConfig;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.future.FutureTaskExt;
 import org.apache.rocketmq.common.thread.ThreadPoolMonitor;
@@ -44,10 +45,13 @@ import org.apache.rocketmq.proxy.remoting.activity.ConsumerManagerActivity;
 import org.apache.rocketmq.proxy.remoting.activity.GetTopicRouteActivity;
 import org.apache.rocketmq.proxy.remoting.activity.PopMessageActivity;
 import org.apache.rocketmq.proxy.remoting.activity.PullMessageActivity;
+import org.apache.rocketmq.proxy.remoting.activity.RecallMessageActivity;
 import org.apache.rocketmq.proxy.remoting.activity.SendMessageActivity;
 import org.apache.rocketmq.proxy.remoting.activity.TransactionActivity;
 import org.apache.rocketmq.proxy.remoting.channel.RemotingChannelManager;
 import org.apache.rocketmq.proxy.remoting.pipeline.AuthenticationPipeline;
+import org.apache.rocketmq.proxy.remoting.pipeline.AuthorizationPipeline;
+import org.apache.rocketmq.proxy.remoting.pipeline.ContextInitPipeline;
 import org.apache.rocketmq.proxy.remoting.pipeline.RequestPipeline;
 import org.apache.rocketmq.remoting.ChannelEventListener;
 import org.apache.rocketmq.remoting.InvokeCallback;
@@ -72,6 +76,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
     protected final ClientManagerActivity clientManagerActivity;
     protected final ConsumerManagerActivity consumerManagerActivity;
     protected final SendMessageActivity sendMessageActivity;
+    protected final RecallMessageActivity recallMessageActivity;
     protected final TransactionActivity transactionActivity;
     protected final PullMessageActivity pullMessageActivity;
     protected final PopMessageActivity popMessageActivity;
@@ -89,11 +94,12 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         this.messagingProcessor = messagingProcessor;
         this.remotingChannelManager = new RemotingChannelManager(this, messagingProcessor.getProxyRelayService());
 
-        RequestPipeline pipeline = createRequestPipeline(accessValidators);
+        RequestPipeline pipeline = createRequestPipeline(accessValidators, messagingProcessor);
         this.getTopicRouteActivity = new GetTopicRouteActivity(pipeline, messagingProcessor);
         this.clientManagerActivity = new ClientManagerActivity(pipeline, messagingProcessor, remotingChannelManager);
         this.consumerManagerActivity = new ConsumerManagerActivity(pipeline, messagingProcessor);
         this.sendMessageActivity = new SendMessageActivity(pipeline, messagingProcessor);
+        this.recallMessageActivity = new RecallMessageActivity(pipeline, messagingProcessor);
         this.transactionActivity = new TransactionActivity(pipeline, messagingProcessor);
         this.pullMessageActivity = new PullMessageActivity(pipeline, messagingProcessor);
         this.popMessageActivity = new PopMessageActivity(pipeline, messagingProcessor);
@@ -192,6 +198,7 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageActivity, sendMessageExecutor);
 
         remotingServer.registerProcessor(RequestCode.END_TRANSACTION, transactionActivity, sendMessageExecutor);
+        remotingServer.registerProcessor(RequestCode.RECALL_MESSAGE, recallMessageActivity, sendMessageExecutor);
 
         remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientManagerActivity, this.heartbeatExecutor);
         remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientManagerActivity, this.defaultExecutor);
@@ -262,12 +269,18 @@ public class RemotingProtocolServer implements StartAndShutdown, RemotingProxyOu
         return future;
     }
 
-    protected RequestPipeline createRequestPipeline(List<AccessValidator> accessValidators) {
+    protected RequestPipeline createRequestPipeline(List<AccessValidator> accessValidators,
+        MessagingProcessor messagingProcessor) {
         RequestPipeline pipeline = (ctx, request, context) -> {
         };
         // add pipeline
         // the last pipe add will execute at the first
-        return pipeline.pipe(new AuthenticationPipeline(accessValidators));
+        AuthConfig authConfig = ConfigurationManager.getAuthConfig();
+        if (authConfig != null) {
+            pipeline = pipeline.pipe(new AuthorizationPipeline(authConfig, messagingProcessor))
+                .pipe(new AuthenticationPipeline(accessValidators, authConfig, messagingProcessor));
+        }
+        return pipeline.pipe(new ContextInitPipeline());
     }
 
     protected class ThreadPoolHeadSlowTimeMillsMonitor implements ThreadPoolStatusMonitor {

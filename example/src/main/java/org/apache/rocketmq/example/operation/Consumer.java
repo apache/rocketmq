@@ -36,15 +36,15 @@ public class Consumer {
     public static void main(String[] args) throws MQClientException {
         CommandLine commandLine = buildCommandline(args);
         if (commandLine != null) {
-            String group = commandLine.getOptionValue('g');
+            String subGroup = commandLine.getOptionValue('g');
             String topic = commandLine.getOptionValue('t');
-            String subscription = commandLine.getOptionValue('s');
+            String subExpression = commandLine.getOptionValue('s');
             final String returnFailedHalf = commandLine.getOptionValue('f');
 
-            DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(group);
+            DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(subGroup);
             consumer.setInstanceName(Long.toString(System.currentTimeMillis()));
 
-            consumer.subscribe(topic, subscription);
+            consumer.subscribe(topic, subExpression);
 
             consumer.registerMessageListener(new MessageListenerConcurrently() {
                 AtomicLong consumeTimes = new AtomicLong(0);

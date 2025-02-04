@@ -34,6 +34,7 @@ def GenTestRules(
         large_tests = [],
         enormous_tests = [],
         resources = [],
+        data = [],
         flaky_tests = [],
         tags = [],
         prefix = "",
@@ -72,6 +73,7 @@ def GenTestRules(
             test_class = java_class,
             visibility = visibility,
             shard_count = shard_count,
+            data = data,
         )
 
 def _get_test_names(test_files):

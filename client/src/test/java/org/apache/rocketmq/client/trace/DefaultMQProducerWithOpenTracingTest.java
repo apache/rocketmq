@@ -88,6 +88,8 @@ public class DefaultMQProducerWithOpenTracingTest {
                 new SendMessageOpenTracingHookImpl(tracer));
         producer.setNamesrvAddr("127.0.0.1:9876");
         message = new Message(topic, new byte[] {'a', 'b', 'c'});
+        // disable trace to let mock trace work
+        producer.setEnableTrace(false);
 
         producer.start();
 
@@ -122,7 +124,7 @@ public class DefaultMQProducerWithOpenTracingTest {
         assertThat(span.tags().get(TraceConstants.ROCKETMQ_BODY_LENGTH)).isEqualTo(3);
         assertThat(span.tags().get(TraceConstants.ROCKETMQ_REGION_ID)).isEqualTo("HZ");
         assertThat(span.tags().get(TraceConstants.ROCKETMQ_MSG_TYPE)).isEqualTo(MessageType.Normal_Msg.name());
-        assertThat(span.tags().get(TraceConstants.ROCKETMQ_SOTRE_HOST)).isEqualTo("127.0.0.1:10911");
+        assertThat(span.tags().get(TraceConstants.ROCKETMQ_STORE_HOST)).isEqualTo("127.0.0.1:10911");
     }
 
     @After

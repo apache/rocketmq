@@ -14,9 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.rocketmq.tools.command.export;
 
 import com.alibaba.fastjson.JSONObject;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -29,11 +34,6 @@ import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.rocksdb.RocksIterator;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.BiConsumer;
-
 public class ExportMetadataInRocksDBCommand implements SubCommand {
     private static final String TOPICS_JSON_CONFIG = "topics";
     private static final String SUBSCRIPTION_GROUP_JSON_CONFIG = "subscriptionGroups";
@@ -45,7 +45,7 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "export RocksDB kv config (topics/subscriptionGroups)";
+        return "export RocksDB kv config (topics/subscriptionGroups). Recommend to use [mqadmin rocksDBConfigToJson]";
     }
 
     @Override
@@ -76,7 +76,11 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
             return;
         }
 
-        String configType = commandLine.getOptionValue("configType").trim().toLowerCase();
+        String configType = commandLine.getOptionValue("configType").trim();
+        if (!path.endsWith("/")) {
+            path += "/";
+        }
+        path += configType;
 
         boolean jsonEnable = false;
         if (commandLine.hasOption("jsonEnable")) {
@@ -86,7 +90,7 @@ public class ExportMetadataInRocksDBCommand implements SubCommand {
 
         ConfigRocksDBStorage kvStore = new ConfigRocksDBStorage(path, true /* readOnly */);
         if (!kvStore.start()) {
-            System.out.print("RocksDB load error, path=" + path + "\n");
+            System.out.printf("RocksDB load error, path=%s\n" , path);
             return;
         }
 

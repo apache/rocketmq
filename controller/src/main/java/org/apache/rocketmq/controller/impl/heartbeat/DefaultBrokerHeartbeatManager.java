@@ -40,7 +40,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
     private static final Logger log = LoggerFactory.getLogger(LoggerName.CONTROLLER_LOGGER_NAME);
-    private static final long DEFAULT_BROKER_CHANNEL_EXPIRED_TIME = 1000 * 10;
+
     private ScheduledExecutorService scheduledService;
     private ExecutorService executor;
 
@@ -184,7 +184,7 @@ public class DefaultBrokerHeartbeatManager implements BrokerHeartbeatManager {
             .forEach(id -> {
                 map.computeIfAbsent(id.getClusterName(), k -> new HashMap<>());
                 map.get(id.getClusterName()).compute(id.getBrokerName(), (broker, num) ->
-                    num == null ? 0 : num + 1
+                    num == null ? 1 : num + 1
                 );
             });
         return map;

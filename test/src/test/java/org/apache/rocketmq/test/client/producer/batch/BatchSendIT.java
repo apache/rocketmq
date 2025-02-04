@@ -92,7 +92,7 @@ public class BatchSendIT extends BaseConf {
         Thread.sleep(2000);
 
         for (int i = 0; i < 3; i++) {
-            producer.viewMessage(offsetIds[random.nextInt(batchNum)]);
+            producer.viewMessage(topic, offsetIds[random.nextInt(batchNum)]);
         }
         for (int i = 0; i < 3; i++) {
             producer.viewMessage(topic, msgIds[random.nextInt(batchNum)]);
@@ -240,7 +240,7 @@ public class BatchSendIT extends BaseConf {
 
         Thread.sleep(2000);
 
-        Message messageByOffset = producer.viewMessage(offsetIds[0]);
+        Message messageByOffset = producer.viewMessage(topic, offsetIds[0]);
         Message messageByMsgId = producer.viewMessage(topic, msgIds[0]);
 
         Assert.assertEquals(message.getTopic(), messageByMsgId.getTopic());

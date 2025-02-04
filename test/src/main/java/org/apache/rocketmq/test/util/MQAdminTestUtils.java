@@ -117,8 +117,7 @@ public class MQAdminTestUtils {
             for (String addr : masterSet) {
                 try {
                     mqAdminExt.createAndUpdateSubscriptionGroupConfig(addr, config);
-                    log.info(String.format("create subscription group %s to %s success.\n", consumerId,
-                            addr));
+                    log.info("create subscription group {} to {} success.", consumerId, addr);
                 } catch (Exception e) {
                     e.printStackTrace();
                     Thread.sleep(1000 * 1);
@@ -194,7 +193,7 @@ public class MQAdminTestUtils {
         return  true;
     }
 
-    //should only be test, if some middle operation failed, it dose not backup the brokerConfigMap
+    //should only be test, if some middle operation failed, it does not backup the brokerConfigMap
     public static Map<String, TopicConfigAndQueueMapping> createStaticTopic(String topic, int queueNum, Set<String> targetBrokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
         assert brokerConfigMap.isEmpty();
@@ -204,7 +203,7 @@ public class MQAdminTestUtils {
         return brokerConfigMap;
     }
 
-    //should only be test, if some middle operation failed, it dose not backup the brokerConfigMap
+    //should only be test, if some middle operation failed, it does not backup the brokerConfigMap
     public static void remappingStaticTopic(String topic, Set<String> targetBrokers, DefaultMQAdminExt defaultMQAdminExt) throws Exception {
         Map<String, TopicConfigAndQueueMapping> brokerConfigMap = MQAdminUtils.examineTopicConfigAll(topic, defaultMQAdminExt);
         assert !brokerConfigMap.isEmpty();

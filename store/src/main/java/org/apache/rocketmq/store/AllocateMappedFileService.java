@@ -132,12 +132,13 @@ public class AllocateMappedFileService extends ServiceThread {
         super.shutdown(true);
         for (AllocateRequest req : this.requestTable.values()) {
             if (req.mappedFile != null) {
-                log.info("delete pre allocated maped file, {}", req.mappedFile.getFileName());
+                log.info("delete pre allocated mapped file, {}", req.mappedFile.getFileName());
                 req.mappedFile.destroy(1000);
             }
         }
     }
 
+    @Override
     public void run() {
         log.info(this.getServiceName() + " service started");
 

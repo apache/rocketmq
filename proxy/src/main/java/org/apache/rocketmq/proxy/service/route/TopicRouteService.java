@@ -19,9 +19,10 @@ package org.apache.rocketmq.proxy.service.route;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.google.common.base.Optional;
+
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -139,7 +140,7 @@ public abstract class TopicRouteService extends AbstractStartAndShutdown {
     // pickup one topic in the topic cache
     private Optional<String> pickTopic() {
         if (topicCache.asMap().isEmpty()) {
-            return Optional.absent();
+            return Optional.empty();
         }
         return Optional.of(topicCache.asMap().keySet().iterator().next());
     }

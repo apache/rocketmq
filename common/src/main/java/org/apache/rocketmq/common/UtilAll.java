@@ -43,6 +43,7 @@ import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
+import java.util.Collections;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.rocketmq.common.constant.LoggerName;
@@ -325,16 +326,14 @@ public class UtilAll {
     }
 
     public static void writeInt(char[] buffer, int pos, int value) {
-        char[] hexArray = HEX_ARRAY;
         for (int moveBits = 28; moveBits >= 0; moveBits -= 4) {
-            buffer[pos++] = hexArray[(value >>> moveBits) & 0x0F];
+            buffer[pos++] = HEX_ARRAY[(value >>> moveBits) & 0x0F];
         }
     }
 
     public static void writeShort(char[] buffer, int pos, int value) {
-        char[] hexArray = HEX_ARRAY;
         for (int moveBits = 12; moveBits >= 0; moveBits -= 4) {
-            buffer[pos++] = hexArray[(value >>> moveBits) & 0x0F];
+            buffer[pos++] = HEX_ARRAY[(value >>> moveBits) & 0x0F];
         }
     }
 
@@ -535,25 +534,18 @@ public class UtilAll {
         } else if (ip[0] == (byte) 127) {
             return true;
         } else if (ip[0] == (byte) 172) {
-            if (ip[1] >= (byte) 16 && ip[1] <= (byte) 31) {
-                return true;
-            }
+            return ip[1] >= (byte) 16 && ip[1] <= (byte) 31;
         } else if (ip[0] == (byte) 192) {
-            if (ip[1] == (byte) 168) {
-                return true;
-            }
+            return ip[1] == (byte) 168;
         }
         return false;
     }
 
     public static boolean isInternalV6IP(InetAddress inetAddr) {
-        if (inetAddr.isAnyLocalAddress() // Wild card ipv6
+        return inetAddr.isAnyLocalAddress() // Wild card ipv6
             || inetAddr.isLinkLocalAddress() // Single broadcast ipv6 address: fe80:xx:xx...
             || inetAddr.isLoopbackAddress() //Loopback ipv6 address
-            || inetAddr.isSiteLocalAddress()) { // Site local ipv6 address: fec0:xx:xx...
-            return true;
-        }
-        return false;
+            || inetAddr.isSiteLocalAddress();// Site local ipv6 address: fec0:xx:xx...
     }
 
     private static boolean ipCheck(byte[] ip) {
@@ -604,15 +596,15 @@ public class UtilAll {
 
     public static byte[] getIP() {
         try {
-            Enumeration allNetInterfaces = NetworkInterface.getNetworkInterfaces();
-            InetAddress ip = null;
+            Enumeration<NetworkInterface> allNetInterfaces = NetworkInterface.getNetworkInterfaces();
+            InetAddress ip;
             byte[] internalIP = null;
             while (allNetInterfaces.hasMoreElements()) {
-                NetworkInterface netInterface = (NetworkInterface) allNetInterfaces.nextElement();
-                Enumeration addresses = netInterface.getInetAddresses();
+                NetworkInterface netInterface = allNetInterfaces.nextElement();
+                Enumeration<InetAddress> addresses = netInterface.getInetAddresses();
                 while (addresses.hasMoreElements()) {
-                    ip = (InetAddress) addresses.nextElement();
-                    if (ip != null && ip instanceof Inet4Address) {
+                    ip =  addresses.nextElement();
+                    if (ip instanceof Inet4Address) {
                         byte[] ipByte = ip.getAddress();
                         if (ipByte.length == 4) {
                             if (ipCheck(ipByte)) {
@@ -623,7 +615,7 @@ public class UtilAll {
                                 }
                             }
                         }
-                    } else if (ip != null && ip instanceof Inet6Address) {
+                    } else if (ip instanceof Inet6Address) {
                         byte[] ipByte = ip.getAddress();
                         if (ipByte.length == 16) {
                             if (ipV6Check(ipByte)) {
@@ -679,6 +671,10 @@ public class UtilAll {
     public static List<String> split(String str, String splitter) {
         if (str == null) {
             return null;
+        }
+
+        if (StringUtils.isBlank(str)) {
+            return Collections.EMPTY_LIST;
         }
 
         String[] addrArray = str.split(splitter);

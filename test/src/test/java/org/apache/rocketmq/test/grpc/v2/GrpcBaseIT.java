@@ -41,6 +41,8 @@ import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryAssignmentResponse;
 import apache.rocketmq.v2.QueryRouteRequest;
 import apache.rocketmq.v2.QueryRouteResponse;
+import apache.rocketmq.v2.RecallMessageRequest;
+import apache.rocketmq.v2.RecallMessageResponse;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageResponse;
 import apache.rocketmq.v2.RecoverOrphanedTransactionCommand;
@@ -100,7 +102,7 @@ import org.apache.rocketmq.common.utils.NetworkUtil;
 import org.apache.rocketmq.proxy.config.ConfigurationManager;
 import org.apache.rocketmq.proxy.grpc.interceptor.ContextInterceptor;
 import org.apache.rocketmq.proxy.grpc.interceptor.HeaderInterceptor;
-import org.apache.rocketmq.proxy.grpc.interceptor.InterceptorConstants;
+import org.apache.rocketmq.common.constant.GrpcConstants;
 import org.apache.rocketmq.proxy.grpc.v2.common.ResponseBuilder;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.test.base.BaseConf;
@@ -137,8 +139,8 @@ public class GrpcBaseIT extends BaseConf {
         brokerController2.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
         brokerController3.getBrokerConfig().setTransactionCheckInterval(3 * 1000);
 
-        header.put(InterceptorConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
-        header.put(InterceptorConstants.LANGUAGE, "JAVA");
+        header.put(GrpcConstants.CLIENT_ID, "client-id" + UUID.randomUUID());
+        header.put(GrpcConstants.LANGUAGE, "JAVA");
 
         String mockProxyHome = "/mock/rmq/proxy/home";
         URL mockProxyHomeURL = getClass().getClassLoader().getResource("rmq-proxy-home");
@@ -393,6 +395,69 @@ public class GrpcBaseIT extends BaseConf {
         assertThat(Math.abs(recvTime.get() - sendTime - delayTime) < 2 * 1000).isTrue();
     }
 
+    public void testSimpleConsumerSendAndRecallDelayMessage() throws Exception {
+        String topic = initTopicOnSampleTopicBroker(BROKER1_NAME, TopicMessageType.DELAY);
+        String group = MQRandomUtils.getRandomConsumerGroup();
+        long delayTime = TimeUnit.SECONDS.toMillis(5);
+
+        // init consumer offset
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
+        receiveMessage(blockingStub, topic, group, 1);
+
+        this.sendClientSettings(stub, buildProducerClientSettings(topic)).get();
+        String messageId = createUniqID();
+        SendMessageResponse sendResponse = blockingStub.sendMessage(SendMessageRequest.newBuilder()
+            .addMessages(Message.newBuilder()
+                .setTopic(Resource.newBuilder()
+                    .setName(topic)
+                    .build())
+                .setSystemProperties(SystemProperties.newBuilder()
+                    .setMessageId(messageId)
+                    .setQueueId(0)
+                    .setMessageType(MessageType.DELAY)
+                    .setBodyEncoding(Encoding.GZIP)
+                    .setBornTimestamp(Timestamps.fromMillis(System.currentTimeMillis()))
+                    .setBornHost(StringUtils.defaultString(NetworkUtil.getLocalAddress(), "127.0.0.1:1234"))
+                    .setDeliveryTimestamp(Timestamps.fromMillis(System.currentTimeMillis() + delayTime))
+                    .build())
+                .setBody(ByteString.copyFromUtf8("hello"))
+                .build())
+            .build());
+        long sendTime = System.currentTimeMillis();
+        assertSendMessage(sendResponse, messageId);
+        String recallHandle = sendResponse.getEntries(0).getRecallHandle();
+        assertThat(recallHandle).isNotEmpty();
+
+        RecallMessageRequest recallRequest = RecallMessageRequest.newBuilder()
+            .setRecallHandle(recallHandle)
+            .setTopic(Resource.newBuilder().setResourceNamespace("").setName(topic).build())
+            .build();
+        RecallMessageResponse recallResponse =
+            blockingStub.withDeadlineAfter(2, TimeUnit.SECONDS).recallMessage(recallRequest);
+        assertThat(recallResponse.getStatus()).isEqualTo(
+            ResponseBuilder.getInstance().buildStatus(Code.OK, Code.OK.name()));
+        assertThat(recallResponse.getMessageId()).isEqualTo(messageId);
+
+        this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
+
+        AtomicLong recvTime = new AtomicLong();
+        AtomicReference<Message> recvMessage = new AtomicReference<>();
+        try {
+            await().atMost(java.time.Duration.ofSeconds(10)).until(() -> {
+                List<Message> messageList = getMessageFromReceiveMessageResponse(receiveMessage(blockingStub, topic, group));
+                if (messageList.isEmpty()) {
+                    return false;
+                }
+                recvTime.set(System.currentTimeMillis());
+                recvMessage.set(messageList.get(0));
+                return messageList.get(0).getSystemProperties().getMessageId().equals(messageId);
+            });
+        } catch (Exception e) {
+        }
+        assertThat(recvTime.get()).isEqualTo(0L);
+        assertThat(recvMessage.get()).isNull();
+    }
+
     public void testSimpleConsumerSendAndRecvBigMessage() throws Exception {
         String topic = initTopicOnSampleTopicBroker(BROKER1_NAME);
         String group = MQRandomUtils.getRandomConsumerGroup();
@@ -427,6 +492,7 @@ public class GrpcBaseIT extends BaseConf {
         String messageId = createUniqID();
         SendMessageResponse sendResponse = blockingStub.sendMessage(buildSendMessageRequest(topic, messageId));
         assertSendMessage(sendResponse, messageId);
+        assertThat(sendResponse.getEntries(0).getRecallHandle()).isNullOrEmpty();
 
         this.sendClientSettings(stub, buildSimpleConsumerClientSettings(group)).get();
 

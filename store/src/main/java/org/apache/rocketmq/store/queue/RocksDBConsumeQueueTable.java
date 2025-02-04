@@ -17,25 +17,25 @@
 package org.apache.rocketmq.store.queue;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.store.DefaultMessageStore;
-import org.apache.rocketmq.store.DispatchRequest;
 import org.apache.rocketmq.store.queue.RocksDBConsumeQueueOffsetTable.PhyAndCQOffset;
 import org.apache.rocketmq.store.rocksdb.ConsumeQueueRocksDBStorage;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteBatch;
 
-import static org.apache.rocketmq.common.utils.DataConverter.CHARSET_UTF8;
-import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_0;
-import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_1;
-import static org.apache.rocketmq.store.queue.RocksDBConsumeQueueStore.CTRL_2;
+import static org.apache.rocketmq.common.config.AbstractRocksDBStorage.CTRL_0;
+import static org.apache.rocketmq.common.config.AbstractRocksDBStorage.CTRL_1;
+import static org.apache.rocketmq.common.config.AbstractRocksDBStorage.CTRL_2;
 
 /**
  * We use RocksDBConsumeQueueTable to store cqUnit.
@@ -104,30 +104,30 @@ public class RocksDBConsumeQueueTable {
         this.defaultCFH = this.rocksDBStorage.getDefaultCFHandle();
     }
 
-    public void buildAndPutCQByteBuffer(final Pair<ByteBuffer, ByteBuffer> cqBBPair,
-        final byte[] topicBytes, final DispatchRequest request, final WriteBatch writeBatch) throws RocksDBException {
+    public void buildAndPutCQByteBuffer(final Pair<ByteBuffer, ByteBuffer> cqBBPair, final DispatchEntry request,
+        final WriteBatch writeBatch) throws RocksDBException {
         final ByteBuffer cqKey = cqBBPair.getObject1();
-        buildCQKeyByteBuffer(cqKey, topicBytes, request.getQueueId(), request.getConsumeQueueOffset());
+        buildCQKeyByteBuffer(cqKey, request.topic, request.queueId, request.queueOffset);
 
         final ByteBuffer cqValue = cqBBPair.getObject2();
-        buildCQValueByteBuffer(cqValue, request.getCommitLogOffset(), request.getMsgSize(), request.getTagsCode(), request.getStoreTimestamp());
+        buildCQValueByteBuffer(cqValue, request.commitLogOffset, request.messageSize, request.tagCode, request.storeTimestamp);
 
         writeBatch.put(this.defaultCFH, cqKey, cqValue);
     }
 
     public ByteBuffer getCQInKV(final String topic, final int queueId, final long cqOffset) throws RocksDBException {
-        final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
+        final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
         final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, cqOffset);
         byte[] value = this.rocksDBStorage.getCQ(keyBB.array());
         return (value != null) ? ByteBuffer.wrap(value) : null;
     }
 
     public List<ByteBuffer> rangeQuery(final String topic, final int queueId, final long startIndex, final int num) throws RocksDBException {
-        final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
-        final List<ColumnFamilyHandle> defaultCFHList = new ArrayList(num);
+        final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
+        final List<ColumnFamilyHandle> defaultCFHList = new ArrayList<>(num);
         final ByteBuffer[] resultList = new ByteBuffer[num];
-        final List<Integer> kvIndexList = new ArrayList(num);
-        final List<byte[]> kvKeyList = new ArrayList(num);
+        final List<Integer> kvIndexList = new ArrayList<>(num);
+        final List<byte[]> kvKeyList = new ArrayList<>(num);
         for (int i = 0; i < num; i++) {
             final ByteBuffer keyBB = buildCQKeyByteBuffer(topicBytes, queueId, startIndex + i);
             kvIndexList.add(i);
@@ -152,7 +152,7 @@ public class RocksDBConsumeQueueTable {
         }
 
         final int resultSize = resultList.length;
-        List<ByteBuffer> bbValueList = new ArrayList(resultSize);
+        List<ByteBuffer> bbValueList = new ArrayList<>(resultSize);
         for (int i = 0; i < resultSize; i++) {
             ByteBuffer byteBuffer = resultList[i];
             if (byteBuffer == null) {
@@ -170,7 +170,7 @@ public class RocksDBConsumeQueueTable {
      * @throws RocksDBException
      */
     public void destroyCQ(final String topic, final int queueId, WriteBatch writeBatch) throws RocksDBException {
-        final byte[] topicBytes = topic.getBytes(CHARSET_UTF8);
+        final byte[] topicBytes = topic.getBytes(StandardCharsets.UTF_8);
         final ByteBuffer cqStartKey = buildDeleteCQKey(true, topicBytes, queueId);
         final ByteBuffer cqEndKey = buildDeleteCQKey(false, topicBytes, queueId);
 
@@ -180,10 +180,43 @@ public class RocksDBConsumeQueueTable {
     }
 
     public long binarySearchInCQByTime(String topic, int queueId, long high, long low, long timestamp,
-        long minPhysicOffset) throws RocksDBException {
-        long result = 0;
+        long minPhysicOffset, BoundaryType boundaryType) throws RocksDBException {
+        long result = -1L;
         long targetOffset = -1L, leftOffset = -1L, rightOffset = -1L;
-        long leftValue = -1L, rightValue = -1L;
+        long ceiling = high, floor = low;
+        // Handle the following corner cases first:
+        // 1. store time of (high) < timestamp
+        ByteBuffer buffer = getCQInKV(topic, queueId, ceiling);
+        if (buffer != null) {
+            long storeTime = buffer.getLong(MSG_STORE_TIME_SIZE_OFFSET);
+            if (storeTime < timestamp) {
+                switch (boundaryType) {
+                    case LOWER:
+                        return ceiling + 1;
+                    case UPPER:
+                        return ceiling;
+                    default:
+                        log.warn("Unknown boundary type");
+                        break;
+                }
+            }
+        }
+        // 2. store time of (low) > timestamp
+        buffer = getCQInKV(topic, queueId, floor);
+        if (buffer != null) {
+            long storeTime = buffer.getLong(MSG_STORE_TIME_SIZE_OFFSET);
+            if (storeTime > timestamp) {
+                switch (boundaryType) {
+                    case LOWER:
+                        return floor;
+                    case UPPER:
+                        return 0;
+                    default:
+                        log.warn("Unknown boundary type");
+                        break;
+                }
+            }
+        }
         while (high >= low) {
             long midOffset = low + ((high - low) >>> 1);
             ByteBuffer byteBuffer = getCQInKV(topic, queueId, midOffset);
@@ -209,22 +242,64 @@ public class RocksDBConsumeQueueTable {
             } else if (storeTime > timestamp) {
                 high = midOffset - 1;
                 rightOffset = midOffset;
-                rightValue = storeTime;
             } else {
                 low = midOffset + 1;
                 leftOffset = midOffset;
-                leftValue = storeTime;
             }
         }
         if (targetOffset != -1) {
+            // offset next to it might also share the same store-timestamp.
+            switch (boundaryType) {
+                case LOWER: {
+                    while (true) {
+                        long nextOffset = targetOffset - 1;
+                        if (nextOffset < floor) {
+                            break;
+                        }
+                        ByteBuffer byteBuffer = getCQInKV(topic, queueId, nextOffset);
+                        long storeTime = byteBuffer.getLong(MSG_STORE_TIME_SIZE_OFFSET);
+                        if (storeTime != timestamp) {
+                            break;
+                        }
+                        targetOffset = nextOffset;
+                    }
+                    break;
+                }
+                case UPPER: {
+                    while (true) {
+                        long nextOffset = targetOffset + 1;
+                        if (nextOffset > ceiling) {
+                            break;
+                        }
+                        ByteBuffer byteBuffer = getCQInKV(topic, queueId, nextOffset);
+                        long storeTime = byteBuffer.getLong(MSG_STORE_TIME_SIZE_OFFSET);
+                        if (storeTime != timestamp) {
+                            break;
+                        }
+                        targetOffset = nextOffset;
+                    }
+                    break;
+                }
+                default: {
+                    log.warn("Unknown boundary type");
+                    break;
+                }
+            }
             result = targetOffset;
         } else {
-            if (leftValue == -1) {
-                result = rightOffset;
-            } else if (rightValue == -1) {
-                result = leftOffset;
-            } else {
-                result = Math.abs(timestamp - leftValue) > Math.abs(timestamp - rightValue) ? rightOffset : leftOffset;
+            switch (boundaryType) {
+                case LOWER: {
+                    result = rightOffset;
+                    break;
+                }
+                case UPPER: {
+                    result = leftOffset;
+                    break;
+                }
+                default: {
+                    log.warn("Unknown boundary type");
+                    break;
+                }
             }
         }
         return result;

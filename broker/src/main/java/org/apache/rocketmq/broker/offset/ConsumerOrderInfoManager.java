@@ -121,7 +121,7 @@ public class ConsumerOrderInfoManager extends ConfigManager {
             Set<Long> offsetSet = offsetConsumedCount.keySet();
             for (Long offset : offsetSet) {
                 Integer consumedTimes = offsetConsumedCount.getOrDefault(offset, 0);
-                ExtraInfoUtil.buildQueueOffsetOrderCountInfo(orderInfoBuilder, isRetry, queueId, offset, consumedTimes);
+                ExtraInfoUtil.buildQueueOffsetOrderCountInfo(orderInfoBuilder, topic, queueId, offset, consumedTimes);
                 minConsumedTimes = Math.min(minConsumedTimes, consumedTimes);
             }
 
@@ -136,7 +136,7 @@ public class ConsumerOrderInfoManager extends ConfigManager {
 
         // for compatibility
         // the old pop sdk use queueId to get consumedTimes from orderCountInfo
-        ExtraInfoUtil.buildQueueIdOrderCountInfo(orderInfoBuilder, isRetry, queueId, minConsumedTimes);
+        ExtraInfoUtil.buildQueueIdOrderCountInfo(orderInfoBuilder, topic, queueId, minConsumedTimes);
         updateLockFreeTimestamp(topic, group, queueId, orderInfo);
     }
 
@@ -281,7 +281,7 @@ public class ConsumerOrderInfoManager extends ConfigManager {
                 continue;
             }
 
-            if (this.brokerController.getSubscriptionGroupManager().getSubscriptionGroupTable().get(group) == null) {
+            if (!this.brokerController.getSubscriptionGroupManager().containsSubscriptionGroup(group)) {
                 iterator.remove();
                 log.info("Group not exist, Clean order info, {}:{}", topicAtGroup, qs);
                 continue;

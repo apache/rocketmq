@@ -101,11 +101,22 @@ public interface MappedFile {
 
     /**
      * Appends a raw message data represents by a byte array to the current {@code MappedFile}.
+     * Using mappedByteBuffer
      *
      * @param data the byte array to append
      * @return true if success; false otherwise.
      */
     boolean appendMessage(byte[] data);
+
+
+    /**
+     * Appends a raw message data represents by a byte array to the current {@code MappedFile}.
+     * Using fileChannel
+     *
+     * @param data the byte array to append
+     * @return true if success; false otherwise.
+     */
+    boolean appendMessageUsingFileChannel(byte[] data);
 
     /**
      * Appends a raw message data represents by a byte array to the current {@code MappedFile}.

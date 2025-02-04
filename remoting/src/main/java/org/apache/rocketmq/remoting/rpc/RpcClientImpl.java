@@ -59,7 +59,7 @@ public class RpcClientImpl implements RpcClient {
     @Override
     public Future<RpcResponse>  invoke(MessageQueue mq, RpcRequest request, long timeoutMs) throws RpcException {
         String bname =  clientMetadata.getBrokerNameFromMessageQueue(mq);
-        request.getHeader().setBname(bname);
+        request.getHeader().setBrokerName(bname);
         return invoke(request, timeoutMs);
     }
 
@@ -174,6 +174,7 @@ public class RpcClientImpl implements RpcClient {
                             PullMessageResponseHeader responseHeader =
                                 (PullMessageResponseHeader) response.decodeCommandCustomHeader(PullMessageResponseHeader.class);
                             rpcResponsePromise.setSuccess(new RpcResponse(response.getCode(), responseHeader, response.getBody()));
+                            break;
                         default:
                             RpcResponse rpcResponse = new RpcResponse(new RpcException(response.getCode(), "unexpected remote response code"));
                             rpcResponsePromise.setSuccess(rpcResponse);

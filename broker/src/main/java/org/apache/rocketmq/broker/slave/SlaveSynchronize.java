@@ -17,8 +17,7 @@
 package org.apache.rocketmq.broker.slave;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
@@ -32,8 +31,10 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.protocol.body.ConsumerOffsetSerializeWrapper;
 import org.apache.rocketmq.remoting.protocol.body.MessageRequestModeSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.body.SetMessageRequestModeRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.SubscriptionGroupWrapper;
 import org.apache.rocketmq.remoting.protocol.body.TopicConfigAndMappingSerializeWrapper;
+import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.apache.rocketmq.store.timer.TimerCheckpoint;
 import org.apache.rocketmq.store.timer.TimerMetrics;
@@ -85,12 +86,7 @@ public class SlaveSynchronize {
                     ConcurrentMap<String, TopicConfig> newTopicConfigTable = topicWrapper.getTopicConfigTable();
                     //delete
                     ConcurrentMap<String, TopicConfig> topicConfigTable = this.brokerController.getTopicConfigManager().getTopicConfigTable();
-                    for (Iterator<Map.Entry<String, TopicConfig>> it = topicConfigTable.entrySet().iterator(); it.hasNext(); ) {
-                        Map.Entry<String, TopicConfig> item = it.next();
-                        if (!newTopicConfigTable.containsKey(item.getKey())) {
-                            it.remove();
-                        }
-                    }
+                    topicConfigTable.entrySet().removeIf(item -> !newTopicConfigTable.containsKey(item.getKey()));
                     //update
                     topicConfigTable.putAll(newTopicConfigTable);
 
@@ -104,12 +100,7 @@ public class SlaveSynchronize {
                     ConcurrentMap<String, TopicConfig> newTopicConfigTable = topicWrapper.getTopicConfigTable();
                     //delete
                     ConcurrentMap<String, TopicConfig> topicConfigTable = this.brokerController.getTopicConfigManager().getTopicConfigTable();
-                    for (Iterator<Map.Entry<String, TopicConfig>> it = topicConfigTable.entrySet().iterator(); it.hasNext(); ) {
-                        Map.Entry<String, TopicConfig> item = it.next();
-                        if (!newTopicConfigTable.containsKey(item.getKey())) {
-                            it.remove();
-                        }
-                    }
+                    topicConfigTable.entrySet().removeIf(item -> !newTopicConfigTable.containsKey(item.getKey()));
                     //update
                     topicConfigTable.putAll(newTopicConfigTable);
 
@@ -178,9 +169,16 @@ public class SlaveSynchronize {
                             this.brokerController.getSubscriptionGroupManager();
                     subscriptionGroupManager.getDataVersion().assignNewOne(
                             subscriptionWrapper.getDataVersion());
-                    subscriptionGroupManager.getSubscriptionGroupTable().clear();
-                    subscriptionGroupManager.getSubscriptionGroupTable().putAll(
-                            subscriptionWrapper.getSubscriptionGroupTable());
+
+                    ConcurrentMap<String, SubscriptionGroupConfig> curSubscriptionGroupTable =
+                            subscriptionGroupManager.getSubscriptionGroupTable();
+                    ConcurrentMap<String, SubscriptionGroupConfig> newSubscriptionGroupTable =
+                            subscriptionWrapper.getSubscriptionGroupTable();
+                    // delete
+                    curSubscriptionGroupTable.entrySet().removeIf(e -> !newSubscriptionGroupTable.containsKey(e.getKey()));
+                    // update
+                    curSubscriptionGroupTable.putAll(newSubscriptionGroupTable);
+                    // persist
                     subscriptionGroupManager.persist();
                     LOGGER.info("Update slave Subscription Group from master, {}", masterAddrBak);
                 }
@@ -199,10 +197,16 @@ public class SlaveSynchronize {
 
                 MessageRequestModeManager messageRequestModeManager =
                         this.brokerController.getQueryAssignmentProcessor().getMessageRequestModeManager();
-                messageRequestModeManager.getMessageRequestModeMap().clear();
-                messageRequestModeManager.getMessageRequestModeMap().putAll(
-                        messageRequestModeSerializeWrapper.getMessageRequestModeMap()
-                );
+                ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> curMessageRequestModeMap =
+                        messageRequestModeManager.getMessageRequestModeMap();
+                ConcurrentHashMap<String, ConcurrentHashMap<String, SetMessageRequestModeRequestBody>> newMessageRequestModeMap =
+                        messageRequestModeSerializeWrapper.getMessageRequestModeMap();
+
+                // delete
+                curMessageRequestModeMap.entrySet().removeIf(e -> !newMessageRequestModeMap.containsKey(e.getKey()));
+                // update
+                curMessageRequestModeMap.putAll(newMessageRequestModeMap);
+                // persist
                 messageRequestModeManager.persist();
                 LOGGER.info("Update slave Message Request Mode from master, {}", masterAddrBak);
             } catch (Exception e) {

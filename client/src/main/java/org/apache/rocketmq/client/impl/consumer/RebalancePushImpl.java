@@ -91,59 +91,53 @@ public class RebalancePushImpl extends RebalanceImpl {
     }
 
     @Override
-    public boolean removeUnnecessaryMessageQueue(MessageQueue mq, ProcessQueue pq) {
-        this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
-        this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
+    public boolean removeUnnecessaryMessageQueue(final MessageQueue mq, final ProcessQueue pq) {
         if (this.defaultMQPushConsumerImpl.isConsumeOrderly()
             && MessageModel.CLUSTERING.equals(this.defaultMQPushConsumerImpl.messageModel())) {
-            try {
-                if (pq.getConsumeLock().tryLock(1000, TimeUnit.MILLISECONDS)) {
-                    try {
-                        return this.unlockDelay(mq, pq);
-                    } finally {
-                        pq.getConsumeLock().unlock();
-                    }
-                } else {
-                    log.warn("[WRONG]mq is consuming, so can not unlock it, {}. maybe hanged for a while, {}",
-                        mq,
-                        pq.getTryUnlockTimes());
 
-                    pq.incTryUnlockTimes();
-                }
-            } catch (Exception e) {
-                log.error("removeUnnecessaryMessageQueue Exception", e);
-            }
+            // commit offset immediately
+            this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
 
-            return false;
+            // remove order message queue: unlock & remove
+            return tryRemoveOrderMessageQueue(mq, pq);
+        } else {
+            this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
+            this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
+            return true;
         }
-        return true;
+    }
+
+    private boolean tryRemoveOrderMessageQueue(final MessageQueue mq, final ProcessQueue pq) {
+        try {
+            // unlock & remove when no message is consuming or UNLOCK_DELAY_TIME_MILLS timeout (Backwards compatibility)
+            boolean forceUnlock = pq.isDropped() && System.currentTimeMillis() > pq.getLastLockTimestamp() + UNLOCK_DELAY_TIME_MILLS;
+            if (forceUnlock || pq.getConsumeLock().writeLock().tryLock(500, TimeUnit.MILLISECONDS)) {
+                try {
+                    RebalancePushImpl.this.defaultMQPushConsumerImpl.getOffsetStore().persist(mq);
+                    RebalancePushImpl.this.defaultMQPushConsumerImpl.getOffsetStore().removeOffset(mq);
+
+                    pq.setLocked(false);
+                    RebalancePushImpl.this.unlock(mq, true);
+                    return true;
+                } finally {
+                    if (!forceUnlock) {
+                        pq.getConsumeLock().writeLock().unlock();
+                    }
+                }
+            } else {
+                pq.incTryUnlockTimes();
+            }
+        } catch (Exception e) {
+            pq.incTryUnlockTimes();
+        }
+
+        return false;
     }
 
     @Override
     public boolean clientRebalance(String topic) {
         // POPTODO order pop consume not implement yet
         return defaultMQPushConsumerImpl.getDefaultMQPushConsumer().isClientRebalance() || defaultMQPushConsumerImpl.isConsumeOrderly() || MessageModel.BROADCASTING.equals(messageModel);
-    }
-
-    public boolean removeUnnecessaryPopMessageQueue(final MessageQueue mq, final PopProcessQueue pq) {
-        return true;
-    }
-
-    private boolean unlockDelay(final MessageQueue mq, final ProcessQueue pq) {
-
-        if (pq.hasTempMessage()) {
-            log.info("[{}]unlockDelay, begin {} ", mq.hashCode(), mq);
-            this.defaultMQPushConsumerImpl.getmQClientFactory().getScheduledExecutorService().schedule(new Runnable() {
-                @Override
-                public void run() {
-                    log.info("[{}]unlockDelay, execute at once {}", mq.hashCode(), mq);
-                    RebalancePushImpl.this.unlock(mq, true);
-                }
-            }, UNLOCK_DELAY_TIME_MILLS, TimeUnit.MILLISECONDS);
-        } else {
-            this.unlock(mq, true);
-        }
-        return true;
     }
 
     @Override
@@ -288,11 +282,6 @@ public class RebalancePushImpl extends RebalanceImpl {
     @Override
     public ProcessQueue createProcessQueue() {
         return new ProcessQueue();
-    }
-
-    @Override
-    public ProcessQueue createProcessQueue(String topicName) {
-        return createProcessQueue();
     }
 
     @Override
