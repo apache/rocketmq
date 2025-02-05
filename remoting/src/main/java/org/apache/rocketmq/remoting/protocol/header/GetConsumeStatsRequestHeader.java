@@ -57,7 +57,7 @@ public class GetConsumeStatsRequestHeader extends TopicRequestHeader {
     }
 
     public void updateTopicList(List<String> topicList) {
-        if (topicList == null) {
+        if (topicList == null || topicList.isEmpty()) {
             return;
         }
         StringBuilder sb = new StringBuilder();

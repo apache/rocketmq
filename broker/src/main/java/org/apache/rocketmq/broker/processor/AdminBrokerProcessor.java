@@ -1952,7 +1952,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
             String group = requestHeader.getConsumerGroup();
 
             ConsumeStats consumeStats = new ConsumeStats();
-            Set<String> topicsForCollecting = getTopicsForCollecting(topicListProvided, topicProvided, group);
+            Set<String> topicsForCollecting = getTopicsForCollectingConsumeStats(topicListProvided, topicProvided, group);
 
             for (String topic : topicsForCollecting) {
                 TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topic);
@@ -2022,7 +2022,8 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private Set<String> getTopicsForCollecting(List<String> topicListProvided, String topicProvided, String group) {
+    private Set<String> getTopicsForCollectingConsumeStats(List<String> topicListProvided, String topicProvided,
+        String group) {
         Set<String> topicsForCollecting = new HashSet<>();
         if (!topicListProvided.isEmpty()) {
             // if topic list is provided, only collect the topics in the list
