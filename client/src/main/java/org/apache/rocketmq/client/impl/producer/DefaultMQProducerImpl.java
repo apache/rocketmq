@@ -778,11 +778,13 @@ public class DefaultMQProducerImpl implements MQProducerInner {
                             break;
                         }
                         long curTimeout = timeout - costTime;
-                        // In order to prevent the broker from being unresponsive for a long time and thus being unable to retry next time,
-                        // if there is another chance for retry next time, the maximum sending time is modified to the maximum sendMsgMaxTimeoutPerRequest.
-                        if (defaultMQProducer.getSendMsgMaxTimeoutPerRequest() > -1 && times + 1 < timesTotal
-                                && curTimeout > defaultMQProducer.getSendMsgMaxTimeoutPerRequest()) {
-                            curTimeout = defaultMQProducer.getSendMsgMaxTimeoutPerRequest();
+                        // Get the maximum timeout allowed per request
+                        long maxSendTimeoutPerRequest = defaultMQProducer.getSendMsgMaxTimeoutPerRequest();
+                        // Determine if retries are still possible
+                        boolean canRetryAgain = times + 1 < timesTotal;
+                        // If retries are possible, and the current timeout exceeds the max allowed timeout, set the current timeout to the max allowed
+                        if (maxSendTimeoutPerRequest > -1 && canRetryAgain && curTimeout > maxSendTimeoutPerRequest) {
+                            curTimeout = maxSendTimeoutPerRequest;
                         }
                         sendResult = this.sendKernelImpl(msg, mq, communicationMode, sendCallback, topicPublishInfo, curTimeout);
                         endTimestamp = System.currentTimeMillis();
