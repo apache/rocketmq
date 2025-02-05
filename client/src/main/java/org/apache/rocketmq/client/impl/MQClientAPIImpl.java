@@ -1748,16 +1748,27 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
     public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final long timeoutMillis)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
         MQBrokerException {
-        return getConsumeStats(addr, consumerGroup, null, timeoutMillis);
+        return getConsumeStats(addr, consumerGroup, null, null, timeoutMillis);
+    }
+
+    public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final List<String> topicList,
+        final long timeoutMillis) throws RemotingSendRequestException, RemotingConnectException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return getConsumeStats(addr, consumerGroup, null, topicList, timeoutMillis);
     }
 
     public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final String topic,
-        final long timeoutMillis)
+        final long timeoutMillis) throws RemotingSendRequestException, RemotingConnectException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return getConsumeStats(addr, consumerGroup, topic, null, timeoutMillis);
+    }
+
+    public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final String topic,
+        final List<String> topicList, final long timeoutMillis)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
         MQBrokerException {
         GetConsumeStatsRequestHeader requestHeader = new GetConsumeStatsRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         requestHeader.setTopic(topic);
+        requestHeader.updateTopicList(topicList);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUME_STATS, requestHeader);
 
