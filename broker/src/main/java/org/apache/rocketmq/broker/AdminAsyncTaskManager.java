@@ -17,6 +17,7 @@
 package org.apache.rocketmq.broker;
 
 import com.alibaba.fastjson.JSON;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.common.AsyncTask;
 
@@ -39,13 +40,47 @@ public class AdminAsyncTaskManager {
     // taskName -> taskId
     private final ConcurrentHashMap<String, List<String>> taskNameToIdsMap;
 
-    public AdminAsyncTaskManager() {
-        this.asyncTaskCache = Caffeine.newBuilder()
-            .expireAfterWrite(30, TimeUnit.MINUTES)
-            .maximumSize(10000)
-            .build();
+    private final int taskCacheExpireTimeMinutes;
 
+    private final int maxTaskCacheSize;
+
+    public AdminAsyncTaskManager() {
+        this.taskCacheExpireTimeMinutes = initTaskCacheExpireTimeMinutes();
+        this.maxTaskCacheSize = initMaxTaskCacheSize();
         this.taskNameToIdsMap = new ConcurrentHashMap<>();
+        this.asyncTaskCache = Caffeine.newBuilder()
+            .expireAfterWrite(taskCacheExpireTimeMinutes, TimeUnit.MINUTES)
+            .maximumSize(maxTaskCacheSize)
+            .removalListener((String taskId, AsyncTask task, RemovalCause cause) -> {
+                if (task != null) {
+                    taskNameToIdsMap.computeIfPresent(task.getTaskName(), (k, list) -> {
+                        list.remove(taskId);
+                        return list.isEmpty() ? null : list;
+                    });
+                }
+            })
+            .build();
+    }
+
+    /**
+     * Initialize the task cache expiration time in minutes.
+     *
+     * @return The task cache expiration time in minutes.
+     */
+    private int initTaskCacheExpireTimeMinutes() {
+        return Integer.parseInt(
+            System.getProperty("rocketmq.broker.asyncTaskCacheExpireTime", "1440")
+        );
+    }
+
+    /**
+     * Initialize the maximum size of the task cache.
+     *
+     * @return The maximum size of the task cache.
+     */
+    private int initMaxTaskCacheSize() {
+        return Integer.parseInt(
+            System.getProperty("rocketmq.broker.maxAsyncTaskCacheSize", "10000"));
     }
 
     /**
@@ -60,7 +95,7 @@ public class AdminAsyncTaskManager {
         AsyncTask task = new AsyncTask(taskName, taskId, future);
 
         asyncTaskCache.put(taskId, task);
-        taskNameToIdsMap.computeIfAbsent(taskName, k -> new ArrayList<>()).add(taskId);
+        taskNameToIdsMap.computeIfAbsent(taskName, k -> Collections.synchronizedList(new ArrayList<>())).add(taskId);
 
         future.whenComplete((result, throwable) -> {
             if (throwable != null) {

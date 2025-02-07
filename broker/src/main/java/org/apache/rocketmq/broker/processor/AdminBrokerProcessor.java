@@ -27,11 +27,13 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -494,18 +496,21 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand checkRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) {
-        CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
-        result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_IN_PROGRESS.getValue());
-
         CompletableFuture<CheckRocksdbCqWriteResult> future = CompletableFuture.supplyAsync(() -> {
             try {
-                return doCheckRocksdbCqWriteProgress(ctx, request);
+                CheckRocksdbCqWriteResult checkResult = doCheckRocksdbCqWriteProgress(ctx, request);
+                LOGGER.info("checkRocksdbCqWriteProgress result: {}", JSON.toJSONString(checkResult));
+                return checkResult;
             } catch (Exception e) {
                 throw new CompletionException(e);
             }
         }, asyncExecuteWorker);
 
-        asyncTaskManager.createTask("checkRocksdbCqWriteProgress", future);
+        String taskId = asyncTaskManager.createTask("checkRocksdbCqWriteProgress", future);
+        CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
+        result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_IN_PROGRESS.getValue());
+        result.setTaskId(taskId);
+
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
         response.setBody(JSON.toJSONBytes(result));
@@ -3610,7 +3615,22 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     private RemotingCommand checkAsyncTaskStatus(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final CheckAsyncTaskStatusRequestHeader requestHeader = request.decodeCommandCustomHeader(CheckAsyncTaskStatusRequestHeader.class);
-        List<String> taskIds = asyncTaskManager.getTaskIdsByName(requestHeader.getTaskName());
+        String taskId = requestHeader.getTaskId();
+        String taskName = requestHeader.getTaskName();
+
+        RemotingCommand response = RemotingCommand.createResponseCommand(CheckAsyncTaskStatusResponseHeader.class);
+        // If the taskId is not empty, query the async task with the specified taskId.
+        if (StringUtils.isNotBlank(taskId)) {
+            AsyncTask asyncTask = asyncTaskManager.getTaskStatus(requestHeader.getTaskId());
+            if (asyncTask == null) {
+                throw new RemotingCommandException("taskId: " + requestHeader.getTaskId() + " not found");
+            }
+            response.setCode(ResponseCode.SUCCESS);
+            response.setBody(JSON.toJSONBytes(asyncTask));
+            return response;
+        }
+
+        List<String> taskIds = asyncTaskManager.getTaskIdsByName(taskName);
         if (CollectionUtils.isEmpty(taskIds)) {
             throw new RemotingCommandException("taskName: " + requestHeader.getTaskName() + " not found");
         }
@@ -3621,11 +3641,12 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
             List<AsyncTask> asyncTasks = taskIds.stream()
                 .map(asyncTaskManager::getTaskStatus)
+                .filter(Objects::nonNull)
                 .filter(task -> filterStatus == null || task.getStatus() == filterStatus)
+                .sorted(Comparator.comparing(AsyncTask::getCreateTime).reversed())
                 .limit(maxResults)
                 .collect(Collectors.toList());
 
-            RemotingCommand response = RemotingCommand.createResponseCommand(CheckAsyncTaskStatusResponseHeader.class);
             response.setCode(ResponseCode.SUCCESS);
             response.setBody(JSON.toJSONBytes(asyncTasks));
             return response;

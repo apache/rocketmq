@@ -65,6 +65,10 @@ public class CheckAsyncTaskStatusSubCommand implements SubCommand {
         opt.setRequired(true);
         options.addOption(opt);
 
+        opt = new Option("i", "taskId", true, "The id of the asynchronous task");
+        opt.setRequired(false);
+        options.addOption(opt);
+
         opt = new Option("b", "brokerAddr", true, "Check which broker");
         opt.setRequired(false);
         options.addOption(opt);
@@ -93,8 +97,9 @@ public class CheckAsyncTaskStatusSubCommand implements SubCommand {
         defaultMQAdminExt = createDefaultMQAdminExt(rpcHook);
 
         String taskName = commandLine.hasOption('t') ? commandLine.getOptionValue('t').trim() : null;
-        if (taskName == null) {
-            System.out.print("Task name cannot be empty. Please specify a task name with -t.");
+        String taskId = commandLine.hasOption('i') ? commandLine.getOptionValue('i').trim() : null;
+        if (taskName == null && taskId == null) {
+            System.out.print("Either task name or task ID must be provided.");
             return;
         }
         String brokerAddr = commandLine.hasOption('b') ? commandLine.getOptionValue('b').trim() : null;
@@ -130,7 +135,7 @@ public class CheckAsyncTaskStatusSubCommand implements SubCommand {
                     .orElse(null);
 
                 if (brokerData != null) {
-                    checkAsyncTaskStatusOnBroker(brokerAddr, taskName, brokerData.getBrokerName(), maxLimit, taskStatus);
+                    checkAsyncTaskStatusOnBroker(brokerAddr, taskName, taskId, brokerData.getBrokerName(), maxLimit, taskStatus);
                 } else {
                     System.out.printf("Broker with address '%s' not found.%n", brokerAddr);
                 }
@@ -144,7 +149,7 @@ public class CheckAsyncTaskStatusSubCommand implements SubCommand {
                 brokerNames.forEach(brokerName -> {
                     BrokerData brokerData = brokerAddrTable.get(brokerName);
                     if (brokerData != null) {
-                        checkAsyncTaskStatusOnBroker(brokerData.selectBrokerAddr(), taskName, brokerName, maxLimit, taskStatus);
+                        checkAsyncTaskStatusOnBroker(brokerData.selectBrokerAddr(), taskName, taskId, brokerName, maxLimit, taskStatus);
                     }
                 });
             } else {
@@ -152,7 +157,7 @@ public class CheckAsyncTaskStatusSubCommand implements SubCommand {
                 for (Map.Entry<String, BrokerData> entry : brokerAddrTable.entrySet()) {
                     String brokerName = entry.getKey();
                     String addr = entry.getValue().selectBrokerAddr();
-                    checkAsyncTaskStatusOnBroker(addr, taskName, brokerName, maxLimit, taskStatus);
+                    checkAsyncTaskStatusOnBroker(addr, taskName, taskId, brokerName, maxLimit, taskStatus);
                 }
             }
         } catch (Exception e) {
@@ -162,10 +167,11 @@ public class CheckAsyncTaskStatusSubCommand implements SubCommand {
         }
     }
 
-    private void checkAsyncTaskStatusOnBroker(String brokerAddr, String taskName, String brokerName, int maxLimit, Integer taskStatus) {
+    private void checkAsyncTaskStatusOnBroker(String brokerAddr, String taskName, String taskId, String brokerName, int maxLimit, Integer taskStatus) {
         try {
             CheckAsyncTaskStatusRequestHeader requestHeader = new CheckAsyncTaskStatusRequestHeader();
             requestHeader.setTaskName(taskName);
+            requestHeader.setTaskId(taskId);
             requestHeader.setMaxLimit(maxLimit);
             requestHeader.setTaskStatus(taskStatus);
 

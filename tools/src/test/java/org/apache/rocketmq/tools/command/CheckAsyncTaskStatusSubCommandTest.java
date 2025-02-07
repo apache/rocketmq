@@ -146,7 +146,7 @@ public class CheckAsyncTaskStatusSubCommandTest extends ServerResponseMocker {
         System.setOut(originalOut);
 
         String output = outputStream.toString().trim();
-        assertEquals("Task name cannot be empty. Please specify a task name with -t.", output);
+        assertEquals("Either task name or task ID must be provided.", output);
 
         verify(defaultMQAdminExt, never()).start();
         verify(defaultMQAdminExt, never()).examineBrokerClusterInfo();

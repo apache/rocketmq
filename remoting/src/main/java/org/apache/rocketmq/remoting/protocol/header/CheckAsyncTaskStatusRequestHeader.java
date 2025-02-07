@@ -30,6 +30,8 @@ public class CheckAsyncTaskStatusRequestHeader implements CommandCustomHeader {
 
     private String taskName;
 
+    private String taskId;
+
     private int maxLimit;  // Optional parameter for filtering return tasks nums.
 
     private Integer taskStatus;  // Optional parameter for filtering tasks with specific statuses
@@ -69,5 +71,13 @@ public class CheckAsyncTaskStatusRequestHeader implements CommandCustomHeader {
 
     public void setTaskStatus(Integer taskStatus) {
         this.taskStatus = taskStatus;
+    }
+
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
     }
 }

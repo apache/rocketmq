@@ -92,7 +92,9 @@ public class CheckRocksdbCqWriteProgressCommand implements SubCommand {
                 if (result.getCheckStatus() == CheckRocksdbCqWriteResult.CheckStatus.CHECK_ERROR.getValue()) {
                     System.out.print(brokerName + " check error, please check log... errInfo: " + result.getCheckResult());
                 } else {
-                    System.out.print(brokerName + " check doing, please wait and get the result from log... \n");
+                    String taskId = result.getTaskId();
+                    System.out.print(brokerName + " check is in progress. please wait and get the result from log " +
+                        "or you can query the progress later using the taskId: " + taskId);
                 }
             }
         } catch (Exception e) {
