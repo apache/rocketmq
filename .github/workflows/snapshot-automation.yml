@@ -117,7 +117,9 @@ jobs:
           path: rocketmq-docker/image-build-ci/versionlist/*
 
   list-version:
-    if: always()
+    if: >
+      github.repository == 'apache/rocketmq' && 
+      always()
     name: List version
     needs: [ docker-build ]
     runs-on: ubuntu-latest
