@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import java.util.concurrent.TimeUnit;
+import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TaskStatus;
 
 public class AdminAsyncTaskManager {
@@ -40,13 +41,16 @@ public class AdminAsyncTaskManager {
     // taskName -> taskId
     private final ConcurrentHashMap<String, List<String>> taskNameToIdsMap;
 
+    private final BrokerConfig brokerConfig;
+
     private final int taskCacheExpireTimeMinutes;
 
     private final int maxTaskCacheSize;
 
-    public AdminAsyncTaskManager() {
-        this.taskCacheExpireTimeMinutes = initTaskCacheExpireTimeMinutes();
-        this.maxTaskCacheSize = initMaxTaskCacheSize();
+    public AdminAsyncTaskManager(BrokerConfig brokerConfig) {
+        this.brokerConfig = brokerConfig;
+        this.taskCacheExpireTimeMinutes = brokerConfig.getTaskCacheExpireTimeMinutes();
+        this.maxTaskCacheSize = brokerConfig.getMaxTaskCacheSize();
         this.taskNameToIdsMap = new ConcurrentHashMap<>();
         this.asyncTaskCache = Caffeine.newBuilder()
             .expireAfterWrite(taskCacheExpireTimeMinutes, TimeUnit.MINUTES)
@@ -60,27 +64,6 @@ public class AdminAsyncTaskManager {
                 }
             })
             .build();
-    }
-
-    /**
-     * Initialize the task cache expiration time in minutes.
-     *
-     * @return The task cache expiration time in minutes.
-     */
-    private int initTaskCacheExpireTimeMinutes() {
-        return Integer.parseInt(
-            System.getProperty("rocketmq.broker.asyncTaskCacheExpireTime", "1440")
-        );
-    }
-
-    /**
-     * Initialize the maximum size of the task cache.
-     *
-     * @return The maximum size of the task cache.
-     */
-    private int initMaxTaskCacheSize() {
-        return Integer.parseInt(
-            System.getProperty("rocketmq.broker.maxAsyncTaskCacheSize", "10000"));
     }
 
     /**

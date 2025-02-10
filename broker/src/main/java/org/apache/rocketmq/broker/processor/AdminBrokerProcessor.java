@@ -256,7 +256,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     public AdminBrokerProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
-        this.asyncTaskManager = new AdminAsyncTaskManager();
+        this.asyncTaskManager = new AdminAsyncTaskManager(brokerController.getBrokerConfig());
         initConfigBlackList();
     }
 
