@@ -77,5 +77,12 @@ public class AdaptiveLockTest {
             countDownLatch1.await();
         }
         assertTrue(adaptiveLock.getAdaptiveLock() instanceof BackOffReentrantLock);
+
+        for (int i = 0; i <= 2; i++) {
+            adaptiveLock.lock();
+            adaptiveLock.unlock();
+            Thread.sleep(1000);
+        }
+        assertTrue(adaptiveLock.getAdaptiveLock() instanceof BackOffSpinLock);
     }
 }
