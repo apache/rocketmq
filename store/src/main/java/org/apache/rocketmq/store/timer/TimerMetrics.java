@@ -80,11 +80,6 @@ public class TimerMetrics extends ConfigManager {
         return distPair.getCount().addAndGet(value);
     }
 
-    public void resetDistPair(int period, int value) {
-        Metric distPair = getDistPair(period);
-        distPair.getCount().set(value);
-    }
-
     public long addAndGet(MessageExt msg, int value) {
         String topic = msg.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
         Metric pair = getTopicPair(topic);

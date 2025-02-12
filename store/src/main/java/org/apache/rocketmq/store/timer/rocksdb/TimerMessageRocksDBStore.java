@@ -52,10 +52,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.rocketmq.store.timer.rocksdb.TimerMessageRocksDBStorage.POP_COLUMN_FAMILY;
@@ -68,7 +66,7 @@ public class TimerMessageRocksDBStore {
     public static final int TIMER_WHEEL_TTL_DAY = 30;
     public static final int DAY_SECS = 24 * 3600;
     public static final int DEFAULT_CAPACITY = 1024;
-    public static final int INITIAL = 0, RUNNING = 1, HAULT = 2, SHUTDOWN = 3;
+    public static final int INITIAL = 0, RUNNING = 1, SHUTDOWN = 2;
     public static final int PUT_OK = 0, PUT_NEED_RETRY = 1, PUT_NO_RETRY = 2;
     public static final String TIMER_TOPIC = TopicValidator.SYSTEM_TOPIC_PREFIX + "wheel_timer";
     public static final String TIMER_OUT_MS = MessageConst.PROPERTY_TIMER_OUT_MS;
@@ -100,7 +98,6 @@ public class TimerMessageRocksDBStore {
     private BlockingQueue<List<TimerMessageRecord>> dequeueGetQueue;
     private BlockingQueue<List<TimerMessageRecord>> dequeuePutQueue;
 
-    ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     private final AtomicLong commitOffset = new AtomicLong(0);
     private final AtomicLong readOffset = new AtomicLong(0);
 
@@ -150,12 +147,6 @@ public class TimerMessageRocksDBStore {
         for (TimerDequeuePutService timerDequeuePutService : timerDequeuePutServices) {
             timerDequeuePutService.start();
         }
-        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                timerMetrics.persist();
-            }
-        }, storeConfig.getTimerFlushIntervalMs(), storeConfig.getTimerFlushIntervalMs(), TimeUnit.MILLISECONDS);
         state = RUNNING;
     }
 
@@ -184,7 +175,6 @@ public class TimerMessageRocksDBStore {
         this.dequeueGetQueue.clear();
         this.enqueuePutQueue.clear();
         this.dequeuePutQueue.clear();
-        this.scheduledExecutorService.shutdown();
         this.timerMessageKVStore.shutdown();
     }
 
@@ -224,12 +214,22 @@ public class TimerMessageRocksDBStore {
     }
 
     private void calcTimerDistribution() {
-        int slotNumber = precisionMs;
-        int rocksdbNumber = 0;
-        for (int i = 0; i < this.slotSize; i++) {
-            timerMetrics.updateDistPair(i, timerMessageKVStore.getMetricSize(rocksdbNumber, rocksdbNumber + slotNumber));
-            rocksdbNumber += slotNumber;
+        List<Integer> timerDist = this.timerMetrics.getTimerDistList();
+        long currTime = System.currentTimeMillis() / precisionMs * precisionMs;
+        for (int i = 0; i < timerDist.size(); i++) {
+            long startTime = (currTime + i == 0 ? 0 : timerDist.get(i - 1) * 1000) % metricsIntervalMs;
+            long endTime = (currTime + timerDist.get(i) * 1000) % metricsIntervalMs;
+            if (endTime > startTime) {
+                this.timerMetrics.updateDistPair(timerDist.get(i), timerMessageKVStore.getMetricSize(startTime, endTime));
+            } else {
+                this.timerMetrics.updateDistPair(timerDist.get(i), timerMessageKVStore.getMetricSize(startTime,
+                    metricsIntervalMs) + timerMessageKVStore.getMetricSize(0, endTime));
+            }
         }
+    }
+
+    public void checkAndReviseMetrics() {
+        // TODO topic revise
     }
 
     private String getServiceThreadName() {
