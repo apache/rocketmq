@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Strings;
 
+import java.util.function.Function;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.BrokerPathConfigHelper;
 import org.apache.rocketmq.common.ConfigManager;
@@ -395,19 +396,29 @@ public class ConsumerOffsetManager extends ConfigManager {
     }
 
     public void removeOffset(final String group) {
-        Iterator<Entry<String, ConcurrentMap<Integer, Long>>> it = this.offsetTable.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<String, ConcurrentMap<Integer, Long>> next = it.next();
-            String topicAtGroup = next.getKey();
-            if (topicAtGroup.contains(group)) {
-                String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
-                if (arrays.length == 2 && group.equals(arrays[1])) {
-                    it.remove();
-                    removeConsumerOffset(topicAtGroup);
-                    LOG.warn("clean group offset {}", topicAtGroup);
+        Function<Iterator<Entry<String, ConcurrentMap<Integer, Long>>>, Boolean> deleteFunction = it -> {
+            boolean removed = false;
+            while (it.hasNext()) {
+                Entry<String, ConcurrentMap<Integer, Long>> entry = it.next();
+                String topicAtGroup = entry.getKey();
+                if (topicAtGroup.contains(group)) {
+                    String[] arrays = topicAtGroup.split(TOPIC_GROUP_SEPARATOR);
+                    if (arrays.length == 2 && group.equals(arrays[1])) {
+                        it.remove();
+                        removeConsumerOffset(topicAtGroup);
+                        removed = true;
+                    }
                 }
             }
-        }
+            return removed;
+        };
+
+        boolean clearOffset = deleteFunction.apply(this.offsetTable.entrySet().iterator());
+        boolean clearReset = deleteFunction.apply(this.resetOffsetTable.entrySet().iterator());
+        boolean clearPull = deleteFunction.apply(this.pullOffsetTable.entrySet().iterator());
+
+        LOG.info("Consumer offset manager clean group offset, groupName={}, " +
+            "offsetTable={}, resetOffsetTable={}, pullOffsetTable={}", group, clearOffset, clearReset, clearPull);
     }
 
     public void assignResetOffset(String topic, String group, int queueId, long offset) {
