@@ -80,6 +80,9 @@ public class SlaveSynchronize {
                 if (!this.brokerController.getTopicConfigManager().getDataVersion()
                         .equals(topicWrapper.getDataVersion())) {
 
+                    this.brokerController.getMessageStore()
+                            .cleanUnusedTopic(topicWrapper.getTopicConfigTable().keySet());
+
                     this.brokerController.getTopicConfigManager().getDataVersion()
                             .assignNewOne(topicWrapper.getDataVersion());
 
@@ -119,6 +122,7 @@ public class SlaveSynchronize {
             try {
                 ConsumerOffsetSerializeWrapper offsetWrapper =
                         this.brokerController.getBrokerOuterAPI().getAllConsumerOffset(masterAddrBak);
+                this.brokerController.getConsumerOffsetManager().getOffsetTable().clear();
                 this.brokerController.getConsumerOffsetManager().getOffsetTable()
                         .putAll(offsetWrapper.getOffsetTable());
                 this.brokerController.getConsumerOffsetManager().getDataVersion().assignNewOne(offsetWrapper.getDataVersion());
