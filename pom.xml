@@ -15,27 +15,32 @@
   See the License for the specific language governing permissions and
   limitations under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"
+  child.project.url.inherit.append.path="false">
+    <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
         <version>18</version>
     </parent>
 
-    <modelVersion>4.0.0</modelVersion>
-
     <inceptionYear>2012</inceptionYear>
     <groupId>org.apache.rocketmq</groupId>
-    <artifactId>rocketmq-all</artifactId>
+    <artifactId>rocketmq-bom</artifactId>
     <version>5.3.2-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Apache RocketMQ ${project.version}</name>
-    <url>http://rocketmq.apache.org/</url>
+    <name>Apache RocketMQ BOM ${project.version}</name>
+    <description>Apache RocketMQ is a cloud native messaging and streaming platform,
+making it simple to build event-driven applications.</description>
+    <url>http://rocketmq.apache.org</url>
 
-    <scm>
-        <url>git@github.com:apache/rocketmq.git</url>
-        <connection>scm:git:git@github.com:apache/rocketmq.git</connection>
+    <scm child.scm.url.inherit.append.path="false"
+         child.scm.connection.inherit.append.path="false"
+         child.scm.developerConnection.inherit.append.path="false">
+        <url>https://github.com/apache/rocketmq</url>
+        <connection>scm:git:https://github.com/apache/rocketmq.git</connection>
         <developerConnection>scm:git:git@github.com:apache/rocketmq.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
@@ -90,551 +95,108 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <project.root>${basedir}</project.root>
 
-        <!-- Maven properties -->
-        <maven.test.skip>false</maven.test.skip>
-        <maven.javadoc.skip>true</maven.javadoc.skip>
-        <!-- Compiler settings properties -->
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-
-        <commons-cli.version>1.5.0</commons-cli.version>
-        <netty.version>4.1.114.Final</netty.version>
-        <netty.tcnative.version>2.0.53.Final</netty.tcnative.version>
-        <bcpkix-jdk15on.version>1.69</bcpkix-jdk15on.version>
-        <fastjson.version>1.2.83</fastjson.version>
-        <fastjson2.version>2.0.43</fastjson2.version>
-        <javassist.version>3.20.0-GA</javassist.version>
-        <jna.version>4.2.2</jna.version>
-        <commons-lang3.version>3.12.0</commons-lang3.version>
-        <commons-io.version>2.14.0</commons-io.version>
-        <guava.version>32.0.1-jre</guava.version>
-        <gson.version>2.9.0</gson.version>
-        <openmessaging.version>0.3.1-alpha</openmessaging.version>
-        <snakeyaml.version>2.0</snakeyaml.version>
-        <commons-codec.version>1.13</commons-codec.version>
-        <rocketmq-logging.version>1.0.1</rocketmq-logging.version>
-        <slf4j-api.version>2.0.3</slf4j-api.version>
-        <rocketmq-shaded-slf4j-api-bridge.version>1.0.0</rocketmq-shaded-slf4j-api-bridge.version>
-        <commons-validator.version>1.7</commons-validator.version>
-        <zstd-jni.version>1.5.2-2</zstd-jni.version>
-        <lz4-java.version>1.8.0</lz4-java.version>
-        <opentracing.version>0.33.0</opentracing.version>
-        <jaeger.version>1.8.1</jaeger.version>
-        <dleger.version>0.3.1.2</dleger.version>
-        <annotations-api.version>6.0.53</annotations-api.version>
-        <extra-enforcer-rules.version>1.0-beta-4</extra-enforcer-rules.version>
-        <concurrentlinkedhashmap-lru.version>1.4.2</concurrentlinkedhashmap-lru.version>
         <rocketmq-proto.version>2.0.4</rocketmq-proto.version>
-        <grpc.version>1.53.0</grpc.version>
-        <protobuf.version>3.20.1</protobuf.version>
-        <disruptor.version>1.2.10</disruptor.version>
-        <org.relection.version>0.9.11</org.relection.version>
-        <caffeine.version>2.9.3</caffeine.version>
-        <spring.version>5.3.27</spring.version>
-        <okio-jvm.version>3.4.0</okio-jvm.version>
-        <opentelemetry.version>1.29.0</opentelemetry.version>
-        <opentelemetry-exporter-prometheus.version>1.29.0-alpha</opentelemetry-exporter-prometheus.version>
-        <jul-to-slf4j.version>2.0.6</jul-to-slf4j.version>
-        <s3.version>2.20.29</s3.version>
-        <rocksdb.version>1.0.2</rocksdb.version>
-        <jackson-databind.version>2.13.4.2</jackson-databind.version>
-        <sofa-jraft.version>1.3.14</sofa-jraft.version>
-
-        <!-- Test dependencies -->
-        <junit.version>4.13.2</junit.version>
-        <assertj-core.version>3.22.0</assertj-core.version>
-        <mockito-core.version>3.10.0</mockito-core.version>
-        <mockito-junit-jupiter.version>4.11.0</mockito-junit-jupiter.version>
-        <powermock-version>2.0.9</powermock-version>
-        <awaitility.version>4.1.0</awaitility.version>
-        <truth.version>0.30</truth.version>
-        <s3mock-junit4.version>2.11.0</s3mock-junit4.version>
-        <rocketmq-client-java.version>5.0.5</rocketmq-client-java.version>
-
-        <!-- Build plugin dependencies -->
-        <versions-maven-plugin.version>2.2</versions-maven-plugin.version>
-        <dependency-mediator-maven-plugin.version>1.0.2</dependency-mediator-maven-plugin.version>
-        <clirr-maven-plugin.version>2.7</clirr-maven-plugin.version>
-        <maven-enforcer-plugin.version>1.4.1</maven-enforcer-plugin.version>
-        <maven-compiler-plugin.version>3.5.1</maven-compiler-plugin.version>
-        <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
-        <maven-help-plugin.version>2.2</maven-help-plugin.version>
-        <maven-checkstyle-plugin.version>3.2.0</maven-checkstyle-plugin.version>
-        <apache-rat-plugin.version>0.12</apache-rat-plugin.version>
-        <maven-resources-plugin.version>3.0.2</maven-resources-plugin.version>
-        <coveralls-maven-plugin.version>4.3.0</coveralls-maven-plugin.version>
-        <jacoco-maven-plugin.version>0.8.5</jacoco-maven-plugin.version>
-        <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version>
-        <sonar-maven-plugin.version>3.0.2</sonar-maven-plugin.version>
-        <spotbugs-plugin.version>4.2.2</spotbugs-plugin.version>
-        <maven-assembly-plugin.version>3.4.2</maven-assembly-plugin.version>
-        <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
-        <maven-failsafe-plugin.version>2.19.1</maven-failsafe-plugin.version>
-        <maven-shade-plugin.version>3.2.4</maven-shade-plugin.version>
-
-        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
-        <!-- Exclude all generated code -->
-        <sonar.jacoco.itReportPath>${project.basedir}/../test/target/jacoco-it.exec</sonar.jacoco.itReportPath>
-        <sonar.exclusions>file:**/generated-sources/**,**/test/**</sonar.exclusions>
     </properties>
 
     <modules>
-        <module>client</module>
-        <module>common</module>
-        <module>broker</module>
-        <module>tools</module>
-        <module>store</module>
-        <module>namesrv</module>
-        <module>remoting</module>
-        <module>srvutil</module>
-        <module>filter</module>
-        <module>test</module>
-        <module>distribution</module>
-        <module>openmessaging</module>
+        <!-- Parent module must come first -->
+        <module>parent</module>
+
+        <!-- In alphabetical order.
+             Every module here should have an entry in dependencyManagement below -->
         <module>acl</module>
         <module>auth</module>
-        <module>example</module>
+        <module>broker</module>
+        <module>client</module>
+        <module>common</module>
         <module>container</module>
         <module>controller</module>
+        <module>example</module>
+        <module>filter</module>
+        <module>namesrv</module>
+        <module>openmessaging</module>
         <module>proxy</module>
+        <module>remoting</module>
+        <module>srvutil</module>
+        <module>store</module>
+        <module>test</module>
         <module>tieredstore</module>
+        <module>tools</module>
+
+        <!-- Binary distribution module -->
+        <module>distribution</module>
     </modules>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>versions-maven-plugin</artifactId>
-                <version>${versions-maven-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>com.github.vongosling</groupId>
-                <artifactId>dependency-mediator-maven-plugin</artifactId>
-                <version>${dependency-mediator-maven-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>clirr-maven-plugin</artifactId>
-                <version>${clirr-maven-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>${maven-enforcer-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>enforce-ban-circular-dependencies</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <rules>
-                        <banCircularDependencies />
-                        <dependencyConvergence />
-                    </rules>
-                    <fail>true</fail>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>extra-enforcer-rules</artifactId>
-                        <version>${extra-enforcer-rules.version}</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler-plugin.version}</version>
-                <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                    <compilerVersion>${maven.compiler.source}</compilerVersion>
-                    <showDeprecation>true</showDeprecation>
-                    <showWarnings>true</showWarnings>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>${maven-source-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-help-plugin</artifactId>
-                <version>${maven-help-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>generate-effective-dependencies-pom</id>
-                        <phase>generate-resources</phase>
-                        <configuration>
-                            <output>${project.build.directory}/effective-pom/effective-dependencies.xml</output>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>${maven-checkstyle-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>validate</id>
-                        <phase>validate</phase>
-                        <configuration>
-                            <configLocation>style/rmq_checkstyle.xml</configLocation>
-                            <inputEncoding>UTF-8</inputEncoding>
-                            <consoleOutput>true</consoleOutput>
-                            <failsOnError>true</failsOnError>
-                            <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                            <excludes>**/generated*/**/*</excludes>
-                        </configuration>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <version>${apache-rat-plugin.version}</version>
-                <configuration>
-                    <excludes>
-                        <exclude>.gitignore</exclude>
-                        <exclude>.travis.yml</exclude>
-                        <exclude>README.md</exclude>
-                        <exclude>CONTRIBUTING.md</exclude>
-                        <exclude>bin/README.md</exclude>
-                        <exclude>.github/**</exclude>
-                        <exclude>src/test/resources/**</exclude>
-                        <exclude>src/test/resources/certs/*</exclude>
-                        <exclude>src/test/**/*.log</exclude>
-                        <exclude>src/test/resources/META-INF/services/*</exclude>
-                        <exclude>src/main/resources/META-INF/services/*</exclude>
-                        <exclude>*/target/**</exclude>
-                        <exclude>*/*.iml</exclude>
-                        <exclude>docs/**</exclude>
-                        <exclude>localbin/**</exclude>
-                        <exclude>conf/rmq-proxy.json</exclude>
-                        <exclude>.bazelversion</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>${maven-resources-plugin.version}</version>
-                <configuration>
-                    <!-- We are not suppose to setup the customer resources here-->
-                    <encoding>${project.build.sourceEncoding}</encoding>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.eluder.coveralls</groupId>
-                <artifactId>coveralls-maven-plugin</artifactId>
-                <version>${coveralls-maven-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>${jacoco-maven-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>default-prepare-agent</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                        <configuration>
-                            <destFile>${project.build.directory}/jacoco.exec</destFile>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>report</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>default-prepare-agent-integration</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>prepare-agent-integration</goal>
-                        </goals>
-                        <configuration>
-                            <destFile>${project.build.directory}/jacoco-it.exec</destFile>
-                            <propertyName>failsafeArgLine</propertyName>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>default-report</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>default-report-integration</id>
-                        <goals>
-                            <goal>report-integration</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
-                <configuration>
-                    <skipAfterFailureCount>1</skipAfterFailureCount>
-                    <forkCount>1</forkCount>
-                    <reuseForks>true</reuseForks>
-                    <excludes>
-                        <exclude>**/IT*.java</exclude>
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.sonarsource.scanner.maven</groupId>
-                <artifactId>sonar-maven-plugin</artifactId>
-                <version>${sonar-maven-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>${spotbugs-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <id>check</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <failOnError>true</failOnError>
-                    <fork>false</fork>
-                    <spotbugsXmlOutput>true</spotbugsXmlOutput>
-                    <excludeFilterFile>${project.root}/style/spotbugs-suppressions.xml</excludeFilterFile>
-                    <threshold>High</threshold>
-                    <effort>Max</effort>
-                </configuration>
-            </plugin>
-        </plugins>
-
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <version>${maven-assembly-plugin.version}</version>
-                </plugin>
-            </plugins>
-        </pluginManagement>
-    </build>
-
-    <profiles>
-        <profile>
-            <id>jdk8</id>
-            <activation>
-                <jdk>[1.8,)</jdk>
-            </activation>
-            <!-- Disable doclint under JDK 8 -->
-            <reporting>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>${maven-javadoc-plugin.version}</version>
-                        <configuration>
-                            <additionalparam>-Xdoclint:none</additionalparam>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </reporting>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>${maven-javadoc-plugin.version}</version>
-                        <configuration>
-                            <additionalparam>-Xdoclint:none</additionalparam>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>release-sign-artifacts</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>it-test</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-failsafe-plugin</artifactId>
-                        <version>${maven-failsafe-plugin.version}</version>
-                        <configuration>
-                            <argLine>@{failsafeArgLine}</argLine>
-                            <excludes>
-                                <exclude>**/NormalMsgDelayIT.java</exclude>
-                            </excludes>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>sonar-apache</id>
-            <properties>
-                <!-- URL of the ASF SonarQube server -->
-                <sonar.host.url>https://builds.apache.org/analysis</sonar.host.url>
-            </properties>
-        </profile>
-        <profile>
-            <id>skip-unit-tests</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>${maven-surefire-plugin.version}</version>
-                        <configuration>
-                            <skipTests>true</skipTests>
-                            <skip>true</skip>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 
     <dependencyManagement>
         <dependencies>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-acl</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-auth</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-broker</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-client</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-container</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-controller</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-example</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-filter</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-namesrv</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-openmessaging</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-proxy</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-remoting</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-srvutil</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-store</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-tiered-store</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-test</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-tools</artifactId>
-                <version>${project.version}</version>
-            </dependency>
+
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>rocketmq-proto</artifactId>
@@ -646,513 +208,50 @@
                     </exclusion>
                 </exclusions>
             </dependency>
-            <dependency>
-                <groupId>commons-cli</groupId>
-                <artifactId>commons-cli</artifactId>
-                <version>${commons-cli.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-all</artifactId>
-                <version>${netty.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
-                <scope>runtime</scope>
-                <type>jar</type>
-                <version>${bcpkix-jdk15on.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba</groupId>
-                <artifactId>fastjson</artifactId>
-                <version>${fastjson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba.fastjson2</groupId>
-                <artifactId>fastjson2</artifactId>
-                <version>${fastjson2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.javassist</groupId>
-                <artifactId>javassist</artifactId>
-                <version>${javassist.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>net.java.dev.jna</groupId>
-                <artifactId>jna</artifactId>
-                <version>${jna.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>${commons-lang3.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>${commons-io.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>${guava.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.errorprone</groupId>
-                        <artifactId>error_prone_annotations</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.google.code</groupId>
-                <artifactId>gson</artifactId>
-                <version>${gson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
-                <artifactId>concurrentlinkedhashmap-lru</artifactId>
-                <version>${concurrentlinkedhashmap-lru.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.openmessaging</groupId>
-                <artifactId>openmessaging-api</artifactId>
-                <version>${openmessaging.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.yaml</groupId>
-                <artifactId>snakeyaml</artifactId>
-                <version>${snakeyaml.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
-                <version>${commons-codec.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j-api.version}</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.apache.rocketmq</groupId>
-                <artifactId>rocketmq-rocksdb</artifactId>
-                <version>${rocksdb.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.aliyunmq</groupId>
-                <artifactId>rocketmq-shaded-slf4j-api-bridge</artifactId>
-                <version>${rocketmq-shaded-slf4j-api-bridge.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.aliyunmq</groupId>
-                <artifactId>rocketmq-slf4j-api</artifactId>
-                <version>${rocketmq-logging.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.github.aliyunmq</groupId>
-                <artifactId>rocketmq-logback-classic</artifactId>
-                <version>${rocketmq-logging.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-validator</groupId>
-                <artifactId>commons-validator</artifactId>
-                <version>${commons-validator.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.luben</groupId>
-                <artifactId>zstd-jni</artifactId>
-                <version>${zstd-jni.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.lz4</groupId>
-                <artifactId>lz4-java</artifactId>
-                <version>${lz4-java.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.opentracing</groupId>
-                <artifactId>opentracing-api</artifactId>
-                <version>${opentracing.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.opentracing</groupId>
-                <artifactId>opentracing-mock</artifactId>
-                <version>${opentracing.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.jaegertracing</groupId>
-                <artifactId>jaeger-core</artifactId>
-                <version>${jaeger.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.code.gson</groupId>
-                        <artifactId>gson</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.jaegertracing</groupId>
-                <artifactId>jaeger-thrift</artifactId>
-                <version>${jaeger.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.squareup.okhttp3</groupId>
-                        <artifactId>okhttp</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.jaegertracing</groupId>
-                <artifactId>jaeger-client</artifactId>
-                <version>${jaeger.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.jetbrains.kotlin</groupId>
-                        <artifactId>kotlin-stdlib</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.openmessaging.storage</groupId>
-                <artifactId>dledger</artifactId>
-                <version>${dleger.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-api</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.tomcat</groupId>
-                <artifactId>annotations-api</artifactId>
-                <version>${annotations-api.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.assertj</groupId>
-                <artifactId>assertj-core</artifactId>
-                <version>${assertj-core.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-core</artifactId>
-                <version>${mockito-core.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-junit-jupiter</artifactId>
-                <version>${mockito-junit-jupiter.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.awaitility</groupId>
-                <artifactId>awaitility</artifactId>
-                <version>${awaitility.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.google.truth</groupId>
-                <artifactId>truth</artifactId>
-                <version>${truth.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.errorprone</groupId>
-                        <artifactId>error_prone_annotations</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <!--only used in the test module-->
-            <dependency>
-                <groupId>org.reflections</groupId>
-                <artifactId>reflections</artifactId>
-                <version>${org.relection.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-netty-shaded</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-protobuf</artifactId>
-                <version>${grpc.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.protobuf</groupId>
-                        <artifactId>protobuf-java</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-stub</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-services</artifactId>
-                <version>${grpc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.grpc</groupId>
-                <artifactId>grpc-testing</artifactId>
-                <version>${grpc.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.google.protobuf</groupId>
-                <artifactId>protobuf-java-util</artifactId>
-                <version>${protobuf.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.errorprone</groupId>
-                        <artifactId>error_prone_annotations</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.code.gson</groupId>
-                        <artifactId>gson</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.j2objc</groupId>
-                        <artifactId>j2objc-annotations</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.github.aliyunmq</groupId>
-                <artifactId>rocketmq-grpc-netty-codec-haproxy</artifactId>
-                <version>1.0.0</version>
-            </dependency>
-            <dependency>
-                <groupId>com.conversantmedia</groupId>
-                <artifactId>disruptor</artifactId>
-                <version>${disruptor.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-api</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.github.ben-manes.caffeine</groupId>
-                <artifactId>caffeine</artifactId>
-                <version>${caffeine.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.errorprone</groupId>
-                        <artifactId>error_prone_annotations</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-tcnative-boringssl-static</artifactId>
-                <version>${netty.tcnative.version}</version>
+                <artifactId>rocketmq-proxy</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-core</artifactId>
-                <version>${spring.version}</version>
-                <scope>test</scope>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-remoting</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.squareup.okio</groupId>
-                <artifactId>okio-jvm</artifactId>
-                <version>${okio-jvm.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.jetbrains.kotlin</groupId>
-                        <artifactId>kotlin-stdlib</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.jetbrains.kotlin</groupId>
-                        <artifactId>kotlin-stdlib-common</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.jetbrains.kotlin</groupId>
-                        <artifactId>kotlin-stdlib-jdk8</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>io.opentelemetry</groupId>
-                <artifactId>opentelemetry-exporter-otlp</artifactId>
-                <version>${opentelemetry.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.opentelemetry</groupId>
-                <artifactId>opentelemetry-exporter-prometheus</artifactId>
-                <version>${opentelemetry-exporter-prometheus.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.opentelemetry</groupId>
-                <artifactId>opentelemetry-exporter-logging</artifactId>
-                <version>${opentelemetry.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.opentelemetry</groupId>
-                <artifactId>opentelemetry-sdk</artifactId>
-                <version>${opentelemetry.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.opentelemetry</groupId>
-                <artifactId>opentelemetry-exporter-logging-otlp</artifactId>
-                <version>${opentelemetry.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>jul-to-slf4j</artifactId>
-                <version>${jul-to-slf4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
-                <artifactId>s3</artifactId>
-                <version>${s3.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson-databind.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.alipay.sofa</groupId>
-                <artifactId>jraft-core</artifactId>
-                <version>${sofa-jraft.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.ow2.asm</groupId>
-                        <artifactId>asm</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.protobuf</groupId>
-                        <artifactId>protobuf-java</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.rocksdb</groupId>
-                        <artifactId>rocksdbjni</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.adobe.testing</groupId>
-                <artifactId>s3mock-junit4</artifactId>
-                <version>${s3mock-junit4.version}</version>
-                <scope>test</scope>
-                <exclusions>
-                    <exclusion>
-                        <artifactId>annotations</artifactId>
-                        <groupId>software.amazon.awssdk</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>commons-logging</artifactId>
-                        <groupId>commons-logging</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>http-client-spi</artifactId>
-                        <groupId>software.amazon.awssdk</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>json-utils</artifactId>
-                        <groupId>software.amazon.awssdk</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>profiles</artifactId>
-                        <groupId>software.amazon.awssdk</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>regions</artifactId>
-                        <groupId>software.amazon.awssdk</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>sdk-core</artifactId>
-                        <groupId>software.amazon.awssdk</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>utils</artifactId>
-                        <groupId>software.amazon.awssdk</groupId>
-                    </exclusion>
-                    <exclusion>
-                        <artifactId>jackson-dataformat-cbor</artifactId>
-                        <groupId>com.fasterxml.jackson.dataformat</groupId>
-                    </exclusion>
-                </exclusions>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-srvutil</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>jakarta.annotation</groupId>
-                <artifactId>jakarta.annotation-api</artifactId>
-                <version>1.3.5</version>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-store</artifactId>
+                <version>${project.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-test</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-tiered-store</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-tools</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>${assertj-core.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>${mockito-core.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
-            <version>${mockito-junit-jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-            <version>${awaitility.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-module-junit4</artifactId>
-            <version>${powermock-version}</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.objenesis</groupId>
-                    <artifactId>objenesis</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>net.bytebuddy</groupId>
-                    <artifactId>byte-buddy</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>net.bytebuddy</groupId>
-                    <artifactId>byte-buddy-agent</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-api-mockito2</artifactId>
-            <version>${powermock-version}</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
 </project>
