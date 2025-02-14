@@ -43,8 +43,6 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
     protected NamesrvController namesrvController;
     private long startupTimeMillis;
 
-    private AtomicBoolean needCheckNamesrvReady = new AtomicBoolean(true);
-
     public ClientRequestProcessor(final NamesrvController namesrvController) {
         this.namesrvController = namesrvController;
         this.startupTimeMillis = System.currentTimeMillis();
@@ -62,7 +60,7 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
         final GetRouteInfoRequestHeader requestHeader =
             (GetRouteInfoRequestHeader) request.decodeCommandCustomHeader(GetRouteInfoRequestHeader.class);
 
-        boolean namesrvReady = needCheckNamesrvReady.get() && System.currentTimeMillis() - startupTimeMillis >= TimeUnit.SECONDS.toMillis(namesrvController.getNamesrvConfig().getWaitSecondsForService());
+        boolean namesrvReady = System.currentTimeMillis() - startupTimeMillis >= TimeUnit.SECONDS.toMillis(namesrvController.getNamesrvConfig().getWaitSecondsForService());
 
         if (namesrvController.getNamesrvConfig().isNeedWaitForService() && !namesrvReady) {
             log.warn("name server not ready. request code {} ", request.getCode());
@@ -74,11 +72,6 @@ public class ClientRequestProcessor implements NettyRequestProcessor {
         TopicRouteData topicRouteData = this.namesrvController.getRouteInfoManager().pickupTopicRouteData(requestHeader.getTopic());
 
         if (topicRouteData != null) {
-            //topic route info register success ,so disable namesrvReady check
-            if (needCheckNamesrvReady.get()) {
-                needCheckNamesrvReady.set(false);
-            }
-
             if (this.namesrvController.getNamesrvConfig().isOrderMessageEnable()) {
                 String orderTopicConf =
                     this.namesrvController.getKvConfigManager().getKVConfig(NamesrvUtil.NAMESPACE_ORDER_TOPIC_CONFIG,
