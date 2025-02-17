@@ -111,7 +111,7 @@ public class ChangeInvisibleTimeProcessorTest {
     }
 
     @Test
-    public void testProcessRequest_Success() throws RemotingCommandException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, ConsumeQueueException {
+    public void testProcessRequest_Success() throws RemotingCommandException, ConsumeQueueException {
         when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(2L);
         when(escapeBridge.asyncPutMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         int queueId = 0;
@@ -139,9 +139,8 @@ public class ChangeInvisibleTimeProcessorTest {
     }
 
     @Test
-    public void testProcessRequest_NoMessage() throws RemotingCommandException, InterruptedException, RemotingTimeoutException, RemotingSendRequestException, ConsumeQueueException {
+    public void testProcessRequest_NoMessage() throws RemotingCommandException, ConsumeQueueException {
         when(messageStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(2L);
-        when(escapeBridge.asyncPutMessageToSpecificQueue(any(MessageExtBrokerInner.class))).thenReturn(CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.PUT_OK, new AppendMessageResult(AppendMessageStatus.PUT_OK))));
         int queueId = 0;
         long queueOffset = 2;
         long popTime = System.currentTimeMillis() - 1_000;
