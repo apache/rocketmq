@@ -217,7 +217,7 @@ public class TimerMessageRocksDBStore {
         List<Integer> timerDist = this.timerMetrics.getTimerDistList();
         long currTime = System.currentTimeMillis() / precisionMs * precisionMs;
         for (int i = 0; i < timerDist.size(); i++) {
-            long startTime = (currTime + i == 0 ? 0 : timerDist.get(i - 1) * 1000) % metricsIntervalMs;
+            long startTime = (currTime + (i == 0 ? 0 : timerDist.get(i - 1) * 1000)) % metricsIntervalMs;
             long endTime = (currTime + timerDist.get(i) * 1000) % metricsIntervalMs;
             if (endTime > startTime) {
                 this.timerMetrics.updateDistPair(timerDist.get(i), timerMessageKVStore.getMetricSize(startTime, endTime));
