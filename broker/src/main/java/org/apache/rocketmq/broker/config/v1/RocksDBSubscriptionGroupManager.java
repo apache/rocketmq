@@ -16,15 +16,9 @@
  */
 package org.apache.rocketmq.broker.config.v1;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.serializer.SerializerFeature;
-import java.io.File;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.function.BiConsumer;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
+import com.alibaba.fastjson2.JSONWriter;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.RocksDBConfigManager;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -34,6 +28,13 @@ import org.apache.rocketmq.remoting.protocol.DataVersion;
 import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.rocksdb.CompressionType;
 import org.rocksdb.RocksIterator;
+
+import java.io.File;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiConsumer;
 
 public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
@@ -133,7 +134,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
 
         try {
             byte[] keyBytes = groupName.getBytes(DataConverter.CHARSET_UTF8);
-            byte[] valueBytes = JSON.toJSONBytes(subscriptionGroupConfig, SerializerFeature.BrowserCompatible);
+            byte[] valueBytes = JSON.toJSONBytes(subscriptionGroupConfig, JSONWriter.Feature.BrowserCompatible);
             this.rocksDBConfigManager.put(keyBytes, keyBytes.length, valueBytes);
         } catch (Exception e) {
             log.error("kv put sub Failed, {}", subscriptionGroupConfig.toString());
@@ -148,7 +149,7 @@ public class RocksDBSubscriptionGroupManager extends SubscriptionGroupManager {
         if (oldConfig == null) {
             try {
                 byte[] keyBytes = groupName.getBytes(DataConverter.CHARSET_UTF8);
-                byte[] valueBytes = JSON.toJSONBytes(subscriptionGroupConfig, SerializerFeature.BrowserCompatible);
+                byte[] valueBytes = JSON.toJSONBytes(subscriptionGroupConfig, JSONWriter.Feature.BrowserCompatible);
                 this.rocksDBConfigManager.put(keyBytes, keyBytes.length, valueBytes);
             } catch (Exception e) {
                 log.error("kv put sub Failed, {}", subscriptionGroupConfig.toString());
