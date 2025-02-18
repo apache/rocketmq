@@ -509,7 +509,11 @@ public class TimerMessageStore {
                         long curr = System.currentTimeMillis();
                         if (curr - lastTimeOfCheckMetrics > 70 * 60 * 1000) {
                             lastTimeOfCheckMetrics = curr;
-                            checkAndReviseMetrics();
+                            if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+                                timerRocksDBStore.checkAndReviseMetrics();
+                            } else {
+                                checkAndReviseMetrics();
+                            }
                             LOGGER.info("[CheckAndReviseMetrics]Timer do check timer metrics cost {} ms",
                                 System.currentTimeMillis() - curr);
                         }
@@ -1748,7 +1752,7 @@ public class TimerMessageStore {
 
     public boolean isReject(long deliverTimeMs) {
         if (storeConfig.getEnableTimerMessageOnRocksDB()) {
-            return false;
+            return timerRocksDBStore.isReject(deliverTimeMs);
         }
         long congestNum = timerWheel.getNum(deliverTimeMs);
         if (congestNum <= storeConfig.getTimerCongestNumEachSlot()) {
@@ -1803,10 +1807,16 @@ public class TimerMessageStore {
     }
 
     public float getEnqueueTps() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getEnqueueTps();
+        }
         return perfCounterTicks.getCounter(ENQUEUE_PUT).getLastTps();
     }
 
     public float getDequeueTps() {
+        if (storeConfig.getEnableTimerMessageOnRocksDB()) {
+            return timerRocksDBStore.getDequeueTps();
+        }
         return perfCounterTicks.getCounter("dequeue_put").getLastTps();
     }
 

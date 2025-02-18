@@ -232,6 +232,11 @@ public class TimerMessageRocksDBStore {
         // TODO topic revise
     }
 
+    public boolean isReject(long deliverTimeMs) {
+        // TODO Implement reject logical judgment
+        return false;
+    }
+
     private String getServiceThreadName() {
         String brokerIdentifier = "";
         if (TimerMessageRocksDBStore.this.messageStore instanceof DefaultMessageStore) {
@@ -814,5 +819,13 @@ public class TimerMessageRocksDBStore {
 
     public long getMetricsIntervalMs() {
         return metricsIntervalMs;
+    }
+
+    public float getEnqueueTps() {
+        // TODO get enqueue tps
+    }
+
+    public float getDequeueTps() {
+        // TODO get dequeue tps
     }
 }
