@@ -1084,12 +1084,12 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
 
         //If namespace not null , reset Topic without namespace.
-        for (MessageExt messageExt : msgList) {
-            if (null != this.defaultLitePullConsumer.getNamespace()) {
-                messageExt.setTopic(NamespaceUtil.withoutNamespace(messageExt.getTopic(), this.defaultLitePullConsumer.getNamespace()));
+        String namespace = this.defaultLitePullConsumer.getNamespace();
+        if (namespace != null) {
+            for (MessageExt messageExt : msgList) {
+                messageExt.setTopic(NamespaceUtil.withoutNamespace(messageExt.getTopic(), namespace));
             }
         }
-
     }
 
     public void updateConsumeOffset(MessageQueue mq, long offset) {

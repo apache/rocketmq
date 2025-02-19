@@ -62,10 +62,10 @@ public class NotificationProcessor implements NettyRequestProcessor {
 
     // When a new message is written to CommitLog, this method would be called.
     // Suspended long polling will receive notification and be wakeup.
-    public void notifyMessageArriving(final String topic, final int queueId,
+    public void notifyMessageArriving(final String topic, final int queueId, long offset,
         Long tagsCode, long msgStoreTime, byte[] filterBitMap, Map<String, String> properties) {
         this.popLongPollingService.notifyMessageArrivingWithRetryTopic(
-            topic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
+            topic, queueId, offset, tagsCode, msgStoreTime, filterBitMap, properties);
     }
 
     public void notifyMessageArriving(final String topic, final int queueId) {
@@ -112,7 +112,7 @@ public class NotificationProcessor implements NettyRequestProcessor {
             String errorInfo = String.format("queueId[%d] is illegal, topic:[%s] topicConfig.readQueueNums:[%d] consumer:[%s]",
                 requestHeader.getQueueId(), requestHeader.getTopic(), topicConfig.getReadQueueNums(), channel.remoteAddress());
             POP_LOGGER.warn(errorInfo);
-            response.setCode(ResponseCode.SYSTEM_ERROR);
+            response.setCode(ResponseCode.INVALID_PARAMETER);
             response.setRemark(errorInfo);
             return response;
         }
@@ -172,7 +172,6 @@ public class NotificationProcessor implements NettyRequestProcessor {
 
     private boolean hasMsgFromTopic(String topicName, int randomQ, NotificationRequestHeader requestHeader)
         throws RemotingCommandException {
-        boolean hasMsg;
         TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(topicName);
         return hasMsgFromTopic(topicConfig, randomQ, requestHeader);
     }
@@ -212,13 +211,16 @@ public class NotificationProcessor implements NettyRequestProcessor {
         if (offset < 0) {
             offset = this.brokerController.getMessageStore().getMinOffsetInQueue(topic, queueId);
         }
-        long bufferOffset = this.brokerController.getPopMessageProcessor().getPopBufferMergeService()
-            .getLatestOffset(topic, cid, queueId);
-        if (bufferOffset < 0) {
-            return offset;
+
+        long bufferOffset;
+        if (brokerController.getBrokerConfig().isPopConsumerKVServiceEnable()) {
+            bufferOffset = this.brokerController.getConsumerOffsetManager().queryPullOffset(cid, topic, queueId);
         } else {
-            return bufferOffset > offset ? bufferOffset : offset;
+            bufferOffset = this.brokerController.getPopMessageProcessor()
+                .getPopBufferMergeService().getLatestOffset(topic, cid, queueId);
         }
+
+        return bufferOffset < 0L ? offset : Math.max(bufferOffset, offset);
     }
 
     public PopLongPollingService getPopLongPollingService() {

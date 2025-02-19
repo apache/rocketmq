@@ -129,7 +129,7 @@ public class Broker2ClientTest {
     public void testResetOffsetNoTopicConfig() throws RemotingCommandException {
         when(topicConfigManager.selectTopicConfig(defaultTopic)).thenReturn(null);
         RemotingCommand response = broker2Client.resetOffset(defaultTopic, defaultGroup, timestamp, isForce);
-        assertEquals(ResponseCode.SYSTEM_ERROR, response.getCode());
+        assertEquals(ResponseCode.TOPIC_NOT_EXIST, response.getCode());
     }
     
     @Test

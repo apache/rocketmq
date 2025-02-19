@@ -23,7 +23,7 @@ import java.io.PrintWriter;
 import java.util.Map;
 import java.util.SortedMap;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
@@ -63,8 +63,7 @@ public class AclUtils {
     }
 
     public static String calSignature(byte[] data, String secretKey) {
-        String signature = AclSigner.calSignature(data, secretKey);
-        return signature;
+        return AclSigner.calSignature(data, secretKey);
     }
 
     public static void IPv6AddressCheck(String netAddress) {

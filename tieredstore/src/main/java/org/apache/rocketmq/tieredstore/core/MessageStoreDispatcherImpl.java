@@ -16,15 +16,20 @@
  */
 package org.apache.rocketmq.tieredstore.core;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.opentelemetry.api.common.Attributes;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.StringUtils;
@@ -42,6 +47,7 @@ import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
+import org.apache.rocketmq.tieredstore.common.GroupCommitContext;
 import org.apache.rocketmq.tieredstore.file.FlatFileInterface;
 import org.apache.rocketmq.tieredstore.file.FlatFileStore;
 import org.apache.rocketmq.tieredstore.index.IndexService;
@@ -65,6 +71,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
     protected final MessageStoreFilter topicFilter;
     protected final Semaphore semaphore;
     protected final IndexService indexService;
+    protected final Map<FlatFileInterface, GroupCommitContext> failedGroupCommitMap;
 
     public MessageStoreDispatcherImpl(TieredMessageStore messageStore) {
         this.messageStore = messageStore;
@@ -77,11 +84,17 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
         this.flatFileStore = messageStore.getFlatFileStore();
         this.storeExecutor = messageStore.getStoreExecutor();
         this.indexService = messageStore.getIndexService();
+        this.failedGroupCommitMap = new ConcurrentHashMap<>();
     }
 
     @Override
     public String getServiceName() {
         return MessageStoreDispatcher.class.getSimpleName();
+    }
+
+    @VisibleForTesting
+    public Map<FlatFileInterface, GroupCommitContext> getFailedGroupCommitMap() {
+        return failedGroupCommitMap;
     }
 
     public void dispatchWithSemaphore(FlatFileInterface flatFile) {
@@ -92,8 +105,10 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             semaphore.acquire();
             this.doScheduleDispatch(flatFile, false)
                 .whenComplete((future, throwable) -> semaphore.release());
-        } catch (InterruptedException e) {
+        } catch (Throwable t) {
             semaphore.release();
+            log.error("MessageStore dispatch error, topic={}, queueId={}",
+                flatFile.getMessageQueue().getTopic(), flatFile.getMessageQueue().getQueueId(), t);
         }
     }
 
@@ -151,13 +166,24 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
 
             // If the previous commit fails, attempt to trigger a commit directly.
             if (commitOffset < currentOffset) {
-                this.commitAsync(flatFile);
+                this.commitAsync(flatFile).whenComplete((result, throwable) -> {
+                    if (throwable != null) {
+                        log.error("MessageDispatcher#flatFile commitOffset less than currentOffset, commitAsync again failed. topic: {}, queueId: {} ", topic, queueId, throwable);
+                    }
+                });
                 return CompletableFuture.completedFuture(false);
             }
 
+            if (failedGroupCommitMap.containsKey(flatFile)) {
+                GroupCommitContext failedCommit = failedGroupCommitMap.get(flatFile);
+                if (failedCommit.getEndOffset() <= commitOffset) {
+                    failedGroupCommitMap.remove(flatFile);
+                    constructIndexFile(flatFile.getTopicId(), failedCommit);
+                }
+            }
+
             if (currentOffset < minOffsetInQueue) {
-                log.warn("MessageDispatcher#dispatch, current offset is too small, " +
-                        "topic={}, queueId={}, offset={}-{}, current={}",
+                log.warn("MessageDispatcher#dispatch, current offset is too small, topic={}, queueId={}, offset={}-{}, current={}",
                     topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset);
                 flatFileStore.destroyFile(flatFile.getMessageQueue());
                 flatFileStore.computeIfAbsent(new MessageQueue(topic, brokerName, queueId));
@@ -165,16 +191,14 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             }
 
             if (currentOffset > maxOffsetInQueue) {
-                log.warn("MessageDispatcher#dispatch, current offset is too large, " +
-                        "topic: {}, queueId: {}, offset={}-{}, current={}",
+                log.warn("MessageDispatcher#dispatch, current offset is too large, topic={}, queueId={}, offset={}-{}, current={}",
                     topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset);
                 return CompletableFuture.completedFuture(false);
             }
 
             long interval = TimeUnit.HOURS.toMillis(storeConfig.getCommitLogRollingInterval());
             if (flatFile.rollingFile(interval)) {
-                log.info("MessageDispatcher#dispatch, rolling file, " +
-                        "topic: {}, queueId: {}, offset={}-{}, current={}",
+                log.info("MessageDispatcher#dispatch, rolling file, topic={}, queueId={}, offset={}-{}, current={}",
                     topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset);
             }
 
@@ -189,8 +213,20 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
 
             ConsumeQueueInterface consumeQueue = defaultStore.getConsumeQueue(topic, queueId);
             CqUnit cqUnit = consumeQueue.get(currentOffset);
+            if (cqUnit == null) {
+                log.warn("MessageDispatcher#dispatch cq not found, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                    topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+                return CompletableFuture.completedFuture(false);
+            }
+
             SelectMappedBufferResult message =
                 defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
+            if (message == null) {
+                log.warn("MessageDispatcher#dispatch message not found, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                    topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+                return CompletableFuture.completedFuture(false);
+            }
+
             boolean timeout = MessageFormatUtil.getStoreTimeStamp(message.getByteBuffer()) +
                 storeConfig.getTieredStoreGroupCommitTimeout() < System.currentTimeMillis();
             boolean bufferFull = maxOffsetInQueue - currentOffset > storeConfig.getTieredStoreGroupCommitCount();
@@ -198,6 +234,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             if (!timeout && !bufferFull && !force) {
                 log.debug("MessageDispatcher#dispatch hold, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
                     topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
+                message.release();
                 return CompletableFuture.completedFuture(false);
             } else {
                 if (MessageFormatUtil.getStoreTimeStamp(message.getByteBuffer()) +
@@ -205,13 +242,15 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                     log.warn("MessageDispatcher#dispatch behind too much, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
                         topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
                 } else {
-                    log.info("MessageDispatcher#dispatch, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
+                    log.info("MessageDispatcher#dispatch success, topic={}, queueId={}, offset={}-{}, current={}, remain={}",
                         topic, queueId, minOffsetInQueue, maxOffsetInQueue, currentOffset, maxOffsetInQueue - currentOffset);
                 }
+                message.release();
             }
-            message.release();
 
             long offset = currentOffset;
+            List<SelectMappedBufferResult> appendingBufferList = new ArrayList<>();
+            List<DispatchRequest> dispatchRequestList = new ArrayList<>();
             for (; offset < targetOffset; offset++) {
                 cqUnit = consumeQueue.get(offset);
                 bufferSize += cqUnit.getSize();
@@ -219,6 +258,7 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                     break;
                 }
                 message = defaultStore.selectOneMessageByOffset(cqUnit.getPos(), cqUnit.getSize());
+                appendingBufferList.add(message);
 
                 ByteBuffer byteBuffer = message.getByteBuffer();
                 AppendResult result = flatFile.appendCommitLog(message);
@@ -239,13 +279,20 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                 result = flatFile.appendConsumeQueue(dispatchRequest);
                 if (!AppendResult.SUCCESS.equals(result)) {
                     break;
+                } else {
+                    dispatchRequestList.add(dispatchRequest);
                 }
             }
+
+            GroupCommitContext groupCommitContext = new GroupCommitContext();
+            groupCommitContext.setEndOffset(offset);
+            groupCommitContext.setBufferList(appendingBufferList);
+            groupCommitContext.setDispatchRequests(dispatchRequestList);
 
             // If there are many messages waiting to be uploaded, call the upload logic immediately.
             boolean repeat = timeout || maxOffsetInQueue - offset > storeConfig.getTieredStoreGroupCommitCount();
 
-            if (!flatFile.getDispatchRequestList().isEmpty()) {
+            if (!dispatchRequestList.isEmpty()) {
                 Attributes attributes = TieredStoreMetricsManager.newAttributesBuilder()
                     .put(TieredStoreMetricsConstant.LABEL_TOPIC, topic)
                     .put(TieredStoreMetricsConstant.LABEL_QUEUE_ID, queueId)
@@ -253,8 +300,19 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
                     .build();
                 TieredStoreMetricsManager.messagesDispatchTotal.add(offset - currentOffset, attributes);
 
-                this.commitAsync(flatFile).whenComplete((unused, throwable) -> {
-                        if (repeat) {
+                this.commitAsync(flatFile).whenComplete((success, throwable) -> {
+                        if (success) {
+                            constructIndexFile(flatFile.getTopicId(), groupCommitContext);
+                        }
+                        else {
+                            //next commit async,execute constructIndexFile.
+                            GroupCommitContext oldCommit = failedGroupCommitMap.put(flatFile, groupCommitContext);
+                            if (oldCommit != null) {
+                                log.warn("MessageDispatcher#commitAsync failed,flatFile old failed commit context not release, topic={}, queueId={}  ", topic, queueId);
+                                oldCommit.release();
+                            }
+                        }
+                        if (success && repeat) {
                             storeExecutor.commonExecutor.submit(() -> dispatchWithSemaphore(flatFile));
                         }
                     }
@@ -270,22 +328,28 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
         return CompletableFuture.completedFuture(false);
     }
 
-    public CompletableFuture<Void> commitAsync(FlatFileInterface flatFile) {
-        return flatFile.commitAsync().thenAcceptAsync(success -> {
-            if (success) {
-                if (storeConfig.isMessageIndexEnable()) {
-                    flatFile.getDispatchRequestList().forEach(
-                        request -> constructIndexFile(flatFile.getTopicId(), request));
+    public CompletableFuture<Boolean> commitAsync(FlatFileInterface flatFile) {
+        return flatFile.commitAsync();
+    }
+
+    public void constructIndexFile(long topicId, GroupCommitContext groupCommitContext) {
+        MessageStoreExecutor.getInstance().bufferCommitExecutor.submit(() -> {
+            if (storeConfig.isMessageIndexEnable()) {
+                try {
+                    groupCommitContext.getDispatchRequests().forEach(request -> constructIndexFile0(topicId, request));
                 }
-                flatFile.release();
+                catch (Throwable e) {
+                    log.error("constructIndexFile error {}", topicId, e);
+                }
             }
-        }, MessageStoreExecutor.getInstance().bufferCommitExecutor);
+            groupCommitContext.release();
+        });
     }
 
     /**
      * Building indexes with offsetId is no longer supported because offsetId has changed in tiered storage
      */
-    public void constructIndexFile(long topicId, DispatchRequest request) {
+    public void constructIndexFile0(long topicId, DispatchRequest request) {
         Set<String> keySet = new HashSet<>();
         if (StringUtils.isNotBlank(request.getUniqKey())) {
             keySet.add(request.getUniqKey());
@@ -297,12 +361,31 @@ public class MessageStoreDispatcherImpl extends ServiceThread implements Message
             request.getCommitLogOffset(), request.getMsgSize(), request.getStoreTimestamp());
     }
 
+    public void releaseClosedPendingGroupCommit() {
+        Iterator<Map.Entry<FlatFileInterface, GroupCommitContext>> iterator = failedGroupCommitMap.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<FlatFileInterface, GroupCommitContext> entry = iterator.next();
+            if (entry.getKey().isClosed()) {
+                entry.getValue().release();
+                iterator.remove();
+            }
+        }
+    }
+
+
     @Override
     public void run() {
         log.info("{} service started", this.getServiceName());
         while (!this.isStopped()) {
-            flatFileStore.deepCopyFlatFileToList().forEach(this::dispatchWithSemaphore);
-            this.waitForRunning(Duration.ofSeconds(20).toMillis());
+            try {
+                flatFileStore.deepCopyFlatFileToList().forEach(this::dispatchWithSemaphore);
+
+                releaseClosedPendingGroupCommit();
+
+                this.waitForRunning(Duration.ofSeconds(20).toMillis());
+            } catch (Throwable t) {
+                log.error("MessageStore dispatch error", t);
+            }
         }
         log.info("{} service shutdown", this.getServiceName());
     }
