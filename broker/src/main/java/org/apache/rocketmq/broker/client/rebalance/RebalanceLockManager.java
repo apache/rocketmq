@@ -55,24 +55,18 @@ public class RebalanceLockManager {
             try {
                 this.lock.lockInterruptibly();
                 try {
-                    ConcurrentHashMap<MessageQueue, LockEntry> groupValue = this.mqLockTable.get(group);
-                    if (null == groupValue) {
-                        groupValue = new ConcurrentHashMap<>(32);
-                        this.mqLockTable.put(group, groupValue);
-                    }
+                    ConcurrentHashMap<MessageQueue, LockEntry> groupValue = this.mqLockTable.computeIfAbsent(group,
+                        k -> new ConcurrentHashMap<>(32));
 
                     LockEntry lockEntry = groupValue.get(mq);
                     if (null == lockEntry) {
                         lockEntry = new LockEntry();
                         lockEntry.setClientId(clientId);
+                        lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                         groupValue.put(mq, lockEntry);
                         log.info(
                             "RebalanceLockManager#tryLock: lock a message queue which has not been locked yet, "
                                 + "group={}, clientId={}, mq={}", group, clientId, mq);
-                    }
-
-                    if (lockEntry.isLocked(clientId)) {
-                        lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                         return true;
                     }
 
@@ -137,11 +131,8 @@ public class RebalanceLockManager {
             try {
                 this.lock.lockInterruptibly();
                 try {
-                    ConcurrentHashMap<MessageQueue, LockEntry> groupValue = this.mqLockTable.get(group);
-                    if (null == groupValue) {
-                        groupValue = new ConcurrentHashMap<>(32);
-                        this.mqLockTable.put(group, groupValue);
-                    }
+                    ConcurrentHashMap<MessageQueue, LockEntry> groupValue = this.mqLockTable.computeIfAbsent(group,
+                        k -> new ConcurrentHashMap<>(32));
 
                     for (MessageQueue mq : notLockedMqs) {
                         LockEntry lockEntry = groupValue.get(mq);
