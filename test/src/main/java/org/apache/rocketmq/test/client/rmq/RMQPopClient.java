@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.AckCallback;
 import org.apache.rocketmq.client.consumer.AckResult;
+import org.apache.rocketmq.client.consumer.NotifyResult;
 import org.apache.rocketmq.client.consumer.PopCallback;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.impl.ClientRemotingProcessor;
@@ -207,6 +208,6 @@ public class RMQPopClient implements MQConsumer {
         requestHeader.setBornTime(bornTime);
         requestHeader.setOrder(order);
         requestHeader.setAttemptId(attemptId);
-        return this.mqClientAPI.notification(brokerAddr, requestHeader, timeoutMillis);
+        return this.mqClientAPI.notification(brokerAddr, requestHeader, timeoutMillis).thenApply(NotifyResult::isHasMsg);
     }
 }

@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.consumer.AckCallback;
 import org.apache.rocketmq.client.consumer.AckResult;
+import org.apache.rocketmq.client.consumer.NotifyResult;
 import org.apache.rocketmq.client.consumer.PopCallback;
 import org.apache.rocketmq.client.consumer.PopResult;
 import org.apache.rocketmq.client.consumer.PullCallback;
@@ -607,15 +608,18 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         return future;
     }
 
-    public CompletableFuture<Boolean> notification(String brokerAddr, NotificationRequestHeader requestHeader,
+    public CompletableFuture<NotifyResult> notification(String brokerAddr, NotificationRequestHeader requestHeader,
         long timeoutMillis) {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFICATION, requestHeader);
         return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
-            CompletableFuture<Boolean> future0 = new CompletableFuture<>();
+            CompletableFuture<NotifyResult> future0 = new CompletableFuture<>();
             if (response.getCode() == ResponseCode.SUCCESS) {
                 try {
                     NotificationResponseHeader responseHeader = (NotificationResponseHeader) response.decodeCommandCustomHeader(NotificationResponseHeader.class);
-                    future0.complete(responseHeader.isHasMsg());
+                    NotifyResult notifyResult = new NotifyResult();
+                    notifyResult.setHasMsg(responseHeader.isHasMsg());
+                    notifyResult.setPollingFull(responseHeader.isPollingFull());
+                    future0.complete(notifyResult);
                 } catch (Throwable t) {
                     future0.completeExceptionally(t);
                 }
