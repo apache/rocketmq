@@ -459,6 +459,8 @@ public class BrokerConfig extends BrokerIdentity {
 
     private int maxTaskCacheSize = Integer.parseInt(System.getProperty("rocketmq.broker.maxAsyncTaskCacheSize", "10000"));
 
+    private boolean enableAsyncTaskCheck = Boolean.parseBoolean(System.getProperty("rocketmq.broker.enableAsyncTaskCheck", "false"));
+
     public String getConfigBlackList() {
         return configBlackList;
     }
@@ -2025,5 +2027,13 @@ public class BrokerConfig extends BrokerIdentity {
 
     public void setTaskCacheExpireTimeMinutes(int taskCacheExpireTimeMinutes) {
         this.taskCacheExpireTimeMinutes = taskCacheExpireTimeMinutes;
+    }
+
+    public boolean isEnableAsyncTaskCheck() {
+        return enableAsyncTaskCheck;
+    }
+
+    public void setEnableAsyncTaskCheck(boolean enableAsyncTaskCheck) {
+        this.enableAsyncTaskCheck = enableAsyncTaskCheck;
     }
 }

@@ -256,7 +256,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
 
     public AdminBrokerProcessor(final BrokerController brokerController) {
         this.brokerController = brokerController;
-        this.asyncTaskManager = new AdminAsyncTaskManager(brokerController.getBrokerConfig());
+        this.asyncTaskManager = initAsyncTaskManager(brokerController.getBrokerConfig());
         initConfigBlackList();
     }
 
@@ -266,6 +266,13 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         configBlackList.add("configBlackList");
         String[] configArray = brokerController.getBrokerConfig().getConfigBlackList().split(";");
         configBlackList.addAll(Arrays.asList(configArray));
+    }
+
+    private AdminAsyncTaskManager initAsyncTaskManager(BrokerConfig brokerConfig) {
+        if (brokerConfig.isEnableAsyncTaskCheck()) {
+            return new AdminAsyncTaskManager(brokerConfig);
+        }
+        return null;
     }
 
     @Override
@@ -496,25 +503,37 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand checkRocksdbCqWriteProgress(ChannelHandlerContext ctx, RemotingCommand request) {
+        CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
+        result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_IN_PROGRESS.getValue());
+
         CompletableFuture<CheckRocksdbCqWriteResult> future = CompletableFuture.supplyAsync(() -> {
             try {
                 CheckRocksdbCqWriteResult checkResult = doCheckRocksdbCqWriteProgress(ctx, request);
                 LOGGER.info("checkRocksdbCqWriteProgress result: {}", JSON.toJSONString(checkResult));
                 return checkResult;
             } catch (Exception e) {
+                LOGGER.error("checkRocksdbCqWriteProgress error", e);
                 throw new CompletionException(e);
             }
         }, asyncExecuteWorker);
 
-        String taskId = asyncTaskManager.createTask("checkRocksdbCqWriteProgress", future);
-        CheckRocksdbCqWriteResult result = new CheckRocksdbCqWriteResult();
-        result.setCheckStatus(CheckRocksdbCqWriteResult.CheckStatus.CHECK_IN_PROGRESS.getValue());
-        result.setTaskId(taskId);
+        if (brokerController.getBrokerConfig().isEnableAsyncTaskCheck()) {
+            String taskId = registerAsyncTask("checkRocksdbCqWriteProgress", future);
+            result.setTaskId(taskId);
+        }
 
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         response.setCode(ResponseCode.SUCCESS);
         response.setBody(JSON.toJSONBytes(result));
         return response;
+    }
+
+    private String registerAsyncTask(String taskName, CompletableFuture<?> future) {
+        if (asyncTaskManager == null) {
+            LOGGER.warn("asyncTaskManager not initialized, task registration skipped (enableAsyncTaskCheck config disabled). taskName={}", taskName);
+            return null;
+        }
+        return asyncTaskManager.createTask(taskName, future);
     }
 
     private RemotingCommand exportRocksDBConfigToJson(ChannelHandlerContext ctx,
@@ -3614,6 +3633,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
     }
 
     private RemotingCommand checkAsyncTaskStatus(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
+        if (!brokerController.getBrokerConfig().isEnableAsyncTaskCheck()) {
+            throw new RemotingCommandException("async task check is not enabled");
+        }
+
         final CheckAsyncTaskStatusRequestHeader requestHeader = request.decodeCommandCustomHeader(CheckAsyncTaskStatusRequestHeader.class);
         String taskId = requestHeader.getTaskId();
         String taskName = requestHeader.getTaskName();
