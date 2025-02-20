@@ -164,6 +164,7 @@ import org.apache.rocketmq.remoting.protocol.header.DeleteUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExchangeHAInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExchangeHAInfoResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.GetAllMessageRequestModeHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllTopicConfigResponseHeader;
@@ -2110,8 +2111,10 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
         return response;
     }
 
-    private RemotingCommand getAllMessageRequestMode(ChannelHandlerContext ctx, RemotingCommand request) {
+    private RemotingCommand getAllMessageRequestMode(ChannelHandlerContext ctx, RemotingCommand request) throws RemotingCommandException {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
+        final GetAllMessageRequestModeHeader requestHeader =
+            (GetAllMessageRequestModeHeader) request.decodeCommandCustomHeader(GetAllMessageRequestModeHeader.class);
 
         String content = this.brokerController.getQueryAssignmentProcessor().getMessageRequestModeManager().encode();
         if (content != null && !content.isEmpty()) {
