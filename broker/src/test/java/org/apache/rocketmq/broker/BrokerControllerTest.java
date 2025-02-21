@@ -23,7 +23,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.future.FutureTaskExt;
@@ -126,7 +125,9 @@ public class BrokerControllerTest {
         brokerController.registerServerRPCHook(rpcHook);
 
         // setRequestPipelineTest
-        final RequestPipeline requestPipeline = (ctx, request) -> {};
+        final RequestPipeline requestPipeline = (ctx, request) -> {
+
+        };
         brokerController.setRequestPipeline(requestPipeline);
 
         NettyRemotingAbstract tcpRemotingServer = (NettyRemotingAbstract) brokerController.getRemotingServer();
