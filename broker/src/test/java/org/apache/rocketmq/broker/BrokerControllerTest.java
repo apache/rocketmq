@@ -23,14 +23,22 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import io.netty.channel.ChannelHandlerContext;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.future.FutureTaskExt;
+import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.RemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
+import org.apache.rocketmq.remoting.netty.NettyRemotingAbstract;
+import org.apache.rocketmq.remoting.netty.NettyRemotingServer;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.netty.RequestTask;
+import org.apache.rocketmq.remoting.pipeline.RequestPipeline;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -93,5 +101,42 @@ public class BrokerControllerTest {
         long headSlowTimeMills = 100;
         TimeUnit.MILLISECONDS.sleep(headSlowTimeMills);
         assertThat(brokerController.headSlowTimeMills(queue)).isGreaterThanOrEqualTo(headSlowTimeMills);
+    }
+
+    @Test
+    public void testCustomRemotingServer() throws CloneNotSupportedException {
+        final RemotingServer mockRemotingServer = new NettyRemotingServer(nettyServerConfig);
+        final String mockRemotingServerName = "MOCK_REMOTING_SERVER";
+
+        BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, new NettyClientConfig(), messageStoreConfig);
+        brokerController.setRemotingServerByName(mockRemotingServerName, mockRemotingServer);
+        brokerController.initializeRemotingServer();
+
+        final RPCHook rpcHook = new RPCHook() {
+            @Override
+            public void doBeforeRequest(String remoteAddr, RemotingCommand request) {
+
+            }
+
+            @Override
+            public void doAfterResponse(String remoteAddr, RemotingCommand request, RemotingCommand response) {
+
+            }
+        };
+        brokerController.registerServerRPCHook(rpcHook);
+
+        // setRequestPipelineTest
+        final RequestPipeline requestPipeline = (ctx, request) -> {};
+        brokerController.setRequestPipeline(requestPipeline);
+
+        NettyRemotingAbstract tcpRemotingServer = (NettyRemotingAbstract) brokerController.getRemotingServer();
+        Assert.assertTrue(tcpRemotingServer.getRPCHook().contains(rpcHook));
+
+        NettyRemotingAbstract fastRemotingServer = (NettyRemotingAbstract) brokerController.getFastRemotingServer();
+        Assert.assertTrue(fastRemotingServer.getRPCHook().contains(rpcHook));
+
+        NettyRemotingAbstract mockRemotingServer1 = (NettyRemotingAbstract) brokerController.getRemotingServerByName(mockRemotingServerName);
+        Assert.assertTrue(mockRemotingServer1.getRPCHook().contains(rpcHook));
+        Assert.assertSame(mockRemotingServer, mockRemotingServer1);
     }
 }

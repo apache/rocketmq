@@ -290,8 +290,9 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 
     protected ChannelFuture doConnect(String addr) {
         String[] hostAndPort = getHostAndPort(addr);
-        return fetchBootstrap(addr)
-                .connect(hostAndPort[0], Integer.parseInt(hostAndPort[1]));
+        String host = hostAndPort[0];
+        int port = Integer.parseInt(hostAndPort[1]);
+        return fetchBootstrap(addr).connect(host, port);
     }
 
     private Bootstrap fetchBootstrap(String addr) {
