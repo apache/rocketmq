@@ -608,7 +608,13 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         return future;
     }
 
-    public CompletableFuture<NotifyResult> notification(String brokerAddr, NotificationRequestHeader requestHeader,
+    public CompletableFuture<Boolean> notification(String brokerAddr, NotificationRequestHeader requestHeader,
+        long timeoutMillis) {
+        return notificationWithPollingStats(brokerAddr, requestHeader, timeoutMillis).thenApply(NotifyResult::isHasMsg);
+    }
+
+    public CompletableFuture<NotifyResult> notificationWithPollingStats(String brokerAddr,
+        NotificationRequestHeader requestHeader,
         long timeoutMillis) {
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.NOTIFICATION, requestHeader);
         return this.getRemotingClient().invoke(brokerAddr, request, timeoutMillis).thenCompose(response -> {
