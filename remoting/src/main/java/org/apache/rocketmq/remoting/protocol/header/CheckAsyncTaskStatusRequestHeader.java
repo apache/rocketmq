@@ -38,11 +38,11 @@ public class CheckAsyncTaskStatusRequestHeader implements CommandCustomHeader {
 
     @Override
     public void checkFields() throws RemotingCommandException {
-        if (StringUtils.isBlank(taskName)) {
-            throw new RemotingCommandException("taskName cannot be null or blank");
+        if (StringUtils.isBlank(taskName) && StringUtils.isBlank(taskId)) {
+            throw new RemotingCommandException("taskName and taskId cannot be empty at the same time");
         }
-        if (maxLimit <= 0) {
-            throw new RemotingCommandException("maxLimit must be greater than 0");
+        if (maxLimit < 0) {
+            throw new RemotingCommandException("maxLimit cannot be less than 0.");
         }
         if (taskStatus != null && (taskStatus < 0 || taskStatus > 3)) {
             throw new RemotingCommandException("taskStatus must be between 0 and 3");

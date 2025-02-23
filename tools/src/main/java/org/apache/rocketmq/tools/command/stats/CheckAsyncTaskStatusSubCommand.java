@@ -105,7 +105,17 @@ public class CheckAsyncTaskStatusSubCommand implements SubCommand {
         String brokerAddr = commandLine.hasOption('b') ? commandLine.getOptionValue('b').trim() : null;
         String clusterName = commandLine.hasOption('c') ? commandLine.getOptionValue('c').trim() : null;
         String namesAddr = commandLine.hasOption('n') ? commandLine.getOptionValue('n').trim() : null;
-        int maxLimit = commandLine.hasOption('m') ? Integer.parseInt(commandLine.getOptionValue('m').trim()) : DEFAULT_MAX_TASKS;
+        String maxLimitStr = commandLine.hasOption('m') ? commandLine.getOptionValue('m').trim() : null;
+        int maxLimit = DEFAULT_MAX_TASKS;
+        if (maxLimitStr != null && !maxLimitStr.isEmpty()) {
+            try {
+                maxLimit = Integer.parseInt(maxLimitStr);
+            } catch (NumberFormatException e) {
+                System.out.print("Illegal maxLimit parameter value");
+                return;
+            }
+        }
+
         Integer taskStatus = commandLine.hasOption('s') ? Integer.parseInt(commandLine.getOptionValue('s').trim()) : null;
 
         try {
@@ -146,10 +156,11 @@ public class CheckAsyncTaskStatusSubCommand implements SubCommand {
                     System.out.printf("Cluster '%s' not found or has no brokers.%n", clusterName);
                     return;
                 }
+                int finalMaxLimit = maxLimit;
                 brokerNames.forEach(brokerName -> {
                     BrokerData brokerData = brokerAddrTable.get(brokerName);
                     if (brokerData != null) {
-                        checkAsyncTaskStatusOnBroker(brokerData.selectBrokerAddr(), taskName, taskId, brokerName, maxLimit, taskStatus);
+                        checkAsyncTaskStatusOnBroker(brokerData.selectBrokerAddr(), taskName, taskId, brokerName, finalMaxLimit, taskStatus);
                     }
                 });
             } else {
