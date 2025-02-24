@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
@@ -268,19 +269,43 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
     private String nameSrvAddr = null;
     private ClientConfig clientConfig;
 
-    public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
+    public MQClientAPIImpl(
+        final NettyClientConfig nettyClientConfig,
         final ClientRemotingProcessor clientRemotingProcessor,
-        RPCHook rpcHook, final ClientConfig clientConfig) {
+        final RPCHook rpcHook,
+        final ClientConfig clientConfig
+    ) {
         this(nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig, null);
     }
 
-    public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
+    public MQClientAPIImpl(
+        final NettyClientConfig nettyClientConfig,
         final ClientRemotingProcessor clientRemotingProcessor,
-        RPCHook rpcHook, final ClientConfig clientConfig, final ChannelEventListener channelEventListener) {
+        final RPCHook rpcHook,
+        final ClientConfig clientConfig,
+        final ChannelEventListener channelEventListener
+    ) {
+        this(
+            nettyClientConfig,
+            clientRemotingProcessor,
+            rpcHook,
+            clientConfig,
+            channelEventListener,
+            null
+        );
+    }
+
+    public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
+                           final ClientRemotingProcessor clientRemotingProcessor,
+                           RPCHook rpcHook, final ClientConfig clientConfig,
+                           final ChannelEventListener channelEventListener,
+                           final ObjectCreator<RemotingClient> remotingClientCreator) {
         this.clientConfig = clientConfig;
         topAddressing = new DefaultTopAddressing(MixAll.getWSAddr(), clientConfig.getUnitName());
         topAddressing.registerChangeCallBack(this);
-        this.remotingClient = new NettyRemotingClient(nettyClientConfig, channelEventListener);
+        this.remotingClient = remotingClientCreator != null
+            ? remotingClientCreator.create(nettyClientConfig, channelEventListener)
+            : new NettyRemotingClient(nettyClientConfig, channelEventListener);
         this.clientRemotingProcessor = clientRemotingProcessor;
 
         this.remotingClient.registerRPCHook(new NamespaceRpcHook(clientConfig));

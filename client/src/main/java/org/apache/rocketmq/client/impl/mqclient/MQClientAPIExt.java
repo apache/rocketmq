@@ -37,6 +37,7 @@ import org.apache.rocketmq.client.impl.MQClientAPIImpl;
 import org.apache.rocketmq.client.impl.admin.MqClientAdminImpl;
 import org.apache.rocketmq.client.impl.consumer.PullResultExt;
 import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageBatch;
@@ -48,6 +49,7 @@ import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.InvokeCallback;
 import org.apache.rocketmq.remoting.RPCHook;
+import org.apache.rocketmq.remoting.RemotingClient;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.ResponseFuture;
@@ -97,7 +99,17 @@ public class MQClientAPIExt extends MQClientAPIImpl {
         ClientRemotingProcessor clientRemotingProcessor,
         RPCHook rpcHook
     ) {
-        super(nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig);
+        this(clientConfig, nettyClientConfig, clientRemotingProcessor, rpcHook, null);
+    }
+
+    public MQClientAPIExt(
+        ClientConfig clientConfig,
+        NettyClientConfig nettyClientConfig,
+        ClientRemotingProcessor clientRemotingProcessor,
+        RPCHook rpcHook,
+        ObjectCreator<RemotingClient> remotingClientCreator
+    ) {
+        super(nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig, null, remotingClientCreator);
         this.clientConfig = clientConfig;
         this.mqClientAdmin = new MqClientAdminImpl(getRemotingClient());
     }
