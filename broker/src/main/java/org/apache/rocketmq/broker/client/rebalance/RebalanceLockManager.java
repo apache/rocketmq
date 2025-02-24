@@ -139,15 +139,12 @@ public class RebalanceLockManager {
                         if (null == lockEntry) {
                             lockEntry = new LockEntry();
                             lockEntry.setClientId(clientId);
+                            lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
                             groupValue.put(mq, lockEntry);
+                            lockedMqs.add(mq);
                             log.info(
                                 "RebalanceLockManager#tryLockBatch: lock a message which has not been locked yet, "
                                     + "group={}, clientId={}, mq={}", group, clientId, mq);
-                        }
-
-                        if (lockEntry.isLocked(clientId)) {
-                            lockEntry.setLastUpdateTimestamp(System.currentTimeMillis());
-                            lockedMqs.add(mq);
                             continue;
                         }
 
