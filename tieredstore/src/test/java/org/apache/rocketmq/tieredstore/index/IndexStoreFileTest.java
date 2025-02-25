@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.AppendResult;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.provider.FileSegment;
@@ -219,7 +220,7 @@ public class IndexStoreFileTest {
 
         ByteBuffer byteBuffer = indexStoreFile.doCompaction();
         FileSegment fileSegment = new PosixFileSegment(
-            storeConfig, FileSegmentType.INDEX, filePath, 0L);
+            storeConfig, FileSegmentType.INDEX, filePath, 0L, new MessageStoreExecutor());
         fileSegment.append(byteBuffer, timestamp);
         fileSegment.commitAsync().join();
         Assert.assertEquals(byteBuffer.limit(), fileSegment.getSize());
@@ -252,7 +253,7 @@ public class IndexStoreFileTest {
 
         ByteBuffer byteBuffer = indexStoreFile.doCompaction();
         FileSegment fileSegment = new PosixFileSegment(
-            storeConfig, FileSegmentType.INDEX, filePath, 0L);
+            storeConfig, FileSegmentType.INDEX, filePath, 0L, new MessageStoreExecutor());
         fileSegment.append(byteBuffer, timestamp);
         fileSegment.commitAsync().join();
         Assert.assertEquals(byteBuffer.limit(), fileSegment.getSize());

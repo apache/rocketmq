@@ -151,8 +151,10 @@ public class TopicConfigManagerV2 extends TopicConfigManager {
         try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.put(keyBuf.nioBuffer(), valueBuf.nioBuffer());
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
+            ConfigHelper.stampDataVersion(writeBatch, TableId.TOPIC, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
+            // fdatasync on core metadata change
+            this.persist();
         } catch (RocksDBException e) {
             log.error("Failed to update topic config", e);
         } finally {
@@ -167,7 +169,7 @@ public class TopicConfigManagerV2 extends TopicConfigManager {
         try (WriteBatch writeBatch = new WriteBatch()) {
             writeBatch.delete(keyBuf.nioBuffer());
             long stateMachineVersion = brokerController.getMessageStore() != null ? brokerController.getMessageStore().getStateMachineVersion() : 0;
-            ConfigHelper.stampDataVersion(writeBatch, dataVersion, stateMachineVersion);
+            ConfigHelper.stampDataVersion(writeBatch, TableId.TOPIC, dataVersion, stateMachineVersion);
             configStorage.write(writeBatch);
         } catch (RocksDBException e) {
             log.error("Failed to delete topic config by topicName={}", topicName, e);

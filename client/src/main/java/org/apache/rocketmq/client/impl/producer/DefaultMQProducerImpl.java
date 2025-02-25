@@ -35,6 +35,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.QueryResult;
 import org.apache.rocketmq.client.Validators;
 import org.apache.rocketmq.client.common.ClientErrorCode;
@@ -81,6 +82,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageId;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageType;
+import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.utils.CorrelationIdUtil;
 import org.apache.rocketmq.remoting.RPCHook;
@@ -91,6 +93,7 @@ import org.apache.rocketmq.remoting.exception.RemotingTooMuchRequestException;
 import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
 import org.apache.rocketmq.remoting.protocol.header.CheckTransactionStateRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
@@ -1547,6 +1550,40 @@ public class DefaultMQProducerImpl implements MQProducerInner {
         String remark = localException != null ? ("executeLocalTransactionBranch exception: " + localException.toString()) : null;
         this.mQClientFactory.getMQClientAPIImpl().endTransactionOneway(brokerAddr, requestHeader, remark,
             this.defaultMQProducer.getSendMsgTimeout());
+    }
+
+    public String recallMessage(
+        String topic,
+        String recallHandle) throws RemotingException, MQClientException, MQBrokerException, InterruptedException {
+        makeSureStateOK();
+        Validators.checkTopic(topic);
+        if (NamespaceUtil.isRetryTopic(topic) || NamespaceUtil.isDLQTopic(topic)) {
+            throw new MQClientException("topic is not supported", null);
+        }
+        RecallMessageHandle.HandleV1 handleEntity;
+        try {
+            handleEntity = (RecallMessageHandle.HandleV1) RecallMessageHandle.decodeHandle(recallHandle);
+        } catch (Exception e) {
+            throw new MQClientException(e.getMessage(), null);
+        }
+
+        tryToFindTopicPublishInfo(topic);
+        String brokerAddr = this.mQClientFactory.findBrokerAddressInPublish(handleEntity.getBrokerName());
+        brokerAddr = StringUtils.isNotEmpty(brokerAddr) ?
+            // find another address to support multi proxy endpoints,
+            // may cause failure request in proxy-less mode when the broker is temporarily unavailable
+            brokerAddr : this.mQClientFactory.findBrokerAddrByTopic(topic);
+        if (StringUtils.isEmpty(brokerAddr)) {
+            log.warn("can't find broker service address. {}", handleEntity.getBrokerName());
+            throw new MQClientException("The broker service address not found", null);
+        }
+        RecallMessageRequestHeader requestHeader = new RecallMessageRequestHeader();
+        requestHeader.setProducerGroup(this.defaultMQProducer.getProducerGroup());
+        requestHeader.setTopic(topic);
+        requestHeader.setRecallHandle(recallHandle);
+        requestHeader.setBrokerName(handleEntity.getBrokerName());
+        return this.mQClientFactory.getMQClientAPIImpl().recallMessage(brokerAddr,
+            requestHeader, this.defaultMQProducer.getSendMsgTimeout());
     }
 
     public void setCallbackExecutor(final ExecutorService callbackExecutor) {

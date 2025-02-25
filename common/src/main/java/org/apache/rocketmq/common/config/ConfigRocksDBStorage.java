@@ -70,7 +70,7 @@ public class ConfigRocksDBStorage extends AbstractRocksDBStorage {
 
             final List<ColumnFamilyDescriptor> cfDescriptors = new ArrayList<>();
 
-            ColumnFamilyOptions defaultOptions = ConfigHelper.createConfigOptions();
+            ColumnFamilyOptions defaultOptions = ConfigHelper.createConfigColumnFamilyOptions();
             this.cfOptions.add(defaultOptions);
             cfDescriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, defaultOptions));
             cfDescriptors.add(new ColumnFamilyDescriptor(KV_DATA_VERSION_COLUMN_FAMILY_NAME, defaultOptions));

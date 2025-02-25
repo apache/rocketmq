@@ -17,6 +17,7 @@
 package org.apache.rocketmq.tieredstore.provider;
 
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.metadata.DefaultMetadataStore;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
@@ -34,9 +35,10 @@ public class FileSegmentFactoryTest {
         MessageStoreConfig storeConfig = new MessageStoreConfig();
         storeConfig.setTieredStoreCommitLogMaxSize(1024);
         storeConfig.setTieredStoreFilePath(storePath);
+        MessageStoreExecutor executor = new MessageStoreExecutor();
 
         MetadataStore metadataStore = new DefaultMetadataStore(storeConfig);
-        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig);
+        FileSegmentFactory factory = new FileSegmentFactory(metadataStore, storeConfig, executor);
 
         Assert.assertEquals(metadataStore, factory.getMetadataStore());
         Assert.assertEquals(storeConfig, factory.getStoreConfig());
@@ -60,7 +62,9 @@ public class FileSegmentFactoryTest {
             () -> factory.createSegment(null, null, 0L));
         storeConfig.setTieredBackendServiceProvider(null);
         Assert.assertThrows(RuntimeException.class,
-            () -> new FileSegmentFactory(metadataStore, storeConfig));
+            () -> new FileSegmentFactory(metadataStore, storeConfig, executor));
+
+        executor.shutdown();
         MessageStoreUtilTest.deleteStoreDirectory(storePath);
     }
 }

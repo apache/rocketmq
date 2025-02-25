@@ -21,7 +21,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.subscription.SubscriptionGroupManager;
@@ -29,7 +28,6 @@ import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
-import org.apache.rocketmq.remoting.protocol.subscription.SubscriptionGroupConfig;
 import org.assertj.core.util.Lists;
 import org.junit.Before;
 import org.junit.Test;
@@ -384,9 +382,7 @@ public class ConsumerOrderInfoManagerTest {
 
         SubscriptionGroupManager subscriptionGroupManager = mock(SubscriptionGroupManager.class);
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
-        ConcurrentMap<String, SubscriptionGroupConfig> subscriptionGroupConfigConcurrentMap = new ConcurrentHashMap<>();
-        subscriptionGroupConfigConcurrentMap.put(GROUP, new SubscriptionGroupConfig());
-        when(subscriptionGroupManager.getSubscriptionGroupTable()).thenReturn(subscriptionGroupConfigConcurrentMap);
+        when(subscriptionGroupManager.containsSubscriptionGroup(GROUP)).thenReturn(true);
 
         TopicConfig topicConfig = new TopicConfig(TOPIC);
         when(topicConfigManager.selectTopicConfig(eq(TOPIC))).thenReturn(topicConfig);

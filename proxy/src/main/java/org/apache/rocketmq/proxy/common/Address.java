@@ -18,6 +18,7 @@ package org.apache.rocketmq.proxy.common;
 
 import com.google.common.net.HostAndPort;
 import java.util.Objects;
+import org.apache.rocketmq.common.utils.IPAddressUtils;
 
 public class Address {
 
@@ -30,6 +31,11 @@ public class Address {
 
     private AddressScheme addressScheme;
     private HostAndPort hostAndPort;
+
+    public Address(HostAndPort hostAndPort) {
+        this.addressScheme = buildScheme(hostAndPort);
+        this.hostAndPort = hostAndPort;
+    }
 
     public Address(AddressScheme addressScheme, HostAndPort hostAndPort) {
         this.addressScheme = addressScheme;
@@ -50,6 +56,20 @@ public class Address {
 
     public void setHostAndPort(HostAndPort hostAndPort) {
         this.hostAndPort = hostAndPort;
+    }
+
+    private AddressScheme buildScheme(HostAndPort hostAndPort) {
+        if (hostAndPort == null) {
+            return AddressScheme.UNRECOGNIZED;
+        }
+        String address = hostAndPort.getHost();
+        if (IPAddressUtils.isValidIPv4(address)) {
+            return AddressScheme.IPv4;
+        }
+        if (IPAddressUtils.isValidIPv6(address)) {
+            return AddressScheme.IPv6;
+        }
+        return AddressScheme.DOMAIN_NAME;
     }
 
     @Override

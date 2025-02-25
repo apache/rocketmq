@@ -50,7 +50,7 @@ public class FlatFileStore {
         this.storeConfig = storeConfig;
         this.metadataStore = metadataStore;
         this.executor = executor;
-        this.flatFileFactory = new FlatFileFactory(metadataStore, storeConfig);
+        this.flatFileFactory = new FlatFileFactory(metadataStore, storeConfig, executor);
         this.flatFileConcurrentMap = new ConcurrentHashMap<>();
     }
 

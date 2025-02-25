@@ -516,13 +516,15 @@ public class MessageDecoder {
                         }
                     }
 
-                    // uncompress body
+                    // inflate body
                     if (deCompressBody && (sysFlag & MessageSysFlag.COMPRESSED_FLAG) == MessageSysFlag.COMPRESSED_FLAG) {
                         Compressor compressor = CompressorFactory.getCompressor(MessageSysFlag.getCompressionType(sysFlag));
                         body = compressor.decompress(body);
+                        sysFlag &= ~MessageSysFlag.COMPRESSED_FLAG;
                     }
 
                     msgExt.setBody(body);
+                    msgExt.setSysFlag(sysFlag);
                 } else {
                     byteBuffer.position(byteBuffer.position() + bodyLen);
                 }

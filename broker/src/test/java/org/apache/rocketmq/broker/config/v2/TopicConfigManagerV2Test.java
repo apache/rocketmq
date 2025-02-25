@@ -23,6 +23,7 @@ import java.io.IOException;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
@@ -35,16 +36,18 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-
 @RunWith(value = MockitoJUnitRunner.class)
 public class TopicConfigManagerV2Test {
 
-    private ConfigStorage configStorage;
+    private MessageStoreConfig messageStoreConfig;
 
-    private TopicConfigManagerV2 topicConfigManagerV2;
+    private ConfigStorage configStorage;
 
     @Mock
     private BrokerController controller;
+
+    @Mock
+    private MessageStore messageStore;
 
     @Rule
     public TemporaryFolder tf = new TemporaryFolder();
@@ -61,17 +64,22 @@ public class TopicConfigManagerV2Test {
         BrokerConfig brokerConfig = new BrokerConfig();
         Mockito.doReturn(brokerConfig).when(controller).getBrokerConfig();
 
-        MessageStoreConfig messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig = new MessageStoreConfig();
         Mockito.doReturn(messageStoreConfig).when(controller).getMessageStoreConfig();
+        Mockito.doReturn(messageStore).when(controller).getMessageStore();
 
         File configStoreDir = tf.newFolder();
-        configStorage = new ConfigStorage(configStoreDir.getAbsolutePath());
+        messageStoreConfig.setStorePathRootDir(configStoreDir.getAbsolutePath());
+
+        configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
-        topicConfigManagerV2 = new TopicConfigManagerV2(controller, configStorage);
     }
 
     @Test
     public void testUpdateTopicConfig() {
+        TopicConfigManagerV2 topicConfigManagerV2 = new TopicConfigManagerV2(controller, configStorage);
+        topicConfigManagerV2.load();
+
         TopicConfig topicConfig = new TopicConfig();
         String topicName = "T1";
         topicConfig.setTopicName(topicName);
@@ -86,7 +94,9 @@ public class TopicConfigManagerV2Test {
 
         topicConfigManagerV2.getTopicConfigTable().clear();
 
+        configStorage = new ConfigStorage(messageStoreConfig);
         Assert.assertTrue(configStorage.start());
+        topicConfigManagerV2 = new TopicConfigManagerV2(controller, configStorage);
         Assert.assertTrue(topicConfigManagerV2.load());
 
         TopicConfig loaded = topicConfigManagerV2.selectTopicConfig(topicName);
@@ -111,12 +121,15 @@ public class TopicConfigManagerV2Test {
         topicConfig.setWriteQueueNums(4);
         topicConfig.setOrder(true);
         topicConfig.setTopicSysFlag(4);
+        TopicConfigManagerV2 topicConfigManagerV2 = new TopicConfigManagerV2(controller, configStorage);
         topicConfigManagerV2.updateTopicConfig(topicConfig);
         topicConfigManagerV2.removeTopicConfig(topicName);
         Assert.assertFalse(topicConfigManagerV2.containsTopic(topicName));
         Assert.assertTrue(configStorage.shutdown());
 
+        configStorage = new ConfigStorage(messageStoreConfig);
         Assert.assertTrue(configStorage.start());
+        topicConfigManagerV2 = new TopicConfigManagerV2(controller, configStorage);
         Assert.assertTrue(topicConfigManagerV2.load());
         Assert.assertFalse(topicConfigManagerV2.containsTopic(topicName));
     }

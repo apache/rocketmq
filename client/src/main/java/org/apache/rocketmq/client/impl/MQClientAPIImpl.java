@@ -59,6 +59,7 @@ import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.CheckRocksdbCqWriteResult;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.common.ObjectCreator;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.PlainAccessConfig;
 import org.apache.rocketmq.common.TopicConfig;
@@ -164,6 +165,7 @@ import org.apache.rocketmq.remoting.protocol.header.DeleteSubscriptionGroupReque
 import org.apache.rocketmq.remoting.protocol.header.DeleteTopicRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.DeleteUserRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.EndTransactionRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.ExportRocksDBConfigToJsonRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ExtraInfoUtil;
 import org.apache.rocketmq.remoting.protocol.header.GetAclRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.GetAllProducerInfoRequestHeader;
@@ -204,6 +206,8 @@ import org.apache.rocketmq.remoting.protocol.header.QueryMessageRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QuerySubscriptionByConsumerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryTopicConsumeByWhoRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.QueryTopicsByConsumerRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.RecallMessageResponseHeader;
 import org.apache.rocketmq.remoting.protocol.header.RemoveBrokerRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResetMasterFlushOffsetHeader;
 import org.apache.rocketmq.remoting.protocol.header.ResetOffsetRequestHeader;
@@ -265,19 +269,43 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
     private String nameSrvAddr = null;
     private ClientConfig clientConfig;
 
-    public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
+    public MQClientAPIImpl(
+        final NettyClientConfig nettyClientConfig,
         final ClientRemotingProcessor clientRemotingProcessor,
-        RPCHook rpcHook, final ClientConfig clientConfig) {
+        final RPCHook rpcHook,
+        final ClientConfig clientConfig
+    ) {
         this(nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig, null);
     }
 
-    public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
+    public MQClientAPIImpl(
+        final NettyClientConfig nettyClientConfig,
         final ClientRemotingProcessor clientRemotingProcessor,
-        RPCHook rpcHook, final ClientConfig clientConfig, final ChannelEventListener channelEventListener) {
+        final RPCHook rpcHook,
+        final ClientConfig clientConfig,
+        final ChannelEventListener channelEventListener
+    ) {
+        this(
+            nettyClientConfig,
+            clientRemotingProcessor,
+            rpcHook,
+            clientConfig,
+            channelEventListener,
+            null
+        );
+    }
+
+    public MQClientAPIImpl(final NettyClientConfig nettyClientConfig,
+                           final ClientRemotingProcessor clientRemotingProcessor,
+                           RPCHook rpcHook, final ClientConfig clientConfig,
+                           final ChannelEventListener channelEventListener,
+                           final ObjectCreator<RemotingClient> remotingClientCreator) {
         this.clientConfig = clientConfig;
         topAddressing = new DefaultTopAddressing(MixAll.getWSAddr(), clientConfig.getUnitName());
         topAddressing.registerChangeCallBack(this);
-        this.remotingClient = new NettyRemotingClient(nettyClientConfig, channelEventListener);
+        this.remotingClient = remotingClientCreator != null
+            ? remotingClientCreator.create(nettyClientConfig, channelEventListener)
+            : new NettyRemotingClient(nettyClientConfig, channelEventListener);
         this.clientRemotingProcessor = clientRemotingProcessor;
 
         this.remotingClient.registerRPCHook(new NamespaceRpcHook(clientConfig));
@@ -774,7 +802,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         final DefaultMQProducerImpl producer
     ) {
         int tmp = curTimes.incrementAndGet();
-        if (needRetry && tmp <= timesTotal) {
+        if (needRetry && tmp <= timesTotal && timeoutMillis > 0) {
             String retryBrokerName = brokerName;//by default, it will send to the same broker
             if (topicPublishInfo != null) { //select one message queue accordingly, in order to determine which broker to send
                 MessageQueue mqChosen = producer.selectOneMessageQueue(topicPublishInfo, brokerName, false);
@@ -853,6 +881,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             uniqMsgId,
             responseHeader.getMsgId(), messageQueue, responseHeader.getQueueOffset());
         sendResult.setTransactionId(responseHeader.getTransactionId());
+        sendResult.setRecallHandle(responseHeader.getRecallHandle());
         String regionId = response.getExtFields().get(MessageConst.PROPERTY_MSG_REGION);
         if (regionId == null || regionId.isEmpty()) {
             regionId = MixAll.DEFAULT_TRACE_REGION_ID;
@@ -1744,16 +1773,27 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
     public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final long timeoutMillis)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
         MQBrokerException {
-        return getConsumeStats(addr, consumerGroup, null, timeoutMillis);
+        return getConsumeStats(addr, consumerGroup, null, null, timeoutMillis);
+    }
+
+    public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final List<String> topicList,
+        final long timeoutMillis) throws RemotingSendRequestException, RemotingConnectException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return getConsumeStats(addr, consumerGroup, null, topicList, timeoutMillis);
     }
 
     public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final String topic,
-        final long timeoutMillis)
+        final long timeoutMillis) throws RemotingSendRequestException, RemotingConnectException, RemotingTimeoutException, MQBrokerException, InterruptedException {
+        return getConsumeStats(addr, consumerGroup, topic, null, timeoutMillis);
+    }
+
+    public ConsumeStats getConsumeStats(final String addr, final String consumerGroup, final String topic,
+        final List<String> topicList, final long timeoutMillis)
         throws InterruptedException, RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException,
         MQBrokerException {
         GetConsumeStatsRequestHeader requestHeader = new GetConsumeStatsRequestHeader();
         requestHeader.setConsumerGroup(consumerGroup);
         requestHeader.setTopic(topic);
+        requestHeader.updateTopicList(topicList);
 
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.GET_CONSUME_STATS, requestHeader);
 
@@ -3033,6 +3073,21 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
         throw new MQClientException(response.getCode(), response.getRemark());
     }
 
+    public void exportRocksDBConfigToJson(final String brokerAddr,
+        final List<ExportRocksDBConfigToJsonRequestHeader.ConfigType> configType,
+        final long timeoutMillis) throws InterruptedException,
+        RemotingTimeoutException, RemotingSendRequestException, RemotingConnectException, MQClientException {
+        ExportRocksDBConfigToJsonRequestHeader header = new ExportRocksDBConfigToJsonRequestHeader();
+        header.updateConfigType(configType);
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.EXPORT_ROCKSDB_CONFIG_TO_JSON, header);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeoutMillis);
+        assert response != null;
+
+        if (ResponseCode.SUCCESS != response.getCode()) {
+            throw new MQClientException(response.getCode(), response.getRemark());
+        }
+    }
+
     public void checkClientInBroker(final String brokerAddr, final String consumerGroup,
         final String clientId, final SubscriptionData subscriptionData,
         final long timeoutMillis)
@@ -3522,6 +3577,63 @@ public class MQClientAPIImpl implements NameServerUpdateCallback, StartAndShutdo
             }
             default:
                 break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark());
+    }
+
+    public String recallMessage(
+        final String addr,
+        RecallMessageRequestHeader requestHeader,
+        final long timeoutMillis
+    ) throws RemotingException, MQBrokerException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RECALL_MESSAGE, requestHeader);
+
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        switch (response.getCode()) {
+            case ResponseCode.SUCCESS: {
+                RecallMessageResponseHeader responseHeader =
+                    response.decodeCommandCustomHeader(RecallMessageResponseHeader.class);
+                return responseHeader.getMsgId();
+            }
+            default:
+                break;
+        }
+        throw new MQBrokerException(response.getCode(), response.getRemark(), addr);
+    }
+
+    public void recallMessageAsync(
+        final String addr,
+        final RecallMessageRequestHeader requestHeader,
+        final long timeoutMillis,
+        final InvokeCallback invokeCallback
+    ) throws RemotingException, InterruptedException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.RECALL_MESSAGE, requestHeader);
+
+        this.remotingClient.invokeAsync(addr, request, timeoutMillis, new InvokeCallback() {
+            @Override
+            public void operationComplete(ResponseFuture responseFuture) {
+            }
+
+            @Override
+            public void operationSucceed(RemotingCommand response) {
+                invokeCallback.operationSucceed(response);
+            }
+
+            @Override
+            public void operationFail(Throwable throwable) {
+                invokeCallback.operationFail(throwable);
+            }
+        });
+    }
+
+    public void exportPopRecord(String brokerAddr, long timeout) throws RemotingConnectException,
+        RemotingSendRequestException, RemotingTimeoutException, InterruptedException, MQBrokerException {
+        RemotingCommand request = RemotingCommand.createRequestCommand(
+            RequestCode.POP_ROLLBACK, null);
+        RemotingCommand response = this.remotingClient.invokeSync(brokerAddr, request, timeout);
+        assert response != null;
+        if (response.getCode() == SUCCESS) {
+            return;
         }
         throw new MQBrokerException(response.getCode(), response.getRemark());
     }

@@ -26,6 +26,8 @@ import org.apache.rocketmq.broker.client.ConsumerManager;
 import org.apache.rocketmq.broker.filter.ConsumerFilterData;
 import org.apache.rocketmq.broker.filter.ConsumerFilterManager;
 import org.apache.rocketmq.broker.filter.ExpressionMessageFilter;
+import org.apache.rocketmq.broker.longpolling.PopCommandCallback;
+import org.apache.rocketmq.broker.longpolling.PopLongPollingService;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.broker.processor.PopBufferMergeService;
 import org.apache.rocketmq.broker.processor.PopInflightMessageCounter;
@@ -51,6 +53,7 @@ import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.exception.ConsumeQueueException;
 
 public class ConsumerLagCalculator {
+
     private final BrokerConfig brokerConfig;
     private final TopicConfigManager topicConfigManager;
     private final ConsumerManager consumerManager;
@@ -59,6 +62,7 @@ public class ConsumerLagCalculator {
     private final SubscriptionGroupManager subscriptionGroupManager;
     private final MessageStore messageStore;
     private final PopBufferMergeService popBufferMergeService;
+    private final PopLongPollingService popLongPollingService;
     private final PopInflightMessageCounter popInflightMessageCounter;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
@@ -72,10 +76,11 @@ public class ConsumerLagCalculator {
         this.subscriptionGroupManager = brokerController.getSubscriptionGroupManager();
         this.messageStore = brokerController.getMessageStore();
         this.popBufferMergeService = brokerController.getPopMessageProcessor().getPopBufferMergeService();
+        this.popLongPollingService = brokerController.getPopMessageProcessor().getPopLongPollingService();
         this.popInflightMessageCounter = brokerController.getPopInflightMessageCounter();
     }
 
-    private static class ProcessGroupInfo {
+    public static class ProcessGroupInfo {
         public String group;
         public String topic;
         public boolean isPop;
@@ -211,34 +216,44 @@ public class ConsumerLagCalculator {
                 return;
             }
 
-            CalculateLagResult result = new CalculateLagResult(info.group, info.topic, false);
+            if (info.isPop && brokerConfig.isEnableNotifyBeforePopCalculateLag()) {
+                if (popLongPollingService.notifyMessageArriving(info.topic, -1, info.group,
+                    true, null, 0, null, null, new PopCommandCallback(this::calculate, info, lagRecorder))) {
+                    return;
+                }
+            }
 
+            calculate(info, lagRecorder);
+        });
+    }
+
+    public void calculate(ProcessGroupInfo info, Consumer<CalculateLagResult> lagRecorder) {
+        CalculateLagResult result = new CalculateLagResult(info.group, info.topic, false);
+        try {
+            Pair<Long, Long> lag = getConsumerLagStats(info.group, info.topic, info.isPop);
+            if (lag != null) {
+                result.lag = lag.getObject1();
+                result.earliestUnconsumedTimestamp = lag.getObject2();
+            }
+            lagRecorder.accept(result);
+        } catch (ConsumeQueueException e) {
+            LOGGER.error("Failed to get lag stats", e);
+        }
+
+        if (info.isPop) {
             try {
-                Pair<Long, Long> lag = getConsumerLagStats(info.group, info.topic, info.isPop);
-                if (lag != null) {
-                    result.lag = lag.getObject1();
-                    result.earliestUnconsumedTimestamp = lag.getObject2();
+                Pair<Long, Long> retryLag = getConsumerLagStats(info.group, info.retryTopic, true);
+
+                result = new CalculateLagResult(info.group, info.topic, true);
+                if (retryLag != null) {
+                    result.lag = retryLag.getObject1();
+                    result.earliestUnconsumedTimestamp = retryLag.getObject2();
                 }
                 lagRecorder.accept(result);
             } catch (ConsumeQueueException e) {
                 LOGGER.error("Failed to get lag stats", e);
             }
-
-            if (info.isPop) {
-                try {
-                    Pair<Long, Long> retryLag = getConsumerLagStats(info.group, info.retryTopic, true);
-
-                    result = new CalculateLagResult(info.group, info.topic, true);
-                    if (retryLag != null) {
-                        result.lag = retryLag.getObject1();
-                        result.earliestUnconsumedTimestamp = retryLag.getObject2();
-                    }
-                    lagRecorder.accept(result);
-                } catch (ConsumeQueueException e) {
-                    LOGGER.error("Failed to get lag stats", e);
-                }
-            }
-        });
+        }
     }
 
     public void calculateInflight(Consumer<CalculateInflightResult> inflightRecorder) {
@@ -319,6 +334,9 @@ public class ConsumerLagCalculator {
         if (earliestUnconsumedTimestamp < 0 || earliestUnconsumedTimestamp == Long.MAX_VALUE) {
             earliestUnconsumedTimestamp = 0L;
         }
+
+        LOGGER.debug("GetConsumerLagStats, topic={}, group={}, lag={}, latency={}", topic, group, total,
+            earliestUnconsumedTimestamp > 0 ? System.currentTimeMillis() - earliestUnconsumedTimestamp : 0);
 
         return new Pair<>(total, earliestUnconsumedTimestamp);
     }

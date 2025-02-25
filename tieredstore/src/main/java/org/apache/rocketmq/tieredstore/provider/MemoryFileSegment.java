@@ -19,6 +19,7 @@ package org.apache.rocketmq.tieredstore.provider;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.stream.FileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
@@ -35,9 +36,9 @@ public class MemoryFileSegment extends FileSegment {
     protected boolean checkSize = true;
 
     public MemoryFileSegment(MessageStoreConfig storeConfig,
-        FileSegmentType fileType, String filePath, long baseOffset) {
+        FileSegmentType fileType, String filePath, long baseOffset, MessageStoreExecutor executor) {
 
-        super(storeConfig, fileType, filePath, baseOffset);
+        super(storeConfig, fileType, filePath, baseOffset, executor);
         memStore = ByteBuffer.allocate(10000);
         memStore.position((int) getSize());
     }

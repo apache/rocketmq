@@ -36,7 +36,6 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.common.message.MessageQueueAssignment;
 import org.apache.rocketmq.common.message.MessageRequestMode;
-import org.apache.rocketmq.remoting.exception.RemotingTimeoutException;
 import org.apache.rocketmq.remoting.protocol.body.LockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.body.UnlockBatchRequestBody;
 import org.apache.rocketmq.remoting.protocol.filter.FilterAPI;
@@ -60,11 +59,7 @@ public abstract class RebalanceImpl {
     protected MessageModel messageModel;
     protected AllocateMessageQueueStrategy allocateMessageQueueStrategy;
     protected MQClientInstance mQClientFactory;
-    private static final int TIMEOUT_CHECK_TIMES = 3;
     private static final int QUERY_ASSIGNMENT_TIMEOUT = 3000;
-
-    private Map<String, String> topicBrokerRebalance = new ConcurrentHashMap<>();
-    private Map<String, String> topicClientRebalance = new ConcurrentHashMap<>();
 
     public RebalanceImpl(String consumerGroup, MessageModel messageModel,
         AllocateMessageQueueStrategy allocateMessageQueueStrategy,
@@ -241,7 +236,7 @@ public abstract class RebalanceImpl {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
                 final String topic = entry.getKey();
                 try {
-                    if (!clientRebalance(topic) && tryQueryAssignment(topic)) {
+                    if (!clientRebalance(topic)) {
                         boolean result = this.getRebalanceResultFromBroker(topic, isOrder);
                         if (!result) {
                             balanced = false;
@@ -264,38 +259,6 @@ public abstract class RebalanceImpl {
         this.truncateMessageQueueNotMyTopic();
 
         return balanced;
-    }
-
-    private boolean tryQueryAssignment(String topic) {
-        if (topicClientRebalance.containsKey(topic)) {
-            return false;
-        }
-
-        if (topicBrokerRebalance.containsKey(topic)) {
-            return true;
-        }
-        String strategyName = allocateMessageQueueStrategy != null ? allocateMessageQueueStrategy.getName() : null;
-        int retryTimes = 0;
-        while (retryTimes++ < TIMEOUT_CHECK_TIMES) {
-            try {
-                Set<MessageQueueAssignment> resultSet = mQClientFactory.queryAssignment(topic, consumerGroup,
-                    strategyName, messageModel, QUERY_ASSIGNMENT_TIMEOUT / TIMEOUT_CHECK_TIMES * retryTimes);
-                topicBrokerRebalance.put(topic, topic);
-                return true;
-            } catch (Throwable t) {
-                if (!(t instanceof RemotingTimeoutException)) {
-                    log.error("tryQueryAssignment error.", t);
-                    topicClientRebalance.put(topic, topic);
-                    return false;
-                }
-            }
-        }
-        if (retryTimes >= TIMEOUT_CHECK_TIMES) {
-            // if never success before and timeout exceed TIMEOUT_CHECK_TIMES, force client rebalance
-            topicClientRebalance.put(topic, topic);
-            return false;
-        }
-        return true;
     }
 
     public ConcurrentMap<String, SubscriptionData> getSubscriptionInner() {
@@ -458,20 +421,6 @@ public abstract class RebalanceImpl {
                     pq.setDropped(true);
                     log.info("doRebalance, {}, truncateMessageQueueNotMyTopic remove unnecessary pop mq, {}", consumerGroup, mq);
                 }
-            }
-        }
-
-        Iterator<Map.Entry<String, String>> clientIter = topicClientRebalance.entrySet().iterator();
-        while (clientIter.hasNext()) {
-            if (!subTable.containsKey(clientIter.next().getKey())) {
-                clientIter.remove();
-            }
-        }
-
-        Iterator<Map.Entry<String, String>> brokerIter = topicBrokerRebalance.entrySet().iterator();
-        while (brokerIter.hasNext()) {
-            if (!subTable.containsKey(brokerIter.next().getKey())) {
-                brokerIter.remove();
             }
         }
     }

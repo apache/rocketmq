@@ -40,8 +40,8 @@ public class NotifyMessageArrivingListener implements MessageArrivingListener {
         this.pullRequestHoldService.notifyMessageArriving(
             topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties);
         this.popMessageProcessor.notifyMessageArriving(
-            topic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
+            topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties);
         this.notificationProcessor.notifyMessageArriving(
-            topic, queueId, tagsCode, msgStoreTime, filterBitMap, properties);
+            topic, queueId, logicOffset, tagsCode, msgStoreTime, filterBitMap, properties);
     }
 }

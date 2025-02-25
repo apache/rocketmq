@@ -17,7 +17,9 @@
 
 package org.apache.rocketmq.tieredstore.file;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.metadata.MetadataStore;
 import org.apache.rocketmq.tieredstore.provider.FileSegmentFactory;
@@ -28,10 +30,19 @@ public class FlatFileFactory {
     private final MessageStoreConfig storeConfig;
     private final FileSegmentFactory fileSegmentFactory;
 
+    @VisibleForTesting
     public FlatFileFactory(MetadataStore metadataStore, MessageStoreConfig storeConfig) {
         this.metadataStore = metadataStore;
         this.storeConfig = storeConfig;
-        this.fileSegmentFactory = new FileSegmentFactory(metadataStore, storeConfig);
+        this.fileSegmentFactory = new FileSegmentFactory(metadataStore, storeConfig, new MessageStoreExecutor());
+    }
+
+    public FlatFileFactory(MetadataStore metadataStore,
+        MessageStoreConfig storeConfig, MessageStoreExecutor executor) {
+
+        this.metadataStore = metadataStore;
+        this.storeConfig = storeConfig;
+        this.fileSegmentFactory = new FileSegmentFactory(metadataStore, storeConfig, executor);
     }
 
     public MessageStoreConfig getStoreConfig() {

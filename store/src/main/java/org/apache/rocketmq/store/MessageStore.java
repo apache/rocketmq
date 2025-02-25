@@ -512,6 +512,13 @@ public interface MessageStore {
     long dispatchBehindBytes();
 
     /**
+     * Get number of the milliseconds that have been stored in commit log and not yet dispatched to consume queue.
+     *
+     * @return number of the milliseconds to dispatch.
+     */
+    long dispatchBehindMilliseconds();
+
+    /**
      * Flush the message store to persist all data.
      *
      * @return maximum offset flushed to persistent storage device.

@@ -132,6 +132,11 @@ public class SendMessageActivity extends AbstractMessingActivity {
     }
 
     protected void validateMessageBodySize(ByteString body) {
+        if (ConfigurationManager.getProxyConfig().isEnableMessageBodyEmptyCheck()) {
+            if (body.isEmpty()) {
+                throw new GrpcProxyException(Code.MESSAGE_BODY_EMPTY, "message body cannot be empty");
+            }
+        }
         int max = ConfigurationManager.getProxyConfig().getMaxMessageSize();
         if (max <= 0) {
             return;
@@ -336,6 +341,7 @@ public class SendMessageActivity extends AbstractMessingActivity {
                         .setOffset(result.getQueueOffset())
                         .setMessageId(StringUtils.defaultString(result.getMsgId()))
                         .setTransactionId(StringUtils.defaultString(result.getTransactionId()))
+                        .setRecallHandle(StringUtils.defaultString(result.getRecallHandle()))
                         .build();
                     break;
                 default:

@@ -64,7 +64,7 @@ public class ConfigHelper {
         return Optional.empty();
     }
 
-    public static void stampDataVersion(WriteBatch writeBatch, DataVersion dataVersion, long stateMachineVersion)
+    public static void stampDataVersion(WriteBatch writeBatch, TableId table, DataVersion dataVersion, long stateMachineVersion)
         throws RocksDBException {
         // Increase data version
         dataVersion.nextVersion(stateMachineVersion);
@@ -75,7 +75,7 @@ public class ConfigHelper {
         ByteBuf valueBuf = AbstractRocksDBStorage.POOLED_ALLOCATOR.buffer(Long.BYTES * 3);
         try {
             keyBuf.writeByte(TablePrefix.TABLE.getValue());
-            keyBuf.writeShort(TableId.CONSUMER_OFFSET.getValue());
+            keyBuf.writeShort(table.getValue());
             keyBuf.writeByte(RecordPrefix.DATA_VERSION.getValue());
             keyBuf.writeBytes(ConfigStorage.DATA_VERSION_KEY_BYTES);
             valueBuf.writeLong(dataVersion.getStateVersion());

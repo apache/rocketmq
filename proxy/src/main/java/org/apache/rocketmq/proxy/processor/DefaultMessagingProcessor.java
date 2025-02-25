@@ -262,6 +262,12 @@ public class DefaultMessagingProcessor extends AbstractStartAndShutdown implemen
     }
 
     @Override
+    public CompletableFuture<String> recallMessage(ProxyContext ctx, String topic,
+                                                   String recallHandle, long timeoutMillis) {
+        return this.producerProcessor.recallMessage(ctx, topic, recallHandle, timeoutMillis);
+    }
+
+    @Override
     public CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
         long timeoutMillis) {
         int originalRequestOpaque = request.getOpaque();

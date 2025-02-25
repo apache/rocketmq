@@ -86,7 +86,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
     }
 
     private synchronized RemotingCommand addBroker(ChannelHandlerContext ctx,
-        RemotingCommand request) throws Exception {
+                                                   RemotingCommand request) throws Exception {
         final RemotingCommand response = RemotingCommand.createResponseCommand(null);
         final AddBrokerRequestHeader requestHeader = (AddBrokerRequestHeader) request.decodeCommandCustomHeader(AddBrokerRequestHeader.class);
 
@@ -124,10 +124,7 @@ public class BrokerContainerProcessor implements NettyRequestProcessor {
         MixAll.properties2Object(brokerProperties, messageStoreConfig);
 
         messageStoreConfig.setHaListenPort(brokerConfig.getListenPort() + 1);
-
-        if (configPath != null && !configPath.isEmpty()) {
-            brokerConfig.setBrokerConfigPath(configPath);
-        }
+        brokerConfig.setBrokerConfigPath(configPath);
 
         if (!messageStoreConfig.isEnableDLegerCommitLog()) {
             if (!brokerConfig.isEnableControllerMode()) {

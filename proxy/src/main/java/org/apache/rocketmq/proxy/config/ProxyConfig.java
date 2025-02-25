@@ -104,6 +104,10 @@ public class ProxyConfig implements ConfigFile {
      */
     private int maxMessageSize = 4 * 1024 * 1024;
     /**
+     * if true, proxy will check message body size and reject msg if it's body is empty
+     */
+    private boolean enableMessageBodyEmptyCheck = true;
+    /**
      * max user property size, 0 or negative number means no limit for proxy
      */
     private int maxUserPropertySize = 16 * 1024;
@@ -1524,5 +1528,13 @@ public class ProxyConfig implements ConfigFile {
 
     public void setEnableBatchAck(boolean enableBatchAck) {
         this.enableBatchAck = enableBatchAck;
+    }
+
+    public boolean isEnableMessageBodyEmptyCheck() {
+        return enableMessageBodyEmptyCheck;
+    }
+
+    public void setEnableMessageBodyEmptyCheck(boolean enableMessageBodyEmptyCheck) {
+        this.enableMessageBodyEmptyCheck = enableMessageBodyEmptyCheck;
     }
 }

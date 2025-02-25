@@ -80,6 +80,7 @@ import org.apache.rocketmq.tools.command.export.ExportConfigsCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetadataCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetadataInRocksDBCommand;
 import org.apache.rocketmq.tools.command.export.ExportMetricsCommand;
+import org.apache.rocketmq.tools.command.export.ExportPopRecordCommand;
 import org.apache.rocketmq.tools.command.ha.GetSyncStateSetSubCommand;
 import org.apache.rocketmq.tools.command.ha.HAStatusSubCommand;
 import org.apache.rocketmq.tools.command.message.CheckMsgSendRTCommand;
@@ -273,6 +274,7 @@ public class MQAdminStartup {
         initCommand(new ExportConfigsCommand());
         initCommand(new ExportMetricsCommand());
         initCommand(new ExportMetadataInRocksDBCommand());
+        initCommand(new ExportPopRecordCommand());
 
         initCommand(new HAStatusSubCommand());
 

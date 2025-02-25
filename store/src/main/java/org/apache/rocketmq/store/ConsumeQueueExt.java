@@ -33,7 +33,7 @@ import org.apache.rocketmq.store.logfile.MappedFile;
  * such as message store time, filter bit map and etc.
  * <p/>
  * <li>1. This class is used only by {@link ConsumeQueue}</li>
- * <li>2. And is week reliable.</li>
+ * <li>2. And is weakly reliable.</li>
  * <li>3. Be careful, address returned is always less than 0.</li>
  * <li>4. Pls keep this file small.</li>
  */

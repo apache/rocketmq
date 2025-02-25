@@ -108,6 +108,13 @@ public class Message implements Serializable {
         return this.properties.get(name);
     }
 
+    public boolean hasProperty(final String name) {
+        if (null == this.properties) {
+            return false;
+        }
+        return this.properties.containsKey(name);
+    }
+
     public String getTopic() {
         return topic;
     }

@@ -19,6 +19,7 @@ package org.apache.rocketmq.tieredstore.provider;
 import java.io.IOException;
 import org.apache.rocketmq.common.message.MessageQueue;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
+import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.common.FileSegmentType;
 import org.apache.rocketmq.tieredstore.stream.FileSegmentInputStream;
 import org.apache.rocketmq.tieredstore.util.MessageStoreUtil;
@@ -34,7 +35,7 @@ public class MemoryFileSegmentTest {
     public void memoryTest() throws IOException {
         MemoryFileSegment fileSegment = new MemoryFileSegment(
             new MessageStoreConfig(), FileSegmentType.COMMIT_LOG,
-            MessageStoreUtil.toFilePath(new MessageQueue()), 0L);
+            MessageStoreUtil.toFilePath(new MessageQueue()), 0L, new MessageStoreExecutor());
         Assert.assertFalse(fileSegment.exists());
         fileSegment.createFile();
         MemoryFileSegment fileSpySegment = Mockito.spy(fileSegment);

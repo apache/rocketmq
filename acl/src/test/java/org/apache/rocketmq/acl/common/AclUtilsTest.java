@@ -16,7 +16,7 @@
  */
 package org.apache.rocketmq.acl.common;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.plain.PlainAccessData;
 import org.apache.rocketmq.common.PlainAccessConfig;
@@ -32,7 +32,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class AclUtilsTest {
 
@@ -295,5 +300,26 @@ public class AclUtilsTest {
             RPCHook incompleteContRPCHook = AclUtils.getAclRPCHook(is);
             Assert.assertNull(incompleteContRPCHook);
         }
+    }
+
+    @Test
+    public void testGetAclRPCHookByFileName() {
+        RPCHook actual = AclUtils.getAclRPCHook(Objects.requireNonNull(AclUtilsTest.class.getResource("/acl_hook/plain_acl.yml")).getPath());
+        assertNotNull(actual);
+        assertTrue(actual instanceof AclClientRPCHook);
+        assertAclClientRPCHook((AclClientRPCHook) actual);
+    }
+
+    @Test
+    public void testGetAclRPCHookByInputStream() {
+        RPCHook actual = AclUtils.getAclRPCHook(Objects.requireNonNull(AclUtilsTest.class.getResourceAsStream("/acl_hook/plain_acl.yml")));
+        assertNotNull(actual);
+        assertTrue(actual instanceof AclClientRPCHook);
+        assertAclClientRPCHook((AclClientRPCHook) actual);
+    }
+
+    private void assertAclClientRPCHook(final AclClientRPCHook actual) {
+        assertEquals("rocketmq2", actual.getSessionCredentials().getAccessKey());
+        assertEquals("12345678", actual.getSessionCredentials().getSecretKey());
     }
 }

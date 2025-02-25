@@ -26,6 +26,7 @@ import apache.rocketmq.v2.Message;
 import apache.rocketmq.v2.NotifyClientTerminationRequest;
 import apache.rocketmq.v2.QueryAssignmentRequest;
 import apache.rocketmq.v2.QueryRouteRequest;
+import apache.rocketmq.v2.RecallMessageRequest;
 import apache.rocketmq.v2.ReceiveMessageRequest;
 import apache.rocketmq.v2.Resource;
 import apache.rocketmq.v2.SendMessageRequest;
@@ -127,6 +128,9 @@ public class PlainAccessResource implements AccessResource {
                 case RequestCode.SEND_BATCH_MESSAGE:
                     final String topicV2 = request.getExtFields().get("b");
                     accessResource.addResourceAndPerm(topicV2, PlainAccessResource.isRetryTopic(topicV2) ? Permission.SUB : Permission.PUB);
+                    break;
+                case RequestCode.RECALL_MESSAGE:
+                    accessResource.addResourceAndPerm(request.getExtFields().get("topic"), Permission.PUB);
                     break;
                 case RequestCode.CONSUMER_SEND_MSG_BACK:
                     accessResource.addResourceAndPerm(getRetryTopic(request.getExtFields().get("group")), Permission.SUB);
@@ -232,6 +236,9 @@ public class PlainAccessResource implements AccessResource {
                     }
                 }
                 accessResource.addResourceAndPerm(topic, Permission.PUB);
+            } else if (RecallMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
+                RecallMessageRequest request = (RecallMessageRequest) messageV3;
+                accessResource.addResourceAndPerm(request.getTopic(), Permission.PUB);
             } else if (ReceiveMessageRequest.getDescriptor().getFullName().equals(rpcFullName)) {
                 ReceiveMessageRequest request = (ReceiveMessageRequest) messageV3;
                 accessResource.addGroupResourceAndPerm(request.getGroup(), Permission.SUB);

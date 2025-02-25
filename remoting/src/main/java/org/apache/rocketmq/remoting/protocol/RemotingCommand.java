@@ -29,6 +29,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,6 +39,7 @@ import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.logging.org.slf4j.Logger;
 import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.remoting.CommandCallback;
 import org.apache.rocketmq.remoting.CommandCustomHeader;
 import org.apache.rocketmq.remoting.annotation.CFNotNull;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -96,6 +98,7 @@ public class RemotingCommand {
     private transient byte[] body;
     private boolean suspended;
     private transient Stopwatch processTimer;
+    private transient List<CommandCallback> callbackList;
 
     protected RemotingCommand() {
     }
@@ -638,5 +641,13 @@ public class RemotingCommand {
 
     public void setProcessTimer(Stopwatch processTimer) {
         this.processTimer = processTimer;
+    }
+
+    public List<CommandCallback> getCallbackList() {
+        return callbackList;
+    }
+
+    public void setCallbackList(List<CommandCallback> callbackList) {
+        this.callbackList = callbackList;
     }
 }

@@ -58,7 +58,8 @@ public class SendMessageTraceHookImpl implements SendMessageHook {
         traceBean.setTags(context.getMessage().getTags());
         traceBean.setKeys(context.getMessage().getKeys());
         traceBean.setStoreHost(context.getBrokerAddr());
-        traceBean.setBodyLength(context.getMessage().getBody().length);
+        int bodyLength = null == context.getMessage().getBody() ? 0 : context.getMessage().getBody().length;
+        traceBean.setBodyLength(bodyLength);
         traceBean.setMsgType(context.getMsgType());
         traceContext.getTraceBeans().add(traceBean);
     }

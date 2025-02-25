@@ -25,6 +25,7 @@ import org.apache.rocketmq.client.exception.RequestTimeoutException;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.lock.ReadWriteCASLock;
+import org.apache.rocketmq.client.trace.hook.DefaultRecallMessageTraceHook;
 import org.apache.rocketmq.client.trace.AsyncTraceDispatcher;
 import org.apache.rocketmq.client.trace.TraceDispatcher;
 import org.apache.rocketmq.client.trace.hook.EndTransactionTraceHookImpl;
@@ -381,6 +382,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
                     new SendMessageTraceHookImpl(traceDispatcher));
                 this.defaultMQProducerImpl.registerEndTransactionHook(
                     new EndTransactionTraceHookImpl(traceDispatcher));
+                this.defaultMQProducerImpl.getMqClientFactory().getMQClientAPIImpl().getRemotingClient()
+                    .registerRPCHook(new DefaultRecallMessageTraceHook(traceDispatcher));
             } catch (Throwable e) {
                 logger.error("system mqtrace hook init failed ,maybe can't send msg trace data");
             }
@@ -1126,6 +1129,12 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
         SendCallback sendCallback,
         long timeout) throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
         this.defaultMQProducerImpl.send(batch(msgs), queueWithNamespace(mq), sendCallback, timeout);
+    }
+
+    @Override
+    public String recallMessage(String topic, String recallHandle)
+        throws MQClientException, RemotingException, MQBrokerException, InterruptedException {
+        return this.defaultMQProducerImpl.recallMessage(withNamespace(topic), recallHandle);
     }
 
     /**

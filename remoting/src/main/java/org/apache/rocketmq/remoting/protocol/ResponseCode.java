@@ -55,6 +55,8 @@ public class ResponseCode extends RemotingSysResponseCode {
 
     public static final int FILTER_DATA_NOT_LATEST = 28;
 
+    public static final int INVALID_PARAMETER = 29;
+
     public static final int TRANSACTION_SHOULD_COMMIT = 200;
 
     public static final int TRANSACTION_SHOULD_ROLLBACK = 201;

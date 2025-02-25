@@ -260,6 +260,13 @@ public interface MessagingProcessor extends StartAndShutdown {
         long timeoutMillis
     );
 
+    CompletableFuture<String> recallMessage(
+        ProxyContext ctx,
+        String topic,
+        String recallHandle,
+        long timeoutMillis
+    );
+
     CompletableFuture<RemotingCommand> request(ProxyContext ctx, String brokerName, RemotingCommand request,
         long timeoutMillis);
 

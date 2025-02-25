@@ -35,6 +35,7 @@ import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.tieredstore.MessageStoreConfig;
 import org.apache.rocketmq.tieredstore.MessageStoreExecutor;
 import org.apache.rocketmq.tieredstore.TieredMessageStore;
+import org.apache.rocketmq.tieredstore.common.GroupCommitContext;
 import org.apache.rocketmq.tieredstore.file.FlatFileFactory;
 import org.apache.rocketmq.tieredstore.file.FlatFileStore;
 import org.apache.rocketmq.tieredstore.file.FlatMessageFile;
@@ -105,6 +106,7 @@ public class MessageStoreDispatcherImplTest {
         Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
         Mockito.when(messageStore.getFlatFileStore()).thenReturn(fileStore);
         Mockito.when(messageStore.getIndexService()).thenReturn(indexService);
+        Mockito.when(messageStore.getMessageStoreConfig()).thenReturn(new org.apache.rocketmq.store.config.MessageStoreConfig());
 
         // mock message
         ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
@@ -155,6 +157,130 @@ public class MessageStoreDispatcherImplTest {
         Assert.assertEquals(100L, flatFile.getConsumeQueueMinOffset());
         Assert.assertEquals(200L, flatFile.getConsumeQueueMaxOffset());
         Assert.assertEquals(200L, flatFile.getConsumeQueueCommitOffset());
+    }
+
+    @Test
+    public void dispatchCommitFailedTest() throws Exception {
+        MessageStore defaultStore = Mockito.mock(MessageStore.class);
+        Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
+        Mockito.when(defaultStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(200L);
+
+        messageStore = Mockito.mock(TieredMessageStore.class);
+        IndexService indexService =
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+        indexService.start();
+        Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
+        Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
+        Mockito.when(messageStore.getFlatFileStore()).thenReturn(fileStore);
+        Mockito.when(messageStore.getIndexService()).thenReturn(indexService);
+
+        // mock message
+        ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+        MessageExt messageExt = MessageDecoder.decode(buffer);
+        messageExt.setKeys("Key");
+        MessageAccessor.putProperty(
+            messageExt, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, "uk");
+        messageExt.setBody(new byte[10]);
+        messageExt.setStoreSize(0);
+        buffer = ByteBuffer.wrap(MessageDecoder.encode(messageExt, false));
+        buffer.putInt(0, buffer.remaining());
+
+        DispatchRequest request = new DispatchRequest(mq.getTopic(), mq.getQueueId(),
+            MessageFormatUtil.getCommitLogOffset(buffer), buffer.remaining(), 0L,
+            MessageFormatUtil.getStoreTimeStamp(buffer), 0L,
+            "", "", 0, 0L, new HashMap<>());
+
+        // construct flat file
+        MessageStoreDispatcher dispatcher = new MessageStoreDispatcherImpl(messageStore);
+        dispatcher.dispatch(request);
+        FlatMessageFile flatFile = fileStore.getFlatFile(mq);
+        Assert.assertNotNull(flatFile);
+
+        // init offset
+        dispatcher.doScheduleDispatch(flatFile, true).join();
+        Assert.assertEquals(100L, flatFile.getConsumeQueueMinOffset());
+        Assert.assertEquals(100L, flatFile.getConsumeQueueMaxOffset());
+        Assert.assertEquals(100L, flatFile.getConsumeQueueCommitOffset());
+
+        ConsumeQueueInterface cq = Mockito.mock(ConsumeQueueInterface.class);
+        Mockito.when(defaultStore.getConsumeQueue(anyString(), anyInt())).thenReturn(cq);
+        Mockito.when(cq.get(anyLong())).thenReturn(
+            new CqUnit(100, 1000, buffer.remaining(), 0L));
+        Mockito.when(defaultStore.selectOneMessageByOffset(anyLong(), anyInt())).thenReturn(
+            new SelectMappedBufferResult(0L, buffer.asReadOnlyBuffer(), buffer.remaining(), null));
+        flatFile.getCommitLock().drainPermits();
+        dispatcher.doScheduleDispatch(flatFile, true).join();
+        GroupCommitContext groupCommitContext = ((MessageStoreDispatcherImpl)dispatcher).getFailedGroupCommitMap().get(flatFile);
+        Assert.assertTrue(groupCommitContext != null);
+        Assert.assertTrue(groupCommitContext.getEndOffset() == 200);
+        flatFile.getCommitLock().release();
+        flatFile.commitAsync().join();
+        dispatcher.doScheduleDispatch(flatFile, true).join();
+        Assert.assertTrue(((MessageStoreDispatcherImpl)dispatcher).getFailedGroupCommitMap().get(flatFile) == null);
+        ((MessageStoreDispatcherImpl)dispatcher).flatFileStore.destroyFile(mq);
+        ((MessageStoreDispatcherImpl)dispatcher).releaseClosedPendingGroupCommit();
+
+    }
+
+    @Test
+    public void dispatchFailedGroupCommitMapReleaseTest() throws Exception {
+        MessageStore defaultStore = Mockito.mock(MessageStore.class);
+        Mockito.when(defaultStore.getMinOffsetInQueue(anyString(), anyInt())).thenReturn(100L);
+        Mockito.when(defaultStore.getMaxOffsetInQueue(anyString(), anyInt())).thenReturn(200L);
+
+        messageStore = Mockito.mock(TieredMessageStore.class);
+        IndexService indexService =
+            new IndexStoreService(new FlatFileFactory(metadataStore, storeConfig), storePath);
+        indexService.start();
+        Mockito.when(messageStore.getDefaultStore()).thenReturn(defaultStore);
+        Mockito.when(messageStore.getStoreConfig()).thenReturn(storeConfig);
+        Mockito.when(messageStore.getStoreExecutor()).thenReturn(executor);
+        Mockito.when(messageStore.getFlatFileStore()).thenReturn(fileStore);
+        Mockito.when(messageStore.getIndexService()).thenReturn(indexService);
+
+        // mock message
+        ByteBuffer buffer = MessageFormatUtilTest.buildMockedMessageBuffer();
+        MessageExt messageExt = MessageDecoder.decode(buffer);
+        messageExt.setKeys("Key");
+        MessageAccessor.putProperty(
+            messageExt, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, "uk");
+        messageExt.setBody(new byte[10]);
+        messageExt.setStoreSize(0);
+        buffer = ByteBuffer.wrap(MessageDecoder.encode(messageExt, false));
+        buffer.putInt(0, buffer.remaining());
+
+        DispatchRequest request = new DispatchRequest(mq.getTopic(), mq.getQueueId(),
+            MessageFormatUtil.getCommitLogOffset(buffer), buffer.remaining(), 0L,
+            MessageFormatUtil.getStoreTimeStamp(buffer), 0L,
+            "", "", 0, 0L, new HashMap<>());
+
+        // construct flat file
+        MessageStoreDispatcher dispatcher = new MessageStoreDispatcherImpl(messageStore);
+        dispatcher.dispatch(request);
+        FlatMessageFile flatFile = fileStore.getFlatFile(mq);
+        Assert.assertNotNull(flatFile);
+
+        // init offset
+        dispatcher.doScheduleDispatch(flatFile, true).join();
+        Assert.assertEquals(100L, flatFile.getConsumeQueueMinOffset());
+        Assert.assertEquals(100L, flatFile.getConsumeQueueMaxOffset());
+        Assert.assertEquals(100L, flatFile.getConsumeQueueCommitOffset());
+
+        ConsumeQueueInterface cq = Mockito.mock(ConsumeQueueInterface.class);
+        Mockito.when(defaultStore.getConsumeQueue(anyString(), anyInt())).thenReturn(cq);
+        Mockito.when(cq.get(anyLong())).thenReturn(
+            new CqUnit(100, 1000, buffer.remaining(), 0L));
+        Mockito.when(defaultStore.selectOneMessageByOffset(anyLong(), anyInt())).thenReturn(
+            new SelectMappedBufferResult(0L, buffer.asReadOnlyBuffer(), buffer.remaining(), null));
+        flatFile.getCommitLock().drainPermits();
+        dispatcher.doScheduleDispatch(flatFile, true).join();
+        GroupCommitContext groupCommitContext = ((MessageStoreDispatcherImpl)dispatcher).getFailedGroupCommitMap().get(flatFile);
+        Assert.assertTrue(groupCommitContext != null);
+        ((MessageStoreDispatcherImpl)dispatcher).flatFileStore.destroyFile(mq);
+        ((MessageStoreDispatcherImpl)dispatcher).releaseClosedPendingGroupCommit();
+        Assert.assertTrue(((MessageStoreDispatcherImpl)dispatcher).getFailedGroupCommitMap().get(flatFile) == null);
+
     }
 
     @Test

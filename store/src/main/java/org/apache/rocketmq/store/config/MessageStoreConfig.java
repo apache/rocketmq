@@ -23,6 +23,7 @@ import org.apache.rocketmq.store.ConsumeQueue;
 import org.apache.rocketmq.store.StoreType;
 import org.apache.rocketmq.store.queue.BatchConsumeQueue;
 import org.rocksdb.CompressionType;
+import org.rocksdb.util.SizeUnit;
 
 public class MessageStoreConfig {
 
@@ -98,6 +99,7 @@ public class MessageStoreConfig {
     private boolean timerSkipUnknownError = false;
     private boolean timerWarmEnable = false;
     private boolean timerStopDequeue = false;
+    private boolean timerEnableRetryUntilSuccess = false;
     private int timerCongestNumEachSlot = Integer.MAX_VALUE;
 
     private int timerMetricSmallThreshold = 1000000;
@@ -443,6 +445,13 @@ public class MessageStoreConfig {
     private String bottomMostCompressionTypeForConsumeQueueStore = CompressionType.ZSTD_COMPRESSION.getLibraryName();
 
     private String rocksdbCompressionType = CompressionType.LZ4_COMPRESSION.getLibraryName();
+
+    /**
+     * Flush RocksDB WAL frequency, aka, flush WAL every N write ops.
+     */
+    private int rocksdbFlushWalFrequency = 1024;
+
+    private long rocksdbWalFileRollingThreshold = SizeUnit.GB;
 
     public String getRocksdbCompressionType() {
         return rocksdbCompressionType;
@@ -1681,6 +1690,14 @@ public class MessageStoreConfig {
         this.timerSkipUnknownError = timerSkipUnknownError;
     }
 
+    public boolean isTimerEnableRetryUntilSuccess() {
+        return timerEnableRetryUntilSuccess;
+    }
+
+    public void setTimerEnableRetryUntilSuccess(boolean timerEnableRetryUntilSuccess) {
+        this.timerEnableRetryUntilSuccess = timerEnableRetryUntilSuccess;
+    }
+
     public boolean isTimerWarmEnable() {
         return timerWarmEnable;
     }
@@ -1900,6 +1917,22 @@ public class MessageStoreConfig {
 
     public void setBottomMostCompressionTypeForConsumeQueueStore(String bottomMostCompressionTypeForConsumeQueueStore) {
         this.bottomMostCompressionTypeForConsumeQueueStore = bottomMostCompressionTypeForConsumeQueueStore;
+    }
+
+    public int getRocksdbFlushWalFrequency() {
+        return rocksdbFlushWalFrequency;
+    }
+
+    public void setRocksdbFlushWalFrequency(int rocksdbFlushWalFrequency) {
+        this.rocksdbFlushWalFrequency = rocksdbFlushWalFrequency;
+    }
+
+    public long getRocksdbWalFileRollingThreshold() {
+        return rocksdbWalFileRollingThreshold;
+    }
+
+    public void setRocksdbWalFileRollingThreshold(long rocksdbWalFileRollingThreshold) {
+        this.rocksdbWalFileRollingThreshold = rocksdbWalFileRollingThreshold;
     }
 
     public int getSpinLockCollisionRetreatOptimalDegree() {

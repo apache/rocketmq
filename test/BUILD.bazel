@@ -117,6 +117,8 @@ GenTestRules(
         "src/test/java/org/apache/rocketmq/test/client/producer/oneway/OneWaySendIT",
         "src/test/java/org/apache/rocketmq/test/client/producer/oneway/OneWaySendWithMQIT",
         "src/test/java/org/apache/rocketmq/test/offset/OffsetNotFoundIT",
+        "src/test/java/org/apache/rocketmq/test/recall/RecallWithTraceIT",
+        "src/test/java/org/apache/rocketmq/test/recall/SendAndRecallDelayMessageIT",
         "src/test/java/org/apache/rocketmq/test/client/producer/querymsg/QueryMsgByIdIT",
         "src/test/java/org/apache/rocketmq/test/client/producer/oneway/OneWaySendWithSelectorIT",
         "src/test/java/org/apache/rocketmq/test/smoke/NormalMessageSendAndRecvIT",

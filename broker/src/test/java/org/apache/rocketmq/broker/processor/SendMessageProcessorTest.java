@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import org.apache.commons.codec.DecoderException;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.AbortProcessException;
 import org.apache.rocketmq.broker.mqtrace.ConsumeMessageContext;
@@ -36,10 +37,13 @@ import org.apache.rocketmq.broker.topic.TopicConfigManager;
 import org.apache.rocketmq.broker.transaction.TransactionalMessageService;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.TopicConfig;
+import org.apache.rocketmq.common.message.MessageAccessor;
+import org.apache.rocketmq.common.message.MessageClientIDSetter;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.common.producer.RecallMessageHandle;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingCommandException;
@@ -50,12 +54,14 @@ import org.apache.rocketmq.remoting.protocol.RequestCode;
 import org.apache.rocketmq.remoting.protocol.ResponseCode;
 import org.apache.rocketmq.remoting.protocol.header.ConsumerSendMsgBackRequestHeader;
 import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.remoting.protocol.header.SendMessageResponseHeader;
 import org.apache.rocketmq.store.AppendMessageResult;
 import org.apache.rocketmq.store.AppendMessageStatus;
 import org.apache.rocketmq.store.MessageStore;
 import org.apache.rocketmq.store.PutMessageResult;
 import org.apache.rocketmq.store.PutMessageStatus;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -69,6 +75,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SendMessageProcessorTest {
@@ -77,6 +85,8 @@ public class SendMessageProcessorTest {
     private ChannelHandlerContext handlerContext;
     @Mock
     private Channel channel;
+    @Spy
+    private BrokerConfig brokerConfig;
     @Spy
     private BrokerController brokerController = new BrokerController(new BrokerConfig(), new NettyServerConfig(),
         new NettyClientConfig(), new MessageStoreConfig());
@@ -98,6 +108,7 @@ public class SendMessageProcessorTest {
         when(brokerController.getSubscriptionGroupManager()).thenReturn(subscriptionGroupManager);
         when(brokerController.getTopicConfigManager()).thenReturn(topicConfigManager);
         when(brokerController.getPutMessageFutureExecutor()).thenReturn(Executors.newSingleThreadExecutor());
+        when(brokerController.getBrokerConfig()).thenReturn(brokerConfig);
         when(messageStore.now()).thenReturn(System.currentTimeMillis());
         when(channel.remoteAddress()).thenReturn(new InetSocketAddress(1024));
         when(handlerContext.channel()).thenReturn(channel);
@@ -297,6 +308,60 @@ public class SendMessageProcessorTest {
         final RemotingCommand response = sendMessageProcessor.processRequest(handlerContext, request);
         assertThat(response).isNotNull();
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+    }
+
+    @Test
+    public void testAttachRecallHandle_skip() {
+        MessageExt message = new MessageExt();
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_BATCH_MESSAGE, null);
+        sendMessageProcessor.attachRecallHandle(request, message, new SendMessageResponseHeader());
+
+        request = RemotingCommand.createRequestCommand(RequestCode.CONSUMER_SEND_MSG_BACK, null);
+        sendMessageProcessor.attachRecallHandle(request, message, new SendMessageResponseHeader());
+
+        request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE, null);
+        sendMessageProcessor.attachRecallHandle(request, message, new SendMessageResponseHeader());
+
+        request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, null);
+        sendMessageProcessor.attachRecallHandle(request, message, new SendMessageResponseHeader());
+
+        verify(brokerConfig, times(0)).getBrokerName();
+    }
+
+    @Test
+    public void testAttachRecallHandle_doAttach() throws DecoderException {
+        int[] precisionSet = {100, 200, 500, 1000};
+        SendMessageResponseHeader responseHeader = new SendMessageResponseHeader();
+        String id = MessageClientIDSetter.createUniqID();
+        long timestamp = System.currentTimeMillis();
+
+        for (int precisionMs : precisionSet) {
+            long deliverMs = floor(timestamp, precisionMs);
+            MessageExt message = new MessageExt();
+            MessageAccessor.putProperty(message, MessageConst.PROPERTY_UNIQ_CLIENT_MESSAGE_ID_KEYIDX, id);
+            MessageAccessor.putProperty(message, MessageConst.PROPERTY_TIMER_OUT_MS, String.valueOf(deliverMs));
+            MessageAccessor.putProperty(message, MessageConst.PROPERTY_REAL_TOPIC, topic);
+
+            RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.SEND_MESSAGE_V2, null);
+            sendMessageProcessor.attachRecallHandle(request, message, responseHeader);
+            Assert.assertNotNull(responseHeader.getRecallHandle());
+            RecallMessageHandle.HandleV1 v1 =
+                (RecallMessageHandle.HandleV1) RecallMessageHandle.decodeHandle(responseHeader.getRecallHandle());
+            Assert.assertEquals(id, v1.getMessageId());
+            Assert.assertEquals(topic, v1.getTopic());
+            Assert.assertEquals(deliverMs + 1, Long.parseLong(v1.getTimestampStr()));
+            Assert.assertEquals(deliverMs, floor(Long.valueOf(v1.getTimestampStr()), precisionMs));
+        }
+    }
+
+    private long floor(long deliverMs, int precisionMs) {
+        assert precisionMs > 0;
+        if (deliverMs % precisionMs == 0) {
+            deliverMs -= precisionMs;
+        } else {
+            deliverMs = deliverMs / precisionMs * precisionMs;
+        }
+        return deliverMs;
     }
 
     private RemotingCommand createSendTransactionMsgCommand(int requestCode) {

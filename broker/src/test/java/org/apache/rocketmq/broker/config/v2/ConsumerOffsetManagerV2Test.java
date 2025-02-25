@@ -23,6 +23,7 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.offset.ConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
 import org.apache.rocketmq.common.MixAll;
+import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,6 +45,8 @@ public class ConsumerOffsetManagerV2Test {
     @Mock
     private BrokerController controller;
 
+    private MessageStoreConfig messageStoreConfig;
+
     @Rule
     public TemporaryFolder tf = new TemporaryFolder();
 
@@ -60,7 +63,9 @@ public class ConsumerOffsetManagerV2Test {
         Mockito.doReturn(brokerConfig).when(controller).getBrokerConfig();
 
         File configStoreDir = tf.newFolder();
-        configStorage = new ConfigStorage(configStoreDir.getAbsolutePath());
+        messageStoreConfig = new MessageStoreConfig();
+        messageStoreConfig.setStorePathRootDir(configStoreDir.getAbsolutePath());
+        configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
         consumerOffsetManagerV2 = new ConsumerOffsetManagerV2(controller, configStorage);
     }
@@ -84,7 +89,9 @@ public class ConsumerOffsetManagerV2Test {
         consumerOffsetManagerV2.getOffsetTable().clear();
         Assert.assertEquals(-1L, consumerOffsetManagerV2.queryOffset(group, topic, queueId));
 
+        configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
+        consumerOffsetManagerV2 = new ConsumerOffsetManagerV2(controller, configStorage);
         consumerOffsetManagerV2.load();
         Assert.assertEquals(queueOffset, consumerOffsetManagerV2.queryOffset(group, topic, queueId));
     }
@@ -106,7 +113,9 @@ public class ConsumerOffsetManagerV2Test {
 
         configStorage.shutdown();
 
+        configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
+        consumerOffsetManagerV2 = new ConsumerOffsetManagerV2(controller, configStorage);
         consumerOffsetManagerV2.load();
         Assert.assertEquals(queueOffset, consumerOffsetManagerV2.queryOffset(group, topic, queueId));
     }
@@ -129,7 +138,9 @@ public class ConsumerOffsetManagerV2Test {
 
         configStorage.shutdown();
 
+        configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
+        consumerOffsetManagerV2 = new ConsumerOffsetManagerV2(controller, configStorage);
         consumerOffsetManagerV2.load();
         Assert.assertEquals(queueOffset, consumerOffsetManagerV2.queryPullOffset(group, topic, queueId));
     }
@@ -157,7 +168,10 @@ public class ConsumerOffsetManagerV2Test {
         Assert.assertEquals(queueOffset, consumerOffsetManagerV2.queryOffset(group, topic2, queueId));
 
         configStorage.shutdown();
+
+        configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
+        consumerOffsetManagerV2 = new ConsumerOffsetManagerV2(controller, configStorage);
         consumerOffsetManagerV2.load();
         Assert.assertEquals(-1L, consumerOffsetManagerV2.queryOffset(group, topic, queueId));
         Assert.assertEquals(queueOffset, consumerOffsetManagerV2.queryOffset(group, topic2, queueId));
@@ -184,7 +198,10 @@ public class ConsumerOffsetManagerV2Test {
         Assert.assertEquals(-1L, consumerOffsetManagerV2.queryOffset(group, topic2, queueId));
 
         configStorage.shutdown();
+
+        configStorage = new ConfigStorage(messageStoreConfig);
         configStorage.start();
+        consumerOffsetManagerV2 = new ConsumerOffsetManagerV2(controller, configStorage);
         consumerOffsetManagerV2.load();
         Assert.assertEquals(-1L, consumerOffsetManagerV2.queryOffset(group, topic, queueId));
         Assert.assertEquals(-1L, consumerOffsetManagerV2.queryOffset(group, topic2, queueId));

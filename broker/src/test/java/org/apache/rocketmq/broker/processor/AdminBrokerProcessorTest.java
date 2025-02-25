@@ -48,6 +48,7 @@ import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.TopicFilterType;
 import org.apache.rocketmq.common.TopicQueueId;
 import org.apache.rocketmq.common.action.Action;
+import org.apache.rocketmq.common.attribute.AttributeParser;
 import org.apache.rocketmq.common.constant.FIleReadaheadMode;
 import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
@@ -316,7 +317,7 @@ public class AdminBrokerProcessorTest {
         for (String topic : systemTopicSet) {
             RemotingCommand request = buildCreateTopicRequest(topic);
             RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-            assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+            assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
             assertThat(response.getRemark()).isEqualTo("The topic[" + topic + "] is conflict with system topic.");
         }
 
@@ -324,10 +325,23 @@ public class AdminBrokerProcessorTest {
         String topic = "";
         RemotingCommand request = buildCreateTopicRequest(topic);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
 
         topic = "TEST_CREATE_TOPIC";
         request = buildCreateTopicRequest(topic);
+        response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        // test deny MIXED topic type
+        brokerController.getBrokerConfig().setEnableMixedMessageType(false);
+        topic = "TEST_MIXED_TYPE";
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("+message.type", "MIXED");
+        request = buildCreateTopicRequest(topic, attributes);
+        response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        // test allow MIXED topic type
+        brokerController.getBrokerConfig().setEnableMixedMessageType(true);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -337,14 +351,14 @@ public class AdminBrokerProcessorTest {
         List<String> systemTopicList = new ArrayList<>(systemTopicSet);
         RemotingCommand request = buildCreateTopicListRequest(systemTopicList);
         RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
         assertThat(response.getRemark()).isEqualTo("The topic[" + systemTopicList.get(0) + "] is conflict with system topic.");
 
         List<String> inValidTopicList = new ArrayList<>();
         inValidTopicList.add("");
         request = buildCreateTopicListRequest(inValidTopicList);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
 
         List<String> topicList = new ArrayList<>();
         topicList.add("TEST_CREATE_TOPIC");
@@ -353,6 +367,20 @@ public class AdminBrokerProcessorTest {
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
         //test no changes
+        response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
+
+        // test deny MIXED topic type
+        brokerController.getBrokerConfig().setEnableMixedMessageType(false);
+        topicList.add("TEST_MIXED_TYPE");
+        topicList.add("TEST_MIXED_TYPE1");
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("+message.type", "MIXED");
+        request = buildCreateTopicListRequest(topicList, attributes);
+        response = adminBrokerProcessor.processRequest(handlerContext, request);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
+        // test allow MIXED topic type
+        brokerController.getBrokerConfig().setEnableMixedMessageType(true);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
         assertThat(response.getCode()).isEqualTo(ResponseCode.SUCCESS);
     }
@@ -372,7 +400,7 @@ public class AdminBrokerProcessorTest {
         for (String topic : systemTopicSet) {
             RemotingCommand request = buildDeleteTopicRequest(topic);
             RemotingCommand response = adminBrokerProcessor.processRequest(handlerContext, request);
-            assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+            assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
             assertThat(response.getRemark()).isEqualTo("The topic[" + topic + "] is conflict with system topic.");
         }
 
@@ -1037,7 +1065,7 @@ public class AdminBrokerProcessorTest {
         extfields.put(FIleReadaheadMode.READ_AHEAD_MODE, String.valueOf(LibC.MADV_DONTNEED));
         request.setExtFields(extfields);
         response = adminBrokerProcessor.processRequest(handlerContext, request);
-        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getCode()).isEqualTo(ResponseCode.INVALID_PARAMETER);
 
         extfields.clear();
         extfields.put(FIleReadaheadMode.READ_AHEAD_MODE, String.valueOf(LibC.MADV_NORMAL));
@@ -1312,18 +1340,29 @@ public class AdminBrokerProcessorTest {
     }
 
     private RemotingCommand buildCreateTopicRequest(String topic) {
+        return buildCreateTopicRequest(topic, null);
+    }
+
+    private RemotingCommand buildCreateTopicRequest(String topic, Map<String, String> attributes) {
         CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
         requestHeader.setTopic(topic);
         requestHeader.setTopicFilterType(TopicFilterType.SINGLE_TAG.name());
         requestHeader.setReadQueueNums(8);
         requestHeader.setWriteQueueNums(8);
         requestHeader.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
+        if (attributes != null) {
+            requestHeader.setAttributes(AttributeParser.parseToString(attributes));
+        }
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC, requestHeader);
         request.makeCustomHeaderToNet();
         return request;
     }
 
     private RemotingCommand buildCreateTopicListRequest(List<String> topicList) {
+        return buildCreateTopicListRequest(topicList, null);
+    }
+
+    private RemotingCommand buildCreateTopicListRequest(List<String> topicList, Map<String, String> attributes) {
         List<TopicConfig> topicConfigList = new ArrayList<>();
         for (String topic:topicList) {
             TopicConfig topicConfig = new TopicConfig(topic);
@@ -1333,6 +1372,9 @@ public class AdminBrokerProcessorTest {
             topicConfig.setPerm(PermName.PERM_READ | PermName.PERM_WRITE);
             topicConfig.setTopicSysFlag(0);
             topicConfig.setOrder(false);
+            if (attributes != null) {
+                topicConfig.setAttributes(new HashMap<>(attributes));
+            }
             topicConfigList.add(topicConfig);
         }
         RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC_LIST, null);

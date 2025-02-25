@@ -17,12 +17,14 @@
 package org.apache.rocketmq.tieredstore.file;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -51,14 +53,13 @@ public class FlatMessageFile implements FlatFileInterface {
 
     protected final String filePath;
     protected final ReentrantLock fileLock;
+    protected final Semaphore commitLock = new Semaphore(1);
     protected final MessageStoreConfig storeConfig;
     protected final MetadataStore metadataStore;
     protected final FlatCommitLogFile commitLog;
     protected final FlatConsumeQueueFile consumeQueue;
     protected final AtomicLong lastDestroyTime;
 
-    protected final List<SelectMappedBufferResult> bufferResultList;
-    protected final List<DispatchRequest> dispatchRequestList;
     protected final ConcurrentMap<String, CompletableFuture<?>> inFlightRequestMap;
 
     public FlatMessageFile(FlatFileFactory fileFactory, String topic, int queueId) {
@@ -76,8 +77,6 @@ public class FlatMessageFile implements FlatFileInterface {
         this.commitLog = fileFactory.createFlatFileForCommitLog(filePath);
         this.consumeQueue = fileFactory.createFlatFileForConsumeQueue(filePath);
         this.lastDestroyTime = new AtomicLong();
-        this.bufferResultList = new ArrayList<>();
-        this.dispatchRequestList = new ArrayList<>();
         this.inFlightRequestMap = new ConcurrentHashMap<>();
     }
 
@@ -127,6 +126,11 @@ public class FlatMessageFile implements FlatFileInterface {
         return this.fileLock;
     }
 
+    @VisibleForTesting
+    public Semaphore getCommitLock() {
+        return commitLock;
+    }
+
     @Override
     public boolean rollingFile(long interval) {
         return this.commitLog.tryRollingFile(interval);
@@ -156,7 +160,6 @@ public class FlatMessageFile implements FlatFileInterface {
         if (closed) {
             return AppendResult.FILE_CLOSED;
         }
-        this.bufferResultList.add(message);
         return this.appendCommitLog(message.getByteBuffer());
     }
 
@@ -172,29 +175,14 @@ public class FlatMessageFile implements FlatFileInterface {
         buffer.putLong(request.getTagsCode());
         buffer.flip();
 
-        this.dispatchRequestList.add(request);
         return consumeQueue.append(buffer, request.getStoreTimestamp());
     }
 
-    @Override
-    public List<DispatchRequest> getDispatchRequestList() {
-        return dispatchRequestList;
-    }
+
 
     @Override
     public void release() {
-        for (SelectMappedBufferResult bufferResult : bufferResultList) {
-            bufferResult.release();
-        }
 
-        if (queueMetadata != null) {
-            log.trace("FlatMessageFile release, topic={}, queueId={}, bufferSize={}, requestListSize={}",
-                queueMetadata.getQueue().getTopic(), queueMetadata.getQueue().getQueueId(),
-                bufferResultList.size(), dispatchRequestList.size());
-        }
-
-        bufferResultList.clear();
-        dispatchRequestList.clear();
     }
 
     @Override
@@ -246,13 +234,18 @@ public class FlatMessageFile implements FlatFileInterface {
 
     @Override
     public CompletableFuture<Boolean> commitAsync() {
+        // acquire lock
+        if (commitLock.drainPermits() <= 0) {
+            return CompletableFuture.completedFuture(false);
+        }
+
         return this.commitLog.commitAsync()
             .thenCompose(result -> {
                 if (result) {
                     return consumeQueue.commitAsync();
                 }
                 return CompletableFuture.completedFuture(false);
-            });
+            }).whenComplete((result, throwable) -> commitLock.release());
     }
 
     @Override
@@ -361,6 +354,11 @@ public class FlatMessageFile implements FlatFileInterface {
             return false;
         }
         return StringUtils.equals(filePath, ((FlatMessageFile) obj).filePath);
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed;
     }
 
     @Override

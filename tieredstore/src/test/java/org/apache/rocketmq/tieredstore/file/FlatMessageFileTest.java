@@ -216,4 +216,12 @@ public class FlatMessageFileTest {
 
         flatFile.destroy();
     }
+
+    @Test
+    public void testCommitLock() {
+        String topic = "CommitLogTest";
+        FlatMessageFile flatFile = new FlatMessageFile(flatFileFactory, topic, 0);
+        flatFile.getCommitLock().drainPermits();
+        Assert.assertFalse(flatFile.commitAsync().join());
+    }
 }

@@ -19,9 +19,7 @@
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <layout class="ch.qos.logback.classic.PatternLayout">
-            <Pattern>
-                %d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n
-            </Pattern>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
         </layout>
     </appender>
 
@@ -29,7 +27,10 @@
         <appender-ref ref="CONSOLE"/>
     </logger>
 
-    <root level="error">
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS,GMT+8} ${LOG_LEVEL_PATTERN:-%5p} [%20.20logger{39}] [%30.30t] %m%n"/>
+
+    <root level="info">
         <appender-ref ref="CONSOLE"/>
     </root>
 

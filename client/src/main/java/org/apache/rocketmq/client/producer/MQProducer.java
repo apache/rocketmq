@@ -113,6 +113,9 @@ public interface MQProducer extends MQAdmin {
         final long timeout) throws MQClientException,
         RemotingException, MQBrokerException, InterruptedException;
 
+    String recallMessage(String topic, String recallHandle)
+        throws MQClientException, RemotingException, MQBrokerException, InterruptedException;
+
     //for rpc
     Message request(final Message msg, final long timeout) throws RequestTimeoutException, MQClientException,
         RemotingException, MQBrokerException, InterruptedException;

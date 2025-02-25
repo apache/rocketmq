@@ -30,12 +30,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.common.BoundaryType;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
+import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.ThreadFactoryImpl;
 import org.apache.rocketmq.common.constant.LoggerName;
 import org.apache.rocketmq.common.message.MessageConst;
@@ -84,6 +86,10 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     private final OffsetInitializer offsetInitializer;
 
+    private final RocksGroupCommitService groupCommitService;
+
+    private final AtomicReference<ServiceState> serviceState = new AtomicReference<>(ServiceState.CREATE_JUST);
+
     public RocksDBConsumeQueueStore(DefaultMessageStore messageStore) {
         super(messageStore);
 
@@ -93,6 +99,7 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         this.rocksDBConsumeQueueOffsetTable = new RocksDBConsumeQueueOffsetTable(rocksDBConsumeQueueTable, rocksDBStorage, messageStore);
 
         this.offsetInitializer = new OffsetInitializerRocksDBImpl(this);
+        this.groupCommitService = new RocksGroupCommitService(this);
         this.cqBBPairList = new ArrayList<>(16);
         this.offsetBBPairList = new ArrayList<>(DEFAULT_BYTE_BUFFER_CAPACITY);
         for (int i = 0; i < DEFAULT_BYTE_BUFFER_CAPACITY; i++) {
@@ -123,14 +130,17 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public void start() {
-        log.info("RocksDB ConsumeQueueStore start!");
-        this.scheduledExecutorService.scheduleAtFixedRate(() -> {
-            this.rocksDBStorage.statRocksdb(ROCKSDB_LOG);
-        }, 10, this.messageStoreConfig.getStatRocksDBCQIntervalSec(), TimeUnit.SECONDS);
+        if (serviceState.compareAndSet(ServiceState.CREATE_JUST, ServiceState.RUNNING)) {
+            log.info("RocksDB ConsumeQueueStore start!");
+            this.groupCommitService.start();
+            this.scheduledExecutorService.scheduleAtFixedRate(() -> {
+                this.rocksDBStorage.statRocksdb(ROCKSDB_LOG);
+            }, 10, this.messageStoreConfig.getStatRocksDBCQIntervalSec(), TimeUnit.SECONDS);
 
-        this.scheduledExecutorService.scheduleWithFixedDelay(() -> {
-            cleanDirty(messageStore.getTopicConfigs().keySet());
-        }, 10, this.messageStoreConfig.getCleanRocksDBDirtyCQIntervalMin(), TimeUnit.MINUTES);
+            this.scheduledExecutorService.scheduleWithFixedDelay(() -> {
+                cleanDirty(messageStore.getTopicConfigs().keySet());
+            }, 10, this.messageStoreConfig.getCleanRocksDBDirtyCQIntervalMin(), TimeUnit.MINUTES);
+        }
     }
 
     private void cleanDirty(final Set<String> existTopicSet) {
@@ -165,18 +175,23 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
 
     @Override
     public void recover() {
-        // ignored
+        start();
     }
 
     @Override
     public boolean recoverConcurrently() {
+        start();
         return true;
     }
 
     @Override
     public boolean shutdown() {
-        this.scheduledExecutorService.shutdown();
-        return shutdownInner();
+        if (serviceState.compareAndSet(ServiceState.RUNNING, ServiceState.SHUTDOWN_ALREADY)) {
+            this.groupCommitService.shutdown();
+            this.scheduledExecutorService.shutdown();
+            return shutdownInner();
+        }
+        return true;
     }
 
     private boolean shutdownInner() {
@@ -188,23 +203,25 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         if (null == request) {
             return;
         }
-        // We are taking advantage of Atomic Flush, this operation is purely memory-based.
-        // batch and cache in Java heap does not make sense, instead, we should put the metadata into RocksDB immediately
-        // to optimized overall end-to-end latency.
-        putMessagePosition(request);
+
+        try {
+            groupCommitService.putRequest(request);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
-    public void putMessagePosition(DispatchRequest request) throws RocksDBException {
+    public void putMessagePosition(List<DispatchRequest> requests) throws RocksDBException {
         final int maxRetries = 30;
         for (int i = 0; i < maxRetries; i++) {
-            if (putMessagePosition0(request)) {
+            if (putMessagePosition0(requests)) {
                 if (this.isCQError) {
                     this.messageStore.getRunningFlags().clearLogicsQueueError();
                     this.isCQError = false;
                 }
                 return;
             } else {
-                ERROR_LOG.warn("{} put cq Failed. retryTime: {}", i);
+                ERROR_LOG.warn("Put cq Failed. retryTime: {}", i);
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException ignored) {
@@ -219,34 +236,43 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         throw new RocksDBException("put CQ Failed");
     }
 
-    private boolean putMessagePosition0(DispatchRequest request) {
+    private boolean putMessagePosition0(List<DispatchRequest> requests) {
         if (!this.rocksDBStorage.hold()) {
             return false;
         }
 
         try (WriteBatch writeBatch = new WriteBatch()) {
+            final int size = requests.size();
+            if (size == 0) {
+                return true;
+            }
             long maxPhyOffset = 0;
-            DispatchEntry entry = DispatchEntry.from(request);
-            dispatch(entry, writeBatch);
-            dispatchLMQ(request, writeBatch);
+            for (int i = size - 1; i >= 0; i--) {
+                final DispatchRequest request = requests.get(i);
+                DispatchEntry entry = DispatchEntry.from(request);
+                dispatch(entry, writeBatch);
+                dispatchLMQ(request, writeBatch);
 
-            final int msgSize = request.getMsgSize();
-            final long phyOffset = request.getCommitLogOffset();
-            if (phyOffset + msgSize >= maxPhyOffset) {
-                maxPhyOffset = phyOffset + msgSize;
+                final int msgSize = request.getMsgSize();
+                final long phyOffset = request.getCommitLogOffset();
+                if (phyOffset + msgSize >= maxPhyOffset) {
+                    maxPhyOffset = phyOffset + msgSize;
+                }
             }
 
             this.rocksDBConsumeQueueOffsetTable.putMaxPhyAndCqOffset(tempTopicQueueMaxOffsetMap, writeBatch, maxPhyOffset);
 
             this.rocksDBStorage.batchPut(writeBatch);
+
             this.rocksDBConsumeQueueOffsetTable.putHeapMaxCqOffset(tempTopicQueueMaxOffsetMap);
-            long storeTimeStamp = request.getStoreTimestamp();
+
+            long storeTimeStamp = requests.get(size - 1).getStoreTimestamp();
             if (this.messageStore.getMessageStoreConfig().getBrokerRole() == BrokerRole.SLAVE
                 || this.messageStore.getMessageStoreConfig().isEnableDLegerCommitLog()) {
                 this.messageStore.getStoreCheckpoint().setPhysicMsgTimestamp(storeTimeStamp);
             }
             this.messageStore.getStoreCheckpoint().setLogicsMsgTimestamp(storeTimeStamp);
-            notifyMessageArrival(request);
+            notifyMessageArriveAndClear(requests);
             return true;
         } catch (Exception e) {
             ERROR_LOG.error("putMessagePosition0 failed.", e);
@@ -311,9 +337,12 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
         }
     }
 
-    private void notifyMessageArrival(DispatchRequest request) {
+    private void notifyMessageArriveAndClear(List<DispatchRequest> requests) {
         try {
-            this.messageStore.notifyMessageArriveIfNecessary(request);
+            for (DispatchRequest dp : requests) {
+                this.messageStore.notifyMessageArriveIfNecessary(dp);
+            }
+            requests.clear();
         } catch (Exception e) {
             ERROR_LOG.error("notifyMessageArriveAndClear Failed.", e);
         }
@@ -480,7 +509,13 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
     public ConsumeQueueInterface findOrCreateConsumeQueue(String topic, int queueId) {
         ConcurrentMap<Integer, ConsumeQueueInterface> map = this.consumeQueueTable.get(topic);
         if (null == map) {
-            ConcurrentMap<Integer, ConsumeQueueInterface> newMap = new ConcurrentHashMap<>(128);
+            ConcurrentMap<Integer, ConsumeQueueInterface> newMap;
+            if (MixAll.isLmq(topic)) {
+                // For LMQ, no need to over allocate internal hashtable
+                newMap = new ConcurrentHashMap<>(1, 1.0F);
+            } else {
+                newMap = new ConcurrentHashMap<>(8);
+            }
             ConcurrentMap<Integer, ConsumeQueueInterface> oldMap = this.consumeQueueTable.putIfAbsent(topic, newMap);
             if (oldMap != null) {
                 map = oldMap;
@@ -531,5 +566,9 @@ public class RocksDBConsumeQueueStore extends AbstractConsumeQueueStore {
             return getLmqQueueOffset(topic, queueId);
         }
         return super.getMaxOffset(topic, queueId);
+    }
+
+    public boolean isStopped() {
+        return ServiceState.SHUTDOWN_ALREADY == serviceState.get();
     }
 }

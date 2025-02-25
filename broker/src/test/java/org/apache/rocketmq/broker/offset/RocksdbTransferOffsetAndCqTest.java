@@ -23,11 +23,11 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections.MapUtils;
 import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.broker.config.v1.RocksDBConsumerOffsetManager;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.Pair;
 import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.store.DefaultMessageStore;
@@ -38,6 +38,7 @@ import org.apache.rocketmq.store.queue.ConsumeQueueInterface;
 import org.apache.rocketmq.store.queue.ConsumeQueueStoreInterface;
 import org.apache.rocketmq.store.queue.CqUnit;
 import org.apache.rocketmq.store.stats.BrokerStatsManager;
+import org.awaitility.Awaitility;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -135,6 +136,7 @@ public class RocksdbTransferOffsetAndCqTest {
         }
         RocksDBMessageStore kvStore = defaultMessageStore.getRocksDBMessageStore();
         ConsumeQueueStoreInterface store = kvStore.getConsumeQueueStore();
+        store.start();
         ConsumeQueueInterface rocksdbCq = defaultMessageStore.getRocksDBMessageStore().findConsumeQueue(topic, queueId);
         ConsumeQueueInterface fileCq = defaultMessageStore.findConsumeQueue(topic, queueId);
         for (int i = 0; i < 200; i++) {
@@ -142,13 +144,21 @@ public class RocksdbTransferOffsetAndCqTest {
             fileCq.putMessagePositionInfoWrapper(request);
             store.putMessagePositionInfoWrapper(request);
         }
+        Awaitility.await()
+            .pollInterval(100, TimeUnit.MILLISECONDS)
+            .atMost(3, TimeUnit.SECONDS)
+            .until(() -> rocksdbCq.getMaxOffsetInQueue() == 200);
         Pair<CqUnit, Long> unit = rocksdbCq.getCqUnitAndStoreTime(100);
         Pair<CqUnit, Long> unit1 = fileCq.getCqUnitAndStoreTime(100);
-        Assert.assertTrue(unit.getObject1().getPos() == unit1.getObject1().getPos());
+        Assert.assertEquals(unit.getObject1().getPos(), unit1.getObject1().getPos());
     }
 
+    /**
+     * No need to skip macOS platform.
+     * @return true if some platform is NOT a good fit for this test case.
+     */
     private boolean notToBeExecuted() {
-        return MixAll.isMac();
+        return false;
     }
 
 }
