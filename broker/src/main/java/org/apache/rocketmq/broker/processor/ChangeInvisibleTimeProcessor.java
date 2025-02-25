@@ -130,7 +130,7 @@ public class ChangeInvisibleTimeProcessor implements NettyRequestProcessor {
         } catch (ConsumeQueueException e) {
             throw new RemotingCommandException("Failed to get max consume offset", e);
         }
-        if (requestHeader.getOffset() < minOffset || requestHeader.getOffset() > maxOffset) {
+        if (requestHeader.getOffset() < minOffset || requestHeader.getOffset() >= maxOffset) {
             response.setCode(ResponseCode.NO_MESSAGE);
             return CompletableFuture.completedFuture(response);
         }
